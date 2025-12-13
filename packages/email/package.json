@@ -6,7 +6,7 @@
     "@react-email/render": "^1.0.5",
     "@react-email/tailwind": "^1.0.4",
     "effect": "catalog:",
-    "react": "^19.1.1",
+    "react": "^19.2.3",
     "react-email": "^3.0.7",
     "resend": "^4.8.0"
   },

@@ -4,7 +4,7 @@ import { DrizzleClient } from "@blikka/db"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { EmailService, MagicLinkEmail, magicLinkEmailSubject, OTPEmail } from "@blikka/email"
 import { nextCookies } from "better-auth/next-js"
-import { emailOTP, magicLink } from "better-auth/plugins"
+import { bearer, emailOTP, magicLink } from "better-auth/plugins"
 
 export class AuthConfig extends Context.Tag("AuthConfig")<
   AuthConfig,
@@ -19,7 +19,7 @@ export class AuthConfig extends Context.Tag("AuthConfig")<
 >() {}
 
 const isProduction = process.env.NODE_ENV === "production"
-const rootDomain = process.env.BLIKKA_PRODUCTION_URL || "localhost:3002"
+const rootDomain = isProduction ? process.env.BLIKKA_PRODUCTION_URL : "localhost:3002"
 export class BetterAuthService extends Effect.Service<BetterAuthService>()(
   "@blikka/auth/better-auth-service",
   {
@@ -45,6 +45,12 @@ export class BetterAuthService extends Effect.Service<BetterAuthService>()(
           defaultCookieAttributes: {
             secure: isProduction,
             sameSite: "lax",
+          },
+        },
+        session: {
+          cookieCache: {
+            enabled: true,
+            maxAge: 60 * 60 * 2,
           },
         },
         plugins: [
@@ -78,6 +84,7 @@ export class BetterAuthService extends Effect.Service<BetterAuthService>()(
               }
             },
           }),
+          bearer(),
           nextCookies(),
         ],
       } satisfies BetterAuthOptions

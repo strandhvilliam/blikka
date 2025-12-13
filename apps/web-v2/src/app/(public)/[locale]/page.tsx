@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server"
 import { LocaleSwitcher } from "./locale-switcher"
 import { Effect } from "effect"
-import { Page } from "@/lib/runtime"
+import { Page } from "@/lib/next-utils"
 
 const _HomePage = Effect.fn("@blikka/web/HomePage")(
   function* () {

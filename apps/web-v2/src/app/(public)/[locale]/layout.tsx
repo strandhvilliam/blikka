@@ -3,8 +3,7 @@ import { NextIntlClientProvider } from "next-intl"
 import Document from "@/components/document"
 import { LOCALES } from "@/config"
 import { Effect, Schema } from "effect"
-import { Layout } from "@/lib/runtime"
-import { decodeParams } from "@/lib/utils"
+import { Layout, decodeParams } from "@/lib/next-utils"
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }))
@@ -19,11 +18,7 @@ const _LocaleLayout = Effect.fn("@blikka/web/LocaleLayout")(
     const { locale } = yield* decodeParams(Schema.Struct({ locale: Schema.String }))(params)
     return (
       <Document locale={locale}>
-        <NextIntlClientProvider>
-          <div className="m-auto max-w-240 p-4">
-            <div className="-mx-4 min-h-[200px] bg-slate-100 p-4">{children}</div>
-          </div>
-        </NextIntlClientProvider>
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </Document>
     )
   },
@@ -31,3 +26,11 @@ const _LocaleLayout = Effect.fn("@blikka/web/LocaleLayout")(
 )
 
 export default Layout(_LocaleLayout)
+
+// export default function LayoutWithSuspense(props: LayoutProps<"/[locale]">) {
+//   return (
+//     <Suspense fallback={<Loading />}>
+//       <LocaleLayout {...props} />
+//     </Suspense>
+//   )
+// }

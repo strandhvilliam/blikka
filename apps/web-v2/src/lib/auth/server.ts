@@ -28,8 +28,6 @@ export const getAppSession = Effect.fnUntraced(
       })
     )
 
-    console.log("session", session)
-
     return Option.fromNullable<Session | null>(session)
   },
   Effect.tapError((error) => Effect.logError(error.message)),

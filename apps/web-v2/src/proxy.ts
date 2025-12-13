@@ -40,15 +40,19 @@ export async function proxy(request: NextRequest) {
   const subdomain = extractSubdomain(request)
 
   if (subdomain) {
-    // For the root path on a subdomain, rewrite to the subdomain page
-    if (pathname === "/") {
-      console.log("rewrite to", `/marathon/${subdomain}`)
-      return NextResponse.rewrite(new URL(`/marathon/${subdomain}`, request.url))
+    // For the root path on a subdomain, rewrite to the subdomain page for admin and live
+    if (pathname.includes("/admin")) {
+      console.log("rewrite to", `/admin/${subdomain}`)
+      return NextResponse.rewrite(new URL(`/admin/${subdomain}`, request.url))
+    }
+    if (pathname.includes("/live")) {
+      console.log("rewrite to", `/live/${subdomain}`)
+      return NextResponse.rewrite(new URL(`/live/${subdomain}`, request.url))
     }
   }
 
   // for the domain selector
-  if (pathname.startsWith("/marathon")) {
+  if (pathname.startsWith("/admin")) {
     return NextResponse.next()
   }
 

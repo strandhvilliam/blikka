@@ -4,5 +4,14 @@
   },
   "DomainPage": {
     "welcome": "Welcome to the domain"
+  },
+  "MarathonPage": {
+    "selectMarathon": "Select Marathon",
+    "chooseMarathonDomain": "Choose a marathon domain to continue",
+    "noMarathonsAvailable": "No marathons available",
+    "noMarathonsTitle": "No marathons found",
+    "noMarathonsDescription": "You don't have access to any marathons yet. Contact an administrator to get access.",
+    "domain": "Domain",
+    "selectDomain": "Select Domain"
   }
 }

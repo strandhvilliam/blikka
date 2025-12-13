@@ -4,5 +4,14 @@
   },
   "DomainPage": {
     "welcome": "Välkommen till domänen"
+  },
+  "MarathonPage": {
+    "selectMarathon": "Välj maraton",
+    "chooseMarathonDomain": "Välj en maratondomän för att fortsätta",
+    "noMarathonsAvailable": "Inga maraton tillgängliga",
+    "noMarathonsTitle": "Inga maraton hittades",
+    "noMarathonsDescription": "Du har inte tillgång till några maraton ännu. Kontakta en administratör för att få tillgång.",
+    "domain": "Domän",
+    "selectDomain": "Välj domän"
   }
 }

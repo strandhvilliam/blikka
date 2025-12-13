@@ -1,7 +1,7 @@
 "use server"
 
 import { Auth } from "@/lib/auth/server"
-import { Action, toActionResponse } from "@/lib/runtime"
+import { Action, toActionResponse } from "@/lib/next-utils"
 import { Data, Effect } from "effect"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
@@ -39,4 +39,5 @@ const _verifyAction = Effect.fn("@blikka/web/verifyAction")(function* ({
   redirect("/marathon/")
 }, toActionResponse)
 
-export const verifyAction = Action(_verifyAction)
+export const verifyAction = async (input: { email: string; otp: string }) =>
+  Action(_verifyAction)(input)

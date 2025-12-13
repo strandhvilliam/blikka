@@ -23,7 +23,7 @@ export const getLocale = Effect.fnUntraced(
   Effect.catchAll(() => Effect.succeed(DEFAULT_LOCALE))
 )
 
-export const getTranslations = Effect.fnUntraced(function* (namespace: string) {
+export const getTranslations = Effect.fnUntraced(function* (namespace?: string) {
   return yield* Effect.tryPromise({
     try: () => getTranslationsServer(namespace),
     catch: (error) =>

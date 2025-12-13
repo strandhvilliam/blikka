@@ -18,6 +18,11 @@ export default $config({
       DEV_DATABASE_HOST: process.env.DEV_DATABASE_HOST!,
       DEV_DATABASE_PORT: process.env.DEV_DATABASE_PORT!,
       DEV_DATABASE_NAME: process.env.DEV_DATABASE_NAME!,
+      DATABASE_URL: process.env.DATABASE_URL!,
+      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET!,
+      BETTER_AUTH_URL: process.env.BETTER_AUTH_URL!,
+      BLIKKA_PRODUCTION_URL: process.env.BLIKKA_PRODUCTION_URL!,
+      RESEND_API_KEY: process.env.RESEND_API_KEY!,
     }
 
     /* BUCKETS */
@@ -139,11 +144,11 @@ export default $config({
       link: [submissionFinalizedBus],
     })
 
-    const api = new sst.aws.Function("Api", {
-      handler: "./apps/api-v2/src/index.handler",
-      url: true,
-      environment: env,
-    })
+    // const api = new sst.aws.Function("Api", {
+    //   handler: "./apps/api-v2/src/index.handler",
+    //   url: true,
+    //   environment: env,
+    // })
 
     return {
       devCaller: devCallerFn.url,

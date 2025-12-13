@@ -1,7 +1,7 @@
 "use server"
 
 import { Auth } from "@/lib/auth/server"
-import { Action, toActionResponse } from "@/lib/runtime"
+import { Action, toActionResponse } from "@/lib/next-utils"
 import { Data, Effect } from "effect"
 import { headers } from "next/headers"
 

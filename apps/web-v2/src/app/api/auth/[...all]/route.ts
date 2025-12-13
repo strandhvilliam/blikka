@@ -1,5 +1,5 @@
 import { Auth } from "@/lib/auth/server"
-import { Route } from "@/lib/runtime"
+import { Route } from "@/lib/next-utils"
 import { Effect } from "effect"
 import { NextRequest } from "next/server"
 

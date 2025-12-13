@@ -5,7 +5,6 @@ import { useState } from "react"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { createTRPCClient, httpBatchStreamLink, loggerLink } from "@trpc/client"
 import { createTRPCContext } from "@trpc/tanstack-react-query"
-import SuperJSON from "superjson"
 
 import type { AppRouter } from "@blikka/api-v2/trpc/routers/_app"
 
@@ -14,10 +13,8 @@ import { createQueryClient } from "./query-client"
 let clientQueryClientSingleton: QueryClient | undefined = undefined
 const getQueryClient = () => {
   if (typeof window === "undefined") {
-    // Server: always make a new query client
     return createQueryClient()
   } else {
-    // Browser: use singleton pattern to keep the same query client
     return (clientQueryClientSingleton ??= createQueryClient())
   }
 }
@@ -36,10 +33,10 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
             (op.direction === "down" && op.result instanceof Error),
         }),
         httpBatchStreamLink({
-          url: getBaseUrl() + "/trpc",
-          headers() {
+          url: getBaseUrl() + "/api/trpc",
+          async headers() {
             const headers = new Headers()
-            headers.set("x-trpc-source", "nextjs-react")
+            headers.set("x-trpc-source", "blikka-web-client")
             return headers
           },
         }),
@@ -57,6 +54,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 }
 
 const getBaseUrl = () => {
-  //   if (typeof window !== "undefined") return window.location.origin
-  return `https://ahjtvn7n4ujnjwzptczktatuh40aefbq.lambda-url.eu-north-1.on.aws`
+  if (typeof window !== "undefined") return window.location.origin
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return `http://localhost:${process.env.PORT ?? 3000}`
 }

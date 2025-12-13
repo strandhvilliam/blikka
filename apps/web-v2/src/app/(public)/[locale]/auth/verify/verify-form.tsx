@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
-import { authClient } from "@/lib/auth/client"
 import { verifyAction } from "./verify-action"
 
 interface VerifyFormProps {
@@ -18,7 +17,6 @@ interface VerifyFormProps {
 }
 
 export function VerifyForm({ email, className }: VerifyFormProps) {
-  const router = useRouter()
   const [otp, setOtp] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)

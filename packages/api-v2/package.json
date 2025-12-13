@@ -4,11 +4,15 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "@blikka/auth": "workspace:*",
     "@blikka/db": "workspace:*",
+    "@blikka/email": "workspace:*",
     "@hono/trpc-server": "^0.4.0",
     "@trpc/server": "^11.7.1",
+    "@upstash/redis": "^1.35.7",
     "effect": "catalog:",
-    "hono": "^4.10.6"
+    "hono": "^4.10.6",
+    "jose": "^6.1.3"
   },
   "devDependencies": {
     "@types/bun": "latest"

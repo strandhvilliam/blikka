@@ -1,45 +1,80 @@
+import "server-only"
+
 import type { TRPCQueryOptions } from "@trpc/tanstack-react-query"
 import { cache } from "react"
 import { headers } from "next/headers"
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
+import { createTRPCProxyClient, httpBatchLink } from "@trpc/client"
+import { Data, Effect } from "effect"
 
-import type { AppRouter } from "@blikka/api-v2/trpc/routers/_app"
-import { appRouter } from "@blikka/api-v2/trpc/routers/_app"
-import { createTRPCContext } from "@blikka/api-v2/trpc/trpc"
-
+import { appRouter, type AppRouter } from "@blikka/api-v2/trpc/routers/_app"
 import { createQueryClient } from "./query-client"
+import { createTRPCContext } from "@blikka/api-v2/trpc"
+import { serverRuntime } from "../runtime"
 
-/**
- * This wraps the `createTRPCContext` helper and provides the required context for the tRPC API when
- * handling a tRPC call from a React Server Component.
- */
+export class TRPCServerError extends Data.TaggedError("TRPCClientError")<{
+  message: string
+  cause?: unknown
+}> {}
+
+export const getQueryClient = cache(createQueryClient)
+
 const createContext = cache(async () => {
   const heads = new Headers(await headers())
-  heads.set("x-trpc-source", "rsc")
 
-  return createTRPCContext()
+  return createTRPCContext({
+    headers: heads,
+    runtime: serverRuntime,
+  })
 })
 
-const getQueryClient = cache(createQueryClient)
-
 export const trpc = createTRPCOptionsProxy<AppRouter>({
+  queryClient: getQueryClient,
   router: appRouter,
   ctx: createContext,
-  queryClient: getQueryClient,
 })
 
 export function HydrateClient(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient()
   return <HydrationBoundary state={dehydrate(queryClient)}>{props.children}</HydrationBoundary>
 }
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(queryOptions: T) {
   const queryClient = getQueryClient()
   if (queryOptions.queryKey[1]?.type === "infinite") {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     void queryClient.prefetchInfiniteQuery(queryOptions as any)
   } else {
     void queryClient.prefetchQuery(queryOptions)
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(queryOptionsArray: T[]) {
+  const queryClient = getQueryClient()
+
+  for (const queryOptions of queryOptionsArray) {
+    if (queryOptions.queryKey[1]?.type === "infinite") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      void queryClient.prefetchInfiniteQuery(queryOptions as any)
+    } else {
+      void queryClient.prefetchQuery(queryOptions)
+    }
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function fetchEffectQuery<T extends ReturnType<TRPCQueryOptions<any>>>(queryOptions: T) {
+  const queryClient = getQueryClient()
+
+  return Effect.tryPromise({
+    try: () => queryClient.fetchQuery(queryOptions),
+    catch: (error) =>
+      new TRPCServerError({
+        message: error instanceof Error ? error.message : "TRPC call failed",
+        cause: error,
+      }),
+  })
 }
