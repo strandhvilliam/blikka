@@ -8,7 +8,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.7",
-    "next": "15.4.0-canary.102",
+    "next": "15.6.0-canary.58",
     "server-only": "^0.0.1"
   },
   "devDependencies": {
