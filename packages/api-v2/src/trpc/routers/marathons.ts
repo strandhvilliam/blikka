@@ -7,6 +7,7 @@ export const marathonRouter = createTRPCRouter({
   getUserMarathons: authProcedure.query(
     trpcEffect(
       Effect.fn("MarathonRouter.getUserMarathons")(function* ({ ctx }) {
+        console.log("ctx", ctx)
         const db = yield* Database
         return yield* db.usersQueries.getMarathonsByUserId({ userId: ctx.session.user.id })
       })
