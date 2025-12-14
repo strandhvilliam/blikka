@@ -30,7 +30,9 @@
       "@blikka/db": ["../../packages/db/src"],
       "@blikka/auth": ["../../packages/auth/src"],
       "@blikka/email": ["../../packages/email/src"],
-      "@blikka/redis": ["../../packages/redis/src"]
+      "@blikka/redis": ["../../packages/redis/src"],
+      "@blikka/s3": ["../../packages/s3/src"],
+      "@blikka/kv-store": ["../../packages/kv-store/src"]
     }
   }
 }

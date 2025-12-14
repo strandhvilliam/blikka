@@ -5,8 +5,10 @@
   "private": true,
   "dependencies": {
     "@blikka/auth": "workspace:*",
+    "@blikka/s3": "workspace:*",
     "@blikka/db": "workspace:*",
     "@blikka/email": "workspace:*",
+    "@blikka/kv-store": "workspace:*",
     "@hono/trpc-server": "^0.4.0",
     "@trpc/server": "^11.7.1",
     "@upstash/redis": "^1.35.7",

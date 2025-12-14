@@ -45,10 +45,7 @@ export async function proxy(request: NextRequest) {
       console.log("rewrite to", `/admin/${subdomain}`)
       return NextResponse.rewrite(new URL(`/admin/${subdomain}`, request.url))
     }
-    if (pathname.includes("/live")) {
-      console.log("rewrite to", `/live/${subdomain}`)
-      return NextResponse.rewrite(new URL(`/live/${subdomain}`, request.url))
-    }
+    return NextResponse.rewrite(new URL(`/live/${subdomain}`, request.url))
   }
 
   // for the domain selector
