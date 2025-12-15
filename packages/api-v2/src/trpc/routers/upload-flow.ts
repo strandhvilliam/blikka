@@ -11,6 +11,28 @@ export class InitializeUploadFlowError extends Data.TaggedError("InitializeUploa
 }> {}
 
 export const uploadFlowRouter = createTRPCRouter({
+  getPublicMarathon: publicProcedure
+    .input(Schema.standardSchemaV1(Schema.Struct({ domain: Schema.String })))
+    .query(
+      trpcEffect(
+        Effect.fn("UploadFlowRouter.getPublicMarathon")(function* ({ input }) {
+          //TODO: cache this in redis if marathon has started
+          const db = yield* Database
+          return yield* db.marathonsQueries
+            .getMarathonByDomainWithOptions({
+              domain: input.domain,
+            })
+            .pipe(
+              Effect.andThen(
+                Option.match({
+                  onSome: (marathon) => Effect.succeed(marathon),
+                  onNone: () => new InitializeUploadFlowError({ message: "Marathon not found" }),
+                })
+              )
+            )
+        })
+      )
+    ),
   initializeUploadFlow: publicProcedure
     .input(
       Schema.standardSchemaV1(
@@ -25,7 +47,7 @@ export const uploadFlowRouter = createTRPCRouter({
         })
       )
     )
-    .query(
+    .mutation(
       trpcEffect(
         Effect.fn("UploadFlowRouter.getUploadFlow")(function* ({ input }) {
           const s3 = yield* S3Service
@@ -135,7 +157,7 @@ export const uploadFlowRouter = createTRPCRouter({
             { concurrency: "unbounded" }
           )
 
-          return Array.zip(submissionKeys, presignedUrls).map((key, url) => ({ key, url }))
+          return Array.zip(submissionKeys, presignedUrls).map(([key, url]) => ({ key, url }))
         })
       )
     ),

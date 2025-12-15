@@ -77,8 +77,7 @@ export class UploadFinalizerService extends Effect.Service<UploadFinalizerServic
             ],
             { concurrency: 2 }
           )
-        },
-        Effect.catchAll((error) => Effect.logError("Failed to finalize participant", error))
+        }
       )
 
       return {

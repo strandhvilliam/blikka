@@ -44,7 +44,7 @@ const effectHandler = (event: SQSEvent) =>
 const serviceLayer = Layer.mergeAll(
   ZipWorker.Default,
   UploadKVRepository.Default,
-  TelemetryLayer("blikka-dev-zip-worker")
+  TelemetryLayer("blikka-dev-zip-worker-handler")
 )
 
 export const handler = LambdaHandler.make({

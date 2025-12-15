@@ -9,11 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.948.0",
     "@blikka/api-v2": "workspace:*",
     "@blikka/auth": "workspace:*",
     "@blikka/db": "workspace:*",
     "@blikka/email": "workspace:*",
+    "@blikka/kv-store": "workspace:*",
     "@blikka/pubsub": "workspace:*",
+    "@blikka/s3": "workspace:*",
     "@effect/platform-node": "^0.103.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",

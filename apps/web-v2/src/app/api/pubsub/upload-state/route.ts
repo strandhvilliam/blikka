@@ -1,20 +1,48 @@
 import { Route } from "@/lib/next-utils"
-import { Effect, Stream } from "effect"
+import { Data, Effect, Schema, Stream } from "effect"
 import { PubSubChannel, PubSubService } from "@blikka/pubsub"
 import { NextRequest } from "next/server"
+
+class ValidateParticipantReferenceError extends Data.TaggedError(
+  "ValidateParticipantReferenceError"
+)<{
+  message?: string
+  cause?: unknown
+}> {}
+
+const environment = process.env.NODE_ENV === "production" ? "prod" : "dev"
+
+const ParticipantReferenceSchema = Schema.String.pipe(
+  Schema.length(4),
+  Schema.pattern(/^[0-9a-zA-Z]+$/)
+)
+
+const validateParticipantReference = Effect.fnUntraced(function* (
+  participantReference: string | null
+) {
+  if (!participantReference) {
+    return yield* Effect.fail(
+      new ValidateParticipantReferenceError({ message: "Participant reference is required" })
+    )
+  }
+  return yield* Schema.decode(ParticipantReferenceSchema)(participantReference).pipe(
+    Effect.mapError((error) => new ValidateParticipantReferenceError({ message: error.message }))
+  )
+})
 
 const _route = Effect.fn("@blikka/web/pubsub/uploadState")(
   function* ({ req }: { req: NextRequest }) {
     const pubsub = yield* PubSubService
 
     const searchParams = req.nextUrl.searchParams
-    const rawChannel = searchParams.get("channel")
 
-    if (!rawChannel) {
-      return Response.json({ error: "Channel is required" }, { status: 400 })
-    }
+    const participantReference = yield* validateParticipantReference(
+      searchParams.get("participantReference")
+    )
 
-    const channel = yield* PubSubChannel.parse(rawChannel)
+    const channel = yield* PubSubChannel.fromString(
+      `${environment}:upload-flow:${participantReference}`
+    )
 
     const subscription = pubsub.subscribe(channel).pipe(
       Stream.map((data) => new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`)),
@@ -31,6 +59,8 @@ const _route = Effect.fn("@blikka/web/pubsub/uploadState")(
   },
   Effect.catchTags({
     ChannelParseError: (error) =>
+      Effect.succeed(Response.json({ error: error.message }, { status: 400 })),
+    ValidateParticipantReferenceError: (error) =>
       Effect.succeed(Response.json({ error: error.message }, { status: 400 })),
   })
 )

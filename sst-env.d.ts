@@ -8,11 +8,6 @@ declare module "sst" {
     "BlikkaMainVPC": {
       "type": "sst.aws.Vpc"
     }
-    "DevCaller": {
-      "name": string
-      "type": "sst.aws.Function"
-      "url": string
-    }
     "SheetGeneratorQueue": {
       "type": "sst.aws.Queue"
       "url": string

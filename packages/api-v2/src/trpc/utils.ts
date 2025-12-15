@@ -30,8 +30,8 @@ export function trpcEffect<
     const cleanParams = {
       input: params.input,
       ctx: ctxRest,
-    }
-    const exit = await runtime.runPromiseExit(effectFn(cleanParams as any))
+    } as any
+    const exit = await runtime.runPromiseExit(effectFn(cleanParams))
 
     if (exit._tag === "Failure") {
       const error = Cause.squash(exit.cause)
@@ -42,6 +42,7 @@ export function trpcEffect<
 }
 
 function mapEffectErrorToTRPC(error: unknown): TRPCError {
+  console.error(error)
   if (error instanceof TRPCError) {
     return error
   }

@@ -3,11 +3,13 @@ import { createTRPCRouter } from "../root"
 import { participantRouter } from "./participants"
 import { authTestRouter } from "./authtest"
 import { marathonRouter } from "./marathons"
+import { uploadFlowRouter } from "./upload-flow"
 
 export const appRouter = createTRPCRouter({
   participants: participantRouter,
   authtest: authTestRouter,
   marathons: marathonRouter,
+  uploadFlow: uploadFlowRouter,
 })
 
 export type AppRouter = typeof appRouter

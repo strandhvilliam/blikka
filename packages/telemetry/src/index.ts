@@ -1,11 +1,8 @@
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http"
-import {
-  BatchLogRecordProcessor,
-  SimpleLogRecordProcessor,
-} from "@opentelemetry/sdk-logs"
+import { BatchLogRecordProcessor, SimpleLogRecordProcessor } from "@opentelemetry/sdk-logs"
 import { NodeSdk } from "@effect/opentelemetry"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
-import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base"
+import { BatchSpanProcessor, SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base"
 import {
   FiberRef,
   HashSet,
@@ -51,8 +48,28 @@ export const TelemetryLayer = (serviceName: string) =>
     Layer.provideMerge(
       NodeSdk.layer(() => ({
         resource: { serviceName },
-        spanProcessor: new BatchSpanProcessor(new OTLPTraceExporter()),
-        logRecordProcessor: new SimpleLogRecordProcessor(new OTLPLogExporter()),
+        spanProcessor: new BatchSpanProcessor(
+          new OTLPTraceExporter({
+            url: "https://api.axiom.co/v1/traces",
+            headers: {
+              Authorization: `Bearer ${process.env.AXIOM_TOKEN}`,
+              "X-Axiom-Dataset": "blikka",
+            },
+            // headers: {
+            //   "x-honeycomb-team": "XOqor5R9eH4HRwJulmuAAC",
+            //   "x-honeycomb-dataset": "blikka",
+            // },
+          })
+        ),
+        logRecordProcessor: new SimpleLogRecordProcessor(
+          new OTLPLogExporter({
+            url: "https://api.axiom.co/v1/logs",
+            headers: {
+              Authorization: `Bearer ${process.env.AXIOM_TOKEN}`,
+              "X-Axiom-Dataset": "blikka",
+            },
+          })
+        ),
       }))
     )
   )

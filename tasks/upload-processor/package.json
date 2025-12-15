@@ -19,6 +19,7 @@
     "@blikka/kv-store": "workspace:*",
     "@blikka/s3": "workspace:*",
     "@effect-aws/lambda": "^1.5.1",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "sharp": "^0.34.3"
   }
 }
