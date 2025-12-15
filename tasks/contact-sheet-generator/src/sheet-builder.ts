@@ -84,12 +84,15 @@ export class SheetBuilder extends Effect.Service<SheetBuilder>()(
 
         const textBuffer = yield* getImageLabel(orderIndex, topics).pipe(
           Effect.andThen(
-            Option.getOrThrowWith(
-              () =>
-                new TopicLabelNotFoundError({
-                  message: "Label not found when processing",
-                })
-            )
+            Option.match({
+              onSome: (label) => Effect.succeed(label),
+              onNone: () =>
+                Effect.fail(
+                  new TopicLabelNotFoundError({
+                    message: `Label not found (orderIndex: ${orderIndex})`,
+                  })
+                ),
+            })
           ),
           Effect.andThen((label) =>
             generateTextLabelSvg({

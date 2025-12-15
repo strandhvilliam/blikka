@@ -79,12 +79,15 @@ export class ValidationRunner extends Effect.Service<ValidationRunner>()(
           .getParticipantState(domain, reference)
           .pipe(
             Effect.andThen(
-              Option.getOrThrowWith(
-                () =>
-                  new InvalidDataFoundError({
-                    message: "Participant state not found",
-                  })
-              )
+              Option.match({
+                onSome: (participantState) => Effect.succeed(participantState),
+                onNone: () =>
+                  Effect.fail(
+                    new InvalidDataFoundError({
+                      message: "Participant state not found",
+                    })
+                  ),
+              })
             )
           )
 

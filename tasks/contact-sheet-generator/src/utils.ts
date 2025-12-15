@@ -322,13 +322,14 @@ export const ensureReadyForSheetGeneration = Effect.fnUntraced(function* (
 
 export const validatePhotoCount = Effect.fn("contactSheetGenerator.validatePhotoCount")(function* (
   reference: string,
+  domain: string,
   keys: string[],
   competitionClass: CompetitionClass | null
 ) {
   if (!competitionClass?.numberOfPhotos) {
     return yield* Effect.fail(
       new InvalidSheetGenerationData({
-        message: `Missing competition class photo count`,
+        message: `[${reference}|${domain}] Missing competition class photo count`,
       })
     )
   }
@@ -337,7 +338,7 @@ export const validatePhotoCount = Effect.fn("contactSheetGenerator.validatePhoto
   if (!VALID_PHOTO_COUNTS.includes(expectedCount)) {
     return yield* Effect.fail(
       new InvalidSheetGenerationData({
-        message: `Unsupported photo count ${expectedCount} for participant ${reference}`,
+        message: `[${reference}|${domain}] Unsupported photo count ${expectedCount} for participant ${reference}`,
       })
     )
   }
@@ -345,7 +346,7 @@ export const validatePhotoCount = Effect.fn("contactSheetGenerator.validatePhoto
   if (keys.length !== expectedCount) {
     return yield* Effect.fail(
       new InvalidSheetGenerationData({
-        message: `Photo count mismatch. Expected ${expectedCount}, got ${keys.length}`,
+        message: `[${reference}|${domain}] Photo count mismatch. Expected ${expectedCount}, got ${keys.length}`,
       })
     )
   }

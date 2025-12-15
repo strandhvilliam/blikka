@@ -28,7 +28,6 @@ export class UploadFinalizerService extends Effect.Service<UploadFinalizerServic
             })
           }
 
-          const uploadCount = participantState.value.processedIndexes.filter((v) => v !== 0).length
           const orderIndexes = participantState.value.processedIndexes.map((_, i) => i)
 
           const [submissionStates, exifStates] = yield* Effect.all(
@@ -70,7 +69,6 @@ export class UploadFinalizerService extends Effect.Service<UploadFinalizerServic
                 reference,
                 domain,
                 data: {
-                  uploadCount,
                   status: "completed",
                 },
               }),

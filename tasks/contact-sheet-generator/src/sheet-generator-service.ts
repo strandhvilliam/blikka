@@ -32,12 +32,15 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
             .getParticipantState(params.domain, params.reference)
             .pipe(
               Effect.andThen(
-                Option.getOrThrowWith(
-                  () =>
-                    new InvalidSheetGenerationData({
-                      message: `Participant state not found for reference ${params.reference} and domain ${params.domain}`,
-                    })
-                )
+                Option.match({
+                  onSome: (participantState) => Effect.succeed(participantState),
+                  onNone: () =>
+                    Effect.fail(
+                      new InvalidSheetGenerationData({
+                        message: `[${params.reference}|${params.domain}] Participant state not found`,
+                      })
+                    ),
+                })
               )
             )
 
@@ -60,12 +63,15 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
             })
             .pipe(
               Effect.andThen(
-                Option.getOrThrowWith(
-                  () =>
-                    new InvalidSheetGenerationData({
-                      message: `Participant not found for reference ${params.reference} and domain ${params.domain}`,
-                    })
-                )
+                Option.match({
+                  onSome: (participant) => Effect.succeed(participant),
+                  onNone: () =>
+                    Effect.fail(
+                      new InvalidSheetGenerationData({
+                        message: `[${params.reference}|${params.domain}] Participant not found`,
+                      })
+                    ),
+                })
               )
             )
 
@@ -89,7 +95,12 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
 
           const keys = participant.submissions.map((s) => s.key)
 
-          yield* validatePhotoCount(params.reference, keys, participant.competitionClass)
+          yield* validatePhotoCount(
+            params.reference,
+            params.domain,
+            keys,
+            participant.competitionClass
+          )
 
           yield* sheetBuilder
             .createSheet({
@@ -112,18 +123,21 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
 
           const contactSheetKey = generateContactSheetKey(params.domain, params.reference)
 
-          yield* Effect.all([
-            db.participantsQueries.updateParticipantByReference({
-              reference: params.reference,
-              domain: params.domain,
-              data: {
+          yield* Effect.all(
+            [
+              kvStore.updateParticipantState(params.domain, params.reference, {
                 contactSheetKey,
-              },
-            }),
-            kvStore.updateParticipantState(params.domain, params.reference, {
-              contactSheetKey,
-            }),
-          ])
+              }),
+              db.contactSheetsQueries.save({
+                data: {
+                  key: contactSheetKey,
+                  participantId: participant.id,
+                  marathonId: participant.marathonId,
+                },
+              }),
+            ],
+            { concurrency: 2 }
+          )
         }
       )
 

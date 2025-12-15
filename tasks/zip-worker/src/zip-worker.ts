@@ -82,15 +82,18 @@ export class ZipWorker extends Effect.Service<ZipWorker>()("@blikka/tasks/zip-wo
             })
         ),
         Effect.andThen(
-          Option.getOrThrowWith(
-            () =>
-              new DataNotFoundError({
-                message: "File not found",
-                domain,
-                reference,
-                key: submission.key,
-              })
-          )
+          Option.match({
+            onSome: (file) => Effect.succeed(file),
+            onNone: () =>
+              Effect.fail(
+                new DataNotFoundError({
+                  message: "File not found",
+                  domain,
+                  reference,
+                  key: submission.key,
+                })
+              ),
+          })
         )
       )
 

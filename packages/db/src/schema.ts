@@ -140,7 +140,6 @@ export const participants = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
     reference: text().notNull(),
     email: text(),
-    uploadCount: integer("upload_count").default(0).notNull(),
     status: text().default("initialized").notNull(),
     marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
     competitionClassId: bigint("competition_class_id", { mode: "number" }),
@@ -148,8 +147,6 @@ export const participants = pgTable(
     domain: text().notNull(),
     firstname: text().notNull(),
     lastname: text().notNull(),
-    contactSheetKey: text("contact_sheet_key"),
-    contactSheetSent: boolean("contact_sheet_sent").default(false).notNull(),
   },
   (table) => [
     index("participants_domain_idx").using("btree", table.domain.asc().nullsLast().op("text_ops")),

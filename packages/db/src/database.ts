@@ -10,6 +10,7 @@ import { TopicsQueries } from "./queries/topics.queries"
 import { DeviceGroupsQueries } from "./queries/device-groups.queries"
 import { CompetitionClassesQueries } from "./queries/competition-classes.queries"
 import { ParticipantsQueries } from "./queries/participants.queries"
+import { ContactSheetsQueries } from "./queries/contact-sheets.queries"
 
 export class Database extends Effect.Service<Database>()("@blikka/db/database", {
   dependencies: [
@@ -24,6 +25,7 @@ export class Database extends Effect.Service<Database>()("@blikka/db/database", 
     DeviceGroupsQueries.Default,
     CompetitionClassesQueries.Default,
     ParticipantsQueries.Default,
+    ContactSheetsQueries.Default,
   ],
   effect: Effect.all({
     usersQueries: UsersQueries,
@@ -37,5 +39,6 @@ export class Database extends Effect.Service<Database>()("@blikka/db/database", 
     deviceGroupsQueries: DeviceGroupsQueries,
     competitionClassesQueries: CompetitionClassesQueries,
     participantsQueries: ParticipantsQueries,
+    contactSheetsQueries: ContactSheetsQueries,
   }),
 }) {}

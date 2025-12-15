@@ -54,13 +54,21 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
 
         const photo = yield* s3.getFile(SSTResource.V2SubmissionsBucket.name, key).pipe(
           Effect.andThen(
-            Option.getOrThrowWith(
-              () =>
-                new PhotoNotFoundError({
-                  cause: "Photo not found",
-                  message: "Photo not found",
-                })
-            )
+            Option.match({
+              onSome: (photo) => Effect.succeed(photo),
+              onNone: () =>
+                Effect.fail(
+                  new PhotoNotFoundError({
+                    message: `[${domain}|${reference}|${orderIndex}] Photo not found`,
+                    details: JSON.stringify({
+                      domain,
+                      reference,
+                      orderIndex,
+                      key,
+                    }),
+                  })
+                ),
+            })
           )
         )
 
