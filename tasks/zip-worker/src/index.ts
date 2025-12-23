@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema } from "effect"
 import { ZipWorker } from "./zip-worker"
-import { UploadKVRepository } from "@blikka/kv-store"
+import { UploadSessionRepository } from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubChannel, PubSubLoggerService, RunStateService } from "@blikka/pubsub"
 import { Resource as SSTResource } from "sst"
@@ -9,7 +9,7 @@ import { BunRuntime } from "@effect/platform-bun"
 
 const mainLayer = Layer.mergeAll(
   ZipWorker.Default,
-  UploadKVRepository.Default,
+  UploadSessionRepository.Default,
   RunStateService.Default,
   PubSubLoggerService.withTaskName("zip-worker"),
   TelemetryLayer("blikka-dev-zip-worker")

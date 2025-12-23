@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect"
 import { S3Service } from "@blikka/s3"
-import { ExifKVRepository, ExifState, UploadKVRepository } from "@blikka/kv-store"
+import { ExifKVRepository, ExifState, UploadSessionRepository } from "@blikka/kv-store"
 import { ThumbnailService } from "./thumbnail-service"
 import { ExifParser } from "@blikka/exif-parser"
 import { BusService } from "@blikka/bus"
@@ -15,7 +15,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
   {
     dependencies: [
       S3Service.Default,
-      UploadKVRepository.Default,
+      UploadSessionRepository.Default,
       ExifKVRepository.Default,
       ExifParser.Default,
       BusService.Default,
@@ -25,7 +25,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
     ],
     effect: Effect.gen(function* () {
       const s3 = yield* S3Service
-      const uploadKv = yield* UploadKVRepository
+      const uploadKv = yield* UploadSessionRepository
       const exifKv = yield* ExifKVRepository
       const exifParser = yield* ExifParser
       const bus = yield* BusService
@@ -94,7 +94,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
           )
 
         yield* uploadKv
-          .updateSubmissionState(domain, reference, orderIndex, {
+          .updateSubmissionSession(domain, reference, orderIndex, {
             uploaded: true,
             orderIndex: Number(orderIndex),
             thumbnailKey: Option.getOrNull(thumbnailResult),

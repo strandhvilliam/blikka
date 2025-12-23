@@ -1,7 +1,7 @@
 import type { NewContactSheet } from "../types"
 import { DrizzleClient } from "../drizzle-client"
 import { Effect } from "effect"
-import { contactSheets } from "src/schema"
+import { contactSheets } from "../schema"
 import { SqlError } from "@effect/sql/SqlError"
 
 export class ContactSheetsQueries extends Effect.Service<ContactSheetsQueries>()(

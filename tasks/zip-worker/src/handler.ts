@@ -2,7 +2,7 @@ import { task } from "sst/aws/task"
 import { Data, Effect, Layer, Option } from "effect"
 import { LambdaHandler, SQSEvent } from "@effect-aws/lambda"
 import { Resource as SSTResource } from "sst"
-import { UploadKVRepository } from "@blikka/kv-store"
+import { UploadSessionRepository } from "@blikka/kv-store"
 import { parseFinalizedEvent } from "./utils"
 import { ZipWorker } from "./zip-worker"
 import { TelemetryLayer } from "@blikka/telemetry"
@@ -14,7 +14,7 @@ class UnableToRunZipHandlerTaskError extends Data.TaggedError("UnableToRunZipHan
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
-    const kvStore = yield* UploadKVRepository
+    const kvStore = yield* UploadSessionRepository
     yield* Effect.forEach(event.Records, (record) =>
       Effect.gen(function* () {
         const { domain, reference } = yield* parseBusEvent<
@@ -43,7 +43,7 @@ const effectHandler = (event: SQSEvent) =>
 
 const serviceLayer = Layer.mergeAll(
   ZipWorker.Default,
-  UploadKVRepository.Default,
+  UploadSessionRepository.Default,
   TelemetryLayer("blikka-dev-zip-worker-handler")
 )
 

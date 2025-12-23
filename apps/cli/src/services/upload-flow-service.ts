@@ -17,14 +17,14 @@ import { QuitException } from "@effect/platform/Terminal"
 import { PlatformError } from "@effect/platform/Error"
 import { FileSystem } from "@effect/platform"
 import { S3Service } from "@blikka/s3"
-import { UploadKVRepository } from "@blikka/kv-store"
+import { UploadSessionRepository } from "@blikka/kv-store"
 import { formatOrderIndex, generateSubmissionKey } from "@/utils"
 export class UploadFlowCliService extends Effect.Service<UploadFlowCliService>()(
   "@blikka/cli/upload-flow-service",
   {
     dependencies: [
       Database.Default,
-      UploadKVRepository.Default,
+      UploadSessionRepository.Default,
       S3Service.Default,
       FetchHttpClient.layer,
     ],
@@ -39,7 +39,7 @@ export class UploadFlowCliService extends Effect.Service<UploadFlowCliService>()
       const db = yield* Database
       const fs = yield* FileSystem.FileSystem
       const s3 = yield* S3Service
-      const kv = yield* UploadKVRepository
+      const kv = yield* UploadSessionRepository
       const http = yield* HttpClient.HttpClient
 
       const promptForUniqueReference: ({

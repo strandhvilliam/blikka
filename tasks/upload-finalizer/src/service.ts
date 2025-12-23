@@ -1,5 +1,5 @@
 import { Database } from "@blikka/db"
-import { ExifKVRepository, UploadKVRepository } from "@blikka/kv-store"
+import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
 import { Data, Effect, Option } from "effect"
 
 export class FailedToFinalizeParticipantError extends Data.TaggedError(
@@ -12,10 +12,10 @@ export class FailedToFinalizeParticipantError extends Data.TaggedError(
 export class UploadFinalizerService extends Effect.Service<UploadFinalizerService>()(
   "@blikka/tasks/UploadFinalizerService",
   {
-    dependencies: [Database.Default, UploadKVRepository.Default, ExifKVRepository.Default],
+    dependencies: [Database.Default, UploadSessionRepository.Default, ExifKVRepository.Default],
     effect: Effect.gen(function* () {
       const db = yield* Database
-      const uploadKv = yield* UploadKVRepository
+      const uploadKv = yield* UploadSessionRepository
       const exifKv = yield* ExifKVRepository
 
       const finalizeParticipant = Effect.fn("UploadFinalizerService.finalizeParticipant")(
@@ -76,6 +76,8 @@ export class UploadFinalizerService extends Effect.Service<UploadFinalizerServic
             { concurrency: 2 }
           )
         }
+
+        //TODO: release the upload session total lock here
       )
 
       return {

@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect"
 import { SheetBuilder } from "./sheet-builder"
 import { Database } from "@blikka/db"
-import { UploadKVRepository } from "@blikka/kv-store"
+import { UploadSessionRepository } from "@blikka/kv-store"
 import { S3Service } from "@blikka/s3"
 import { Resource as SSTResource } from "sst"
 import {
@@ -17,13 +17,13 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
     dependencies: [
       SheetBuilder.Default,
       Database.Default,
-      UploadKVRepository.Default,
+      UploadSessionRepository.Default,
       S3Service.Default,
     ],
     effect: Effect.gen(function* () {
       const sheetBuilder = yield* SheetBuilder
       const db = yield* Database
-      const kvStore = yield* UploadKVRepository
+      const kvStore = yield* UploadSessionRepository
       const s3 = yield* S3Service
 
       const generateContactSheet = Effect.fn("SheetGeneratorService.generateContactSheet")(
@@ -125,7 +125,7 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
 
           yield* Effect.all(
             [
-              kvStore.updateParticipantState(params.domain, params.reference, {
+              kvStore.updateParticipantSession(params.domain, params.reference, {
                 contactSheetKey,
               }),
               db.contactSheetsQueries.save({
