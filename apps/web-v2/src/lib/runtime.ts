@@ -6,7 +6,7 @@ import { AuthLayer } from "./auth/server"
 import { NodeContext } from "@effect/platform-node"
 import { PubSubService } from "@blikka/pubsub"
 import { S3Service } from "@blikka/s3"
-import { UploadKVRepository } from "@blikka/kv-store"
+import { UploadSessionRepository } from "@blikka/kv-store"
 
 const MainLayer = Layer.mergeAll(
   DrizzleClient.Default,
@@ -16,7 +16,7 @@ const MainLayer = Layer.mergeAll(
   AuthLayer,
   PubSubService.Default,
   S3Service.Default,
-  UploadKVRepository.Default
+  UploadSessionRepository.Default
 ).pipe(
   Layer.provide(NodeContext.layer),
   Layer.catchAll((error) => {

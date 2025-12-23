@@ -35,13 +35,16 @@ const _route = Effect.fn("@blikka/web/pubsub/uploadState")(
     const pubsub = yield* PubSubService
 
     const searchParams = req.nextUrl.searchParams
+    const referenceParam = searchParams.get("participantReference")
+    const domainParam = searchParams.get("domain")
+    const participantReference = yield* validateParticipantReference(referenceParam)
 
-    const participantReference = yield* validateParticipantReference(
-      searchParams.get("participantReference")
-    )
+    if (!domainParam) {
+      return yield* Effect.succeed(Response.json({ error: "Domain is required" }, { status: 400 }))
+    }
 
     const channel = yield* PubSubChannel.fromString(
-      `${environment}:upload-flow:${participantReference}`
+      `${environment}:upload-flow:${domainParam}-${participantReference}`
     )
 
     const subscription = pubsub.subscribe(channel).pipe(

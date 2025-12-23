@@ -1,7 +1,7 @@
 "use client"
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -60,8 +60,22 @@ export function ClientPage({ domain }: ClientPageProps) {
   // Listen to upload state updates via SSE
   const uploadState = useUploadState({
     participantReference: participantData?.reference ?? null,
-    enabled: !!participantData?.reference,
+    domain,
+    enabled: !!participantData?.reference && !!domain,
   })
+
+  // Ref for auto-scrolling to latest event
+  const eventsScrollRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom when new events arrive
+  useEffect(() => {
+    if (eventsScrollRef.current && uploadState.events.length > 0) {
+      eventsScrollRef.current.scrollTo({
+        top: eventsScrollRef.current.scrollHeight,
+        behavior: "smooth",
+      })
+    }
+  }, [uploadState.events.length])
 
   // Type assertion for marathon data structure
   const marathonData = marathon as
@@ -362,17 +376,35 @@ export function ClientPage({ domain }: ClientPageProps) {
             {uploadState.error && (
               <p className="text-red-600">Error: {uploadState.error.message}</p>
             )}
-            {uploadState.data && (
-              <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-                <p className="font-medium">Latest Update:</p>
-                <pre className="mt-1 overflow-auto">
-                  {JSON.stringify(uploadState.data.payload, null, 2)}
-                </pre>
-                <p className="mt-1 text-gray-500">Message ID: {uploadState.data.messageId}</p>
-                <p className="text-gray-500">
-                  Timestamp: {new Date(uploadState.data.timestamp).toLocaleString()}
-                </p>
+            {uploadState.events.length > 0 && (
+              <div className="mt-2 space-y-3">
+                <p className="font-medium">All Events ({uploadState.events.length}):</p>
+                <div ref={eventsScrollRef} className="space-y-2 max-h-96 overflow-y-auto">
+                  {uploadState.events.map((event, index) => (
+                    <div
+                      key={`${event.messageId}-${index}`}
+                      className="p-2 bg-gray-50 rounded text-xs border border-gray-200"
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="font-medium text-gray-700">Event #{index + 1}</p>
+                        <p className="text-gray-500 text-xs">
+                          {new Date(event.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                      <pre className="mt-1 overflow-auto text-xs">
+                        {JSON.stringify(event.payload, null, 2)}
+                      </pre>
+                      <p className="mt-1 text-gray-500 text-xs">Message ID: {event.messageId}</p>
+                      {event.channel && (
+                        <p className="text-gray-500 text-xs">Channel: {event.channel}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+            {uploadState.events.length === 0 && uploadState.isConnected && (
+              <p className="text-gray-500 text-sm mt-2">No events received yet...</p>
             )}
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { PubSubLoggerService } from "@blikka/pubsub"
 import { Effect, Layer, Option, Schema, Array, Data, Order, pipe, Config } from "effect"
 import { Database, Topic } from "@blikka/db"
-import { UploadKVRepository } from "@blikka/kv-store"
+import { UploadSessionRepository } from "@blikka/kv-store"
 import { HttpServerRequest, HttpServerResponse } from "@effect/platform"
 import { createEffectWebHandler } from "../../lib/utils"
 import { S3Service } from "@blikka/s3"
@@ -26,7 +26,7 @@ const BodySchema = Schema.Struct({
 
 const effectHandler = Effect.gen(function* () {
   const db = yield* Database
-  const uploadRepository = yield* UploadKVRepository
+  const uploadRepository = yield* UploadSessionRepository
   const s3 = yield* S3Service
 
   const body = yield* HttpServerRequest.schemaBodyJson(BodySchema)
@@ -150,7 +150,7 @@ const effectHandler = Effect.gen(function* () {
 const mainLive = Layer.mergeAll(
   PubSubLoggerService.withTaskName("upload-processor"),
   Database.Default,
-  UploadKVRepository.Default,
+  UploadSessionRepository.Default,
   S3Service.Default
 )
 const handler = await createEffectWebHandler(mainLive, effectHandler)

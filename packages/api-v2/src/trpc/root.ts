@@ -6,7 +6,7 @@ import { EmailService } from "@blikka/email"
 import { getPermissions, getSession } from "./utils"
 import { RedisClient } from "@blikka/redis"
 import type { S3Service } from "@blikka/s3"
-import type { UploadKVRepository } from "@blikka/kv-store"
+import type { UploadSessionRepository } from "@blikka/kv-store"
 
 export type RequiredServices =
   | BetterAuthService
@@ -15,7 +15,7 @@ export type RequiredServices =
   | Database
   | RedisClient
   | S3Service
-  | UploadKVRepository
+  | UploadSessionRepository
 
 type HasService<Context, Service> = Service extends Context ? true : false
 
@@ -33,8 +33,11 @@ type ValidateRuntime<T> =
               ? { __error: "Runtime missing RedisClient"; missing: RedisClient }
               : HasService<R, S3Service> extends false
                 ? { __error: "Runtime missing S3Service"; missing: S3Service }
-                : HasService<R, UploadKVRepository> extends false
-                  ? { __error: "Runtime missing UploadKVRepository"; missing: UploadKVRepository }
+                : HasService<R, UploadSessionRepository> extends false
+                  ? {
+                      __error: "Runtime missing UploadSessionRepository"
+                      missing: UploadSessionRepository
+                    }
                   : T
     : { __error: "Type must be a ManagedRuntime"; received: T }
 

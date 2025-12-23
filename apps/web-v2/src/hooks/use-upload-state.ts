@@ -12,11 +12,13 @@ interface UploadStateMessage {
 
 interface UseUploadStateOptions {
   participantReference: string | null
+  domain: string | null
   enabled?: boolean
 }
 
 interface UseUploadStateReturn {
   data: UploadStateMessage | null
+  events: UploadStateMessage[]
   error: Error | null
   isConnected: boolean
   isConnecting: boolean
@@ -24,9 +26,11 @@ interface UseUploadStateReturn {
 
 export function useUploadState({
   participantReference,
+  domain,
   enabled = true,
 }: UseUploadStateOptions): UseUploadStateReturn {
   const [data, setData] = useState<UploadStateMessage | null>(null)
+  const [events, setEvents] = useState<UploadStateMessage[]>([])
   const [error, setError] = useState<Error | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -34,7 +38,7 @@ export function useUploadState({
 
   useEffect(() => {
     // Don't connect if disabled or no participant reference
-    if (!enabled || !participantReference) {
+    if (!enabled || !participantReference || !domain) {
       return
     }
 
@@ -46,8 +50,9 @@ export function useUploadState({
 
     setIsConnecting(true)
     setError(null)
+    setEvents([]) // Reset events when reconnecting
 
-    const url = `/api/pubsub/upload-state?participantReference=${encodeURIComponent(participantReference)}`
+    const url = `/api/pubsub/upload-state?participantReference=${encodeURIComponent(participantReference)}&domain=${encodeURIComponent(domain)}`
     const eventSource = new EventSource(url)
 
     eventSourceRef.current = eventSource
@@ -62,6 +67,7 @@ export function useUploadState({
       try {
         const parsed = JSON.parse(event.data) as UploadStateMessage
         setData(parsed)
+        setEvents((prev) => [...prev, parsed])
         setError(null)
       } catch (err) {
         setError(err instanceof Error ? err : new Error("Failed to parse message"))
@@ -90,6 +96,7 @@ export function useUploadState({
 
   return {
     data,
+    events,
     error,
     isConnected,
     isConnecting,

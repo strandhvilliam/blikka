@@ -3,7 +3,7 @@ import { createTRPCRouter, publicProcedure } from "../root"
 import { trpcEffect } from "../utils"
 import { S3Service } from "@blikka/s3"
 import { Database, type NewParticipant, type Topic } from "@blikka/db"
-import { UploadKVRepository } from "@blikka/kv-store"
+import { UploadSessionRepository } from "@blikka/kv-store"
 
 export class InitializeUploadFlowError extends Data.TaggedError("InitializeUploadFlowError")<{
   message?: string
@@ -52,7 +52,7 @@ export const uploadFlowRouter = createTRPCRouter({
         Effect.fn("UploadFlowRouter.getUploadFlow")(function* ({ input }) {
           const s3 = yield* S3Service
           const db = yield* Database
-          const kv = yield* UploadKVRepository
+          const kv = yield* UploadSessionRepository
           const bucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
 
           const marathon = yield* db.marathonsQueries
