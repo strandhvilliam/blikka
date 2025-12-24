@@ -193,8 +193,6 @@ export function ClientPage({ domain }: ClientPageProps) {
         deviceGroupId,
       })
 
-      console.log("Upload flow initialized:", result)
-
       // Reset upload progress
       setUploadProgress({})
       setIsUploading(true)

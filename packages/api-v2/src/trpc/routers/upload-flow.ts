@@ -1,14 +1,17 @@
-import { Data, Effect, Option, Schema, Array, pipe, Order, Config } from "effect"
+import { Effect, Option, Schema, Array, pipe, Order, Config } from "effect"
 import { createTRPCRouter, publicProcedure } from "../root"
 import { trpcEffect } from "../utils"
 import { S3Service } from "@blikka/s3"
 import { Database, type NewParticipant, type Topic } from "@blikka/db"
 import { UploadSessionRepository } from "@blikka/kv-store"
 
-export class InitializeUploadFlowError extends Data.TaggedError("InitializeUploadFlowError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class InitializeUploadFlowError extends Schema.TaggedError<InitializeUploadFlowError>()(
+  "InitializeUploadFlowError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
 export const uploadFlowRouter = createTRPCRouter({
   getPublicMarathon: publicProcedure
@@ -130,7 +133,8 @@ export const uploadFlowRouter = createTRPCRouter({
           const topics = pipe(
             marathon.topics,
             Array.sort(Order.mapInput(Order.number, (topic: Topic) => topic.orderIndex)),
-            Array.drop(competitionClass.topicStartIndex)
+            Array.drop(competitionClass.topicStartIndex),
+            Array.take(competitionClass.numberOfPhotos)
           )
 
           const submissionKeys = yield* Effect.forEach(
