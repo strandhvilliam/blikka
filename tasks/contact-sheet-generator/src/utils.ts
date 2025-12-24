@@ -40,39 +40,63 @@ import { FinalizedEventSchema } from "@blikka/bus"
 
 const VALID_PHOTO_COUNTS = [8, 24]
 
-export class InvalidBodyError extends Data.TaggedError("InvalidBodyError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class InvalidBodyError extends Schema.TaggedError<InvalidBodyError>()("InvalidBodyError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
-export class InvalidSheetGenerationData extends Data.TaggedError("InvalidDataError")<{
-  message?: string
-}> {}
+export class InvalidSheetGenerationData extends Schema.TaggedError<InvalidSheetGenerationData>()(
+  "InvalidSheetGenerationData",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class JsonParseError extends Data.TaggedError("JsonParseError")<{
-  message?: string
-}> {}
+export class JsonParseError extends Schema.TaggedError<JsonParseError>()("JsonParseError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
-export class SvgGenerationError extends Data.TaggedError("SvgGenerationError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class SvgGenerationError extends Schema.TaggedError<SvgGenerationError>()(
+  "SvgGenerationError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class InvalidKeyFormatError extends Data.TaggedError("InvalidKeyFormatError")<{
-  message?: string
-}> {}
+export class InvalidKeyFormatError extends Schema.TaggedError<InvalidKeyFormatError>()(
+  "InvalidKeyFormatError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class TopicLabelNotFoundError extends Data.TaggedError("TopicLabelNotFoundError")<{
-  message?: string
-}> {}
+export class TopicLabelNotFoundError extends Schema.TaggedError<TopicLabelNotFoundError>()(
+  "TopicLabelNotFoundError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class InvalidImageCountError extends Data.TaggedError("InvalidImageCountError")<{
-  message?: string
-}> {}
+export class InvalidImageCountError extends Schema.TaggedError<InvalidImageCountError>()(
+  "InvalidImageCountError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class ImageNotFoundError extends Data.TaggedError("ImageNotFoundError")<{
-  message?: string
-}> {}
+export class ImageNotFoundError extends Schema.TaggedError<ImageNotFoundError>()(
+  "ImageNotFoundError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
 export const parseKey = (key: string) =>
   Effect.sync(() => {

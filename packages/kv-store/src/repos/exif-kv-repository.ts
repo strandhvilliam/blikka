@@ -12,21 +12,19 @@ export class ExifKVRepository extends Effect.Service<ExifKVRepository>()(
       const redis = yield* RedisClient
       const keyFactory = yield* KeyFactory
 
-      const getExifState = Effect.fn("ExifKVRepository.getExifState")(
-        function* (domain: string, ref: string, orderIndex: string) {
-          const key = keyFactory.exif(domain, ref, orderIndex)
-          const result = yield* redis.use((client) => client.get<string | null>(key))
-          if (result === null) {
-            return Option.none<ExifState>()
-          }
-          const parsed = yield* Schema.decodeUnknown(ExifStateSchema)(result)
-          return Option.some<ExifState>(parsed)
-        },
-        Effect.retryOrElse(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
-          () => Effect.succeed(Option.none<ExifState>())
-        )
-      )
+      const getExifState = Effect.fn("ExifKVRepository.getExifState")(function* (
+        domain: string,
+        ref: string,
+        orderIndex: string
+      ) {
+        const key = keyFactory.exif(domain, ref, orderIndex)
+        const result = yield* redis.use((client) => client.get<string | null>(key))
+        if (result === null) {
+          return Option.none<ExifState>()
+        }
+        const parsed = yield* Schema.decodeUnknown(ExifStateSchema)(result)
+        return Option.some<ExifState>(parsed)
+      })
 
       const getAllExifStates = Effect.fn("ExifKVRepository.getAllExifStates")(
         function* (domain: string, ref: string, orderIndexes: number[]) {
@@ -58,16 +56,16 @@ export class ExifKVRepository extends Effect.Service<ExifKVRepository>()(
         )
       )
 
-      const setExifState = Effect.fn("ExifKVRepository.setExifState")(
-        function* (domain: string, ref: string, orderIndex: number, state: ExifState) {
-          const formattedOrderIndex = (Number(orderIndex) + 1).toString().padStart(2, "0")
-          const key = keyFactory.exif(domain, ref, formattedOrderIndex)
-          return yield* redis.use((client) => client.set(key, JSON.stringify(state)))
-        },
-        Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
-        )
-      )
+      const setExifState = Effect.fn("ExifKVRepository.setExifState")(function* (
+        domain: string,
+        ref: string,
+        orderIndex: number,
+        state: ExifState
+      ) {
+        const formattedOrderIndex = (Number(orderIndex) + 1).toString().padStart(2, "0")
+        const key = keyFactory.exif(domain, ref, formattedOrderIndex)
+        return yield* redis.use((client) => client.set(key, JSON.stringify(state)))
+      })
 
       return {
         getExifState,

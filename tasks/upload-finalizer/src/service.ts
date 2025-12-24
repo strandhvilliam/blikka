@@ -1,13 +1,14 @@
 import { Database } from "@blikka/db"
 import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
-import { Data, Effect, Option } from "effect"
+import { Effect, Option, Schema } from "effect"
 
-export class FailedToFinalizeParticipantError extends Data.TaggedError(
-  "FailedToFinalizeParticipantError"
-)<{
-  message?: string
-  cause?: unknown
-}> {}
+export class FailedToFinalizeParticipantError extends Schema.TaggedError<FailedToFinalizeParticipantError>()(
+  "FailedToFinalizeParticipantError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
 export class UploadFinalizerService extends Effect.Service<UploadFinalizerService>()(
   "@blikka/tasks/UploadFinalizerService",
@@ -26,6 +27,13 @@ export class UploadFinalizerService extends Effect.Service<UploadFinalizerServic
             return yield* new FailedToFinalizeParticipantError({
               message: "Participant state not found",
             })
+          }
+
+          if (participantState.value.finalized) {
+            yield* Effect.logWarning(
+              `[${reference}|${domain}] Participant already finalized, skipping`
+            )
+            return
           }
 
           const orderIndexes = participantState.value.processedIndexes.map((_, i) => i)

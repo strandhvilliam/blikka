@@ -28,6 +28,8 @@ export class BusService extends Effect.Service<BusService>()("@blikka/bus/bus-se
           ],
         })
 
+        yield* Effect.logInfo(`[${reference}|${domain}] Sending finalized event`)
+
         return yield* eb.use(async (eb) => eb.send(command))
       },
       Effect.catchTag("EventBridgeEffectError", (error) => {

@@ -25,7 +25,7 @@ const effectHandler = (event: SQSEvent) =>
         const participantStateOpt = yield* kvStore.getParticipantState(domain, reference)
 
         if (Option.isSome(participantStateOpt) && !!participantStateOpt.value.zipKey) {
-          yield* Effect.log("Participant already zipped, skipping")
+          yield* Effect.logWarning(`[${reference}|${domain}] Participant already zipped, skipping`)
           return
         }
 
