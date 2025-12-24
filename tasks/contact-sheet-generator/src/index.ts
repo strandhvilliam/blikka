@@ -7,19 +7,22 @@ import { PubSubChannel, RunStateService, PubSubLoggerService } from "@blikka/pub
 import { Resource as SSTResource } from "sst"
 import { SQSRecord } from "aws-lambda"
 
-const getEnvironment = (stage: string): "prod" | "dev" | "staging" => {
+const getEnvironment = (): "prod" | "dev" | "staging" => {
+  const stage = SSTResource.App.stage
   if (stage === "production") return "prod"
   if (stage === "dev" || stage === "development") return "dev"
   return "staging"
 }
 
+const TASK_NAME = "contact-sheet-generator"
+
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
     const sheetGeneratorService = yield* SheetGeneratorService
     const runStateService = yield* RunStateService
-    const environment = getEnvironment(SSTResource.App.stage)
+    const environment = getEnvironment()
 
-    const processSQSRecord = Effect.fn("contact-sheet-generator.processSQSRecord")(function* (
+    const processSQSRecord = Effect.fn("ContactSheetGenerator.processSQSRecord")(function* (
       record: SQSRecord
     ) {
       const { domain, reference } = yield* parseBusEvent<
@@ -29,12 +32,9 @@ const effectHandler = (event: SQSEvent) =>
 
       yield* Effect.logInfo(`[${reference}|${domain}] Generating contact sheet`)
 
-      return yield* runStateService.withRunStateEvents({
-        taskName: "contact-sheet-generator",
-        channel: yield* PubSubChannel.fromString(
-          `${environment}:upload-flow:${domain}-${reference}`
-        ),
-        effect: sheetGeneratorService.generateContactSheet({ domain, reference }).pipe(
+      const generateContactSheetEffect = sheetGeneratorService
+        .generateContactSheet({ domain, reference })
+        .pipe(
           Effect.tap(() => Effect.logInfo(`[${reference}|${domain}] Contact sheet generated`)),
           Effect.tapError((error) =>
             Effect.logError(
@@ -42,7 +42,16 @@ const effectHandler = (event: SQSEvent) =>
               error.message
             )
           )
-        ),
+        )
+
+      const channel = yield* PubSubChannel.fromString(
+        `${environment}:upload-flow:${domain}-${reference}`
+      )
+
+      return yield* runStateService.withRunStateEvents({
+        taskName: TASK_NAME,
+        channel,
+        effect: generateContactSheetEffect,
         metadata: { domain, reference },
       })
     })
@@ -53,8 +62,8 @@ const effectHandler = (event: SQSEvent) =>
 const serviceLayer = Layer.mergeAll(
   SheetGeneratorService.Default,
   RunStateService.Default,
-  PubSubLoggerService.withTaskName("contact-sheet-generator"),
-  TelemetryLayer("blikka-dev-contact-sheet-generator")
+  PubSubLoggerService.withTaskName(TASK_NAME),
+  TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`)
 )
 
 export const handler = LambdaHandler.make({

@@ -7,6 +7,8 @@ import { EventBusDetailTypes, FinalizedEventSchema, parseBusEvent } from "@blikk
 import { getEnvironment } from "./utils"
 import { UploadFinalizerService } from "./service"
 
+const TASK_NAME = "upload-finalizer"
+
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
     const environment = getEnvironment()
@@ -23,17 +25,20 @@ const effectHandler = (event: SQSEvent) =>
 
       yield* Effect.logInfo(`[${reference}|${domain}] Finalizing participant`)
 
+      const finalizeEffect = uploadFinalizerService.finalizeParticipant(domain, reference).pipe(
+        Effect.tap(() => Effect.logInfo(`[${reference}|${domain}] Participant finalized`)),
+        Effect.tapError((error) =>
+          Effect.logError(`[${reference}|${domain}] Error finalizing participant`, error)
+        )
+      )
+      const channel = yield* PubSubChannel.fromString(
+        `${environment}:upload-flow:${domain}-${reference}`
+      )
+
       return yield* runStateService.withRunStateEvents({
-        taskName: "upload-finalizer",
-        channel: yield* PubSubChannel.fromString(
-          `${environment}:upload-flow:${domain}-${reference}`
-        ),
-        effect: uploadFinalizerService.finalizeParticipant(domain, reference).pipe(
-          Effect.tap(() => Effect.logInfo(`[${reference}|${domain}] Participant finalized`)),
-          Effect.tapError((error) =>
-            Effect.logError(`[${reference}|${domain}] Error finalizing participant`, error)
-          )
-        ),
+        taskName: TASK_NAME,
+        channel,
+        effect: finalizeEffect,
         metadata: {
           domain,
           reference,
@@ -42,15 +47,15 @@ const effectHandler = (event: SQSEvent) =>
     })
 
     yield* Effect.forEach(event.Records, (record) => processSQSRecord(record), {
-      concurrency: 2,
+      concurrency: "unbounded",
     })
   }).pipe(Effect.withSpan("UploadFinalizer.handler"), Effect.catchAll(Effect.logError))
 
 const serviceLayer = Layer.mergeAll(
   RunStateService.Default,
   UploadFinalizerService.Default,
-  PubSubLoggerService.withTaskName("upload-finalizer"),
-  TelemetryLayer(`blikka-${getEnvironment()}-upload-finalizer`)
+  PubSubLoggerService.withTaskName(TASK_NAME),
+  TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`)
 )
 
 export const handler = LambdaHandler.make({

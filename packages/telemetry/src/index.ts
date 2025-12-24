@@ -55,10 +55,6 @@ export const TelemetryLayer = (serviceName: string) =>
               Authorization: `Bearer ${process.env.AXIOM_TOKEN}`,
               "X-Axiom-Dataset": "blikka",
             },
-            // headers: {
-            //   "x-honeycomb-team": "XOqor5R9eH4HRwJulmuAAC",
-            //   "x-honeycomb-dataset": "blikka",
-            // },
           })
         ),
         logRecordProcessor: new SimpleLogRecordProcessor(
@@ -73,10 +69,3 @@ export const TelemetryLayer = (serviceName: string) =>
       }))
     )
   )
-
-// export const TelemetryLayer = (serviceName: string) =>
-//   NodeSdk.layer(() => ({
-//     resource: { serviceName },
-//     spanProcessor: new BatchSpanProcessor(new OTLPTraceExporter()),
-//     logRecordProcessor: new SimpleLogRecordProcessor(new OTLPLogExporter()),
-//   }))

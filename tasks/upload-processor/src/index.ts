@@ -9,17 +9,20 @@ import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubChannel, RunStateService, PubSubLoggerService } from "@blikka/pubsub"
 import { Resource as SSTResource } from "sst"
 
-const getEnvironment = (stage: string): "prod" | "dev" | "staging" => {
+const getEnvironment = (): "prod" | "dev" | "staging" => {
+  const stage = SSTResource.App.stage
   if (stage === "production") return "prod"
   if (stage === "dev" || stage === "development") return "dev"
   return "staging"
 }
 
+const TASK_NAME = "upload-processor"
+
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
     const uploadProcessor = yield* UploadProcessorService
     const runStateService = yield* RunStateService
-    const environment = getEnvironment(SSTResource.App.stage)
+    const environment = getEnvironment()
 
     const processSQSRecord = Effect.fn("upload-processor.processSQSRecord")(function* (
       record: SQSRecord
@@ -43,19 +46,20 @@ const effectHandler = (event: SQSEvent) =>
             const { domain, reference, orderIndex } = yield* parseKey(key)
             yield* Effect.logInfo(`[${reference}|${domain}] Processing photo '${key}'`)
 
+            const processPhotoEffect = uploadProcessor.processPhoto(key).pipe(
+              Effect.tap(() => Effect.logInfo(`[${reference}|${domain}] Photo processed '${key}'`)),
+              Effect.tapError((error) =>
+                Effect.logError(`[${reference}|${domain}] Error processing photo '${key}'`, error)
+              )
+            )
+            const channel = yield* PubSubChannel.fromString(
+              `${environment}:upload-flow:${domain}-${reference}`
+            )
+
             return yield* runStateService.withRunStateEvents({
-              taskName: "upload-processor",
-              channel: yield* PubSubChannel.fromString(
-                `${environment}:upload-flow:${domain}-${reference}`
-              ),
-              effect: uploadProcessor.processPhoto(key).pipe(
-                Effect.tap(() =>
-                  Effect.logInfo(`[${reference}|${domain}] Photo processed '${key}'`)
-                ),
-                Effect.tapError((error) =>
-                  Effect.logError(`[${reference}|${domain}] Error processing photo '${key}'`, error)
-                )
-              ),
+              taskName: TASK_NAME,
+              channel,
+              effect: processPhotoEffect,
               metadata: {
                 domain,
                 reference,
@@ -75,8 +79,8 @@ const effectHandler = (event: SQSEvent) =>
 const serviceLayer = Layer.mergeAll(
   UploadProcessorService.Default,
   RunStateService.Default,
-  PubSubLoggerService.withTaskName("upload-processor"),
-  TelemetryLayer("blikka-dev-upload-processor")
+  PubSubLoggerService.withTaskName(TASK_NAME),
+  TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`)
 )
 
 export const handler = LambdaHandler.make({
