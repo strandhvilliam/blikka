@@ -12,6 +12,10 @@ export class KeyFactory extends Effect.Service<KeyFactory>()(
         `participant:${domain}:${ref}`,
       zipProgress: (domain: string, ref: string) =>
         `zip-progress:${domain}:${ref}`,
+      uploadQueueWaiting: () => "upload-q:waiting",
+      uploadQueueActive: () => "upload-q:active",
+      uploadQueueLeasePrefix: () => "upload-q:lease:",
+      uploadQueueMember: (domain: string, ref: string) => `${domain}:${ref}`,
     }),
   }
 ) {}

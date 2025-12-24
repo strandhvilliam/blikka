@@ -1,14 +1,15 @@
 import { Redis } from "@upstash/redis"
-import { Config, Console, Data, Duration, Effect, Schedule } from "effect"
+import { Config, Console, Data, Duration, Effect, Schedule, Schema } from "effect"
 
-export class RedisError extends Data.TaggedError("RedisError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class RedisError extends Schema.TaggedError<RedisError>()("RedisError", {
+  message: Schema.String,
+  cause: Schema.Unknown,
+}) {}
 
 const makeClient = Effect.fn("RedisClient.makeClient")(
   function* (url: string, token: string) {
     const client = new Redis({ url, token })
+
     yield* Effect.tryPromise({
       try: () => client.ping(),
       catch: (error) => new RedisError({ cause: error, message: "Redis connection failed" }),
