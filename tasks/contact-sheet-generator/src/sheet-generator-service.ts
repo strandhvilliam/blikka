@@ -102,6 +102,8 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
             participant.competitionClass
           )
 
+          const contactSheetKey = generateContactSheetKey(params.domain, params.reference)
+
           yield* sheetBuilder
             .createSheet({
               domain: params.domain,
@@ -113,15 +115,9 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
             })
             .pipe(
               Effect.andThen((buffer) =>
-                s3.putFile(
-                  SSTResource.V2ContactSheetsBucket.name,
-                  generateContactSheetKey(params.domain, params.reference),
-                  buffer
-                )
+                s3.putFile(SSTResource.V2ContactSheetsBucket.name, contactSheetKey, buffer)
               )
             )
-
-          const contactSheetKey = generateContactSheetKey(params.domain, params.reference)
 
           yield* Effect.all(
             [
@@ -143,7 +139,7 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
 
       return {
         generateContactSheet,
-      }
+      } as const
     }),
   }
 ) {}

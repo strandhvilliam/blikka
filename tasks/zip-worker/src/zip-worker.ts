@@ -136,10 +136,13 @@ export class ZipWorker extends Effect.Service<ZipWorker>()("@blikka/tasks/zip-wo
 
       const { participant, topics } = yield* fetchRequiredData(domain, reference)
 
-      const entries = yield* Effect.forEach(participant.submissions, (submission) =>
-        processSubmission(domain, reference, submission, topics).pipe(
-          Effect.tap(() => kvStore.incrementZipProgress(domain, reference))
-        )
+      const entries = yield* Effect.forEach(
+        participant.submissions,
+        (submission) =>
+          processSubmission(domain, reference, submission, topics).pipe(
+            Effect.tap(() => kvStore.incrementZipProgress(domain, reference))
+          ),
+        { concurrency: 8 }
       )
 
       const zipBuffer = yield* buildZipBuffer(domain, reference, entries)

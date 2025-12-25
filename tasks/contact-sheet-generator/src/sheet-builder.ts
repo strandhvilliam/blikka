@@ -185,7 +185,7 @@ export class SheetBuilder extends Effect.Service<SheetBuilder>()(
 
               return yield* Effect.succeed<{ input: Buffer; top: number; left: number }[]>([])
             }),
-          { concurrency: 5 }
+          { concurrency: 8 }
         ).pipe(Effect.map((data) => data.flat()))
 
         const participantReferenceSvg = yield* generateParticipantReferenceSvg({
@@ -211,7 +211,7 @@ export class SheetBuilder extends Effect.Service<SheetBuilder>()(
 
       return {
         createSheet,
-      }
+      } as const
     }),
   }
 ) {}

@@ -27,7 +27,9 @@ const parseArguments = Effect.fn("ZipWorker.parseArguments")(
     const reference = yield* Schema.Config("ARG_REFERENCE", Schema.String)
     return { domain, reference }
   },
-  Effect.mapError((error) => new InvalidArgumentsError({ cause: error }))
+  Effect.mapError(
+    (error) => new InvalidArgumentsError({ message: "Failed to parse arguments", cause: error })
+  )
 )
 
 const runnable = Effect.gen(function* () {

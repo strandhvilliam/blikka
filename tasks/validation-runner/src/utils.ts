@@ -4,22 +4,28 @@ import { RuleKeySchema, ValidationRule, ValidationRuleSchema } from "@vimmer/val
 import { RuleConfig } from "@blikka/db"
 import { EventBridgeEvent } from "@effect-aws/lambda"
 
-export class InvalidBodyError extends Data.TaggedError("InvalidBodyError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class InvalidBodyError extends Schema.TaggedError<InvalidBodyError>()("InvalidBodyError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
-export class JsonParseError extends Data.TaggedError("JsonParseError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class JsonParseError extends Schema.TaggedError<JsonParseError>()("JsonParseError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
-export class InvalidDataFoundError extends Data.TaggedError("InvalidDataFoundError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class InvalidDataFoundError extends Schema.TaggedError<InvalidDataFoundError>()(
+  "InvalidDataFoundError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class InvalidValidationRuleError extends Data.TaggedError("InvalidValidationRuleError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class InvalidValidationRuleError extends Schema.TaggedError<InvalidValidationRuleError>()(
+  "InvalidValidationRuleError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}

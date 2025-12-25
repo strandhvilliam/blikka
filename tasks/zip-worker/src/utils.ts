@@ -2,24 +2,34 @@ import { Participant } from "@blikka/db"
 import { Data, Effect, Schema } from "effect"
 import { FinalizedEventSchema } from "@blikka/bus"
 
-export class InvalidArgumentsError extends Data.TaggedError("InvalidArgumentsError")<{
-  cause?: unknown
-}> {}
+export class InvalidArgumentsError extends Schema.TaggedError<InvalidArgumentsError>()(
+  "InvalidArgumentsError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class DataNotFoundError extends Data.TaggedError("DataNotFoundError")<{
-  domain: string
-  reference: string
-  key?: string
-  message?: string
-  cause?: unknown
-}> {}
+export class DataNotFoundError extends Schema.TaggedError<DataNotFoundError>()(
+  "DataNotFoundError",
+  {
+    message: Schema.String,
+    domain: Schema.String,
+    reference: Schema.String,
+    key: Schema.optional(Schema.String),
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class FailedToGenerateZipError extends Data.TaggedError("FailedToGenerateZipError")<{
-  domain: string
-  reference: string
-  message?: string
-  cause?: unknown
-}> {}
+export class FailedToGenerateZipError extends Schema.TaggedError<FailedToGenerateZipError>()(
+  "FailedToGenerateZipError",
+  {
+    message: Schema.String,
+    domain: Schema.String,
+    reference: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
 export function makeNewZipDto(domain: string, participant: Participant) {
   return {
@@ -35,14 +45,15 @@ export function makeNewZipDto(domain: string, participant: Participant) {
   }
 }
 
-export class InvalidBodyError extends Data.TaggedError("InvalidBodyError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class InvalidBodyError extends Schema.TaggedError<InvalidBodyError>()("InvalidBodyError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
-export class JsonParseError extends Data.TaggedError("JsonParseError")<{
-  message?: string
-}> {}
+export class JsonParseError extends Schema.TaggedError<JsonParseError>()("JsonParseError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
 export const parseFinalizedEvent = Effect.fn("contactSheetGenerator.parseFinalizedEvent")(
   function* (input: string) {

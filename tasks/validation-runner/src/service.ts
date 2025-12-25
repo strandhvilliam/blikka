@@ -139,7 +139,7 @@ export class ValidationRunner extends Effect.Service<ValidationRunner>()(
       })
       return {
         execute,
-      }
+      } as const
     }),
   }
 ) {}
