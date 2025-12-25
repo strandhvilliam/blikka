@@ -21,8 +21,7 @@
     "baseUrl": ".",
     "paths": {
       "@vimmer/api/*": ["src/*"],
-      "@vimmer/validation/*": ["../../packages/validation/old/*"],
-      "@vimmer/image-processing/*": ["../../packages/image-processing/src/*"]
+      "@vimmer/validation/*": ["../../packages/validation/old/*"]
     }
   },
   "exclude": ["node_modules"],
