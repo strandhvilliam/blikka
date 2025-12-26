@@ -3,6 +3,7 @@
 import { TRPCReactProvider } from "@/lib/trpc/client"
 import { NextIntlClientProvider } from "next-intl"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 export function Providers({
   children,
@@ -14,12 +15,14 @@ export function Providers({
   messages: Record<string, unknown>
 }) {
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
-      <TRPCReactProvider>
-        <ReactQueryDevtools initialIsOpen={false} />
+    <NuqsAdapter>
+      <NextIntlClientProvider locale={locale} messages={messages}>
+        <TRPCReactProvider>
+          <ReactQueryDevtools initialIsOpen={false} />
 
-        {children}
-      </TRPCReactProvider>
-    </NextIntlClientProvider>
+          {children}
+        </TRPCReactProvider>
+      </NextIntlClientProvider>
+    </NuqsAdapter>
   )
 }
