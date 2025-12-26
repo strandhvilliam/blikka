@@ -38,11 +38,8 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Loader2 } from "lucide-react"
 import { CompetitionClass, DeviceGroup, Participant } from "@blikka/db"
-import { submissionSearchParams } from "./_lib/search-params"
-
-interface SubmissionsClientPageProps {
-  domain: string
-}
+import { submissionSearchParams } from "../_lib/search-params"
+import { useParams } from "next/navigation"
 
 type TableData = Participant & {
   competitionClass: CompetitionClass | null
@@ -54,7 +51,8 @@ type TableData = Participant & {
   contactSheetKeys: string[]
 }
 
-export function SubmissionsClientPage({ domain }: SubmissionsClientPageProps) {
+export function SubmissionsTable() {
+  const { domain } = useParams<{ domain: string }>()
   const trpc = useTRPC()
   const [sorting, setSorting] = useState<SortingState>([])
 

@@ -1,7 +1,7 @@
 import { decodeParams, Page } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { SubmissionsClientPage } from "./client-page"
+import { SubmissionsTable } from "./_components/submissions-table"
 import { Suspense } from "react"
 import { loadSubmissionSearchParams } from "./_lib/search-params"
 
@@ -27,7 +27,7 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<div>Loading...</div>}>
-          <SubmissionsClientPage domain={domain} />
+          <SubmissionsTable />
         </Suspense>
       </HydrateClient>
     )
