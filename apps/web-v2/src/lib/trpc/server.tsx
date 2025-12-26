@@ -13,7 +13,7 @@ import { createQueryClient } from "./query-client"
 import { createTRPCContext } from "@blikka/api-v2/trpc"
 import { serverRuntime } from "../runtime"
 
-export class TRPCServerError extends Data.TaggedError("TRPCClientError")<{
+export class TRPCServerError extends Data.TaggedError("TRPCCServerError")<{
   message: string
   cause?: unknown
 }> {}

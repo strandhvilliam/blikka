@@ -1,8 +1,6 @@
 {
   "compilerOptions": {
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
@@ -21,27 +19,12 @@
     "jsxImportSource": "react",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@vimmer/api/*": [
-        "../api/src/*"
-      ],
-      "@vimmer/validation/*": [
-        "../../packages/validation/old/*"
-      ],
-      "@vimmer/ui/*": [
-        "../../packages/ui/src/*"
-      ],
-      "@vimmer/image-processing": [
-        "../../packages/image-processing/src"
-      ],
-      "@vimmer/email/*": [
-        "../../packages/email/src/*"
-      ],
-      "next-international/*": [
-        "../../node_modules/next-international/*"
-      ]
+      "@/*": ["src/*"],
+      "@vimmer/api/*": ["../api/src/*"],
+      "@vimmer/validation/*": ["../../packages/validation/old/*"],
+      "@vimmer/ui/*": ["../../packages/ui/src/*"],
+      "@vimmer/email/*": ["../../packages/email/src/*"],
+      "next-international/*": ["../../node_modules/next-international/*"]
     },
     "plugins": [
       {
@@ -63,9 +46,7 @@
     ".next/types/**/*.ts",
     "sst-env.d.ts"
   ],
-  "exclude": [
-    "node_modules, .next"
-  ]
+  "exclude": ["node_modules, .next"]
 }
 // {
 //   "compilerOptions": {

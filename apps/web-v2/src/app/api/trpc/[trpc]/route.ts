@@ -3,6 +3,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch"
 
 import { appRouter, createTRPCContext } from "@blikka/api-v2/trpc"
 import { serverRuntime } from "@/lib/runtime"
+import { redirect } from "next/navigation"
 
 const setCorsHeaders = (res: Response) => {
   res.headers.set("Access-Control-Allow-Origin", "*")
@@ -30,7 +31,10 @@ const handler = async (req: NextRequest) => {
         headers: req.headers,
       }),
     // onError({ error, path }) {
-    //   console.error(`>>> tRPC Error on '${path}'`, error)
+    //   console.log("ERROR CODE", error.code)
+    //   if (error.code === "UNAUTHORIZED") {
+    //     redirect("/auth/login")
+    //   }
     // },
   })
 

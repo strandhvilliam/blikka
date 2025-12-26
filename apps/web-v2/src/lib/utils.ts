@@ -1,8 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { Effect, Schema } from "effect"
 import { protocol, rootDomain } from "@/config"
-import { RuntimeDependencies } from "./runtime"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

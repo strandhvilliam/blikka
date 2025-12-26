@@ -1,4 +1,4 @@
-import { Cause, Effect, Option } from "effect"
+import { Cause, Effect, Option, Schema } from "effect"
 import {
   type Context,
   type AuthenticatedContext,
@@ -61,11 +61,13 @@ export const getSession = Effect.fnUntraced(function* ({ headers }: { headers: H
         headers,
       }),
     catch: (error) =>
-      new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: error instanceof Error ? error.message : "An unknown error occurred",
-        cause: error,
-      }),
+      Effect.fail(
+        new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "An unknown error occurred",
+          cause: error,
+        })
+      ),
   })
 })
 
@@ -79,22 +81,23 @@ type Permission = {
 
 export const getPermissions = Effect.fnUntraced(function* ({ userId }: { userId?: string }) {
   const redis = yield* RedisClient
+  const db = yield* Database
+
   if (!userId) {
     return []
   }
   const result = yield* redis
     .use((client) => client.get<Permission[] | null>(`permissions:${userId}`))
     .pipe(
+      Effect.map(Option.fromNullable),
       Effect.tapError((error) =>
         Effect.logError("Error getting cached permissions: " + error.message)
-      ),
-      Effect.orElseSucceed(() => null)
+      )
     )
 
-  if (result !== null) {
-    return result
+  if (Option.isSome(result)) {
+    return result.value
   }
-  const db = yield* Database
   const userWithMarathons = yield* db.usersQueries.getUserWithMarathons({ userId }).pipe(
     Effect.tapError((error) =>
       Effect.logError("Error getting user with marathons: " + error.message)
@@ -120,4 +123,21 @@ export const getPermissions = Effect.fnUntraced(function* ({ userId }: { userId?
       Effect.catchAll((error) => Effect.logError("Error caching permissions: " + error.message))
     )
   return permissions
+})
+
+export const assertAllowedToAccessDomain = Effect.fnUntraced(function* ({
+  domain,
+  ctx,
+}: {
+  domain: string
+  ctx: Omit<AuthenticatedContext, "runtime">
+}) {
+  if (!ctx.permissions.some((permission) => permission.domain === domain)) {
+    yield* Effect.fail(
+      new TRPCError({
+        code: "UNAUTHORIZED",
+        message: `You are not allowed to access this domain ${domain}`,
+      })
+    )
+  }
 })

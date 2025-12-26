@@ -9,8 +9,7 @@
     "allowJs": true,
     "paths": {
       "@/*": ["src/*"],
-      "@vimmer/api/*": ["../../apps/api/src/*"],
-      "@vimmer/image-processing": ["../../packages/image-processing/src"]
+      "@vimmer/api/*": ["../../apps/api/src/*"]
     },
     "strict": true
   },
