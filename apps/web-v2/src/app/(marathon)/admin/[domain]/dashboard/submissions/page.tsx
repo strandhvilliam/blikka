@@ -4,6 +4,7 @@ import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
 import { SubmissionsTable } from "./_components/submissions-table"
 import { Suspense } from "react"
 import { loadSubmissionSearchParams } from "./_lib/search-params"
+import { SubmissionsHeader } from "./_components/submissions-header"
 
 const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
   function* ({ params, searchParams }: PageProps<"/admin/[domain]/dashboard">) {
@@ -25,13 +26,14 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
     )
 
     return (
-      <div className="px-6 py-8">
-        <HydrateClient>
-          <Suspense fallback={<div>Loading...</div>}>
+      <HydrateClient>
+        <Suspense fallback={<div>Loading...</div>}>
+          <div className="container mx-auto space-y-6">
+            <SubmissionsHeader />
             <SubmissionsTable />
-          </Suspense>
-        </HydrateClient>
-      </div>
+          </div>
+        </Suspense>
+      </HydrateClient>
     )
   },
   Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))

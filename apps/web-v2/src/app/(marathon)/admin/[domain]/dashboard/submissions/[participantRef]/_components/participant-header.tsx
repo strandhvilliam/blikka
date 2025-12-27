@@ -3,42 +3,26 @@
 import {
   AlertTriangle,
   ArrowLeft,
-  Badge,
-  Camera,
   CheckCircle,
   Mail,
-  Smartphone,
   XCircle,
-  Zap,
+  Download,
+  BarChart3,
 } from "lucide-react"
-import type {
-  CompetitionClass,
-  DeviceGroup,
-  Participant,
-  Submission,
-  ValidationResult,
-  ZippedSubmission,
-} from "@blikka/db"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Card, CardContent } from "@/components/ui/card"
-import { useState } from "react"
+import type { Participant, ValidationResult } from "@blikka/db"
 import { useParams } from "next/navigation"
 import { useTRPC } from "@/lib/trpc/client"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-
-function DeviceIcon({ icon }: { icon: string }) {
-  switch (icon) {
-    case "smartphone":
-      return <Smartphone className="h-5 w-5" />
-    case "action-camera":
-      return <Zap className="h-5 w-5" />
-    default:
-      return <Camera className="h-5 w-5" />
-  }
-}
+import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function ParticipantHeader() {
   const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
@@ -51,81 +35,31 @@ export function ParticipantHeader() {
     })
   )
 
-  const globalValidations = participant.validationResults.filter((result) => !result.fileName)
-
-  //   const { execute: getPresignedExportUrl, status: exportStatus } = useAction(
-  //     getPresignedExportUrlAction,
-  //     {
-  //       onSuccess: ({ data }) => {
-  //         if (!data?.url) {
-  //           toast.error("No download URL returned")
-  //           return
-  //         }
-  //         const link = document.createElement("a")
-  //         link.href = data.url
-  //         link.download = "submission.zip"
-  //         document.body.appendChild(link)
-  //         link.click()
-  //         document.body.removeChild(link)
-  //       },
-  //       onError: () => {
-  //         toast.error("Failed to get download URL")
-  //       },
-  //     }
-  //   )
-
-  const submissionsNeedingThumbnails =
-    participant.submissions?.filter(
-      (submission) => !submission.thumbnailKey || !submission.previewKey
-    ) || []
-
-  const shouldShowThumbnailGeneration =
-    (participant.status === "completed" || participant.status === "verified") &&
-    submissionsNeedingThumbnails.length > 0
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <ParticipantHeaderInfo participant={participant} globalValidations={globalValidations} />
-        {/* <ParticipantActionButtons
-          participant={participant}
-          exportStatus={exportStatus}
-          getPresignedExportUrl={getPresignedExportUrl}
-        /> */}
+        <ParticipantHeaderInfo participant={participant} />
+        <ParticipantHeaderActions participant={participant} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* <ParticipantStatusCard
-          participant={participant}
-          handleOpenVerifyDialog={() => setIsVerifyDialogOpen(true)}
-        /> */}
+      {/* <div className="flex flex-wrap gap-4">
+        <ParticipantStatusCard status={participant.status} />
         <ParticipantCompetitionClassCard competitionClass={participant.competitionClass} />
         <ParticipantDeviceGroupCard deviceGroup={participant.deviceGroup} />
-        {/* <ParticipantExportCard participant={participant} />
-        <ParticipantThumbnailGenerationCard
-          shouldShow={shouldShowThumbnailGeneration}
-          submissionsNeedingThumbnails={submissionsNeedingThumbnails}
-          variantsGeneratorUrl={variantsGeneratorUrl}
-        /> */}
-      </div>
-      {/* <ParticipantVerifyDialog
-        isOpen={isVerifyDialogOpen}
-        onOpenChange={setIsVerifyDialogOpen}
-        participant={participant}
-      /> */}
+      </div> */}
     </div>
   )
 }
 
 function ParticipantHeaderInfo({
   participant,
-  globalValidations,
 }: {
-  participant: Participant
-  globalValidations: ValidationResult[]
+  participant: Participant & { validationResults: ValidationResult[] }
 }) {
-  const hasFailedValidations = globalValidations.some((result) => result.outcome === "failed")
+  const { domain } = useParams<{ domain: string }>()
 
+  const globalValidations = participant.validationResults.filter((result) => !result.fileName)
+  const hasFailedValidations = globalValidations.some((result) => result.outcome === "failed")
   const hasErrors = globalValidations.some(
     (result) => result.severity === "error" && result.outcome === "failed"
   )
@@ -141,11 +75,11 @@ function ParticipantHeaderInfo({
   return (
     <div className="flex items-center gap-3">
       <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-        <Link href={`/admin/submissions`}>
+        <Link href={`/admin/${domain}/dashboard/submissions`}>
           <ArrowLeft className="h-4 w-4" />
         </Link>
       </Button>
-      <div className="flex flex-col gap-0">
+      <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight font-rocgrotesk">
             {`#${participant.reference} - `}
@@ -176,82 +110,46 @@ function ParticipantHeaderInfo({
   )
 }
 
-function ParticipantCompetitionClassCard({
-  competitionClass,
+function ParticipantHeaderActions({
+  participant,
 }: {
-  competitionClass: CompetitionClass | null
+  participant: Participant & { validationResults: ValidationResult[] }
 }) {
-  return (
-    <Card className="hover:shadow-sm transition-shadow items-center flex">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-muted border">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="w-5 h-5 text-center text-sm font-bold font-mono flex items-center justify-center">
-                    {competitionClass?.numberOfPhotos || "?"}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Number of photos required: {competitionClass?.numberOfPhotos || "Unknown"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm truncate">
-              <span className="font-normal text-muted-foreground">Class:</span>{" "}
-              {competitionClass?.name || "No class assigned"}
-            </h3>
-            {competitionClass?.description && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                {competitionClass.description}
-              </p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
+  const { domain } = useParams<{ domain: string }>()
+  const trpc = useTRPC()
 
-function ParticipantDeviceGroupCard({ deviceGroup }: { deviceGroup: DeviceGroup | null }) {
+  const hasSubmissions =
+    (participant as any).submissions && (participant as any).submissions.length > 0
+
+  const handleExport = () => {
+    // TODO: Implement export functionality
+    console.log("Export clicked")
+  }
+
   return (
-    <Card className="hover:shadow-sm transition-shadow items-center flex">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-muted border">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex items-center justify-center">
-                    {deviceGroup ? (
-                      <DeviceIcon icon={deviceGroup.icon} />
-                    ) : (
-                      <Camera className="h-5 w-5" />
-                    )}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Device type: {deviceGroup?.icon || "Unknown"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm truncate">
-              <span className="font-normal text-muted-foreground">Device:</span>{" "}
-              {deviceGroup?.name || "No device group"}
-            </h3>
-            {deviceGroup?.description && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                {deviceGroup.description}
-              </p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex items-center gap-2">
+      {hasSubmissions && (
+        <Button variant="default" onClick={handleExport}>
+          <Download className="h-4 w-4" />
+          Export
+        </Button>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline">
+            <BarChart3 className="h-4 w-4" />
+            Analyze
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => console.log("Run validations")}>
+            Run Validations
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => console.log("Generate contact sheet")}>
+            Generate Contact Sheet
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }

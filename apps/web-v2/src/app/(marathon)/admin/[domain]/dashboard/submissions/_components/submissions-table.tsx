@@ -557,14 +557,5 @@ export function SubmissionsTable() {
     }
   }
 
-  return (
-    <div className="container mx-auto space-y-6">
-      <SubmissionsHeader
-        activeTab={activeTab}
-        onTabChange={(value) => setQueryState({ tab: value as typeof activeTab })}
-      />
-
-      <div className="space-y-6">{renderContent()}</div>
-    </div>
-  )
+  return <div className="space-y-6">{renderContent()}</div>
 }

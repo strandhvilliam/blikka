@@ -2,16 +2,25 @@
 
 import { Plus, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useQueryState, useQueryStates } from "nuqs"
+import { submissionSearchParams } from "../_lib/search-params"
 
 type Tab = "all" | "initialized" | "not-verified" | "verified" | "validation-errors"
 
-interface SubmissionsHeaderProps {
-  activeTab: Tab
-  onTabChange: (tab: Tab) => void
-}
+const customTabTriggerClassName =
+  "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#FF5D4B] dark:data-[state=active]:text-[#FF7A6B] text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-[#FF5D4B] dark:data-[state=active]:after:bg-[#FF7A6B]"
 
-export function SubmissionsHeader({ activeTab, onTabChange }: SubmissionsHeaderProps) {
+export function SubmissionsHeader() {
+  const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
+    history: "push",
+  })
+
+  const { tab: activeTab } = queryState
+  const onTabChange = (tab: Tab) => {
+    setQueryState({ tab })
+  }
+
   const tabs: { value: Tab; label: string }[] = [
     { value: "all", label: "All Submissions" },
     { value: "initialized", label: "Initialized" },
@@ -46,35 +55,21 @@ export function SubmissionsHeader({ activeTab, onTabChange }: SubmissionsHeaderP
         </div>
       </div>
 
-      <div className="border-b border-border">
-        <nav className="flex gap-8 -mb-px" aria-label="Tabs">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.value
-            return (
-              <button
-                key={tab.value}
-                onClick={() => onTabChange(tab.value)}
-                className={cn(
-                  "relative py-4 text-sm font-medium transition-colors outline-none",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-t",
-                  isActive
-                    ? "text-[#FF5D4B] dark:text-[#FF7A6B]"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                aria-current={isActive ? "page" : undefined}
-              >
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => onTabChange(value as Tab)}
+        className="space-y-0"
+      >
+        <div className="border-b border-border">
+          <TabsList className="bg-transparent rounded-none p-0 h-auto flex gap-8 -mb-px">
+            {tabs.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value} className={customTabTriggerClassName}>
                 {tab.label}
-                {isActive && (
-                  <span
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FF5D4B] dark:bg-[#FF7A6B]"
-                    aria-hidden="true"
-                  />
-                )}
-              </button>
-            )
-          })}
-        </nav>
-      </div>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+      </Tabs>
     </div>
   )
 }

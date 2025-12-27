@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { Camera, Smartphone, Zap } from "lucide-react";
+import { Camera, Smartphone, Zap } from "lucide-react"
 import type {
   CompetitionClass,
   DeviceGroup,
@@ -8,60 +8,58 @@ import type {
   Submission,
   ValidationResult,
   ZippedSubmission,
-} from "@vimmer/api/db/types";
+} from "@vimmer/api/db/types"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@vimmer/ui/components/tooltip";
-import { Card, CardContent } from "@vimmer/ui/components/card";
-import { toast } from "sonner";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/trpc/client";
-import { useState } from "react";
-import { useAction } from "next-safe-action/hooks";
-import { getPresignedExportUrlAction } from "@/actions/get-presigned-photo-archives-action";
-import { ParticipantVerifyDialog } from "@/components/admin/participant-verify-dialog";
-import { ParticipantActionButtons } from "@/components/admin/participant-action-buttons";
-import { ParticipantHeaderInfo } from "@/components/admin/participant-header-info";
-import { ParticipantThumbnailGenerationCard } from "@/components/admin/participant-thumbnail-generation-card";
-import { ParticipantExportCard } from "@/components/admin/participant-export-card";
-import { ParticipantStatusCard } from "./participant-status-card";
+} from "@vimmer/ui/components/tooltip"
+import { Card, CardContent } from "@vimmer/ui/components/card"
+import { toast } from "sonner"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { useTRPC } from "@/trpc/client"
+import { useState } from "react"
+import { useAction } from "next-safe-action/hooks"
+import { getPresignedExportUrlAction } from "@/actions/get-presigned-photo-archives-action"
+import { ParticipantVerifyDialog } from "@/components/admin/participant-verify-dialog"
+import { ParticipantActionButtons } from "@/components/admin/participant-action-buttons"
+import { ParticipantHeaderInfo } from "@/components/admin/participant-header-info"
+import { ParticipantThumbnailGenerationCard } from "@/components/admin/participant-thumbnail-generation-card"
+import { ParticipantExportCard } from "@/components/admin/participant-export-card"
+import { ParticipantStatusCard } from "./participant-status-card"
 
 interface ParticipantHeaderProps {
-  variantsGeneratorUrl: string;
+  variantsGeneratorUrl: string
   participant: Participant & {
-    competitionClass: CompetitionClass | null;
-    deviceGroup: DeviceGroup | null;
-    submissions?: Submission[];
-    zippedSubmissions?: ZippedSubmission[];
-  };
-  validationResults?: ValidationResult[];
+    competitionClass: CompetitionClass | null
+    deviceGroup: DeviceGroup | null
+    submissions?: Submission[]
+    zippedSubmissions?: ZippedSubmission[]
+  }
+  validationResults?: ValidationResult[]
 }
 
 function DeviceIcon({ icon }: { icon: string }) {
   switch (icon) {
     case "smartphone":
-      return <Smartphone className="h-5 w-5" />;
+      return <Smartphone className="h-5 w-5" />
     case "action-camera":
-      return <Zap className="h-5 w-5" />;
+      return <Zap className="h-5 w-5" />
     default:
-      return <Camera className="h-5 w-5" />;
+      return <Camera className="h-5 w-5" />
   }
 }
 
 interface ParticipantCompetitionClassCardProps {
   participant: Participant & {
-    competitionClass: CompetitionClass | null;
-    deviceGroup: DeviceGroup | null;
-    submissions?: Submission[];
-  };
+    competitionClass: CompetitionClass | null
+    deviceGroup: DeviceGroup | null
+    submissions?: Submission[]
+  }
 }
 
-function ParticipantCompetitionClassCard({
-  participant,
-}: ParticipantCompetitionClassCardProps) {
+function ParticipantCompetitionClassCard({ participant }: ParticipantCompetitionClassCardProps) {
   return (
     <Card className="hover:shadow-sm transition-shadow items-center flex">
       <CardContent className="p-4">
@@ -97,20 +95,18 @@ function ParticipantCompetitionClassCard({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 interface ParticipantDeviceGroupCardProps {
   participant: Participant & {
-    competitionClass: CompetitionClass | null;
-    deviceGroup: DeviceGroup | null;
-    submissions?: Submission[];
-  };
+    competitionClass: CompetitionClass | null
+    deviceGroup: DeviceGroup | null
+    submissions?: Submission[]
+  }
 }
 
-function ParticipantDeviceGroupCard({
-  participant,
-}: ParticipantDeviceGroupCardProps) {
+function ParticipantDeviceGroupCard({ participant }: ParticipantDeviceGroupCardProps) {
   return (
     <Card className="hover:shadow-sm transition-shadow items-center flex">
       <CardContent className="p-4">
@@ -128,9 +124,7 @@ function ParticipantDeviceGroupCard({
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>
-                    Device type: {participant.deviceGroup?.icon || "Unknown"}
-                  </p>
+                  <p>Device type: {participant.deviceGroup?.icon || "Unknown"}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -149,7 +143,7 @@ function ParticipantDeviceGroupCard({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 export function ParticipantHeader({
@@ -157,49 +151,44 @@ export function ParticipantHeader({
   participant,
   validationResults = [],
 }: ParticipantHeaderProps) {
-  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
+  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false)
 
-  const globalValidations = validationResults.filter(
-    (result) => !result.fileName,
-  );
+  const globalValidations = validationResults.filter((result) => !result.fileName)
 
   const { execute: getPresignedExportUrl, status: exportStatus } = useAction(
     getPresignedExportUrlAction,
     {
       onSuccess: ({ data }) => {
         if (!data?.url) {
-          toast.error("No download URL returned");
-          return;
+          toast.error("No download URL returned")
+          return
         }
-        const link = document.createElement("a");
-        link.href = data.url;
-        link.download = "submission.zip";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const link = document.createElement("a")
+        link.href = data.url
+        link.download = "submission.zip"
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
       },
       onError: () => {
-        toast.error("Failed to get download URL");
+        toast.error("Failed to get download URL")
       },
-    },
-  );
+    }
+  )
 
   const submissionsNeedingThumbnails =
     participant.submissions?.filter(
-      (submission) => !submission.thumbnailKey || !submission.previewKey,
-    ) || [];
+      (submission) => !submission.thumbnailKey || !submission.previewKey
+    ) || []
 
   const shouldShowThumbnailGeneration =
     (participant.status === "completed" || participant.status === "verified") &&
-    submissionsNeedingThumbnails.length > 0;
+    submissionsNeedingThumbnails.length > 0
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <ParticipantHeaderInfo
-          participant={participant}
-          globalValidations={globalValidations}
-        />
+        <ParticipantHeaderInfo participant={participant} globalValidations={globalValidations} />
         <ParticipantActionButtons
           participant={participant}
           exportStatus={exportStatus}
@@ -227,5 +216,5 @@ export function ParticipantHeader({
         participant={participant}
       />
     </div>
-  );
+  )
 }
