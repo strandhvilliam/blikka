@@ -25,11 +25,13 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
     )
 
     return (
-      <HydrateClient>
-        <Suspense fallback={<div>Loading...</div>}>
-          <SubmissionsTable />
-        </Suspense>
-      </HydrateClient>
+      <div className="px-6 py-8">
+        <HydrateClient>
+          <Suspense fallback={<div>Loading...</div>}>
+            <SubmissionsTable />
+          </Suspense>
+        </HydrateClient>
+      </div>
     )
   },
   Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
