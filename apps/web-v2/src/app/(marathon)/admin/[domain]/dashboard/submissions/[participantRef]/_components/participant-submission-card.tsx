@@ -11,9 +11,8 @@ import { cn } from "@/lib/utils"
 import { useParams } from "next/navigation"
 
 interface ParticipantSubmissionCardProps {
-  submission: Submission
-  topic?: Topic
-  validationResults?: ValidationResult[]
+  submission: Submission & { topic: Topic }
+  validationResults: ValidationResult[]
 }
 
 const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
@@ -35,31 +34,24 @@ function getImageUrl(submission: Submission): string | null {
 
 export function ParticipantSubmissionCard({
   submission,
-  validationResults = [],
-  topic,
+  validationResults,
 }: ParticipantSubmissionCardProps) {
   const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
 
-  const submissionValidations = validationResults.filter(
-    (result) => result.fileName === submission.key
-  )
-
-  const hasFailedValidations = submissionValidations.some((result) => result.outcome === "failed")
-
-  const hasErrors = submissionValidations.some(
+  const hasFailedValidations = validationResults.some((result) => result.outcome === "failed")
+  const hasErrors = validationResults.some(
     (result) => result.severity === "error" && result.outcome === "failed"
   )
-
-  const hasWarnings = submissionValidations.some(
+  const hasWarnings = validationResults.some(
     (result) => result.severity === "warning" && result.outcome === "failed"
   )
-
-  const allPassed = submissionValidations.length > 0 && !hasFailedValidations
-
+  const allPassed = validationResults.length > 0 && !hasFailedValidations
   const imageUrl = getImageUrl(submission)
 
   return (
-    <Link href={`/admin/${domain}/dashboard/submissions/${participantRef}/${topic?.orderIndex}`}>
+    <Link
+      href={`/admin/${domain}/dashboard/submissions/${participantRef}/${submission.topic?.orderIndex}`}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -69,11 +61,11 @@ export function ParticipantSubmissionCard({
           ease: [0.2, 0.65, 0.3, 0.9],
         }}
       >
-        <Card className="group cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all overflow-hidden">
-          <CardContent className="relative p-0 flex items-center justify-center aspect-4/3 bg-neutral-200/40 overflow-hidden">
+        <Card className="group gap-2 rounded-lg p-0 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all overflow-hidden">
+          <CardContent className="relative p-0 flex items-center justify-center aspect-4/3 bg-neutral-200/60 border-b overflow-hidden">
             <div className="absolute top-2 left-2 z-10">
               <Badge variant="outline" className="bg-white/80 backdrop-blur-sm">
-                #{topic?.orderIndex.toString() ? topic.orderIndex + 1 : "?"}
+                #{submission.topic?.orderIndex.toString() ? submission.topic.orderIndex + 1 : "?"}
               </Badge>
             </div>
 
@@ -89,14 +81,14 @@ export function ParticipantSubmissionCard({
                 layout
                 className={cn("w-full h-full object-contain rounded-t-lg")}
                 src={imageUrl}
-                alt={topic?.name ?? ""}
+                alt={submission.topic?.name ?? ""}
               />
             )}
           </CardContent>
-          <CardFooter className="p-4 flex flex-col items-start gap-2 ">
+          <CardFooter className="px-4 pb-2 flex flex-col items-start gap-2 ">
             <div className="flex items-center justify-between w-full">
-              <h3 className="font-medium">{topic?.name ?? "Untitled Topic"}</h3>
-              {submissionValidations.length > 0 && (
+              <h3 className="font-medium">{submission.topic?.name ?? "Untitled Topic"}</h3>
+              {validationResults.length > 0 && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
@@ -136,7 +128,7 @@ export function ParticipantSubmissionCard({
                               {hasErrors ? "Errors:" : "Warnings:"}
                             </p>
                             <ul className="list-disc pl-4 space-y-1">
-                              {submissionValidations
+                              {validationResults
                                 .filter((result) => result.outcome === "failed")
                                 .map((result, i) => (
                                   <li key={i} className="text-sm">

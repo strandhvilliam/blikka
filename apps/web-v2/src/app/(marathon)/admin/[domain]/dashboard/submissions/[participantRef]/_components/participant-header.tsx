@@ -8,11 +8,23 @@ import {
   XCircle,
   Download,
   BarChart3,
+  Smartphone,
+  Zap,
+  FileText,
+  Grid3x3,
+  MoreVertical,
 } from "lucide-react"
-import type { Participant, ValidationResult } from "@blikka/db"
+import type {
+  Participant,
+  ValidationResult,
+  CompetitionClass,
+  DeviceGroup,
+  Submission,
+} from "@blikka/db"
 import { useParams } from "next/navigation"
 import { useTRPC } from "@/lib/trpc/client"
 import { useSuspenseQuery } from "@tanstack/react-query"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -23,6 +35,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ParticipantStatusIndicator } from "./participant-status-indicator"
+import { CardContent } from "@/components/ui/card"
+
+import { Camera } from "lucide-react"
 
 export function ParticipantHeader() {
   const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
@@ -42,11 +58,11 @@ export function ParticipantHeader() {
         <ParticipantHeaderActions participant={participant} />
       </div>
 
-      {/* <div className="flex flex-wrap gap-4">
-        <ParticipantStatusCard status={participant.status} />
-        <ParticipantCompetitionClassCard competitionClass={participant.competitionClass} />
-        <ParticipantDeviceGroupCard deviceGroup={participant.deviceGroup} />
-      </div> */}
+      <div className="flex flex-wrap gap-4">
+        <ParticipantStatusIndicator participant={participant} />
+        <ParticipantCompetitionClassCard participant={participant} />
+        <ParticipantDeviceGroupCard participant={participant} />
+      </div>
     </div>
   )
 }
@@ -113,13 +129,35 @@ function ParticipantHeaderInfo({
 function ParticipantHeaderActions({
   participant,
 }: {
-  participant: Participant & { validationResults: ValidationResult[] }
+  participant: Participant & { validationResults: ValidationResult[]; contactSheets: any[] }
 }) {
   const { domain } = useParams<{ domain: string }>()
   const trpc = useTRPC()
 
   const hasSubmissions =
     (participant as any).submissions && (participant as any).submissions.length > 0
+
+  const hasContactSheet = participant.contactSheets && participant.contactSheets.length > 0
+
+  const handleRunValidations = () => {
+    // TODO: Implement run validations functionality
+    console.log("Run validations clicked")
+  }
+
+  const handleContactSheetAction = () => {
+    if (hasContactSheet) {
+      // TODO: Implement download contact sheet functionality
+      console.log("Download contact sheet clicked")
+    } else {
+      // TODO: Implement generate contact sheet functionality
+      console.log("Generate contact sheet clicked")
+    }
+  }
+
+  const handleRegenerateContactSheet = () => {
+    // TODO: Implement regenerate contact sheet functionality
+    console.log("Regenerate contact sheet clicked")
+  }
 
   const handleExport = () => {
     // TODO: Implement export functionality
@@ -128,6 +166,23 @@ function ParticipantHeaderActions({
 
   return (
     <div className="flex items-center gap-2">
+      <Button variant="outline" onClick={handleRunValidations} disabled>
+        <CheckCircle className="h-4 w-4" />
+        Run validations
+      </Button>
+      <Button variant="outline" onClick={handleContactSheetAction} disabled>
+        {hasContactSheet ? (
+          <>
+            <Download className="h-4 w-4" />
+            Download contact sheet
+          </>
+        ) : (
+          <>
+            <Grid3x3 className="h-4 w-4" />
+            Generate contact sheet
+          </>
+        )}
+      </Button>
       {hasSubmissions && (
         <Button variant="default" onClick={handleExport}>
           <Download className="h-4 w-4" />
@@ -136,20 +191,123 @@ function ParticipantHeaderActions({
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline">
-            <BarChart3 className="h-4 w-4" />
-            Analyze
+          <Button variant="outline" size="icon" className="h-9 w-9">
+            <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => console.log("Run validations")}>
-            Run Validations
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => console.log("Generate contact sheet")}>
-            Generate Contact Sheet
+          <DropdownMenuItem onClick={handleRegenerateContactSheet} disabled>
+            <Grid3x3 className="h-4 w-4 mr-2" />
+            Regenerate contact sheet
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    </div>
+  )
+}
+
+interface ParticipantCompetitionClassCardProps {
+  participant: Participant & {
+    competitionClass: CompetitionClass | null
+    deviceGroup: DeviceGroup | null
+    submissions?: Submission[]
+  }
+}
+
+function ParticipantCompetitionClassCard({ participant }: ParticipantCompetitionClassCardProps) {
+  return (
+    <div className="items-center flex rounded-lg border border-border min-w-[260px]">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-muted border">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="w-5 h-5 text-center text-sm font-bold font-mono flex items-center justify-center">
+                    {participant.competitionClass?.numberOfPhotos || "?"}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    Number of photos required:{" "}
+                    {participant.competitionClass?.numberOfPhotos || "Unknown"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm truncate">
+              <span className="font-normal text-muted-foreground">Class:</span>{" "}
+              {participant.competitionClass?.name || "No class assigned"}
+            </h3>
+            {participant.competitionClass?.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                {participant.competitionClass.description}
+              </p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </div>
+  )
+}
+
+interface ParticipantDeviceGroupCardProps {
+  participant: Participant & {
+    competitionClass: CompetitionClass | null
+    deviceGroup: DeviceGroup | null
+    submissions?: Submission[]
+  }
+}
+
+function ParticipantDeviceGroupCard({ participant }: ParticipantDeviceGroupCardProps) {
+  const getDeviceIcon = ({ icon }: { icon: string }) => {
+    switch (icon) {
+      case "smartphone":
+        return <Smartphone className="h-5 w-5" />
+      case "action-camera":
+        return <Zap className="h-5 w-5" />
+      default:
+        return <Camera className="h-5 w-5" />
+    }
+  }
+
+  return (
+    <div className="items-center flex rounded-lg border border-border min-w-[260px]">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-muted border">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center justify-center">
+                    {participant.deviceGroup ? (
+                      getDeviceIcon({ icon: participant.deviceGroup.icon })
+                    ) : (
+                      <Camera className="h-5 w-5" />
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Device type: {participant.deviceGroup?.icon || "Unknown"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm truncate">
+              <span className="font-normal text-muted-foreground">Device:</span>{" "}
+              {participant.deviceGroup?.name || "No device group"}
+            </h3>
+            {participant.deviceGroup?.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                {participant.deviceGroup.description}
+              </p>
+            )}
+          </div>
+        </div>
+      </CardContent>
     </div>
   )
 }

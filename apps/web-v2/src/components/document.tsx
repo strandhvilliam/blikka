@@ -1,8 +1,8 @@
-import { Inter } from "next/font/google"
+import { Inter, Geist } from "next/font/google"
 import { ReactNode, Suspense } from "react"
 import "../app/globals.css"
 
-const inter = Inter({
+const geist = Geist({
   subsets: ["latin"],
   display: "swap",
 })
@@ -14,7 +14,7 @@ type Props = {
 
 export default function Document({ children, locale }: Props) {
   return (
-    <html className={inter.className} lang={locale}>
+    <html className={geist.className} lang={locale}>
       <body>{children}</body>
     </html>
   )
