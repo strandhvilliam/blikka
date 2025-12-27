@@ -157,6 +157,10 @@ export default $config({
 
     return {
       submissionsBucket: submissionsBucket.name,
+      thumbnailsBucket: thumbnailsBucket.name,
+      contactSheetsBucket: contactSheetsBucket.name,
+      sponsorBucket: sponsorBucket.name,
+      zipsBucket: zipsBucket.name,
     }
   },
 })

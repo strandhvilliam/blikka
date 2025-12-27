@@ -1,10 +1,11 @@
-import { createTRPCRouter, publicProcedure } from "../root"
-import { trpcEffect } from "../utils"
-import { Schema, Effect } from "effect"
+import { authProcedure, createTRPCRouter, publicProcedure } from "../root"
+import { assertAllowedToAccessDomain, trpcEffect } from "../utils"
+import { Schema, Effect, Option } from "effect"
 import { Database } from "@blikka/db"
+import { TRPCError } from "@trpc/server"
 
 export const participantRouter = createTRPCRouter({
-  getByDomainInfinite: publicProcedure
+  getByDomainInfinite: authProcedure
     .input(
       Schema.standardSchemaV1(
         Schema.Struct({
@@ -47,9 +48,32 @@ export const participantRouter = createTRPCRouter({
       )
     ),
 
-  getById: publicProcedure
-    .input(Schema.standardSchemaV1(Schema.Struct({ id: Schema.Number })))
-    .query(() => {}),
+  getByReference: authProcedure
+    .input(
+      Schema.standardSchemaV1(Schema.Struct({ reference: Schema.String, domain: Schema.String }))
+    )
+    .query(
+      trpcEffect(
+        Effect.fn(function* ({ input, ctx }) {
+          yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
+          const db = yield* Database
+          const result = yield* db.participantsQueries.getParticipantByReference({
+            reference: input.reference,
+            domain: input.domain,
+          })
+
+          if (Option.isNone(result)) {
+            return yield* Effect.fail(
+              new TRPCError({
+                code: "NOT_FOUND",
+                message: "Participant not found",
+              })
+            )
+          }
+          return result.value
+        })
+      )
+    ),
 
   // getByReference: publicProcedure.input().query(() => {}),
 

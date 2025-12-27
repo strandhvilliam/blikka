@@ -39,7 +39,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Loader2 } from "lucide-react"
 import { CompetitionClass, DeviceGroup, Participant } from "@blikka/db"
 import { submissionSearchParams } from "../_lib/search-params"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 
 type TableData = Participant & {
   competitionClass: CompetitionClass | null
@@ -53,6 +53,7 @@ type TableData = Participant & {
 
 export function SubmissionsTable() {
   const { domain } = useParams<{ domain: string }>()
+  const router = useRouter()
   const trpc = useTRPC()
   const [sorting, setSorting] = useState<SortingState>([])
 
@@ -427,15 +428,23 @@ export function SubmissionsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              table.getRowModel().rows.map((row) => {
+                const participant = row.original
+                const href = `/admin/${domain}/dashboard/submissions/${participant.reference}`
+                return (
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => router.push(href)}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>

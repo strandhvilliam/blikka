@@ -45,6 +45,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             deviceGroup: true,
             validationResults: true,
             zippedSubmissions: true,
+            contactSheets: true,
           },
         })
 
