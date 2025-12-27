@@ -13,6 +13,10 @@ import {
   FileText,
   Grid3x3,
   MoreVertical,
+  Image,
+  Archive,
+  FileImage,
+  Info,
 } from "lucide-react"
 import type {
   Participant,
@@ -62,6 +66,10 @@ export function ParticipantHeader() {
         <ParticipantStatusIndicator participant={participant} />
         <ParticipantCompetitionClassCard participant={participant} />
         <ParticipantDeviceGroupCard participant={participant} />
+        <ParticipantContactSheetIndicator participant={participant} />
+        <ParticipantZipIndicator participant={participant} />
+        <ParticipantThumbnailsIndicator participant={participant} />
+        <ParticipantExifIndicator participant={participant} />
       </div>
     </div>
   )
@@ -216,7 +224,7 @@ interface ParticipantCompetitionClassCardProps {
 
 function ParticipantCompetitionClassCard({ participant }: ParticipantCompetitionClassCardProps) {
   return (
-    <div className="items-center flex rounded-lg border border-border min-w-[260px]">
+    <div className="items-center flex rounded-lg border border-border min-w-[260px] bg-background">
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-muted border">
@@ -274,7 +282,7 @@ function ParticipantDeviceGroupCard({ participant }: ParticipantDeviceGroupCardP
   }
 
   return (
-    <div className="items-center flex rounded-lg border border-border min-w-[260px]">
+    <div className="items-center flex rounded-lg border border-border min-w-[260px] bg-background">
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-muted border">
@@ -305,6 +313,191 @@ function ParticipantDeviceGroupCard({ participant }: ParticipantDeviceGroupCardP
                 {participant.deviceGroup.description}
               </p>
             )}
+          </div>
+        </div>
+      </CardContent>
+    </div>
+  )
+}
+
+interface ParticipantContactSheetIndicatorProps {
+  participant: Participant & {
+    contactSheets?: any[]
+  }
+}
+
+function ParticipantContactSheetIndicator({ participant }: ParticipantContactSheetIndicatorProps) {
+  const hasContactSheet = participant.contactSheets && participant.contactSheets.length > 0
+
+  if (hasContactSheet) {
+    return null
+  }
+
+  return (
+    <div className="items-center flex rounded-lg border border-border min-w-[260px] bg-background">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-200">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center justify-center">
+                    <Grid3x3 className="h-5 w-5 text-orange-600" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>No contact sheet has been generated yet</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm truncate flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              Missing Contact Sheet
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">No contact sheet generated</p>
+          </div>
+        </div>
+      </CardContent>
+    </div>
+  )
+}
+
+interface ParticipantZipIndicatorProps {
+  participant: Participant & {
+    zippedSubmissions?: any[]
+  }
+}
+
+function ParticipantZipIndicator({ participant }: ParticipantZipIndicatorProps) {
+  const hasZip = participant.zippedSubmissions && participant.zippedSubmissions.length > 0
+
+  if (hasZip) {
+    return null
+  }
+
+  return (
+    <div className="items-center flex rounded-lg border border-border min-w-[260px] bg-background">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-200">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center justify-center">
+                    <Archive className="h-5 w-5 text-blue-600" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>No zip file has been generated yet</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm truncate flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              Missing Zip File
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">No zip file generated</p>
+          </div>
+        </div>
+      </CardContent>
+    </div>
+  )
+}
+
+interface ParticipantThumbnailsIndicatorProps {
+  participant: Participant & {
+    submissions?: Submission[]
+  }
+}
+
+function ParticipantThumbnailsIndicator({ participant }: ParticipantThumbnailsIndicatorProps) {
+  const submissions = participant.submissions || []
+  const missingThumbnails = submissions.filter((s) => !s.thumbnailKey)
+  const hasMissingThumbnails = missingThumbnails.length > 0
+
+  if (!hasMissingThumbnails) {
+    return null
+  }
+
+  return (
+    <div className="items-center flex rounded-lg border border-border min-w-[260px] bg-background">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-200">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center justify-center">
+                    <FileImage className="h-5 w-5 text-purple-600" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{missingThumbnails.length} submission(s) missing thumbnails</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm truncate flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              Missing Thumbnails
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {missingThumbnails.length} submission{missingThumbnails.length !== 1 ? "s" : ""}{" "}
+              without thumbnails
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </div>
+  )
+}
+
+interface ParticipantExifIndicatorProps {
+  participant: Participant & {
+    submissions?: Submission[]
+  }
+}
+
+function ParticipantExifIndicator({ participant }: ParticipantExifIndicatorProps) {
+  const submissions = participant.submissions || []
+  const missingExif = submissions.filter((s) => !s.exif || Object.keys(s.exif).length === 0)
+  const hasMissingExif = missingExif.length > 0
+
+  if (!hasMissingExif) {
+    return null
+  }
+
+  return (
+    <div className="items-center flex rounded-lg border border-border min-w-[260px] bg-background">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-200">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center justify-center">
+                    <Info className="h-5 w-5 text-amber-600" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{missingExif.length} submission(s) missing EXIF data</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm truncate flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              Missing EXIF Data
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {missingExif.length} submission{missingExif.length !== 1 ? "s" : ""} without EXIF
+            </p>
           </div>
         </div>
       </CardContent>
