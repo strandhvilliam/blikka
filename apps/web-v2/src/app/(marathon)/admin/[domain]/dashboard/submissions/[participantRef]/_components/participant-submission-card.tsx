@@ -38,7 +38,7 @@ export function ParticipantSubmissionCard({
   validationResults = [],
   topic,
 }: ParticipantSubmissionCardProps) {
-  const { participantRef } = useParams<{ participantRef: string }>()
+  const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
 
   const submissionValidations = validationResults.filter(
     (result) => result.fileName === submission.key
@@ -59,7 +59,7 @@ export function ParticipantSubmissionCard({
   const imageUrl = getImageUrl(submission)
 
   return (
-    <Link href={`/admin/submissions/${participantRef}/${submission.id}`}>
+    <Link href={`/admin/${domain}/dashboard/submissions/${participantRef}/${topic?.orderIndex}`}>
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
