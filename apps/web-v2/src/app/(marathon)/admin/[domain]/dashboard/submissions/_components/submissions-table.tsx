@@ -69,7 +69,7 @@ export function SubmissionsTable() {
   const router = useRouter()
   const trpc = useTRPC()
   const [sorting, setSorting] = useState<SortingState>([])
-  useParticipantEvents()
+  const { displayStates, finalizedRefs, completedEvents, clearAll } = useParticipantEvents()
 
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: "push",
@@ -147,6 +147,28 @@ export function SubmissionsTable() {
     )
 
   const participants = useMemo(() => data?.pages.flatMap((page) => page.participants) ?? [], [data])
+
+  // Clear display states when query refetches (fresh data takes priority)
+  // Track data reference to detect when it changes (refetch)
+  const prevDataRef = useRef(data)
+  useEffect(() => {
+    // If data reference changed and we had previous data, it's a refetch
+    if (data !== prevDataRef.current && prevDataRef.current !== undefined) {
+      clearAll()
+    }
+    prevDataRef.current = data
+  }, [data, clearAll])
+
+  // Merge display states with participants
+  const computedParticipants = useMemo(() => {
+    return participants.map((p) => {
+      const displayState = displayStates.get(p.reference)
+      return {
+        ...p,
+        displayState, // null means show original status
+      }
+    })
+  }, [participants, displayStates])
 
   const competitionClasses = useMemo(() => {
     const classes = new Map<number, { id: number; name: string }>()
@@ -239,8 +261,72 @@ export function SubmissionsTable() {
       {
         accessorKey: "status",
         header: "Status",
+        size: 280,
+        minSize: 280,
+        maxSize: 280,
         cell: ({ row }) => {
-          const status = row.getValue("status") as string
+          const participant = row.original as TableData & { displayState?: any }
+          const displayState = participant.displayState
+          const reference = participant.reference
+          const completedTasks = completedEvents.get(reference) || new Set<string>()
+
+          // Task name to icon mapping for completed badges
+          const taskIconMap: Record<string, { icon: typeof CheckCircle2; label: string }> = {
+            "upload-initializer": { icon: CheckCircle2, label: "Initialized" },
+            "upload-finalizer": { icon: CheckCircle2, label: "Finalized" },
+            "validation-runner": { icon: CheckCircle2, label: "Validated" },
+            "zip-worker": { icon: CheckCircle2, label: "ZIP" },
+            "contact-sheet-generator": { icon: CheckCircle2, label: "Contact Sheet" },
+          }
+
+          // Always show real-time display state if it exists (latest completed state)
+          // This takes precedence over query data
+          if (displayState) {
+            const Icon = displayState.icon
+            return (
+              <div className="flex items-center gap-2 w-full">
+                <Badge
+                  variant={displayState.type === "processing" ? "outline" : "default"}
+                  className={cn(
+                    "capitalize font-medium gap-1.5 transition-all duration-200 shrink-0",
+                    displayState.className
+                  )}
+                >
+                  <Icon className={cn("size-3", displayState.isAnimated && "animate-spin")} />
+                  {displayState.label}
+                </Badge>
+                {completedTasks.size > 0 && (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {Array.from(completedTasks).map((taskName) => {
+                      const taskInfo = taskIconMap[taskName]
+                      if (!taskInfo) return null
+                      const TaskIcon = taskInfo.icon
+                      return (
+                        <div
+                          key={taskName}
+                          className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-muted/50 border border-border/50"
+                          title={taskInfo.label}
+                        >
+                          <TaskIcon className="size-2.5 text-muted-foreground" />
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          // Fallback to original status only if no display state exists
+          // If reference is finalized, override to "completed" (never go back to initialized)
+          const isFinalized = finalizedRefs.has(reference)
+          let status = row.getValue("status") as string
+
+          // Override status if finalized
+          if (isFinalized && status === "initialized") {
+            status = "completed"
+          }
+
           const statusConfig = {
             completed: {
               variant: "default" as const,
@@ -265,13 +351,33 @@ export function SubmissionsTable() {
             statusConfig[status as keyof typeof statusConfig] || statusConfig.initialized
           const Icon = config.icon
           return (
-            <Badge
-              variant={config.variant}
-              className={cn("capitalize font-medium gap-1.5", config.className)}
-            >
-              <Icon className="size-3" />
-              {status}
-            </Badge>
+            <div className="flex items-center gap-2 w-full">
+              <Badge
+                variant={config.variant}
+                className={cn("capitalize font-medium gap-1.5 shrink-0", config.className)}
+              >
+                <Icon className="size-3" />
+                {status}
+              </Badge>
+              {completedTasks.size > 0 && (
+                <div className="flex items-center gap-1 flex-wrap">
+                  {Array.from(completedTasks).map((taskName) => {
+                    const taskInfo = taskIconMap[taskName]
+                    if (!taskInfo) return null
+                    const TaskIcon = taskInfo.icon
+                    return (
+                      <div
+                        key={taskName}
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-muted/50 border border-border/50"
+                        title={taskInfo.label}
+                      >
+                        <TaskIcon className="size-2.5 text-muted-foreground" />
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           )
         },
       },
@@ -339,7 +445,7 @@ export function SubmissionsTable() {
   )
 
   const table = useReactTable({
-    data: participants,
+    data: computedParticipants,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -459,13 +565,22 @@ export function SubmissionsTable() {
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="border-b bg-muted/30 hover:bg-muted/30">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="h-12 font-semibold text-foreground">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
+                  {headerGroup.headers.map((header) => {
+                    const isStatusColumn = header.column.id === "status"
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className="h-12 font-semibold text-foreground"
+                        style={
+                          isStatusColumn ? { width: 280, minWidth: 280, maxWidth: 280 } : undefined
+                        }
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    )
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
@@ -516,11 +631,22 @@ export function SubmissionsTable() {
                       className="cursor-pointer transition-colors hover:bg-muted/60 border-b"
                       onClick={() => router.push(href)}
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-3">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
+                      {row.getVisibleCells().map((cell) => {
+                        const isStatusColumn = cell.column.id === "status"
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            className="py-3"
+                            style={
+                              isStatusColumn
+                                ? { width: 280, minWidth: 280, maxWidth: 280 }
+                                : undefined
+                            }
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        )
+                      })}
                     </TableRow>
                   )
                 })
