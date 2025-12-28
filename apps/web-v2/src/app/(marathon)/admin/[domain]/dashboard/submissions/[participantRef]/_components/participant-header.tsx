@@ -45,6 +45,17 @@ import { CardContent } from "@/components/ui/card"
 import { Camera } from "lucide-react"
 
 export function ParticipantHeader() {
+  const { domain, participantRef } = useParams<{ domain: string; participantRef?: string }>()
+
+  // // Early return if participantRef is not available (e.g., during navigation)
+  if (!participantRef || !domain) {
+    return null
+  }
+
+  return <ParticipantHeaderContent />
+}
+
+function ParticipantHeaderContent() {
   const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
   const trpc = useTRPC()
 

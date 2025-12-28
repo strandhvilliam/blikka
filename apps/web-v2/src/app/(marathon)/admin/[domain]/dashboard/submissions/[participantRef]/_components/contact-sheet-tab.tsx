@@ -9,7 +9,9 @@ import { useTRPC } from "@/lib/trpc/client"
 
 const VALID_CONTACT_SHEET_PHOTO_AMOUNT = [8, 24]
 
-const contactSheetBucketUrl = process.env.NEXT_PUBLIC_CONTACT_SHEET_BUCKET_URL
+const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
+const CONTACT_SHEETS_BUCKET_NAME = process.env.NEXT_PUBLIC_CONTACT_SHEETS_BUCKET_NAME
+const CONTACT_SHEETS_BUCKET_BASE_URL = `${AWS_S3_BASE_URL}/${CONTACT_SHEETS_BUCKET_NAME}`
 
 export function ContactSheetTab() {
   const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
@@ -68,7 +70,7 @@ export function ContactSheetTab() {
       <div className="space-y-4">
         <div className="flex justify-center">
           <img
-            src={`${contactSheetBucketUrl}/${contactSheet.key}`}
+            src={`${CONTACT_SHEETS_BUCKET_BASE_URL}/${contactSheet.key}`}
             alt="Contact Sheet"
             className="max-w-full h-auto border border-black shadow-lg"
           />
@@ -100,4 +102,3 @@ export function ContactSheetTab() {
     </div>
   )
 }
-

@@ -5,6 +5,8 @@ import { Suspense } from "react"
 import { ParticipantSubmissionClientPage } from "./_components/client-page"
 import { batchPrefetch, trpc } from "@/lib/trpc/server"
 import { ParticipantHeader } from "./_components/participant-header"
+import { ParticipantHeaderSkeleton } from "./_components/participant-header-skeleton"
+import { ParticipantSubmissionClientPageSkeleton } from "./_components/client-page-skeleton"
 
 const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
   function* ({ params, searchParams }: PageProps<"/admin/[domain]/dashboard">) {
@@ -24,21 +26,14 @@ const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
 
     return (
       <HydrateClient>
-        <Suspense
-          fallback={
-            <div className="container mx-auto flex items-center justify-center py-12">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-                <span className="text-sm text-muted-foreground">Loading participant data...</span>
-              </div>
-            </div>
-          }
-        >
-          <div className="container mx-auto space-y-6">
+        <div className="container mx-auto space-y-6">
+          <Suspense fallback={<ParticipantHeaderSkeleton />}>
             <ParticipantHeader />
+          </Suspense>
+          <Suspense fallback={<ParticipantSubmissionClientPageSkeleton />}>
             <ParticipantSubmissionClientPage />
-          </div>
-        </Suspense>
+          </Suspense>
+        </div>
       </HydrateClient>
     )
   },
