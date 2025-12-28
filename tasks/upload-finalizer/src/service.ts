@@ -22,16 +22,26 @@ export class UploadFinalizerService extends Effect.Service<UploadFinalizerServic
       const finalizeParticipant = Effect.fn("UploadFinalizerService.finalizeParticipant")(
         function* (domain: string, reference: string) {
           const participantState = yield* uploadKv.getParticipantState(domain, reference)
+          const participant = yield* db.participantsQueries.getParticipantByReference({
+            reference,
+            domain,
+          })
 
-          if (Option.isNone(participantState)) {
+          if (Option.isNone(participant)) {
             return yield* new FailedToFinalizeParticipantError({
-              message: "Participant state not found",
+              message: `[${reference}|${domain}] Participant in db not found`,
             })
           }
 
-          if (participantState.value.finalized) {
+          if (Option.isNone(participantState)) {
+            return yield* new FailedToFinalizeParticipantError({
+              message: `[${reference}|${domain}] Participant state not found`,
+            })
+          }
+
+          if (participant.value.status === "completed") {
             yield* Effect.logWarning(
-              `[${reference}|${domain}] Participant already finalized, skipping`
+              `[${reference}|${domain}] Participant already completed, skipping`
             )
             return
           }
