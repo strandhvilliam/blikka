@@ -4,11 +4,11 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "baseUrl": ".",
+    "baseUrl": "./",
     "noEmit": true,
     "allowJs": true,
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@blikka/redis": ["../../packages/redis/src/index.ts"]
     },
     "strict": true

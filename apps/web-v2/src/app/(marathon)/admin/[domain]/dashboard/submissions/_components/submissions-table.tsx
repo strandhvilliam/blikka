@@ -52,6 +52,7 @@ import { submissionSearchParams } from "../_lib/search-params"
 import { useParams, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { SubmissionsHeader } from "./submissions-header"
+import { useParticipantEvents } from "../_lib/use-participant-events"
 
 type TableData = Participant & {
   competitionClass: CompetitionClass | null
@@ -68,6 +69,7 @@ export function SubmissionsTable() {
   const router = useRouter()
   const trpc = useTRPC()
   const [sorting, setSorting] = useState<SortingState>([])
+  useParticipantEvents()
 
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: "push",

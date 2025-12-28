@@ -25,14 +25,14 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-    "baseUrl": ".",
     "paths": {
       "@blikka/db": ["../../packages/db/src"],
       "@blikka/auth": ["../../packages/auth/src"],
       "@blikka/email": ["../../packages/email/src"],
       "@blikka/redis": ["../../packages/redis/src"],
       "@blikka/s3": ["../../packages/s3/src"],
-      "@blikka/kv-store": ["../../packages/kv-store/src"]
+      "@blikka/kv-store": ["../../packages/kv-store/src"],
+      "@blikka/pubsub": ["../../packages/pubsub/src"]
     }
   }
 }

@@ -7,6 +7,7 @@ import { getPermissions, getSession } from "./utils"
 import { RedisClient } from "@blikka/redis"
 import type { S3Service } from "@blikka/s3"
 import type { UploadSessionRepository } from "@blikka/kv-store"
+import type { PubSubService, RunStateService } from "@blikka/pubsub"
 
 export type RequiredServices =
   | BetterAuthService
@@ -16,29 +17,55 @@ export type RequiredServices =
   | RedisClient
   | S3Service
   | UploadSessionRepository
+  | PubSubService
+  | RunStateService
+
+type ServiceMap = {
+  BetterAuthService: BetterAuthService
+  DrizzleClient: DrizzleClient
+  EmailService: EmailService
+  Database: Database
+  RedisClient: RedisClient
+  S3Service: S3Service
+  UploadSessionRepository: UploadSessionRepository
+  PubSubService: PubSubService
+  RunStateService: RunStateService
+}
+
+type ServiceNames = keyof ServiceMap
 
 type HasService<Context, Service> = Service extends Context ? true : false
 
+type CheckService<Context, Name extends ServiceNames> =
+  HasService<Context, ServiceMap[Name]> extends false
+    ? { __error: `Runtime missing ${Name}`; missing: ServiceMap[Name] }
+    : true
+
+type ValidateServices<Context, Names extends readonly ServiceNames[]> = Names extends readonly [
+  infer First extends ServiceNames,
+  ...infer Rest extends readonly ServiceNames[],
+]
+  ? CheckService<Context, First> extends { __error: infer E; missing: infer M }
+    ? { __error: E; missing: M }
+    : ValidateServices<Context, Rest>
+  : true
+
 type ValidateRuntime<T> =
   T extends ManagedRuntime.ManagedRuntime<infer R, infer E>
-    ? HasService<R, BetterAuthService> extends false
-      ? { __error: "Runtime missing BetterAuthService"; missing: BetterAuthService }
-      : HasService<R, DrizzleClient> extends false
-        ? { __error: "Runtime missing DrizzleClient"; missing: DrizzleClient }
-        : HasService<R, EmailService> extends false
-          ? { __error: "Runtime missing EmailService"; missing: EmailService }
-          : HasService<R, Database> extends false
-            ? { __error: "Runtime missing Database"; missing: Database }
-            : HasService<R, RedisClient> extends false
-              ? { __error: "Runtime missing RedisClient"; missing: RedisClient }
-              : HasService<R, S3Service> extends false
-                ? { __error: "Runtime missing S3Service"; missing: S3Service }
-                : HasService<R, UploadSessionRepository> extends false
-                  ? {
-                      __error: "Runtime missing UploadSessionRepository"
-                      missing: UploadSessionRepository
-                    }
-                  : T
+    ? ValidateServices<
+        R,
+        [
+          "BetterAuthService",
+          "DrizzleClient",
+          "EmailService",
+          "Database",
+          "RedisClient",
+          "S3Service",
+          "UploadSessionRepository",
+          "PubSubService",
+          "RunStateService",
+        ]
+      >
     : { __error: "Type must be a ManagedRuntime"; received: T }
 
 type AssertValidRuntime<T> =

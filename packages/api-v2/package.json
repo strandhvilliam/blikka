@@ -7,6 +7,7 @@
     "@blikka/auth": "workspace:*",
     "@blikka/s3": "workspace:*",
     "@blikka/db": "workspace:*",
+    "@blikka/pubsub": "workspace:*",
     "@blikka/email": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@hono/trpc-server": "^0.4.0",

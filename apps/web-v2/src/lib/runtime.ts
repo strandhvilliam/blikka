@@ -4,7 +4,7 @@ import { EmailService } from "@blikka/email"
 import { RedisClient } from "@blikka/redis"
 import { AuthLayer } from "./auth/server"
 import { NodeContext } from "@effect/platform-node"
-import { PubSubService } from "@blikka/pubsub"
+import { PubSubService, RunStateService } from "@blikka/pubsub"
 import { S3Service } from "@blikka/s3"
 import { UploadSessionRepository } from "@blikka/kv-store"
 
@@ -15,6 +15,7 @@ const MainLayer = Layer.mergeAll(
   RedisClient.Default,
   AuthLayer,
   PubSubService.Default,
+  RunStateService.Default,
   S3Service.Default,
   UploadSessionRepository.Default
 ).pipe(
