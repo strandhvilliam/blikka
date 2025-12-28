@@ -5,6 +5,7 @@ import { SubmissionsTable } from "./_components/submissions-table"
 import { Suspense } from "react"
 import { loadSubmissionSearchParams } from "./_lib/search-params"
 import { SubmissionsHeader } from "./_components/submissions-header"
+import { SubmissionsSkeleton } from "./_components/submissions-skeleton"
 
 const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
   function* ({ params, searchParams }: PageProps<"/admin/[domain]/dashboard">) {
@@ -27,7 +28,7 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
 
     return (
       <HydrateClient>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<SubmissionsSkeleton />}>
           <div className="container mx-auto space-y-6">
             <SubmissionsHeader />
             <SubmissionsTable />
