@@ -1,16 +1,15 @@
 import { format } from "date-fns"
 import { Camera, FileSpreadsheet, ImageIcon, InfoIcon, ListFilter, MapPin } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
   if (!exifData || Object.keys(exifData).length === 0) {
     return (
       <div className="p-8 text-center text-muted-foreground">
         <div className="mb-2">
-          <InfoIcon className="h-8 w-8 mx-auto text-muted-foreground/50" />
+          <InfoIcon className="h-10 w-10 mx-auto text-muted-foreground/30" />
         </div>
-        <h3 className="text-lg font-medium">No EXIF data available</h3>
-        <p className="text-sm">
+        <h3 className="text-base font-semibold font-rocgrotesk mb-1">No EXIF data available</h3>
+        <p className="text-xs">
           This image does not contain EXIF metadata or it couldn't be extracted.
         </p>
       </div>
@@ -161,58 +160,50 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
   const otherKeys = Object.keys(exifData).filter((key) => !groupedKeys.includes(key))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {Object.entries(groups).map(([groupKey, group]) => {
         const groupData = group.keys.filter((key) => key in exifData)
         if (groupData.length === 0) return null
 
         return (
-          <Card key={groupKey}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                {group.icon}
-                <CardTitle className="text-base font-semibold">{group.title}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {groupData.map((key) => (
-                  <div key={key} className="flex flex-col">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {key.replace(/([A-Z])/g, " $1").trim()}
-                    </span>
-                    <span className="font-mono text-sm">{formatExifValue(key, exifData[key])}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div key={groupKey} className="border rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2.5">
+              {group.icon}
+              <h4 className="text-sm font-semibold font-rocgrotesk">{group.title}</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2.5">
+              {groupData.map((key) => (
+                <div key={key} className="flex flex-col space-y-0.5">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide leading-tight">
+                    {key.replace(/([A-Z])/g, " $1").trim()}
+                  </span>
+                  <span className="font-mono text-xs">{formatExifValue(key, exifData[key])}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )
       })}
 
       {otherKeys.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <ListFilter className="h-4 w-4" />
-              <CardTitle className="text-base font-semibold">Other Metadata</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {otherKeys.map((key) => (
-                <div key={key} className="flex flex-col">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {key.replace(/([A-Z])/g, " $1").trim()}
-                  </span>
-                  <span className="font-mono text-sm overflow-hidden text-ellipsis">
-                    {formatExifValue(key, exifData[key])}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="border rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2.5">
+            <ListFilter className="h-4 w-4" />
+            <h4 className="text-sm font-semibold font-rocgrotesk">Other Metadata</h4>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2.5">
+            {otherKeys.map((key) => (
+              <div key={key} className="flex flex-col space-y-0.5">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide leading-tight">
+                  {key.replace(/([A-Z])/g, " $1").trim()}
+                </span>
+                <span className="font-mono text-xs overflow-hidden text-ellipsis">
+                  {formatExifValue(key, exifData[key])}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )

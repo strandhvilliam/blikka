@@ -129,30 +129,32 @@ export function SubmissionReviewTimeline({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base font-semibold">Submission Timeline</CardTitle>
+      <CardHeader className="pb-2 pt-4 px-4">
+        <CardTitle className="text-base font-semibold font-rocgrotesk">
+          Submission Timeline
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pb-4 px-4 pt-2">
         <div className="relative">
           {reviewSteps.map((step, index) => (
-            <div key={index} className="flex gap-4 pb-8 last:pb-0 relative">
+            <div key={index} className="flex gap-3 pb-6 last:pb-0 relative">
               {index < reviewSteps.length - 1 && (
                 <div
-                  className={`absolute left-[15px] z-10 top-[30px] bottom-0 w-[2px] ${
+                  className={`absolute left-[15px] z-10 top-[32px] bottom-0 w-[2px] ${
                     step.status === "completed" && reviewSteps[index + 1]?.status === "completed"
                       ? "bg-primary"
                       : step.status === "completed" &&
                           (reviewSteps[index + 1]?.status === "pending" ||
                             reviewSteps[index + 1]?.status === "upcoming")
-                        ? "bg-gradient-to-b from-primary to-blue-500"
+                        ? "bg-linear-to-b from-primary to-blue-500"
                         : step.status === "pending"
-                          ? "bg-gradient-to-b from-blue-500 to-muted-foreground/30"
+                          ? "bg-linear-to-b from-blue-500 to-muted-foreground/30"
                           : "bg-muted-foreground/30"
                   }`}
                 />
               )}
               <div
-                className={`rounded-full h-8 w-8 flex items-center justify-center z-20 border-2 ${
+                className={`rounded-full h-8 w-8 flex items-center justify-center z-20 border-2 shrink-0 ${
                   step.status === "completed"
                     ? "bg-primary/10 border-primary text-primary"
                     : step.status === "pending"
@@ -166,40 +168,38 @@ export function SubmissionReviewTimeline({
                   <step.icon className="w-4 h-4" />
                 )}
               </div>
-              <div className={`flex-1 space-y-1 ${step.status === "upcoming" ? "opacity-60" : ""}`}>
-                <div className="flex items-center justify-between">
-                  <p
-                    className={`font-medium ${
-                      step.status === "completed"
-                        ? "text-primary"
-                        : step.status === "pending"
-                          ? "text-blue-600 dark:text-blue-400"
+              <div
+                className={`flex-1 space-y-0.5 ${step.status === "upcoming" ? "opacity-60" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p
+                      className={`font-medium text-sm ${
+                        step.status === "completed"
+                          ? "text-primary"
+                          : step.status === "pending"
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {step.title}
+                    </p>
+                    <p
+                      className={`text-xs mt-0.5 ${
+                        step.isPending
+                          ? "text-blue-700 dark:text-blue-300"
                           : "text-muted-foreground"
-                    }`}
-                  >
-                    {step.title}
-                    {step.status === "pending" && (
-                      <span className="ml-2 text-xs bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium py-0.5 px-2 rounded-full">
-                        Active
-                      </span>
-                    )}
-                    {step.status === "upcoming" && (
-                      <span className="ml-2 text-xs bg-muted/20 text-muted-foreground font-medium py-0.5 px-2 rounded-full">
-                        Pending
-                      </span>
-                    )}
-                  </p>
+                      }`}
+                    >
+                      {step.description}
+                    </p>
+                  </div>
                   {step.timestamp && (
-                    <span className="text-sm text-muted-foreground">{step.timestamp}</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {step.timestamp}
+                    </span>
                   )}
                 </div>
-                <p
-                  className={`text-sm ${
-                    step.isPending ? "text-blue-700 dark:text-blue-300" : "text-muted-foreground"
-                  }`}
-                >
-                  {step.description}
-                </p>
               </div>
             </div>
           ))}

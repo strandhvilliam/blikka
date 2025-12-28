@@ -383,7 +383,7 @@ export function SubmissionsTable() {
               placeholder="Search by reference, name, or email..."
               value={search || ""}
               onChange={(e) => setQueryState({ search: e.target.value || null })}
-              className="w-full pl-9 h-10"
+              className="w-full pl-9 h-10 bg-background"
             />
           </div>
 
@@ -392,7 +392,7 @@ export function SubmissionsTable() {
               value={sortOrder}
               onValueChange={(value) => setQueryState({ sortOrder: value as "asc" | "desc" })}
             >
-              <SelectTrigger className="w-full sm:w-[160px] h-10">
+              <SelectTrigger className="w-full sm:w-[160px] h-10 bg-background">
                 <div className="flex items-center gap-2">
                   <ArrowUpDown className="size-4 text-muted-foreground shrink-0" />
                   <SelectValue />
@@ -412,7 +412,7 @@ export function SubmissionsTable() {
               }
               onValueChange={handleCompetitionClassChange}
             >
-              <SelectTrigger className="w-full sm:w-[220px] h-10">
+              <SelectTrigger className="w-full sm:w-[220px] h-10 bg-background">
                 <div className="flex items-center gap-2">
                   <Filter className="size-4 text-muted-foreground shrink-0" />
                   <SelectValue placeholder="All Classes" />
@@ -432,7 +432,7 @@ export function SubmissionsTable() {
               value={!deviceGroupId || deviceGroupId.length === 0 ? "all" : deviceGroupId.join(",")}
               onValueChange={handleDeviceGroupChange}
             >
-              <SelectTrigger className="w-full sm:w-[200px] h-10">
+              <SelectTrigger className="w-full sm:w-[200px] h-10 bg-background">
                 <div className="flex items-center gap-2">
                   <Filter className="size-4 text-muted-foreground shrink-0" />
                   <SelectValue placeholder="All Groups" />

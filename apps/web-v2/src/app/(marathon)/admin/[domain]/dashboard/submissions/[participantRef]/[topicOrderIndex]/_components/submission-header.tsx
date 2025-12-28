@@ -1,15 +1,11 @@
 "use client"
 
-import { ArrowLeft, ReplaceIcon } from "lucide-react"
+import { ArrowLeft, User } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Submission, Participant, Topic, ValidationResult } from "@blikka/db"
-import { useTRPC } from "@/lib/trpc/client"
-import { useQueryClient } from "@tanstack/react-query"
 import { useParams } from "next/navigation"
-import { useRef } from "react"
-import { toast } from "sonner"
-import { ValidationResultStateBadge } from "./validation-result-state-badge"
+import { Badge } from "@/components/ui/badge"
 
 interface SubmissionHeaderProps {
   submission: Submission
@@ -24,78 +20,34 @@ export function SubmissionHeader({
   topic,
   validationResults,
 }: SubmissionHeaderProps) {
-  const queryClient = useQueryClient()
   const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
 
-  const trpc = useTRPC()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const replacePhoto = async (file: File, submissionId: number, domain: string) => {
-    toast.success("Not implemented")
-  }
-  const isUploading = false
-
-  // const { replacePhoto, isUploading } = useReplacePhoto({
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({
-  //       queryKey: trpc.submissions.getById.queryKey({
-  //         id: Number(submission.id),
-  //       }),
-  //     });
-  //     queryClient.invalidateQueries({
-  //       queryKey: trpc.participants.getByReference.queryKey({
-  //         reference: participantRef,
-  //         domain,
-  //       }),
-  //     });
-  //   },
-  // });
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      replacePhoto(file, submission.id, domain)
-    }
-  }
-
   return (
-    <div className="flex items-center justify-between gap-3 mb-6">
+    <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-          <Link href={`/admin/submissions/${participant.reference}`}>
+          <Link href={`/admin/${domain}/dashboard/submissions/${participantRef}`}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight font-rocgrotesk">
-              #{topic.orderIndex + 1} {topic.name}
-            </h1>
-            <ValidationResultStateBadge validationResults={validationResults} />
+          <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">
+            {participant.firstname} {participant.lastname}
+          </h1>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge variant="outline" className="font-mono">
+              #{participant.reference}
+            </Badge>
+            <span className="text-sm text-muted-foreground">{participant.email}</span>
           </div>
-          <span className="text-sm text-muted-foreground">
-            Participant #{participant.reference}
-          </span>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          variant="outline"
-          size="sm"
-          disabled={isUploading}
-        >
-          <ReplaceIcon className="h-4 w-4 mr-2" />
-          Replace Submission
-        </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-      </div>
+      <Button variant="outline" asChild>
+        <Link href={`/admin/${domain}/dashboard/submissions/${participantRef}`}>
+          <User className="h-4 w-4 mr-2" />
+          View All Submissions
+        </Link>
+      </Button>
     </div>
   )
 }

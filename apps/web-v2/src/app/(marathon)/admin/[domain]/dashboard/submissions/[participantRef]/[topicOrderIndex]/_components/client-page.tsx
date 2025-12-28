@@ -1,16 +1,20 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { useParams } from "next/navigation"
 import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
 import { SubmissionValidationSteps } from "./submission-validation-steps"
-import { SubmissionDetails } from "./submission-details"
 import { SubmissionHeader } from "./submission-header"
-import { SubmissionPreviewCard } from "./submission-preview-card"
 import { Submission } from "@blikka/db"
+import { SubmissionImageViewer } from "./submission-image-viewer"
+import { SubmissionMetadataPanel } from "./submission-metadata-panel"
+import { SubmissionNavigationControls } from "./submission-navigation-controls"
+import { useState } from "react"
+import { SubmissionQuickActions } from "./submission-quick-actions"
+import { SubmissionReviewTimeline } from "./submission-review-timeline"
+import { Card } from "@/components/ui/card"
 
 const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
 
@@ -33,6 +37,8 @@ export function ParticipantTopicSubmissionClientPage() {
     topicOrderIndex: string
   }>()
   const trpc = useTRPC()
+  const [showExifPanel, setShowExifPanel] = useState(false)
+  const [showValidationPanel, setShowValidationPanel] = useState(false)
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
@@ -58,8 +64,16 @@ export function ParticipantTopicSubmissionClientPage() {
     notFound()
   }
 
+  const allSubmissions = participant.submissions
+    .filter((s) => s.topic)
+    .sort((a, b) => (a.topic?.orderIndex || 0) - (b.topic?.orderIndex || 0))
+
+  const currentIndex = allSubmissions.findIndex(
+    (s) => s.topic?.orderIndex === parseInt(topicOrderIndex)
+  )
+
   return (
-    <>
+    <div className="space-y-6">
       <SubmissionHeader
         submission={submission}
         participant={participant}
@@ -67,54 +81,64 @@ export function ParticipantTopicSubmissionClientPage() {
         validationResults={submissionValidationResults}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
-        <div>
-          <Tabs defaultValue="details" className="">
-            <TabsList className="bg-background rounded-none p-0 h-auto border-b border-muted-foreground/25 w-full flex justify-start">
-              <TabsTrigger
-                value="details"
-                className="px-4 py-2 bg-background rounded-none data-[state=active]:shadow-none data-[state=active]:border-primary border-b-2 border-transparent"
-              >
-                Details & Timeline
-              </TabsTrigger>
-              <TabsTrigger
-                value="validation"
-                className="px-4 py-2 bg-background rounded-none data-[state=active]:shadow-none data-[state=active]:border-primary border-b-2 border-transparent"
-              >
-                Validation Results
-              </TabsTrigger>
-              <TabsTrigger
-                value="exif"
-                className="px-4 py-2 bg-background rounded-none data-[state=active]:shadow-none data-[state=active]:border-primary border-b-2 border-transparent"
-              >
-                EXIF Data
-              </TabsTrigger>
-            </TabsList>
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6">
+        <div className="space-y-6">
+          <div className="relative">
+            <SubmissionNavigationControls
+              currentIndex={currentIndex}
+              totalSubmissions={allSubmissions.length}
+              allSubmissions={allSubmissions}
+              domain={domain}
+              participantRef={participantRef}
+            />
+            <SubmissionImageViewer
+              imageUrl={getImageUrl(submission)}
+              topic={topic}
+              submission={submission}
+              competitionClass={participant.competitionClass}
+            />
+          </div>
 
-            <TabsContent value="details">
-              <SubmissionDetails
-                submission={submission}
-                topic={topic}
-                participant={participant}
-                hasIssues={hasIssues}
-              />
-            </TabsContent>
+          <SubmissionQuickActions
+            submission={submission}
+            validationResults={submissionValidationResults}
+            onShowExif={() => setShowExifPanel(!showExifPanel)}
+            onShowValidation={() => setShowValidationPanel(!showValidationPanel)}
+            showExifPanel={showExifPanel}
+            showValidationPanel={showValidationPanel}
+          />
 
-            <TabsContent value="validation" className="mt-4">
+          {showValidationPanel && (
+            <Card className="p-4">
+              <h3 className="text-base font-semibold font-rocgrotesk mb-3">Validation Results</h3>
               <SubmissionValidationSteps validationResults={submissionValidationResults} />
-            </TabsContent>
+            </Card>
+          )}
 
-            <TabsContent value="exif" className="mt-4 space-y-4">
+          {showExifPanel && (
+            <Card className="p-4">
+              <h3 className="text-base font-semibold font-rocgrotesk mb-3">EXIF Data</h3>
               <SubmissionExifDataDisplay exifData={submission.exif} />
-            </TabsContent>
-          </Tabs>
+            </Card>
+          )}
+
+          <SubmissionReviewTimeline
+            submission={submission}
+            participant={participant}
+            hasIssues={hasIssues}
+          />
         </div>
-        <SubmissionPreviewCard
-          competitionClass={participant.competitionClass}
-          topic={topic}
-          imageUrl={getImageUrl(submission)}
-        />
+
+        <div className="space-y-6">
+          <SubmissionMetadataPanel
+            submission={submission}
+            topic={topic}
+            participant={participant}
+            hasIssues={hasIssues}
+            validationResults={submissionValidationResults}
+          />
+        </div>
       </div>
-    </>
+    </div>
   )
 }
