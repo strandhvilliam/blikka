@@ -46,11 +46,17 @@ export async function proxy(request: NextRequest) {
     }
 
     // For the root path on a subdomain, rewrite to the subdomain page for admin and live
-    if (pathname.startsWith("/admin")) {
+    if (pathname === "/admin" || pathname === "/admin/") {
       console.log("rewrite to", `/admin/${subdomain}`)
       return NextResponse.rewrite(new URL(`/admin/${subdomain}`, request.url))
     }
-    if (pathname.startsWith("/")) {
+
+    // Pass through other /admin routes on subdomains to avoid double rewriting
+    if (pathname.startsWith("/admin/")) {
+      return NextResponse.rewrite(new URL(pathname, request.url))
+    }
+
+    if (pathname === "/") {
       return NextResponse.rewrite(new URL(`/live/${subdomain}`, request.url))
     }
   }
