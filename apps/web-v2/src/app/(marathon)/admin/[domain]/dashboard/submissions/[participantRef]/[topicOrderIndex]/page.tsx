@@ -7,8 +7,12 @@ import { ParticipantTopicSubmissionClientPage } from "./_components/client-page"
 
 const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsPage")(
   function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
-    const { domain, participantRef } = yield* decodeParams(
-      Schema.Struct({ domain: Schema.String, participantRef: Schema.String })
+    const { domain, participantRef, topicOrderIndex } = yield* decodeParams(
+      Schema.Struct({
+        domain: Schema.String,
+        participantRef: Schema.String,
+        topicOrderIndex: Schema.Number,
+      })
     )(params)
 
     batchPrefetch([
@@ -24,7 +28,10 @@ const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsP
     return (
       <HydrateClient>
         <Suspense fallback={<div>Loading...</div>}>
-          <ParticipantTopicSubmissionClientPage />
+          <ParticipantTopicSubmissionClientPage
+            participantRef={participantRef}
+            topicOrderIndex={topicOrderIndex}
+          />
         </Suspense>
       </HydrateClient>
     )

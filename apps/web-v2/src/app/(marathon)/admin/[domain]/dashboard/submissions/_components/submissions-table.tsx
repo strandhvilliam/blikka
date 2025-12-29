@@ -49,10 +49,11 @@ import {
 } from "lucide-react"
 import { CompetitionClass, DeviceGroup, Participant } from "@blikka/db"
 import { submissionSearchParams } from "../_lib/search-params"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { SubmissionsHeader } from "./submissions-header"
 import { useParticipantEvents } from "../_lib/use-participant-events"
+import { useDomain } from "@/lib/domain-provider"
 
 type TableData = Participant & {
   competitionClass: CompetitionClass | null
@@ -65,7 +66,7 @@ type TableData = Participant & {
 }
 
 export function SubmissionsTable() {
-  const { domain } = useParams<{ domain: string }>()
+  const domain = useDomain()
   const router = useRouter()
   const trpc = useTRPC()
   const [sorting, setSorting] = useState<SortingState>([])
@@ -509,7 +510,7 @@ export function SubmissionsTable() {
               ) : (
                 table.getRowModel().rows.map((row) => {
                   const participant = row.original
-                  const href = `/admin/${domain}/dashboard/submissions/${participant.reference}`
+                  const href = `/admin/dashboard/submissions/${participant.reference}`
                   return (
                     <TableRow
                       key={row.id}

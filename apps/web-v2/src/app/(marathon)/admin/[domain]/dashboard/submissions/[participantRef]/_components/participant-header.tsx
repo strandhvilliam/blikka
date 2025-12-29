@@ -25,7 +25,6 @@ import type {
   DeviceGroup,
   Submission,
 } from "@blikka/db"
-import { useParams } from "next/navigation"
 import { useTRPC } from "@/lib/trpc/client"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
@@ -46,7 +45,7 @@ import { Camera } from "lucide-react"
 import { useDomain } from "@/lib/domain-provider"
 
 export function ParticipantHeader({ participantRef }: { participantRef: string }) {
-  const { domain } = useDomain()
+  const domain = useDomain()
   const trpc = useTRPC()
 
   const { data: participant } = useSuspenseQuery(
@@ -81,8 +80,6 @@ function ParticipantHeaderInfo({
 }: {
   participant: Participant & { validationResults: ValidationResult[] }
 }) {
-  const { domain } = useParams<{ domain: string }>()
-
   const globalValidations = participant.validationResults.filter((result) => !result.fileName)
   const hasFailedValidations = globalValidations.some((result) => result.outcome === "failed")
   const hasErrors = globalValidations.some(
@@ -100,7 +97,7 @@ function ParticipantHeaderInfo({
   return (
     <div className="flex items-center gap-3">
       <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-        <Link href={`/admin/${domain}/dashboard/submissions`}>
+        <Link href={`/admin/dashboard/submissions`}>
           <ArrowLeft className="h-4 w-4" />
         </Link>
       </Button>
@@ -140,7 +137,7 @@ function ParticipantHeaderActions({
 }: {
   participant: Participant & { validationResults: ValidationResult[]; contactSheets: any[] }
 }) {
-  const { domain } = useParams<{ domain: string }>()
+  const domain = useDomain()
   const trpc = useTRPC()
 
   const hasSubmissions =

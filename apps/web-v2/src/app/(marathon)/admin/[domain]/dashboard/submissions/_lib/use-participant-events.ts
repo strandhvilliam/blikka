@@ -1,11 +1,10 @@
 "use client"
 
+import { useDomain } from "@/lib/domain-provider"
 import { useEffect } from "react"
-import { useParams } from "next/navigation"
 
 export function useParticipantEvents() {
-  const params = useParams<{ domain: string }>()
-  const domain = params?.domain
+  const domain = useDomain()
 
   useEffect(() => {
     if (!domain) {

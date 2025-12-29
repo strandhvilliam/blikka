@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { Download } from "lucide-react"
 import { useState } from "react"
-import { useParams } from "next/navigation"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
@@ -15,7 +14,7 @@ const CONTACT_SHEETS_BUCKET_NAME = process.env.NEXT_PUBLIC_CONTACT_SHEETS_BUCKET
 const CONTACT_SHEETS_BUCKET_BASE_URL = `${AWS_S3_BASE_URL}/${CONTACT_SHEETS_BUCKET_NAME}`
 
 export function ContactSheetTab({ participantRef }: { participantRef: string }) {
-  const { domain } = useDomain()
+  const domain = useDomain()
   const trpc = useTRPC()
   const [isGenerating, setIsGenerating] = useState(false)
 

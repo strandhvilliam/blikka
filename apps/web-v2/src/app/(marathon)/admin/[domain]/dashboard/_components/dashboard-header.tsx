@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { LinkIcon, Menu } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { useParams } from "next/navigation"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Suspense } from "react"
+import { useDomain } from "@/lib/domain-provider"
 
 export function DashboardHeader() {
-  const { domain } = useParams<{ domain: string }>()
+  const domain = useDomain()
 
   const staffSiteUrl = `https://${domain}.blikka.app/staff`
   const participantSiteUrl = `https://${domain}.blikka.app`

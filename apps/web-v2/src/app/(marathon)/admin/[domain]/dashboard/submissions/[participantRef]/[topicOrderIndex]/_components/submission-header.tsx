@@ -4,7 +4,6 @@ import { ArrowLeft, User } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Submission, Participant, Topic, ValidationResult } from "@blikka/db"
-import { useParams } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 
 interface SubmissionHeaderProps {
@@ -14,19 +13,12 @@ interface SubmissionHeaderProps {
   validationResults: ValidationResult[]
 }
 
-export function SubmissionHeader({
-  submission,
-  participant,
-  topic,
-  validationResults,
-}: SubmissionHeaderProps) {
-  const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
-
+export function SubmissionHeader({ participant }: SubmissionHeaderProps) {
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-          <Link href={`/admin/${domain}/dashboard/submissions/${participantRef}`}>
+          <Link href={`/admin/dashboard/submissions/${participant.reference}`}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -43,7 +35,7 @@ export function SubmissionHeader({
         </div>
       </div>
       <Button variant="outline" asChild>
-        <Link href={`/admin/${domain}/dashboard/submissions/${participantRef}`}>
+        <Link href={`/admin/dashboard/submissions/${participant.reference}`}>
           <User className="h-4 w-4 mr-2" />
           View All Submissions
         </Link>

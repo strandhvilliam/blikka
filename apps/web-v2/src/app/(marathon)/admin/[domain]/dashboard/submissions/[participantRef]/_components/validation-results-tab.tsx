@@ -28,7 +28,6 @@ import { useMemo, useState } from "react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
-import { useParams } from "next/navigation"
 import { toast } from "sonner"
 import { useDomain } from "@/lib/domain-provider"
 
@@ -57,9 +56,8 @@ function formatRuleKey(ruleKey: string): string {
 const columnHelper = createColumnHelper<ValidationResultWithOrder>()
 
 export function ValidationResultsTab({ participantRef }: { participantRef: string }) {
-  const { domain } = useDomain()
+  const domain = useDomain()
   const trpc = useTRPC()
-  const queryClient = useQueryClient()
   const [sorting, setSorting] = useState<SortingState>([{ id: "extractedOrderIndex", desc: false }])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 

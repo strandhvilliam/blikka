@@ -40,7 +40,7 @@ import {
   Users,
 } from "lucide-react"
 import Link from "next/link"
-import { useParams, usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Suspense, useState } from "react"
 import { format } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -56,6 +56,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@radix-ui/react-separator"
+import { useDomain } from "@/lib/domain-provider"
 
 export function DashboardSidebar() {
   return (
@@ -79,7 +80,7 @@ export function DashboardSidebar() {
 
 export function DashboardSidebarHeader() {
   const trpc = useTRPC()
-  const { domain } = useParams<{ domain: string }>()
+  const domain = useDomain()
   const { data: marathons } = useSuspenseQuery(trpc.marathons.getUserMarathons.queryOptions())
 
   return (

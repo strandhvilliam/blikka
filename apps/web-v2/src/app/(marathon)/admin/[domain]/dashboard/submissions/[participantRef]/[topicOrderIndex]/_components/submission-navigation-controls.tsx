@@ -16,7 +16,6 @@ interface SubmissionNavigationControlsProps {
   currentIndex: number
   totalSubmissions: number
   allSubmissions: (Submission & { topic: Topic | null })[]
-  domain: string
   participantRef: string
 }
 
@@ -24,7 +23,6 @@ export function SubmissionNavigationControls({
   currentIndex,
   totalSubmissions,
   allSubmissions,
-  domain,
   participantRef,
 }: SubmissionNavigationControlsProps) {
   const hasPrevious = currentIndex > 0
@@ -44,7 +42,7 @@ export function SubmissionNavigationControls({
       >
         {hasPrevious ? (
           <Link
-            href={`/admin/${domain}/dashboard/submissions/${participantRef}/${previousSubmission?.topic?.orderIndex}`}
+            href={`/admin/dashboard/submissions/${participantRef}/${previousSubmission?.topic?.orderIndex}`}
           >
             <ChevronLeft className="h-4 w-4" />
             Previous
@@ -71,7 +69,7 @@ export function SubmissionNavigationControls({
             {allSubmissions.map((sub, idx) => (
               <DropdownMenuItem key={sub.id} asChild>
                 <Link
-                  href={`/admin/${domain}/dashboard/submissions/${participantRef}/${sub.topic?.orderIndex}`}
+                  href={`/admin/dashboard/submissions/${participantRef}/${sub.topic?.orderIndex}`}
                   className="flex items-center gap-3 px-3 py-2"
                 >
                   <Badge
@@ -93,7 +91,7 @@ export function SubmissionNavigationControls({
       <Button variant="outline" size="sm" disabled={!hasNext} asChild={hasNext} className="gap-2">
         {hasNext ? (
           <Link
-            href={`/admin/${domain}/dashboard/submissions/${participantRef}/${nextSubmission?.topic?.orderIndex}`}
+            href={`/admin/dashboard/submissions/${participantRef}/${nextSubmission?.topic?.orderIndex}`}
           >
             Next
             <ChevronRight className="h-4 w-4" />
@@ -108,4 +106,3 @@ export function SubmissionNavigationControls({
     </div>
   )
 }
-

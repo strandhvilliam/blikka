@@ -1,25 +1,25 @@
-"use client";
+"use client"
 
-import { AlertTriangle, CheckCircle } from "lucide-react";
-import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
-import { Badge } from "@vimmer/ui/components/badge";
-import { Card, CardContent, CardFooter } from "@vimmer/ui/components/card";
+import { AlertTriangle, CheckCircle } from "lucide-react"
+import Link from "next/link"
+import { AnimatePresence, motion } from "motion/react"
+import { Badge } from "@vimmer/ui/components/badge"
+import { Card, CardContent, CardFooter } from "@vimmer/ui/components/card"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@vimmer/ui/components/tooltip";
-import type { Submission, ValidationResult, Topic } from "@vimmer/api/db/types";
-import { cn } from "@vimmer/ui/lib/utils";
-import { useParams } from "next/navigation";
+} from "@vimmer/ui/components/tooltip"
+import type { Submission, ValidationResult, Topic } from "@vimmer/api/db/types"
+import { cn } from "@vimmer/ui/lib/utils"
+import { useParams } from "next/navigation"
 
 interface PhotoSubmissionCardProps {
-  submission: Submission;
-  topic?: Topic;
-  validationResults?: ValidationResult[];
-  imageUrl: string | null;
+  submission: Submission
+  topic?: Topic
+  validationResults?: ValidationResult[]
+  imageUrl: string | null
 }
 
 export function PhotoSubmissionCard({
@@ -28,25 +28,23 @@ export function PhotoSubmissionCard({
   topic,
   imageUrl,
 }: PhotoSubmissionCardProps) {
-  const { participantRef } = useParams<{ participantRef: string }>();
+  const { participantRef } = useParams<{ participantRef: string }>()
 
   const submissionValidations = validationResults.filter(
-    (result) => result.fileName === submission.key,
-  );
+    (result) => result.fileName === submission.key
+  )
 
-  const hasFailedValidations = submissionValidations.some(
-    (result) => result.outcome === "failed",
-  );
+  const hasFailedValidations = submissionValidations.some((result) => result.outcome === "failed")
 
   const hasErrors = submissionValidations.some(
-    (result) => result.severity === "error" && result.outcome === "failed",
-  );
+    (result) => result.severity === "error" && result.outcome === "failed"
+  )
 
   const hasWarnings = submissionValidations.some(
-    (result) => result.severity === "warning" && result.outcome === "failed",
-  );
+    (result) => result.severity === "warning" && result.outcome === "failed"
+  )
 
-  const allPassed = submissionValidations.length > 0 && !hasFailedValidations;
+  const allPassed = submissionValidations.length > 0 && !hasFailedValidations
 
   return (
     <Link href={`/admin/submissions/${participantRef}/${submission.id}`}>
@@ -69,9 +67,7 @@ export function PhotoSubmissionCard({
 
             {!imageUrl ? (
               <div className="w-full h-full flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">
-                  Image not available
-                </p>
+                <p className="text-sm text-muted-foreground">Image not available</p>
               </div>
             ) : (
               <motion.img
@@ -122,9 +118,7 @@ export function PhotoSubmissionCard({
                             <p
                               className={cn(
                                 "font-semibold",
-                                hasErrors
-                                  ? "text-destructive"
-                                  : "text-yellow-500",
+                                hasErrors ? "text-destructive" : "text-yellow-500"
                               )}
                             >
                               {hasErrors ? "Errors:" : "Warnings:"}
@@ -140,9 +134,7 @@ export function PhotoSubmissionCard({
                             </ul>
                           </div>
                         ) : allPassed ? (
-                          <p className="text-green-500">
-                            All validations passed
-                          </p>
+                          <p className="text-green-500">All validations passed</p>
                         ) : null}
                       </div>
                     </TooltipContent>
@@ -154,5 +146,5 @@ export function PhotoSubmissionCard({
         </Card>
       </motion.div>
     </Link>
-  );
+  )
 }

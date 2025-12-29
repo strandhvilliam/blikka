@@ -8,11 +8,12 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Submission, ValidationResult, Topic } from "@blikka/db"
 import { cn } from "@/lib/utils"
-import { useParams } from "next/navigation"
+import { useDomain } from "@/lib/domain-provider"
 
 interface ParticipantSubmissionCardProps {
   submission: Submission & { topic: Topic }
   validationResults: ValidationResult[]
+  participantRef: string
 }
 
 const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
@@ -20,8 +21,6 @@ const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
 function getImageUrl(submission: Submission): string | null {
   const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
   const submissionBaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
-  console.log(submission.thumbnailKey, thumbnailBaseUrl)
-  console.log(submission.key, submissionBaseUrl)
 
   if (submission.thumbnailKey && thumbnailBaseUrl) {
     return `${AWS_S3_BASE_URL}/${thumbnailBaseUrl}/${submission.thumbnailKey}`
@@ -35,8 +34,9 @@ function getImageUrl(submission: Submission): string | null {
 export function ParticipantSubmissionCard({
   submission,
   validationResults,
+  participantRef,
 }: ParticipantSubmissionCardProps) {
-  const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
+  const domain = useDomain()
 
   const hasFailedValidations = validationResults.some((result) => result.outcome === "failed")
   const hasErrors = validationResults.some(
@@ -49,9 +49,7 @@ export function ParticipantSubmissionCard({
   const imageUrl = getImageUrl(submission)
 
   return (
-    <Link
-      href={`/admin/${domain}/dashboard/submissions/${participantRef}/${submission.topic?.orderIndex}`}
-    >
+    <Link href={`/admin/dashboard/submissions/${participantRef}/${submission.topic?.orderIndex}`}>
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}

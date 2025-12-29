@@ -1,9 +1,8 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
-import { useParams } from "next/navigation"
 import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
 import { SubmissionValidationSteps } from "./submission-validation-steps"
 import { SubmissionHeader } from "./submission-header"
@@ -15,6 +14,7 @@ import { useState } from "react"
 import { SubmissionQuickActions } from "./submission-quick-actions"
 import { SubmissionReviewTimeline } from "./submission-review-timeline"
 import { Card } from "@/components/ui/card"
+import { useDomain } from "@/lib/domain-provider"
 
 const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
 
@@ -30,12 +30,14 @@ const getImageUrl = (submission: Submission) => {
   return null
 }
 
-export function ParticipantTopicSubmissionClientPage() {
-  const { domain, participantRef, topicOrderIndex } = useParams<{
-    domain: string
-    participantRef: string
-    topicOrderIndex: string
-  }>()
+export function ParticipantTopicSubmissionClientPage({
+  participantRef,
+  topicOrderIndex,
+}: {
+  participantRef: string
+  topicOrderIndex: number
+}) {
+  const domain = useDomain()
 
   const trpc = useTRPC()
   const [showExifPanel, setShowExifPanel] = useState(false)
@@ -48,9 +50,7 @@ export function ParticipantTopicSubmissionClientPage() {
     })
   )
 
-  const submission = participant?.submissions.find(
-    (s) => s.topic?.orderIndex === parseInt(topicOrderIndex)
-  )
+  const submission = participant?.submissions.find((s) => s.topic?.orderIndex === topicOrderIndex)
 
   const topic = submission?.topic
 
@@ -69,9 +69,7 @@ export function ParticipantTopicSubmissionClientPage() {
     .filter((s) => s.topic)
     .sort((a, b) => (a.topic?.orderIndex || 0) - (b.topic?.orderIndex || 0))
 
-  const currentIndex = allSubmissions.findIndex(
-    (s) => s.topic?.orderIndex === parseInt(topicOrderIndex)
-  )
+  const currentIndex = allSubmissions.findIndex((s) => s.topic?.orderIndex === topicOrderIndex)
 
   return (
     <div className="space-y-6">
@@ -89,7 +87,6 @@ export function ParticipantTopicSubmissionClientPage() {
               currentIndex={currentIndex}
               totalSubmissions={allSubmissions.length}
               allSubmissions={allSubmissions}
-              domain={domain}
               participantRef={participantRef}
             />
             <SubmissionImageViewer

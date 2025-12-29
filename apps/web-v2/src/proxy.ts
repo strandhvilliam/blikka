@@ -76,7 +76,7 @@ export async function proxy(request: NextRequest) {
     }
 
     if (pathname === "/") {
-      return NextResponse.redirect(new URL(`/live/${subdomain}`, request.url))
+      return NextResponse.redirect(new URL(`/live`, request.url))
     }
   }
 
