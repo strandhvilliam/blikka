@@ -9,7 +9,7 @@
     "@aws-sdk/client-sqs": "^3.812.0",
     "@vimmer/api": "workspace:*",
     "@vimmer/supabase": "workspace:*",
-    "@vimmer/validation": "workspace:*",
+    "@blikka/validation": "workspace:*",
     "exifr": "^7.1.3",
     "file-type": "^21.0.0",
     "heic-convert": "^2.1.0",

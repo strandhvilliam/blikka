@@ -24,7 +24,7 @@ const effectHandler = (event: SQSEvent) =>
     const runStateService = yield* RunStateService
     const environment = getEnvironment()
 
-    const processSQSRecord = Effect.fn("validation-runner.processSQSRecord")(function* (
+    const processSQSRecord = Effect.fn("ValidationRunner.processSQSRecord")(function* (
       record: SQSRecord
     ) {
       const { domain, reference } = yield* parseBusEvent<

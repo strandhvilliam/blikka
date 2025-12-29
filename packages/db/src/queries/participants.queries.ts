@@ -4,7 +4,7 @@ import { participants, validationResults } from "../schema"
 import { eq, and, lt, gt, desc, asc, or, ilike, inArray, notInArray, sql } from "drizzle-orm"
 import type { NewParticipant } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
-import { VALIDATION_OUTCOME } from "@vimmer/validation"
+import { VALIDATION_OUTCOME } from "@blikka/validation"
 
 export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
   "@blikka/db/participants-queries",

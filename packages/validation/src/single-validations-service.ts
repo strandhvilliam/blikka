@@ -9,7 +9,7 @@ import { getTimestamp, getExtensionFromFilename } from "./utils"
 import { ValidationFailure, ValidationSkipped } from "./types"
 
 export class SingleValidationsService extends Effect.Service<SingleValidationsService>()(
-  "@vimmer/packages/validation/single-validations-service",
+  "@blikka/packages/validation/SingleValidationsService",
   {
     effect: Effect.gen(function* () {
       const validateMaxFileSize = (

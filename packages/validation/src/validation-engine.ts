@@ -11,7 +11,7 @@ import {
 } from "./utils";
 
 export class ValidationEngine extends Effect.Service<ValidationEngine>()(
-  "@vimmer/packages/validation/orchestrator",
+  "@blikka/packages/validation/ValidationEngine",
   {
     dependencies: [
       SingleValidationsService.Default,

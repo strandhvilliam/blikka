@@ -13,6 +13,7 @@
     "@effect-aws/lambda": "^1.5.1",
     "effect": "catalog:",
     "@blikka/telemetry": "workspace:*",
-    "@blikka/bus": "workspace:*"
+    "@blikka/bus": "workspace:*",
+    "@blikka/validation": "workspace:*"
   }
 }

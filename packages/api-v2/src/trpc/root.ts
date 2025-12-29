@@ -8,6 +8,7 @@ import { RedisClient } from "@blikka/redis"
 import type { S3Service } from "@blikka/s3"
 import type { UploadSessionRepository } from "@blikka/kv-store"
 import type { PubSubService, RunStateService } from "@blikka/pubsub"
+import type { ValidationEngine } from "@blikka/validation"
 
 export type RequiredServices =
   | BetterAuthService
@@ -19,6 +20,7 @@ export type RequiredServices =
   | UploadSessionRepository
   | PubSubService
   | RunStateService
+  | ValidationEngine
 
 type ServiceMap = {
   BetterAuthService: BetterAuthService
@@ -30,6 +32,7 @@ type ServiceMap = {
   UploadSessionRepository: UploadSessionRepository
   PubSubService: PubSubService
   RunStateService: RunStateService
+  ValidationEngine: ValidationEngine
 }
 
 type ServiceNames = keyof ServiceMap
@@ -64,6 +67,7 @@ type ValidateRuntime<T> =
           "UploadSessionRepository",
           "PubSubService",
           "RunStateService",
+          "ValidationEngine",
         ]
       >
     : { __error: "Type must be a ManagedRuntime"; received: T }

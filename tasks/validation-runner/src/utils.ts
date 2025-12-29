@@ -1,6 +1,6 @@
 import { Data, Effect, Schema } from "effect"
 import { EventBusDetailTypes, FinalizedEventSchema } from "@blikka/bus"
-import { RuleKeySchema, ValidationRule, ValidationRuleSchema } from "@vimmer/validation"
+import { RuleKeySchema, ValidationRule, ValidationRuleSchema } from "@blikka/validation"
 import { RuleConfig } from "@blikka/db"
 import { EventBridgeEvent } from "@effect-aws/lambda"
 

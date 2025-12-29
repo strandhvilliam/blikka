@@ -10,6 +10,7 @@
     "@blikka/pubsub": "workspace:*",
     "@blikka/email": "workspace:*",
     "@blikka/kv-store": "workspace:*",
+    "@blikka/validation": "workspace:*",
     "@hono/trpc-server": "^0.4.0",
     "@trpc/server": "^11.7.1",
     "@upstash/redis": "^1.35.7",

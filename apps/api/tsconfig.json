@@ -21,7 +21,7 @@
     "baseUrl": ".",
     "paths": {
       "@vimmer/api/*": ["src/*"],
-      "@vimmer/validation/*": ["../../packages/validation/old/*"]
+      "@blikka/validation/*": ["../../packages/validation/*"]
     }
   },
   "exclude": ["node_modules"],

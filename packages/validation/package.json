@@ -1,8 +1,13 @@
 {
-  "name": "@vimmer/validation",
+  "name": "@blikka/validation",
   "type": "module",
   "scripts": {
     "test": "vitest"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./old/validator": "./old/validator.ts",
+    "./old/types": "./old/types.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

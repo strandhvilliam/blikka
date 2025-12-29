@@ -1,6 +1,6 @@
 import { RuleConfig as DbRuleConfig } from "@vimmer/api/db/types"
 import { RuleConfig, RuleKey } from "../../../../packages/validation/old/types"
-import { createRule } from "@vimmer/validation/validator"
+import { createRule } from "@blikka/validation/validator"
 import { format } from "date-fns"
 
 export function parseDateFromExif(exif?: Record<string, unknown>) {

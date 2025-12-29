@@ -1,4 +1,4 @@
-import { runValidations } from "@vimmer/validation/validator"
+import { runValidations } from "@blikka/validation/validator"
 import { RuleConfig, RuleKey, ValidationResult } from "../../../../packages/validation/old/types"
 import { SelectedPhotoV2 } from "./types"
 import { toast } from "sonner"

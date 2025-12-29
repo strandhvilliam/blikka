@@ -7,7 +7,7 @@
     "@aws-sdk/client-s3": "^3.731.0",
     "@vimmer/api": "workspace:*",
     "@vimmer/supabase": "workspace:*",
-    "@vimmer/validation": "workspace:*",
+    "@blikka/validation": "workspace:*",
     "posthog-node": "^5.1.1",
     "zod": "^3.24.3"
   },

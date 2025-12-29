@@ -21,7 +21,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@vimmer/api/*": ["../api/src/*"],
-      "@vimmer/validation/*": ["../../packages/validation/old/*"],
+      "@blikka/validation/*": ["../../packages/validation/old/*"],
       "@vimmer/ui/*": ["../../packages/ui/src/*"],
       "@vimmer/email/*": ["../../packages/email/src/*"],
       "next-international/*": ["../../node_modules/next-international/*"]
@@ -71,7 +71,6 @@
 //     "baseUrl": ".",
 //     "paths": {
 //       "@vimmer/scripts/*": ["src/*"],
-//       "@vimmer/validation/*": ["../../packages/validation/src/*"],
 //       "@vimmer/supabase/*": ["../../packages/supabase/src/*"],
 //       "@vimmer/api/*": ["../api/src/*"]
 //     },

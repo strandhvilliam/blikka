@@ -28,7 +28,7 @@
       "@blikka/email": ["../../packages/email/src"],
       "@blikka/s3": ["../../packages/s3/src"],
       "@blikka/kv-store": ["../../packages/kv-store/src"],
-      "@vimmer/validation": ["../../packages/validation/src"],
+      "@blikka/validation": ["../../packages/validation/src"],
       "@blikka/pubsub": ["../../packages/pubsub/src"]
     }
   },

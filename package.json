@@ -26,8 +26,11 @@
     "packages": [
       "apps/*",
       "packages/*",
-      "services/*",
-      "tasks/*"
+      "tasks/*",
+      "!apps/api",
+      "!apps/web",
+      "!apps/observer",
+      "!apps/cli"
     ]
   },
   "dependencies": {

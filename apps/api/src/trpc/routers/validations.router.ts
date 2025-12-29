@@ -28,7 +28,7 @@ import {
 import { getMarathonByIdQuery } from "@vimmer/api/db/queries/marathons.queries"
 import { getRulesByDomainQuery } from "@vimmer/api/db/queries/rules.queries"
 import type { RuleConfig, RuleKey } from "../../../../../packages/validation/old/types"
-import { createRule, runValidations } from "@vimmer/validation/validator"
+import { createRule, runValidations } from "@blikka/validation/validator"
 import type { RuleConfig as DbRuleConfig } from "@vimmer/api/db/types"
 import { getTopicsByMarathonIdQuery } from "@vimmer/api/db/queries/topics.queries"
 import { z } from "zod"

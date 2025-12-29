@@ -5,7 +5,7 @@ import { getTimestamp, getDeviceIdentifier } from "./utils"
 import { ValidationFailure, ValidationSkipped } from "./types"
 
 export class GroupedValidationsService extends Effect.Service<GroupedValidationsService>()(
-  "@vimmer/packages/validation/grouped-validations-service",
+  "@blikka/packages/validation/GroupedValidationsService",
   {
     effect: Effect.gen(function* () {
       const validateStrictTimestampOrdering = (
