@@ -5,7 +5,7 @@ export function DotPattern({ className }: { className?: string }) {
     <>
       <div
         className={cn(
-          "absolute -z-10 -inset-1 pointer-events-none opacity-50 dark:opacity-0 bg-dot-pattern-light",
+          "absolute -z-10 inset-0 pointer-events-none opacity-50 dark:opacity-0 bg-dot-pattern-light",
           className
         )}
       />

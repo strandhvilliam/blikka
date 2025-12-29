@@ -14,7 +14,7 @@ type Props = {
 
 export default function Document({ children, locale }: Props) {
   return (
-    <html className={geist.className} lang={locale}>
+    <html className={`${geist.className} relative`} lang={locale}>
       <body>{children}</body>
     </html>
   )

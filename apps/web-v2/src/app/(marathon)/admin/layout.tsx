@@ -12,7 +12,7 @@ const _AdminLayout = Effect.fn("@blikka/web/AdminLayout")(function* ({
     console.log("redirecting to login")
     redirect("/auth/login", RedirectType.replace)
   }
-  return <div>{children}</div>
+  return <>{children}</>
 })
 
 export default Layout(_AdminLayout)
