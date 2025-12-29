@@ -12,13 +12,14 @@ const _DomainPage = Effect.fn("@blikka/web/DomainPage")(
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
 
     //TODO: Replace with check if marathon is onboarded and configured
-    const isOnboarded = true
+    // const isOnboarded = true
 
-    if (!isOnboarded) {
-      return redirect(`/admin/${domain}/onboarding`)
-    }
+    // if (!isOnboarded) {
+    //   return redirect(`/admin/${domain}/onboarding`)
+    // }
 
-    return redirect(`/admin/${domain}/dashboard`)
+    // return redirect(`/admin/${domain}/dashboard`)
+    return <div>Hello {domain}</div>
   },
   Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )

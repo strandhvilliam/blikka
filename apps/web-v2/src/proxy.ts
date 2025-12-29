@@ -41,7 +41,7 @@ export async function proxy(request: NextRequest) {
 
   if (subdomain) {
     if (pathname.startsWith("/auth")) {
-      const authUrl = new URL(`${protocol}://${rootDomain}/auth`)
+      const authUrl = new URL(`${protocol}://www.${rootDomain}/auth`)
       return NextResponse.redirect(authUrl)
     }
 
