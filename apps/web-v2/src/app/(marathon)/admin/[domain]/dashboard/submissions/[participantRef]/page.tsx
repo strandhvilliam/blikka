@@ -9,7 +9,7 @@ import { ParticipantHeaderSkeleton } from "./_components/participant-header-skel
 import { ParticipantSubmissionClientPageSkeleton } from "./_components/client-page-skeleton"
 
 const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
-  function* ({ params, searchParams }: PageProps<"/admin/[domain]/dashboard">) {
+  function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
     const { domain, participantRef } = yield* decodeParams(
       Schema.Struct({ domain: Schema.String, participantRef: Schema.String })
     )(params)
@@ -28,10 +28,10 @@ const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
       <HydrateClient>
         <div className="container mx-auto space-y-6">
           <Suspense fallback={<ParticipantHeaderSkeleton />}>
-            <ParticipantHeader />
+            <ParticipantHeader participantRef={participantRef} />
           </Suspense>
           <Suspense fallback={<ParticipantSubmissionClientPageSkeleton />}>
-            <ParticipantSubmissionClientPage />
+            <ParticipantSubmissionClientPage participantRef={participantRef} />
           </Suspense>
         </div>
       </HydrateClient>

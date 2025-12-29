@@ -30,6 +30,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { useParams } from "next/navigation"
 import { toast } from "sonner"
+import { useDomain } from "@/lib/domain-provider"
 
 type ValidationResultWithOrder = ValidationResult & {
   extractedOrderIndex: number | null
@@ -55,8 +56,8 @@ function formatRuleKey(ruleKey: string): string {
 
 const columnHelper = createColumnHelper<ValidationResultWithOrder>()
 
-export function ValidationResultsTab() {
-  const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
+export function ValidationResultsTab({ participantRef }: { participantRef: string }) {
+  const { domain } = useDomain()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const [sorting, setSorting] = useState<SortingState>([{ id: "extractedOrderIndex", desc: false }])

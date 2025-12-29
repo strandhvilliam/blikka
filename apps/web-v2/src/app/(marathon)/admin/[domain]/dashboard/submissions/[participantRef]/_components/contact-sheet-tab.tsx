@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useParams } from "next/navigation"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
+import { useDomain } from "@/lib/domain-provider"
 
 const VALID_CONTACT_SHEET_PHOTO_AMOUNT = [8, 24]
 
@@ -13,8 +14,8 @@ const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
 const CONTACT_SHEETS_BUCKET_NAME = process.env.NEXT_PUBLIC_CONTACT_SHEETS_BUCKET_NAME
 const CONTACT_SHEETS_BUCKET_BASE_URL = `${AWS_S3_BASE_URL}/${CONTACT_SHEETS_BUCKET_NAME}`
 
-export function ContactSheetTab() {
-  const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
+export function ContactSheetTab({ participantRef }: { participantRef: string }) {
+  const { domain } = useDomain()
   const trpc = useTRPC()
   const [isGenerating, setIsGenerating] = useState(false)
 

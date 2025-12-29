@@ -36,6 +36,7 @@ export function ParticipantTopicSubmissionClientPage() {
     participantRef: string
     topicOrderIndex: string
   }>()
+
   const trpc = useTRPC()
   const [showExifPanel, setShowExifPanel] = useState(false)
   const [showValidationPanel, setShowValidationPanel] = useState(false)

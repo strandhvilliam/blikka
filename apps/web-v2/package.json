@@ -12,6 +12,7 @@
     "@aws-sdk/client-s3": "^3.948.0",
     "@blikka/api-v2": "workspace:*",
     "@blikka/auth": "workspace:*",
+    "@blikka/telemetry": "workspace:*",
     "@blikka/db": "workspace:*",
     "@blikka/email": "workspace:*",
     "@blikka/kv-store": "workspace:*",

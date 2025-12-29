@@ -43,20 +43,10 @@ import { ParticipantStatusIndicator } from "./participant-status-indicator"
 import { CardContent } from "@/components/ui/card"
 
 import { Camera } from "lucide-react"
+import { useDomain } from "@/lib/domain-provider"
 
-export function ParticipantHeader() {
-  const { domain, participantRef } = useParams<{ domain: string; participantRef?: string }>()
-
-  // // Early return if participantRef is not available (e.g., during navigation)
-  if (!participantRef || !domain) {
-    return null
-  }
-
-  return <ParticipantHeaderContent />
-}
-
-function ParticipantHeaderContent() {
-  const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
+export function ParticipantHeader({ participantRef }: { participantRef: string }) {
+  const { domain } = useDomain()
   const trpc = useTRPC()
 
   const { data: participant } = useSuspenseQuery(

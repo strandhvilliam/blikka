@@ -2,13 +2,15 @@
 
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
-import { useParams } from "next/navigation"
+import { useParams, usePathname } from "next/navigation"
 import { AnimatePresence } from "motion/react"
 import { ParticipantSubmissionCard } from "./participant-submission-card"
 import { cn } from "@/lib/utils"
+import { useDomain } from "@/lib/domain-provider"
 
-export function ParticipantSubmissionsTab() {
-  const { domain, participantRef } = useParams<{ domain: string; participantRef: string }>()
+export function ParticipantSubmissionsTab({ participantRef }: { participantRef: string }) {
+  const { domain } = useDomain()
+
   const trpc = useTRPC()
 
   const { data: participant } = useSuspenseQuery(
