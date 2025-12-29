@@ -11,7 +11,7 @@ const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsP
       Schema.Struct({
         domain: Schema.String,
         participantRef: Schema.String,
-        topicOrderIndex: Schema.Number,
+        topicOrderIndex: Schema.NumberFromString,
       })
     )(params)
 

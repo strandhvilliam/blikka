@@ -30,7 +30,7 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { cn, formatDomainPathname } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
@@ -80,6 +80,7 @@ function ParticipantHeaderInfo({
 }: {
   participant: Participant & { validationResults: ValidationResult[] }
 }) {
+  const domain = useDomain()
   const globalValidations = participant.validationResults.filter((result) => !result.fileName)
   const hasFailedValidations = globalValidations.some((result) => result.outcome === "failed")
   const hasErrors = globalValidations.some(
@@ -97,7 +98,7 @@ function ParticipantHeaderInfo({
   return (
     <div className="flex items-center gap-3">
       <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-        <Link href={`/admin/dashboard/submissions`}>
+        <Link href={formatDomainPathname(`/admin/dashboard/submissions`, domain)}>
           <ArrowLeft className="h-4 w-4" />
         </Link>
       </Button>

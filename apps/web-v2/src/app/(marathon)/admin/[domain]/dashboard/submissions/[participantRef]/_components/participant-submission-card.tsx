@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Submission, ValidationResult, Topic } from "@blikka/db"
-import { cn } from "@/lib/utils"
+import { cn, formatDomainPathname } from "@/lib/utils"
 import { useDomain } from "@/lib/domain-provider"
 
 interface ParticipantSubmissionCardProps {
@@ -49,7 +49,12 @@ export function ParticipantSubmissionCard({
   const imageUrl = getImageUrl(submission)
 
   return (
-    <Link href={`/admin/dashboard/submissions/${participantRef}/${submission.topic?.orderIndex}`}>
+    <Link
+      href={formatDomainPathname(
+        `/admin/dashboard/submissions/${participantRef}/${submission.topic?.orderIndex}`,
+        domain
+      )}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}

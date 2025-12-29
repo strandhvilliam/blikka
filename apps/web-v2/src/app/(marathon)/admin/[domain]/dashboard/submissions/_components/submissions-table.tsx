@@ -50,8 +50,7 @@ import {
 import { CompetitionClass, DeviceGroup, Participant } from "@blikka/db"
 import { submissionSearchParams } from "../_lib/search-params"
 import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { SubmissionsHeader } from "./submissions-header"
+import { cn, formatDomainPathname } from "@/lib/utils"
 import { useParticipantEvents } from "../_lib/use-participant-events"
 import { useDomain } from "@/lib/domain-provider"
 
@@ -510,7 +509,10 @@ export function SubmissionsTable() {
               ) : (
                 table.getRowModel().rows.map((row) => {
                   const participant = row.original
-                  const href = `/admin/dashboard/submissions/${participant.reference}`
+                  const href = formatDomainPathname(
+                    `/admin/dashboard/submissions/${participant.reference}`,
+                    domain
+                  )
                   return (
                     <TableRow
                       key={row.id}

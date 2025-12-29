@@ -5,6 +5,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Submission, Participant, Topic, ValidationResult } from "@blikka/db"
 import { Badge } from "@/components/ui/badge"
+import { formatDomainPathname } from "@/lib/utils"
+import { useDomain } from "@/lib/domain-provider"
 
 interface SubmissionHeaderProps {
   submission: Submission
@@ -14,11 +16,17 @@ interface SubmissionHeaderProps {
 }
 
 export function SubmissionHeader({ participant }: SubmissionHeaderProps) {
+  const domain = useDomain()
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-          <Link href={`/admin/dashboard/submissions/${participant.reference}`}>
+          <Link
+            href={formatDomainPathname(
+              `/admin/dashboard/submissions/${participant.reference}`,
+              domain
+            )}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -35,7 +43,12 @@ export function SubmissionHeader({ participant }: SubmissionHeaderProps) {
         </div>
       </div>
       <Button variant="outline" asChild>
-        <Link href={`/admin/dashboard/submissions/${participant.reference}`}>
+        <Link
+          href={formatDomainPathname(
+            `/admin/dashboard/submissions/${participant.reference}`,
+            domain
+          )}
+        >
           <User className="h-4 w-4 mr-2" />
           View All Submissions
         </Link>

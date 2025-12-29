@@ -11,6 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import { formatDomainPathname } from "@/lib/utils"
+import { useDomain } from "@/lib/domain-provider"
 
 interface SubmissionNavigationControlsProps {
   currentIndex: number
@@ -25,6 +27,7 @@ export function SubmissionNavigationControls({
   allSubmissions,
   participantRef,
 }: SubmissionNavigationControlsProps) {
+  const domain = useDomain()
   const hasPrevious = currentIndex > 0
   const hasNext = currentIndex < totalSubmissions - 1
 
@@ -42,7 +45,10 @@ export function SubmissionNavigationControls({
       >
         {hasPrevious ? (
           <Link
-            href={`/admin/dashboard/submissions/${participantRef}/${previousSubmission?.topic?.orderIndex}`}
+            href={formatDomainPathname(
+              `/admin/dashboard/submissions/${participantRef}/${previousSubmission?.topic?.orderIndex}`,
+              domain
+            )}
           >
             <ChevronLeft className="h-4 w-4" />
             Previous
