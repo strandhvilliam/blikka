@@ -61,6 +61,9 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
   )
 
   const runValidationsMutation = useMutation(trpc.validations.runValidations.mutationOptions())
+  const generateContactSheetMutation = useMutation(
+    trpc.contactSheets.generateContactSheet.mutationOptions()
+  )
 
   const handleRunValidations = () => {
     runValidationsMutation.mutate(
@@ -85,6 +88,29 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
     )
   }
 
+  const handleGenerateContactSheet = () => {
+    generateContactSheetMutation.mutate(
+      {
+        domain,
+        reference: participantRef,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Contact sheet generated successfully")
+          queryClient.invalidateQueries({
+            queryKey: trpc.participants.getByReference.queryKey({
+              reference: participantRef,
+              domain,
+            }),
+          })
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Failed to generate contact sheet")
+        },
+      }
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -93,6 +119,8 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
           participant={participant}
           onRunValidations={handleRunValidations}
           isRunningValidations={runValidationsMutation.isPending}
+          onGenerateContactSheet={handleGenerateContactSheet}
+          isGeneratingContactSheet={generateContactSheetMutation.isPending}
         />
       </div>
 
@@ -105,7 +133,11 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
           isRunningValidations={runValidationsMutation.isPending}
           onRunValidations={handleRunValidations}
         />
-        <ParticipantContactSheetIndicator participant={participant} />
+        <ParticipantContactSheetIndicator
+          participant={participant}
+          onGenerateContactSheet={handleGenerateContactSheet}
+          isGeneratingContactSheet={generateContactSheetMutation.isPending}
+        />
         <ParticipantZipIndicator participant={participant} />
         <ParticipantThumbnailsIndicator participant={participant} />
         <ParticipantExifIndicator participant={participant} />
@@ -176,10 +208,14 @@ function ParticipantHeaderActions({
   participant,
   onRunValidations,
   isRunningValidations,
+  onGenerateContactSheet,
+  isGeneratingContactSheet,
 }: {
   participant: Participant & { validationResults: ValidationResult[]; contactSheets: any[] }
   onRunValidations: () => void
   isRunningValidations: boolean
+  onGenerateContactSheet: () => void
+  isGeneratingContactSheet: boolean
 }) {
   const hasSubmissions =
     (participant as any).submissions && (participant as any).submissions.length > 0
@@ -191,14 +227,12 @@ function ParticipantHeaderActions({
       // TODO: Implement download contact sheet functionality
       console.log("Download contact sheet clicked")
     } else {
-      // TODO: Implement generate contact sheet functionality
-      console.log("Generate contact sheet clicked")
+      onGenerateContactSheet()
     }
   }
 
   const handleRegenerateContactSheet = () => {
-    // TODO: Implement regenerate contact sheet functionality
-    console.log("Regenerate contact sheet clicked")
+    onGenerateContactSheet()
   }
 
   const handleExport = () => {
@@ -208,7 +242,11 @@ function ParticipantHeaderActions({
 
   return (
     <div className="flex items-center gap-2">
-      <Button variant="outline" onClick={handleContactSheetAction} disabled>
+      <Button
+        variant="outline"
+        onClick={handleContactSheetAction}
+        disabled={isGeneratingContactSheet || (!hasContactSheet && !hasSubmissions)}
+      >
         {hasContactSheet ? (
           <>
             <Download className="h-4 w-4" />
@@ -241,7 +279,10 @@ function ParticipantHeaderActions({
             <RefreshCw className={cn("h-4 w-4 mr-2", isRunningValidations && "animate-spin")} />
             Re-run validations
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleRegenerateContactSheet} disabled>
+          <DropdownMenuItem
+            onClick={handleRegenerateContactSheet}
+            disabled={isGeneratingContactSheet || !hasSubmissions}
+          >
             <Grid3x3 className="h-4 w-4 mr-2" />
             Regenerate contact sheet
           </DropdownMenuItem>
@@ -360,14 +401,61 @@ function ParticipantDeviceGroupCard({ participant }: ParticipantDeviceGroupCardP
 interface ParticipantContactSheetIndicatorProps {
   participant: Participant & {
     contactSheets?: any[]
+    submissions?: Submission[]
   }
+  onGenerateContactSheet: () => void
+  isGeneratingContactSheet: boolean
 }
 
-function ParticipantContactSheetIndicator({ participant }: ParticipantContactSheetIndicatorProps) {
+const VALID_CONTACT_SHEET_PHOTO_AMOUNT = [8, 24]
+
+function ParticipantContactSheetIndicator({
+  participant,
+  onGenerateContactSheet,
+  isGeneratingContactSheet,
+}: ParticipantContactSheetIndicatorProps) {
   const hasContactSheet = participant.contactSheets && participant.contactSheets.length > 0
+  const submissions = participant.submissions || []
+  const submissionCount = submissions.length
+  const isValidPhotoCount = VALID_CONTACT_SHEET_PHOTO_AMOUNT.includes(submissionCount)
 
   if (hasContactSheet) {
     return null
+  }
+
+  if (!isValidPhotoCount) {
+    return (
+      <div className="items-center flex rounded-lg border border-border min-w-[260px] bg-background">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-200">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center justify-center">
+                      <Grid3x3 className="h-5 w-5 text-orange-600" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Invalid photo count for contact sheet generation</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm truncate flex items-center gap-1.5">
+                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                No contact sheet
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Contact sheets require {VALID_CONTACT_SHEET_PHOTO_AMOUNT.join(" or ")} photos.{" "}
+                Current: {submissionCount}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </div>
+    )
   }
 
   return (
@@ -394,9 +482,22 @@ function ParticipantContactSheetIndicator({ participant }: ParticipantContactShe
               Missing Contact Sheet
             </h3>
             <p className="text-xs text-muted-foreground mt-1">No contact sheet generated</p>
-            <PrimaryButton className="mt-1 w-fit h-8 text-xs" disabled onClick={() => {}}>
-              <Grid3x3 className="h-3.5 w-3.5" />
-              Generate contact sheet
+            <PrimaryButton
+              className="mt-1 w-fit h-8 text-xs"
+              disabled={isGeneratingContactSheet}
+              onClick={onGenerateContactSheet}
+            >
+              {isGeneratingContactSheet ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Grid3x3 className="h-3.5 w-3.5" />
+                  Generate contact sheet
+                </>
+              )}
             </PrimaryButton>
           </div>
         </div>

@@ -9,6 +9,8 @@ import { S3Service } from "@blikka/s3"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { ValidationEngine } from "@blikka/validation"
+import { SharpImageService, ContactSheetBuilder } from "@blikka/image-manipulation"
+import { ExifParser } from "@blikka/exif-parser"
 
 const MainLayer = Layer.mergeAll(
   DrizzleClient.Default,
@@ -21,6 +23,9 @@ const MainLayer = Layer.mergeAll(
   S3Service.Default,
   UploadSessionRepository.Default,
   ValidationEngine.Default,
+  SharpImageService.Default,
+  ContactSheetBuilder.Default,
+  ExifParser.Default,
   TelemetryLayer("blikka-dev-web-v2")
 ).pipe(
   Layer.provide(NodeContext.layer),

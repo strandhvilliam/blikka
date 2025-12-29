@@ -9,6 +9,7 @@ import type { S3Service } from "@blikka/s3"
 import type { UploadSessionRepository } from "@blikka/kv-store"
 import type { PubSubService, RunStateService } from "@blikka/pubsub"
 import type { ValidationEngine } from "@blikka/validation"
+import { ContactSheetBuilder, SharpImageService } from "@blikka/image-manipulation"
 
 export type RequiredServices =
   | BetterAuthService
@@ -21,6 +22,8 @@ export type RequiredServices =
   | PubSubService
   | RunStateService
   | ValidationEngine
+  | ContactSheetBuilder
+  | SharpImageService
 
 type ServiceMap = {
   BetterAuthService: BetterAuthService
@@ -33,6 +36,8 @@ type ServiceMap = {
   PubSubService: PubSubService
   RunStateService: RunStateService
   ValidationEngine: ValidationEngine
+  ContactSheetBuilder: ContactSheetBuilder
+  SharpImageService: SharpImageService
 }
 
 type ServiceNames = keyof ServiceMap
@@ -68,6 +73,8 @@ type ValidateRuntime<T> =
           "PubSubService",
           "RunStateService",
           "ValidationEngine",
+          "ContactSheetBuilder",
+          "SharpImageService",
         ]
       >
     : { __error: "Type must be a ManagedRuntime"; received: T }

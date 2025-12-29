@@ -31,7 +31,7 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
       const s3 = yield* S3Service
 
       const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
-      const sponsorBucketName = yield* Config.string("SPONSOR_BUCKET_NAME")
+      const sponsorBucketName = yield* Config.string("SPONSORS_BUCKET_NAME")
 
       const getImageFiles = Effect.fn("SheetBuilder.getImageFiles")(function* (keys: string[]) {
         const results = yield* Effect.all(

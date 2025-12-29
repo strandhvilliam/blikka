@@ -5,6 +5,7 @@ import { authTestRouter } from "./authtest"
 import { marathonRouter } from "./marathons"
 import { uploadFlowRouter } from "./upload-flow"
 import { validationsRouter } from "./validations"
+import { contactSheetsRouter } from "./contact-sheets"
 
 export const appRouter = createTRPCRouter({
   participants: participantRouter,
@@ -12,6 +13,7 @@ export const appRouter = createTRPCRouter({
   marathons: marathonRouter,
   uploadFlow: uploadFlowRouter,
   validations: validationsRouter,
+  contactSheets: contactSheetsRouter,
 })
 
 export type AppRouter = typeof appRouter
