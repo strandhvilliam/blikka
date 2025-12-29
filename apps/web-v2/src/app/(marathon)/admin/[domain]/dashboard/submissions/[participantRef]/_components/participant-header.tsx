@@ -17,6 +17,8 @@ import {
   Archive,
   FileImage,
   Info,
+  Loader2,
+  RefreshCw,
 } from "lucide-react"
 import type {
   Participant,
@@ -26,7 +28,7 @@ import type {
   Submission,
 } from "@blikka/db"
 import { useTRPC } from "@/lib/trpc/client"
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -40,6 +42,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ParticipantStatusIndicator } from "./participant-status-indicator"
 import { CardContent } from "@/components/ui/card"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { toast } from "sonner"
 
 import { Camera } from "lucide-react"
 import { useDomain } from "@/lib/domain-provider"
@@ -47,6 +51,7 @@ import { useDomain } from "@/lib/domain-provider"
 export function ParticipantHeader({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
   const trpc = useTRPC()
+  const queryClient = useQueryClient()
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
@@ -55,17 +60,51 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
     })
   )
 
+  const runValidationsMutation = useMutation(trpc.validations.runValidations.mutationOptions())
+
+  const handleRunValidations = () => {
+    runValidationsMutation.mutate(
+      {
+        domain,
+        reference: participantRef,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Validations completed successfully")
+          queryClient.invalidateQueries({
+            queryKey: trpc.participants.getByReference.queryKey({
+              reference: participantRef,
+              domain,
+            }),
+          })
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Failed to run validations")
+        },
+      }
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <ParticipantHeaderInfo participant={participant} />
-        <ParticipantHeaderActions participant={participant} />
+        <ParticipantHeaderActions
+          participant={participant}
+          onRunValidations={handleRunValidations}
+          isRunningValidations={runValidationsMutation.isPending}
+        />
       </div>
 
       <div className="flex flex-wrap gap-4">
         <ParticipantStatusIndicator participant={participant} />
         <ParticipantCompetitionClassCard participant={participant} />
         <ParticipantDeviceGroupCard participant={participant} />
+        <ParticipantValidationIndicator
+          participant={participant}
+          isRunningValidations={runValidationsMutation.isPending}
+          onRunValidations={handleRunValidations}
+        />
         <ParticipantContactSheetIndicator participant={participant} />
         <ParticipantZipIndicator participant={participant} />
         <ParticipantThumbnailsIndicator participant={participant} />
@@ -135,21 +174,17 @@ function ParticipantHeaderInfo({
 
 function ParticipantHeaderActions({
   participant,
+  onRunValidations,
+  isRunningValidations,
 }: {
   participant: Participant & { validationResults: ValidationResult[]; contactSheets: any[] }
+  onRunValidations: () => void
+  isRunningValidations: boolean
 }) {
-  const domain = useDomain()
-  const trpc = useTRPC()
-
   const hasSubmissions =
     (participant as any).submissions && (participant as any).submissions.length > 0
 
   const hasContactSheet = participant.contactSheets && participant.contactSheets.length > 0
-
-  const handleRunValidations = () => {
-    // TODO: Implement run validations functionality
-    console.log("Run validations clicked")
-  }
 
   const handleContactSheetAction = () => {
     if (hasContactSheet) {
@@ -173,10 +208,6 @@ function ParticipantHeaderActions({
 
   return (
     <div className="flex items-center gap-2">
-      <Button variant="outline" onClick={handleRunValidations} disabled>
-        <CheckCircle className="h-4 w-4" />
-        Run validations
-      </Button>
       <Button variant="outline" onClick={handleContactSheetAction} disabled>
         {hasContactSheet ? (
           <>
@@ -203,6 +234,13 @@ function ParticipantHeaderActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onClick={onRunValidations}
+            disabled={isRunningValidations || !hasSubmissions}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", isRunningValidations && "animate-spin")} />
+            Re-run validations
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleRegenerateContactSheet} disabled>
             <Grid3x3 className="h-4 w-4 mr-2" />
             Regenerate contact sheet
@@ -356,6 +394,10 @@ function ParticipantContactSheetIndicator({ participant }: ParticipantContactShe
               Missing Contact Sheet
             </h3>
             <p className="text-xs text-muted-foreground mt-1">No contact sheet generated</p>
+            <PrimaryButton className="mt-1 w-fit h-8 text-xs" disabled onClick={() => {}}>
+              <Grid3x3 className="h-3.5 w-3.5" />
+              Generate contact sheet
+            </PrimaryButton>
           </div>
         </div>
       </CardContent>
@@ -497,6 +539,102 @@ function ParticipantExifIndicator({ participant }: ParticipantExifIndicatorProps
             <p className="text-xs text-muted-foreground mt-1">
               {missingExif.length} submission{missingExif.length !== 1 ? "s" : ""} without EXIF
             </p>
+          </div>
+        </div>
+      </CardContent>
+    </div>
+  )
+}
+
+interface ParticipantValidationIndicatorProps {
+  participant: Participant & {
+    validationResults: ValidationResult[]
+    submissions?: Submission[]
+  }
+  isRunningValidations: boolean
+  onRunValidations: () => void
+}
+
+function ParticipantValidationIndicator({
+  participant,
+  isRunningValidations,
+  onRunValidations,
+}: ParticipantValidationIndicatorProps) {
+  const globalValidations = participant.validationResults.filter((result) => !result.fileName)
+  const hasValidations = globalValidations.length > 0
+  const hasSubmissions = participant.submissions && participant.submissions.length > 0
+
+  // Show card if validations are running or if there are no validations but there are submissions
+  if (!isRunningValidations && hasValidations) {
+    return null
+  }
+
+  if (!hasSubmissions) {
+    return null
+  }
+
+  return (
+    <div className="items-center flex rounded-lg border border-border min-w-[260px] bg-background">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className={cn("p-2 rounded-lg border bg-blue-500/10 border-blue-200")}>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center justify-center">
+                    {isRunningValidations ? (
+                      <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-5 w-5 text-blue-600" />
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {isRunningValidations
+                      ? "Validations are currently running"
+                      : "No validations have been run yet"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm truncate flex items-center gap-1.5">
+              {isRunningValidations ? (
+                <>
+                  <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                  Running Validations
+                </>
+              ) : (
+                <>
+                  <Info className="h-4 w-4 text-blue-500" />
+                  No Validations
+                </>
+              )}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isRunningValidations
+                ? "Please wait while validations complete"
+                : "Click 'Run validations' to start"}
+            </p>
+            <PrimaryButton
+              onClick={onRunValidations}
+              disabled={isRunningValidations || !hasSubmissions}
+              className="mt-1 w-fit h-8 text-xs"
+            >
+              {isRunningValidations ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Running...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Run validations
+                </>
+              )}
+            </PrimaryButton>
           </div>
         </div>
       </CardContent>

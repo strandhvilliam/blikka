@@ -1,6 +1,6 @@
 import { authProcedure, createTRPCRouter } from "../root"
 import { assertAllowedToAccessDomain, trpcEffect } from "../utils"
-import { Schema, Effect, Option } from "effect"
+import { Config, Schema, Effect, Option } from "effect"
 import { Database, DrizzleClient, type Submission, type RuleConfig } from "@blikka/db"
 import { S3Service } from "@blikka/s3"
 import {
@@ -11,7 +11,6 @@ import {
   type ValidationResult as ValidationEngineResult,
 } from "@blikka/validation"
 import { TRPCError } from "@trpc/server"
-import { Resource as SSTResource } from "sst"
 
 export const validationsRouter = createTRPCRouter({
   runValidations: authProcedure
@@ -29,9 +28,9 @@ export const validationsRouter = createTRPCRouter({
           yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
 
           const db = yield* Database
-          const drizzle = yield* DrizzleClient
           const s3 = yield* S3Service
           const validator = yield* ValidationEngine
+          const submissionsBucketName = yield* Config.string("NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME")
 
           const participant = yield* db.participantsQueries.getParticipantByReference({
             reference: input.reference,
@@ -59,9 +58,8 @@ export const validationsRouter = createTRPCRouter({
                 let mimeType = submission.mimeType ?? "image/jpeg"
 
                 if (!submission.size || !submission.mimeType) {
-                  const bucketName = (SSTResource as any).V2SubmissionsBucket.name
                   const head = yield* s3
-                    .getHead(bucketName, submission.key)
+                    .getHead(submissionsBucketName, submission.key)
                     .pipe(Effect.catchAll(() => Effect.succeed(null)))
                   if (head) {
                     fileSize = head.ContentLength ?? fileSize

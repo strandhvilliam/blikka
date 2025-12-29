@@ -1,14 +1,15 @@
-import { Effect, Option } from "effect"
+import { Config, Effect, Option } from "effect"
 import { S3Service } from "@blikka/s3"
 import { ExifKVRepository, ExifState, UploadSessionRepository } from "@blikka/kv-store"
-import { ThumbnailService } from "./thumbnail-service"
 import { ExifParser } from "@blikka/exif-parser"
 import { BusService } from "@blikka/bus"
 import { Database } from "@blikka/db"
-import { parseKey } from "./utils"
-import { Resource as SSTResource } from "sst"
+import { makeThumbnailKey, parseKey } from "./utils"
 import { FailedToIncrementParticipantStateError, PhotoNotFoundError } from "./errors"
 import { RunStateService } from "@blikka/pubsub"
+import { SharpImageService } from "@blikka/image-manipulation"
+
+const THUMBNAIL_WIDTH = 400
 
 export class UploadProcessorService extends Effect.Service<UploadProcessorService>()(
   "@blikka/tasks/UploadProcessorService",
@@ -20,7 +21,6 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
       ExifParser.Default,
       BusService.Default,
       Database.Default,
-      ThumbnailService.Default,
       RunStateService.Default,
     ],
     effect: Effect.gen(function* () {
@@ -29,7 +29,10 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
       const exifKv = yield* ExifKVRepository
       const exifParser = yield* ExifParser
       const bus = yield* BusService
-      const thumbnailService = yield* ThumbnailService
+      const sharp = yield* SharpImageService
+
+      const thumbnailsBucketName = yield* Config.string("THUMBNAILS_BUCKET_NAME")
+      const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
 
       const handleParticipantError = Effect.fnUntraced(
         function* (domain: string, reference: string, errorCode: string, error: Error) {
@@ -40,6 +43,21 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
         },
         Effect.catchAll((error) => Effect.logError("Failed to set participant error state", error))
       )
+
+      const generateThumbnail = Effect.fn("ThumbnailService.generateThumbnail")(function* (
+        photo: Buffer,
+        key: string
+      ) {
+        const thumbnailKey = yield* parseKey(key).pipe(
+          Effect.flatMap((parsedKey) => makeThumbnailKey(parsedKey))
+        )
+
+        const resized = yield* sharp.resize(Buffer.from(photo), {
+          width: THUMBNAIL_WIDTH,
+        })
+        yield* s3.putFile(thumbnailsBucketName, thumbnailKey, resized)
+        return thumbnailKey
+      })
 
       const processPhoto = Effect.fn("UploadProcessorService.processPhoto")(function* (
         key: string
@@ -52,7 +70,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
           return
         }
 
-        const photo = yield* s3.getFile(SSTResource.V2SubmissionsBucket.name, key).pipe(
+        const photo = yield* s3.getFile(submissionsBucketName, key).pipe(
           Effect.andThen(
             Option.match({
               onSome: (photo) => Effect.succeed(photo),
@@ -82,16 +100,14 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
           )
         )
 
-        const thumbnailResult = yield* thumbnailService
-          .generateThumbnail(Buffer.from(photo), key)
-          .pipe(
-            Effect.map(Option.some),
-            Effect.catchAll((error) =>
-              handleParticipantError(domain, reference, "THUMBNAIL_ERROR", error).pipe(
-                Effect.as(Option.none<string>())
-              )
+        const thumbnailResult = yield* generateThumbnail(Buffer.from(photo), key).pipe(
+          Effect.map(Option.some),
+          Effect.catchAll((error) =>
+            handleParticipantError(domain, reference, "THUMBNAIL_ERROR", error).pipe(
+              Effect.as(Option.none<string>())
             )
           )
+        )
 
         yield* uploadKv
           .updateSubmissionSession(domain, reference, orderIndex, {

@@ -1,39 +1,48 @@
-import { Data } from "effect";
+import { Schema } from "effect"
 
-export class JsonParseError extends Data.TaggedError("JsonParseError")<{
-  message?: string;
-}> {}
-export class InvalidKeyFormatError extends Data.TaggedError(
+export class JsonParseError extends Schema.TaggedError<JsonParseError>()("JsonParseError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
+export class InvalidKeyFormatError extends Schema.TaggedError<InvalidKeyFormatError>()(
   "InvalidKeyFormatError",
-)<{
-  message?: string;
-}> {}
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class PhotoNotFoundError extends Data.TaggedError("PhotoNotFoundError")<{
-  message?: string;
-  cause?: unknown;
-  details?: string;
-}> {}
+export class PhotoNotFoundError extends Schema.TaggedError<PhotoNotFoundError>()(
+  "PhotoNotFoundError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+    details: Schema.optional(Schema.String),
+  }
+) {}
 
-export class InvalidS3EventError extends Data.TaggedError(
+export class InvalidS3EventError extends Schema.TaggedError<InvalidS3EventError>()(
   "InvalidS3EventError",
-)<{
-  message?: string;
-  cause?: unknown;
-}> {}
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class FailedToIncrementParticipantStateError extends Data.TaggedError(
+export class FailedToIncrementParticipantStateError extends Schema.TaggedError<FailedToIncrementParticipantStateError>()(
   "FailedToIncrementParticipantStateError",
-)<{
-  message?: string;
-  cause?: unknown;
-}> {}
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
-export class FailedToFinalizeParticipantError extends Data.TaggedError(
+export class FailedToFinalizeParticipantError extends Schema.TaggedError<FailedToFinalizeParticipantError>()(
   "FailedToFinalizeParticipantError",
-)<{
-  message?: string;
-  cause?: unknown;
-  domain: string;
-  reference: string;
-}> {}
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+    domain: Schema.String,
+    reference: Schema.String,
+  }
+) {}

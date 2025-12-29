@@ -1,9 +1,15 @@
-import { Effect } from "effect";
-import { SharpError } from "./sharp-effectful-temp";
-import sharp from "sharp";
-import type { SheetImagePart } from "./types";
+import { Effect, Schema } from "effect"
+import sharp from "sharp"
+import type { OverlayOptions } from "sharp"
 
-const makeSharpInstance = (image: Buffer) =>
+export class SharpError extends Schema.TaggedError<SharpError>()("SharpError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
+
+export interface SheetImagePart extends OverlayOptions {}
+
+const makeSharpImage = (image: Buffer) =>
   Effect.try({
     try: () => sharp(image),
     catch: (error) =>
@@ -11,7 +17,7 @@ const makeSharpInstance = (image: Buffer) =>
         cause: error,
         message: "Failed to create sharp instance",
       }),
-  });
+  })
 
 export class SharpImageService extends Effect.Service<SharpImageService>()(
   "@blikka/packages/image-manipulation/image-manipulation-service",
@@ -20,13 +26,13 @@ export class SharpImageService extends Effect.Service<SharpImageService>()(
     effect: Effect.gen(function* () {
       const resize = Effect.fn("SharpImageService.resize")(function* (
         image: Buffer,
-        options: { width: number; height?: number; quality?: number },
+        options: { width: number; height?: number; quality?: number }
       ) {
-        const instance = yield* makeSharpInstance(image);
+        const sharpImage = yield* makeSharpImage(image)
 
         const resized = yield* Effect.tryPromise({
           try: () =>
-            instance
+            sharpImage
               .rotate()
               .resize({
                 width: options.width,
@@ -41,51 +47,47 @@ export class SharpImageService extends Effect.Service<SharpImageService>()(
               cause: error,
               message: "Failed to resize image",
             }),
-        });
-        return resized;
-      });
+        })
+        return resized
+      })
 
-      const prepareForCanvas = Effect.fn("SharpImageService.prepareForCanvas")(
-        function* (
-          buffer: Buffer,
-          width: number,
-          height: number,
-          fit: "cover" | "inside",
-          background: string,
-        ) {
-          const instance = yield* makeSharpInstance(buffer);
-          return yield* Effect.tryPromise({
-            try: () =>
-              instance
-                .resize(width, height, {
-                  fit,
-                  withoutEnlargement: false,
-                  background,
-                })
-                .jpeg()
-                .rotate()
-                .toBuffer(),
-            catch: (error) =>
-              new SharpError({
-                cause: error,
-                message: "Failed to prepare image for canvas",
-              }),
-          });
-        },
-      );
+      const prepareForCanvas = Effect.fn("SharpImageService.prepareForCanvas")(function* (
+        buffer: Buffer,
+        width: number,
+        height: number,
+        fit: "cover" | "inside",
+        background: string
+      ) {
+        const sharpImage = yield* makeSharpImage(buffer)
+        return yield* Effect.tryPromise({
+          try: () =>
+            sharpImage
+              .resize(width, height, {
+                fit,
+                withoutEnlargement: false,
+                background,
+              })
+              .jpeg()
+              .rotate()
+              .toBuffer(),
+          catch: (error) =>
+            new SharpError({
+              cause: error,
+              message: "Failed to prepare image for canvas",
+            }),
+        })
+      })
 
-      const createCanvasSheet = Effect.fn(
-        "SharpImageService.createCanvasSheet",
-      )(function* ({
+      const createCanvasSheet = Effect.fn("SharpImageService.createCanvasSheet")(function* ({
         width,
         height,
         background,
         items,
       }: {
-        width: number;
-        height: number;
-        background: string;
-        items: SheetImagePart[];
+        width: number
+        height: number
+        background: string
+        items: SheetImagePart[]
       }) {
         const canvas = yield* Effect.try({
           try: () =>
@@ -102,7 +104,7 @@ export class SharpImageService extends Effect.Service<SharpImageService>()(
               cause: error,
               message: "Failed to create canvas",
             }),
-        });
+        })
 
         return yield* Effect.tryPromise({
           try: () => canvas.composite(items).jpeg().toBuffer(),
@@ -111,14 +113,14 @@ export class SharpImageService extends Effect.Service<SharpImageService>()(
               cause: error,
               message: "Failed to composite images",
             }),
-        });
-      });
+        })
+      })
 
       return {
         resize,
         prepareForCanvas,
         createCanvasSheet,
-      } as const;
+      } as const
     }),
-  },
+  }
 ) {}

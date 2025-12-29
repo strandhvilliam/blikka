@@ -1,30 +1,30 @@
-import { Effect, Option } from "effect"
-import { SheetBuilder } from "./sheet-builder"
+import { Config, Effect, Option } from "effect"
 import { Database } from "@blikka/db"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { S3Service } from "@blikka/s3"
-import { Resource as SSTResource } from "sst"
 import {
   ensureReadyForSheetGeneration,
   generateContactSheetKey,
   InvalidSheetGenerationData,
   validatePhotoCount,
 } from "./utils"
+import { ContactSheetBuilder } from "@blikka/image-manipulation"
 
 export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>()(
   "@blikka/contact-sheet-generator/sheet-generator-service",
   {
     dependencies: [
-      SheetBuilder.Default,
       Database.Default,
       UploadSessionRepository.Default,
       S3Service.Default,
+      ContactSheetBuilder.Default,
     ],
     effect: Effect.gen(function* () {
-      const sheetBuilder = yield* SheetBuilder
       const db = yield* Database
       const kvStore = yield* UploadSessionRepository
       const s3 = yield* S3Service
+      const contactSheetsBucketName = yield* Config.string("CONTACT_SHEETS_BUCKET_NAME")
+      const contactSheetBuilder = yield* ContactSheetBuilder
 
       const generateContactSheet = Effect.fn("SheetGeneratorService.generateContactSheet")(
         function* (params: { domain: string; reference: string }) {
@@ -104,7 +104,7 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
 
           const contactSheetKey = generateContactSheetKey(params.domain, params.reference)
 
-          yield* sheetBuilder
+          yield* contactSheetBuilder
             .createSheet({
               domain: params.domain,
               reference: params.reference,
@@ -115,7 +115,7 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
             })
             .pipe(
               Effect.andThen((buffer) =>
-                s3.putFile(SSTResource.V2ContactSheetsBucket.name, contactSheetKey, buffer)
+                s3.putFile(contactSheetsBucketName, contactSheetKey, buffer)
               )
             )
 

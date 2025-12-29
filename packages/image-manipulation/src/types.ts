@@ -1,18 +1,13 @@
-import { Data } from "effect";
-import type { Sharp, OverlayOptions } from "sharp";
-
-export interface Image {
-  readonly sharp: Sharp;
+export interface SheetVariables {
+  cellWidth: number
+  cellHeight: number
+  availableImageHeight: number
+  imageWidth: number
+  imageHeight: number
+  textHeight: number
+  sequenceSpace: number
+  availableWidth: number
+  availableHeight: number
 }
 
-export class SharpError extends Data.TaggedError("SharpError")<{
-  message?: string;
-  cause?: unknown;
-}> {}
-
-export class CanvasImageError extends Data.TaggedError("CanvasImageError")<{
-  message?: string;
-  cause?: unknown;
-}> {}
-
-export interface SheetImagePart extends OverlayOptions {}
+export type SponsorPosition = "bottom-right" | "bottom-left" | "top-right" | "top-left" | "center"

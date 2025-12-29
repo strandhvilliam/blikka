@@ -1,7 +1,6 @@
-import { Effect, Option } from "effect"
-import { SharpImageService } from "@blikka/image-manipulation"
+import { Config, Effect, Option, Schema } from "effect"
+import { SharpImageService } from "./sharp-image-service"
 import { S3Service } from "@blikka/s3"
-import { Resource as SSTResource } from "sst"
 import {
   calculateCoordinateValues,
   calculateSheetVariables,
@@ -10,30 +9,37 @@ import {
   getGridConfig,
   getImageLabel,
   getImagePosition,
-  ImageNotFoundError,
-  InvalidImageCountError,
   parseKey,
-  TopicLabelNotFoundError,
-} from "./utils"
-import { SponsorPosition } from "./schemas"
-import { CANVAS_HEIGHT, CANVAS_WIDTH, SEQUENCE_WIDTH_RATIO, WHITE_BACKGROUND } from "./constants"
-import { SheetVariables } from "./types"
+} from "../utils"
+import type { SponsorPosition, SheetVariables } from "../types"
+import { CANVAS_HEIGHT, CANVAS_WIDTH, SEQUENCE_WIDTH_RATIO, WHITE_BACKGROUND } from "../constants"
 
-export class SheetBuilder extends Effect.Service<SheetBuilder>()(
-  "@blikka/contact-sheet-generator/sheet-builder",
+export class InvalidSheetParamsError extends Schema.TaggedError<InvalidSheetParamsError>()(
+  "InvalidSheetParamsError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
+
+export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
+  "@blikka/packages/image-manipulation/ContactSheetBuilder",
   {
     dependencies: [SharpImageService.Default, S3Service.Default],
     effect: Effect.gen(function* () {
       const sharp = yield* SharpImageService
       const s3 = yield* S3Service
 
+      const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
+      const sponsorBucketName = yield* Config.string("SPONSOR_BUCKET_NAME")
+
       const getImageFiles = Effect.fn("SheetBuilder.getImageFiles")(function* (keys: string[]) {
         const results = yield* Effect.all(
           keys.map((key) =>
             Effect.gen(function* () {
-              const buffer = yield* s3.getFile(SSTResource.V2SubmissionsBucket.name, key)
+              const buffer = yield* s3.getFile(submissionsBucketName, key)
               if (Option.isNone(buffer)) {
-                return yield* new ImageNotFoundError({
+                return yield* new InvalidSheetParamsError({
                   message: "Image not found when processing",
                 })
               }
@@ -48,7 +54,7 @@ export class SheetBuilder extends Effect.Service<SheetBuilder>()(
           { concurrency: 5 }
         )
         if (results.length !== keys.length) {
-          return yield* new InvalidImageCountError({
+          return yield* new InvalidSheetParamsError({
             message: `Invalid image count. Expected ${keys.length}, got ${results.length}`,
           })
         }
@@ -88,7 +94,7 @@ export class SheetBuilder extends Effect.Service<SheetBuilder>()(
               onSome: (label) => Effect.succeed(label),
               onNone: () =>
                 Effect.fail(
-                  new TopicLabelNotFoundError({
+                  new InvalidSheetParamsError({
                     message: `Label not found (orderIndex: ${orderIndex})`,
                   })
                 ),
@@ -125,7 +131,7 @@ export class SheetBuilder extends Effect.Service<SheetBuilder>()(
       }) {
         const imageFiles = yield* getImageFiles(keys)
         const sponsorFile = sponsorKey
-          ? yield* s3.getFile(SSTResource.V2SponsorBucket.name, sponsorKey)
+          ? yield* s3.getFile(sponsorBucketName, sponsorKey)
           : Option.none<Uint8Array>()
 
         const { cols, rows, sponsorRow, sponsorCol } = getGridConfig(
@@ -161,7 +167,7 @@ export class SheetBuilder extends Effect.Service<SheetBuilder>()(
                 const file = imageFiles[index]
                 if (!file) {
                   return yield* Effect.fail(
-                    new ImageNotFoundError({
+                    new InvalidSheetParamsError({
                       message: "Image not found when processing",
                     })
                   )

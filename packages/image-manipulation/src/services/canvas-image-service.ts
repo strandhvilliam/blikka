@@ -1,16 +1,20 @@
-import { Effect } from "effect";
-import { CanvasImageError } from "./types";
+import { Effect, Schema } from "effect"
+
+export class CanvasImageError extends Schema.TaggedError<CanvasImageError>()("CanvasImageError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
 export interface ResizeOptions {
-  width: number;
-  quality?: number;
-  format?: "image/jpeg" | "image/png" | "image/webp";
+  width: number
+  quality?: number
+  format?: "image/jpeg" | "image/png" | "image/webp"
 }
 
 export interface ResizedImage {
-  blob: Blob;
-  width: number;
-  height: number;
+  blob: Blob
+  width: number
+  height: number
 }
 
 export class CanvasImageService extends Effect.Service<CanvasImageService>()(
@@ -21,48 +25,44 @@ export class CanvasImageService extends Effect.Service<CanvasImageService>()(
       if (typeof window === "undefined") {
         return yield* new CanvasImageError({
           message: "CanvasImageService is not supported in this environment",
-        });
+        })
       }
 
       const resize = Effect.fn("CanvasImageService.resizeImage")(function* (
         file: File,
-        options: ResizeOptions,
+        options: ResizeOptions
       ) {
-        const {
-          width: targetWidth,
-          quality = 0.9,
-          format = "image/jpeg",
-        } = options;
+        const { width: targetWidth, quality = 0.9, format = "image/jpeg" } = options
 
         return Effect.async<ResizedImage, Error>((resume) => {
-          const img = new Image();
+          const img = new Image()
 
           img.onload = () => {
-            const aspectRatio = img.height / img.width;
-            const newWidth = targetWidth;
-            const newHeight = Math.round(targetWidth * aspectRatio);
+            const aspectRatio = img.height / img.width
+            const newWidth = targetWidth
+            const newHeight = Math.round(targetWidth * aspectRatio)
 
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
+            const canvas = document.createElement("canvas")
+            const ctx = canvas.getContext("2d")
 
             if (!ctx) {
               resume(
                 Effect.fail(
                   new CanvasImageError({
                     message: "Failed to get canvas context",
-                  }),
-                ),
-              );
-              return;
+                  })
+                )
+              )
+              return
             }
 
-            canvas.width = newWidth;
-            canvas.height = newHeight;
+            canvas.width = newWidth
+            canvas.height = newHeight
 
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
+            ctx.imageSmoothingEnabled = true
+            ctx.imageSmoothingQuality = "high"
 
-            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+            ctx.drawImage(img, 0, 0, newWidth, newHeight)
 
             canvas.toBlob(
               (blob) => {
@@ -71,10 +71,10 @@ export class CanvasImageService extends Effect.Service<CanvasImageService>()(
                     Effect.fail(
                       new CanvasImageError({
                         message: "Failed to create blob from canvas",
-                      }),
-                    ),
-                  );
-                  return;
+                      })
+                    )
+                  )
+                  return
                 }
 
                 resume(
@@ -82,31 +82,31 @@ export class CanvasImageService extends Effect.Service<CanvasImageService>()(
                     blob,
                     width: newWidth,
                     height: newHeight,
-                  }),
-                );
+                  })
+                )
               },
               format,
-              quality,
-            );
-          };
+              quality
+            )
+          }
 
           img.onerror = () => {
             resume(
               Effect.fail(
                 new CanvasImageError({
                   message: "Failed to load image",
-                }),
-              ),
-            );
-          };
+                })
+              )
+            )
+          }
 
-          img.src = URL.createObjectURL(file);
-        });
-      });
+          img.src = URL.createObjectURL(file)
+        })
+      })
 
       return {
         resize,
-      } as const;
+      } as const
     }),
-  },
+  }
 ) {}
