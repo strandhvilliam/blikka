@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { rootDomain } from "./config"
+import { protocol, rootDomain } from "./config"
 import createMiddleware from "next-intl/middleware"
 import { routing } from "./i18n/routing.public"
 
@@ -40,12 +40,19 @@ export async function proxy(request: NextRequest) {
   const subdomain = extractSubdomain(request)
 
   if (subdomain) {
+    if (pathname.startsWith("/auth")) {
+      const authUrl = new URL(`${protocol}://${rootDomain}/auth`)
+      return NextResponse.redirect(authUrl)
+    }
+
     // For the root path on a subdomain, rewrite to the subdomain page for admin and live
-    if (pathname.includes("/admin")) {
+    if (pathname.startsWith("/admin")) {
       console.log("rewrite to", `/admin/${subdomain}`)
       return NextResponse.rewrite(new URL(`/admin/${subdomain}`, request.url))
     }
-    return NextResponse.rewrite(new URL(`/live/${subdomain}`, request.url))
+    if (pathname.startsWith("/")) {
+      return NextResponse.rewrite(new URL(`/live/${subdomain}`, request.url))
+    }
   }
 
   // for the domain selector
