@@ -60,8 +60,23 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next()
     }
 
+    // For live routes on a subdomain, inject the subdomain into the path
+    if (pathname.startsWith("/live")) {
+      // Check if the subdomain is already in the path to avoid double rewriting
+      const liveWithSubdomain = `/live/${subdomain}`
+      if (!pathname.startsWith(liveWithSubdomain)) {
+        // Inject subdomain: /live/submissions -> /live/uppis/submissions
+        const restOfPath = pathname === "/live" ? "" : pathname.slice(5) // Remove "/live"
+        const rewritePath = `${liveWithSubdomain}${restOfPath}`
+        console.log("rewrite to", rewritePath)
+        return NextResponse.rewrite(new URL(rewritePath, request.url))
+      }
+      // If already has subdomain, pass through
+      return NextResponse.next()
+    }
+
     if (pathname === "/") {
-      return NextResponse.rewrite(new URL(`/live/${subdomain}`, request.url))
+      return NextResponse.redirect(new URL(`/live/${subdomain}`, request.url))
     }
   }
 
