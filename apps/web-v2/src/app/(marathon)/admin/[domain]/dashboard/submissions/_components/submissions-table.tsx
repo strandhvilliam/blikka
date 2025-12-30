@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useMemo, useState, useEffect, useCallback, useRef } from "react"
-import { useDebounce } from "use-debounce"
-import { useInfiniteQuery } from "@tanstack/react-query"
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { useDebounce } from "use-debounce";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   useReactTable,
   getCoreRowModel,
@@ -10,23 +10,23 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 import {
   useQueryStates,
   parseAsStringLiteral,
   parseAsString,
   parseAsArrayOf,
   parseAsInteger,
-} from "nuqs"
-import { useTRPC } from "@/lib/trpc/client"
-import { Input } from "@/components/ui/input"
+} from "nuqs";
+import { useTRPC } from "@/lib/trpc/client";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -34,8 +34,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   Loader2,
   Search,
@@ -46,47 +46,56 @@ import {
   Clock,
   AlertCircle,
   FileText,
-} from "lucide-react"
-import { CompetitionClass, DeviceGroup, Participant } from "@blikka/db"
-import { submissionSearchParams } from "../_lib/search-params"
-import { useRouter } from "next/navigation"
-import { cn, formatDomainPathname } from "@/lib/utils"
-import { useParticipantEvents } from "../_lib/use-participant-events"
-import { useDomain } from "@/lib/domain-provider"
+} from "lucide-react";
+import type { CompetitionClass, DeviceGroup, Participant } from "@blikka/db";
+import { submissionSearchParams } from "../_lib/search-params";
+import { useRouter } from "next/navigation";
+import { cn, formatDomainPathname } from "@/lib/utils";
+import { useParticipantEvents } from "../_lib/use-participant-events";
+import { useDomain } from "@/lib/domain-provider";
 
 type TableData = Participant & {
-  competitionClass: CompetitionClass | null
-  deviceGroup: DeviceGroup | null
-  failedValidationResults: { errors: number; warnings: number }
-  passedValidationResults: { errors: number; warnings: number }
-  skippedValidationResults: { errors: number; warnings: number }
-  zipKeys: string[]
-  contactSheetKeys: string[]
-}
+  competitionClass: CompetitionClass | null;
+  deviceGroup: DeviceGroup | null;
+  failedValidationResults: { errors: number; warnings: number };
+  passedValidationResults: { errors: number; warnings: number };
+  skippedValidationResults: { errors: number; warnings: number };
+  zipKeys: string[];
+  contactSheetKeys: string[];
+};
 
 export function SubmissionsTable() {
-  const domain = useDomain()
-  const router = useRouter()
-  const trpc = useTRPC()
-  const [sorting, setSorting] = useState<SortingState>([])
-  useParticipantEvents()
+  const domain = useDomain();
+  const router = useRouter();
+  const trpc = useTRPC();
+  const [sorting, setSorting] = useState<SortingState>([]);
+  useParticipantEvents();
 
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: "push",
-  })
+  });
 
-  const { tab: activeTab, search, sortOrder, competitionClassId, deviceGroupId } = queryState
-  const [debouncedSearch] = useDebounce(search || "", 300)
+  const {
+    tab: activeTab,
+    search,
+    sortOrder,
+    competitionClassId,
+    deviceGroupId,
+  } = queryState;
+  const [debouncedSearch] = useDebounce(search || "", 300);
 
   const normalizedCompetitionClassId = useMemo(() => {
-    if (!competitionClassId || competitionClassId.length === 0) return undefined
-    return competitionClassId.length === 1 ? competitionClassId[0] : competitionClassId
-  }, [competitionClassId])
+    if (!competitionClassId || competitionClassId.length === 0)
+      return undefined;
+    return competitionClassId.length === 1
+      ? competitionClassId[0]
+      : competitionClassId;
+  }, [competitionClassId]);
 
   const normalizedDeviceGroupId = useMemo(() => {
-    if (!deviceGroupId || deviceGroupId.length === 0) return undefined
-    return deviceGroupId.length === 1 ? deviceGroupId[0] : deviceGroupId
-  }, [deviceGroupId])
+    if (!deviceGroupId || deviceGroupId.length === 0) return undefined;
+    return deviceGroupId.length === 1 ? deviceGroupId[0] : deviceGroupId;
+  }, [deviceGroupId]);
 
   const getTabQueryParams = useCallback(() => {
     switch (activeTab) {
@@ -95,102 +104,111 @@ export function SubmissionsTable() {
           statusFilter: null,
           excludeStatuses: null,
           hasValidationErrors: null,
-        }
+        };
       case "initialized":
         return {
           statusFilter: null,
           excludeStatuses: ["completed", "verified"],
           hasValidationErrors: null,
-        }
+        };
       case "not-verified":
         return {
           statusFilter: "completed" as const,
           excludeStatuses: null,
           hasValidationErrors: null,
-        }
+        };
       case "verified":
         return {
           statusFilter: "verified" as const,
           excludeStatuses: null,
           hasValidationErrors: null,
-        }
+        };
       case "validation-errors":
         return {
           statusFilter: null,
           excludeStatuses: null,
           hasValidationErrors: true,
-        }
+        };
     }
-  }, [activeTab])
+  }, [activeTab]);
 
-  const tabQueryParams = getTabQueryParams()
+  const tabQueryParams = getTabQueryParams();
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
-    useInfiniteQuery(
-      trpc.participants.getByDomainInfinite.infiniteQueryOptions(
-        {
-          domain,
-          cursor: null,
-          search: debouncedSearch || null,
-          sortOrder: sortOrder || null,
-          competitionClassId: normalizedCompetitionClassId ?? null,
-          deviceGroupId: normalizedDeviceGroupId ?? null,
-          statusFilter: tabQueryParams.statusFilter,
-          excludeStatuses: tabQueryParams.excludeStatuses,
-          hasValidationErrors: tabQueryParams.hasValidationErrors,
-          limit: 50,
-        },
-        {
-          getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
-        }
-      )
-    )
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = useInfiniteQuery(
+    trpc.participants.getByDomainInfinite.infiniteQueryOptions(
+      {
+        domain,
+        cursor: null,
+        search: debouncedSearch || null,
+        sortOrder: sortOrder || null,
+        competitionClassId: normalizedCompetitionClassId ?? null,
+        deviceGroupId: normalizedDeviceGroupId ?? null,
+        statusFilter: tabQueryParams.statusFilter,
+        excludeStatuses: tabQueryParams.excludeStatuses,
+        hasValidationErrors: tabQueryParams.hasValidationErrors,
+        limit: 50,
+      },
+      {
+        getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
+      },
+    ),
+  );
 
-  const participants = useMemo(() => data?.pages.flatMap((page) => page.participants) ?? [], [data])
+  const participants = useMemo(
+    () => data?.pages.flatMap((page) => page.participants) ?? [],
+    [data],
+  );
 
   const competitionClasses = useMemo(() => {
-    const classes = new Map<number, { id: number; name: string }>()
+    const classes = new Map<number, { id: number; name: string }>();
     participants.forEach((p) => {
       if (p.competitionClass) {
-        classes.set(p.competitionClass.id, p.competitionClass)
+        classes.set(p.competitionClass.id, p.competitionClass);
       }
-    })
-    return Array.from(classes.values())
-  }, [participants])
+    });
+    return Array.from(classes.values());
+  }, [participants]);
 
   const deviceGroups = useMemo(() => {
-    const groups = new Map<number, { id: number; name: string }>()
+    const groups = new Map<number, { id: number; name: string }>();
     participants.forEach((p) => {
       if (p.deviceGroup) {
-        groups.set(p.deviceGroup.id, p.deviceGroup)
+        groups.set(p.deviceGroup.id, p.deviceGroup);
       }
-    })
-    return Array.from(groups.values())
-  }, [participants])
+    });
+    return Array.from(groups.values());
+  }, [participants]);
 
-  const observerTarget = useRef<HTMLDivElement>(null)
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
+          fetchNextPage();
         }
       },
-      { threshold: 0.1 }
-    )
+      { threshold: 0.1 },
+    );
 
-    const currentTarget = observerTarget.current
+    const currentTarget = observerTarget.current;
     if (currentTarget) {
-      observer.observe(currentTarget)
+      observer.observe(currentTarget);
     }
 
     return () => {
       if (currentTarget) {
-        observer.unobserve(currentTarget)
+        observer.unobserve(currentTarget);
       }
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const columns = useMemo<ColumnDef<TableData>[]>(
     () => [
@@ -198,31 +216,37 @@ export function SubmissionsTable() {
         accessorKey: "reference",
         header: "Reference",
         cell: ({ row }) => (
-          <div className="font-semibold text-foreground">{row.getValue("reference")}</div>
+          <div className="font-semibold text-foreground">
+            {row.getValue("reference")}
+          </div>
         ),
       },
       {
         id: "name",
         header: "Name",
         cell: ({ row }) => {
-          const firstname = row.original.firstname
-          const lastname = row.original.lastname
-          return <div className="font-medium">{`${firstname} ${lastname}`}</div>
+          const firstname = row.original.firstname;
+          const lastname = row.original.lastname;
+          return (
+            <div className="font-medium">{`${firstname} ${lastname}`}</div>
+          );
         },
       },
       {
         accessorKey: "email",
         header: "Email",
         cell: ({ row }) => (
-          <div className="text-muted-foreground">{row.getValue("email") || "-"}</div>
+          <div className="text-muted-foreground">
+            {row.getValue("email") || "-"}
+          </div>
         ),
       },
       {
         accessorKey: "createdAt",
         header: "Initialized At",
         cell: ({ row }) => {
-          const createdAt = row.getValue("createdAt") as string
-          const date = new Date(createdAt)
+          const createdAt = row.getValue("createdAt") as string;
+          const date = new Date(createdAt);
           return (
             <div className="text-muted-foreground">
               {date.toLocaleString(undefined, {
@@ -233,14 +257,14 @@ export function SubmissionsTable() {
                 minute: "2-digit",
               })}
             </div>
-          )
+          );
         },
       },
       {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
-          const status = row.getValue("status") as string
+          const status = row.getValue("status") as string;
           const statusConfig = {
             completed: {
               variant: "default" as const,
@@ -260,10 +284,11 @@ export function SubmissionsTable() {
                 "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
               icon: CheckCircle2,
             },
-          }
+          };
           const config =
-            statusConfig[status as keyof typeof statusConfig] || statusConfig.initialized
-          const Icon = config.icon
+            statusConfig[status as keyof typeof statusConfig] ||
+            statusConfig.initialized;
+          const Icon = config.icon;
           return (
             <Badge
               variant={config.variant}
@@ -272,39 +297,42 @@ export function SubmissionsTable() {
               <Icon className="size-3" />
               {status}
             </Badge>
-          )
+          );
         },
       },
       {
         id: "competitionClass",
         header: "Competition Class",
         cell: ({ row }) => {
-          const competitionClass = row.original.competitionClass
-          return <div>{competitionClass?.name || "-"}</div>
+          const competitionClass = row.original.competitionClass;
+          return <div>{competitionClass?.name || "-"}</div>;
         },
       },
       {
         id: "deviceGroup",
         header: "Device Group",
         cell: ({ row }) => {
-          const deviceGroup = row.original.deviceGroup
-          return <div>{deviceGroup?.name || "-"}</div>
+          const deviceGroup = row.original.deviceGroup;
+          return <div>{deviceGroup?.name || "-"}</div>;
         },
       },
       {
         id: "validationResults",
         header: "Validation Results",
         cell: ({ row }) => {
-          const failed = row.original.failedValidationResults
-          const passed = row.original.passedValidationResults
-          const skipped = row.original.skippedValidationResults
-          const failedCount = failed.errors + failed.warnings
-          const passedCount = passed.errors + passed.warnings
-          const skippedCount = skipped.errors + skipped.warnings
+          const failed = row.original.failedValidationResults;
+          const passed = row.original.passedValidationResults;
+          const skipped = row.original.skippedValidationResults;
+          const failedCount = failed.errors + failed.warnings;
+          const passedCount = passed.errors + passed.warnings;
+          const skippedCount = skipped.errors + skipped.warnings;
           return (
             <div className="flex items-center gap-2 flex-wrap">
               {failedCount > 0 && (
-                <Badge variant="destructive" className="gap-1.5 text-xs font-medium">
+                <Badge
+                  variant="destructive"
+                  className="gap-1.5 text-xs font-medium"
+                >
                   <XCircle className="size-3" />
                   {failedCount}
                 </Badge>
@@ -331,12 +359,12 @@ export function SubmissionsTable() {
                 <span className="text-xs text-muted-foreground">-</span>
               )}
             </div>
-          )
+          );
         },
       },
     ],
-    []
-  )
+    [],
+  );
 
   const table = useReactTable({
     data: participants,
@@ -348,31 +376,31 @@ export function SubmissionsTable() {
     },
     onSortingChange: setSorting,
     manualSorting: true,
-  })
+  });
 
   const handleCompetitionClassChange = useCallback(
     (value: string) => {
       if (value === "all") {
-        setQueryState({ competitionClassId: null })
+        setQueryState({ competitionClassId: null });
       } else {
-        const ids = value.split(",").map(Number)
-        setQueryState({ competitionClassId: ids })
+        const ids = value.split(",").map(Number);
+        setQueryState({ competitionClassId: ids });
       }
     },
-    [setQueryState]
-  )
+    [setQueryState],
+  );
 
   const handleDeviceGroupChange = useCallback(
     (value: string) => {
       if (value === "all") {
-        setQueryState({ deviceGroupId: null })
+        setQueryState({ deviceGroupId: null });
       } else {
-        const ids = value.split(",").map(Number)
-        setQueryState({ deviceGroupId: ids })
+        const ids = value.split(",").map(Number);
+        setQueryState({ deviceGroupId: ids });
       }
     },
-    [setQueryState]
-  )
+    [setQueryState],
+  );
 
   const renderFiltersAndTable = () => (
     <>
@@ -384,7 +412,9 @@ export function SubmissionsTable() {
               type="text"
               placeholder="Search by reference, name, or email..."
               value={search || ""}
-              onChange={(e) => setQueryState({ search: e.target.value || null })}
+              onChange={(e) =>
+                setQueryState({ search: e.target.value || null })
+              }
               className="w-full pl-9 h-10 bg-background"
             />
           </div>
@@ -392,7 +422,9 @@ export function SubmissionsTable() {
           <div className="flex flex-wrap gap-3 w-full sm:w-auto">
             <Select
               value={sortOrder}
-              onValueChange={(value) => setQueryState({ sortOrder: value as "asc" | "desc" })}
+              onValueChange={(value) =>
+                setQueryState({ sortOrder: value as "asc" | "desc" })
+              }
             >
               <SelectTrigger className="w-full sm:w-[160px] h-10 bg-background">
                 <div className="flex items-center gap-2">
@@ -431,7 +463,11 @@ export function SubmissionsTable() {
             </Select>
 
             <Select
-              value={!deviceGroupId || deviceGroupId.length === 0 ? "all" : deviceGroupId.join(",")}
+              value={
+                !deviceGroupId || deviceGroupId.length === 0
+                  ? "all"
+                  : deviceGroupId.join(",")
+              }
               onValueChange={handleDeviceGroupChange}
             >
               <SelectTrigger className="w-full sm:w-[200px] h-10 bg-background">
@@ -458,12 +494,21 @@ export function SubmissionsTable() {
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="border-b bg-muted/30 hover:bg-muted/30">
+                <TableRow
+                  key={headerGroup.id}
+                  className="border-b bg-muted/30 hover:bg-muted/30"
+                >
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="h-12 font-semibold text-foreground">
+                    <TableHead
+                      key={header.id}
+                      className="h-12 font-semibold text-foreground"
+                    >
                       {header.isPlaceholder
                         ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -472,16 +517,24 @@ export function SubmissionsTable() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center">
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-32 text-center"
+                  >
                     <div className="flex flex-col items-center justify-center gap-3">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Loading participants...</span>
+                      <span className="text-sm text-muted-foreground">
+                        Loading participants...
+                      </span>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : isError ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center">
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-32 text-center"
+                  >
                     <div className="flex flex-col items-center justify-center gap-2">
                       <AlertCircle className="h-6 w-6 text-destructive" />
                       <span className="text-sm text-destructive font-medium">
@@ -492,7 +545,10 @@ export function SubmissionsTable() {
                 </TableRow>
               ) : participants.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center">
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-32 text-center"
+                  >
                     <div className="flex flex-col items-center justify-center gap-2">
                       <FileText className="h-8 w-8 text-muted-foreground/50" />
                       <span className="text-sm text-muted-foreground font-medium">
@@ -508,11 +564,11 @@ export function SubmissionsTable() {
                 </TableRow>
               ) : (
                 table.getRowModel().rows.map((row) => {
-                  const participant = row.original
+                  const participant = row.original;
                   const href = formatDomainPathname(
                     `/admin/dashboard/submissions/${participant.reference}`,
-                    domain
-                  )
+                    domain,
+                  );
                   return (
                     <TableRow
                       key={row.id}
@@ -521,11 +577,14 @@ export function SubmissionsTable() {
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id} className="py-3">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
                         </TableCell>
                       ))}
                     </TableRow>
-                  )
+                  );
                 })
               )}
             </TableBody>
@@ -533,7 +592,10 @@ export function SubmissionsTable() {
         </div>
       </div>
 
-      <div ref={observerTarget} className="h-8 flex items-center justify-center py-4">
+      <div
+        ref={observerTarget}
+        className="h-8 flex items-center justify-center py-4"
+      >
         {isFetchingNextPage && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -547,7 +609,7 @@ export function SubmissionsTable() {
         )}
       </div>
     </>
-  )
+  );
 
   const renderContent = () => {
     switch (activeTab) {
@@ -556,11 +618,11 @@ export function SubmissionsTable() {
       case "not-verified":
       case "verified":
       case "validation-errors":
-        return renderFiltersAndTable()
+        return renderFiltersAndTable();
       default:
-        return renderFiltersAndTable()
+        return renderFiltersAndTable();
     }
-  }
+  };
 
-  return <div className="space-y-6">{renderContent()}</div>
+  return <div className="space-y-6">{renderContent()}</div>;
 }

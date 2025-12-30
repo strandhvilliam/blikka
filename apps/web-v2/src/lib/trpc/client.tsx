@@ -6,12 +6,10 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { createTRPCClient, httpBatchStreamLink, loggerLink, TRPCLink } from "@trpc/client"
 import { createTRPCContext } from "@trpc/tanstack-react-query"
 
-import type { AppRouter } from "@blikka/api-v2/trpc/routers/_app"
+import type { AppRouter } from "@blikka/api-v2/trpc"
 
 import { createQueryClient } from "./query-client"
-import { observable } from "@trpc/server/observable"
 import { useRouter } from "next/navigation"
-import { NextRouter } from "next/router"
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined
 const getQueryClient = (unauthorizedCallback: () => void) => {

@@ -1,3 +1,5 @@
+"use client";
+
 import {
   CheckCircle,
   Clock3,
@@ -7,24 +9,24 @@ import {
   CheckCircle2,
   Upload,
   UserCheck,
-} from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { format } from "date-fns"
-import { Participant, Submission } from "@blikka/db"
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { format } from "date-fns";
+import type { Participant, Submission } from "@blikka/db";
 
 interface ReviewStep {
-  status: "completed" | "pending" | "upcoming"
-  title: string
-  description: string
-  timestamp?: string
-  icon: React.ComponentType<{ className?: string }>
-  isPending?: boolean
+  status: "completed" | "pending" | "upcoming";
+  title: string;
+  description: string;
+  timestamp?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isPending?: boolean;
 }
 
 interface ReviewTimelineProps {
-  submission: Submission
-  participant: Participant
-  hasIssues: boolean
+  submission: Submission;
+  participant: Participant;
+  hasIssues: boolean;
 }
 
 export function SubmissionReviewTimeline({
@@ -33,7 +35,7 @@ export function SubmissionReviewTimeline({
   hasIssues,
 }: ReviewTimelineProps) {
   // Check if participant is verified
-  const isParticipantVerified = participant.status === "verified"
+  const isParticipantVerified = participant.status === "verified";
 
   const reviewSteps: ReviewStep[] = [
     {
@@ -56,7 +58,10 @@ export function SubmissionReviewTimeline({
           status: "completed",
           title: "Photo Uploaded",
           description: "Photo uploaded by participant",
-          timestamp: format(new Date(submission.createdAt), "MMM d, yyyy HH:mm"),
+          timestamp: format(
+            new Date(submission.createdAt),
+            "MMM d, yyyy HH:mm",
+          ),
           icon: ImageIcon,
         },
     // Submission Processing Step - can be pending or completed
@@ -74,7 +79,7 @@ export function SubmissionReviewTimeline({
             description: "Technical validation complete",
             timestamp: format(
               new Date(submission.updatedAt || submission.createdAt),
-              "MMM d, yyyy HH:mm"
+              "MMM d, yyyy HH:mm",
             ),
             icon: CheckCircle,
           }
@@ -95,9 +100,9 @@ export function SubmissionReviewTimeline({
             new Date(
               isParticipantVerified && participant.updatedAt
                 ? participant.updatedAt
-                : submission.updatedAt || submission.createdAt
+                : submission.updatedAt || submission.createdAt,
             ),
-            "MMM d, yyyy HH:mm"
+            "MMM d, yyyy HH:mm",
           ),
           icon: CheckCircle2,
         }
@@ -125,7 +130,7 @@ export function SubmissionReviewTimeline({
               description: "Will be reviewed after processing",
               icon: Clock3,
             },
-  ]
+  ];
 
   return (
     <Card>
@@ -141,7 +146,8 @@ export function SubmissionReviewTimeline({
               {index < reviewSteps.length - 1 && (
                 <div
                   className={`absolute left-[15px] z-10 top-[32px] bottom-0 w-[2px] ${
-                    step.status === "completed" && reviewSteps[index + 1]?.status === "completed"
+                    step.status === "completed" &&
+                    reviewSteps[index + 1]?.status === "completed"
                       ? "bg-primary"
                       : step.status === "completed" &&
                           (reviewSteps[index + 1]?.status === "pending" ||
@@ -206,5 +212,5 @@ export function SubmissionReviewTimeline({
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

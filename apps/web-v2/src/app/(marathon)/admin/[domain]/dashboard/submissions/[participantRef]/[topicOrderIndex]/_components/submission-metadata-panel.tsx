@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type {
   CompetitionClass,
   DeviceGroup,
   Participant,
   Submission,
   Topic,
   ValidationResult,
-} from "@blikka/db"
-import { format } from "date-fns"
+} from "@blikka/db";
+import { format } from "date-fns";
 import {
   AlertTriangle,
   Camera,
@@ -20,20 +20,20 @@ import {
   Smartphone,
   Upload,
   XCircle,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 interface SubmissionMetadataPanelProps {
-  submission: Submission
-  topic: Topic
+  submission: Submission;
+  topic: Topic;
   participant: Participant & {
-    competitionClass: CompetitionClass | null
-    deviceGroup: DeviceGroup | null
-  }
-  hasIssues: boolean
-  validationResults: ValidationResult[]
+    competitionClass: CompetitionClass | null;
+    deviceGroup: DeviceGroup | null;
+  };
+  hasIssues: boolean;
+  validationResults: ValidationResult[];
 }
 
 export function SubmissionMetadataPanel({
@@ -44,12 +44,12 @@ export function SubmissionMetadataPanel({
   validationResults,
 }: SubmissionMetadataPanelProps) {
   const hasErrors = validationResults.some(
-    (result) => result.severity === "error" && result.outcome === "failed"
-  )
+    (result) => result.severity === "error" && result.outcome === "failed",
+  );
   const hasWarnings = validationResults.some(
-    (result) => result.severity === "warning" && result.outcome === "failed"
-  )
-  const allPassed = validationResults.length > 0 && !hasIssues
+    (result) => result.severity === "warning" && result.outcome === "failed",
+  );
+  const allPassed = validationResults.length > 0 && !hasIssues;
 
   const getStatusBadge = () => {
     if (allPassed) {
@@ -58,7 +58,7 @@ export function SubmissionMetadataPanel({
           <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
           All Checks Passed
         </Badge>
-      )
+      );
     }
     if (hasErrors) {
       return (
@@ -66,7 +66,7 @@ export function SubmissionMetadataPanel({
           <XCircle className="h-3.5 w-3.5 mr-1" />
           Has Errors
         </Badge>
-      )
+      );
     }
     if (hasWarnings) {
       return (
@@ -74,15 +74,15 @@ export function SubmissionMetadataPanel({
           <AlertTriangle className="h-3.5 w-3.5 mr-1" />
           Has Warnings
         </Badge>
-      )
+      );
     }
     return (
       <Badge variant="outline" className="bg-muted/50">
         <Info className="h-3.5 w-3.5 mr-1" />
         Not Validated
       </Badge>
-    )
-  }
+    );
+  };
 
   const getSubmissionStatusBadge = () => {
     const statusConfig = {
@@ -90,19 +90,20 @@ export function SubmissionMetadataPanel({
       uploaded: { label: "Uploaded", variant: "default", icon: CheckCircle2 },
       approved: { label: "Approved", variant: "default", icon: CheckCircle2 },
       rejected: { label: "Rejected", variant: "destructive", icon: XCircle },
-    }
+    };
 
     const config =
-      statusConfig[submission.status as keyof typeof statusConfig] || statusConfig.initialized
-    const Icon = config.icon
+      statusConfig[submission.status as keyof typeof statusConfig] ||
+      statusConfig.initialized;
+    const Icon = config.icon;
 
     return (
       <Badge variant={config.variant as any} className="gap-1.5">
         <Icon className="h-3.5 w-3.5" />
         {config.label}
       </Badge>
-    )
-  }
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -214,29 +215,38 @@ export function SubmissionMetadataPanel({
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="p-2 rounded-lg bg-green-500/10 border border-green-200">
                 <div className="text-xl font-bold text-green-600">
-                  {validationResults.filter((r) => r.outcome === "passed").length}
+                  {
+                    validationResults.filter((r) => r.outcome === "passed")
+                      .length
+                  }
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Passed</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Passed
+                </div>
               </div>
               <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-200">
                 <div className="text-xl font-bold text-yellow-600">
                   {
                     validationResults.filter(
-                      (r) => r.severity === "warning" && r.outcome === "failed"
+                      (r) => r.severity === "warning" && r.outcome === "failed",
                     ).length
                   }
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Warnings</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Warnings
+                </div>
               </div>
               <div className="p-2 rounded-lg bg-destructive/10 border border-destructive/20">
                 <div className="text-xl font-bold text-destructive">
                   {
                     validationResults.filter(
-                      (r) => r.severity === "error" && r.outcome === "failed"
+                      (r) => r.severity === "error" && r.outcome === "failed",
                     ).length
                   }
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Errors</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Errors
+                </div>
               </div>
             </div>
 
@@ -288,7 +298,10 @@ export function SubmissionMetadataPanel({
                   Available
                 </Badge>
               ) : (
-                <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-200 h-5">
+                <Badge
+                  variant="outline"
+                  className="bg-red-500/10 text-red-600 border-red-200 h-5"
+                >
                   Missing
                 </Badge>
               )}
@@ -306,7 +319,10 @@ export function SubmissionMetadataPanel({
                   {Object.keys(submission.exif).length} fields
                 </Badge>
               ) : (
-                <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-200 h-5">
+                <Badge
+                  variant="outline"
+                  className="bg-red-500/10 text-red-600 border-red-200 h-5"
+                >
                   Not available
                 </Badge>
               )}
@@ -315,5 +331,5 @@ export function SubmissionMetadataPanel({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

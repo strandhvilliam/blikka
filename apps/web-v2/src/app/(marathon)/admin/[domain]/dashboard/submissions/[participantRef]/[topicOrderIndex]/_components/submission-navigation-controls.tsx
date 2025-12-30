@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Grid2x2 } from "lucide-react"
 import Link from "next/link"
-import { Submission, Topic } from "@blikka/db"
+import type { Submission, Topic } from "@blikka/db"
 import {
   DropdownMenu,
   DropdownMenuContent,

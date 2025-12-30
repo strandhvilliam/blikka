@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useSession } from "@/lib/auth/client"
 import { useTRPC } from "@/lib/trpc/client"
-import { Marathon } from "@blikka/db"
+import type { Marathon } from "@blikka/db"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import {
   BadgeCheck,

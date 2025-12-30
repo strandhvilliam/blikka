@@ -1,5 +1,6 @@
+import "server-only"
 import { Effect, Schema } from "effect"
-import { RuntimeDependencies } from "./runtime"
+import type { RuntimeDependencies } from "./runtime"
 import { connection } from "next/server"
 import { serverRuntime } from "./runtime"
 import { Exit, Chunk, Cause } from "effect"

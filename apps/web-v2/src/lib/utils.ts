@@ -24,7 +24,9 @@ export const formatDomainPathname = (pathname: string, domain?: string) => {
 
     const first = parts[0] || "live"
     const rest = parts.slice(1).join("/")
-    return `/${first}/${domain}${rest ? `/${rest}` : ""}`
+    const path = `/${first}/${domain}${rest ? `/${rest}` : ""}`
+    console.log("path", path)
+    return path
   }
 
   // In production, rely on subdomain routing; just return the original pathname

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Submission, ValidationResult } from "@blikka/db"
+import type { Submission, ValidationResult } from "@blikka/db"
 import {
   AlertTriangle,
   CheckCircle2,

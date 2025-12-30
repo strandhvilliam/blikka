@@ -1,3 +1,4 @@
+import "server-only"
 import { Layer, ManagedRuntime, ConfigError } from "effect"
 import { DrizzleClient, Database } from "@blikka/db"
 import { EmailService } from "@blikka/email"
@@ -19,10 +20,9 @@ const MainLayer = Layer.mergeAll(
   RedisClient.Default,
   AuthLayer,
   PubSubService.Default,
-  RunStateService.Default,
+  ValidationEngine.Default,
   S3Service.Default,
   UploadSessionRepository.Default,
-  ValidationEngine.Default,
   SharpImageService.Default,
   ContactSheetBuilder.Default,
   ExifParser.Default,

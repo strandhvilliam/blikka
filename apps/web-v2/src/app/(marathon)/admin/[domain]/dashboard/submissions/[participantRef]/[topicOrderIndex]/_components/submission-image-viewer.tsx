@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
-import { CompetitionClass, Submission, Topic } from "@blikka/db"
+import type { CompetitionClass, Submission, Topic } from "@blikka/db"
 import { AlertTriangle, Download, Expand, ZoomIn, ZoomOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
