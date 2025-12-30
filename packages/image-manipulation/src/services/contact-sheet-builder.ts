@@ -12,7 +12,13 @@ import {
   parseKey,
 } from "../utils"
 import type { SponsorPosition, SheetVariables } from "../types"
-import { CANVAS_HEIGHT, CANVAS_WIDTH, SEQUENCE_WIDTH_RATIO, WHITE_BACKGROUND } from "../constants"
+import {
+  CANVAS_HEIGHT,
+  CANVAS_WIDTH,
+  SEQUENCE_WIDTH_RATIO,
+  TEXT_TOP_GAP,
+  WHITE_BACKGROUND,
+} from "../constants"
 
 export class InvalidSheetParamsError extends Schema.TaggedError<InvalidSheetParamsError>()(
   "InvalidSheetParamsError",
@@ -83,7 +89,7 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
         const image = yield* sharp.prepareForCanvas(
           Buffer.from(imageFile),
           sheetVariables.cellWidth,
-          sheetVariables.cellHeight,
+          sheetVariables.availableImageHeight,
           "inside",
           WHITE_BACKGROUND
         )
@@ -182,7 +188,7 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
                     { input: image, ...imagePosition },
                     {
                       input: textBuffer,
-                      top: y + sheetVariables.availableImageHeight,
+                      top: y + sheetVariables.availableImageHeight + TEXT_TOP_GAP,
                       left: x,
                     },
                   ])

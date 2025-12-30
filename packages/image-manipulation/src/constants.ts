@@ -26,13 +26,14 @@ export const RIGHT_COL_LARGE = 4
 export const ROW_SPACING = 10
 export const EXTRA_SPACING_ADJUSTMENT = 12
 export const TEXT_SPACING_REDUCTION = 32
+export const TEXT_TOP_GAP = 4
 export const IMAGE_SIZE_FACTOR = 0.99
 export const SEQUENCE_BOTTOM_MARGIN = 32
 
 // Text and font constants
-export const TEXT_HEIGHT_RATIO = 0.02
+export const TEXT_HEIGHT_RATIO = 0.025
 export const SEQUENCE_SPACE_RATIO = 0.04
-export const LABEL_FONT_SIZE = 26
+export const LABEL_FONT_SIZE = 28
 export const SEQUENCE_FONT_SIZE_MIN = 32
 export const SEQUENCE_FONT_SIZE_RATIO = 0.05
 export const SEQUENCE_WIDTH_RATIO = 0.12
