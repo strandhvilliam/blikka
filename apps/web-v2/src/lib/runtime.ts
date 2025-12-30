@@ -26,6 +26,7 @@ const MainLayer = Layer.mergeAll(
   SharpImageService.Default,
   ContactSheetBuilder.Default,
   ExifParser.Default,
+  RunStateService.Default,
   TelemetryLayer("blikka-dev-web-v2")
 ).pipe(
   Layer.provide(NodeContext.layer),

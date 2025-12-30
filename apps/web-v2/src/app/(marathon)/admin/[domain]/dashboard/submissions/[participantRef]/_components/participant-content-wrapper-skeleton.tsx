@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
-export function ParticipantSubmissionClientPageSkeleton() {
+export function ParticipantContentWrapperSkeleton() {
   return (
     <div className="space-y-0">
       <div className="border-b border-border">
@@ -22,4 +22,3 @@ export function ParticipantSubmissionClientPageSkeleton() {
     </div>
   )
 }
-

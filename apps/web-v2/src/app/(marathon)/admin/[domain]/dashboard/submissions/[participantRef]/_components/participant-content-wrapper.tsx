@@ -2,7 +2,6 @@
 
 import { Suspense } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ParticipantHeader } from "./participant-header"
 import { ParticipantSubmissionsTab } from "./participant-submissions-tab"
 import { ValidationResultsTab } from "./validation-results-tab"
 import { ContactSheetTab } from "./contact-sheet-tab"
@@ -20,7 +19,7 @@ function LoadingFallback() {
 const customTabTriggerClassName =
   "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#FF5D4B] dark:data-[state=active]:text-[#FF7A6B] text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-[#FF5D4B] dark:data-[state=active]:after:bg-[#FF7A6B]"
 
-export function ParticipantSubmissionClientPage({ participantRef }: { participantRef: string }) {
+export function ParticipantContentWrapper({ participantRef }: { participantRef: string }) {
   return (
     <Tabs defaultValue="submissions" className="space-y-0">
       <div className="border-b border-border">

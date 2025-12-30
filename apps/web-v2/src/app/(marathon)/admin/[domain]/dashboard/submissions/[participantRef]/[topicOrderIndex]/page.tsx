@@ -4,6 +4,7 @@ import { HydrateClient } from "@/lib/trpc/server"
 import { Suspense } from "react"
 import { batchPrefetch, trpc } from "@/lib/trpc/server"
 import { ParticipantTopicSubmissionClientPage } from "./_components/client-page"
+import { SubmissionPageSkeleton } from "./_components/submission-page-skeleton"
 
 const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsPage")(
   function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
@@ -27,7 +28,7 @@ const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsP
 
     return (
       <HydrateClient>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<SubmissionPageSkeleton />}>
           <ParticipantTopicSubmissionClientPage
             participantRef={participantRef}
             topicOrderIndex={topicOrderIndex}

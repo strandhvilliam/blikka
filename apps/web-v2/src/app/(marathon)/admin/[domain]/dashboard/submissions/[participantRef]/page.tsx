@@ -2,11 +2,11 @@ import { Effect, Schema } from "effect"
 import { decodeParams, Page } from "@/lib/next-utils"
 import { HydrateClient } from "@/lib/trpc/server"
 import { Suspense } from "react"
-import { ParticipantSubmissionClientPage } from "./_components/client-page"
+import { ParticipantContentWrapper } from "./_components/participant-content-wrapper"
 import { batchPrefetch, trpc } from "@/lib/trpc/server"
 import { ParticipantHeader } from "./_components/participant-header"
 import { ParticipantHeaderSkeleton } from "./_components/participant-header-skeleton"
-import { ParticipantSubmissionClientPageSkeleton } from "./_components/client-page-skeleton"
+import { ParticipantContentWrapperSkeleton } from "./_components/participant-content-wrapper-skeleton"
 
 const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
   function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
@@ -30,8 +30,8 @@ const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
           <Suspense fallback={<ParticipantHeaderSkeleton />}>
             <ParticipantHeader participantRef={participantRef} />
           </Suspense>
-          <Suspense fallback={<ParticipantSubmissionClientPageSkeleton />}>
-            <ParticipantSubmissionClientPage participantRef={participantRef} />
+          <Suspense fallback={<ParticipantContentWrapperSkeleton />}>
+            <ParticipantContentWrapper participantRef={participantRef} />
           </Suspense>
         </div>
       </HydrateClient>
