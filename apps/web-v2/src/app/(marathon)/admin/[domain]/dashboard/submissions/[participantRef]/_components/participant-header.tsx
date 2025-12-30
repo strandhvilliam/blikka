@@ -46,37 +46,6 @@ import {
 } from "../_lib/utils"
 import { ParticipantCard } from "./participant-card"
 
-function createParticipantMutationHandler<TVariables, TData, TError>(
-  mutation: UseMutationResult<TData, TError, TVariables>,
-  trpc: ReturnType<typeof useTRPC>,
-  queryClient: ReturnType<typeof useQueryClient>,
-  participantRef: string,
-  domain: string,
-  successMessage: string,
-  errorMessage: string
-) {
-  return (variables: TVariables) => {
-    mutation.mutate(variables, {
-      onSuccess: () => {
-        toast.success(successMessage)
-        queryClient.invalidateQueries({
-          queryKey: trpc.participants.getByReference.queryKey({
-            reference: participantRef,
-            domain,
-          }),
-        })
-      },
-      onError: (error: TError) => {
-        const message =
-          error && typeof error === "object" && "message" in error
-            ? String(error.message)
-            : errorMessage
-        toast.error(message)
-      },
-    })
-  }
-}
-
 export function ParticipantHeader({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
   const trpc = useTRPC()
@@ -95,27 +64,42 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
   )
 
   const handleRunValidations = () =>
-    createParticipantMutationHandler(
-      runValidationsMutation,
-      trpc,
-      queryClient,
-      participantRef,
-      domain,
-      "Validations completed successfully",
-      "Failed to run validations"
-    )({ domain, reference: participantRef })
+    runValidationsMutation.mutate(
+      { domain, reference: participantRef },
+      {
+        onSuccess: () => {
+          toast.success("Validations completed successfully")
+          queryClient.invalidateQueries({
+            queryKey: trpc.validations.pathKey(),
+          })
+          queryClient.invalidateQueries({
+            queryKey: trpc.participants.pathKey(),
+          })
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Failed to run validations")
+        },
+      }
+    )
 
   const handleGenerateContactSheet = () =>
-    createParticipantMutationHandler(
-      generateContactSheetMutation,
-      trpc,
-      queryClient,
-      participantRef,
-      domain,
-      "Contact sheet generated successfully",
-      "Failed to generate contact sheet"
-    )({ domain, reference: participantRef })
-
+    generateContactSheetMutation.mutate(
+      { domain, reference: participantRef },
+      {
+        onSuccess: () => {
+          toast.success("Contact sheet generated successfully")
+          queryClient.invalidateQueries({
+            queryKey: trpc.contactSheets.pathKey(),
+          })
+          queryClient.invalidateQueries({
+            queryKey: trpc.participants.pathKey(),
+          })
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Failed to generate contact sheet")
+        },
+      }
+    )
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -205,17 +189,6 @@ function ParticipantHeaderActions({
   isGeneratingContactSheet: boolean
 }) {
   const hasSubmissions = participant.submissions && participant.submissions.length > 0
-
-  const hasContactSheet = participant.contactSheets && participant.contactSheets.length > 0
-
-  const handleContactSheetAction = () => {
-    if (hasContactSheet) {
-      // TODO: Implement download contact sheet functionality
-      console.log("Download contact sheet clicked")
-    } else {
-      onGenerateContactSheet()
-    }
-  }
 
   const handleRegenerateContactSheet = () => {
     onGenerateContactSheet()
