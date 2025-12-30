@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   cacheComponents: true,
+  // Externalize server-only packages to prevent bundling issues with Node.js-specific modules
+  serverExternalPackages: ["exifr", "sharp"],
 }
 
 export default withNextIntl(nextConfig)

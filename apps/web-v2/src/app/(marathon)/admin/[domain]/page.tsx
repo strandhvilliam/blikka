@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { Effect, Schema } from "effect"
 import { decodeParams, Page } from "@/lib/next-utils"
 import { redirect } from "next/navigation"
+import { formatDomainPathname } from "@/lib/utils"
 
 export const metadata: Metadata = {
   title: "Blikka App",
@@ -15,10 +16,10 @@ const _DomainPage = Effect.fn("@blikka/web/DomainPage")(
     const isOnboarded = true
 
     if (!isOnboarded) {
-      return redirect(`/admin/onboarding`)
+      return redirect(formatDomainPathname(`/admin/onboarding`, domain))
     }
 
-    return redirect(`/admin/dashboard`)
+    return redirect(formatDomainPathname(`/admin/dashboard`, domain))
   },
   Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )

@@ -80,9 +80,18 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // for the domain selector
+  // When accessing the admin root domain but no subdomain is present, redirect domain selector
   if (pathname.startsWith("/admin")) {
-    return NextResponse.next()
+    if (pathname === "/admin") {
+      // If the path is just /admin, pass through
+      return NextResponse.next()
+    }
+    // if localhost, dont rewrite
+    if (request.url.includes("localhost")) {
+      console.log("localhost, dont rewrite")
+      return NextResponse.next()
+    }
+    return NextResponse.redirect(new URL(`/admin`, request.url))
   }
 
   // On the root domain, allow normal access
