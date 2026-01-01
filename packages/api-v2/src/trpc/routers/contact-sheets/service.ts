@@ -6,8 +6,8 @@ import { ContactSheetApiError } from "./schemas"
 
 const VALID_PHOTO_COUNTS = [8, 24]
 
-export class ContactSheetsService extends Effect.Service<ContactSheetsService>()(
-  "@blikka/api-v2/contact-sheets-service",
+export class ContactSheetsApiService extends Effect.Service<ContactSheetsApiService>()(
+  "@blikka/api-v2/contact-sheets-api-service",
   {
     accessors: true,
     dependencies: [Database.Default, S3Service.Default, ContactSheetBuilder.Default],
@@ -20,7 +20,7 @@ export class ContactSheetsService extends Effect.Service<ContactSheetsService>()
       const generateContactSheetKey = (domain: string, reference: string) =>
         `${domain}/${reference}/contact_sheet_${reference}_${new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5)}.jpg`
 
-      const validatePhotoCount = Effect.fn("ContactSheetsRouter.validatePhotoCount")(function* (
+      const validatePhotoCount = Effect.fn("ContactSheetsApiService.validatePhotoCount")(function* (
         reference: string,
         domain: string,
         keys: string[],

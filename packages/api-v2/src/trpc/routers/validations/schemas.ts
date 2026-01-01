@@ -1,0 +1,16 @@
+import { Schema } from "effect"
+
+export class ValidationsApiError extends Schema.TaggedError<ValidationsApiError>()(
+  "ValidationsApiError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
+
+export const RunValidationsSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    reference: Schema.String,
+  })
+)

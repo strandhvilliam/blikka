@@ -12,7 +12,8 @@ import type { PubSubService, RunStateService } from "@blikka/pubsub"
 import type { ValidationEngine } from "@blikka/validation"
 import type { ContactSheetBuilder, SharpImageService } from "@blikka/image-manipulation"
 import type { UploadFlowService } from "./routers/upload-flow/service"
-import type { ContactSheetsService } from "./routers/contact-sheets/service"
+import type { ContactSheetsApiService } from "./routers/contact-sheets/service"
+import type { ValidationsApiService } from "./routers/validations/service"
 
 export type RequiredServices =
   | BetterAuthService
@@ -28,7 +29,8 @@ export type RequiredServices =
   | ContactSheetBuilder
   | SharpImageService
   | UploadFlowService
-  | ContactSheetsService
+  | ContactSheetsApiService
+  | ValidationsApiService
 
 type ServiceMap = {
   BetterAuthService: BetterAuthService
