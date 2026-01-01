@@ -13,6 +13,7 @@
     "@blikka/api-v2": "workspace:*",
     "@blikka/auth": "workspace:*",
     "@blikka/db": "workspace:*",
+    "@blikka/runtime": "workspace:*",
     "@blikka/email": "workspace:*",
     "@blikka/exif-parser": "workspace:*",
     "@blikka/image-manipulation": "workspace:*",

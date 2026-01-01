@@ -1,44 +1,18 @@
 import "server-only"
-import { Layer, ManagedRuntime, ConfigError } from "effect"
-import { DrizzleClient, Database } from "@blikka/db"
-import { EmailService } from "@blikka/email"
-import { RedisClient } from "@blikka/redis"
+import { Layer } from "effect"
+import { createRuntime, type ManagedRuntime } from "@blikka/runtime"
 import { AuthLayer } from "./auth/server"
-import { NodeContext } from "@effect/platform-node"
-import { PubSubService, RunStateService } from "@blikka/pubsub"
-import { S3Service } from "@blikka/s3"
-import { UploadSessionRepository } from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { ValidationEngine } from "@blikka/validation"
-import { SharpImageService, ContactSheetBuilder } from "@blikka/image-manipulation"
-import { ExifParser } from "@blikka/exif-parser"
+import { ApiV2Layer } from "@blikka/api-v2/trpc"
 
-const MainLayer = Layer.mergeAll(
-  DrizzleClient.Default,
-  Database.Default,
-  EmailService.Default,
-  RedisClient.Default,
+const AppSpecificLayers = Layer.mergeAll(
   AuthLayer,
-  PubSubService.Default,
-  ValidationEngine.Default,
-  S3Service.Default,
-  UploadSessionRepository.Default,
-  SharpImageService.Default,
-  ContactSheetBuilder.Default,
-  ExifParser.Default,
-  RunStateService.Default,
+  ApiV2Layer,
   TelemetryLayer("blikka-dev-web-v2")
-).pipe(
-  Layer.provide(NodeContext.layer),
-  Layer.catchAll((error) => {
-    if (ConfigError.isConfigError(error)) {
-      console.error("ConfigError", error)
-      return Layer.die(error)
-    }
-    return Layer.fail(error)
-  })
 )
 
-export const serverRuntime = ManagedRuntime.make(MainLayer)
+export const serverRuntime = createRuntime({
+  additionalLayers: AppSpecificLayers
+})
 
 export type RuntimeDependencies = ManagedRuntime.ManagedRuntime.Context<typeof serverRuntime>

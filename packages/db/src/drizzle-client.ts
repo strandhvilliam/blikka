@@ -17,9 +17,6 @@ const PgLive = PgClient.layerConfig({
   prepare: Config.boolean("false").pipe(Config.withDefault(false)),
   maxConnections: Config.integer("DB_POOL_MAX").pipe(Config.withDefault(10)),
   idleTimeout: Config.duration("DB_IDLE_TIMEOUT").pipe(Config.withDefault(Duration.seconds(5))),
-  connectionTTL: Config.duration("DB_CONNECTION_TTL").pipe(
-    Config.withDefault(Duration.seconds(10))
-  ),
 }).pipe(
   Layer.mapError(
     (error) => new DbConnectionError({ cause: error, message: "Failed to connect to database" })
@@ -29,8 +26,6 @@ const PgLive = PgClient.layerConfig({
 export class DrizzleClient extends Effect.Service<DrizzleClient>()("@blikka/db/drizzle-client", {
   dependencies: [PgLive],
   effect: Effect.gen(function* () {
-    const pg = yield* PgClient.PgClient
-
     const db = yield* PgDrizzle.make<typeof schema>({
       schema,
     })

@@ -1,0 +1,22 @@
+{
+  "name": "@blikka/runtime",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@blikka/db": "workspace:*",
+    "@blikka/email": "workspace:*",
+    "@blikka/redis": "workspace:*",
+    "@blikka/pubsub": "workspace:*",
+    "@blikka/s3": "workspace:*",
+    "@blikka/kv-store": "workspace:*",
+    "@blikka/validation": "workspace:*",
+    "@blikka/image-manipulation": "workspace:*",
+    "@blikka/exif-parser": "workspace:*",
+    "@effect/platform-node": "^0.103.0",
+    "effect": "^3.16.0"
+  }
+}
+

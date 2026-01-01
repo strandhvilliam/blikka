@@ -21,6 +21,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@blikka/api-v2/*": ["../../packages/api-v2/src/*"],
+      "@blikka/runtime": ["../../packages/runtime/src"],
       "@blikka/redis": ["../../packages/redis/src"],
       "@blikka/auth": ["../../packages/auth/src"],
       "@blikka/db": ["../../packages/db/src"],
