@@ -1,12 +1,9 @@
 import { Schema } from "effect"
 
-export class InitializeUploadFlowError extends Schema.TaggedError<InitializeUploadFlowError>()(
-  "InitializeUploadFlowError",
-  {
-    message: Schema.String,
-    cause: Schema.optional(Schema.Unknown),
-  }
-) {}
+export class UploadFlowError extends Schema.TaggedError<UploadFlowError>()("UploadFlowError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {}
 
 export const GetPublicMarathonSchema = Schema.standardSchemaV1(
   Schema.Struct({

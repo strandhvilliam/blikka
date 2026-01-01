@@ -3,11 +3,12 @@ import { type NewParticipant, type Topic, Database } from "@blikka/db"
 import { S3Service } from "@blikka/s3"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { PubSubChannel, PubSubService, RunStateService } from "@blikka/pubsub"
-import { InitializeUploadFlowError } from "../upload-flow"
+import { UploadFlowError } from "./schemas"
 
 export class UploadFlowService extends Effect.Service<UploadFlowService>()(
   "@blikka/api-v2/upload-flow-service",
   {
+    accessors: true,
     dependencies: [
       Database.Default,
       S3Service.Default,
@@ -24,6 +25,26 @@ export class UploadFlowService extends Effect.Service<UploadFlowService>()(
       const environment = yield* Config.string("NODE_ENV").pipe(
         Config.map((env) => (env === "production" ? "prod" : "dev"))
       )
+
+      const getPublicMarathon = Effect.fn("UploadFlowService.getPublicMarathon")(function* ({
+        domain,
+      }) {
+        return yield* db.marathonsQueries
+          .getMarathonByDomainWithOptions({
+            domain,
+          })
+          .pipe(
+            Effect.andThen(
+              Option.match({
+                onSome: (marathon) => Effect.succeed(marathon),
+                onNone: () =>
+                  new UploadFlowError({
+                    message: "Marathon not found",
+                  }),
+              })
+            )
+          )
+      })
 
       const initializeUploadFlow = Effect.fn("UploadFlowService.initializeUploadFlow")(function* ({
         domain,
@@ -45,7 +66,7 @@ export class UploadFlowService extends Effect.Service<UploadFlowService>()(
                   onSome: (marathon) => Effect.succeed(marathon),
                   onNone: () =>
                     Effect.fail(
-                      new InitializeUploadFlowError({
+                      new UploadFlowError({
                         message: "Marathon not found",
                       })
                     ),
@@ -61,7 +82,7 @@ export class UploadFlowService extends Effect.Service<UploadFlowService>()(
               onSome: (competitionClass) => Effect.succeed(competitionClass),
               onNone: () =>
                 Effect.fail(
-                  new InitializeUploadFlowError({
+                  new UploadFlowError({
                     message: "Competition class not found",
                   })
                 ),
@@ -73,7 +94,7 @@ export class UploadFlowService extends Effect.Service<UploadFlowService>()(
               onSome: (deviceGroup) => Effect.succeed(deviceGroup),
               onNone: () =>
                 Effect.fail(
-                  new InitializeUploadFlowError({
+                  new UploadFlowError({
                     message: "Device group not found",
                   })
                 ),
@@ -101,7 +122,7 @@ export class UploadFlowService extends Effect.Service<UploadFlowService>()(
             onSome: (existing) => {
               if (existing.status === "completed") {
                 return Effect.fail(
-                  new InitializeUploadFlowError({
+                  new UploadFlowError({
                     message: "Participant already completed the marathon",
                   })
                 )
@@ -164,13 +185,6 @@ export class UploadFlowService extends Effect.Service<UploadFlowService>()(
             reference,
           },
         })
-      })
-
-      const getPublicMarathon = Effect.fn("UploadFlowService.getPublicMarathon")(function* ({
-        domain,
-      }) {
-        const marathon = yield* db.marathonsQueries.getMarathonByDomainWithOptions({ domain })
-        return marathon
       })
 
       return {
