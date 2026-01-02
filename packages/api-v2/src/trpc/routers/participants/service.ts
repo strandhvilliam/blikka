@@ -1,3 +1,7 @@
+import { Effect, Option } from "effect"
+import { Database } from "@blikka/db"
+import { ParticipantApiError } from "./schemas"
+
 export class ParticipantsApiService extends Effect.Service<ParticipantsApiService>()(
   "@blikka/api-v2/participants-api-service",
   {
@@ -8,20 +12,55 @@ export class ParticipantsApiService extends Effect.Service<ParticipantsApiServic
 
       const getInfiniteParticipantsByDomain = Effect.fn(
         "ParticipantsApiService.getInfiniteParticipantsByDomain"
-      )(function* ({ input }: { input: GetByDomainInfiniteInputSchema }) {
+      )(function* ({
+        domain,
+        cursor,
+        limit,
+        search,
+        sortOrder,
+        competitionClassId,
+        deviceGroupId,
+        statusFilter,
+        excludeStatuses,
+        hasValidationErrors,
+      }) {
         return yield* db.participantsQueries.getInfiniteParticipantsByDomain({
-          domain: input.domain,
-          cursor: input.cursor ?? undefined,
-          limit: input.limit ?? undefined,
-          search: input.search ?? undefined,
-          sortOrder: input.sortOrder ?? undefined,
-          competitionClassId: input.competitionClassId ?? undefined,
-          deviceGroupId: input.deviceGroupId ?? undefined,
-          statusFilter: input.statusFilter ?? undefined,
-          excludeStatuses: input.excludeStatuses ? [...input.excludeStatuses] : undefined,
-          hasValidationErrors: input.hasValidationErrors ?? undefined,
+          domain,
+          cursor,
+          limit,
+          search,
+          sortOrder,
+          competitionClassId,
+          deviceGroupId,
+          statusFilter,
+          excludeStatuses,
+          hasValidationErrors,
         })
       })
+
+      const getByReference = Effect.fn("ParticipantsApiService.getByReference")(function* ({
+        reference,
+        domain,
+      }) {
+        const result = yield* db.participantsQueries.getParticipantByReference({
+          reference,
+          domain,
+        })
+
+        if (Option.isNone(result)) {
+          return yield* Effect.fail(
+            new ParticipantApiError({
+              message: "Participant not found",
+            })
+          )
+        }
+        return result.value
+      })
+
+      return {
+        getInfiniteParticipantsByDomain,
+        getByReference,
+      } as const
     }),
   }
 ) {}

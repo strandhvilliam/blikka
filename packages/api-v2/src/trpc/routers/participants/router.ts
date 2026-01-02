@@ -3,7 +3,11 @@ import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
 import { Schema, Effect, Option } from "effect"
 import { Database } from "@blikka/db"
 import { TRPCError } from "@trpc/server"
-import { GetByDomainInfiniteInputSchema, GetByReferenceInputSchema } from "./schemas"
+import {
+  GetByDomainInfiniteInputSchema,
+  GetByReferenceInputSchema,
+  ParticipantApiError,
+} from "./schemas"
 import { ParticipantsApiService } from "./service"
 
 export const participantRouter = createTRPCRouter({
@@ -12,9 +16,20 @@ export const participantRouter = createTRPCRouter({
 
     .query(
       trpcEffect(
-        Effect.fn("ParticipantRouter.getByDomainInfinite")(function* ({ input }) {
+        Effect.fn("ParticipantRouter.getByDomainInfinite")(function* ({ input, ctx }) {
           yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-          return yield* ParticipantsApiService.getInfiniteParticipantsByDomain(input)
+          return yield* ParticipantsApiService.getInfiniteParticipantsByDomain({
+            domain: input.domain,
+            cursor: input.cursor ?? undefined,
+            limit: input.limit ?? undefined,
+            search: input.search ?? undefined,
+            sortOrder: input.sortOrder ?? undefined,
+            competitionClassId: input.competitionClassId ?? undefined,
+            deviceGroupId: input.deviceGroupId ?? undefined,
+            statusFilter: input.statusFilter ?? undefined,
+            excludeStatuses: input.excludeStatuses ? [...input.excludeStatuses] : undefined,
+            hasValidationErrors: input.hasValidationErrors ?? undefined,
+          })
         })
       )
     ),
@@ -23,20 +38,10 @@ export const participantRouter = createTRPCRouter({
     trpcEffect(
       Effect.fn("ParticipantRouter.getByReference")(function* ({ input, ctx }) {
         yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-        const db = yield* Database
-        const result = yield* db.participantsQueries.getParticipantByReference({
+        return yield* ParticipantsApiService.getByReference({
           reference: input.reference,
           domain: input.domain,
         })
-
-        if (Option.isNone(result)) {
-          return yield* Effect.fail(
-            new ParticipantApiError({
-              message: "Participant not found",
-            })
-          )
-        }
-        return result.value
       })
     )
   ),
