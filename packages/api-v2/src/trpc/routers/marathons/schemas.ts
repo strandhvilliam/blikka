@@ -11,3 +11,24 @@ export class MarathonApiError extends Schema.TaggedError<MarathonApiError>()(
 export const GetByDomainInputSchema = Schema.standardSchemaV1(
   Schema.Struct({ domain: Schema.String })
 )
+
+export const UpdateMarathonInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    data: Schema.Struct({
+      name: Schema.optional(Schema.String),
+      description: Schema.optional(Schema.String),
+      startDate: Schema.optional(Schema.String),
+      endDate: Schema.optional(Schema.String),
+      logoUrl: Schema.optional(Schema.String),
+      languages: Schema.optional(Schema.String),
+      termsAndConditionsKey: Schema.optional(Schema.String),
+    }),
+  })
+)
+
+export const ResetMarathonInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+  })
+)
