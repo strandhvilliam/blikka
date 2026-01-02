@@ -1,13 +1,7 @@
 import { authProcedure, createTRPCRouter } from "../../root"
 import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
-import { Schema, Effect, Option } from "effect"
-import { Database } from "@blikka/db"
-import { TRPCError } from "@trpc/server"
-import {
-  GetByDomainInfiniteInputSchema,
-  GetByReferenceInputSchema,
-  ParticipantApiError,
-} from "./schemas"
+import { Effect } from "effect"
+import { GetByDomainInfiniteInputSchema, GetByReferenceInputSchema } from "./schemas"
 import { ParticipantsApiService } from "./service"
 
 export const participantRouter = createTRPCRouter({

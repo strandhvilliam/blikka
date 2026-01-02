@@ -66,7 +66,7 @@ export const ruleConfigs = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
     ruleKey: text("rule_key").notNull(),
     marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
-    params: jsonb(),
+    params: jsonb().$type<Record<string, unknown>>(),
     severity: text().default("warning").notNull(),
     enabled: boolean().default(false).notNull(),
   },

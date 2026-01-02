@@ -1,9 +1,12 @@
 import { Schema } from "effect"
 
-export class UploadFlowError extends Schema.TaggedError<UploadFlowError>()("UploadFlowError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {}
+export class UploadFlowApiError extends Schema.TaggedError<UploadFlowApiError>()(
+  "@blikka/api-v2/UploadFlowApiError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {}
 
 export const GetPublicMarathonSchema = Schema.standardSchemaV1(
   Schema.Struct({

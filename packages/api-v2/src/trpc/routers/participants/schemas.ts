@@ -1,7 +1,7 @@
 import { Schema } from "effect"
 
 export class ParticipantApiError extends Schema.TaggedError<ParticipantApiError>()(
-  "@blikka/api-v2/participant-api-error",
+  "@blikka/api-v2/ParticipantApiError",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),

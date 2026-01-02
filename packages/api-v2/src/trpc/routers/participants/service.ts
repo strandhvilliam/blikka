@@ -3,7 +3,7 @@ import { Database } from "@blikka/db"
 import { ParticipantApiError } from "./schemas"
 
 export class ParticipantsApiService extends Effect.Service<ParticipantsApiService>()(
-  "@blikka/api-v2/participants-api-service",
+  "@blikka/api-v2/ParticipantsApiService",
   {
     accessors: true,
     dependencies: [Database.Default],

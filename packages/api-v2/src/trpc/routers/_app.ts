@@ -10,6 +10,7 @@ import { contactSheetsRouter } from "./contact-sheets/router"
 import { topicsRouter } from "./topics/router"
 import { competitionClassesRouter } from "./competition-classes/router"
 import { deviceGroupsRouter } from "./device-groups/router"
+import { rulesRouter } from "./rules/router"
 
 export const appRouter = createTRPCRouter({
   participants: participantRouter,
@@ -20,6 +21,7 @@ export const appRouter = createTRPCRouter({
   topics: topicsRouter,
   competitionClasses: competitionClassesRouter,
   deviceGroups: deviceGroupsRouter,
+  rules: rulesRouter,
 })
 
 export type AppRouter = typeof appRouter
