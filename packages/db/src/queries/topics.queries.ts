@@ -80,19 +80,20 @@ export class TopicsQueries extends Effect.Service<TopicsQueries>()(
           topicIds: number[]
           marathonId: number
         }) {
-          yield* Effect.fail(
-            new SqlError({
-              cause: "Not implemented",
-            })
-          )
-          // yield* supabase.use((client) =>
-          //   client
-          //     .rpc("update_topic_order", {
-          //       p_topic_ids: topicIds,
-          //       p_marathon_id: marathonId,
-          //     })
-          //     .throwOnError()
-          // )
+          // Update each topic's orderIndex based on its position in the array
+          for (let index = 0; index < topicIds.length; index++) {
+            const topicId = topicIds[index]
+            yield* db
+              .update(topics)
+              .set({ orderIndex: index })
+              .where(eq(topics.id, topicId))
+          }
+
+          // Return the updated topics
+          return yield* db.query.topics.findMany({
+            where: eq(topics.marathonId, marathonId),
+            orderBy: (topics, { asc }) => [asc(topics.orderIndex)],
+          })
         }
       )
 
