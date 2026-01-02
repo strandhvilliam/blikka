@@ -2,7 +2,7 @@
 
 import { useDomain } from "@/contexts/domain-context";
 import { useTRPC } from "@/trpc/client";
-import { truncate } from "lodash";
+import { truncate } from "@/lib/utils";
 import {
   useMutation,
   useQueryClient,

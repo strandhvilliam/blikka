@@ -68,6 +68,7 @@
     "date-fns": "^4.1.0",
     "effect": "catalog:",
     "embla-carousel-react": "^8.6.0",
+    "@number-flow/react": "^0.5.10",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.554.0",
     "motion": "^12.23.25",

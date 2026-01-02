@@ -8,6 +8,8 @@ import { uploadFlowRouter } from "./upload-flow/router"
 import { validationsRouter } from "./validations/router"
 import { contactSheetsRouter } from "./contact-sheets/router"
 import { topicsRouter } from "./topics/router"
+import { competitionClassesRouter } from "./competition-classes/router"
+import { deviceGroupsRouter } from "./device-groups/router"
 
 export const appRouter = createTRPCRouter({
   participants: participantRouter,
@@ -16,6 +18,8 @@ export const appRouter = createTRPCRouter({
   validations: validationsRouter,
   contactSheets: contactSheetsRouter,
   topics: topicsRouter,
+  competitionClasses: competitionClassesRouter,
+  deviceGroups: deviceGroupsRouter,
 })
 
 export type AppRouter = typeof appRouter

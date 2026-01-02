@@ -34,6 +34,7 @@
     ]
   },
   "dependencies": {
+    "@number-flow/react": "^0.5.10",
     "sst": "^3.17.19"
   }
 }

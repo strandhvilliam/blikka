@@ -14,6 +14,12 @@ export const formatSubdomainUrlAdmin = (subdomain: string) => {
   return `${protocol}://localhost:3002/admin/${subdomain}`
 }
 
+export function truncate(str: string, options: { length?: number } = {}) {
+  const { length = 30 } = options
+  if (str.length <= length) return str
+  return str.slice(0, length - 3) + "..."
+}
+
 export const formatDomainPathname = (pathname: string, domain?: string) => {
   if (!domain) return pathname
 

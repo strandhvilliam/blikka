@@ -62,3 +62,9 @@ export function getMimeTypeFromExtension(filename: string): string {
       return "image/jpeg"
   }
 }
+
+export function truncate(str: string, options: { length?: number } = {}) {
+  const { length = 30 } = options
+  if (str.length <= length) return str
+  return str.slice(0, length - 3) + "..."
+}
