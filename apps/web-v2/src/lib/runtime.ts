@@ -1,9 +1,10 @@
 import "server-only"
 import { Layer } from "effect"
-import { createRuntime, type ManagedRuntime } from "@blikka/runtime"
+import { createRuntime, type CoreServices } from "@blikka/runtime"
 import { AuthLayer } from "./auth/server"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { ApiV2Layer } from "@blikka/api-v2/trpc"
+import type { BetterAuthService } from "@blikka/auth"
 
 const AppSpecificLayers = Layer.mergeAll(AuthLayer, ApiV2Layer, TelemetryLayer("blikka-dev-web-v2"))
 
@@ -11,4 +12,12 @@ export const serverRuntime = createRuntime({
   additionalLayers: AppSpecificLayers,
 })
 
-export type RuntimeDependencies = ManagedRuntime.ManagedRuntime.Context<typeof serverRuntime>
+// Type for Effects that can run in this app's runtime
+type ApiV2Services = Layer.Layer.Success<typeof ApiV2Layer>
+type TelemetryServices = Layer.Layer.Success<ReturnType<typeof TelemetryLayer>>
+
+export type RuntimeDependencies =
+  | CoreServices
+  | ApiV2Services
+  | BetterAuthService
+  | TelemetryServices

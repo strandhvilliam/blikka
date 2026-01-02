@@ -4,8 +4,8 @@ import {
   type AuthenticatedContext,
   type ContextWithoutRuntime,
   type AuthenticatedContextWithoutRuntime,
+  type TRPCRequiredServices,
 } from "./root"
-import { type RequiredServices } from "./root"
 import { TRPCError } from "@trpc/server"
 import { BetterAuthService } from "@blikka/auth"
 import { Database } from "@blikka/db"
@@ -15,7 +15,7 @@ export function trpcEffect<
   TInput,
   A,
   E = never,
-  R extends RequiredServices = RequiredServices,
+  R extends TRPCRequiredServices = TRPCRequiredServices,
   TCtx extends Context | AuthenticatedContext = Context,
 >(
   effectFn: (params: {

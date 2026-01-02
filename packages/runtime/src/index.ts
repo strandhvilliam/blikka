@@ -27,12 +27,23 @@ export const CoreLayer = Layer.mergeAll(
   RunStateService.Default
 )
 
-export interface RuntimeConfig {
+// Derive CoreServices type from the CoreLayer
+export type CoreServices = Layer.Layer.Success<typeof CoreLayer>
+
+// Type for additional layers consumers can provide
+export type AppRuntime<TAdditional = never> = ManagedRuntime.ManagedRuntime<
+  CoreServices | TAdditional,
+  never
+>
+
+export interface RuntimeConfig<TAdditional = never> {
   /** Additional layers to merge (e.g., AuthLayer, TelemetryLayer, ApiV2Layer) */
-  additionalLayers?: Layer.Layer<any, any, any>
+  additionalLayers?: Layer.Layer<TAdditional, any, any>
 }
 
-export function createRuntime(config: RuntimeConfig = {}) {
+export function createRuntime<TAdditional = never>(
+  config: RuntimeConfig<TAdditional> = {}
+): AppRuntime<TAdditional> {
   const MainLayer = Layer.mergeAll(
     CoreLayer,
     ...(config.additionalLayers ? [config.additionalLayers] : [])
@@ -45,11 +56,7 @@ export function createRuntime(config: RuntimeConfig = {}) {
       }
       return Layer.fail(error)
     })
-  )
+  ) as Layer.Layer<CoreServices | TAdditional, never, never>
 
   return ManagedRuntime.make(MainLayer)
 }
-
-// Re-export for convenience
-export { ManagedRuntime } from "effect"
-

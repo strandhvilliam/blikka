@@ -8,7 +8,6 @@ import { getTranslations } from "@/lib/server-utils"
 const _DashboardPage = Effect.fn("@blikka/web/DashboardPage")(
   function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
-    console.log("domain", domain)
     const t = yield* getTranslations("DomainPage")
 
     return (
