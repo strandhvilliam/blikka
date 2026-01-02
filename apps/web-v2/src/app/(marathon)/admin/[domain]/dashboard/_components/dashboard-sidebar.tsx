@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@radix-ui/react-separator"
 import { useDomain } from "@/lib/domain-provider"
+import { formatDomainPathname } from "@/lib/utils"
 
 export function DashboardSidebar() {
   return (
@@ -233,54 +234,54 @@ export const NAV_LINKS = {
     },
     {
       name: "Submissions",
-      url: "/submissions",
+      url: "/dashboard/submissions",
       icon: Images as LucideIcon,
     },
     {
       name: "Alerts",
-      url: "/alerts",
+      url: "/dashboard/alerts",
       icon: Bell as LucideIcon,
     },
     {
       name: "Export",
-      url: "/export",
+      url: "/dashboard/export",
       icon: File as LucideIcon,
     },
     {
       name: "Staff",
-      url: "/staff",
+      url: "/dashboard/staff",
       icon: Shield as LucideIcon,
     },
     {
       name: "Jury",
-      url: "/jury",
+      url: "/dashboard/jury",
       icon: Trophy as LucideIcon,
     },
   ],
   configuration: [
     {
       name: "Topics",
-      url: "/topics",
+      url: "/dashboard/topics",
       icon: Tag as LucideIcon,
     },
     {
       name: "Classes",
-      url: "/classes",
+      url: "/dashboard/classes",
       icon: ListCheck as LucideIcon,
     },
     {
       name: "Rules",
-      url: "/rules",
+      url: "/dashboard/rules",
       icon: BookOpen as LucideIcon,
     },
     {
       name: "Settings",
-      url: "/settings",
+      url: "/dashboard/settings",
       icon: Settings as LucideIcon,
     },
     {
       name: "Sponsors",
-      url: "/sponsors",
+      url: "/dashboard/sponsors",
       icon: Heart as LucideIcon,
     },
   ],
@@ -288,12 +289,14 @@ export const NAV_LINKS = {
 
 export default function SidebarLinks() {
   const pathname = usePathname()
+  const domain = useDomain()
 
   const isActive = (url: string) => {
+    const formattedUrl = formatDomainPathname(`/admin${url}`, domain)
     if (url === "/") {
-      return pathname === "/"
+      return pathname === formattedUrl
     }
-    return pathname.includes(url)
+    return pathname.includes(formattedUrl) || pathname.includes(url)
   }
 
   return (
@@ -302,32 +305,38 @@ export default function SidebarLinks() {
         <SidebarGroupLabel>Marathon</SidebarGroupLabel>
 
         <SidebarMenu>
-          {NAV_LINKS.marathon.map((item) => (
-            <SidebarMenuItem key={item.name}>
-              <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                <Link prefetch={true} href={`/admin/${item.url}`}>
-                  <item.icon />
-                  <span>{item.name}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          {NAV_LINKS.marathon.map((item) => {
+            const href = formatDomainPathname(`/admin${item.url}`, domain)
+            return (
+              <SidebarMenuItem key={item.name}>
+                <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                  <Link prefetch={true} href={href}>
+                    <item.icon />
+                    <span>{item.name}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          })}
         </SidebarMenu>
       </SidebarGroup>
       <Separator className="group-data-[collapsible=icon]:block hidden" />
       <SidebarGroup>
         <SidebarGroupLabel>Configuration</SidebarGroupLabel>
         <SidebarMenu>
-          {NAV_LINKS.configuration.map((item) => (
-            <SidebarMenuItem key={item.name}>
-              <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                <Link prefetch={true} href={`/admin/${item.url}`}>
-                  <item.icon />
-                  <span>{item.name}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          {NAV_LINKS.configuration.map((item) => {
+            const href = formatDomainPathname(`/admin${item.url}`, domain)
+            return (
+              <SidebarMenuItem key={item.name}>
+                <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                  <Link prefetch={true} href={href}>
+                    <item.icon />
+                    <span>{item.name}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          })}
         </SidebarMenu>
       </SidebarGroup>
     </>

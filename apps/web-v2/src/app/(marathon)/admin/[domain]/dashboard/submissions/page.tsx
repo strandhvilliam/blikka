@@ -29,9 +29,13 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<SubmissionsSkeleton />}>
-          <div className="container mx-auto space-y-6">
-            <SubmissionsHeader />
-            <SubmissionsTable />
+          <div className="container mx-auto h-full flex flex-col">
+            <div className="shrink-0 mb-6">
+              <SubmissionsHeader />
+            </div>
+            <div className="flex-1 min-h-0">
+              <SubmissionsTable />
+            </div>
           </div>
         </Suspense>
       </HydrateClient>
