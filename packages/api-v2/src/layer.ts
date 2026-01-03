@@ -6,6 +6,7 @@ import { ParticipantsApiService } from "./trpc/routers/participants/service"
 import { CompetitionClassesApiService } from "./trpc/routers/competition-classes/service"
 import { RulesApiService } from "./trpc/routers/rules/service"
 import { MarathonApiService } from "./trpc/routers/marathons/service"
+import { UsersApiService } from "./trpc/routers/users/service"
 
 export const ApiV2Layer = Layer.mergeAll(
   UploadFlowApiService.Default,
@@ -14,5 +15,6 @@ export const ApiV2Layer = Layer.mergeAll(
   ParticipantsApiService.Default,
   CompetitionClassesApiService.Default,
   RulesApiService.Default,
-  MarathonApiService.Default
+  MarathonApiService.Default,
+  UsersApiService.Default
 )

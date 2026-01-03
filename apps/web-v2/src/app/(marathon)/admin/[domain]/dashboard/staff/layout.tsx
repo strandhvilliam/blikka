@@ -1,0 +1,43 @@
+import { decodeParams, Layout } from "@/lib/next-utils"
+import { Effect, Schema } from "effect"
+import { prefetch, HydrateClient, trpc } from "@/lib/trpc/server"
+import { Suspense } from "react"
+import { StaffHeader } from "./_components/staff-header"
+import { StaffList } from "./_components/staff-list"
+import { StaffListSkeleton } from "./_components/staff-list-skeleton"
+
+const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
+  function* ({ children, params }: LayoutProps<"/admin/[domain]/dashboard/staff">) {
+    const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
+
+    prefetch(
+      trpc.users.getStaffMembersByDomain.queryOptions({
+        domain,
+      })
+    )
+
+    return (
+      <HydrateClient>
+        <div className="flex overflow-hidden h-full bg-muted/30 gap-6">
+          <div className="w-80 bg-background flex flex-col border border-border/40 rounded-lg shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-border/40">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold font-rocgrotesk">Staff</h2>
+                <StaffHeader />
+              </div>
+              <Suspense fallback={<StaffListSkeleton />}>
+                <StaffList />
+              </Suspense>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col h-full bg-background border border-border/40 rounded-lg shadow-sm overflow-hidden">
+            {children}
+          </div>
+        </div>
+      </HydrateClient>
+    )
+  },
+  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+)
+
+export default Layout(_StaffLayout)
