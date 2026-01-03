@@ -32,3 +32,16 @@ export const ResetMarathonInputSchema = Schema.standardSchemaV1(
     domain: Schema.String,
   })
 )
+
+export const GetLogoUploadUrlInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    currentKey: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  })
+)
+
+export const GetTermsUploadUrlInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+  })
+)

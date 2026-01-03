@@ -20,8 +20,6 @@ import { toast } from "sonner"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { SettingsPhonePreview } from "./settings-phone-preview"
 import { useForm } from "@tanstack/react-form"
-import { getLogoUploadUrlAction } from "../_actions/logo-presigned-url-action"
-import { getTermsUploadUrlAction } from "../_actions/terms-presigned-url-action"
 import {
   Command,
   CommandEmpty,
@@ -106,6 +104,10 @@ export function SettingsForm() {
       domain,
     })
   )
+
+  const getLogoUploadUrlMutation = useMutation(trpc.marathons.getLogoUploadUrl.mutationOptions())
+
+  const getTermsUploadUrlMutation = useMutation(trpc.marathons.getTermsUploadUrl.mutationOptions())
 
   if (!marathon) {
     return <div>ERROR: Unable to load marathon</div>
@@ -283,19 +285,14 @@ export function SettingsForm() {
     setLogoState((prev) => ({ ...prev, isUploading: true }))
 
     try {
-      const response = await getLogoUploadUrlAction({
+      const result = await getLogoUploadUrlMutation.mutateAsync({
         domain,
-        currentKey: marathon.logoUrl,
+        currentKey: marathon.logoUrl ?? null,
       })
 
-      if (!response?.data) {
-        toast.error("Failed to generate logo upload URL")
-        return null
-      }
+      const { key, url } = result
 
-      const { key, url } = response.data
-
-      await fetch(url, {
+      await fetch(url as string, {
         method: "PUT",
         body: file,
       })
@@ -316,18 +313,13 @@ export function SettingsForm() {
     setTermsState((prev) => ({ ...prev, isUploading: true }))
 
     try {
-      const response = await getTermsUploadUrlAction({
+      const result = await getTermsUploadUrlMutation.mutateAsync({
         domain,
       })
 
-      if (!response?.data) {
-        toast.error("Failed to generate terms upload URL")
-        return null
-      }
+      const { key, url } = result
 
-      const { key, url } = response.data
-
-      await fetch(url, {
+      await fetch(url as string, {
         method: "PUT",
         body: file,
         headers: {
@@ -527,7 +519,7 @@ Examples of formatting:
  - List item
  1. Numbered list
  [Link text](https://example.com)`}
-                        className="min-h-[200px] font-mono text-sm"
+                        className="min-h-[200px] bg-background font-mono text-sm"
                       />
                       <div className="text-xs text-muted-foreground">
                         This content will appear in the "Competition Rules" section on the

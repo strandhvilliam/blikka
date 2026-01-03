@@ -1,7 +1,8 @@
 import "server-only"
 
-import { Effect, Option } from "effect"
+import { Effect, Option, Config } from "effect"
 import { Database, type NewMarathon } from "@blikka/db"
+import { S3Service } from "@blikka/s3"
 import { MarathonApiError } from "./schemas"
 import { RULE_KEYS } from "@blikka/validation"
 
@@ -9,9 +10,10 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
   "@blikka/api-v2/MarathonApiService",
   {
     accessors: true,
-    dependencies: [Database.Default],
+    dependencies: [Database.Default, S3Service.Default],
     effect: Effect.gen(function* () {
       const db = yield* Database
+      const s3 = yield* S3Service
 
       const getMarathonByDomain = Effect.fn("MarathonApiService.getMarathonByDomain")(function* ({
         domain,
@@ -108,11 +110,53 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return yield* db.marathonsQueries.resetMarathon({ id: marathonId })
       })
 
+      const getLogoUploadUrl = Effect.fn("MarathonApiService.getLogoUploadUrl")(function* ({
+        domain,
+        currentKey,
+      }: {
+        domain: string
+        currentKey?: string | null
+      }) {
+        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME").pipe(
+          Config.withDefault("marathon-settings-bucket")
+        )
+
+        const version = currentKey ? currentKey.split("?")[1]?.split("=")[1] : undefined
+        const newVersion = version ? parseInt(version) + 1 : 1
+
+        const key = `${domain}/logo?v=${newVersion}`
+        const url = yield* s3.getPresignedUrl(bucketName, key, "PUT", {
+          expiresIn: 60 * 5,
+        })
+
+        return { url, key }
+      })
+
+      const getTermsUploadUrl = Effect.fn("MarathonApiService.getTermsUploadUrl")(function* ({
+        domain,
+      }: {
+        domain: string
+      }) {
+        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME").pipe(
+          Config.withDefault("marathon-settings-bucket")
+        )
+
+        const key = `${domain}/terms-and-conditions.txt`
+        const url = yield* s3.getPresignedUrl(bucketName, key, "PUT", {
+          expiresIn: 60 * 5,
+          contentType: "text/plain",
+        })
+
+        return { url, key }
+      })
+
       return {
         getMarathonByDomain,
         getUserMarathons,
         updateMarathon,
         resetMarathon,
+        getLogoUploadUrl,
+        getTermsUploadUrl,
       } as const
     }),
   }
