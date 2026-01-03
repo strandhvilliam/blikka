@@ -25,6 +25,7 @@ import {
   useQueryClient,
   type UseMutationResult,
 } from "@tanstack/react-query"
+import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { cn, formatDomainPathname } from "@/lib/utils"
@@ -45,11 +46,13 @@ import {
   type ParticipantWithRelations,
 } from "../_lib/utils"
 import { ParticipantCard } from "./participant-card"
+import { ParticipantVerifyDialog } from "./participant-verify-dialog"
 
 export function ParticipantHeader({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
+  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false)
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
@@ -114,7 +117,10 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <ParticipantStatusIndicator participant={participant} />
+        <ParticipantStatusIndicator
+          participant={participant}
+          handleOpenVerifyDialog={() => setIsVerifyDialogOpen(true)}
+        />
         <ParticipantCompetitionClassCard participant={participant} />
         <ParticipantDeviceGroupCard participant={participant} />
         <ParticipantValidationIndicator
@@ -131,6 +137,11 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         <ParticipantThumbnailsIndicator participant={participant} />
         <ParticipantExifIndicator participant={participant} />
       </div>
+      <ParticipantVerifyDialog
+        isOpen={isVerifyDialogOpen}
+        onOpenChange={setIsVerifyDialogOpen}
+        participant={participant}
+      />
     </div>
   )
 }
@@ -507,7 +518,13 @@ function ParticipantValidationIndicator({
   )
 }
 
-function ParticipantStatusIndicator({ participant }: { participant: ParticipantWithRelations }) {
+function ParticipantStatusIndicator({
+  participant,
+  handleOpenVerifyDialog,
+}: {
+  participant: ParticipantWithRelations
+  handleOpenVerifyDialog: () => void
+}) {
   const statusConfig = getStatusConfig(participant.status)
   const Icon = <statusConfig.icon className="h-5 w-5" />
 
@@ -531,7 +548,7 @@ function ParticipantStatusIndicator({ participant }: { participant: ParticipantW
             </PrimaryButton>
           )}
           {participant.status === "completed" && (
-            <PrimaryButton className="w-fit h-8 text-xs" onClick={() => {}}>
+            <PrimaryButton className="w-fit h-8 text-xs" onClick={handleOpenVerifyDialog}>
               <Shield className="h-3.5 w-3.5" />
               Verify Now
             </PrimaryButton>

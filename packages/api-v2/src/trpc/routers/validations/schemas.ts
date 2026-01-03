@@ -14,3 +14,13 @@ export const RunValidationsSchema = Schema.standardSchemaV1(
     reference: Schema.String,
   })
 )
+
+export const CreateParticipantVerificationSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    data: Schema.Struct({
+      participantId: Schema.Number,
+      staffId: Schema.String,
+      notes: Schema.optional(Schema.String),
+    }),
+  })
+)

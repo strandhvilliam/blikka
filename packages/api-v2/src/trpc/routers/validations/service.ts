@@ -115,8 +115,38 @@ export class ValidationsApiService extends Effect.Service<ValidationsApiService>
         }
       })
 
+      const createParticipantVerification = Effect.fn(
+        "ValidationsApiService.createParticipantVerification"
+      )(function* ({
+        participantId,
+        staffId,
+        notes,
+      }: {
+        participantId: number
+        staffId: string
+        notes?: string
+      }) {
+        const verification = yield* db.validationsQueries.createParticipantVerification({
+          data: {
+            participantId,
+            staffId,
+            notes: notes ?? null,
+          },
+        })
+
+        yield* db.participantsQueries.updateParticipantById({
+          id: participantId,
+          data: {
+            status: "verified",
+          },
+        })
+
+        return { id: verification.id }
+      })
+
       return {
         runValidations,
+        createParticipantVerification,
       } as const
     }),
   }
