@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import { DrizzleClient } from "../drizzle-client"
-import { and, eq, inArray, notInArray } from "drizzle-orm"
+import { and, eq, inArray, notInArray, lt } from "drizzle-orm"
 import { marathons, participants, participantVerifications, validationResults } from "../schema"
 import type { NewParticipantVerification, NewValidationResult, ValidationResult } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
@@ -51,9 +51,21 @@ export class ValidationsQueries extends Effect.Service<ValidationsQueries>()(
 
       const getParticipantVerificationsByStaffId = Effect.fn(
         "ValidationsQueries.getParticipantVerificationsByStaffId"
-      )(function* ({ staffId, domain }: { staffId: string; domain: string }) {
+      )(function* ({
+        staffId,
+        domain,
+        cursor,
+        limit = 20,
+      }: {
+        staffId: string
+        domain: string
+        cursor?: number
+        limit?: number
+      }) {
         const result = yield* db.query.participantVerifications.findMany({
-          where: eq(participantVerifications.staffId, staffId),
+          where: cursor
+            ? and(eq(participantVerifications.staffId, staffId), lt(participantVerifications.id, cursor))
+            : eq(participantVerifications.staffId, staffId),
           with: {
             participant: {
               with: {
@@ -68,14 +80,24 @@ export class ValidationsQueries extends Effect.Service<ValidationsQueries>()(
           orderBy: (participantVerifications, { desc }) => [
             desc(participantVerifications.createdAt),
           ],
+          limit: limit + 1,
         })
 
-        return result
+        const filteredResults = result
           .filter((v) => v.participant.marathon.domain === domain)
           .map((v) => ({
             ...v,
             participant: { ...v.participant, marathon: undefined },
           }))
+
+        const hasMore = filteredResults.length > limit
+        const items = hasMore ? filteredResults.slice(0, limit) : filteredResults
+        const nextCursor = hasMore ? items[items.length - 1]?.id : undefined
+
+        return {
+          items,
+          nextCursor,
+        }
       })
 
       const createValidationResult = Effect.fn("ValidationsQueries.createValidationResult")(

@@ -36,3 +36,24 @@ export const DeleteUserMarathonRelationInputSchema = Schema.standardSchemaV1(
     userId: Schema.String,
   })
 )
+
+export const GetVerificationsByStaffIdInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    staffId: Schema.String,
+    domain: Schema.String,
+    cursor: Schema.optional(Schema.Number),
+    limit: Schema.optional(Schema.Number),
+  })
+)
+
+export const UpdateStaffMemberInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    staffId: Schema.String,
+    domain: Schema.String,
+    data: Schema.Struct({
+      name: Schema.String,
+      email: Schema.String,
+      role: Schema.Union(Schema.Literal("staff"), Schema.Literal("admin")),
+    }),
+  })
+)

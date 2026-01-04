@@ -8,6 +8,8 @@ import {
   GetStaffMemberByIdInputSchema,
   CreateStaffMemberInputSchema,
   DeleteUserMarathonRelationInputSchema,
+  GetVerificationsByStaffIdInputSchema,
+  UpdateStaffMemberInputSchema,
 } from "./schemas"
 import { UsersApiService } from "./service"
 
@@ -56,6 +58,35 @@ export const usersRouter = createTRPCRouter({
         return yield* UsersApiService.deleteUserMarathonRelation({
           domain: input.domain,
           userId: input.userId,
+        })
+      })
+    )
+  ),
+
+  getVerificationsByStaffId: authProcedure.input(GetVerificationsByStaffIdInputSchema).query(
+    trpcEffect(
+      Effect.fn("UsersRouter.getVerificationsByStaffId")(function* ({ input, ctx }) {
+        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
+
+        return yield* UsersApiService.getVerificationsByStaffId({
+          staffId: input.staffId,
+          domain: input.domain,
+          cursor: input.cursor ?? undefined,
+          limit: input.limit ?? undefined,
+        })
+      })
+    )
+  ),
+
+  updateStaffMember: authProcedure.input(UpdateStaffMemberInputSchema).mutation(
+    trpcEffect(
+      Effect.fn("UsersRouter.updateStaffMember")(function* ({ input, ctx }) {
+        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
+
+        return yield* UsersApiService.updateStaffMember({
+          staffId: input.staffId,
+          domain: input.domain,
+          data: input.data,
         })
       })
     )

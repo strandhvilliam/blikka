@@ -115,11 +115,101 @@ export class UsersApiService extends Effect.Service<UsersApiService>()(
         }
       )
 
+      const getVerificationsByStaffId = Effect.fn("UsersApiService.getVerificationsByStaffId")(
+        function* ({
+          staffId,
+          domain,
+          cursor,
+          limit,
+        }: {
+          staffId: string
+          domain: string
+          cursor?: number
+          limit?: number
+        }) {
+          return yield* db.validationsQueries.getParticipantVerificationsByStaffId({
+            staffId,
+            domain,
+            cursor,
+            limit,
+          })
+        }
+      )
+
+      const updateStaffMember = Effect.fn("UsersApiService.updateStaffMember")(function* ({
+        staffId,
+        domain,
+        data,
+      }: {
+        staffId: string
+        domain: string
+        data: { name: string; email: string; role: "staff" | "admin" }
+      }) {
+        const marathon = yield* db.marathonsQueries.getMarathonByDomain({ domain })
+        const marathonId = yield* Option.match(marathon, {
+          onSome: (m) => Effect.succeed(m.id),
+          onNone: () =>
+            Effect.fail(
+              new UsersApiError({
+                message: `Marathon not found for domain ${domain}`,
+              })
+            ),
+        })
+
+        // Get the staff member to verify it exists
+        const staffMember = yield* db.usersQueries.getStaffMemberById({ staffId, domain })
+        yield* Option.match(staffMember, {
+          onSome: () => Effect.void,
+          onNone: () =>
+            Effect.fail(
+              new UsersApiError({
+                message: `Staff member not found for id ${staffId} and domain ${domain}`,
+              })
+            ),
+        })
+
+        // Update user properties (name, email)
+        yield* db.usersQueries.updateUser({
+          id: staffId,
+          data: {
+            name: data.name,
+            email: data.email,
+            updatedAt: new Date().toISOString(),
+          },
+        })
+
+        // Update user marathon relation (role)
+        yield* db.usersQueries.updateUserMarathonRelation({
+          userId: staffId,
+          marathonId,
+          data: {
+            role: data.role,
+          },
+        })
+
+        // Return updated staff member
+        const updatedStaffMember = yield* db.usersQueries.getStaffMemberById({
+          staffId,
+          domain,
+        })
+        return yield* Option.match(updatedStaffMember, {
+          onSome: (staff) => Effect.succeed(staff),
+          onNone: () =>
+            Effect.fail(
+              new UsersApiError({
+                message: `Failed to retrieve updated staff member with id ${staffId}`,
+              })
+            ),
+        })
+      })
+
       return {
         getStaffMembersByDomain,
         getStaffMemberById,
         createStaffMember,
         deleteUserMarathonRelation,
+        getVerificationsByStaffId,
+        updateStaffMember,
       } as const
     }),
   }

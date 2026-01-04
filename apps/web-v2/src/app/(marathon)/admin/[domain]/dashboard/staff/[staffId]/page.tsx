@@ -2,7 +2,7 @@ import { decodeParams, Page } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
 import { prefetch, HydrateClient, trpc } from "@/lib/trpc/server"
 import { Suspense } from "react"
-import { StaffDetailsClient } from "./_components/staff-details-client"
+import { StaffDetailsContent } from "./_components/staff-details-content"
 import { StaffDetailsSkeleton } from "./_components/staff-details-skeleton"
 
 const _StaffDetailsPage = Effect.fn("@blikka/web/StaffDetailsPage")(
@@ -18,6 +18,20 @@ const _StaffDetailsPage = Effect.fn("@blikka/web/StaffDetailsPage")(
       })
     )
 
+    // Prefetch first page of verifications with infinite query
+    prefetch(
+      trpc.users.getVerificationsByStaffId.infiniteQueryOptions(
+        {
+          staffId,
+          domain,
+          limit: 20,
+        },
+        {
+          getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
+        }
+      )
+    )
+
     prefetch(
       trpc.marathons.getByDomain.queryOptions({
         domain,
@@ -27,7 +41,7 @@ const _StaffDetailsPage = Effect.fn("@blikka/web/StaffDetailsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<StaffDetailsSkeleton />}>
-          <StaffDetailsClient staffId={staffId} />
+          <StaffDetailsContent staffId={staffId} />
         </Suspense>
       </HydrateClient>
     )
