@@ -1,4 +1,4 @@
-import { FileSpreadsheet, FileText, FileCode, ClipboardCheck } from "lucide-react"
+import { FileSpreadsheet, ClipboardCheck } from "lucide-react"
 
 interface SelectOption {
   value: string
@@ -33,18 +33,6 @@ export const EXPORT_TYPES: ExportTypeConfig[] = [
     icon: <FileSpreadsheet className="h-5 w-5" />,
     exportType: "xlsx_submissions",
     accentColor: "#3b82f6", // blue
-  },
-  {
-    id: "exif",
-    title: "EXIF Metadata",
-    description: "Camera settings, timestamps, and technical metadata from submitted photos.",
-    icon: <FileCode className="h-5 w-5" />,
-    exportType: "exif",
-    accentColor: "#8b5cf6", // violet
-    formatOptions: [
-      { value: "json", label: "JSON" },
-      { value: "txt", label: "Plain Text" },
-    ],
   },
   {
     id: "validation",

@@ -1,4 +1,4 @@
-export { createTRPCContext } from "./root"
+export { createTRPCContext, createCallerFactory } from "./root"
 export { appRouter } from "./routers/_app"
 export { ApiV2Layer } from "../layer"
 export type { TRPCRequiredServices } from "./root"

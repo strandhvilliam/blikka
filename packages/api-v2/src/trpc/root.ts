@@ -30,6 +30,7 @@ export type AuthenticatedContextWithoutRuntime = Omit<AuthenticatedContext, "run
 const t = initTRPC.context<Context>().create()
 
 export const createTRPCRouter = t.router
+export const createCallerFactory = t.createCallerFactory
 
 export const publicProcedure = t.procedure
 

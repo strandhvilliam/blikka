@@ -51,6 +51,32 @@ export class ExportsQueries extends Effect.Service<ExportsQueries>()("@blikka/db
         return []
       }
 
+      // Get all participants with their validation results
+      const participantsWithValidations = yield* db.query.participants.findMany({
+        where: eq(participants.domain, domain),
+        with: {
+          validationResults: true,
+        },
+      })
+
+      // Create a map of validation results by participant and filename
+      const validationsByParticipantFile = new Map<string, { passed: number; failed: number }>()
+
+      for (const participant of participantsWithValidations) {
+        for (const validation of participant.validationResults) {
+          if (validation.fileName) {
+            const key = `${participant.id}-${validation.fileName}`
+            const current = validationsByParticipantFile.get(key) || { passed: 0, failed: 0 }
+            if (validation.outcome === "passed") {
+              current.passed++
+            } else if (validation.outcome === "failed" && !validation.overruled) {
+              current.failed++
+            }
+            validationsByParticipantFile.set(key, current)
+          }
+        }
+      }
+
       const result = yield* db.query.submissions.findMany({
         where: eq(submissions.marathonId, marathon.id),
         with: {
@@ -65,21 +91,41 @@ export class ExportsQueries extends Effect.Service<ExportsQueries>()("@blikka/db
         orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
       })
 
-      return result.map((s) => ({
-        participantReference: s.participant.reference,
-        participantName: `${s.participant.firstname} ${s.participant.lastname}`,
-        participantEmail: s.participant.email || "",
-        competitionClassName: s.participant.competitionClass?.name || "",
-        deviceGroupName: s.participant.deviceGroup?.name || "",
-        topicName: s.topic.name,
-        submissionStatus: s.status,
-        uploadDate: s.createdAt,
-        fileSize: s.size || 0,
-        mimeType: s.mimeType || "",
-        originalKey: s.key,
-        thumbnailKey: s.thumbnailKey || "",
-        previewKey: s.previewKey || "",
-      }))
+      return result.map((s) => {
+        const validationKey = `${s.participantId}-${s.key}`
+        const validations = validationsByParticipantFile.get(validationKey) || {
+          passed: 0,
+          failed: 0,
+        }
+
+        // Extract useful EXIF data if available
+        const exifData = s.exif as Record<string, any> | null
+        const cameraModel = exifData?.Model || exifData?.CameraModel || ""
+        const imageWidth = exifData?.ImageWidth || exifData?.ExifImageWidth || ""
+        const imageHeight = exifData?.ImageHeight || exifData?.ExifImageHeight || ""
+        const dimensions = imageWidth && imageHeight ? `${imageWidth}x${imageHeight}` : ""
+
+        return {
+          submissionId: s.id,
+          participantReference: s.participant.reference,
+          participantName: `${s.participant.firstname} ${s.participant.lastname}`,
+          participantEmail: s.participant.email || "",
+          competitionClassName: s.participant.competitionClass?.name || "",
+          deviceGroupName: s.participant.deviceGroup?.name || "",
+          topicName: s.topic.name,
+          submissionStatus: s.status,
+          uploadDate: s.createdAt,
+          lastModified: s.updatedAt || s.createdAt,
+          fileSize: s.size || 0,
+          mimeType: s.mimeType || "",
+          dimensions,
+          cameraModel,
+          validationsPassed: validations.passed,
+          validationsFailed: validations.failed,
+          originalKey: s.key,
+          thumbnailKey: s.thumbnailKey || "",
+        }
+      })
     })
 
     const getExifDataForExport = Effect.fn("ExportsQueries.getExifDataForExport")(function* ({

@@ -31,6 +31,7 @@ interface ExportCardProps {
   validationOptions?: SelectOption[]
   fileFormatOptions?: SelectOption[]
   accentColor?: string
+  disabled?: boolean
 }
 
 function getFileExtension(exportType: string, format: string, fileFormat: string): string {
@@ -100,15 +101,17 @@ function ExportSelect({
   options,
   placeholder,
   id,
+  disabled,
 }: {
   value: string
   onValueChange: (value: string) => void
   options: SelectOption[]
   placeholder: string
   id: string
+  disabled?: boolean
 }) {
   return (
-    <Select value={value} onValueChange={onValueChange}>
+    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger className="w-full" id={id}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
@@ -132,6 +135,7 @@ export function ExportCard({
   validationOptions,
   fileFormatOptions,
   accentColor = "hsl(var(--primary))",
+  disabled = false,
 }: ExportCardProps) {
   const domain = useDomain()
   const [isLoading, setIsLoading] = useState(false)
@@ -188,7 +192,12 @@ export function ExportCard({
   ])
 
   return (
-    <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-md py-6!">
+    <Card className={cn(
+      "group relative overflow-hidden transition-all duration-200 py-6!",
+      disabled 
+        ? "opacity-50 cursor-not-allowed" 
+        : "hover:shadow-md"
+    )}>
       <CardHeader className="space-y-0 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -229,6 +238,7 @@ export function ExportCard({
                   onValueChange={setFormat}
                   options={formatOptions}
                   placeholder="Choose a format"
+                  disabled={disabled}
                 />
               </div>
             ) : null}
@@ -244,6 +254,7 @@ export function ExportCard({
                   onValueChange={(value) => setOnlyFailed(value === "failed")}
                   options={validationOptions}
                   placeholder="Choose scope"
+                  disabled={disabled}
                 />
               </div>
             ) : null}
@@ -259,6 +270,7 @@ export function ExportCard({
                   onValueChange={setFileFormat}
                   options={fileFormatOptions}
                   placeholder="Choose output format"
+                  disabled={disabled}
                 />
               </div>
             ) : null}
@@ -271,7 +283,7 @@ export function ExportCard({
           </p>
           <PrimaryButton
             onClick={handleExport}
-            disabled={isLoading}
+            disabled={isLoading || disabled}
             className="w-full sm:w-auto h-9 px-3 py-1.5"
           >
             {isLoading ? (
