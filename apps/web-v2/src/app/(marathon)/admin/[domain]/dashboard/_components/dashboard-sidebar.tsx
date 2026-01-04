@@ -12,11 +12,10 @@ import {
   SidebarMenuButton,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { useSession } from "@/lib/auth/client"
-import { useTRPC } from "@/lib/trpc/client"
 import type { Marathon } from "@blikka/db"
-import { useSuspenseQuery } from "@tanstack/react-query"
 import {
   BadgeCheck,
   Bell,
@@ -32,6 +31,7 @@ import {
   ListCheck,
   LogOut,
   LucideIcon,
+  Menu,
   Settings,
   Shield,
   Sparkles,
@@ -41,9 +41,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Suspense, useState } from "react"
+import { useState } from "react"
 import { format } from "date-fns"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar"
 import {
@@ -58,14 +57,16 @@ import {
 import { Separator } from "@radix-ui/react-separator"
 import { useDomain } from "@/lib/domain-provider"
 import { formatDomainPathname } from "@/lib/utils"
+import Image from "next/image"
 
 export function DashboardSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-none bg-sidebar z-20">
-      <Suspense fallback={<DashboardSidebarHeaderSkeleton />}>
-        <DashboardSidebarHeader />
-      </Suspense>
+      <DashboardSidebarHeader />
       <SidebarContent>
+        <div className="group-data-[collapsible=icon]:flex hidden px-2 justify-center items-center">
+          <SidebarTrigger className="p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground " />
+        </div>
         <SidebarLinks />
       </SidebarContent>
       <SidebarFooter>
@@ -80,25 +81,24 @@ export function DashboardSidebar() {
 }
 
 export function DashboardSidebarHeader() {
-  const trpc = useTRPC()
-  const domain = useDomain()
-  const { data: marathons } = useSuspenseQuery(trpc.marathons.getUserMarathons.queryOptions())
-
   return (
-    <SidebarHeader>
+    <SidebarHeader className="px-4 group-data-[collapsible=icon]:p-2">
       <SidebarMenu>
-        <SidebarMenuItem>
-          <DomainSwitchDropdown marathons={marathons} activeDomain={domain} />
+        <SidebarMenuItem className="flex items-center justify-between gap-2 h-10 group-data-[collapsible=icon]:justify-center  group-data-[collapsible=icon]:py-4">
+          <div className="flex items-center gap-2 ">
+            <Image
+              src="/blikka-logo.svg"
+              alt="Blikka Logo"
+              width={20}
+              height={20}
+              className="h-5 w-auto"
+            />
+          </div>
+          <div className="group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:opacity-0 transition-opacity duration-300 opacity-100">
+            <SidebarTrigger />
+          </div>
         </SidebarMenuItem>
       </SidebarMenu>
-    </SidebarHeader>
-  )
-}
-
-export function DashboardSidebarHeaderSkeleton() {
-  return (
-    <SidebarHeader>
-      <Skeleton className="h-12 w-full" />
     </SidebarHeader>
   )
 }
@@ -132,7 +132,7 @@ export function DomainSwitchDropdown({ marathons, activeDomain }: DomainSwitcher
       <PopoverTrigger asChild>
         <SidebarMenuButton
           size="lg"
-          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground bg-muted border border-border"
+          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground bg-muted border border-border rounded-xl"
         >
           <div className="flex aspect-square size-8 overflow-hidden items-center justify-center rounded-lg bg-muted border-border border-2">
             {activeMarathon?.logoUrl && !hasImageError ? (
@@ -229,7 +229,7 @@ export const NAV_LINKS = {
   marathon: [
     {
       name: "Dashboard",
-      url: "/dashboard",
+      url: "/dashboard/",
       icon: LayoutDashboard as LucideIcon,
     },
     {
@@ -275,14 +275,14 @@ export const NAV_LINKS = {
       icon: BookOpen as LucideIcon,
     },
     {
-      name: "Settings",
-      url: "/dashboard/settings",
-      icon: Settings as LucideIcon,
-    },
-    {
       name: "Sponsors",
       url: "/dashboard/sponsors",
       icon: Heart as LucideIcon,
+    },
+    {
+      name: "Settings",
+      url: "/dashboard/settings",
+      icon: Settings as LucideIcon,
     },
   ],
 } as const
@@ -293,16 +293,20 @@ export default function SidebarLinks() {
 
   const isActive = (url: string) => {
     const formattedUrl = formatDomainPathname(`/admin${url}`, domain)
-    if (url === "/") {
-      return pathname === formattedUrl
+    if (url === "/dashboard/") {
+      const normalizedPathname = pathname.replace(/\/$/, "")
+      const normalizedFormattedUrl = formattedUrl.replace(/\/$/, "")
+      return normalizedPathname === normalizedFormattedUrl
     }
-    return pathname.includes(formattedUrl) || pathname.includes(url)
+    return pathname.startsWith(formattedUrl)
   }
 
   return (
     <>
       <SidebarGroup>
-        <SidebarGroupLabel>Marathon</SidebarGroupLabel>
+        <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
+          Marathon
+        </SidebarGroupLabel>
 
         <SidebarMenu>
           {NAV_LINKS.marathon.map((item) => {

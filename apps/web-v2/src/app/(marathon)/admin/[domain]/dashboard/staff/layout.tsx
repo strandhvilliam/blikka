@@ -18,7 +18,7 @@ const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
 
     return (
       <HydrateClient>
-        <div className="flex h-full bg-muted/30 gap-6">
+        <div className="flex h-full bg-muted/30 gap-6 max-w-[1800px] mx-auto">
           <div className="w-80 bg-background flex flex-col border border-border/70 rounded-lg shadow-sm overflow-hidden">
             <div className="border-b border-border/40">
               <div className="flex items-center justify-between p-4">

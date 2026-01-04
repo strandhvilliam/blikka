@@ -26,7 +26,6 @@ export function ExportContent() {
       ? ((marathon as { name?: string | null }).name ?? null)
       : null
 
-  // Check if marathon is currently live
   const isLive = (() => {
     if (!marathon.startDate || !marathon.endDate) return false
     const now = new Date()
@@ -35,7 +34,6 @@ export function ExportContent() {
     return now >= startDate && now <= endDate
   })()
 
-  // In development, allow exports even when marathon is live
   const isDevelopment = process.env.NODE_ENV === "development"
   const shouldDisableExports = isLive && !bypassRestriction
 
