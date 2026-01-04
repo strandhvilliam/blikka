@@ -12,6 +12,7 @@ import { competitionClassesRouter } from "./competition-classes/router"
 import { deviceGroupsRouter } from "./device-groups/router"
 import { rulesRouter } from "./rules/router"
 import { usersRouter } from "./users/router"
+import { exportsRouter } from "./exports/router"
 
 export const appRouter = createTRPCRouter({
   participants: participantRouter,
@@ -24,6 +25,7 @@ export const appRouter = createTRPCRouter({
   deviceGroups: deviceGroupsRouter,
   rules: rulesRouter,
   users: usersRouter,
+  exports: exportsRouter,
 })
 
 export type AppRouter = typeof appRouter

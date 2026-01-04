@@ -1,0 +1,25 @@
+import { decodeParams, Page } from "@/lib/next-utils"
+import { Effect, Schema } from "effect"
+import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
+import { Suspense } from "react"
+import { ExportContent } from "./_components/export-content"
+import { ExportSkeleton } from "./_components/export-skeleton"
+
+const _ExportPage = Effect.fn("@blikka/web/ExportPage")(
+  function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
+    const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
+
+    prefetch(trpc.marathons.getByDomain.queryOptions({ domain }))
+
+    return (
+      <HydrateClient>
+        <Suspense fallback={<ExportSkeleton />}>
+          <ExportContent />
+        </Suspense>
+      </HydrateClient>
+    )
+  },
+  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+)
+
+export default Page(_ExportPage)

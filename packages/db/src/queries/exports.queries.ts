@@ -1,0 +1,198 @@
+import { Effect } from "effect"
+import { DrizzleClient } from "../drizzle-client"
+import { participants, submissions, validationResults, marathons } from "../schema"
+import { eq, and } from "drizzle-orm"
+
+export class ExportsQueries extends Effect.Service<ExportsQueries>()("@blikka/db/exports-queries", {
+  dependencies: [DrizzleClient.Default],
+  effect: Effect.gen(function* () {
+    const db = yield* DrizzleClient
+
+    const getParticipantsForExport = Effect.fn("ExportsQueries.getParticipantsForExport")(
+      function* ({ domain }: { domain: string }) {
+        const result = yield* db.query.participants.findMany({
+          where: eq(participants.domain, domain),
+          with: {
+            competitionClass: true,
+            deviceGroup: true,
+            submissions: {
+              columns: {
+                id: true,
+              },
+            },
+          },
+          orderBy: (participants, { asc }) => [asc(participants.reference)],
+        })
+
+        return result.map((p) => ({
+          reference: p.reference,
+          firstname: p.firstname,
+          lastname: p.lastname,
+          email: p.email || "",
+          status: p.status,
+          competitionClassName: p.competitionClass?.name || "",
+          deviceGroupName: p.deviceGroup?.name || "",
+          createdAt: p.createdAt,
+          uploadCount: p.submissions?.length || 0,
+        }))
+      }
+    )
+
+    const getSubmissionsForExport = Effect.fn("ExportsQueries.getSubmissionsForExport")(function* ({
+      domain,
+    }: {
+      domain: string
+    }) {
+      const marathon = yield* db.query.marathons.findFirst({
+        where: eq(marathons.domain, domain),
+      })
+
+      if (!marathon) {
+        return []
+      }
+
+      const result = yield* db.query.submissions.findMany({
+        where: eq(submissions.marathonId, marathon.id),
+        with: {
+          participant: {
+            with: {
+              competitionClass: true,
+              deviceGroup: true,
+            },
+          },
+          topic: true,
+        },
+        orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
+      })
+
+      return result.map((s) => ({
+        participantReference: s.participant.reference,
+        participantName: `${s.participant.firstname} ${s.participant.lastname}`,
+        participantEmail: s.participant.email || "",
+        competitionClassName: s.participant.competitionClass?.name || "",
+        deviceGroupName: s.participant.deviceGroup?.name || "",
+        topicName: s.topic.name,
+        submissionStatus: s.status,
+        uploadDate: s.createdAt,
+        fileSize: s.size || 0,
+        mimeType: s.mimeType || "",
+        originalKey: s.key,
+        thumbnailKey: s.thumbnailKey || "",
+        previewKey: s.previewKey || "",
+      }))
+    })
+
+    const getExifDataForExport = Effect.fn("ExportsQueries.getExifDataForExport")(function* ({
+      domain,
+    }: {
+      domain: string
+    }) {
+      const marathon = yield* db.query.marathons.findFirst({
+        where: eq(marathons.domain, domain),
+      })
+
+      if (!marathon) {
+        return []
+      }
+
+      const result = yield* db.query.submissions.findMany({
+        where: eq(submissions.marathonId, marathon.id),
+        with: {
+          participant: true,
+          topic: true,
+        },
+        orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
+      })
+
+      return result
+        .filter((s) => s.exif && s.key)
+        .map((s) => ({
+          submissionId: s.id,
+          participantReference: s.participant.reference,
+          topicName: s.topic.name,
+          originalKey: s.key,
+          exifData: s.exif as Record<string, unknown>,
+          uploadDate: s.createdAt,
+        }))
+    })
+
+    const getValidationResultsForExport = Effect.fn("ExportsQueries.getValidationResultsForExport")(
+      function* ({ domain, onlyFailed }: { domain: string; onlyFailed?: boolean }) {
+        const marathon = yield* db.query.marathons.findFirst({
+          where: eq(marathons.domain, domain),
+          with: {
+            participants: {
+              with: {
+                validationResults: true,
+                submissions: {
+                  columns: {
+                    key: true,
+                  },
+                },
+              },
+            },
+          },
+        })
+
+        if (!marathon) {
+          return []
+        }
+
+        const allResults: Array<{
+          participantId: number
+          participantReference: string
+          participantName: string
+          ruleKey: string
+          severity: string
+          outcome: string
+          message: string
+          fileName: string | null
+          createdAt: string
+          overruled: boolean
+        }> = []
+
+        for (const participant of marathon.participants) {
+          for (const validationResult of participant.validationResults) {
+            // Filter by onlyFailed if specified
+            if (onlyFailed && validationResult.outcome !== "failed") {
+              continue
+            }
+
+            allResults.push({
+              participantId: participant.id,
+              participantReference: participant.reference,
+              participantName: `${participant.firstname} ${participant.lastname}`,
+              ruleKey: validationResult.ruleKey,
+              severity: validationResult.severity,
+              outcome: validationResult.outcome,
+              message: validationResult.message,
+              fileName: validationResult.fileName,
+              createdAt: validationResult.createdAt,
+              overruled: validationResult.overruled,
+            })
+          }
+        }
+
+        // Remove duplicates based on participant-rule_key-fileName combination
+        const uniqueResults = allResults.filter((result, index, array) => {
+          const key = `${result.participantId}-${result.ruleKey}-${result.fileName || "global"}`
+          return (
+            array.findIndex((r) => {
+              const rKey = `${r.participantId}-${r.ruleKey}-${r.fileName || "global"}`
+              return rKey === key
+            }) === index
+          )
+        })
+
+        return uniqueResults
+      }
+    )
+
+    return {
+      getParticipantsForExport,
+      getSubmissionsForExport,
+      getExifDataForExport,
+      getValidationResultsForExport,
+    }
+  }),
+}) {}
