@@ -24,9 +24,6 @@ export function DashboardHeader() {
             <span className="sr-only">Toggle sidebar</span>
           </Button>
         </SidebarTrigger>
-        {/* <div className="ml-4">
-          <ParticipantQuickSearch />
-        </div> */}
         <div className="flex gap-2 ml-auto mr-4 border bg-sidebar-accent rounded-md items-center">
           <Button asChild variant="ghost" size="sm">
             <Link href={staffSiteUrl} className="font-normal text-sm">

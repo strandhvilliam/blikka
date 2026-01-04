@@ -38,7 +38,7 @@ export function StaffList() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="relative mb-4 px-4">
+      <div className="relative mb-4 px-2">
         <Search className="absolute left-6.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search staff..."

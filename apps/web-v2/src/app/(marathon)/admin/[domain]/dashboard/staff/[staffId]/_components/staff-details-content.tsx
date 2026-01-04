@@ -49,7 +49,6 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
     })
   )
 
-  // Get initial data to compute total count
   const { data: verificationsData } = useInfiniteQuery(
     trpc.users.getVerificationsByStaffId.infiniteQueryOptions(
       {
@@ -102,7 +101,6 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
 
   return (
     <>
-      {/* Profile Header */}
       <div className="border-b border-border/40 bg-background">
         <div className="px-8 py-6">
           <div className="flex items-start justify-between">
@@ -174,7 +172,6 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
         </div>
       </div>
 
-      {/* Verification Activity Section */}
       <ScrollArea className="flex-1 bg-muted/30">
         <div className=" space-y-4 p-6">
           <div className=" pt-4">

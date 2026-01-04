@@ -18,7 +18,6 @@ const _StaffDetailsPage = Effect.fn("@blikka/web/StaffDetailsPage")(
       })
     )
 
-    // Prefetch first page of verifications with infinite query
     prefetch(
       trpc.users.getVerificationsByStaffId.infiniteQueryOptions(
         {

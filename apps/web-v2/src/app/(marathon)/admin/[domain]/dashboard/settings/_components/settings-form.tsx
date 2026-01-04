@@ -385,8 +385,8 @@ export function SettingsForm() {
         form.handleSubmit()
       }}
     >
-      <div className="grid grid-cols-2 gap-12">
-        <div>
+      <div className="grid grid-cols-5 gap-12">
+        <div className="col-span-3">
           <Tabs
             value={activeTab}
             onValueChange={(value) =>

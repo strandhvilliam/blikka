@@ -18,10 +18,10 @@ const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
 
     return (
       <HydrateClient>
-        <div className="flex overflow-hidden h-full bg-muted/30 gap-6">
-          <div className="w-80 bg-background flex flex-col border border-border/40 rounded-lg shadow-sm overflow-hidden">
+        <div className="flex h-full bg-muted/30 gap-6">
+          <div className="w-80 bg-background flex flex-col border border-border/70 rounded-lg shadow-sm overflow-hidden">
             <div className="border-b border-border/40">
-              <div className="flex items-center justify-between mb-4 p-4">
+              <div className="flex items-center justify-between p-4">
                 <h2 className="text-lg font-semibold font-rocgrotesk">Staff</h2>
                 <StaffAddDialog />
               </div>
@@ -30,7 +30,7 @@ const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
               </Suspense>
             </div>
           </div>
-          <div className="flex-1 flex flex-col h-full bg-background border border-border/40 rounded-lg shadow-sm overflow-hidden">
+          <div className="flex-1 flex flex-col h-full bg-background border border-border/70 rounded-lg shadow-sm overflow-hidden">
             {children}
           </div>
         </div>
