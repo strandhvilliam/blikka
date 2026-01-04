@@ -39,16 +39,8 @@ export function StaffAddDialog() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const domain = useDomain()
-  const { data: session } = useSession()
-  const user = session?.user
   const [isOpen, setIsOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({
-      domain,
-    })
-  )
 
   const form = useForm({
     defaultValues: {
@@ -225,7 +217,7 @@ export function StaffAddDialog() {
                           }}
                           className="flex flex-col items-center gap-2"
                         >
-                          <Icon className="h-12 w-12" />
+                          <Icon className="size-8" />
                           <span className="text-sm font-medium">{role.label}</span>
                         </motion.div>
                         <AnimatePresence>

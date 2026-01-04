@@ -77,6 +77,12 @@ export function RulesForm() {
       }}
     >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">Rules</h1>
+          <p className="text-muted-foreground text-sm">
+            Configure validation rules for photo submissions.
+          </p>
+        </div>
         <form.Subscribe
           selector={(state) => ({
             isSubmitting: state.isSubmitting,

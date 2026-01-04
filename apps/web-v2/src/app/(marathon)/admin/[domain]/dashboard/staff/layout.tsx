@@ -2,9 +2,9 @@ import { decodeParams, Layout } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
 import { prefetch, HydrateClient, trpc } from "@/lib/trpc/server"
 import { Suspense } from "react"
-import { StaffHeader } from "./_components/staff-header"
 import { StaffList } from "./_components/staff-list"
 import { StaffListSkeleton } from "./_components/staff-list-skeleton"
+import { StaffAddDialog } from "./_components/staff-add-dialog"
 
 const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
   function* ({ children, params }: LayoutProps<"/admin/[domain]/dashboard/staff">) {
@@ -20,10 +20,10 @@ const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
       <HydrateClient>
         <div className="flex overflow-hidden h-full bg-muted/30 gap-6">
           <div className="w-80 bg-background flex flex-col border border-border/40 rounded-lg shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-border/40">
-              <div className="flex items-center justify-between mb-4">
+            <div className="border-b border-border/40">
+              <div className="flex items-center justify-between mb-4 p-4">
                 <h2 className="text-lg font-semibold font-rocgrotesk">Staff</h2>
-                <StaffHeader />
+                <StaffAddDialog />
               </div>
               <Suspense fallback={<StaffListSkeleton />}>
                 <StaffList />

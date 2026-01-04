@@ -38,8 +38,8 @@ export function StaffList() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="relative mb-4 px-4">
+        <Search className="absolute left-6.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search staff..."
           className="pl-9 h-9 bg-muted/50 border-border/40 focus-visible:ring-1 focus-visible:ring-primary/20"
@@ -75,9 +75,14 @@ export function StaffList() {
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9">
+                    <Avatar className="h-9 w-9 ring-2 ring-primary/10 ring-offset-1 ring-offset-background">
                       <AvatarFallback className="bg-muted">
-                        <User2Icon className="h-4 w-4 text-muted-foreground" />
+                        {staff.user.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-0.5 min-w-0">
@@ -85,7 +90,10 @@ export function StaffList() {
                         <p className="text-sm font-medium truncate">{staff.user.name}</p>
                         <Badge
                           variant={staff.role === "admin" ? "default" : "secondary"}
-                          className="text-[10px] h-4 px-1.5 shrink-0"
+                          className={cn(
+                            "text-[10px] h-4 px-1.5 shrink-0",
+                            isActive && staff.role === "staff" && "bg-primary/10 text-primary"
+                          )}
                         >
                           {staff.role.charAt(0).toUpperCase() + staff.role.slice(1)}
                         </Badge>
