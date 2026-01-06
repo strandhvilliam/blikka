@@ -29,6 +29,10 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Bucket"
     }
+    "V2MarathonSettingsBucket": {
+      "name": string
+      "type": "sst.aws.Bucket"
+    }
     "V2SponsorBucket": {
       "name": string
       "type": "sst.aws.Bucket"

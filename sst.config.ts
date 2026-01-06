@@ -67,6 +67,28 @@ export default $config({
     const zipsBucket = new sst.aws.Bucket("V2ZipsBucket", {
       access: "public",
     })
+    const marathonSettingsBucket = new sst.aws.Bucket("V2MarathonSettingsBucket", {
+      access: "public",
+      policy: [
+        {
+          effect: "allow",
+          actions: ["s3:PutObject"],
+          principals: "*",
+        },
+      ],
+      cors: {
+        allowOrigins: [
+          "http://localhost:3002",
+          "https://vimmer.app",
+          "*.vimmer.app",
+          "*.localhost:3002",
+          "http://localhost:3002",
+          "https://*.vimmer.app",
+          "*.localhost:3002",
+        ],
+        exposeHeaders: ["Access-Control-Allow-Origin"],
+      },
+    })
 
     /* QUEUES & BUSES */
 
@@ -166,6 +188,7 @@ export default $config({
       contactSheetsBucket: contactSheetsBucket.name,
       sponsorBucket: sponsorBucket.name,
       zipsBucket: zipsBucket.name,
+      marathonSettingsBucket: marathonSettingsBucket.name,
     }
   },
 })
