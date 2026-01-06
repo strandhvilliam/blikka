@@ -31,7 +31,6 @@ import {
   ListCheck,
   LogOut,
   LucideIcon,
-  Menu,
   Settings,
   Shield,
   Sparkles,
@@ -236,11 +235,6 @@ export const NAV_LINKS = {
       name: "Submissions",
       url: "/dashboard/submissions",
       icon: Images as LucideIcon,
-    },
-    {
-      name: "Alerts",
-      url: "/dashboard/alerts",
-      icon: Bell as LucideIcon,
     },
     {
       name: "Export",
