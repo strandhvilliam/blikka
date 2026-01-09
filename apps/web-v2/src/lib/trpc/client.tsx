@@ -12,23 +12,24 @@ import { createQueryClient } from "./query-client"
 import { useRouter } from "next/navigation"
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined
-const getQueryClient = (unauthorizedCallback: () => void) => {
+
+const getQueryClient = (/*unauthorizedCallback: () => void*/) => {
   if (typeof window === "undefined") {
     return createQueryClient()
   } else {
-    return (clientQueryClientSingleton ??= createQueryClient(unauthorizedCallback))
+    return (clientQueryClientSingleton ??= createQueryClient(/*unauthorizedCallback*/))
   }
 }
 
 export const { useTRPC, TRPCProvider } = createTRPCContext<AppRouter>()
 
-export function TRPCReactProvider(props: { children: React.ReactNode }) {
+export function TRPCReactProvider(props: { children: React.ReactNode; domain: string | null }) {
   const router = useRouter()
-  const unauthorizedCallback = () => {
-    console.log("UNAUTHORIZED")
-    router.replace("/auth/login")
-  }
-  const queryClient = getQueryClient(unauthorizedCallback)
+  // const unauthorizedCallback = () => {
+  //   console.log("UNAUTHORIZED")
+  //   router.replace("/auth/login")
+  // }
+  const queryClient = getQueryClient(/*unauthorizedCallback*/)
 
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
@@ -43,6 +44,9 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           async headers() {
             const headers = new Headers()
             headers.set("x-trpc-source", "blikka-web-client")
+            if (props.domain) {
+              headers.set("x-marathon-domain", props.domain)
+            }
             return headers
           },
         }),

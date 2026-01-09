@@ -1,7 +1,7 @@
 import "server-only"
 
 import { Effect } from "effect"
-import { authProcedure, createTRPCRouter } from "../../root"
+import { authProcedure, createTRPCRouter, domainProcedure } from "../../root"
 import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
 import {
   GetByDomainInputSchema,
@@ -13,11 +13,9 @@ import {
 import { MarathonApiService } from "./service"
 
 export const marathonRouter = createTRPCRouter({
-  getByDomain: authProcedure.input(GetByDomainInputSchema).query(
+  getByDomain: domainProcedure.input(GetByDomainInputSchema).query(
     trpcEffect(
-      Effect.fn("MarathonRouter.getByDomain")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("MarathonRouter.getByDomain")(function* ({ input }) {
         return yield* MarathonApiService.getMarathonByDomain({ domain: input.domain })
       })
     )
@@ -29,29 +27,23 @@ export const marathonRouter = createTRPCRouter({
       })
     )
   ),
-  update: authProcedure.input(UpdateMarathonInputSchema).mutation(
+  update: domainProcedure.input(UpdateMarathonInputSchema).mutation(
     trpcEffect(
       Effect.fn("MarathonRouter.update")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
         return yield* MarathonApiService.updateMarathon({ domain: input.domain, data: input.data })
       })
     )
   ),
-  reset: authProcedure.input(ResetMarathonInputSchema).mutation(
+  reset: domainProcedure.input(ResetMarathonInputSchema).mutation(
     trpcEffect(
       Effect.fn("MarathonRouter.reset")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
         return yield* MarathonApiService.resetMarathon({ domain: input.domain })
       })
     )
   ),
-  getLogoUploadUrl: authProcedure.input(GetLogoUploadUrlInputSchema).mutation(
+  getLogoUploadUrl: domainProcedure.input(GetLogoUploadUrlInputSchema).mutation(
     trpcEffect(
       Effect.fn("MarathonRouter.getLogoUploadUrl")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
         return yield* MarathonApiService.getLogoUploadUrl({
           domain: input.domain,
           currentKey: input.currentKey ?? null,
@@ -59,11 +51,9 @@ export const marathonRouter = createTRPCRouter({
       })
     )
   ),
-  getTermsUploadUrl: authProcedure.input(GetTermsUploadUrlInputSchema).mutation(
+  getTermsUploadUrl: domainProcedure.input(GetTermsUploadUrlInputSchema).mutation(
     trpcEffect(
       Effect.fn("MarathonRouter.getTermsUploadUrl")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
         return yield* MarathonApiService.getTermsUploadUrl({
           domain: input.domain,
         })

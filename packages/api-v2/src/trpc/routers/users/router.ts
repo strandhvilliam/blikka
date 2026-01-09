@@ -1,8 +1,8 @@
 import "server-only"
 
 import { Effect } from "effect"
-import { authProcedure, createTRPCRouter } from "../../root"
-import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
+import { createTRPCRouter, domainProcedure } from "../../root"
+import { trpcEffect } from "../../utils"
 import {
   GetStaffMembersByDomainInputSchema,
   GetStaffMemberByIdInputSchema,
@@ -14,21 +14,17 @@ import {
 import { UsersApiService } from "./service"
 
 export const usersRouter = createTRPCRouter({
-  getStaffMembersByDomain: authProcedure.input(GetStaffMembersByDomainInputSchema).query(
+  getStaffMembersByDomain: domainProcedure.input(GetStaffMembersByDomainInputSchema).query(
     trpcEffect(
-      Effect.fn("UsersRouter.getStaffMembersByDomain")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("UsersRouter.getStaffMembersByDomain")(function* ({ input }) {
         return yield* UsersApiService.getStaffMembersByDomain({ domain: input.domain })
       })
     )
   ),
 
-  getStaffMemberById: authProcedure.input(GetStaffMemberByIdInputSchema).query(
+  getStaffMemberById: domainProcedure.input(GetStaffMemberByIdInputSchema).query(
     trpcEffect(
-      Effect.fn("UsersRouter.getStaffMemberById")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("UsersRouter.getStaffMemberById")(function* ({ input }) {
         return yield* UsersApiService.getStaffMemberById({
           staffId: input.staffId,
           domain: input.domain,
@@ -37,11 +33,9 @@ export const usersRouter = createTRPCRouter({
     )
   ),
 
-  createStaffMember: authProcedure.input(CreateStaffMemberInputSchema).mutation(
+  createStaffMember: domainProcedure.input(CreateStaffMemberInputSchema).mutation(
     trpcEffect(
-      Effect.fn("UsersRouter.createStaffMember")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("UsersRouter.createStaffMember")(function* ({ input }) {
         return yield* UsersApiService.createStaffMember({
           domain: input.domain,
           data: input.data,
@@ -50,11 +44,9 @@ export const usersRouter = createTRPCRouter({
     )
   ),
 
-  deleteUserMarathonRelation: authProcedure.input(DeleteUserMarathonRelationInputSchema).mutation(
+  deleteUserMarathonRelation: domainProcedure.input(DeleteUserMarathonRelationInputSchema).mutation(
     trpcEffect(
-      Effect.fn("UsersRouter.deleteUserMarathonRelation")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("UsersRouter.deleteUserMarathonRelation")(function* ({ input }) {
         return yield* UsersApiService.deleteUserMarathonRelation({
           domain: input.domain,
           userId: input.userId,
@@ -63,11 +55,9 @@ export const usersRouter = createTRPCRouter({
     )
   ),
 
-  getVerificationsByStaffId: authProcedure.input(GetVerificationsByStaffIdInputSchema).query(
+  getVerificationsByStaffId: domainProcedure.input(GetVerificationsByStaffIdInputSchema).query(
     trpcEffect(
-      Effect.fn("UsersRouter.getVerificationsByStaffId")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("UsersRouter.getVerificationsByStaffId")(function* ({ input }) {
         return yield* UsersApiService.getVerificationsByStaffId({
           staffId: input.staffId,
           domain: input.domain,
@@ -78,11 +68,9 @@ export const usersRouter = createTRPCRouter({
     )
   ),
 
-  updateStaffMember: authProcedure.input(UpdateStaffMemberInputSchema).mutation(
+  updateStaffMember: domainProcedure.input(UpdateStaffMemberInputSchema).mutation(
     trpcEffect(
-      Effect.fn("UsersRouter.updateStaffMember")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("UsersRouter.updateStaffMember")(function* ({ input }) {
         return yield* UsersApiService.updateStaffMember({
           staffId: input.staffId,
           domain: input.domain,

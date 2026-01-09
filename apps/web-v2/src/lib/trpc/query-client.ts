@@ -3,13 +3,13 @@ import { TRPCClientError } from "@trpc/client"
 import { redirect } from "next/navigation"
 import SuperJSON from "superjson"
 
-export const createQueryClient = (unauthorizedCallback?: () => void) =>
+export const createQueryClient = (/*unauthorizedCallback?: () => void*/) =>
   new QueryClient({
     queryCache: new QueryCache({
       onError: (error) => {
         if (error instanceof TRPCClientError) {
           if (error.data.code === "UNAUTHORIZED") {
-            unauthorizedCallback?.()
+            // unauthorizedCallback?.()
           }
         }
       },

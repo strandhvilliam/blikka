@@ -1,8 +1,8 @@
 import "server-only"
 
 import { Effect } from "effect"
-import { authProcedure, createTRPCRouter } from "../../root"
-import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
+import { createTRPCRouter, domainProcedure } from "../../root"
+import { trpcEffect } from "../../utils"
 import {
   GetJuryInvitationsByDomainInputSchema,
   GetJuryInvitationByIdInputSchema,
@@ -13,33 +13,25 @@ import {
 import { JuryApiService } from "./service"
 
 export const juryRouter = createTRPCRouter({
-  getJuryInvitationsByDomain: authProcedure
-    .input(GetJuryInvitationsByDomainInputSchema)
-    .query(
-      trpcEffect(
-        Effect.fn("JuryRouter.getJuryInvitationsByDomain")(function* ({ input, ctx }) {
-          yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
-          return yield* JuryApiService.getJuryInvitationsByDomain({ domain: input.domain })
-        })
-      )
-    ),
-
-  getJuryInvitationById: authProcedure.input(GetJuryInvitationByIdInputSchema).query(
+  getJuryInvitationsByDomain: domainProcedure.input(GetJuryInvitationsByDomainInputSchema).query(
     trpcEffect(
-      Effect.fn("JuryRouter.getJuryInvitationById")(function* ({ input, ctx }) {
-        // Note: We don't check domain access here since we only have the invitation ID
-        // The service will handle not found errors
+      Effect.fn("JuryRouter.getJuryInvitationsByDomain")(function* ({ input }) {
+        return yield* JuryApiService.getJuryInvitationsByDomain({ domain: input.domain })
+      })
+    )
+  ),
+
+  getJuryInvitationById: domainProcedure.input(GetJuryInvitationByIdInputSchema).query(
+    trpcEffect(
+      Effect.fn("JuryRouter.getJuryInvitationById")(function* ({ input }) {
         return yield* JuryApiService.getJuryInvitationById({ id: input.id })
       })
     )
   ),
 
-  createJuryInvitation: authProcedure.input(CreateJuryInvitationInputSchema).mutation(
+  createJuryInvitation: domainProcedure.input(CreateJuryInvitationInputSchema).mutation(
     trpcEffect(
-      Effect.fn("JuryRouter.createJuryInvitation")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("JuryRouter.createJuryInvitation")(function* ({ input }) {
         return yield* JuryApiService.createJuryInvitation({
           domain: input.domain,
           data: input.data,
@@ -48,11 +40,9 @@ export const juryRouter = createTRPCRouter({
     )
   ),
 
-  updateJuryInvitation: authProcedure.input(UpdateJuryInvitationInputSchema).mutation(
+  updateJuryInvitation: domainProcedure.input(UpdateJuryInvitationInputSchema).mutation(
     trpcEffect(
-      Effect.fn("JuryRouter.updateJuryInvitation")(function* ({ input, ctx }) {
-        // Note: We don't check domain access here since we only have the invitation ID
-        // The service will handle not found errors
+      Effect.fn("JuryRouter.updateJuryInvitation")(function* ({ input }) {
         return yield* JuryApiService.updateJuryInvitation({
           id: input.id,
           data: input.data,
@@ -61,14 +51,11 @@ export const juryRouter = createTRPCRouter({
     )
   ),
 
-  deleteJuryInvitation: authProcedure.input(DeleteJuryInvitationInputSchema).mutation(
+  deleteJuryInvitation: domainProcedure.input(DeleteJuryInvitationInputSchema).mutation(
     trpcEffect(
-      Effect.fn("JuryRouter.deleteJuryInvitation")(function* ({ input, ctx }) {
-        // Note: We don't check domain access here since we only have the invitation ID
-        // The service will handle not found errors
+      Effect.fn("JuryRouter.deleteJuryInvitation")(function* ({ input }) {
         return yield* JuryApiService.deleteJuryInvitation({ id: input.id })
       })
     )
   ),
 })
-

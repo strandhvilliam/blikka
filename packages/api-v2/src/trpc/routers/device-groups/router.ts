@@ -1,8 +1,8 @@
 import "server-only"
 
 import { Effect, Option } from "effect"
-import { authProcedure, createTRPCRouter } from "../../root"
-import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
+import { createTRPCRouter, domainProcedure } from "../../root"
+import { trpcEffect } from "../../utils"
 import { Database } from "@blikka/db"
 import {
   CreateDeviceGroupInputSchema,
@@ -12,11 +12,9 @@ import {
 } from "./schemas"
 
 export const deviceGroupsRouter = createTRPCRouter({
-  create: authProcedure.input(CreateDeviceGroupInputSchema).mutation(
+  create: domainProcedure.input(CreateDeviceGroupInputSchema).mutation(
     trpcEffect(
-      Effect.fn("DeviceGroupsRouter.create")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("DeviceGroupsRouter.create")(function* ({ input }) {
         const db = yield* Database
         const marathon = yield* db.marathonsQueries.getMarathonByDomain({
           domain: input.domain,
@@ -41,11 +39,9 @@ export const deviceGroupsRouter = createTRPCRouter({
     )
   ),
 
-  update: authProcedure.input(UpdateDeviceGroupInputSchema).mutation(
+  update: domainProcedure.input(UpdateDeviceGroupInputSchema).mutation(
     trpcEffect(
-      Effect.fn("DeviceGroupsRouter.update")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("DeviceGroupsRouter.update")(function* ({ input }) {
         const db = yield* Database
         const deviceGroup = yield* db.deviceGroupsQueries.getDeviceGroupById({
           id: input.id,
@@ -80,11 +76,9 @@ export const deviceGroupsRouter = createTRPCRouter({
     )
   ),
 
-  delete: authProcedure.input(DeleteDeviceGroupInputSchema).mutation(
+  delete: domainProcedure.input(DeleteDeviceGroupInputSchema).mutation(
     trpcEffect(
-      Effect.fn("DeviceGroupsRouter.delete")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("DeviceGroupsRouter.delete")(function* ({ input }) {
         const db = yield* Database
         const deviceGroup = yield* db.deviceGroupsQueries.getDeviceGroupById({
           id: input.id,
@@ -98,7 +92,6 @@ export const deviceGroupsRouter = createTRPCRouter({
           )
         }
 
-        // Verify device group belongs to the domain
         const marathon = yield* db.marathonsQueries.getMarathonByDomain({
           domain: input.domain,
         })
@@ -116,4 +109,3 @@ export const deviceGroupsRouter = createTRPCRouter({
     )
   ),
 })
-

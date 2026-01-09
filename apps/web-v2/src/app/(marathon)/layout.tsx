@@ -1,7 +1,5 @@
-import { getAppSession } from "@/lib/auth/server"
 import { Layout } from "@/lib/next-utils"
-import { Effect, Option } from "effect"
-import { redirect } from "next/navigation"
+import { Effect } from "effect"
 import Document from "@/components/document"
 import { getHeaders, getLocale } from "@/lib/server-utils"
 import { Providers } from "./providers"
@@ -13,12 +11,11 @@ import { DotPattern } from "@/components/dot-pattern"
 const _MarathonLayout = Effect.fn("@blikka/web/MarathonLayout")(
   function* ({ children }: LayoutProps<"/">) {
     const [locale, messages] = yield* Effect.all([getLocale(), getI18nMessages()])
-
-    console.log("MarathonLayout")
-
+    const headers = yield* getHeaders()
+    const domain = headers.get("x-marathon-domain")
     return (
       <Document locale={locale}>
-        <Providers locale={locale} messages={messages}>
+        <Providers locale={locale} messages={messages} domain={domain}>
           <DotPattern />
           <Toaster />
           {children}

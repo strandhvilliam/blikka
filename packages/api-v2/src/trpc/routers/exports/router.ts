@@ -1,8 +1,8 @@
 import "server-only"
 
 import { Effect } from "effect"
-import { authProcedure, createTRPCRouter } from "../../root"
-import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
+import { authProcedure, createTRPCRouter, domainProcedure } from "../../root"
+import { trpcEffect } from "../../utils"
 import {
   GetParticipantsExportDataInputSchema,
   GetSubmissionsExportDataInputSchema,
@@ -12,10 +12,9 @@ import {
 import { ExportsApiService } from "./service"
 
 export const exportsRouter = createTRPCRouter({
-  getParticipantsExportData: authProcedure.input(GetParticipantsExportDataInputSchema).query(
+  getParticipantsExportData: domainProcedure.input(GetParticipantsExportDataInputSchema).query(
     trpcEffect(
-      Effect.fn("ExportsRouter.getParticipantsExportData")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
+      Effect.fn("ExportsRouter.getParticipantsExportData")(function* ({ input }) {
         return yield* ExportsApiService.getParticipantsExportData({
           domain: input.domain,
         })
@@ -23,10 +22,9 @@ export const exportsRouter = createTRPCRouter({
     )
   ),
 
-  getSubmissionsExportData: authProcedure.input(GetSubmissionsExportDataInputSchema).query(
+  getSubmissionsExportData: domainProcedure.input(GetSubmissionsExportDataInputSchema).query(
     trpcEffect(
-      Effect.fn("ExportsRouter.getSubmissionsExportData")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
+      Effect.fn("ExportsRouter.getSubmissionsExportData")(function* ({ input }) {
         return yield* ExportsApiService.getSubmissionsExportData({
           domain: input.domain,
         })
@@ -34,10 +32,9 @@ export const exportsRouter = createTRPCRouter({
     )
   ),
 
-  getExifExportData: authProcedure.input(GetExifExportDataInputSchema).query(
+  getExifExportData: domainProcedure.input(GetExifExportDataInputSchema).query(
     trpcEffect(
-      Effect.fn("ExportsRouter.getExifExportData")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
+      Effect.fn("ExportsRouter.getExifExportData")(function* ({ input }) {
         return yield* ExportsApiService.getExifExportData({
           domain: input.domain,
         })
@@ -45,12 +42,11 @@ export const exportsRouter = createTRPCRouter({
     )
   ),
 
-  getValidationResultsExportData: authProcedure
+  getValidationResultsExportData: domainProcedure
     .input(GetValidationResultsExportDataInputSchema)
     .query(
       trpcEffect(
-        Effect.fn("ExportsRouter.getValidationResultsExportData")(function* ({ input, ctx }) {
-          yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
+        Effect.fn("ExportsRouter.getValidationResultsExportData")(function* ({ input }) {
           return yield* ExportsApiService.getValidationResultsExportData({
             domain: input.domain,
             onlyFailed: input.onlyFailed ?? undefined,

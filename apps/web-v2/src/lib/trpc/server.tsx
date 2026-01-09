@@ -5,7 +5,6 @@ import { cache } from "react"
 import { headers } from "next/headers"
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
-import { createTRPCProxyClient, httpBatchLink } from "@trpc/client"
 import { Data, Effect } from "effect"
 
 import { appRouter, type AppRouter } from "@blikka/api-v2/trpc/routers/_app"

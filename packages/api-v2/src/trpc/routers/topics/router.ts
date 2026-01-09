@@ -1,8 +1,8 @@
 import "server-only"
 
 import { Effect, Option } from "effect"
-import { authProcedure, createTRPCRouter } from "../../root"
-import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
+import { createTRPCRouter, domainProcedure } from "../../root"
+import { trpcEffect } from "../../utils"
 import { Database } from "@blikka/db"
 import {
   CreateTopicInputSchema,
@@ -13,11 +13,9 @@ import {
 } from "./schemas"
 
 export const topicsRouter = createTRPCRouter({
-  create: authProcedure.input(CreateTopicInputSchema).mutation(
+  create: domainProcedure.input(CreateTopicInputSchema).mutation(
     trpcEffect(
-      Effect.fn("TopicsRouter.create")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("TopicsRouter.create")(function* ({ input }) {
         const db = yield* Database
         const marathon = yield* db.marathonsQueries.getMarathonByDomain({
           domain: input.domain,
@@ -51,11 +49,9 @@ export const topicsRouter = createTRPCRouter({
     )
   ),
 
-  update: authProcedure.input(UpdateTopicInputSchema).mutation(
+  update: domainProcedure.input(UpdateTopicInputSchema).mutation(
     trpcEffect(
-      Effect.fn("TopicsRouter.update")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("TopicsRouter.update")(function* ({ input }) {
         const db = yield* Database
         const topic = yield* db.topicsQueries.getTopicById({ id: input.id })
 
@@ -84,9 +80,7 @@ export const topicsRouter = createTRPCRouter({
         const updateData = {
           ...input.data,
           scheduledStart:
-            input.data.scheduledStart === null
-              ? undefined
-              : input.data.scheduledStart,
+            input.data.scheduledStart === null ? undefined : input.data.scheduledStart,
         }
 
         return yield* db.topicsQueries.updateTopic({
@@ -97,11 +91,9 @@ export const topicsRouter = createTRPCRouter({
     )
   ),
 
-  delete: authProcedure.input(DeleteTopicInputSchema).mutation(
+  delete: domainProcedure.input(DeleteTopicInputSchema).mutation(
     trpcEffect(
-      Effect.fn("TopicsRouter.delete")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("TopicsRouter.delete")(function* ({ input }) {
         const db = yield* Database
         const topic = yield* db.topicsQueries.getTopicById({ id: input.id })
 
@@ -131,11 +123,9 @@ export const topicsRouter = createTRPCRouter({
     )
   ),
 
-  updateOrder: authProcedure.input(UpdateTopicsOrderInputSchema).mutation(
+  updateOrder: domainProcedure.input(UpdateTopicsOrderInputSchema).mutation(
     trpcEffect(
-      Effect.fn("TopicsRouter.updateOrder")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("TopicsRouter.updateOrder")(function* ({ input }) {
         const db = yield* Database
         const marathon = yield* db.marathonsQueries.getMarathonByDomain({
           domain: input.domain,
@@ -150,11 +140,10 @@ export const topicsRouter = createTRPCRouter({
         }
 
         return yield* db.topicsQueries.updateTopicsOrder({
-          topicIds: input.topicIds,
+          topicIds: [...input.topicIds],
           marathonId: marathon.value.id,
         })
       })
     )
   ),
 })
-

@@ -1,8 +1,8 @@
 import "server-only"
 
 import { Effect } from "effect"
-import { authProcedure, createTRPCRouter } from "../../root"
-import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
+import { createTRPCRouter, domainProcedure } from "../../root"
+import { trpcEffect } from "../../utils"
 import {
   GetSponsorsByMarathonInputSchema,
   CreateSponsorInputSchema,
@@ -11,11 +11,9 @@ import {
 import { SponsorsApiService } from "./service"
 
 export const sponsorsRouter = createTRPCRouter({
-  getByMarathon: authProcedure.input(GetSponsorsByMarathonInputSchema).query(
+  getByMarathon: domainProcedure.input(GetSponsorsByMarathonInputSchema).query(
     trpcEffect(
-      Effect.fn("SponsorsRouter.getByMarathon")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("SponsorsRouter.getByMarathon")(function* ({ input }) {
         return yield* SponsorsApiService.getSponsorsByMarathon({
           domain: input.domain,
         })
@@ -23,11 +21,9 @@ export const sponsorsRouter = createTRPCRouter({
     )
   ),
 
-  create: authProcedure.input(CreateSponsorInputSchema).mutation(
+  create: domainProcedure.input(CreateSponsorInputSchema).mutation(
     trpcEffect(
-      Effect.fn("SponsorsRouter.create")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("SponsorsRouter.create")(function* ({ input }) {
         return yield* SponsorsApiService.createSponsor({
           domain: input.domain,
           type: input.type,
@@ -38,11 +34,9 @@ export const sponsorsRouter = createTRPCRouter({
     )
   ),
 
-  generateUploadUrl: authProcedure.input(GenerateSponsorUploadUrlInputSchema).mutation(
+  generateUploadUrl: domainProcedure.input(GenerateSponsorUploadUrlInputSchema).mutation(
     trpcEffect(
-      Effect.fn("SponsorsRouter.generateUploadUrl")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("SponsorsRouter.generateUploadUrl")(function* ({ input }) {
         return yield* SponsorsApiService.generateUploadUrl({
           domain: input.domain,
           type: input.type,
@@ -52,4 +46,3 @@ export const sponsorsRouter = createTRPCRouter({
     )
   ),
 })
-

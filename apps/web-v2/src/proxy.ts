@@ -11,9 +11,10 @@ function extractSubdomain(request: NextRequest): string | null {
   // Local development environment
   if (url.includes("localhost") || url.includes("127.0.0.1")) {
     // Try to extract subdomain from the full URL
-    const fullUrlMatch = url.match(/http:\/\/([^.]+)\.localhost/)
-    if (fullUrlMatch && fullUrlMatch[1]) {
-      return fullUrlMatch[1]
+
+    const path = url.slice(url.indexOf("localhost")).split("/")
+    if (path.at(1) === "admin" || path.at(1) === "live") {
+      return path.at(2) ?? null
     }
 
     // Fallback to host header approach
@@ -39,6 +40,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const subdomain = extractSubdomain(request)
 
+  console.log("req", request.url)
   if (subdomain) {
     if (pathname.startsWith("/auth")) {
       const authUrl = new URL(`${protocol}://www.${rootDomain}/auth`)
@@ -47,6 +49,9 @@ export async function proxy(request: NextRequest) {
 
     // For admin routes on a subdomain, inject the subdomain into the path
     if (pathname.startsWith("/admin")) {
+      const response = NextResponse.next()
+      response.headers.set("x-marathon-domain", subdomain)
+      console.log("subdomain", subdomain)
       // Check if the subdomain is already in the path to avoid double rewriting
       const adminWithSubdomain = `/admin/${subdomain}`
       if (!pathname.startsWith(adminWithSubdomain)) {
@@ -56,8 +61,8 @@ export async function proxy(request: NextRequest) {
         console.log("rewrite to", rewritePath)
         return NextResponse.rewrite(new URL(rewritePath, request.url))
       }
-      // If already has subdomain, pass through
-      return NextResponse.next()
+      // If already has subdomain, pass through and attach the subdomain to the headers
+      return response
     }
 
     // For live routes on a subdomain, inject the subdomain into the path
@@ -99,5 +104,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|[\\w-]+\\.\\w+).*)"],
+  matcher: ["/((?!api|_next|favicon.ico|.well-known|[\\w-]+\\.\\w+).*)"],
 }

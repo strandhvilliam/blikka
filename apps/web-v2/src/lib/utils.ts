@@ -31,7 +31,6 @@ export const formatDomainPathname = (pathname: string, domain?: string) => {
     const first = parts[0] || "live"
     const rest = parts.slice(1).join("/")
     const path = `/${first}/${domain}${rest ? `/${rest}` : ""}`
-    console.log("path", path)
     return path
   }
 

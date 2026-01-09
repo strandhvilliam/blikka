@@ -1,7 +1,7 @@
 import "server-only"
 
 import { Effect, Option } from "effect"
-import { authProcedure, createTRPCRouter } from "../../root"
+import { createTRPCRouter, domainProcedure } from "../../root"
 import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
 import { Database } from "@blikka/db"
 import {
@@ -13,11 +13,9 @@ import {
 import { CompetitionClassesApiService } from "./service"
 
 export const competitionClassesRouter = createTRPCRouter({
-  create: authProcedure.input(CreateCompetitionClassInputSchema).mutation(
+  create: domainProcedure.input(CreateCompetitionClassInputSchema).mutation(
     trpcEffect(
-      Effect.fn("CompetitionClassesRouter.create")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("CompetitionClassesRouter.create")(function* ({ input }) {
         return yield* CompetitionClassesApiService.createCompetitionClass({
           data: input.data,
           domain: input.domain,
@@ -26,11 +24,9 @@ export const competitionClassesRouter = createTRPCRouter({
     )
   ),
 
-  update: authProcedure.input(UpdateCompetitionClassInputSchema).mutation(
+  update: domainProcedure.input(UpdateCompetitionClassInputSchema).mutation(
     trpcEffect(
-      Effect.fn("CompetitionClassesRouter.update")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
-
+      Effect.fn("CompetitionClassesRouter.update")(function* ({ input }) {
         return yield* CompetitionClassesApiService.updateCompetitionClass({
           id: input.id,
           data: input.data,
@@ -40,10 +36,13 @@ export const competitionClassesRouter = createTRPCRouter({
     )
   ),
 
-  delete: authProcedure.input(DeleteCompetitionClassInputSchema).mutation(
+  delete: domainProcedure.input(DeleteCompetitionClassInputSchema).mutation(
     trpcEffect(
-      Effect.fn("CompetitionClassesRouter.delete")(function* ({ input, ctx }) {
-        yield* assertAllowedToAccessDomain({ domain: input.domain, ctx })
+      Effect.fn("CompetitionClassesRouter.delete")(function* ({ input }) {
+        return yield* CompetitionClassesApiService.deleteCompetitionClass({
+          id: input.id,
+          domain: input.domain,
+        })
       })
     )
   ),

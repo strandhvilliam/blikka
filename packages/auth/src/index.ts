@@ -5,6 +5,8 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { EmailService, MagicLinkEmail, magicLinkEmailSubject, OTPEmail } from "@blikka/email"
 import { nextCookies } from "better-auth/next-js"
 import { bearer, emailOTP, magicLink } from "better-auth/plugins"
+import { createAuthMiddleware } from "better-auth/api"
+import { userMarathons } from "../../db/src/schema"
 
 export class AuthConfig extends Context.Tag("AuthConfig")<
   AuthConfig,
