@@ -1,6 +1,5 @@
 import { defaultShouldDehydrateQuery, QueryCache, QueryClient } from "@tanstack/react-query"
 import { TRPCClientError } from "@trpc/client"
-import { redirect } from "next/navigation"
 import SuperJSON from "superjson"
 
 export const createQueryClient = (/*unauthorizedCallback?: () => void*/) =>
