@@ -1,6 +1,6 @@
 import "server-only"
 import { initTRPC, TRPCError } from "@trpc/server"
-import { getPermissions, getSession } from "./utils"
+import { getPermissions, getSession, type Permission } from "./utils"
 import type { ManagedRuntime, Layer } from "effect"
 import type { BetterAuthService, Session } from "@blikka/auth"
 import type { CoreServices } from "@blikka/runtime"
@@ -12,23 +12,36 @@ export type TRPCRequiredServices = CoreServices | ApiV2Services | BetterAuthServ
 
 export const createTRPCContext = async <
   T extends ManagedRuntime.ManagedRuntime<TRPCRequiredServices, any>,
->(opts: {
+>({
+  runtime,
+  headers,
+}: {
   runtime: T
   headers: Headers
 }) => {
-  const session = await opts.runtime.runPromise(getSession({ headers: opts.headers }))
-  const permissions = await opts.runtime.runPromise(getPermissions({ userId: session?.user.id }))
-  const domain = opts.headers.get("x-marathon-domain")
+  const session = await runtime.runPromise(getSession({ headers }))
+  const permissions = await runtime.runPromise(getPermissions({ userId: session?.user.id }))
+  const domain = headers.get("x-marathon-domain")
 
-  return { runtime: opts.runtime, session, permissions, domain }
+  return { runtime, session, permissions, domain }
 }
 
-export type Context = Awaited<ReturnType<typeof createTRPCContext>>
-export type ContextWithoutRuntime = Omit<Context, "runtime">
-export type AuthenticatedContext = Omit<Context, "session"> & { session: Session }
-export type AuthenticatedContextWithoutRuntime = Omit<AuthenticatedContext, "runtime">
+export type BaseContext = {
+  runtime: ManagedRuntime.ManagedRuntime<TRPCRequiredServices, any>
+  permissions: Permission[]
+  session: Session | null
+  domain: string | null
+}
 
-const t = initTRPC.context<Context>().create()
+export type AuthenticatedContext = BaseContext & {
+  session: Session
+}
+
+export type DomainContext = AuthenticatedContext & {
+  domain: string
+}
+
+const t = initTRPC.context<BaseContext>().create()
 
 export const createTRPCRouter = t.router
 export const createCallerFactory = t.createCallerFactory
@@ -51,22 +64,25 @@ export const authProcedure = t.procedure.use(async ({ next, ctx }) => {
   })
 })
 
-export const domainProcedure = t.procedure.use(async ({ next, ctx }) => {
+export const domainProcedure = authProcedure.use(async ({ next, ctx }) => {
   if (!ctx.domain) {
     throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Domain not found in headers",
+      code: "BAD_REQUEST",
+      message: "Domain header is required for this endpoint",
     })
   }
 
   if (!ctx.permissions.some((permission) => permission.domain === ctx.domain)) {
     throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: `You are not allowed to access this domain ${ctx.domain}`,
+      code: "FORBIDDEN",
+      message: `You do not have access to domain: ${ctx.domain}`,
     })
   }
 
   return next({
-    ctx: { ...ctx, domain: ctx.domain } as AuthenticatedContext,
+    ctx: {
+      ...ctx,
+      domain: ctx.domain,
+    } as DomainContext,
   })
 })

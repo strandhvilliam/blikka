@@ -1,37 +1,32 @@
-import { Cause, Effect, Option, Schema } from "effect"
-import {
-  type Context,
-  type AuthenticatedContext,
-  type ContextWithoutRuntime,
-  type AuthenticatedContextWithoutRuntime,
-  type TRPCRequiredServices,
-} from "./root"
+import { Cause, Effect, Option } from "effect"
+import { type BaseContext, type TRPCRequiredServices } from "./root"
 import { TRPCError } from "@trpc/server"
 import { BetterAuthService } from "@blikka/auth"
 import { Database } from "@blikka/db"
 import { RedisClient } from "@blikka/redis"
+
+type ContextWithoutRuntimeHelper<T extends BaseContext> = Omit<T, "runtime">
 
 export function trpcEffect<
   TInput,
   A,
   E = never,
   R extends TRPCRequiredServices = TRPCRequiredServices,
-  TCtx extends Context | AuthenticatedContext = Context,
+  TCtx extends BaseContext = BaseContext,
 >(
   effectFn: (params: {
     input: TInput
-    ctx: TCtx extends AuthenticatedContext
-      ? AuthenticatedContextWithoutRuntime
-      : ContextWithoutRuntime
+    ctx: ContextWithoutRuntimeHelper<TCtx>
   }) => Effect.Effect<A, E, R>
 ) {
   return async (params: { input: TInput; ctx: TCtx }): Promise<A> => {
     const { runtime, ...ctxRest } = params.ctx
-    const cleanParams = {
-      input: params.input,
-      ctx: ctxRest,
-    } as any
-    const exit = await runtime.runPromiseExit(effectFn(cleanParams))
+    const exit = await runtime.runPromiseExit(
+      effectFn({
+        input: params.input,
+        ctx: ctxRest as ContextWithoutRuntimeHelper<TCtx>,
+      })
+    )
 
     if (exit._tag === "Failure") {
       const error = Cause.squash(exit.cause)
@@ -71,7 +66,7 @@ export const getSession = Effect.fnUntraced(function* ({ headers }: { headers: H
   })
 })
 
-type Permission = {
+export type Permission = {
   userId: string
   relationId: number
   marathonId: number
@@ -79,7 +74,11 @@ type Permission = {
   role: string
 }
 
-export const getPermissions = Effect.fnUntraced(function* ({ userId }: { userId?: string }) {
+export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(function* ({
+  userId,
+}: {
+  userId?: string
+}) {
   const redis = yield* RedisClient
   const db = yield* Database
 
@@ -123,21 +122,4 @@ export const getPermissions = Effect.fnUntraced(function* ({ userId }: { userId?
       Effect.catchAll((error) => Effect.logError("Error caching permissions: " + error.message))
     )
   return permissions
-})
-
-export const assertAllowedToAccessDomain = Effect.fnUntraced(function* ({
-  domain,
-  ctx,
-}: {
-  domain: string
-  ctx: Omit<AuthenticatedContext, "runtime">
-}) {
-  if (!ctx.permissions.some((permission) => permission.domain === domain)) {
-    yield* Effect.fail(
-      new TRPCError({
-        code: "UNAUTHORIZED",
-        message: `You are not allowed to access this domain ${domain}`,
-      })
-    )
-  }
 })

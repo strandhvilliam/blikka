@@ -16,7 +16,7 @@ export const uploadFlowRouter = createTRPCRouter({
   ),
   initializeUploadFlow: publicProcedure.input(InitializeUploadFlowSchema).mutation(
     trpcEffect(
-      Effect.fn("UploadFlowRouter.initializeUploadFlow")(function* ({ input }) {
+      Effect.fn("UploadFlowRouter.initializeUploadFlow")(function* ({ input, ctx }) {
         return yield* UploadFlowApiService.initializeUploadFlow(input)
       })
     )

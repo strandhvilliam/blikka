@@ -13,7 +13,7 @@ import { SponsorsApiService } from "./service"
 export const sponsorsRouter = createTRPCRouter({
   getByMarathon: domainProcedure.input(GetSponsorsByMarathonInputSchema).query(
     trpcEffect(
-      Effect.fn("SponsorsRouter.getByMarathon")(function* ({ input }) {
+      Effect.fn("SponsorsRouter.getByMarathon")(function* ({ input, ctx }) {
         return yield* SponsorsApiService.getSponsorsByMarathon({
           domain: input.domain,
         })
