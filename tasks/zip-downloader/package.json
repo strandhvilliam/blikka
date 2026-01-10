@@ -4,9 +4,17 @@
   "type": "module",
   "private": true,
   "devDependencies": {
+    "@types/archiver": "^7.0.0",
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@effect-aws/lambda": "^1.5.1",
+    "@effect/platform-bun": "^0.83.0",
+    "archiver": "^7.0.1",
+    "effect": "catalog:",
+    "jszip": "^3.10.1"
   }
 }

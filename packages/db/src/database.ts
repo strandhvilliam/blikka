@@ -12,6 +12,7 @@ import { CompetitionClassesQueries } from "./queries/competition-classes.queries
 import { ParticipantsQueries } from "./queries/participants.queries"
 import { ContactSheetsQueries } from "./queries/contact-sheets.queries"
 import { ExportsQueries } from "./queries/exports.queries"
+import { ZippedSubmissionsQueries } from "./queries/zipped-submissions.queries"
 
 export class Database extends Effect.Service<Database>()("@blikka/db/database", {
   dependencies: [
@@ -28,6 +29,7 @@ export class Database extends Effect.Service<Database>()("@blikka/db/database", 
     ParticipantsQueries.Default,
     ContactSheetsQueries.Default,
     ExportsQueries.Default,
+    ZippedSubmissionsQueries.Default,
   ],
   effect: Effect.all({
     usersQueries: UsersQueries,
@@ -43,5 +45,6 @@ export class Database extends Effect.Service<Database>()("@blikka/db/database", 
     participantsQueries: ParticipantsQueries,
     contactSheetsQueries: ContactSheetsQueries,
     exportsQueries: ExportsQueries,
+    zippedSubmissionsQueries: ZippedSubmissionsQueries,
   }),
 }) {}

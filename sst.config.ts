@@ -66,6 +66,25 @@ export default $config({
     })
     const zipsBucket = new sst.aws.Bucket("V2ZipsBucket", {
       access: "public",
+      policy: [
+        {
+          effect: "allow",
+          actions: ["s3:PutObject"],
+          principals: "*",
+        },
+      ],
+      cors: {
+        allowOrigins: [
+          "http://localhost:3002",
+          "https://vimmer.app",
+          "*.vimmer.app",
+          "*.localhost:3002",
+          "http://localhost:3002",
+          "https://*.vimmer.app",
+          "*.localhost:3002",
+        ],
+        exposeHeaders: ["Access-Control-Allow-Origin"],
+      },
     })
     const marathonSettingsBucket = new sst.aws.Bucket("V2MarathonSettingsBucket", {
       access: "public",
@@ -120,9 +139,27 @@ export default $config({
         dockerfile: "/tasks/zip-worker/Dockerfile",
       },
       link: [submissionsBucket, zipsBucket],
-      dev: {
-        command: "bun run ./tasks/zip-worker/src/index.ts",
+      dev: false,
+      // dev: {
+      //   command: "bun run ./tasks/zip-worker/src/index.ts",
+      // },
+    })
+
+    const zipDownloaderTask = new sst.aws.Task("ZipDownloaderTask", {
+      cluster,
+      image: {
+        dockerfile: "/tasks/zip-downloader/Dockerfile",
       },
+      environment: env,
+      link: [zipsBucket],
+      dev: false,
+    })
+
+    const zipDownloaderCallerFunction = new sst.aws.Function("ZipDownloaderCallerFunction", {
+      url: true,
+      handler: "./tasks/zip-downloader/src/handler.handler",
+      environment: env,
+      link: [zipDownloaderTask],
     })
 
     /* QUEUE HANDLERS */
@@ -189,6 +226,7 @@ export default $config({
       sponsorBucket: sponsorBucket.name,
       zipsBucket: zipsBucket.name,
       marathonSettingsBucket: marathonSettingsBucket.name,
+      zipDownloaderCallerFunction: zipDownloaderCallerFunction.url,
     }
   },
 })
