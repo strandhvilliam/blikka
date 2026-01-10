@@ -11,6 +11,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@blikka/kv-store": "workspace:*",
     "@effect-aws/lambda": "^1.5.1",
     "@effect/platform-bun": "^0.83.0",
     "archiver": "^7.0.1",

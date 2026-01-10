@@ -12,6 +12,9 @@ export class KeyFactory extends Effect.Service<KeyFactory>()(
         `participant:${domain}:${ref}`,
       zipProgress: (domain: string, ref: string) =>
         `zip-progress:${domain}:${ref}`,
+      downloadState: (jobId: string) => `download-state:${jobId}`,
+      downloadStateFiles: (jobId: string) => `download-state:${jobId}:files`,
+      downloadProcess: (processId: string) => `download-process:${processId}`,
     }),
   }
 ) {}

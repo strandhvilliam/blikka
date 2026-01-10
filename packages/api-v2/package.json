@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "@aws-sdk/client-ecs": "^3.966.0",
     "@blikka/auth": "workspace:*",
     "@blikka/db": "workspace:*",
     "@blikka/email": "workspace:*",

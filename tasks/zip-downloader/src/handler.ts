@@ -1,7 +1,7 @@
 import { Effect, Array, Layer, Data, Option } from "effect"
 import { LambdaHandler, type APIGatewayProxyEventV2 } from "@effect-aws/lambda"
 import { Database } from "@blikka/db"
-import { DownloadStateManager } from "./download-state-manager"
+import { DownloadStateRepository } from "@blikka/kv-store"
 import { RedisClient } from "@blikka/redis"
 import { Resource as SSTResource } from "sst"
 import { task } from "sst/aws/task"
@@ -18,14 +18,15 @@ const effectHandler = (event: APIGatewayProxyEventV2) =>
   Effect.gen(function* () {
     const domain = event.queryStringParameters?.domain
     if (!domain) {
+      yield* Effect.logError({
+        message: "Domain is required",
+      })
       return
-      //   return yield* Effect.fail(new Error("Domain is required"))
     }
 
     const db = yield* Database
-    const downloadStateManager = yield* DownloadStateManager
+    const downloadStateRepository = yield* DownloadStateRepository
 
-    // Validate domain exists by fetching marathon
     const zips = yield* db.zippedSubmissionsQueries.getZippedSubmissionsByDomain({ domain })
 
     if (zips.length === 0) {
@@ -33,7 +34,7 @@ const effectHandler = (event: APIGatewayProxyEventV2) =>
         message: "No zipped submissions found for domain",
         domain,
       })
-      return { message: "No zipped submissions found for domain", domain }
+      return
     }
 
     const zipsWithCompetitionClass = zips.filter((zip) => !!zip.participant.competitionClass)
@@ -43,17 +44,13 @@ const effectHandler = (event: APIGatewayProxyEventV2) =>
         message: "No zipped submissions with competition class found",
         domain,
       })
-      return {
-        message: "No zipped submissions with competition class found",
-        domain,
-      }
+      return
     }
 
     const byCompetitionClass = Array.groupBy(zipsWithCompetitionClass, (zip) =>
       zip.participant.competitionClass!.id.toString()
     )
 
-    // Calculate total chunks across all competition classes
     let totalChunksAcrossAllClasses = 0
     const competitionClassesInfo: Array<{
       competitionClassId: number
@@ -79,18 +76,15 @@ const effectHandler = (event: APIGatewayProxyEventV2) =>
       totalChunksAcrossAllClasses += chunks.length
     }
 
-    // Generate processId for the overall download process
     const processId = crypto.randomUUID()
 
-    // Create download process state
-    yield* downloadStateManager.createDownloadProcess(
+    yield* downloadStateRepository.createDownloadProcess(
       processId,
       domain,
       totalChunksAcrossAllClasses
     )
 
-    // Update process with competition classes info
-    yield* downloadStateManager.updateDownloadProcess(processId, {
+    yield* downloadStateRepository.updateDownloadProcess(processId, {
       competitionClasses: competitionClassesInfo,
     })
 
@@ -163,16 +157,13 @@ const effectHandler = (event: APIGatewayProxyEventV2) =>
                 )
               }
 
-              // Generate unique jobId
               const jobId = crypto.randomUUID()
 
-              // Create zipKey with 4-digit padded references
               const minRefPadded = minParticipantReference.padStart(4, "0")
               const maxRefPadded = maxParticipantReference.padStart(4, "0")
               const zipKey = `${domain}/zip-downloads/${competitionClassName}/${minRefPadded}-${maxRefPadded}.zip`
 
-              // Save chunk state to Redis (includes processId)
-              yield* downloadStateManager
+              yield* downloadStateRepository
                 .saveChunkState(jobId, {
                   processId,
                   domain,
@@ -196,7 +187,7 @@ const effectHandler = (event: APIGatewayProxyEventV2) =>
                 )
 
               // Verify the state was saved before triggering the task
-              const savedStateOption = yield* downloadStateManager.getChunkState(jobId).pipe(
+              const savedStateOption = yield* downloadStateRepository.getChunkState(jobId).pipe(
                 Effect.tapError((error) =>
                   Effect.logError({
                     message: "Failed to retrieve chunk state from Redis for verification",
@@ -219,7 +210,7 @@ const effectHandler = (event: APIGatewayProxyEventV2) =>
               }
 
               // Add jobId to the download process
-              yield* downloadStateManager.addJobToProcess(processId, jobId)
+              yield* downloadStateRepository.addJobToProcess(processId, jobId)
 
               yield* Effect.logInfo({
                 message: "Chunk state saved to Redis and added to process",
@@ -260,8 +251,7 @@ const effectHandler = (event: APIGatewayProxyEventV2) =>
       })
     )
 
-    // Update process status to processing (all jobs have been created)
-    yield* downloadStateManager.updateDownloadProcess(processId, {
+    yield* downloadStateRepository.updateDownloadProcess(processId, {
       status: "processing",
     })
 
@@ -283,7 +273,7 @@ const effectHandler = (event: APIGatewayProxyEventV2) =>
 
 const serviceLayer = Layer.mergeAll(
   Database.Default,
-  DownloadStateManager.Default,
+  DownloadStateRepository.Default,
   RedisClient.Default
 )
 

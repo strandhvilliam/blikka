@@ -1,5 +1,5 @@
 import { Config, Effect, Schema, Option, Layer } from "effect"
-import { DownloadStateManager } from "./download-state-manager"
+import { DownloadStateRepository, type DownloadProcessState } from "@blikka/kv-store"
 import { Database } from "@blikka/db"
 import { RedisClient } from "@blikka/redis"
 import { TelemetryLayer } from "@blikka/telemetry"
@@ -19,7 +19,7 @@ const parseJobId = Effect.gen(function* () {
 
 const processJob = Effect.gen(function* () {
   const db = yield* Database
-  const downloadStateManager = yield* DownloadStateManager
+  const downloadStateRepository = yield* DownloadStateRepository
 
   // Read JOB_ID from environment variable
   const jobId = yield* parseJobId
@@ -30,7 +30,7 @@ const processJob = Effect.gen(function* () {
   })
 
   // Retrieve chunk state from Redis
-  const chunkStateOption = yield* downloadStateManager.getChunkState(jobId)
+  const chunkStateOption = yield* downloadStateRepository.getChunkState(jobId)
 
   if (Option.isNone(chunkStateOption)) {
     return yield* Effect.fail(new Error(`Chunk state not found for jobId: ${jobId}`))
@@ -225,13 +225,13 @@ const processJob = Effect.gen(function* () {
   })
 
   // Update process state - mark this chunk as completed
-  const processStateOption = yield* downloadStateManager.getDownloadProcess(chunkState.processId)
+  const processStateOption = yield* downloadStateRepository.getDownloadProcess(chunkState.processId)
   if (Option.isSome(processStateOption)) {
-    const processState = processStateOption.value
+    const processState = processStateOption.value as DownloadProcessState
     const updatedCompletedChunks = processState.completedChunks + 1
     const allChunksCompleted = updatedCompletedChunks >= processState.totalChunks
 
-    yield* downloadStateManager.updateDownloadProcess(chunkState.processId, {
+    yield* downloadStateRepository.updateDownloadProcess(chunkState.processId, {
       completedChunks: updatedCompletedChunks,
       status: allChunksCompleted ? "completed" : "processing",
     })
@@ -256,7 +256,7 @@ const processJob = Effect.gen(function* () {
 
 const mainLayer = Layer.mergeAll(
   Database.Default,
-  DownloadStateManager.Default,
+  DownloadStateRepository.Default,
   RedisClient.Default,
   S3Service.Default,
   TelemetryLayer("blikka-dev-zip-downloader")

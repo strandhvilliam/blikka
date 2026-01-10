@@ -10,6 +10,7 @@ import { UsersApiService } from "./trpc/routers/users/service"
 import { ExportsApiService } from "./trpc/routers/exports/service"
 import { JuryApiService } from "./trpc/routers/jury/service"
 import { SponsorsApiService } from "./trpc/routers/sponsors/service"
+import { ZipFilesApiService } from "./trpc/routers/zip-files/service"
 
 export const ApiV2Layer = Layer.mergeAll(
   UploadFlowApiService.Default,
@@ -23,4 +24,5 @@ export const ApiV2Layer = Layer.mergeAll(
   ExportsApiService.Default,
   JuryApiService.Default,
   SponsorsApiService.Default
+  ZipFilesApiService.Default,
 )

@@ -1,89 +1,60 @@
-import { Effect, Option, Schema } from "effect"
+import { Effect, Option, Schema, Schedule, Duration } from "effect"
 import { RedisClient } from "@blikka/redis"
+import { KeyFactory } from "../key-factory"
+import {
+  ChunkStateSchema,
+  DownloadProcessStateSchema,
+  type ChunkState,
+  type DownloadProcessState,
+} from "../schema"
 
-export const ChunkStateSchema = Schema.Struct({
-  processId: Schema.String,
-  domain: Schema.String,
-  competitionClassId: Schema.Number,
-  competitionClassName: Schema.String,
-  minReference: Schema.String,
-  maxReference: Schema.String,
-  zipKey: Schema.String,
-  chunkIndex: Schema.Number,
-  totalChunks: Schema.Number,
-})
-
-export type ChunkState = Schema.Schema.Type<typeof ChunkStateSchema>
-
-export const DownloadProcessStatusSchema = Schema.Literal(
-  "initializing",
-  "processing",
-  "completed",
-  "failed",
-  "cancelled"
-)
-
-export type DownloadProcessStatus = Schema.Schema.Type<typeof DownloadProcessStatusSchema>
-
-export const DownloadProcessStateSchema = Schema.Struct({
-  processId: Schema.String,
-  domain: Schema.String,
-  createdAt: Schema.String,
-  status: DownloadProcessStatusSchema,
-  totalChunks: Schema.Number,
-  completedChunks: Schema.Number,
-  failedChunks: Schema.Number,
-  jobIds: Schema.Array(Schema.String),
-  competitionClasses: Schema.Array(
-    Schema.Struct({
-      competitionClassId: Schema.Number,
-      competitionClassName: Schema.String,
-      totalChunks: Schema.Number,
-    })
-  ),
-})
-
-export type DownloadProcessState = Schema.Schema.Type<typeof DownloadProcessStateSchema>
-
-export class DownloadStateManager extends Effect.Service<DownloadStateManager>()(
-  "@blikka/tasks/zip-downloader/DownloadStateManager",
+export class DownloadStateRepository extends Effect.Service<DownloadStateRepository>()(
+  "@blikka/packages/kv-store/download-state-repository",
   {
-    dependencies: [RedisClient.Default],
+    dependencies: [RedisClient.Default, KeyFactory.Default],
     effect: Effect.gen(function* () {
       const redis = yield* RedisClient
+      const keyFactory = yield* KeyFactory
 
-      const getFilesToDownload = Effect.fn("DownloadStateManager.getFilesToDownload")(function* (
-        jobId: string
-      ) {
-        const key = `download-state:${jobId}:files`
-        const result = yield* redis.use((client) => client.get<string[] | null>(key))
-        return result ?? []
-      })
+      const getFilesToDownload = Effect.fn("DownloadStateRepository.getFilesToDownload")(
+        function* (jobId: string) {
+          const key = keyFactory.downloadStateFiles(jobId)
+          const result = yield* redis.use((client) => client.get<string[] | null>(key))
+          return result ?? []
+        },
+        Effect.retry(
+          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+        )
+      )
 
-      const saveChunkState = Effect.fn("DownloadStateManager.saveChunkState")(function* (
+      const saveChunkState = Effect.fn("DownloadStateRepository.saveChunkState")(function* (
         jobId: string,
         state: ChunkState
       ) {
-        const key = `download-state:${jobId}`
+        const key = keyFactory.downloadState(jobId)
         const serialized = yield* Schema.encode(ChunkStateSchema)(state)
         return yield* redis.use((client) =>
           client.set(key, JSON.stringify(serialized), { ex: 3600 })
         )
-      })
+      }, Effect.retry(
+        Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+      ))
 
-      const getChunkState = Effect.fn("DownloadStateManager.getChunkState")(function* (
+      const getChunkState = Effect.fn("DownloadStateRepository.getChunkState")(function* (
         jobId: string
       ) {
-        const key = `download-state:${jobId}`
+        const key = keyFactory.downloadState(jobId)
         const result = yield* redis.use((client) => client.get<string | null>(key))
         if (result === null) {
           return Option.none<ChunkState>()
         }
         const parsed = yield* Schema.decodeUnknown(ChunkStateSchema)(result)
         return Option.some(parsed)
-      })
+      }, Effect.retry(
+        Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+      ))
 
-      const createDownloadProcess = Effect.fn("DownloadStateManager.createDownloadProcess")(
+      const createDownloadProcess = Effect.fn("DownloadStateRepository.createDownloadProcess")(
         function* (processId: string, domain: string, totalChunks: number) {
           const processState: DownloadProcessState = {
             processId,
@@ -96,28 +67,33 @@ export class DownloadStateManager extends Effect.Service<DownloadStateManager>()
             jobIds: [],
             competitionClasses: [],
           }
-          const key = `download-process:${processId}`
+          const key = keyFactory.downloadProcess(processId)
           const serialized = yield* Schema.encode(DownloadProcessStateSchema)(processState)
           return yield* redis.use((client) =>
             client.set(key, JSON.stringify(serialized), { ex: 86400 })
           )
-        }
+        },
+        Effect.retry(
+          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+        )
       )
 
-      const getDownloadProcess = Effect.fn("DownloadStateManager.getDownloadProcess")(function* (
-        processId: string
-      ) {
-        const key = `download-process:${processId}`
-        const result = yield* redis.use((client) => client.get<string | null>(key))
-        if (result === null) {
-          return Option.none<DownloadProcessState>()
-        }
-        const parsed = yield* Schema.decodeUnknown(DownloadProcessStateSchema)(result)
-        console.log("parsed", parsed)
-        return Option.some(parsed)
-      })
+      const getDownloadProcess = Effect.fn("DownloadStateRepository.getDownloadProcess")(
+        function* (processId: string) {
+          const key = keyFactory.downloadProcess(processId)
+          const result = yield* redis.use((client) => client.get<string | null>(key))
+          if (result === null) {
+            return Option.none<DownloadProcessState>()
+          }
+          const parsed = yield* Schema.decodeUnknown(DownloadProcessStateSchema)(result)
+          return Option.some<DownloadProcessState>(parsed)
+        },
+        Effect.retry(
+          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+        )
+      )
 
-      const updateDownloadProcess = Effect.fn("DownloadStateManager.updateDownloadProcess")(
+      const updateDownloadProcess = Effect.fn("DownloadStateRepository.updateDownloadProcess")(
         function* (
           processId: string,
           updates: Partial<Omit<DownloadProcessState, "processId" | "domain" | "createdAt">>
@@ -137,15 +113,18 @@ export class DownloadStateManager extends Effect.Service<DownloadStateManager>()
             competitionClasses: updates.competitionClasses ?? currentState.competitionClasses,
           }
 
-          const key = `download-process:${processId}`
+          const key = keyFactory.downloadProcess(processId)
           const serialized = yield* Schema.encode(DownloadProcessStateSchema)(updatedState)
           return yield* redis.use((client) =>
             client.set(key, JSON.stringify(serialized), { ex: 86400 })
           )
-        }
+        },
+        Effect.retry(
+          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+        )
       )
 
-      const addJobToProcess = Effect.fn("DownloadStateManager.addJobToProcess")(function* (
+      const addJobToProcess = Effect.fn("DownloadStateRepository.addJobToProcess")(function* (
         processId: string,
         jobId: string
       ) {
@@ -161,9 +140,11 @@ export class DownloadStateManager extends Effect.Service<DownloadStateManager>()
           jobIds: updatedJobIds,
           status: currentState.status === "initializing" ? "processing" : currentState.status,
         })
-      })
+      }, Effect.retry(
+        Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+      ))
 
-      const getProcessJobIds = Effect.fn("DownloadStateManager.getProcessJobIds")(function* (
+      const getProcessJobIds = Effect.fn("DownloadStateRepository.getProcessJobIds")(function* (
         processId: string
       ) {
         const processStateOption = yield* getDownloadProcess(processId)
@@ -171,7 +152,9 @@ export class DownloadStateManager extends Effect.Service<DownloadStateManager>()
           return []
         }
         return processStateOption.value.jobIds
-      })
+      }, Effect.retry(
+        Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+      ))
 
       return {
         getFilesToDownload,
