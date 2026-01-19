@@ -2,7 +2,7 @@ import "server-only"
 
 import { Effect } from "effect"
 import { authProcedure, createTRPCRouter, domainProcedure } from "../../root"
-import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
+import { trpcEffect } from "../../utils"
 import {
   GetByDomainInputSchema,
   UpdateMarathonInputSchema,

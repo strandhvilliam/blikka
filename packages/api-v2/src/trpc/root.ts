@@ -20,6 +20,7 @@ export const createTRPCContext = async <
   headers: Headers
 }) => {
   const session = await runtime.runPromise(getSession({ headers }))
+
   const permissions = await runtime.runPromise(getPermissions({ userId: session?.user.id }))
   const domain = headers.get("x-marathon-domain")
 

@@ -1,6 +1,7 @@
 import { Effect, Array, Data, Option, Config } from "effect"
 import { Database } from "@blikka/db"
 import { DownloadStateRepository } from "@blikka/kv-store"
+import { S3Service } from "@blikka/s3"
 import { type AwsVpcConfiguration, ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs"
 import { ZipFilesApiError } from "./schemas"
 
@@ -16,10 +17,156 @@ export class ZipFilesApiService extends Effect.Service<ZipFilesApiService>()(
   "@blikka/api-v2/ZipFilesApiService",
   {
     accessors: true,
-    dependencies: [Database.Default, DownloadStateRepository.Default],
+    dependencies: [Database.Default, DownloadStateRepository.Default, S3Service.Default],
     effect: Effect.gen(function* () {
       const db = yield* Database
       const downloadStateRepository = yield* DownloadStateRepository
+      const s3Service = yield* S3Service
+
+      const getZipSubmissionStats = Effect.fn("ZipFilesApiService.getZipSubmissionStats")(
+        function* ({ domain }: { domain: string }) {
+          const stats = yield* db.zippedSubmissionsQueries.getZipSubmissionStatsByDomain({
+            domain,
+          })
+          return stats
+        }
+      )
+
+      const getZipDownloadProgress = Effect.fn("ZipFilesApiService.getZipDownloadProgress")(
+        function* ({ processId }: { processId: string }) {
+          const processStateOption = yield* downloadStateRepository.getDownloadProcess(processId)
+          if (Option.isNone(processStateOption)) {
+            return null
+          }
+          const state = processStateOption.value
+
+          return {
+            processId: state.processId,
+            status: state.status,
+            totalChunks: state.totalChunks,
+            completedChunks: state.completedChunks,
+            failedChunks: state.failedChunks,
+            failedJobIds: state.failedJobIds,
+            lastUpdatedAt: state.lastUpdatedAt,
+            competitionClasses: state.competitionClasses,
+          }
+        }
+      )
+
+      const getActiveProcess = Effect.fn("ZipFilesApiService.getActiveProcess")(function* ({
+        domain,
+      }: {
+        domain: string
+      }) {
+        const processIdOption = yield* downloadStateRepository.getActiveProcessForDomain(domain)
+
+        if (Option.isNone(processIdOption)) {
+          return null
+        }
+
+        const processId = processIdOption.value
+        const processStateOption = yield* downloadStateRepository.getDownloadProcess(processId)
+
+        if (Option.isNone(processStateOption)) {
+          yield* downloadStateRepository.clearActiveProcessForDomain(domain)
+          return null
+        }
+
+        const state = processStateOption.value
+
+        return {
+          processId: state.processId,
+          status: state.status,
+          totalChunks: state.totalChunks,
+          completedChunks: state.completedChunks,
+          failedChunks: state.failedChunks,
+          failedJobIds: state.failedJobIds,
+          lastUpdatedAt: state.lastUpdatedAt,
+          competitionClasses: state.competitionClasses,
+        }
+      })
+
+      const cancelDownloadProcess = Effect.fn("ZipFilesApiService.cancelDownloadProcess")(
+        function* ({ domain, processId }: { domain: string; processId: string }) {
+          // Verify the process exists and belongs to this domain
+          const processStateOption = yield* downloadStateRepository.getDownloadProcess(processId)
+
+          if (Option.isNone(processStateOption)) {
+            return { success: false, message: "Process not found" }
+          }
+
+          const state = processStateOption.value
+          if (state.domain !== domain) {
+            return { success: false, message: "Process does not belong to this domain" }
+          }
+
+          if (state.status === "completed" || state.status === "cancelled") {
+            return {
+              success: false,
+              message: `Process is already ${state.status}`,
+            }
+          }
+
+          // Cancel the process
+          yield* downloadStateRepository.cancelDownloadProcess(processId)
+
+          // Clear active process for domain
+          yield* downloadStateRepository.clearActiveProcessForDomain(domain)
+
+          yield* Effect.logInfo({
+            message: "Download process cancelled",
+            processId,
+            domain,
+          })
+
+          return { success: true, message: "Process cancelled" }
+        }
+      )
+
+      const getZipDownloadUrls = Effect.fn("ZipFilesApiService.getZipDownloadUrls")(function* ({
+        processId,
+      }: {
+        processId: string
+      }) {
+        const processStateOption = yield* downloadStateRepository.getDownloadProcess(processId)
+        if (Option.isNone(processStateOption)) {
+          return null
+        }
+        const processState = processStateOption.value
+        if (processState.status !== "completed") {
+          return null
+        }
+
+        const zipsBucket = yield* Config.string("ZIPS_BUCKET_NAME")
+        const jobIds = processState.jobIds
+
+        if (jobIds.length === 0) {
+          return []
+        }
+
+        const chunkStates = yield* Effect.forEach(jobIds, (jobId) =>
+          downloadStateRepository.getChunkState(jobId)
+        )
+
+        const validChunks = chunkStates.filter((cs) => Option.isSome(cs)).map((cs) => cs.value)
+
+        const urls = yield* Effect.forEach(validChunks, (chunkState) =>
+          Effect.map(
+            s3Service.getPresignedUrl(zipsBucket, chunkState.zipKey, "GET", {
+              expiresIn: 86400,
+            }),
+            (url) => ({
+              competitionClassName: chunkState.competitionClassName,
+              minReference: chunkState.minReference,
+              maxReference: chunkState.maxReference,
+              zipKey: chunkState.zipKey,
+              downloadUrl: url,
+            })
+          )
+        )
+
+        return urls
+      })
 
       const initializeZipDownloads = Effect.fn("ZipFilesApiService.initializeZipDownloads")(
         function* ({ domain }: { domain: string }) {
@@ -92,12 +239,14 @@ export class ZipFilesApiService extends Effect.Service<ZipFilesApiService>()(
             yield* downloadStateRepository.createDownloadProcess(
               processId,
               domain,
-              totalChunksAcrossAllClasses
+              totalChunksAcrossAllClasses,
             )
 
             yield* downloadStateRepository.updateDownloadProcess(processId, {
               competitionClasses: competitionClassesInfo,
             })
+
+            yield* downloadStateRepository.setActiveProcessForDomain(domain, processId)
 
             yield* Effect.logInfo({
               message: "Download process created",
@@ -180,8 +329,8 @@ export class ZipFilesApiService extends Effect.Service<ZipFilesApiService>()(
                           domain,
                           competitionClassId,
                           competitionClassName,
-                          minReference: minParticipantReference,
-                          maxReference: maxParticipantReference,
+                          minReference: Number(minParticipantReference),
+                          maxReference: Number(maxParticipantReference),
                           zipKey,
                           chunkIndex: index,
                           totalChunks,
@@ -262,6 +411,8 @@ export class ZipFilesApiService extends Effect.Service<ZipFilesApiService>()(
                         assignPublicIp: "ENABLED",
                       } satisfies AwsVpcConfiguration
 
+                      console.log("networkConfig", networkConfig)
+
                       yield* Effect.tryPromise({
                         try: () =>
                           ecsClient.send(
@@ -333,7 +484,12 @@ export class ZipFilesApiService extends Effect.Service<ZipFilesApiService>()(
       )
 
       return {
+        getZipSubmissionStats,
+        getZipDownloadProgress,
+        getZipDownloadUrls,
         initializeZipDownloads,
+        getActiveProcess,
+        cancelDownloadProcess,
       } as const
     }),
   }

@@ -1,41 +1,44 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { ExportHeader } from "./export-header"
-import { ExportCard } from "./export-card"
-import { EXPORT_TYPES } from "./export-types"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { AlertCircle } from "lucide-react"
+import { useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/lib/trpc/client";
+import { useDomain } from "@/lib/domain-provider";
+import { ExportHeader } from "./export-header";
+import { ExportCard } from "./export-card";
+import { EXPORT_TYPES } from "./export-types";
+import { FullMarathonZipCard } from "./full-marathon-zip-card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { AlertCircle } from "lucide-react";
 
 export function ExportContent() {
-  const domain = useDomain()
-  const trpc = useTRPC()
-  const [bypassRestriction, setBypassRestriction] = useState(false)
+  const domain = useDomain();
+  const trpc = useTRPC();
+  const [bypassRestriction, setBypassRestriction] = useState(false);
 
-  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({ domain }),
+  );
 
-  if (!marathon) return null
+  if (!marathon) return null;
 
   const marathonName =
     typeof marathon === "object" && marathon !== null && "name" in marathon
       ? ((marathon as { name?: string | null }).name ?? null)
-      : null
+      : null;
 
   const isLive = (() => {
-    if (!marathon.startDate || !marathon.endDate) return false
-    const now = new Date()
-    const startDate = new Date(marathon.startDate)
-    const endDate = new Date(marathon.endDate)
-    return now >= startDate && now <= endDate
-  })()
+    if (!marathon.startDate || !marathon.endDate) return false;
+    const now = new Date();
+    const startDate = new Date(marathon.startDate);
+    const endDate = new Date(marathon.endDate);
+    return now >= startDate && now <= endDate;
+  })();
 
-  const isDevelopment = process.env.NODE_ENV === "development"
-  const shouldDisableExports = isLive && !bypassRestriction
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const shouldDisableExports = isLive && !bypassRestriction;
 
   return (
     <div className="container mx-auto max-w-[1200px] space-y-8 px-4 py-8 sm:px-6">
@@ -64,8 +67,8 @@ export function ExportContent() {
                 Exports unavailable
               </AlertTitle>
               <AlertDescription className="text-red-800 dark:text-red-200">
-                Exports are not available while the marathon is live. Please wait until the marathon
-                ends to generate exports.
+                Exports are not available while the marathon is live. Please
+                wait until the marathon ends to generate exports.
               </AlertDescription>
             </Alert>
           )}
@@ -86,7 +89,8 @@ export function ExportContent() {
             disabled={shouldDisableExports}
           />
         ))}
+        <FullMarathonZipCard disabled={shouldDisableExports} />
       </div>
     </div>
-  )
+  );
 }

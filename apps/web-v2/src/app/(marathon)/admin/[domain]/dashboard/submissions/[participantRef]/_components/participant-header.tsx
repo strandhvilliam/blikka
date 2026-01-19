@@ -16,6 +16,7 @@ import {
   Loader2,
   RefreshCw,
   Camera,
+  Trash2,
 } from "lucide-react"
 import type { Participant, ValidationResult } from "@blikka/db"
 import { useTRPC } from "@/lib/trpc/client"
@@ -27,6 +28,7 @@ import {
 } from "@tanstack/react-query"
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn, formatDomainPathname } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -36,6 +38,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { toast } from "sonner"
 import { useDomain } from "@/lib/domain-provider"
@@ -52,7 +64,9 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
   const domain = useDomain()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
+  const router = useRouter()
   const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
@@ -65,6 +79,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
   const generateContactSheetMutation = useMutation(
     trpc.contactSheets.generateContactSheet.mutationOptions()
   )
+  const deleteParticipantMutation = useMutation(trpc.participants.delete.mutationOptions())
 
   const handleRunValidations = () =>
     runValidationsMutation.mutate(
@@ -103,6 +118,26 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         },
       }
     )
+
+  const handleDeleteParticipant = () =>
+    deleteParticipantMutation.mutate(
+      { domain, reference: participantRef },
+      {
+        onSuccess: () => {
+          toast.success("Participant deleted successfully")
+          queryClient.invalidateQueries({
+            queryKey: trpc.participants.pathKey(),
+          })
+          queryClient.invalidateQueries({
+            queryKey: trpc.zipFiles.pathKey(),
+          })
+          router.push(formatDomainPathname(`/admin/dashboard/submissions`, domain))
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Failed to delete participant")
+        },
+      }
+    )
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -113,6 +148,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
           isRunningValidations={runValidationsMutation.isPending}
           onGenerateContactSheet={handleGenerateContactSheet}
           isGeneratingContactSheet={generateContactSheetMutation.isPending}
+          onDeleteParticipant={() => setIsDeleteDialogOpen(true)}
         />
       </div>
 
@@ -142,6 +178,39 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         onOpenChange={setIsVerifyDialogOpen}
         participant={participant}
       />
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Participant</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete participant #{participant.reference} -{" "}
+              {participant.firstname} {participant.lastname}? This action cannot be undone and will
+              permanently delete all associated data including submissions, validations, and contact
+              sheets.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteParticipant}
+              disabled={deleteParticipantMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteParticipantMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Participant
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -188,12 +257,14 @@ function ParticipantHeaderInfo({
 
 function ParticipantHeaderActions({
   participant,
+  onDeleteParticipant,
   onRunValidations,
   isRunningValidations,
   onGenerateContactSheet,
   isGeneratingContactSheet,
 }: {
   participant: ParticipantWithRelations
+  onDeleteParticipant: () => void
   onRunValidations: () => void
   isRunningValidations: boolean
   onGenerateContactSheet: () => void
@@ -238,6 +309,13 @@ function ParticipantHeaderActions({
           >
             <Grid3x3 className="h-4 w-4 mr-2" />
             Regenerate contact sheet
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onDeleteParticipant}
+            className="text-red-600 focus:text-red-600"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete participant
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

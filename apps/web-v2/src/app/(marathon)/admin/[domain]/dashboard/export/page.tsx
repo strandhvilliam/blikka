@@ -10,6 +10,8 @@ const _ExportPage = Effect.fn("@blikka/web/ExportPage")(
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
 
     prefetch(trpc.marathons.getByDomain.queryOptions({ domain }))
+    prefetch(trpc.zipFiles.getZipSubmissionStatus.queryOptions({ domain }))
+    prefetch(trpc.zipFiles.getZipDownloadProgress.queryOptions({ domain, processId: "" }))
 
     return (
       <HydrateClient>

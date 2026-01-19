@@ -1,12 +1,28 @@
-import { Config, Effect, Schema, Option, Layer } from "effect"
-import { DownloadStateRepository, type DownloadProcessState } from "@blikka/kv-store"
+import { Config, Effect, Schema, Option, Layer, Data } from "effect"
+import { DownloadStateRepository } from "@blikka/kv-store"
 import { Database } from "@blikka/db"
 import { RedisClient } from "@blikka/redis"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { S3Service } from "@blikka/s3"
-import { Resource as SSTResource } from "sst"
 import archiver from "archiver"
 import JSZip from "jszip"
+
+// Custom error types for better error tracking
+class ProcessCancelledError extends Data.TaggedError("ProcessCancelledError")<{
+  processId: string
+  jobId: string
+}> {}
+
+class ChunkStateNotFoundError extends Data.TaggedError("ChunkStateNotFoundError")<{
+  jobId: string
+}> {}
+
+class ZipProcessingError extends Data.TaggedError("ZipProcessingError")<{
+  message: string
+  jobId: string
+  processId?: string
+  cause?: unknown
+}> {}
 
 const parseJobId = Effect.gen(function* () {
   const jobId = yield* Schema.Config("JOB_ID", Schema.String)
@@ -20,6 +36,8 @@ const parseJobId = Effect.gen(function* () {
 const processJob = Effect.gen(function* () {
   const db = yield* Database
   const downloadStateRepository = yield* DownloadStateRepository
+  const s3Service = yield* S3Service
+  const zipsBucket = yield* Config.string("ZIPS_BUCKET_NAME")
 
   // Read JOB_ID from environment variable
   const jobId = yield* parseJobId
@@ -29,11 +47,17 @@ const processJob = Effect.gen(function* () {
     jobId,
   })
 
+
   // Retrieve chunk state from Redis
   const chunkStateOption = yield* downloadStateRepository.getChunkState(jobId)
 
+  yield* Effect.logInfo({
+    message: "Chunk state",
+    chunkStateOption,
+  })
+
   if (Option.isNone(chunkStateOption)) {
-    return yield* Effect.fail(new Error(`Chunk state not found for jobId: ${jobId}`))
+    return yield* Effect.fail(new ChunkStateNotFoundError({ jobId }))
   }
 
   const chunkState = chunkStateOption.value
@@ -41,12 +65,24 @@ const processJob = Effect.gen(function* () {
   yield* Effect.logInfo({
     message: "Retrieved chunk state from Redis",
     jobId,
+    processId: chunkState.processId,
     domain: chunkState.domain,
     competitionClassId: chunkState.competitionClassId,
     minReference: chunkState.minReference,
     maxReference: chunkState.maxReference,
     zipKey: chunkState.zipKey,
   })
+
+  // Check if the process is still active (not cancelled)
+  const isActive = yield* downloadStateRepository.isProcessActive(chunkState.processId)
+  if (!isActive) {
+    yield* Effect.logWarning({
+      message: "Process is no longer active (cancelled or failed), skipping job",
+      jobId,
+      processId: chunkState.processId,
+    })
+    return yield* Effect.fail(new ProcessCancelledError({ processId: chunkState.processId, jobId }))
+  }
 
   // Query zippedSubmissions for the chunk using reference range
   const zippedSubmissions = yield* db.zippedSubmissionsQueries.getZippedSubmissionsByReferenceRange(
@@ -69,22 +105,26 @@ const processJob = Effect.gen(function* () {
 
   if (zippedSubmissions.length === 0) {
     yield* Effect.logWarning({
-      message: "No zippedSubmissions to process",
+      message: "No zippedSubmissions to process, marking as completed",
       jobId,
       zipKey: chunkState.zipKey,
     })
-    return yield* Effect.succeed({
+
+    // Still mark as completed (empty chunk is valid)
+    yield* downloadStateRepository.atomicIncrementCompleted(
+      chunkState.processId,
+      chunkState.totalChunks
+    )
+
+    return {
       jobId,
       zipKey: chunkState.zipKey,
       zippedSubmissionsCount: 0,
       message: "No zippedSubmissions to process",
       archiveSize: 0,
       processId: chunkState.processId,
-    })
+    }
   }
-
-  const s3Service = yield* S3Service
-  const zipsBucket = yield* Config.string("ZIPS_BUCKET_NAME")
 
   yield* Effect.logInfo({
     message: "Starting zip processing",
@@ -119,7 +159,11 @@ const processJob = Effect.gen(function* () {
         zipKey,
       })
       return yield* Effect.fail(
-        new Error(`Failed to download zip for participant ${participantReference}: ${zipKey}`)
+        new ZipProcessingError({
+          message: `Failed to download zip for participant ${participantReference}: ${zipKey}`,
+          jobId,
+          processId: chunkState.processId,
+        })
       )
     }
 
@@ -129,7 +173,12 @@ const processJob = Effect.gen(function* () {
     const participantZip = yield* Effect.tryPromise({
       try: () => JSZip.loadAsync(zipBuffer),
       catch: (error) =>
-        new Error(`Failed to load zip for participant ${participantReference}: ${String(error)}`),
+        new ZipProcessingError({
+          message: `Failed to load zip for participant ${participantReference}`,
+          jobId,
+          processId: chunkState.processId,
+          cause: error,
+        }),
     })
 
     // Extract all files with their paths
@@ -158,9 +207,12 @@ const processJob = Effect.gen(function* () {
         return fileEntries
       },
       catch: (error) =>
-        new Error(
-          `Failed to extract files for participant ${participantReference}: ${String(error)}`
-        ),
+        new ZipProcessingError({
+          message: `Failed to extract files for participant ${participantReference}`,
+          jobId,
+          processId: chunkState.processId,
+          cause: error,
+        }),
     })
 
     yield* Effect.logInfo({
@@ -177,16 +229,18 @@ const processJob = Effect.gen(function* () {
   // Process all participant zips
   const allFiles = yield* Effect.forEach(zippedSubmissions, processParticipantZip, {
     concurrency: 5,
-  }).pipe(
-    Effect.map((results) => results.flat()),
-    Effect.catchAll((error) =>
-      Effect.fail(
-        new Error(
-          `Failed to process participant zips: ${error instanceof Error ? error.message : String(error)}`
-        )
-      )
-    )
-  )
+  }).pipe(Effect.map((results) => results.flat()))
+
+  // Check again if the process is still active before uploading
+  const stillActive = yield* downloadStateRepository.isProcessActive(chunkState.processId)
+  if (!stillActive) {
+    yield* Effect.logWarning({
+      message: "Process cancelled during processing, aborting upload",
+      jobId,
+      processId: chunkState.processId,
+    })
+    return yield* Effect.fail(new ProcessCancelledError({ processId: chunkState.processId, jobId }))
+  }
 
   // Create final zip with archiver
   const archiveBuffer = yield* Effect.tryPromise({
@@ -210,7 +264,13 @@ const processJob = Effect.gen(function* () {
         archive.finalize()
       })
     },
-    catch: (error) => new Error(`Failed to create archive: ${String(error)}`),
+    catch: (error) =>
+      new ZipProcessingError({
+        message: "Failed to create archive",
+        jobId,
+        processId: chunkState.processId,
+        cause: error,
+      }),
   })
 
   // Upload final zip to S3
@@ -224,26 +284,19 @@ const processJob = Effect.gen(function* () {
     archiveSize: archiveBuffer.length,
   })
 
-  // Update process state - mark this chunk as completed
-  const processStateOption = yield* downloadStateRepository.getDownloadProcess(chunkState.processId)
-  if (Option.isSome(processStateOption)) {
-    const processState = processStateOption.value as DownloadProcessState
-    const updatedCompletedChunks = processState.completedChunks + 1
-    const allChunksCompleted = updatedCompletedChunks >= processState.totalChunks
+  // Atomically increment completed chunks counter
+  const incrementResult = yield* downloadStateRepository.atomicIncrementCompleted(
+    chunkState.processId,
+    chunkState.totalChunks
+  )
 
-    yield* downloadStateRepository.updateDownloadProcess(chunkState.processId, {
-      completedChunks: updatedCompletedChunks,
-      status: allChunksCompleted ? "completed" : "processing",
-    })
-
-    yield* Effect.logInfo({
-      message: "Updated download process state",
-      processId: chunkState.processId,
-      completedChunks: updatedCompletedChunks,
-      totalChunks: processState.totalChunks,
-      status: allChunksCompleted ? "completed" : "processing",
-    })
-  }
+  yield* Effect.logInfo({
+    message: "Updated download process state atomically",
+    processId: chunkState.processId,
+    completedChunks: incrementResult.completedChunks,
+    failedChunks: incrementResult.failedChunks,
+    status: incrementResult.status,
+  })
 
   return {
     jobId,
@@ -251,8 +304,62 @@ const processJob = Effect.gen(function* () {
     zippedSubmissionsCount: zippedSubmissions.length,
     archiveSize: archiveBuffer.length,
     processId: chunkState.processId,
+    status: incrementResult.status,
   }
-})
+}).pipe(Effect.withSpan("zip-downloader.processJob"))
+
+/**
+ * Handle job failure by atomically incrementing the failed chunks counter
+ */
+const handleJobFailure = (
+  jobId: string,
+  processId: string | undefined,
+  totalChunks: number,
+  error: unknown
+) =>
+  Effect.gen(function* () {
+    const downloadStateRepository = yield* DownloadStateRepository
+
+    if (processId) {
+      yield* Effect.logError({
+        message: "Job failed, marking chunk as failed",
+        jobId,
+        processId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+
+      // Atomically increment failed chunks counter
+      const result = yield* downloadStateRepository
+        .atomicIncrementFailed(processId, totalChunks, jobId)
+        .pipe(
+          Effect.catchAll((redisError) =>
+            Effect.gen(function* () {
+              yield* Effect.logError({
+                message: "Failed to update failed chunks counter",
+                jobId,
+                processId,
+                error: redisError instanceof Error ? redisError.message : String(redisError),
+              })
+              return { completedChunks: 0, failedChunks: 0, status: "failed" as const }
+            })
+          )
+        )
+
+      yield* Effect.logInfo({
+        message: "Updated download process state after failure",
+        processId,
+        completedChunks: result.completedChunks,
+        failedChunks: result.failedChunks,
+        status: result.status,
+      })
+    } else {
+      yield* Effect.logError({
+        message: "Job failed but no processId available to update",
+        jobId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  })
 
 const mainLayer = Layer.mergeAll(
   Database.Default,
@@ -266,14 +373,51 @@ const runnable = processJob.pipe(
   Effect.provide(mainLayer),
   Effect.catchAll((error) =>
     Effect.gen(function* () {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      yield* Effect.logError({
-        message: "Error processing zip download job",
-        error: errorMessage,
-        cause: error,
-      })
+      const jobId = yield* parseJobId.pipe(Effect.orElseSucceed(() => "unknown"))
+
+      // Extract processId and totalChunks from error context if available
+      let processId: string | undefined
+      let totalChunks = 1 // Default, will be overwritten if we can get the real value
+
+      if (error instanceof ProcessCancelledError) {
+        // Process was cancelled, no need to mark as failed
+        yield* Effect.logWarning({
+          message: "Job skipped due to process cancellation",
+          jobId: error.jobId,
+          processId: error.processId,
+        })
+        return
+      }
+
+      if (error instanceof ChunkStateNotFoundError) {
+        // Can't do anything without chunk state
+        yield* Effect.logError({
+          message: "Chunk state not found, cannot update process",
+          jobId: error.jobId,
+        })
+        return yield* Effect.die(error)
+      }
+
+      if (error instanceof ZipProcessingError) {
+        processId = error.processId
+      }
+
+      // Try to get chunk state for processId and totalChunks
+      if (!processId) {
+        const downloadStateRepository = yield* DownloadStateRepository
+        const chunkStateOption = yield* downloadStateRepository
+          .getChunkState(jobId)
+          .pipe(Effect.catchAll(() => Effect.succeed(Option.none())))
+        if (Option.isSome(chunkStateOption)) {
+          processId = chunkStateOption.value.processId
+          totalChunks = chunkStateOption.value.totalChunks
+        }
+      }
+
+      yield* handleJobFailure(jobId, processId, totalChunks, error).pipe(Effect.provide(mainLayer))
+
       return yield* Effect.die(error)
-    })
+    }).pipe(Effect.withSpan("zip-downloader.handleJobFailure"), Effect.provide(mainLayer))
   )
 )
 

@@ -12,6 +12,7 @@ export function PrimaryButton({
   primaryColor = "#FF5D4B",
   secondaryColor = "#FE3923",
   hoverPrimaryColor = "#E32D18",
+  ref,
 }: {
   className?: string
   children: React.ReactNode
@@ -21,6 +22,7 @@ export function PrimaryButton({
   primaryColor?: string
   secondaryColor?: string
   hoverPrimaryColor?: string
+  ref?: React.Ref<HTMLButtonElement>
 }) {
   const shadowColor = "rgba(254, 57, 35, 0.2)"
   const disabledGradientStart = "#9CA3AF"
@@ -29,6 +31,7 @@ export function PrimaryButton({
 
   return (
     <motion.button
+      ref={ref}
       className={cn(
         "relative px-4 py-2 text-white text-sm font-semibold rounded-lg flex justify-center items-center gap-2 flex-row ",
         "transition-all duration-200 ease-in-out",

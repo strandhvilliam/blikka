@@ -34,4 +34,15 @@ export const participantRouter = createTRPCRouter({
       })
     )
   ),
+
+  delete: domainProcedure.input(GetByReferenceInputSchema).mutation(
+    trpcEffect(
+      Effect.fn("ParticipantRouter.delete")(function* ({ input, ctx }) {
+        return yield* ParticipantsApiService.deleteByReference({
+          reference: input.reference,
+          domain: input.domain,
+        })
+      })
+    )
+  ),
 })

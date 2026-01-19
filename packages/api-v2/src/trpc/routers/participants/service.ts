@@ -57,9 +57,18 @@ export class ParticipantsApiService extends Effect.Service<ParticipantsApiServic
         return result.value
       })
 
+      const deleteByReference = Effect.fn("ParticipantsApiService.deleteByReference")(function* ({
+        reference,
+        domain,
+      }) {
+        const participant = yield* getByReference({ reference, domain })
+        return yield* db.participantsQueries.deleteParticipant({ id: participant.id })
+      })
+
       return {
         getInfiniteParticipantsByDomain,
         getByReference,
+        deleteByReference,
       } as const
     }),
   }
