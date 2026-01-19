@@ -1,21 +1,5 @@
-import { FileSpreadsheet, ClipboardCheck, Archive } from "lucide-react";
-
-interface SelectOption {
-  value: string;
-  label: string;
-}
-
-interface ExportTypeConfig {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  exportType: string;
-  accentColor: string;
-  formatOptions?: SelectOption[];
-  validationOptions?: SelectOption[];
-  fileFormatOptions?: SelectOption[];
-}
+import { FileSpreadsheet, ClipboardCheck, Archive, type LucideIcon } from "lucide-react";
+import { type ExportTypeConfig } from "./types";
 
 export const EXPORT_TYPES: ExportTypeConfig[] = [
   {
@@ -23,7 +7,7 @@ export const EXPORT_TYPES: ExportTypeConfig[] = [
     title: "Participants",
     description:
       "Contact details, competition class, and device group for all registered participants.",
-    icon: <FileSpreadsheet className="h-5 w-5" />,
+    icon: FileSpreadsheet,
     exportType: "xlsx_participants",
     accentColor: "#10b981", // emerald
   },
@@ -32,7 +16,7 @@ export const EXPORT_TYPES: ExportTypeConfig[] = [
     title: "Submissions",
     description:
       "Upload times, status, and validation results for all photo submissions.",
-    icon: <FileSpreadsheet className="h-5 w-5" />,
+    icon: FileSpreadsheet,
     exportType: "xlsx_submissions",
     accentColor: "#3b82f6", // blue
   },
@@ -41,7 +25,7 @@ export const EXPORT_TYPES: ExportTypeConfig[] = [
     title: "Validation Results",
     description:
       "Detailed validation outcomes showing which submissions passed or failed rules.",
-    icon: <ClipboardCheck className="h-5 w-5" />,
+    icon: ClipboardCheck,
     exportType: "txt_validation_results",
     accentColor: "#f59e0b", // amber
     validationOptions: [
@@ -58,7 +42,7 @@ export const EXPORT_TYPES: ExportTypeConfig[] = [
     title: "Full Marathon Zip",
     description:
       "Generate a complete zip archive of all participant submissions.",
-    icon: <Archive className="h-5 w-5" />,
+    icon: Archive,
     exportType: "full_marathon_zip",
     accentColor: "#8b5cf6", // violet
   },

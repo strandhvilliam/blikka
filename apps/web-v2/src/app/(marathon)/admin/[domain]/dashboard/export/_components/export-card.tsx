@@ -206,7 +206,7 @@ export function ExportCard({
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
                 "ring-1 ring-border text-muted-foreground"
               )}
-              style={{ background: accentBg }}
+              style={{ background: accentBg ? accentBg : undefined }}
             >
               {icon}
             </div>

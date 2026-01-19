@@ -14,6 +14,8 @@ You are an expert in TypeScript, Node.js, Next.js App Router, React, Shadcn UI, 
   - Prefer iteration and modularization over code duplication.
   - Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
   - Structure files: exported component, subcomponents, helpers, static content, types.
+  - Prefer single components files over multiple component per file
+  - For nextjs/react apps - colocate components, utils and hooks not reused in other placed. Prefix folder with '_' as per nextjs best practice
   
   Naming Conventions
   - Use lowercase with dashes for directories (e.g., components/auth-wizard).
@@ -49,8 +51,3 @@ You are an expert in TypeScript, Node.js, Next.js App Router, React, Shadcn UI, 
   
   Follow Next.js docs for Data Fetching, Rendering, and Routing.
 
-
-  Monorepo
-  - Import ui components from @vimmer/ui
-  - TSConfig in @vimmer/typescript-config
-  - Use Bun for package manager

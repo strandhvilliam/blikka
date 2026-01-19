@@ -6,7 +6,7 @@ import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
 import { ExportHeader } from "./export-header";
 import { ExportCard } from "./export-card";
-import { EXPORT_TYPES } from "./export-types";
+import { EXPORT_TYPES } from "../_lib/utils";
 import { FullMarathonZipCard } from "./full-marathon-zip-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
@@ -80,7 +80,7 @@ export function ExportContent() {
             key={exportType.id}
             title={exportType.title}
             description={exportType.description}
-            icon={exportType.icon}
+            icon={<exportType.icon className="h-5 w-5" />}
             exportType={exportType.exportType}
             accentColor={exportType.accentColor}
             formatOptions={exportType.formatOptions}
