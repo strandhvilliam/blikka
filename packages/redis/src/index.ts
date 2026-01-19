@@ -55,8 +55,9 @@ export class RedisClient extends Effect.Service<RedisClient>()(
         })
       yield* Effect.addFinalizer(() => Console.log("Shutting down Redis client"))
       return {
+        client,
         use,
-      }
+      } as const
     }),
   }
 ) {}

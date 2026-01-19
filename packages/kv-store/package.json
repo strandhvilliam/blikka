@@ -15,10 +15,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@blikka/redis": "workspace:*",
     "@effect/platform": "^0.90.7",
     "@effect/platform-node": "^0.96.1",
     "@upstash/redis": "^1.35.3",
-    "@blikka/redis": "workspace:*",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "upstash-lua": "^0.3.1"
   }
 }

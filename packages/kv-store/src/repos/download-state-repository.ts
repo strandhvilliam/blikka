@@ -1,145 +1,29 @@
 import { Effect, Option, Schedule, Duration, Schema } from "effect"
 import { RedisClient } from "@blikka/redis"
 import { KeyFactory } from "../key-factory"
+import { atomicIncrementCompletedScript } from "../lua-scripts/atomic-increment-completed-script"
+import { atomicIncrementFailedScript } from "../lua-scripts/atomic-increment-failed-script"
+import { atomicAddJobScript } from "../lua-scripts/atomic-add-job-script"
 import {
   ChunkStateSchema,
   DownloadProcessStateSchema,
+  DownloadProcessStatusSchema,
   StringArrayFromString,
   type ChunkState,
   type DownloadProcessState,
   type DownloadProcessStatus,
 } from "../schema"
 
-// TTL constants
-const CHUNK_TTL_SECONDS = 21600 // 6 hours
-const PROCESS_TTL_SECONDS = 172800 // 48 hours
-const ACTIVE_PROCESS_TTL_SECONDS = 172800 // 48 hours
+const CHUNK_TTL_SECONDS = 21600 
+const PROCESS_TTL_SECONDS = 172800 
+const ACTIVE_PROCESS_TTL_SECONDS = 172800
 
-// Lua script for atomic increment of completedChunks with status check using HASH
-const ATOMIC_INCREMENT_COMPLETED_SCRIPT = `
-local key = KEYS[1]
-local totalChunks = tonumber(ARGV[1])
-local now = ARGV[2]
-
--- Check if hash exists
-if redis.call('EXISTS', key) == 0 then
-  return nil
-end
-
--- Atomically increment completedChunks
-local newCompletedChunks = redis.call('HINCRBY', key, 'completedChunks', 1)
-redis.call('HSET', key, 'lastUpdatedAt', now)
-
--- Get current failedChunks
-local failedChunks = tonumber(redis.call('HGET', key, 'failedChunks') or '0')
-
--- Check if all chunks are now processed
-local processedChunks = newCompletedChunks + failedChunks
-local status = redis.call('HGET', key, 'status')
-
-if processedChunks >= totalChunks then
-  if failedChunks > 0 then
-    status = 'failed'
-  else
-    status = 'completed'
-  end
-  redis.call('HSET', key, 'status', status)
-end
-
--- Refresh TTL
-redis.call('EXPIRE', key, ${PROCESS_TTL_SECONDS})
-
-return cjson.encode({
-  completedChunks = newCompletedChunks,
-  failedChunks = failedChunks,
-  status = status
+const AtomicIncrementResultSchema = Schema.Struct({
+  completedChunks: Schema.Number,
+  failedChunks: Schema.Number,
+  status: DownloadProcessStatusSchema,
 })
-`
 
-// Lua script for atomic increment of failedChunks with status check using HASH
-const ATOMIC_INCREMENT_FAILED_SCRIPT = `
-local key = KEYS[1]
-local totalChunks = tonumber(ARGV[1])
-local now = ARGV[2]
-local failedJobId = ARGV[3]
-
--- Check if hash exists
-if redis.call('EXISTS', key) == 0 then
-  return nil
-end
-
--- Atomically increment failedChunks
-local newFailedChunks = redis.call('HINCRBY', key, 'failedChunks', 1)
-redis.call('HSET', key, 'lastUpdatedAt', now)
-
--- Append failedJobId to the list (stored as comma-separated string)
-local currentFailedJobIds = redis.call('HGET', key, 'failedJobIds') or ''
-if currentFailedJobIds == '' then
-  redis.call('HSET', key, 'failedJobIds', failedJobId)
-else
-  redis.call('HSET', key, 'failedJobIds', currentFailedJobIds .. ',' .. failedJobId)
-end
-
--- Get current completedChunks
-local completedChunks = tonumber(redis.call('HGET', key, 'completedChunks') or '0')
-
--- Check if all chunks are now processed
-local processedChunks = completedChunks + newFailedChunks
-local status = redis.call('HGET', key, 'status')
-
-if processedChunks >= totalChunks then
-  status = 'failed'
-  redis.call('HSET', key, 'status', status)
-end
-
--- Refresh TTL
-redis.call('EXPIRE', key, ${PROCESS_TTL_SECONDS})
-
-return cjson.encode({
-  completedChunks = completedChunks,
-  failedChunks = newFailedChunks,
-  status = status
-})
-`
-
-// Lua script for atomic job addition using HASH
-const ATOMIC_ADD_JOB_SCRIPT = `
-local key = KEYS[1]
-local jobId = ARGV[1]
-local now = ARGV[2]
-
--- Check if hash exists
-if redis.call('EXISTS', key) == 0 then
-  return nil
-end
-
--- Get current jobIds (expecting a JSON array string like "[]" or "["id1"]")
-local currentJobIds = redis.call('HGET', key, 'jobIds') or '[]'
-
-local newJobIds
-if currentJobIds == '[]' or currentJobIds == '' then
-  -- Create new array with the single jobId
-  newJobIds = '["' .. jobId .. '"]'
-else
-  -- Remove the trailing ']' and append the new jobId
-  newJobIds = string.sub(currentJobIds, 1, -2) .. ',"' .. jobId .. '"]'
-end
-
-redis.call('HSET', key, 'jobIds', newJobIds)
-redis.call('HSET', key, 'lastUpdatedAt', now)
-
--- Update status from initializing to processing if needed
-local status = redis.call('HGET', key, 'status')
-if status == 'initializing' then
-  redis.call('HSET', key, 'status', 'processing')
-  status = 'processing'
-end
-
--- Refresh TTL
-redis.call('EXPIRE', key, ${PROCESS_TTL_SECONDS})
-
-return status
-`
 
 interface AtomicIncrementResult {
   completedChunks: number
@@ -147,12 +31,6 @@ interface AtomicIncrementResult {
   status: DownloadProcessStatus
 }
 
-// Schema encode/decode helpers using Effect's built-in functions
-// const encodeChunkState = Schema.encodeSync(ChunkStateRedisSchema)
-// const decodeChunkState = Schema.decodeUnknown(ChunkStateRedisSchema)
-
-// const encodeDownloadProcessState = Schema.encodeSync(DownloadProcessStateRedisSchema)
-// const decodeDownloadProcessState = Schema.decodeUnknown(DownloadProcessStateRedisSchema)
 
 const decodeStringArray = Schema.decodeSync(StringArrayFromString)
 
@@ -300,16 +178,24 @@ export class DownloadStateRepository extends Effect.Service<DownloadStateReposit
         const key = keyFactory.downloadProcess(processId)
         const now = new Date().toISOString()
 
-        const result = yield* redis.use((client) =>
-          client.eval(ATOMIC_INCREMENT_COMPLETED_SCRIPT, [key], [totalChunks.toString(), now])
-        )
+        const result = yield* Effect.tryPromise({
+          try: () =>
+            atomicIncrementCompletedScript.run(redis.client, {
+              keys: { key },
+              args: { totalChunks, now, ttl: PROCESS_TTL_SECONDS },
+            }),
+          catch: (error) =>
+            new Error(`Failed to increment completed chunks: ${error instanceof Error ? error.message : String(error)}`),
+        })
 
         if (result === null) {
           return yield* Effect.fail(new Error(`Download process not found: ${processId}`))
         }
 
-        const parsed =
-          typeof result === "string" ? JSON.parse(result) : (result as AtomicIncrementResult)
+        // Parse JSON string returned from Lua script
+        const parsed = yield* Schema.decodeUnknown(AtomicIncrementResultSchema)(
+          typeof result === "string" ? JSON.parse(result) : result
+        )
         return parsed as AtomicIncrementResult
       }, Effect.retry(retryPolicy))
 
@@ -322,20 +208,24 @@ export class DownloadStateRepository extends Effect.Service<DownloadStateReposit
           const key = keyFactory.downloadProcess(processId)
           const now = new Date().toISOString()
 
-          const result = yield* redis.use((client) =>
-            client.eval(
-              ATOMIC_INCREMENT_FAILED_SCRIPT,
-              [key],
-              [totalChunks.toString(), now, failedJobId]
-            )
-          )
+          const result = yield* Effect.tryPromise({
+            try: () =>
+              atomicIncrementFailedScript.run(redis.client, {
+                keys: { key },
+                args: { totalChunks, now, failedJobId, ttl: PROCESS_TTL_SECONDS },
+              }),
+            catch: (error) =>
+              new Error(`Failed to increment failed chunks: ${error instanceof Error ? error.message : String(error)}`),
+          })
 
           if (result === null) {
             return yield* Effect.fail(new Error(`Download process not found: ${processId}`))
           }
 
-          const parsed =
-            typeof result === "string" ? JSON.parse(result) : (result as AtomicIncrementResult)
+          // Parse JSON string returned from Lua script
+          const parsed = yield* Schema.decodeUnknown(AtomicIncrementResultSchema)(
+            typeof result === "string" ? JSON.parse(result) : result
+          )
           return parsed as AtomicIncrementResult
         },
         Effect.retry(retryPolicy)
@@ -352,9 +242,15 @@ export class DownloadStateRepository extends Effect.Service<DownloadStateReposit
         const key = keyFactory.downloadProcess(processId)
         const now = new Date().toISOString()
 
-        const result = yield* redis.use((client) =>
-          client.eval(ATOMIC_ADD_JOB_SCRIPT, [key], [jobId, now])
-        )
+        const result = yield* Effect.tryPromise({
+          try: () =>
+            atomicAddJobScript.run(redis.client, {
+              keys: { key },
+              args: { jobId, now, ttl: PROCESS_TTL_SECONDS },
+            }),
+          catch: (error) =>
+            new Error(`Failed to add job to process: ${error instanceof Error ? error.message : String(error)}`),
+        })
 
         if (result === null) {
           return yield* Effect.fail(new Error(`Download process not found: ${processId}`))
