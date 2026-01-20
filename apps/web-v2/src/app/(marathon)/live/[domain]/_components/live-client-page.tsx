@@ -6,21 +6,23 @@ import { useTRPC } from "@/lib/trpc/client";
 import { useTranslations, useLocale, Locale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { cn, formatDomainPathname, formatPublicPathname } from "@/lib/utils";
 import { format } from "date-fns";
-import { Info, ImageIcon, Play } from "lucide-react";
+import { Info, ImageIcon, Play, ExternalLink } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 import Image from "next/image";
 import { changeLocaleAction } from "@/lib/actions/change-locale-action";
 import { useRouter } from "next/navigation";
 import { useDomain } from "@/lib/domain-provider";
+import Link from "next/link";
 
 
 export function LiveClientPage() {
@@ -57,7 +59,7 @@ export function LiveClientPage() {
   };
 
   const sponsorImages = marathon.sponsors
-    ?.filter((s) => s.type === "participant-initial")
+    ?.filter((s) => s.type.startsWith("live-initial"))
     .sort(
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -68,7 +70,7 @@ export function LiveClientPage() {
     "marathon-settings-bucket";
 
   return (
-    <div className="flex flex-col min-h-dvh relative overflow-hidden">
+    <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
       <div className="z-20 flex flex-col flex-1 h-full">
 
         <main className="flex-1 px-6 pb-6 max-w-md mx-auto w-full flex flex-col justify-end">
@@ -83,7 +85,7 @@ export function LiveClientPage() {
                 <ImageIcon className="w-12 h-12" />
               </div>
             )}
-            <h1 className="text-3xl font-rocgrotesk font-extrabold text-gray-900 text-center mt-2">
+            <h1 className="text-2xl font-rocgrotesk font-extrabold text-gray-900 text-center mt-2">
               {marathon.name}
             </h1>
             <p className="text-center text-lg mt-1 font-medium tracking-wide">
@@ -100,9 +102,6 @@ export function LiveClientPage() {
 
           {/* Main card */}
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-border shadow-xl">
-            <h2 className="text-2xl font-rocgrotesk font-semibold mb-4">
-              {t("gettingStarted")}
-            </h2>
 
             {/* Language selection */}
             <section className="mb-5">
@@ -140,37 +139,35 @@ export function LiveClientPage() {
             {/* Rules and Information */}
             {marathon.description && (
               <section className="mb-5">
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="rules" className="border-gray-200">
-                    <AccordionTrigger
-                      className="font-semibold text-sm py-3"
-                      onClick={() => {
-                        setTimeout(() => {
-                          window.scrollTo({
-                            top: document.documentElement.scrollHeight,
-                            behavior: "smooth",
-                          });
-                        }, 150);
-                      }}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full flex gap-2 py-4 justify-start underline underline-offset-1"
                     >
-                      <div className="flex items-center gap-2 font-medium">
-                        <Info size={16} />
+                      <Info size={16} />
+                      {t("rulesAndInformation")}
+                      {/* <ExternalLink size={16} className="ml-auto" /> */}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Info size={20} />
                         {t("rulesAndInformation")}
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="text-sm font-medium space-y-2">
-                      <div className="prose prose-sm max-w-none">
-                        {marathon.description}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="prose prose-sm max-w-none">
+                      {marathon.description}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </section>
             )}
 
             {/* Terms checkbox */}
             <section className="mb-6 space-y-4">
-              <div className="flex items-start space-x-2">
+              <div className="flex items-start space-x-2 px-2.5">
                 <Checkbox
                   id="platform-terms"
                   checked={termsAccepted}
@@ -181,9 +178,12 @@ export function LiveClientPage() {
                 />
                 <label htmlFor="platform-terms" className="text-sm font-medium">
                   {t("termsAccept")}{" "}
-                  <button className="underline font-semibold">
+                  <Link
+                    href={formatPublicPathname(`/terms`, domain, locale)}
+                    className="underline font-semibold"
+                  >
                     {t("termsAndConditions")}
-                  </button>
+                  </Link>
                 </label>
               </div>
             </section>
@@ -200,8 +200,8 @@ export function LiveClientPage() {
 
             {/* Sponsors section */}
             {sponsorImages && sponsorImages.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <p className="text-center text-sm text-muted-foreground mb-4">
+              <div className="mt-4 pt-6 border-t border-gray-200">
+                <p className="text-center text-sm text-muted-foreground mb-2">
                   {t("sponsors")}
                 </p>
                 <div className="flex justify-center items-center gap-4 flex-wrap">

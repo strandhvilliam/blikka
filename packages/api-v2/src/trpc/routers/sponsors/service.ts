@@ -39,7 +39,7 @@ export class SponsorsApiService extends Effect.Service<SponsorsApiService>()(
         key,
       }: {
         domain: string
-        type: "contact-sheets" | "participant-initial" | "participant-success"
+        type: "contact-sheets" | "live-initial-1" | "live-initial-2" | "live-success-1" | "live-success-2"
         position: "bottom-right" | "bottom-left" | "top-right" | "top-left"
         key: string
       }) {
@@ -69,12 +69,10 @@ export class SponsorsApiService extends Effect.Service<SponsorsApiService>()(
         position,
       }: {
         domain: string
-        type: "contact-sheets" | "participant-initial" | "participant-success"
+        type: "contact-sheets" | "live-initial-1" | "live-initial-2" | "live-success-1" | "live-success-2"
         position: "bottom-right" | "bottom-left" | "top-right" | "top-left"
       }) {
-        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME").pipe(
-          Config.withDefault("marathon-settings-bucket")
-        )
+        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
 
         const fileId = crypto.randomUUID()
         const key = `${domain}/sponsors/${fileId}.jpg`
@@ -94,4 +92,4 @@ export class SponsorsApiService extends Effect.Service<SponsorsApiService>()(
       } as const
     }),
   }
-) {}
+) { }

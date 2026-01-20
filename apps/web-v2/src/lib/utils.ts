@@ -20,15 +20,25 @@ export function truncate(str: string, options: { length?: number } = {}) {
   return str.slice(0, length - 3) + "..."
 }
 
-export const formatDomainPathname = (pathname: string, domain?: string) => {
+export const formatPublicPathname = (pathname: string, domain?: string, locale?: string) => {
+  if (!domain || !locale) return pathname
+
+  if (process.env.NODE_ENV !== "production") {
+    return `/${locale}/${domain}${pathname}`
+  }
+
+  return `/${locale}${pathname}`
+}
+
+export const formatDomainPathname = (pathname: string, domain?: string, site: "admin" | "live" = "admin") => {
   if (!domain) return pathname
 
   if (process.env.NODE_ENV !== "production") {
     // inject domain after first part of the pathname (e.g., /admin or /live)
     const parts = pathname.startsWith("/") ? pathname.slice(1).split("/") : pathname.split("/")
-    if (parts.length === 0) return `/admin/${domain}`
+    if (parts.length === 0) return `/${site}/${domain}`
 
-    const first = parts[0] || "live"
+    const first = parts[0] || site
     const rest = parts.slice(1).join("/")
     const path = `/${first}/${domain}${rest ? `/${rest}` : ""}`
     return path

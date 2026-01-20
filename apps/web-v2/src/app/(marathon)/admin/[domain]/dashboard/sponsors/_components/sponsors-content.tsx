@@ -38,19 +38,32 @@ export function SponsorsContent() {
         />
 
         <SponsorCard
-          title="Participant Initial Page"
-          description="Sponsor image shown on the app initial page"
-          type="participant-initial"
-          disabled
-          sponsor={getSponsorImage("participant-initial")}
+          title="Live Initial Page 1"
+          description="First sponsor image shown on the app initial page"
+          type="live-initial-1"
+          sponsor={getSponsorImage("live-initial-1")}
         />
 
         <SponsorCard
-          title="Participant Success Page"
-          description="Sponsor image shown on the app success page"
-          type="participant-success"
+          title="Live Initial Page 2"
+          description="Second sponsor image shown on the app initial page"
+          type="live-initial-2"
+          sponsor={getSponsorImage("live-initial-2")}
+        />
+
+        <SponsorCard
+          title="Live Success Page 1"
+          description="First sponsor image shown on the app success page"
+          type="live-success-1"
           disabled
-          sponsor={getSponsorImage("participant-success")}
+          sponsor={getSponsorImage("live-success-1")}
+        />
+        <SponsorCard
+          title="Live Success Page 2"
+          description="Second sponsor image shown on the app success page"
+          type="live-success-2"
+          disabled
+          sponsor={getSponsorImage("live-success-2")}
         />
       </div>
     </div>

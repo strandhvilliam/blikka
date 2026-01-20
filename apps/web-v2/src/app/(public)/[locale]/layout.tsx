@@ -1,9 +1,9 @@
 import { Metadata } from "next"
 import { NextIntlClientProvider } from "next-intl"
+import { notFound } from "next/navigation"
 import Document from "@/components/document"
 import { LOCALES } from "@/config"
-import { Effect, Schema } from "effect"
-import { Layout, decodeParams } from "@/lib/next-utils"
+import { Suspense } from "react"
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }))
@@ -13,19 +13,19 @@ export const metadata: Metadata = {
   title: "next-intl-mixed-routing (public)",
 }
 
-const _LocaleLayout = Effect.fn("@blikka/web/LocaleLayout")(
-  function* ({ children, params }: LayoutProps<"/[locale]">) {
-    const { locale } = yield* decodeParams(Schema.Struct({ locale: Schema.String }))(params)
-    return (
-      <Document locale={locale}>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
-      </Document>
-    )
-  },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
-)
 
-export default Layout(_LocaleLayout)
+export default async function PublicLocaleLayout({ children, params }: LayoutProps<"/[locale]">) {
+  const { locale } = await params
+  if (!LOCALES.includes(locale)) notFound()
+
+  return (
+    <Document locale={locale}>
+      <Suspense fallback={<div>Loading...</div>}>
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+      </Suspense>
+    </Document>
+  )
+}
 
 // export default function LayoutWithSuspense(props: LayoutProps<"/[locale]">) {
 //   return (

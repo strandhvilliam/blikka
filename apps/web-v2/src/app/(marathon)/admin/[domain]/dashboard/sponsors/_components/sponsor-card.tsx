@@ -10,7 +10,7 @@ import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import type { Sponsor } from "@blikka/db"
 
-type SponsorType = "contact-sheets" | "participant-initial" | "participant-success"
+type SponsorType = "contact-sheets" | "live-initial-1" | "live-initial-2" | "live-success-1" | "live-success-2"
 
 interface SponsorCardProps {
   title: string
@@ -63,7 +63,6 @@ export function SponsorCard({
       })
 
       try {
-        // Upload file to S3
         const response = await fetch(url, {
           method: "PUT",
           body: file,
@@ -77,7 +76,6 @@ export function SponsorCard({
           throw new Error("Failed to upload file")
         }
 
-        // Create sponsor record
         createSponsor({
           domain,
           type,
@@ -106,7 +104,7 @@ export function SponsorCard({
   // Construct image URL from S3
   // Sponsor images are stored in the marathon settings bucket
   const imageUrl = sponsor
-    ? `https://s3.eu-north-1.amazonaws.com/${process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME || "marathon-settings-bucket"}/${sponsor.key}`
+    ? `https://s3.eu-north-1.amazonaws.com/${process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME}/${sponsor.key}`
     : null
 
   return (
@@ -146,7 +144,7 @@ export function SponsorCard({
                 const input = document.createElement("input")
                 input.type = "file"
                 input.accept = "image/*"
-                input.onchange = handleFileSelect
+                input.onchange = (event: unknown) => handleFileSelect(event as unknown as React.ChangeEvent<HTMLInputElement>)
                 input.click()
               }}
             >
