@@ -9,6 +9,7 @@ import {
   ResetMarathonInputSchema,
   GetLogoUploadUrlInputSchema,
   GetTermsUploadUrlInputSchema,
+  GetCurrentTermsInputSchema,
 } from "./schemas"
 import { MarathonApiService } from "./service"
 
@@ -55,6 +56,15 @@ export const marathonRouter = createTRPCRouter({
     trpcEffect(
       Effect.fn("MarathonRouter.getTermsUploadUrl")(function* ({ input, ctx }) {
         return yield* MarathonApiService.getTermsUploadUrl({
+          domain: input.domain,
+        })
+      })
+    )
+  ),
+  getCurrentTerms: domainProcedure.input(GetCurrentTermsInputSchema).query(
+    trpcEffect(
+      Effect.fn("MarathonRouter.getCurrentTerms")(function* ({ input, ctx }) {
+        return yield* MarathonApiService.getCurrentTerms({
           domain: input.domain,
         })
       })

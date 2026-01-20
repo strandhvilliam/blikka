@@ -150,6 +150,27 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return { url, key }
       })
 
+      const getCurrentTerms = Effect.fn("MarathonApiService.getCurrentTerms")(function* ({
+        domain,
+      }: {
+        domain: string
+      }) {
+        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME").pipe(
+          Config.withDefault("marathon-settings-bucket")
+        )
+
+        const key = `${domain}/terms-and-conditions.txt`
+        const fileData = yield* s3.getFile(bucketName, key)
+
+        return yield* Option.match(fileData, {
+          onSome: (data) => {
+            const decoder = new TextDecoder()
+            return Effect.succeed(decoder.decode(data))
+          },
+          onNone: () => Effect.succeed(""),
+        })
+      })
+
       return {
         getMarathonByDomain,
         getUserMarathons,
@@ -157,7 +178,8 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         resetMarathon,
         getLogoUploadUrl,
         getTermsUploadUrl,
+        getCurrentTerms,
       } as const
     }),
   }
-) {}
+) { }

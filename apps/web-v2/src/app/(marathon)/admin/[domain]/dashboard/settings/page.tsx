@@ -1,6 +1,6 @@
 import { decodeParams, Page } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
+import { HydrateClient, batchPrefetch, trpc } from "@/lib/trpc/server"
 import { Suspense } from "react"
 import { SettingsHeader } from "./_components/settings-header"
 import { SettingsSkeleton } from "./_components/settings-skeleton"
@@ -10,11 +10,14 @@ const _SettingsPage = Effect.fn("@blikka/web/SettingsPage")(
   function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
 
-    prefetch(
+    batchPrefetch([
       trpc.marathons.getByDomain.queryOptions({
         domain,
+      }),
+      trpc.marathons.getCurrentTerms.queryOptions({
+        domain,
       })
-    )
+    ])
 
     return (
       <HydrateClient>

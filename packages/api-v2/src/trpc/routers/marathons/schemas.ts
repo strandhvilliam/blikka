@@ -6,7 +6,7 @@ export class MarathonApiError extends Schema.TaggedError<MarathonApiError>()(
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   }
-) {}
+) { }
 
 export const GetByDomainInputSchema = Schema.standardSchemaV1(
   Schema.Struct({ domain: Schema.String })
@@ -41,6 +41,13 @@ export const GetLogoUploadUrlInputSchema = Schema.standardSchemaV1(
 )
 
 export const GetTermsUploadUrlInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+  })
+)
+
+
+export const GetCurrentTermsInputSchema = Schema.standardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
   })

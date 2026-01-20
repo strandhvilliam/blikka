@@ -12,6 +12,7 @@ import {
   Calendar as CalendarIcon,
   Clock,
   AlertTriangle,
+  FileText,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar } from "@/components/ui/calendar"
@@ -48,6 +49,9 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { parseAsStringEnum, useQueryState } from "nuqs"
 import type { Marathon } from "@blikka/db"
+import mammoth from "mammoth"
+import TurndownService from "turndown"
+import { TermsMarkdownPreview } from "./terms-markdown-preview"
 
 const AVAILABLE_LANGUAGES = [
   { code: "en", name: "English" },
@@ -96,7 +100,9 @@ export function SettingsForm() {
   const [resetConfirmationText, setResetConfirmationText] = useState("")
   const [activeTab, setActiveTab] = useQueryState(
     "tab",
-    parseAsStringEnum(["general", "date-time", "languages", "danger"]).withDefault("general")
+    parseAsStringEnum(["general", "date-time", "languages", "terms", "danger"]).withDefault(
+      "general"
+    )
   )
 
   const { data: marathon } = useSuspenseQuery(
@@ -108,6 +114,12 @@ export function SettingsForm() {
   const getLogoUploadUrlMutation = useMutation(trpc.marathons.getLogoUploadUrl.mutationOptions())
 
   const getTermsUploadUrlMutation = useMutation(trpc.marathons.getTermsUploadUrl.mutationOptions())
+
+  const { data: currentTerms } = useSuspenseQuery(
+    trpc.marathons.getCurrentTerms.queryOptions({
+      domain,
+    })
+  )
 
   if (!marathon) {
     return <div>ERROR: Unable to load marathon</div>
@@ -132,6 +144,7 @@ export function SettingsForm() {
     isUploading: false,
     hasChanged: false,
   })
+  const [termsMarkdown, setTermsMarkdown] = useState("")
 
   const form = useForm({
     defaultValues: {
@@ -144,7 +157,6 @@ export function SettingsForm() {
     },
     onSubmit: async ({ value }) => {
       const file = fileInputRef.current?.files?.[0]
-      const termsFile = termsFileInputRef.current?.files?.[0]
 
       let logoUrl = value.logoUrl
       let termsKey: string | undefined
@@ -156,7 +168,10 @@ export function SettingsForm() {
         }
       }
 
-      if (termsFile) {
+      if (termsState.hasChanged && termsMarkdown.trim()) {
+        const termsFile = new File([termsMarkdown], "terms-and-conditions.md", {
+          type: "text/markdown",
+        })
         const uploadedTermsKey = await handleTermsUpload(termsFile)
         if (uploadedTermsKey) {
           termsKey = uploadedTermsKey
@@ -246,6 +261,12 @@ export function SettingsForm() {
   )
 
   useEffect(() => {
+    if (currentTerms && !termsMarkdown) {
+      setTermsMarkdown(currentTerms)
+    }
+  }, [currentTerms, termsMarkdown])
+
+  useEffect(() => {
     const fileInput = fileInputRef.current
     if (!fileInput) return
 
@@ -323,7 +344,7 @@ export function SettingsForm() {
         method: "PUT",
         body: file,
         headers: {
-          "Content-Type": "text/plain",
+          "Content-Type": file.type || "text/markdown",
         },
       })
 
@@ -334,6 +355,23 @@ export function SettingsForm() {
     } finally {
       setTermsState((prev) => ({ ...prev, isUploading: false }))
     }
+  }
+
+  const parseTermsFile = async (file: File): Promise<string> => {
+    const extension = file.name.split(".").pop()?.toLowerCase()
+
+    if (extension === "md" || extension === "txt") {
+      return file.text()
+    }
+
+    if (extension === "docx") {
+      const arrayBuffer = await file.arrayBuffer()
+      const { value } = await mammoth.convertToHtml({ arrayBuffer })
+      const turndownService = new TurndownService()
+      return turndownService.turndown(value || "")
+    }
+
+    throw new Error("Unsupported file type")
   }
 
   const handleRemoveLogo = () => {
@@ -390,7 +428,7 @@ export function SettingsForm() {
           <Tabs
             value={activeTab}
             onValueChange={(value) =>
-              setActiveTab(value as "general" | "date-time" | "languages" | "danger")
+              setActiveTab(value as "general" | "date-time" | "languages" | "terms" | "danger")
             }
             className="space-y-6"
           >
@@ -404,6 +442,9 @@ export function SettingsForm() {
                 </TabsTrigger>
                 <TabsTrigger value="languages" className={customTabTriggerClassName}>
                   Languages
+                </TabsTrigger>
+                <TabsTrigger value="terms" className={customTabTriggerClassName}>
+                  Terms & Conditions
                 </TabsTrigger>
                 <TabsTrigger value="danger" className={customTabTriggerClassName}>
                   Danger Zone
@@ -447,7 +488,7 @@ export function SettingsForm() {
                     />
                     {logoState.previewUrl ? (
                       <div className="flex items-center gap-3">
-                        <div className="w-[42px] h-[42px] flex items-center justify-center rounded-full overflow-hidden flex-shrink-0">
+                        <div className="w-[42px] h-[42px] flex items-center justify-center rounded-full overflow-hidden shrink-0">
                           <img
                             src={logoState.previewUrl}
                             alt="Contest logo"
@@ -472,7 +513,7 @@ export function SettingsForm() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <div className="w-[42px] h-[42px] rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <div className="w-[42px] h-[42px] rounded-full bg-muted flex items-center justify-center shrink-0">
                           <ImagePlus className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <label
@@ -535,84 +576,6 @@ Examples of formatting:
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Terms and Conditions</Label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".txt"
-                    ref={termsFileInputRef}
-                    className="hidden"
-                    id="terms-upload"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        setTermsState((prev) => ({
-                          ...prev,
-                          fileName: file.name,
-                          hasChanged: true,
-                        }))
-                      }
-                    }}
-                  />
-                  {termsState.fileName ? (
-                    <div className="flex items-center gap-3">
-                      <div className="w-[42px] h-[42px] rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium">TXT</span>
-                      </div>
-                      <div className="w-full flex-1 relative h-[42px] rounded-lg overflow-hidden border bg-background flex items-center justify-between gap-3">
-                        <div className="flex items-center justify-between h-full flex-1 pr-3">
-                          <div className="flex items-center gap-2 px-3 h-full">
-                            <span className="text-sm">
-                              {termsState.fileName || "terms-and-conditions.txt"}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (termsFileInputRef.current) {
-                                termsFileInputRef.current.value = ""
-                              }
-                              setTermsState({
-                                fileName: null,
-                                isUploading: false,
-                                hasChanged: false,
-                              })
-                            }}
-                            className="flex items-center gap-2 px-3 h-full hover:bg-muted rounded-md text-foreground hover:text-destructive transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                            <span className="text-sm">Remove</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="w-[42px] h-[42px] rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium">TXT</span>
-                      </div>
-                      <label
-                        htmlFor="terms-upload"
-                        className="px-4 w-full flex items-center h-[42px] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 bg-background transition-colors cursor-pointer gap-3"
-                      >
-                        <div className="flex items-center justify-between flex-1">
-                          <span className="text-sm text-muted-foreground">
-                            Click to upload terms and conditions (.txt)
-                          </span>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            TXT • 1MB max
-                          </span>
-                        </div>
-                      </label>
-                    </div>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Upload a .txt file containing your terms and conditions. This will be displayed
-                  when participants click the terms link.
-                </div>
-              </div>
             </TabsContent>
 
             <TabsContent value="date-time" className="space-y-6">
@@ -1003,6 +966,120 @@ Examples of formatting:
               </div>
             </TabsContent>
 
+            <TabsContent value="terms" className="space-y-6">
+              <div className="grid grid-cols-1 gap-6 max-w-2xl">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="terms-markdown">Terms and Conditions</Label>
+                    <span className="text-xs text-muted-foreground">Markdown only</span>
+                  </div>
+                  <Textarea
+                    id="terms-markdown"
+                    value={termsMarkdown}
+                    onChange={(e) => {
+                      setTermsMarkdown(e.target.value)
+                      setTermsState((prev) => ({ ...prev, hasChanged: true }))
+                    }}
+                    placeholder={`Enter terms and conditions in Markdown...
+
+Examples of formatting:
+ **Bold text**
+ *Italic text*
+ # Heading
+ ## Subheading
+ - List item
+ 1. Numbered list
+[Link text](https://example.com)`}
+                    className="min-h-[260px] max-h-[260px] bg-background font-mono text-sm"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    This content will be shown when participants open the terms link.
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Import file (optional)</Label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".md,.txt,.docx"
+                      ref={termsFileInputRef}
+                      className="hidden"
+                      id="terms-upload"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+
+                        try {
+                          const markdown = await parseTermsFile(file)
+                          setTermsMarkdown(markdown)
+                          setTermsState((prev) => ({
+                            ...prev,
+                            fileName: file.name,
+                            hasChanged: true,
+                          }))
+                        } catch (error) {
+                          toast.error("Failed to import terms file")
+                        }
+                      }}
+                    />
+                    {termsState.fileName ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-[42px] h-[42px] rounded-full bg-muted flex items-center justify-center shrink-0">
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div className="w-full flex-1 relative h-[42px] rounded-lg overflow-hidden border bg-background flex items-center justify-between gap-3">
+                          <div className="flex items-center justify-between h-full flex-1 pr-3">
+                            <div className="flex items-center gap-2 px-3 h-full">
+                              <span className="text-sm">{termsState.fileName}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (termsFileInputRef.current) {
+                                  termsFileInputRef.current.value = ""
+                                }
+                                setTermsState((prev) => ({
+                                  ...prev,
+                                  fileName: null,
+                                }))
+                              }}
+                              className="flex items-center gap-2 px-3 h-full hover:bg-muted rounded-md text-foreground hover:text-destructive transition-colors"
+                            >
+                              <X className="h-4 w-4" />
+                              <span className="text-sm">Remove</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <div className="w-[42px] h-[42px] rounded-full bg-muted flex items-center justify-center shrink-0">
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <label
+                          htmlFor="terms-upload"
+                          className="px-4 w-full flex items-center h-[42px] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 bg-background transition-colors cursor-pointer gap-3"
+                        >
+                          <div className="flex items-center justify-between flex-1">
+                            <span className="text-sm text-muted-foreground">
+                              Import .md, .txt, or .docx
+                            </span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              DOCX, TXT, MD • 2MB max
+                            </span>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Imported content is converted to Markdown and placed in the editor.
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
             <TabsContent value="danger" className="space-y-6">
               <div className="mt-0 bg-white">
                 <Alert variant="destructive" className="bg-destructive/10">
@@ -1090,8 +1167,12 @@ Examples of formatting:
 
         <div className="relative w-fit">
           <h2 className="text-lg font-medium mb-4 font-rocgrotesk">Preview</h2>
-          <div className="sticky top-8 bg-background shadow-lg border border-border p-8 rounded-lg">
-            <SettingsPhonePreview marathon={previewMarathon} />
+          <div className="sticky top-8 bg-background">
+            {activeTab === "terms" ? (
+              <TermsMarkdownPreview markdown={termsMarkdown} />
+            ) : (
+              <SettingsPhonePreview marathon={previewMarathon} />
+            )}
           </div>
         </div>
       </div>

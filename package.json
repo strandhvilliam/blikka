@@ -10,6 +10,7 @@
   "devDependencies": {
     "@effect/vitest": "^0.26.0",
     "@types/aws-lambda": "8.10.146",
+    "@types/turndown": "^5.0.6",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
