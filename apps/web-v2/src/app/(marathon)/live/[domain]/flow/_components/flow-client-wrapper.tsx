@@ -4,9 +4,7 @@ import { useTRPC } from "@/lib/trpc/client";
 import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query";
 import { AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
-import { notFound } from "next/navigation";
-import { useRouter } from "next/router";
-import { useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useHandleBeforeUnload } from "../_hooks/use-handle-before-unload";
 import { PARTICIPANT_SUBMISSION_STEPS } from "../_lib/constants";
@@ -16,6 +14,8 @@ import { StepNavigator } from "./step-navigator";
 import { AnimatedStepWrapper } from "./animated-step-wrapper";
 import { ParticipantNumberStep } from "./participant-number-step";
 import { ParticipantDetailsStep } from "./participant-details-step";
+import { ClassSelectionStep } from "./class-selection-step";
+import { DeviceSelectionStep } from "./device-selection-step";
 
 const NetworkStatusBanner = dynamic(
   () =>
@@ -29,7 +29,7 @@ export function FlowClientWrapper() {
   useHandleBeforeUnload();
   const trpc = useTRPC();
   const router = useRouter();
-  const { submissionState, setSubmissionState, step, direction, handleNextStep, handlePrevStep, handleSetStep } =
+  const { uploadFlowState, step, direction } =
     useUploadFlowState();
   const domain = useDomain();
 
@@ -38,7 +38,7 @@ export function FlowClientWrapper() {
   );
 
   const handleNavigateToVerification = () => {
-    const params = flowStateParamSerializer(submissionState);
+    const params = flowStateParamSerializer(uploadFlowState);
     router.push(formatDomainPathname(`/flow/verification${params}`, domain, 'live'));
   };
 
@@ -75,9 +75,7 @@ export function FlowClientWrapper() {
             direction={direction}
           >
             <ClassSelectionStep
-              competitionClasses={competitionClasses}
-              onNextStep={handleNextStep}
-              onPrevStep={handlePrevStep}
+              competitionClasses={marathon.competitionClasses}
             />
           </AnimatedStepWrapper>
         )}
@@ -87,13 +85,11 @@ export function FlowClientWrapper() {
             direction={direction}
           >
             <DeviceSelectionStep
-              onNextStep={handleNextStep}
-              onPrevStep={handlePrevStep}
-              deviceGroups={deviceGroups}
+              deviceGroups={marathon.deviceGroups}
             />
           </AnimatedStepWrapper>
         )}
-        {step === PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep && (
+        {/* {step === PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep && (
           <AnimatedStepWrapper
             key={PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep}
             direction={direction}
@@ -108,7 +104,7 @@ export function FlowClientWrapper() {
               onNextStep={handleNavigateToVerification}
             />
           </AnimatedStepWrapper>
-        )}
+        )} */}
       </AnimatePresence>
     </div>
   );

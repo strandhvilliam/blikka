@@ -5,11 +5,11 @@ import {
   useQueryStates,
   useQueryState,
 } from "nuqs";
-import { PARTICIPANT_SUBMISSION_STEPS } from "@/lib/constants";
+import { PARTICIPANT_SUBMISSION_STEPS } from "../_lib/constants";
 import { useState } from "react";
 
 export function useUploadFlowState() {
-  const [submissionState, setSubmissionState] = useQueryStates(
+  const [uploadFlowState, setUploadFlowState] = useQueryStates(
     {
       competitionClassId: parseAsInteger,
       deviceGroupId: parseAsInteger,
@@ -59,5 +59,5 @@ export function useUploadFlowState() {
     setStep(newStep);
   };
 
-  return { submissionState, setSubmissionState, step, direction, handleNextStep, handlePrevStep, handleSetStep };
+  return { uploadFlowState, setUploadFlowState, step, direction, handleNextStep, handlePrevStep, handleSetStep };
 }

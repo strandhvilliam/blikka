@@ -24,5 +24,57 @@
     "sponsors": "Sponsors",
     "poweredBy": "powered by",
     "datesToBeAnnounced": "Dates to be announced"
+  },
+  "FlowPage": {
+    "participantNumber": {
+      "title": "Enter your participant number",
+      "description": "Enter your 4-digit participant number to continue",
+      "descriptionAlreadyExists": "We found your participant number. Click continue to proceed.",
+      "required": "Participant number is required",
+      "continue": "Continue",
+      "error": "An error occurred. Please try again.",
+      "confirmDialog": {
+        "title": "Confirm Participant",
+        "titleExists": "Welcome back!",
+        "titleNew": "New participant",
+        "description": "We found a session for participant number {ref}. Is this you?",
+        "descriptionExists": "We found a session for participant number {ref}. Is this you?",
+        "descriptionNew": "This will create a new upload session for this participant number. Continue?",
+        "cancel": "Cancel",
+        "confirm": "Continue"
+      }
+    },
+    "steps": {
+      "number": "Number",
+      "details": "Details",
+      "class": "Class",
+      "device": "Device",
+      "upload": "Upload"
+    },
+    "participantDetails": {
+      "title": "Your Details",
+      "description": "Please confirm your details to continue",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "continue": "Continue",
+      "back": "Back",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "invalidEmail": "Please enter a valid email address"
+    },
+    "classSelection": {
+      "title": "Select Your Class",
+      "description": "Choose the competition class you want to participate in",
+      "numberOfPhotos": "Photos",
+      "continue": "Continue",
+      "back": "Back"
+    },
+    "deviceSelection": {
+      "title": "Select Your Device",
+      "description": "Choose the device you used to take your photos",
+      "continue": "Continue",
+      "back": "Back"
+    }
   }
 }

@@ -12,23 +12,37 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
 import { Marathon } from "@blikka/db";
 import { useDomain } from "@/lib/domain-provider";
 import { useTranslations } from "next-intl";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { Schema } from "effect";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-const createInitializeParticipantSchema = (t: ReturnType<typeof useTranslations>) =>
+const createInitializeParticipantSchema = (
+  t: ReturnType<typeof useTranslations>,
+) =>
   Schema.standardSchemaV1(
     Schema.Struct({
-      participantRef: Schema.String
-        .pipe(Schema.minLength(1))
+      participantRef: Schema.String.pipe(Schema.minLength(1))
         .pipe(Schema.pattern(/^\d+$/))
         .annotations({ description: t("participantNumber.required") }),
-      domain: Schema.String.pipe(Schema.minLength(1)).annotations({ description: "Invalid domain" }),
-    })
+      domain: Schema.String.pipe(Schema.minLength(1)).annotations({
+        description: "Invalid domain",
+      }),
+    }),
   );
 
 interface Props {
@@ -36,31 +50,61 @@ interface Props {
 }
 
 export function ParticipantNumberStep({ marathon }: Props) {
-
   const domain = useDomain();
   const t = useTranslations("FlowPage");
-  const {
-    submissionState,
-    setSubmissionState,
-    handleNextStep,
-    handlePrevStep,
-    handleSetStep,
-  } = useUploadFlowState();
+  const trpc = useTRPC();
+  const { uploadFlowState, setUploadFlowState, handleNextStep } =
+    useUploadFlowState();
+
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingRef, setPendingRef] = useState("");
+
+  const checkParticipantExists = useMutation(
+    trpc.uploadFlow.checkParticipantExists.mutationOptions(),
+  );
 
   const form = useForm({
     defaultValues: {
-      participantRef: submissionState.participantRef ?? "",
+      participantRef: uploadFlowState.participantRef ?? "",
       domain,
     },
     onSubmit: async ({ value }) => {
-      // check if participant exists
+      const paddedRef = value.participantRef.padStart(4, "0");
+      setPendingRef(paddedRef);
+
+      try {
+        const exists = await checkParticipantExists.mutateAsync({
+          domain,
+          reference: paddedRef,
+        });
+
+        if (exists) {
+          setConfirmDialogOpen(true);
+        } else {
+          setUploadFlowState((prev) => ({
+            ...prev,
+            participantRef: paddedRef,
+          }));
+          handleNextStep();
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error(t("participantNumber.error"));
+      }
     },
     validators: {
       onChange: createInitializeParticipantSchema(t),
     },
   });
 
-
+  const handleConfirm = () => {
+    setUploadFlowState((prev) => ({
+      ...prev,
+      participantRef: pendingRef,
+    }));
+    setConfirmDialogOpen(false);
+    handleNextStep();
+  };
 
   return (
     <div className="max-w-md mx-auto min-h-[80vh] flex flex-col justify-center">
@@ -69,7 +113,7 @@ export function ParticipantNumberStep({ marathon }: Props) {
           {t("participantNumber.title")}
         </CardTitle>
         <CardDescription className="text-center">
-          {!!submissionState.participantId
+          {!!uploadFlowState.participantId
             ? t("participantNumber.descriptionAlreadyExists")
             : t("participantNumber.description")}
         </CardDescription>
@@ -93,8 +137,8 @@ export function ParticipantNumberStep({ marathon }: Props) {
                     type="text"
                     inputMode="numeric"
                     placeholder="0000"
-                    className="text-center !text-4xl h-16 bg-background tracking-widest"
-                    disabled={!!submissionState.participantId}
+                    className="text-center text-4xl! h-16 bg-background tracking-widest"
+                    disabled={!!uploadFlowState.participantId}
                     maxLength={4}
                     value={field.state.value}
                     onChange={(e) => {
@@ -124,7 +168,7 @@ export function ParticipantNumberStep({ marathon }: Props) {
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4">
-          {submissionState.participantId ? (
+          {uploadFlowState.participantId ? (
             <Button
               type="button"
               className="w-full rounded-full py-6 text-lg"
@@ -143,9 +187,13 @@ export function ParticipantNumberStep({ marathon }: Props) {
                 <PrimaryButton
                   type="submit"
                   className="w-full py-3 text-lg rounded-full"
-                  disabled={!canSubmit || !participantRefValue}
+                  disabled={
+                    !canSubmit ||
+                    !participantRefValue ||
+                    checkParticipantExists.isPending
+                  }
                 >
-                  {isSubmitting ? (
+                  {isSubmitting || checkParticipantExists.isPending ? (
                     <Loader2 className="animate-spin" />
                   ) : (
                     <>
@@ -159,6 +207,29 @@ export function ParticipantNumberStep({ marathon }: Props) {
           )}
         </CardFooter>
       </form>
+
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("participantNumber.confirmDialog.title")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("participantNumber.confirmDialog.description", {
+                ref: pendingRef,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t("participantNumber.confirmDialog.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirm}>
+              {t("participantNumber.confirmDialog.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

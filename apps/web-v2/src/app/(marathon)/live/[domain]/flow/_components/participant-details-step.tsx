@@ -33,8 +33,8 @@ export function ParticipantDetailsStep({
 }) {
   const t = useTranslations("FlowPage");
   const {
-    submissionState,
-    setSubmissionState,
+    uploadFlowState,
+    setUploadFlowState,
     handleNextStep,
     handlePrevStep,
     handleSetStep,
@@ -42,12 +42,12 @@ export function ParticipantDetailsStep({
 
   const form = useForm({
     defaultValues: {
-      firstname: submissionState.participantFirstName ?? "",
-      lastname: submissionState.participantLastName ?? "",
-      email: submissionState.participantEmail ?? "",
+      firstname: uploadFlowState.participantFirstName ?? "",
+      lastname: uploadFlowState.participantLastName ?? "",
+      email: uploadFlowState.participantEmail ?? "",
     },
     onSubmit: async ({ value }) => {
-      await setSubmissionState((prev) => ({
+      await setUploadFlowState((prev) => ({
         ...prev,
         participantFirstName: value.firstname,
         participantLastName: value.lastname,

@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@number-flow/react": "^0.5.10",
+    "@uidotdev/usehooks": "^2.4.1",
     "sst": "^3.17.19"
   }
 }

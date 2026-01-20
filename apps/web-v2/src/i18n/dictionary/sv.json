@@ -24,5 +24,33 @@
     "sponsors": "Sponsorer",
     "poweredBy": "drivs av",
     "datesToBeAnnounced": "Datum meddelas senare"
+  },
+  "FlowPage": {
+    "participantNumber": {
+      "title": "Ange ditt delagarnummer",
+      "description": "Ange ditt 4-siffriga delagarnummer för att fortsätta",
+      "descriptionAlreadyExists": "Vi hittade ditt delagarnummer. Klicka fortsätt för att fortsätta.",
+      "required": "Delagarnummer krävs",
+      "continue": "Fortsätt",
+      "confirmDialog": {
+        "titleExists": "Välkommen tillbaka!",
+        "titleNew": "Ny delagare",
+        "descriptionExists": "Vi hittade en session för delagarnummer {ref}. Är det du?",
+        "descriptionNew": "Detta kommer att skapa en ny uppladdningssession för detta delagarnummer. Fortsätt?",
+        "cancel": "Avbryt",
+        "confirm": "Fortsätt"
+      }
+    },
+    "steps": {
+      "number": "Nummer",
+      "details": "Detaljer",
+      "class": "Klass",
+      "device": "Enhet",
+      "upload": "Ladda upp"
+    },
+    "participantDetails": {
+      "title": "Dina uppgifter",
+      "description": "Vänligen bekräfta dina uppgifter för att fortsätta"
+    }
   }
 }

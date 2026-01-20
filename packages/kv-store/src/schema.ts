@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Schema } from "effect";
 
 // ============================================================================
 // Redis Hash Encoding Strategy
@@ -22,11 +22,15 @@ import { Schema } from "effect"
  * Encoded: "a,b,c" | ""
  * Decoded: ["a", "b", "c"] | []
  */
-export const StringArrayFromString = Schema.transform(Schema.String, Schema.Array(Schema.String), {
-  strict: true,
-  decode: (s) => (s === "" ? [] : s.split(",")),
-  encode: (arr) => arr.join(","),
-})
+export const StringArrayFromString = Schema.transform(
+  Schema.String,
+  Schema.Array(Schema.String),
+  {
+    strict: true,
+    decode: (s) => (s === "" ? [] : s.split(",")),
+    encode: (arr) => arr.join(","),
+  },
+);
 
 /**
  * Transform for JSON arrays stored as strings in Redis.
@@ -37,16 +41,16 @@ function JsonArrayFromString<A, I, R>(itemSchema: Schema.Schema<A, I, R>) {
   return Schema.transform(Schema.String, Schema.Array(itemSchema), {
     strict: true,
     decode: (s) => {
-      if (s === "" || s === "[]") return []
+      if (s === "" || s === "[]") return [];
       try {
-        const parsed = JSON.parse(s)
-        return Array.isArray(parsed) ? parsed : []
+        const parsed = JSON.parse(s);
+        return Array.isArray(parsed) ? parsed : [];
       } catch {
-        return []
+        return [];
       }
     },
     encode: (arr) => JSON.stringify(arr),
-  })
+  });
 }
 
 // ----------------------------------------------------------------------------
@@ -59,7 +63,7 @@ export const SubmissionStateSchema = Schema.Struct({
   uploaded: Schema.Boolean,
   thumbnailKey: Schema.NullOr(Schema.String),
   exifProcessed: Schema.Boolean,
-})
+});
 
 export const makeInitialSubmissionState = (key: string, orderIndex: number) =>
   SubmissionStateSchema.make({
@@ -68,7 +72,7 @@ export const makeInitialSubmissionState = (key: string, orderIndex: number) =>
     orderIndex,
     thumbnailKey: null,
     exifProcessed: false,
-  })
+  });
 
 export const ParticipantStateSchema = Schema.Struct({
   expectedCount: Schema.Number,
@@ -78,7 +82,8 @@ export const ParticipantStateSchema = Schema.Struct({
   contactSheetKey: Schema.String,
   errors: Schema.Array(Schema.String),
   finalized: Schema.Boolean,
-})
+  checkedAt: Schema.NullOr(Schema.String),
+});
 
 export const makeInitialParticipantState = (expectedCount: number) =>
   ParticipantStateSchema.make({
@@ -89,12 +94,13 @@ export const makeInitialParticipantState = (expectedCount: number) =>
     contactSheetKey: "",
     errors: [],
     finalized: false,
-  })
+    checkedAt: null,
+  });
 
 export const ExifStateSchema = Schema.Record({
   key: Schema.String,
   value: Schema.Unknown,
-})
+});
 
 export const IncrementResultSchema = Schema.Literal(
   "FINALIZED",
@@ -102,15 +108,15 @@ export const IncrementResultSchema = Schema.Literal(
   "DUPLICATE_ORDER_INDEX",
   "ALREADY_FINALIZED",
   "INVALID_ORDER_INDEX",
-  "MISSING_DATA"
-)
+  "MISSING_DATA",
+);
 
 export const ZipProgressSchema = Schema.Struct({
   progress: Schema.Number,
   status: Schema.String,
   errors: Schema.Array(Schema.String),
   zipKey: Schema.String,
-})
+});
 
 export const makeInitialZipProgress = (zipKey: string) =>
   ZipProgressSchema.make({
@@ -118,7 +124,7 @@ export const makeInitialZipProgress = (zipKey: string) =>
     status: "pending",
     errors: [],
     zipKey,
-  })
+  });
 
 // ----------------------------------------------------------------------------
 // Download State Schemas (stored as Redis HASH - all values are strings)
@@ -129,8 +135,8 @@ export const DownloadProcessStatusSchema = Schema.Literal(
   "processing",
   "completed",
   "failed",
-  "cancelled"
-)
+  "cancelled",
+);
 
 /**
  * Competition class info stored in the download process.
@@ -140,7 +146,7 @@ const CompetitionClassSchema = Schema.Struct({
   competitionClassId: Schema.Number,
   competitionClassName: Schema.String,
   totalChunks: Schema.Number,
-})
+});
 
 // ----------------------------------------------------------------------------
 // ChunkState - Stored in Redis HASH
@@ -159,7 +165,7 @@ export const ChunkStateSchema = Schema.Struct({
   zipKey: Schema.String,
   chunkIndex: Schema.Number,
   totalChunks: Schema.Number,
-})
+});
 
 /**
  * ChunkState as stored in Redis HASH (all string values).
@@ -197,7 +203,7 @@ export const DownloadProcessStateSchema = Schema.Struct({
   jobIds: Schema.Array(Schema.String),
   failedJobIds: Schema.Array(Schema.String),
   competitionClasses: Schema.Array(CompetitionClassSchema),
-})
+});
 
 /**
  * DownloadProcessState as stored in Redis HASH (all string values).
@@ -222,12 +228,12 @@ export const DownloadProcessStateSchema = Schema.Struct({
 // Type Exports
 // ----------------------------------------------------------------------------
 
-export type SubmissionState = typeof SubmissionStateSchema.Type
-export type ParticipantState = typeof ParticipantStateSchema.Type
-export type ExifState = typeof ExifStateSchema.Type
-export type ChunkState = typeof ChunkStateSchema.Type
-export type DownloadProcessStatus = typeof DownloadProcessStatusSchema.Type
-export type DownloadProcessState = typeof DownloadProcessStateSchema.Type
+export type SubmissionState = typeof SubmissionStateSchema.Type;
+export type ParticipantState = typeof ParticipantStateSchema.Type;
+export type ExifState = typeof ExifStateSchema.Type;
+export type ChunkState = typeof ChunkStateSchema.Type;
+export type DownloadProcessStatus = typeof DownloadProcessStatusSchema.Type;
+export type DownloadProcessState = typeof DownloadProcessStateSchema.Type;
 
 // Also export the encoded types for clarity
 // export type ChunkStateEncoded = typeof ChunkStateRedisSchema.Encoded
