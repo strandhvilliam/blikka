@@ -13,5 +13,16 @@
     "noMarathonsDescription": "Du har inte tillgång till några maraton ännu. Kontakta en administratör för att få tillgång.",
     "domain": "Domän",
     "selectDomain": "Välj domän"
+  },
+  "LivePage": {
+    "gettingStarted": "Kom igång",
+    "selectLanguage": "Välj språk",
+    "rulesAndInformation": "Tävlingsregler",
+    "termsAccept": "Jag godkänner",
+    "termsAndConditions": "villkoren",
+    "begin": "Börja",
+    "sponsors": "Sponsorer",
+    "poweredBy": "drivs av",
+    "datesToBeAnnounced": "Datum meddelas senare"
   }
 }

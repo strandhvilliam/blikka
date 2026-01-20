@@ -13,5 +13,16 @@
     "noMarathonsDescription": "You don't have access to any marathons yet. Contact an administrator to get access.",
     "domain": "Domain",
     "selectDomain": "Select Domain"
+  },
+  "LivePage": {
+    "gettingStarted": "Getting Started",
+    "selectLanguage": "Choose Language",
+    "rulesAndInformation": "Competition Rules",
+    "termsAccept": "I agree to the",
+    "termsAndConditions": "terms and conditions",
+    "begin": "Begin",
+    "sponsors": "Sponsors",
+    "poweredBy": "powered by",
+    "datesToBeAnnounced": "Dates to be announced"
   }
 }

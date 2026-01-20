@@ -22,7 +22,6 @@ export function ExportContent() {
     trpc.marathons.getByDomain.queryOptions({ domain }),
   );
 
-  if (!marathon) return null;
 
   const marathonName =
     typeof marathon === "object" && marathon !== null && "name" in marathon
@@ -39,6 +38,8 @@ export function ExportContent() {
 
   const isDevelopment = process.env.NODE_ENV === "development";
   const shouldDisableExports = isLive && !bypassRestriction;
+
+  if (!marathon) return null;
 
   return (
     <div className="container mx-auto max-w-[1200px] space-y-8 px-4 py-8 sm:px-6">

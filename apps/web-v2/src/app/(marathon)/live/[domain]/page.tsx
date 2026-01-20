@@ -1,8 +1,8 @@
 import { decodeParams, Page } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
-import { ClientPage } from "./client-page"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
 import { Suspense } from "react"
+import { LiveClientPage } from "./_components/live-client-page"
 
 const _LivePage = Effect.fn("@blikka/web/LivePage")(
   function* ({ params }: PageProps<"/live/[domain]">) {
@@ -10,8 +10,8 @@ const _LivePage = Effect.fn("@blikka/web/LivePage")(
     prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }))
     return (
       <HydrateClient>
-        <Suspense fallback={<div>Loading...</div>}>
-          <ClientPage domain={domain} />
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div>Loading...</div></div>}>
+          <LiveClientPage />
         </Suspense>
       </HydrateClient>
     )

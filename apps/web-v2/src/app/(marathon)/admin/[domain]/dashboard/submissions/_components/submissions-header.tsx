@@ -40,18 +40,6 @@ export function SubmissionsHeader() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="default" className="gap-2">
-            <BarChart3 className="size-4" />
-            Analyze
-          </Button>
-          <Button
-            variant="default"
-            size="default"
-            className="gap-2 bg-[#FF5D4B] hover:bg-[#E32D18] dark:bg-[#FF7A6B] dark:hover:bg-[#E55A47] text-white"
-          >
-            <Plus className="size-4" />
-            Export
-          </Button>
         </div>
       </div>
 

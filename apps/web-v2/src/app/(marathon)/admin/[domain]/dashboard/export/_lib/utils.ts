@@ -37,13 +37,4 @@ export const EXPORT_TYPES: ExportTypeConfig[] = [
       { value: "folder", label: "Per Participant (ZIP)" },
     ],
   },
-  {
-    id: "full_marathon_zip",
-    title: "Full Marathon Zip",
-    description:
-      "Generate a complete zip archive of all participant submissions.",
-    icon: Archive,
-    exportType: "full_marathon_zip",
-    accentColor: "#8b5cf6", // violet
-  },
 ];
