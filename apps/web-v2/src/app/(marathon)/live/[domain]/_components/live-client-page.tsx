@@ -53,7 +53,7 @@ export function LiveClientPage() {
 
   const handleStart = () => {
     if (termsAccepted) {
-      window.location.href = `/live/${domain}/upload`;
+      router.push(formatDomainPathname(`/live/flow`, domain, 'live'));
     }
   };
 
