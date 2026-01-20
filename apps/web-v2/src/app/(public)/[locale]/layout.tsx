@@ -4,13 +4,14 @@ import { notFound } from "next/navigation"
 import Document from "@/components/document"
 import { LOCALES } from "@/config"
 import { Suspense } from "react"
+import { DotPattern } from "@/components/dot-pattern"
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }))
 }
 
 export const metadata: Metadata = {
-  title: "next-intl-mixed-routing (public)",
+  title: "Blikka - Photo Marathon Platform for the People",
 }
 
 
@@ -20,6 +21,7 @@ export default async function PublicLocaleLayout({ children, params }: LayoutPro
 
   return (
     <Document locale={locale}>
+      <DotPattern />
       <Suspense fallback={<div>Loading...</div>}>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </Suspense>

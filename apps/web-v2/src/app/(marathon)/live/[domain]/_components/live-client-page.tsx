@@ -22,7 +22,6 @@ import Image from "next/image";
 import { changeLocaleAction } from "@/lib/actions/change-locale-action";
 import { useRouter } from "next/navigation";
 import { useDomain } from "@/lib/domain-provider";
-import Link from "next/link";
 
 
 export function LiveClientPage() {
@@ -66,8 +65,7 @@ export function LiveClientPage() {
     );
 
   const bucketName =
-    process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME ||
-    "marathon-settings-bucket";
+    process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
@@ -167,25 +165,26 @@ export function LiveClientPage() {
 
             {/* Terms checkbox */}
             <section className="mb-6 space-y-4">
-              <div className="flex items-start space-x-2 px-2.5">
-                <Checkbox
-                  id="platform-terms"
-                  checked={termsAccepted}
-                  onCheckedChange={(checked) =>
-                    setTermsAccepted(checked as boolean)
-                  }
-                  className="mt-1"
-                />
-                <label htmlFor="platform-terms" className="text-sm font-medium">
+              <label htmlFor="platform-terms" className="text-sm font-medium">
+                <div className="flex items-center space-x-2 px-2.5 border rounded-lg py-2 bg-background">
+                  <Checkbox
+                    id="platform-terms"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) =>
+                      setTermsAccepted(checked as boolean)
+                    }
+                    className=""
+                  />
                   {t("termsAccept")}{" "}
-                  <Link
+                  <a
+                    target="_blank"
                     href={formatPublicPathname(`/terms`, domain, locale)}
-                    className="underline font-semibold"
+                    className="underline font-semibold ml-1"
                   >
                     {t("termsAndConditions")}
-                  </Link>
-                </label>
-              </div>
+                  </a>
+                </div>
+              </label>
             </section>
 
             {/* Start button */}
