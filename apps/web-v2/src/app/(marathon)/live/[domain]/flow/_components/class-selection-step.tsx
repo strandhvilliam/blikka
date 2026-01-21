@@ -12,14 +12,32 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { CompetitionClass } from "@blikka/db";
 import { ClassSelectionItem } from "./class-selection-item";
 import { useTranslations } from "next-intl";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import type { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 
-export function ClassSelectionStep({ competitionClasses }: { competitionClasses: CompetitionClass[] }) {
+type UploadFlowState = ReturnType<typeof useUploadFlowState>["uploadFlowState"];
+type SetUploadFlowState = ReturnType<
+  typeof useUploadFlowState
+>["setUploadFlowState"];
+
+interface Props {
+  competitionClasses: CompetitionClass[];
+  uploadFlowState: UploadFlowState;
+  setUploadFlowState: SetUploadFlowState;
+  handleNextStep: () => void;
+  handlePrevStep: () => void;
+}
+
+export function ClassSelectionStep({
+  competitionClasses,
+  uploadFlowState,
+  setUploadFlowState,
+  handleNextStep,
+  handlePrevStep,
+}: Props) {
   const t = useTranslations("FlowPage");
-  const { uploadFlowState, setUploadFlowState, handleNextStep, handlePrevStep } = useUploadFlowState();
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-10 min-h-[70vh] flex flex-col justify-center">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("classSelection.title")}
@@ -29,7 +47,7 @@ export function ClassSelectionStep({ competitionClasses }: { competitionClasses:
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex flex-wrap justify-center gap-4">
+      <CardContent className="flex flex-col justify-center gap-3 sm:gap-4">
         {competitionClasses.map((cc) => (
           <ClassSelectionItem
             key={cc.id}
@@ -40,11 +58,11 @@ export function ClassSelectionStep({ competitionClasses }: { competitionClasses:
         ))}
       </CardContent>
 
-      <CardFooter className="w-full px-4 flex flex-col gap-4 items-center justify-center">
+      <CardFooter className="w-full px-4 flex flex-col gap-3 items-center justify-center">
         <PrimaryButton
           onClick={handleNextStep}
           disabled={!uploadFlowState.competitionClassId}
-          className="w-full py-3 text-lg rounded-full"
+          className="w-full py-3.5 text-base sm:text-lg rounded-full"
         >
           {t("classSelection.continue")}
         </PrimaryButton>
@@ -52,7 +70,7 @@ export function ClassSelectionStep({ competitionClasses }: { competitionClasses:
           variant="ghost"
           size="lg"
           onClick={handlePrevStep}
-          className="w-[200px]"
+          className="w-full sm:w-[220px]"
         >
           {t("classSelection.back")}
         </Button>

@@ -2,17 +2,18 @@ import { CheckIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { PARTICIPANT_SUBMISSION_STEPS } from "../_lib/constants";
 import { cn } from "@/lib/utils";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useTranslations } from "next-intl";
 
+interface Props {
+  currentStep: number;
+  handleSetStep: (step: number) => void;
+}
 
-export function StepNavigator() {
+export function StepNavigator({ currentStep, handleSetStep }: Props) {
   const t = useTranslations("FlowPage");
-  const { step: currentStep, handleNextStep, handlePrevStep, handleSetStep } =
-    useUploadFlowState();
 
-  const stepLabel = (() => {
-    switch (currentStep) {
+  const getStepLabel = (step: number) => {
+    switch (step) {
       case PARTICIPANT_SUBMISSION_STEPS.ParticipantNumberStep:
         return t("steps.number");
       case PARTICIPANT_SUBMISSION_STEPS.ParticipantDetailsStep:
@@ -26,10 +27,10 @@ export function StepNavigator() {
       default:
         return "";
     }
-  })()
+  };
 
   return (
-    <nav className="mb-8">
+    <nav className="mb-0">
       <ol className="flex items-center mx-auto max-w-3xl">
         {Object.values(PARTICIPANT_SUBMISSION_STEPS).map((step) => (
           <li
@@ -97,14 +98,14 @@ export function StepNavigator() {
                 y: 0,
               }}
               className={cn(
-                "hidden sm:block text-sm mt-2 font-medium truncate max-w-[80px] text-center",
+                "hidden sm:block text-xs sm:text-sm mt-2 font-medium truncate max-w-[110px] text-center",
                 step <= currentStep
                   ? "text-foreground"
                   : "text-muted-foreground",
               )}
               transition={{ duration: 0.2, delay: 0.1 }}
             >
-              {stepLabel}
+              {getStepLabel(step)}
             </motion.span>
           </li>
         ))}

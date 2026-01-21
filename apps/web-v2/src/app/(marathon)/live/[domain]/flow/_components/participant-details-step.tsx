@@ -1,5 +1,5 @@
 "use client";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import type { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useForm } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,16 +29,25 @@ const createParticipantDetailsSchema = (t: ReturnType<typeof useTranslations>) =
   }));
 
 
+type UploadFlowState = ReturnType<typeof useUploadFlowState>["uploadFlowState"];
+type SetUploadFlowState = ReturnType<
+  typeof useUploadFlowState
+>["setUploadFlowState"];
+
+interface Props {
+  uploadFlowState: UploadFlowState;
+  setUploadFlowState: SetUploadFlowState;
+  handleNextStep: () => void;
+  handlePrevStep: () => void;
+}
+
 export function ParticipantDetailsStep({
-}) {
+  uploadFlowState,
+  setUploadFlowState,
+  handleNextStep,
+  handlePrevStep,
+}: Props) {
   const t = useTranslations("FlowPage");
-  const {
-    uploadFlowState,
-    setUploadFlowState,
-    handleNextStep,
-    handlePrevStep,
-    handleSetStep,
-  } = useUploadFlowState();
 
   const form = useForm({
     defaultValues: {
@@ -62,8 +71,8 @@ export function ParticipantDetailsStep({
   });
 
   return (
-    <div className="max-w-md mx-auto">
-      <CardHeader className="space-y-2">
+    <div className="max-w-md mx-auto min-h-[70vh] space-y-10 flex flex-col justify-center">
+      <CardHeader className="">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("participantDetails.title")}
         </CardTitle>
@@ -85,7 +94,7 @@ export function ParticipantDetailsStep({
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="rounded-xl text-lg py-6"
+                  className="rounded-xl text-base sm:text-lg py-5"
                   placeholder="James"
                 />
                 {field.state.meta.isTouched &&
@@ -110,7 +119,7 @@ export function ParticipantDetailsStep({
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="rounded-xl text-lg py-6"
+                  className="rounded-xl text-base sm:text-lg py-5"
                   placeholder="Bond"
                 />
                 {field.state.meta.isTouched &&
@@ -135,7 +144,7 @@ export function ParticipantDetailsStep({
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="rounded-xl text-lg py-6"
+                  className="rounded-xl text-base sm:text-lg py-5"
                   type="email"
                   placeholder="your@email.com"
                 />
@@ -150,13 +159,13 @@ export function ParticipantDetailsStep({
           />
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-3 pt-8">
           <form.Subscribe
             selector={(state) => [state.canSubmit, state.isSubmitting]}
             children={([canSubmit]) => (
               <PrimaryButton
                 type="button"
-                className="w-full py-3 text-lg rounded-full"
+                className="w-full py-3.5 text-base sm:text-lg rounded-full"
                 disabled={!canSubmit}
                 // submit mannually to avoid specific bug when navigating back between steps
                 onClick={() => form.handleSubmit()}

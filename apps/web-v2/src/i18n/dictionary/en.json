@@ -65,7 +65,7 @@
     },
     "classSelection": {
       "title": "Select Your Class",
-      "description": "Choose the competition class you want to participate in",
+      "description": "Choose the class you want to participate in",
       "numberOfPhotos": "Photos",
       "continue": "Continue",
       "back": "Back"

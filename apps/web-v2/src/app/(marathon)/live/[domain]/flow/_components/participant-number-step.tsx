@@ -17,7 +17,7 @@ import { useTRPC } from "@/lib/trpc/client";
 import { Marathon } from "@blikka/db";
 import { useDomain } from "@/lib/domain-provider";
 import { useTranslations } from "next-intl";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import type { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { Schema } from "effect";
 import { useState } from "react";
 import {
@@ -45,16 +45,27 @@ const createInitializeParticipantSchema = (
     }),
   );
 
+type UploadFlowState = ReturnType<typeof useUploadFlowState>["uploadFlowState"];
+type SetUploadFlowState = ReturnType<
+  typeof useUploadFlowState
+>["setUploadFlowState"];
+
 interface Props {
   marathon: Marathon;
+  uploadFlowState: UploadFlowState;
+  setUploadFlowState: SetUploadFlowState;
+  handleNextStep: () => void;
 }
 
-export function ParticipantNumberStep({ marathon }: Props) {
+export function ParticipantNumberStep({
+  marathon,
+  uploadFlowState,
+  setUploadFlowState,
+  handleNextStep,
+}: Props) {
   const domain = useDomain();
   const t = useTranslations("FlowPage");
   const trpc = useTRPC();
-  const { uploadFlowState, setUploadFlowState, handleNextStep } =
-    useUploadFlowState();
 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingRef, setPendingRef] = useState("");
@@ -107,8 +118,8 @@ export function ParticipantNumberStep({ marathon }: Props) {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-[80vh] flex flex-col justify-center">
-      <CardHeader className="space-y-4">
+    <div className="max-w-md mx-auto min-h-[70vh] space-y-10 flex flex-col justify-center">
+      <CardHeader className="space-y-3">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("participantNumber.title")}
         </CardTitle>
@@ -125,7 +136,7 @@ export function ParticipantNumberStep({ marathon }: Props) {
           e.stopPropagation();
           form.handleSubmit();
         }}
-        className="space-y-6"
+        className="space-y-8"
       >
         <CardContent className="space-y-6">
           <div>
@@ -137,7 +148,7 @@ export function ParticipantNumberStep({ marathon }: Props) {
                     type="text"
                     inputMode="numeric"
                     placeholder="0000"
-                    className="text-center text-4xl! h-16 bg-background tracking-widest"
+                    className="text-center text-3xl sm:text-4xl h-14 sm:h-16 bg-background tracking-widest leading-none"
                     disabled={!!uploadFlowState.participantId}
                     maxLength={4}
                     value={field.state.value}
@@ -167,11 +178,11 @@ export function ParticipantNumberStep({ marathon }: Props) {
           </div>
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-3">
           {uploadFlowState.participantId ? (
             <Button
               type="button"
-              className="w-full rounded-full py-6 text-lg"
+              className="w-full rounded-full py-3.5 text-base sm:text-lg"
               onClick={handleNextStep}
             >
               {t("participantNumber.continue")}
@@ -186,7 +197,7 @@ export function ParticipantNumberStep({ marathon }: Props) {
               children={([canSubmit, isSubmitting, participantRefValue]) => (
                 <PrimaryButton
                   type="submit"
-                  className="w-full py-3 text-lg rounded-full"
+                  className="w-full py-3.5 text-base sm:text-lg rounded-full"
                   disabled={
                     !canSubmit ||
                     !participantRefValue ||

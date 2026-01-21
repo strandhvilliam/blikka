@@ -29,7 +29,15 @@ export function FlowClientWrapper() {
   useHandleBeforeUnload();
   const trpc = useTRPC();
   const router = useRouter();
-  const { uploadFlowState, step, direction } =
+  const {
+    uploadFlowState,
+    setUploadFlowState,
+    step,
+    direction,
+    handleNextStep,
+    handlePrevStep,
+    handleSetStep,
+  } =
     useUploadFlowState();
   const domain = useDomain();
 
@@ -44,10 +52,10 @@ export function FlowClientWrapper() {
 
 
   return (
-    <div className="max-w-2xl mx-auto py-4">
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10">
       <NetworkStatusBanner />
-      <div className="mb-12 px-4 sm:px-0">
-        <StepNavigator />
+      <div className="mb-10">
+        <StepNavigator currentStep={step} handleSetStep={handleSetStep} />
       </div>
       <AnimatePresence initial={false} custom={direction} mode="wait">
         {step === PARTICIPANT_SUBMISSION_STEPS.ParticipantNumberStep && (
@@ -57,6 +65,9 @@ export function FlowClientWrapper() {
           >
             <ParticipantNumberStep
               marathon={marathon}
+              uploadFlowState={uploadFlowState}
+              setUploadFlowState={setUploadFlowState}
+              handleNextStep={handleNextStep}
             />
           </AnimatedStepWrapper>
         )}
@@ -66,6 +77,10 @@ export function FlowClientWrapper() {
             direction={direction}
           >
             <ParticipantDetailsStep
+              uploadFlowState={uploadFlowState}
+              setUploadFlowState={setUploadFlowState}
+              handleNextStep={handleNextStep}
+              handlePrevStep={handlePrevStep}
             />
           </AnimatedStepWrapper>
         )}
@@ -76,6 +91,10 @@ export function FlowClientWrapper() {
           >
             <ClassSelectionStep
               competitionClasses={marathon.competitionClasses}
+              uploadFlowState={uploadFlowState}
+              setUploadFlowState={setUploadFlowState}
+              handleNextStep={handleNextStep}
+              handlePrevStep={handlePrevStep}
             />
           </AnimatedStepWrapper>
         )}
@@ -86,6 +105,10 @@ export function FlowClientWrapper() {
           >
             <DeviceSelectionStep
               deviceGroups={marathon.deviceGroups}
+              uploadFlowState={uploadFlowState}
+              setUploadFlowState={setUploadFlowState}
+              handleNextStep={handleNextStep}
+              handlePrevStep={handlePrevStep}
             />
           </AnimatedStepWrapper>
         )}

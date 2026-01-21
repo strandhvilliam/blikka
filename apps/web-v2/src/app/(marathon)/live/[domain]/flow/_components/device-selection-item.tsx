@@ -48,13 +48,13 @@ export function DeviceSelectionItem({
     >
       <Card
         className={cn(
-          "relative cursor-pointer overflow-hidden transition-all duration-200",
+          "relative cursor-pointer overflow-hidden transition-all duration-200 py-0",
           isSelected && "ring-2 ring-primary/20 shadow-lg",
         )}
         onClick={onSelect}
       >
         <motion.div
-          className="flex items-center p-4"
+          className="flex items-center px-4 py-3"
           animate={{
             backgroundColor: isSelected
               ? "rgba(24,24,27, 0.03)"

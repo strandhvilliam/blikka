@@ -12,16 +12,29 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { DeviceGroup } from "@blikka/db";
 import { DeviceSelectionItem } from "./device-selection-item";
 import { useTranslations } from "next-intl";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import type { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 
-export function DeviceSelectionStep({ deviceGroups }: { deviceGroups: DeviceGroup[] }) {
+type UploadFlowState = ReturnType<typeof useUploadFlowState>["uploadFlowState"];
+type SetUploadFlowState = ReturnType<
+  typeof useUploadFlowState
+>["setUploadFlowState"];
+
+interface Props {
+  deviceGroups: DeviceGroup[];
+  uploadFlowState: UploadFlowState;
+  setUploadFlowState: SetUploadFlowState;
+  handleNextStep: () => void;
+  handlePrevStep: () => void;
+}
+
+export function DeviceSelectionStep({
+  deviceGroups,
+  uploadFlowState,
+  setUploadFlowState,
+  handleNextStep,
+  handlePrevStep,
+}: Props) {
   const t = useTranslations("FlowPage");
-  const {
-    uploadFlowState,
-    setUploadFlowState,
-    handleNextStep,
-    handlePrevStep,
-  } = useUploadFlowState();
 
   const isValid =
     uploadFlowState.deviceGroupId &&
@@ -33,7 +46,7 @@ export function DeviceSelectionStep({ deviceGroups }: { deviceGroups: DeviceGrou
 
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-10 min-h-[70vh] flex flex-col justify-center">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("deviceSelection.title")}
@@ -43,7 +56,7 @@ export function DeviceSelectionStep({ deviceGroups }: { deviceGroups: DeviceGrou
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-3 sm:gap-4">
         {deviceGroups.map((deviceGroup) => (
           <DeviceSelectionItem
             key={deviceGroup.id}
@@ -60,7 +73,7 @@ export function DeviceSelectionStep({ deviceGroups }: { deviceGroups: DeviceGrou
         <PrimaryButton
           onClick={handleNextStep}
           disabled={!isValid}
-          className="w-full py-3 text-lg rounded-full"
+          className="w-full py-3.5 text-base sm:text-lg rounded-full"
         >
           {t("deviceSelection.continue")}
         </PrimaryButton>
@@ -68,7 +81,7 @@ export function DeviceSelectionStep({ deviceGroups }: { deviceGroups: DeviceGrou
           variant="ghost"
           size="lg"
           onClick={handlePrevStep}
-          className="w-[200px]"
+          className="w-full sm:w-[220px]"
         >
           {t("deviceSelection.back")}
         </Button>
