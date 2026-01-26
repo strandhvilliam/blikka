@@ -12,28 +12,12 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { CompetitionClass } from "@blikka/db";
 import { ClassSelectionItem } from "./class-selection-item";
 import { useTranslations } from "next-intl";
-import type { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import { useStepState } from "../_lib/step-state-context";
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 
-type UploadFlowState = ReturnType<typeof useUploadFlowState>["uploadFlowState"];
-type SetUploadFlowState = ReturnType<
-  typeof useUploadFlowState
->["setUploadFlowState"];
-
-interface Props {
-  competitionClasses: CompetitionClass[];
-  uploadFlowState: UploadFlowState;
-  setUploadFlowState: SetUploadFlowState;
-  handleNextStep: () => void;
-  handlePrevStep: () => void;
-}
-
-export function ClassSelectionStep({
-  competitionClasses,
-  uploadFlowState,
-  setUploadFlowState,
-  handleNextStep,
-  handlePrevStep,
-}: Props) {
+export function ClassSelectionStep({ competitionClasses }: { competitionClasses: CompetitionClass[] }) {
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
+  const { handleNextStep, handlePrevStep } = useStepState();
   const t = useTranslations("FlowPage");
 
   return (

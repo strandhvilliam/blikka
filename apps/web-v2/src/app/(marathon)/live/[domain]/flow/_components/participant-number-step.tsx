@@ -17,7 +17,7 @@ import { useTRPC } from "@/lib/trpc/client";
 import { Marathon } from "@blikka/db";
 import { useDomain } from "@/lib/domain-provider";
 import { useTranslations } from "next-intl";
-import type { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { Schema } from "effect";
 import { useState } from "react";
 import {
@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useStepState } from "../_lib/step-state-context";
 
 const createInitializeParticipantSchema = (
   t: ReturnType<typeof useTranslations>,
@@ -45,24 +46,10 @@ const createInitializeParticipantSchema = (
     }),
   );
 
-type UploadFlowState = ReturnType<typeof useUploadFlowState>["uploadFlowState"];
-type SetUploadFlowState = ReturnType<
-  typeof useUploadFlowState
->["setUploadFlowState"];
 
-interface Props {
-  marathon: Marathon;
-  uploadFlowState: UploadFlowState;
-  setUploadFlowState: SetUploadFlowState;
-  handleNextStep: () => void;
-}
-
-export function ParticipantNumberStep({
-  marathon,
-  uploadFlowState,
-  setUploadFlowState,
-  handleNextStep,
-}: Props) {
+export function ParticipantNumberStep() {
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
+  const { handleNextStep } = useStepState();
   const domain = useDomain();
   const t = useTranslations("FlowPage");
   const trpc = useTRPC();

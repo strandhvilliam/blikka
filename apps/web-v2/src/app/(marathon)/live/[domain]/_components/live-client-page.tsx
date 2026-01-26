@@ -24,6 +24,9 @@ import { useRouter } from "next/navigation";
 import { useDomain } from "@/lib/domain-provider";
 
 
+const BUCKET_NAME =
+  process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
+
 export function LiveClientPage() {
   const domain = useDomain();
   const trpc = useTRPC();
@@ -64,8 +67,6 @@ export function LiveClientPage() {
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
 
-  const bucketName =
-    process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
@@ -210,7 +211,7 @@ export function LiveClientPage() {
                       className="h-10 flex items-center justify-center"
                     >
                       <img
-                        src={`https://s3.eu-north-1.amazonaws.com/${bucketName}/${sponsor.key}`}
+                        src={`https://s3.eu-north-1.amazonaws.com/${BUCKET_NAME}/${sponsor.key}`}
                         alt="Sponsor"
                         className="max-h-10 max-w-[120px] object-contain"
                       />

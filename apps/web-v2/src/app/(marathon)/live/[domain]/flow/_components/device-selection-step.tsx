@@ -12,30 +12,14 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { DeviceGroup } from "@blikka/db";
 import { DeviceSelectionItem } from "./device-selection-item";
 import { useTranslations } from "next-intl";
-import type { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import { useStepState } from "../_lib/step-state-context";
 
-type UploadFlowState = ReturnType<typeof useUploadFlowState>["uploadFlowState"];
-type SetUploadFlowState = ReturnType<
-  typeof useUploadFlowState
->["setUploadFlowState"];
 
-interface Props {
-  deviceGroups: DeviceGroup[];
-  uploadFlowState: UploadFlowState;
-  setUploadFlowState: SetUploadFlowState;
-  handleNextStep: () => void;
-  handlePrevStep: () => void;
-}
-
-export function DeviceSelectionStep({
-  deviceGroups,
-  uploadFlowState,
-  setUploadFlowState,
-  handleNextStep,
-  handlePrevStep,
-}: Props) {
+export function DeviceSelectionStep({ deviceGroups }: { deviceGroups: DeviceGroup[] }) {
+  const { handleNextStep, handlePrevStep } = useStepState();
   const t = useTranslations("FlowPage");
-
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
   const isValid =
     uploadFlowState.deviceGroupId &&
     uploadFlowState.competitionClassId &&

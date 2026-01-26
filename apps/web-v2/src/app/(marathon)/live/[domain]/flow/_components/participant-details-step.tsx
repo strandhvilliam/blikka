@@ -1,5 +1,5 @@
 "use client";
-import type { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useForm } from "@tanstack/react-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Schema } from "effect"
+import { useStepState } from "../_lib/step-state-context";
 
 const createParticipantDetailsSchema = (t: ReturnType<typeof useTranslations>) =>
   Schema.standardSchemaV1(Schema.Struct({
@@ -29,25 +30,10 @@ const createParticipantDetailsSchema = (t: ReturnType<typeof useTranslations>) =
   }));
 
 
-type UploadFlowState = ReturnType<typeof useUploadFlowState>["uploadFlowState"];
-type SetUploadFlowState = ReturnType<
-  typeof useUploadFlowState
->["setUploadFlowState"];
-
-interface Props {
-  uploadFlowState: UploadFlowState;
-  setUploadFlowState: SetUploadFlowState;
-  handleNextStep: () => void;
-  handlePrevStep: () => void;
-}
-
-export function ParticipantDetailsStep({
-  uploadFlowState,
-  setUploadFlowState,
-  handleNextStep,
-  handlePrevStep,
-}: Props) {
+export function ParticipantDetailsStep() {
   const t = useTranslations("FlowPage");
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
+  const { handleNextStep, handlePrevStep } = useStepState();
 
   const form = useForm({
     defaultValues: {

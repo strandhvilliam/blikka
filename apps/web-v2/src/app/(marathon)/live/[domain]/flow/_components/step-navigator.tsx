@@ -3,13 +3,11 @@ import { motion } from "motion/react";
 import { PARTICIPANT_SUBMISSION_STEPS } from "../_lib/constants";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { useStepState } from "../_lib/step-state-context";
 
-interface Props {
-  currentStep: number;
-  handleSetStep: (step: number) => void;
-}
 
-export function StepNavigator({ currentStep, handleSetStep }: Props) {
+export function StepNavigator() {
+  const { step: currentStep, handleSetStep } = useStepState();
   const t = useTranslations("FlowPage");
 
   const getStepLabel = (step: number) => {
