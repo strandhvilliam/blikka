@@ -89,6 +89,7 @@
       "photoCount": "{current} of {max} photos selected",
       "selectPhotos": "Select Photos",
       "back": "Back",
+      "confirmGoBack": "Are you sure you want to go back? This will clear all selected photos.",
       "finalizeAndSubmit": "Finalize & Submit",
       "noFilesSelected": "No files selected",
       "conversionCancelled": "HEIC conversion cancelled",

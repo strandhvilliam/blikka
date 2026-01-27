@@ -6,6 +6,7 @@ import { FlowClientWrapper } from "./_components/flow-client-wrapper"
 import { Page } from "@/lib/next-utils"
 import { prefetch, trpc } from "@/lib/trpc/server"
 import { StepStateProvider } from "./_lib/step-state-context";
+import { Splash } from "@/components/splash";
 
 const _FlowPage = Effect.fn("@blikka/web/FlowPage")(
   function*({ params }: PageProps<"/live/[domain]">) {
@@ -13,7 +14,7 @@ const _FlowPage = Effect.fn("@blikka/web/FlowPage")(
     prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }))
     return (
       <HydrateClient>
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div>Loading...</div></div>}>
+        <Suspense fallback={<Splash />}>
           <StepStateProvider>
             <FlowClientWrapper />
           </StepStateProvider>

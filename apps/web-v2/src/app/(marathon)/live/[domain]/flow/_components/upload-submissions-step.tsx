@@ -58,6 +58,7 @@ export function UploadSubmissionsStep({
 
   const initializeStore = usePhotoStore((state) => state.initialize);
   const cleanup = usePhotoStore((state) => state.cleanup);
+  const clearPhotos = usePhotoStore((state) => state.clearPhotos);
   const photos = usePhotoStore((state) => state.photos);
   const removePhoto = usePhotoStore((state) => state.removePhoto);
   const validationResults = usePhotoStore((state) => state.validationResults);
@@ -73,6 +74,7 @@ export function UploadSubmissionsStep({
   const heicProgress = useHeicStore((state) => state.progress);
   const heicCurrentFileName = useHeicStore((state) => state.currentFileName);
   const cancelHeicConversion = useHeicStore((state) => state.cancel);
+
 
   const { handleFileSelect } = useSelectFile({
     maxPhotos: competitionClass.numberOfPhotos,
@@ -94,6 +96,20 @@ export function UploadSubmissionsStep({
       }, 500);
     },
   });
+
+  const handleResetAndGoBack = () => {
+    const confirmed = window.confirm(t("confirmGoBack"));
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    clearPhotos();
+    clearFiles();
+    setIsUploading(false);
+    setShowConfirmationDialog(false);
+    handlePrevStep();
+  }
 
   const { mutateAsync: initializeUploadFlow, isPending: isInitializing } =
     useMutation(
@@ -283,7 +299,7 @@ export function UploadSubmissionsStep({
           <Button
             variant="ghost"
             size="lg"
-            onClick={handlePrevStep}
+            onClick={handleResetAndGoBack}
             className="w-[200px]"
           >
             {t("back")}

@@ -78,6 +78,7 @@
       "photoCount": "{current} av {max} foton valda",
       "selectPhotos": "Välj foton",
       "back": "Tillbaka",
+      "confirmGoBack": "Är du säker på att du vill gå tillbaka? Detta kommer att rensa alla valda foton.",
       "finalizeAndSubmit": "Slutför & Skicka in",
       "noFilesSelected": "Inga filer valda",
       "conversionCancelled": "HEIC-konvertering avbruten",
