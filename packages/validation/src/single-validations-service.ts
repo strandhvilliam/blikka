@@ -11,12 +11,12 @@ import { ValidationFailure, ValidationSkipped } from "./types"
 export class SingleValidationsService extends Effect.Service<SingleValidationsService>()(
   "@blikka/packages/validation/SingleValidationsService",
   {
-    effect: Effect.gen(function* () {
+    effect: Effect.gen(function*() {
       const validateMaxFileSize = (
         params: RuleParams["max_file_size"],
         input: ValidationInput
       ) =>
-        Effect.gen(function* () {
+        Effect.gen(function*() {
           if (input.fileSize > params.maxBytes) {
             return yield* new ValidationFailure({
               ruleKey: RULE_KEYS.MAX_FILE_SIZE,
@@ -34,7 +34,7 @@ export class SingleValidationsService extends Effect.Service<SingleValidationsSe
         params: RuleParams["allowed_file_types"],
         input: ValidationInput
       ) =>
-        Effect.gen(function* () {
+        Effect.gen(function*() {
           const extension = getExtensionFromFilename(input.fileName)
 
           const parsedAllowedFileTypes = params.allowedFileTypes.reduce(
@@ -58,7 +58,7 @@ export class SingleValidationsService extends Effect.Service<SingleValidationsSe
           if (!parsedAllowedFileTypes.includes(extension.value)) {
             return yield* new ValidationFailure({
               ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
-              message: `Invalid file extension: ${extension} (allowed: ${parsedAllowedFileTypes.join(", ")})`,
+              message: `Invalid file extension: '${extension.value}' (allowed: ${parsedAllowedFileTypes.join(", ")})`,
               context: {
                 extension,
                 allowedExtensions: parsedAllowedFileTypes,
@@ -100,7 +100,7 @@ export class SingleValidationsService extends Effect.Service<SingleValidationsSe
         params: RuleParams["within_timerange"],
         input: ValidationInput
       ) =>
-        Effect.gen(function* () {
+        Effect.gen(function*() {
           const start =
             typeof params.start === "string"
               ? new Date(params.start)
@@ -140,7 +140,7 @@ export class SingleValidationsService extends Effect.Service<SingleValidationsSe
         params: RuleParams["modified"],
         input: ValidationInput
       ) =>
-        Effect.gen(function* () {
+        Effect.gen(function*() {
           const software = Option.fromNullable<string>(input.exif["Software"])
 
           if (Option.isSome(software) && software.value !== "") {
@@ -222,4 +222,5 @@ export class SingleValidationsService extends Effect.Service<SingleValidationsSe
       }
     }),
   }
-) {}
+) {
+}

@@ -10,8 +10,9 @@
     "./old/types": "./old/types.ts"
   },
   "devDependencies": {
+    "@effect/vitest": "^0.26.0",
     "@types/bun": "latest",
-    "vitest": "^2.1.8"
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "typescript": "^5.7.2"
