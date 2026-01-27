@@ -70,6 +70,7 @@
       "description": "Välj och ladda upp dina foton för inlämning",
       "photo": "Foto {number}",
       "tapToSelect": "Tryck för att välja ett foto",
+      "noPhotoSelected": "Inget foto valt",
       "remove": "Ta bort",
       "allPhotosSelected": "Alla foton valda!",
       "readyToSubmit": "Du har valt alla {count} foton. Redo att skicka in.",
@@ -99,7 +100,14 @@
       "confirmUpload": "Bekräfta uppladdning",
       "confirmUploadDescription": "Du håller på att ladda upp {count} foton för delagare {ref}. Denna åtgärd kan inte ångras.",
       "initializing": "Initierar...",
-      "confirmAndUpload": "Bekräfta & Ladda upp"
+      "confirmAndUpload": "Bekräfta & Ladda upp",
+      "noExifData": "Ingen bildmetadata hittades",
+      "taken": "Tagen:",
+      "file": "Fil:",
+      "photoDetails": "Fotodetaljer",
+      "uploadPreviewAlt": "Förhandsvisning av foto {index}",
+      "photoPreviewTitle": "Förhandsvisning av foto - {topic}",
+      "fullPreviewAlt": "Full förhandsvisning av foto {index}"
     },
     "uploadProgress": {
       "titleUploading": "Laddar upp foton",

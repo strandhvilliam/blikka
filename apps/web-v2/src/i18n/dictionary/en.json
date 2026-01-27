@@ -81,6 +81,7 @@
       "description": "Select and upload your photos for submission",
       "photo": "Photo {number}",
       "tapToSelect": "Tap to select a photo",
+      "noPhotoSelected": "No photo selected",
       "remove": "Remove",
       "allPhotosSelected": "All photos selected!",
       "readyToSubmit": "You have selected all {count} photos. Ready to submit.",
@@ -110,7 +111,14 @@
       "confirmUpload": "Confirm Upload",
       "confirmUploadDescription": "You are about to upload {count} photos for participant {ref}. This action cannot be undone.",
       "initializing": "Initializing...",
-      "confirmAndUpload": "Confirm & Upload"
+      "confirmAndUpload": "Confirm & Upload",
+      "noExifData": "No photo metadata found",
+      "taken": "Taken:",
+      "file": "File:",
+      "photoDetails": "Photo Details",
+      "uploadPreviewAlt": "Preview of photo {index}",
+      "photoPreviewTitle": "Photo Preview - {topic}",
+      "fullPreviewAlt": "Full preview of photo {index}"
     },
     "uploadProgress": {
       "titleUploading": "Uploading Photos",

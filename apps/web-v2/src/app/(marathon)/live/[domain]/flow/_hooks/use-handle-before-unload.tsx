@@ -3,7 +3,6 @@ import { useEffect } from "react";
 export function useHandleBeforeUnload() {
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      console.log("beforeunload", step);
       event.preventDefault();
       return "Are you sure you want to leave? All progress will be lost.";
     };
