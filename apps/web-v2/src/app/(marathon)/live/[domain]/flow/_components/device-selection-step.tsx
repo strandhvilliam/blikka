@@ -23,7 +23,6 @@ export function DeviceSelectionStep({ deviceGroups }: { deviceGroups: DeviceGrou
   const isValid =
     uploadFlowState.deviceGroupId &&
     uploadFlowState.competitionClassId &&
-    uploadFlowState.participantId &&
     uploadFlowState.participantFirstName &&
     uploadFlowState.participantLastName &&
     uploadFlowState.participantEmail;

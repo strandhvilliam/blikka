@@ -51,6 +51,72 @@
     "participantDetails": {
       "title": "Dina uppgifter",
       "description": "Vänligen bekräfta dina uppgifter för att fortsätta"
+    },
+    "classSelection": {
+      "title": "Välj din klass",
+      "description": "Välj vilken klass du vill delta i",
+      "numberOfPhotos": "Foton",
+      "continue": "Fortsätt",
+      "back": "Tillbaka"
+    },
+    "deviceSelection": {
+      "title": "Välj din enhet",
+      "description": "Välj vilken enhet du använde för att ta dina foton",
+      "continue": "Fortsätt",
+      "back": "Tillbaka"
+    },
+    "uploadStep": {
+      "title": "Ladda upp dina foton",
+      "description": "Välj och ladda upp dina foton för inlämning",
+      "photo": "Foto {number}",
+      "tapToSelect": "Tryck för att välja ett foto",
+      "remove": "Ta bort",
+      "allPhotosSelected": "Alla foton valda!",
+      "readyToSubmit": "Du har valt alla {count} foton. Redo att skicka in.",
+      "clickToSelect": "Klicka eller tryck för att välja foton",
+      "photoCount": "{current} av {max} foton valda",
+      "selectPhotos": "Välj foton",
+      "back": "Tillbaka",
+      "finalizeAndSubmit": "Slutför & Skicka in",
+      "noFilesSelected": "Inga filer valda",
+      "conversionCancelled": "HEIC-konvertering avbruten",
+      "noValidFiles": "Inga giltiga bildfiler hittades",
+      "duplicatesSkipped": "Dubbletter hoppades över: {names}",
+      "tooManyFiles": "För många filer valda. Endast {max} fler kan läggas till.",
+      "maxPhotosReached": "Maximalt antal foton redan valda",
+      "selectAllPhotos": "Vänligen välj alla {count} foton innan du skickar in",
+      "missingRequiredInfo": "Deltagarinformation saknas",
+      "failedToGetPresignedUrls": "Kunde inte hämta uppladdnings-URLer. Försök igen.",
+      "uploadFailed": "Uppladdning misslyckades. Försök igen.",
+      "uploadComplete": "Uppladdning klar!",
+      "initializationFailed": "Kunde inte initiera uppladdningssession",
+      "convertingHeic": "Konverterar HEIC-foton",
+      "cancelling": "Avbryter...",
+      "conversionProgress": "Konverterar {current}/{total}: {fileName}",
+      "stoppingConversion": "Stoppar konvertering...",
+      "convertingFile": "Konverterar {current} av {total}",
+      "cancel": "Avbryt",
+      "confirmUpload": "Bekräfta uppladdning",
+      "confirmUploadDescription": "Du håller på att ladda upp {count} foton för delagare {ref}. Denna åtgärd kan inte ångras.",
+      "initializing": "Initierar...",
+      "confirmAndUpload": "Bekräfta & Ladda upp"
+    },
+    "uploadProgress": {
+      "titleUploading": "Laddar upp foton",
+      "titleComplete": "Uppladdning klar!",
+      "titleIssues": "Uppladdningsproblem",
+      "clickToContinue": "Klicka fortsätt för att gå vidare",
+      "clickToRetry": "Några filer misslyckades. Klicka försök igen.",
+      "thisMayTakeSeveralMinutes": "Detta kan ta flera minuter",
+      "close": "Stäng",
+      "overallProgress": "Övergripande framsteg",
+      "completedOfTotal": "{completed} av {total}",
+      "failed": "misslyckades",
+      "oneFileFailed": "1 fil misslyckades att ladda upp",
+      "multipleFilesFailed": "{count} filer misslyckades att ladda upp",
+      "checkConnection": "Kontrollera din anslutning och försök igen",
+      "retryFailed": "Försök igen ({count})",
+      "continue": "Fortsätt"
     }
   }
 }

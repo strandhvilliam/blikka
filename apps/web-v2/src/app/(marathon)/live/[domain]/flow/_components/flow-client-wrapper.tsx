@@ -1,9 +1,10 @@
 "use client"
 import { useDomain } from "@/lib/domain-provider";
 import { useTRPC } from "@/lib/trpc/client";
-import { useSuspenseQueries, useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useHandleBeforeUnload } from "../_hooks/use-handle-before-unload";
@@ -16,7 +17,8 @@ import { ParticipantNumberStep } from "./participant-number-step";
 import { ParticipantDetailsStep } from "./participant-details-step";
 import { ClassSelectionStep } from "./class-selection-step";
 import { DeviceSelectionStep } from "./device-selection-step";
-import { StepStateProvider, useStepState } from "../_lib/step-state-context";
+import { UploadSubmissionsStep } from "./upload-submissions-step";
+import { useStepState } from "../_lib/step-state-context";
 
 const NetworkStatusBanner = dynamic(
   () =>
@@ -41,6 +43,26 @@ export function FlowClientWrapper() {
   const { data: marathon } = useSuspenseQuery(
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
   );
+
+  // Get the selected competition class
+  const selectedCompetitionClass = useMemo(() => {
+    if (!uploadFlowState.competitionClassId) return null;
+    return marathon.competitionClasses.find(
+      (cc) => cc.id === uploadFlowState.competitionClassId,
+    ) || null;
+  }, [marathon.competitionClasses, uploadFlowState.competitionClassId]);
+
+  // Get topics for the selected competition class
+  const topicsForClass = useMemo(() => {
+    if (!selectedCompetitionClass) return [];
+    const sortedTopics = [...marathon.topics].sort(
+      (a, b) => a.orderIndex - b.orderIndex,
+    );
+    return sortedTopics.slice(
+      selectedCompetitionClass.topicStartIndex,
+      selectedCompetitionClass.topicStartIndex + selectedCompetitionClass.numberOfPhotos,
+    );
+  }, [marathon.topics, selectedCompetitionClass]);
 
   const handleNavigateToVerification = () => {
     const params = flowStateParamSerializer(uploadFlowState);
@@ -93,22 +115,18 @@ export function FlowClientWrapper() {
             />
           </AnimatedStepWrapper>
         )}
-        {/* {step === PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep && (
-          <AnimatedStepWrapper
-            key={PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep}
-            direction={direction}
-          >
-            <UploadSubmissionsStep
-              realtimeConfig={realtimeConfig}
-              marathon={marathon}
-              competitionClasses={competitionClasses}
-              topics={topics}
-              ruleConfigs={mapDbRuleConfigsToValidationConfigs(ruleConfigs)}
-              onPrevStep={handlePrevStep}
-              onNextStep={handleNavigateToVerification}
-            />
-          </AnimatedStepWrapper>
-        )} */}
+        {step === PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep &&
+          selectedCompetitionClass && (
+            <AnimatedStepWrapper
+              key={PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep}
+              direction={direction}
+            >
+              <UploadSubmissionsStep
+                competitionClass={selectedCompetitionClass}
+                topics={topicsForClass}
+              />
+            </AnimatedStepWrapper>
+          )}
       </AnimatePresence>
     </div>
   );

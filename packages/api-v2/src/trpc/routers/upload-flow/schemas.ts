@@ -32,3 +32,11 @@ export const CheckParticipantExistsSchema = Schema.standardSchemaV1(
     reference: Schema.String,
   }),
 );
+
+export const GetUploadStatusSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    reference: Schema.String,
+    orderIndexes: Schema.Array(Schema.Number),
+  }),
+);

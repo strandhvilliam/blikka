@@ -5,6 +5,7 @@ import {
   GetPublicMarathonSchema,
   InitializeUploadFlowSchema,
   CheckParticipantExistsSchema,
+  GetUploadStatusSchema,
 } from "./schemas";
 import { trpcEffect } from "../../utils";
 import { createTRPCRouter, publicProcedure } from "../../root";
@@ -42,4 +43,12 @@ export const uploadFlowRouter = createTRPCRouter({
         }),
       ),
     ),
+
+  getUploadStatus: publicProcedure.input(GetUploadStatusSchema).query(
+    trpcEffect(
+      Effect.fn("UploadFlowRouter.getUploadStatus")(function* ({ input }) {
+        return yield* UploadFlowApiService.getUploadStatus(input);
+      }),
+    ),
+  ),
 });

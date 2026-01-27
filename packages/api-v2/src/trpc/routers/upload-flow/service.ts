@@ -211,10 +211,42 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
         });
       });
 
+      const getUploadStatus = Effect.fn("UploadFlowApiService.getUploadStatus")(
+        function* ({ domain, reference, orderIndexes }) {
+          const participantState = yield* kv.getParticipantState(domain, reference);
+          const submissionStates = yield* kv.getAllSubmissionStates(
+            domain,
+            reference,
+            orderIndexes,
+          );
+
+          return {
+            participant: Option.match(participantState, {
+              onSome: (state) => ({
+                expectedCount: state.expectedCount,
+                processedIndexes: state.processedIndexes,
+                validated: state.validated,
+                finalized: state.finalized,
+                errors: state.errors,
+              }),
+              onNone: () => null,
+            }),
+            submissions: submissionStates.map((state) => ({
+              key: state.key,
+              orderIndex: state.orderIndex,
+              uploaded: state.uploaded,
+              thumbnailKey: state.thumbnailKey,
+              exifProcessed: state.exifProcessed,
+            })),
+          };
+        },
+      );
+
       return {
         initializeUploadFlow,
         getPublicMarathon,
         checkParticipantExists,
+        getUploadStatus,
       } as const;
     }),
   },
