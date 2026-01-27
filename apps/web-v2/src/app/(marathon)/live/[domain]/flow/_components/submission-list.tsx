@@ -2,7 +2,7 @@
 
 import type { Topic } from "@blikka/db";
 import { AnimatePresence, motion } from "motion/react";
-import { usePhotoContext } from "../_lib/photo-context";
+import { usePhotoStore } from "../_lib/photo-store";
 import { SubmissionItem } from "./submission-item";
 
 interface SubmissionListProps {
@@ -18,7 +18,8 @@ export function SubmissionList({
   onUploadClick,
   onRemovePhoto,
 }: SubmissionListProps) {
-  const { photos, validationResults } = usePhotoContext();
+  const photos = usePhotoStore((state) => state.photos);
+  const validationResults = usePhotoStore((state) => state.validationResults);
   const remainingSlots = maxPhotos - photos.length;
 
   return (

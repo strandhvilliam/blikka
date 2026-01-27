@@ -78,17 +78,6 @@ export interface UploadStatusResponse {
   }>;
 }
 
-// HEIC conversion state
-export interface HeicConversionState {
-  isConverting: boolean;
-  isCancelling: boolean;
-  progress: {
-    current: number;
-    total: number;
-  };
-  currentFileName: string | null;
-}
-
 // Utility function to convert phase to display status
 export function phaseToDisplayStatus(
   phase: UploadPhase,

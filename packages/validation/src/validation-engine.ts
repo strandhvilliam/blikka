@@ -56,6 +56,7 @@ export class ValidationEngine extends Effect.Service<ValidationEngine>()(
               return results;
             }
             case RULE_KEYS.WITHIN_TIMERANGE: {
+
               const params = yield* parseRuleParams(rule.ruleKey, rule.params);
 
               const results = yield* Effect.forEach(inputs, (input) =>

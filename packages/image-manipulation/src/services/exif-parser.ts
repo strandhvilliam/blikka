@@ -18,16 +18,18 @@ export class ExifParser extends Effect.Service<ExifParser>()(
   "@blikka/exif-parser/exif-parser",
   {
     dependencies: [],
+    accessors: true,
     effect: Effect.gen(function*() {
       const parse = Effect.fn("ExifParser.parse")(
         function*(
-          file: Buffer,
+          file: Uint8Array<ArrayBufferLike>,
           options: { keepBinaryData: boolean } = { keepBinaryData: false }
         ) {
           const exif = yield* Effect.tryPromise(() => exifr.parse(file))
           const sanitizedExif = yield* Effect.try(() =>
             sanitizeExifData(exif, options?.keepBinaryData)
           )
+
           const decoded = yield* Schema.decodeUnknown(ExifSchema)(sanitizedExif)
           return decoded
         },
@@ -106,14 +108,16 @@ export const sanitizeExifData = (
     return `[Binary Data: ${bytes} bytes]`
   }
 
-  // String sanitization
-  if (typeof input === "string") {
-    return input.replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-  }
+
 
   // Date → ISO
   if (input instanceof Date) {
     return input.toISOString()
+  }
+
+  // String sanitization
+  if (typeof input === "string") {
+    return input.replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
   }
 
   // Arrays

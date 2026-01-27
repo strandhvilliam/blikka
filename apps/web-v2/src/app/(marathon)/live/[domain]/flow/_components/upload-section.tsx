@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { CloudUpload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
-import { usePhotoContext } from "../_lib/photo-context";
+import { usePhotoStore } from "../_lib/photo-store";
 
 interface UploadSectionProps {
   maxPhotos: number;
@@ -16,7 +16,7 @@ interface UploadSectionProps {
 
 export function UploadSection({ maxPhotos, onUploadClick }: UploadSectionProps) {
   const t = useTranslations("FlowPage.uploadStep");
-  const { photos } = usePhotoContext();
+  const photos = usePhotoStore((state) => state.photos);
 
   const allPhotosSelected = photos.length === maxPhotos && photos.length > 0;
   const isDisabled = photos.length >= maxPhotos;

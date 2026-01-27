@@ -3,22 +3,11 @@
 import { useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
-import { useUploadContext } from "../_lib/upload-context";
+import { useUploadStore, selectFailedFiles, selectAllFiles } from "../_lib/upload-store";
 import type { PhotoWithPresignedUrl, UploadFileState, UploadPhase } from "../_lib/types";
 import { UPLOAD_PHASE, classifyUploadError } from "../_lib/types";
-
-const UPLOAD_TIMEOUT_MS = 1000 * 60 * 6; // 6 minutes
-const UPLOAD_CONCURRENCY_LIMIT = 1;
-const POLLING_INTERVAL_MS = 3000; // 3 seconds
-
-// Utility to chunk array for controlled concurrency
-function chunk<T>(array: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
-  }
-  return chunks;
-}
+import { UPLOAD_TIMEOUT_MS, UPLOAD_CONCURRENCY_LIMIT, POLLING_INTERVAL_MS } from "../_lib/constants";
+import { chunk } from "../_lib/utils";
 
 interface UseFileUploadOptions {
   domain: string;
@@ -32,26 +21,20 @@ export function useFileUpload({
   onAllCompleted,
 }: UseFileUploadOptions) {
   const trpc = useTRPC();
-  const {
-    files,
-    isUploading,
-    initializeFiles,
-    updateFilePhase,
-    setFileError,
-    clearFiles,
-    setIsUploading,
-    lockFile,
-    unlockFile,
-    isFileLocked,
-    getFile,
-    getAllFiles,
-    getFailedFiles,
-  } = useUploadContext();
+  
+  const files = useUploadStore((state) => state.files);
+  const isUploading = useUploadStore((state) => state.isUploading);
+  const initializeFiles = useUploadStore((state) => state.initializeFiles);
+  const updateFilePhase = useUploadStore((state) => state.updateFilePhase);
+  const setFileError = useUploadStore((state) => state.setFileError);
+  const clearFiles = useUploadStore((state) => state.clearFiles);
+  const setIsUploading = useUploadStore((state) => state.setIsUploading);
+  const lockFile = useUploadStore((state) => state.lockFile);
+  const unlockFile = useUploadStore((state) => state.unlockFile);
+  const isFileLocked = useUploadStore((state) => state.isFileLocked);
 
-  // Get order indexes for polling
   const orderIndexes = Array.from(files.values()).map((f) => f.orderIndex);
 
-  // Poll for upload status
   const { data: uploadStatus } = useQuery(
     trpc.uploadFlow.getUploadStatus.queryOptions(
       { domain, reference, orderIndexes },
@@ -63,18 +46,16 @@ export function useFileUpload({
     ),
   );
 
-  // Update file phases based on polling response
   useEffect(() => {
     if (!uploadStatus || !isUploading) return;
 
     uploadStatus.submissions.forEach((submission) => {
-      const file = getFile(submission.key);
+      const file = files.get(submission.key);
       if (!file) return;
 
       // Skip if file is locked (being uploaded)
       if (isFileLocked(submission.key)) return;
 
-      // Update to completed if uploaded on server
       if (
         submission.uploaded &&
         file.phase !== UPLOAD_PHASE.COMPLETED
@@ -83,9 +64,9 @@ export function useFileUpload({
       }
     });
 
-    // Check if all completed and finalized
     if (uploadStatus.participant?.finalized) {
-      const allFilesCompleted = getAllFiles().every(
+      const allFiles = Array.from(files.values());
+      const allFilesCompleted = allFiles.every(
         (f) => f.phase === UPLOAD_PHASE.COMPLETED,
       );
       if (allFilesCompleted) {
@@ -95,14 +76,12 @@ export function useFileUpload({
   }, [
     uploadStatus,
     isUploading,
-    getFile,
+    files,
     isFileLocked,
     updateFilePhase,
-    getAllFiles,
     onAllCompleted,
   ]);
 
-  // Upload a single file
   const uploadSingleFile = useCallback(
     async (file: UploadFileState): Promise<void> => {
       if (isFileLocked(file.key)) {
@@ -125,7 +104,6 @@ export function useFileUpload({
             body: file.file,
             signal: controller.signal,
             headers: {
-              // Use actual file type instead of hardcoded (fix from review)
               "Content-Type": file.file.type || "image/jpeg",
             },
           });
@@ -175,7 +153,6 @@ export function useFileUpload({
     ],
   );
 
-  // Upload with controlled concurrency
   const uploadWithConcurrency = useCallback(
     async (filesToUpload: UploadFileState[]): Promise<void> => {
       const fileChunks = chunk(filesToUpload, UPLOAD_CONCURRENCY_LIMIT);
@@ -188,7 +165,6 @@ export function useFileUpload({
     [uploadSingleFile],
   );
 
-  // Main execute upload function
   const executeUpload = useCallback(
     async (photos: PhotoWithPresignedUrl[]): Promise<void> => {
       initializeFiles(photos);
@@ -210,27 +186,24 @@ export function useFileUpload({
     [initializeFiles, uploadWithConcurrency],
   );
 
-  // Retry failed files
   const retryFailedFiles = useCallback(async (): Promise<void> => {
-    const failedFiles = getFailedFiles();
+    const failedFiles = selectFailedFiles(useUploadStore.getState());
     if (failedFiles.length === 0) return;
 
-    // Reset failed files to presigned state
     failedFiles.forEach((file) => {
       if (!isFileLocked(file.key)) {
         updateFilePhase(file.key, UPLOAD_PHASE.PRESIGNED, 0);
       }
     });
 
-    // Get updated files and retry
     const filesToRetry = failedFiles.filter((f) => !isFileLocked(f.key));
     await uploadWithConcurrency(filesToRetry);
-  }, [getFailedFiles, isFileLocked, updateFilePhase, uploadWithConcurrency]);
+  }, [isFileLocked, updateFilePhase, uploadWithConcurrency]);
 
   return {
     isUploading,
-    files: getAllFiles(),
-    failedFiles: getFailedFiles(),
+    files: selectAllFiles(useUploadStore.getState()),
+    failedFiles: selectFailedFiles(useUploadStore.getState()),
     uploadStatus,
     executeUpload,
     retryFailedFiles,

@@ -8,7 +8,8 @@ import {
   type ValidationRule,
   ValidationSkipped,
 } from "./types";
-import { VALIDATION_OUTCOME } from "./constants";
+import { RULE_KEYS,
+  VALIDATION_OUTCOME } from "./constants";
 
 export class ValidationParamError extends Schema.TaggedError<ValidationParamError>()(
   "ValidationParamError",
@@ -20,6 +21,8 @@ export class ValidationParamError extends Schema.TaggedError<ValidationParamErro
 
 export const parseRuleParams = <K extends RuleKey>(key: K, params: unknown) =>
   Effect.gen(function*() {
+
+
     return yield* Schema.decodeUnknown(RuleParamsSchema.pick(key))(params).pipe(
       Effect.mapError(
         (error) => new ValidationParamError({ message: error.message }),
@@ -33,7 +36,7 @@ export const getTimestamp = (
   Option.fromNullable(
     exif.DateTimeOriginal ?? exif.DateTimeDigitized ?? exif.CreateDate,
   ).pipe(
-    Option.filter((timestamp) => typeof timestamp === "string"),
+    Option.filter((timestamp) => typeof timestamp === "string" || timestamp instanceof Date),
     Option.flatMap((timestamp) => {
       const date = new Date(timestamp);
       return isNaN(date.getTime()) ? Option.none() : Option.some(date);

@@ -110,6 +110,10 @@ export class SingleValidationsService extends Effect.Service<SingleValidationsSe
 
           const timestamp = getTimestamp(input.exif)
 
+          console.log(JSON.stringify(input.exif, null, 2))
+
+          console.log('timestamp', timestamp)
+
           if (Option.isNone(timestamp)) {
             return yield* new ValidationSkipped({
               ruleKey: RULE_KEYS.WITHIN_TIMERANGE,

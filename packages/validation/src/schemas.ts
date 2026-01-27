@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect"
+import { Schema } from "effect"
 import { IMAGE_EXTENSION_TO_MIME_TYPE, RULE_KEYS, VALIDATION_OUTCOME } from "./constants"
 import type { RuleKey } from "./types"
 
@@ -12,6 +12,7 @@ export const RuleKeySchema = Schema.Literal(
   RULE_KEYS.SAME_DEVICE,
   RULE_KEYS.MODIFIED
 )
+
 
 export const RuleParamsSchema = Schema.Struct({
   [RULE_KEYS.ALLOWED_FILE_TYPES]: Schema.Struct({
@@ -27,8 +28,8 @@ export const RuleParamsSchema = Schema.Struct({
     maxBytes: Schema.Number.pipe(Schema.positive(), Schema.int()),
   }),
   [RULE_KEYS.WITHIN_TIMERANGE]: Schema.Struct({
-    start: Schema.Union(Schema.String, Schema.Date),
-    end: Schema.Union(Schema.String, Schema.Date),
+    start: Schema.String,
+    end: Schema.String,
   }),
   [RULE_KEYS.STRICT_TIMESTAMP_ORDERING]: Schema.NullOr(Schema.Struct({})),
   [RULE_KEYS.SAME_DEVICE]: Schema.NullOr(Schema.Struct({})),

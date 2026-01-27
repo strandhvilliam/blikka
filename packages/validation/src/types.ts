@@ -1,22 +1,25 @@
-import { Data } from "effect";
+import { Data, Schema } from "effect";
 import { RULE_KEYS } from "./constants";
 import {
+  RuleKeySchema,
   RuleParamsSchema,
   SeverityLevelSchema,
   ValidationInputSchema,
   ValidationResultSchema,
 } from "./schemas";
 
-export class ValidationFailure extends Data.TaggedError("ValidationFailure")<{
-  readonly ruleKey: RuleKey;
-  readonly message: string;
-  readonly context?: Record<string, unknown>;
-}> {}
+export class ValidationFailure extends Schema.TaggedError<ValidationFailure>()("ValidationFailure", {
+  ruleKey: RuleKeySchema,
+  message: Schema.String,
+  context: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+}) {
+}
 
-export class ValidationSkipped extends Data.TaggedError("ValidationSkipped")<{
-  readonly ruleKey: RuleKey;
-  readonly reason: string;
-}> {}
+export class ValidationSkipped extends Schema.TaggedError<ValidationSkipped>()("ValidationSkipped", {
+  ruleKey: RuleKeySchema,
+  reason: Schema.String,
+}) {
+}
 
 export type RuleKey = (typeof RULE_KEYS)[keyof typeof RULE_KEYS];
 
