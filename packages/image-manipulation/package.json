@@ -4,7 +4,11 @@
   "type": "module",
   "private": true,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./sharp": "./src/services/sharp-image-service.ts",
+    "./canvas": "./src/services/canvas-image-service.ts",
+    "./contact-sheet": "./src/services/contact-sheet-service.ts",
+    "./exif-parser": "./src/services/exif-parser.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -16,6 +20,7 @@
     "@effect/platform": "^0.90.7",
     "@effect/platform-node": "^0.96.1",
     "effect": "^3.17.13",
+    "exifr": "^7.1.3",
     "sharp": "^0.34.3"
   }
 }
