@@ -10,11 +10,11 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
   "@blikka/db/participants-queries",
   {
     dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
+    effect: Effect.gen(function*() {
       const db = yield* DrizzleClient
 
       const getParticipantById = Effect.fn("ParticipantsQueries.getParticipantByIdQuery")(
-        function* ({ id }: { id: number }) {
+        function*({ id }: { id: number }) {
           const result = yield* db.query.participants.findFirst({
             where: eq(participants.id, id),
             with: {
@@ -32,7 +32,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
 
       const getParticipantByReference = Effect.fn(
         "ParticipantsQueries.getParticipantByReferenceQuery"
-      )(function* ({ reference, domain }: { reference: string; domain: string }) {
+      )(function*({ reference, domain }: { reference: string; domain: string }) {
         const result = yield* db.query.participants.findFirst({
           where: and(eq(participants.reference, reference), eq(participants.domain, domain)),
           with: {
@@ -54,7 +54,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
 
       const getInfiniteParticipantsByDomain = Effect.fn(
         "ParticipantsQueries.getInfiniteParticipantsByDomainQuery"
-      )(function* ({
+      )(function*({
         domain,
         cursor,
         limit = 50,
@@ -238,7 +238,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
       })
 
       const createParticipant = Effect.fn("ParticipantsQueries.createParticipantMutation")(
-        function* ({ data }: { data: NewParticipant }) {
+        function*({ data }: { data: NewParticipant }) {
           if (!data.domain) {
             return yield* Effect.fail(
               new SqlError({
@@ -263,12 +263,12 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
       )
 
       const updateParticipantById = Effect.fn("ParticipantsQueries.updateParticipantMutation")(
-        function* ({ id, data }: { id: number; data: Partial<NewParticipant> }) {
+        function*({ id, data }: { id: number; data: Partial<NewParticipant> }) {
           const [result] = yield* db
             .update(participants)
             .set(data)
             .where(eq(participants.id, id))
-            .returning({ id: participants.id })
+            .returning()
 
           if (!result) {
             return yield* Effect.fail(
@@ -284,7 +284,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
 
       const updateParticipantByReference = Effect.fn(
         "ParticipantsQueries.updateParticipantByReference"
-      )(function* ({
+      )(function*({
         reference,
         domain,
         data,
@@ -309,7 +309,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
       })
 
       const deleteParticipant = Effect.fn("ParticipantsQueries.deleteParticipantMutation")(
-        function* ({ id }: { id: number }) {
+        function*({ id }: { id: number }) {
           const [result] = yield* db.delete(participants).where(eq(participants.id, id)).returning()
           if (!result) {
             return yield* Effect.fail(
@@ -333,4 +333,5 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
       }
     }),
   }
-) {}
+) {
+}

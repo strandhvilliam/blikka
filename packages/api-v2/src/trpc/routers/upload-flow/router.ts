@@ -14,7 +14,7 @@ import { UploadFlowApiService } from "./service";
 export const uploadFlowRouter = createTRPCRouter({
   getPublicMarathon: publicProcedure.input(GetPublicMarathonSchema).query(
     trpcEffect(
-      Effect.fn("UploadFlowRouter.getPublicMarathon")(function* ({ input }) {
+      Effect.fn("UploadFlowRouter.getPublicMarathon")(function*({ input }) {
         return yield* UploadFlowApiService.getPublicMarathon(input);
       }),
     ),
@@ -23,9 +23,8 @@ export const uploadFlowRouter = createTRPCRouter({
     .input(InitializeUploadFlowSchema)
     .mutation(
       trpcEffect(
-        Effect.fn("UploadFlowRouter.initializeUploadFlow")(function* ({
+        Effect.fn("UploadFlowRouter.initializeUploadFlow")(function*({
           input,
-          ctx,
         }) {
           return yield* UploadFlowApiService.initializeUploadFlow(input);
         }),
@@ -36,7 +35,7 @@ export const uploadFlowRouter = createTRPCRouter({
     .input(CheckParticipantExistsSchema)
     .mutation(
       trpcEffect(
-        Effect.fn("UploadFlowRouter.checkParticipantExists")(function* ({
+        Effect.fn("UploadFlowRouter.checkParticipantExists")(function*({
           input,
         }) {
           return yield* UploadFlowApiService.checkParticipantExists(input);
@@ -46,7 +45,7 @@ export const uploadFlowRouter = createTRPCRouter({
 
   getUploadStatus: publicProcedure.input(GetUploadStatusSchema).query(
     trpcEffect(
-      Effect.fn("UploadFlowRouter.getUploadStatus")(function* ({ input }) {
+      Effect.fn("UploadFlowRouter.getUploadStatus")(function*({ input }) {
         return yield* UploadFlowApiService.getUploadStatus(input);
       }),
     ),

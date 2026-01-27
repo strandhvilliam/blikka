@@ -7,7 +7,7 @@ import { Database } from "@blikka/db"
 import { makeThumbnailKey, parseKey } from "./utils"
 import { FailedToIncrementParticipantStateError, PhotoNotFoundError } from "./errors"
 import { RunStateService } from "@blikka/pubsub"
-import { SharpImageService } from "@blikka/image-manipulation"
+import { SharpImageService } from "@blikka/image-manipulation/sharp"
 
 const THUMBNAIL_WIDTH = 400
 
@@ -22,8 +22,9 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
       BusService.Default,
       Database.Default,
       RunStateService.Default,
+      SharpImageService.Default,
     ],
-    effect: Effect.gen(function* () {
+    effect: Effect.gen(function*() {
       const s3 = yield* S3Service
       const uploadKv = yield* UploadSessionRepository
       const exifKv = yield* ExifKVRepository
@@ -35,7 +36,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
       const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
 
       const handleParticipantError = Effect.fnUntraced(
-        function* (domain: string, reference: string, errorCode: string, error: Error) {
+        function*(domain: string, reference: string, errorCode: string, error: Error) {
           yield* Effect.logError(error.message, { domain, reference, errorCode })
           return yield* uploadKv
             .setParticipantErrorState(domain, reference, errorCode)
@@ -44,7 +45,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
         Effect.catchAll((error) => Effect.logError("Failed to set participant error state", error))
       )
 
-      const generateThumbnail = Effect.fn("ThumbnailService.generateThumbnail")(function* (
+      const generateThumbnail = Effect.fn("ThumbnailService.generateThumbnail")(function*(
         photo: Buffer,
         key: string
       ) {
@@ -59,7 +60,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
         return thumbnailKey
       })
 
-      const processPhoto = Effect.fn("UploadProcessorService.processPhoto")(function* (
+      const processPhoto = Effect.fn("UploadProcessorService.processPhoto")(function*(
         key: string
       ) {
         const { domain, reference, orderIndex } = yield* parseKey(key)
@@ -140,4 +141,5 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
       } as const
     }),
   }
-) {}
+) {
+}

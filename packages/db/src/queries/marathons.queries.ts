@@ -67,6 +67,7 @@ export class MarathonsQueries extends Effect.Service<MarathonsQueries>()(
             topics: true,
             deviceGroups: true,
             sponsors: true,
+            ruleConfigs: true,
           },
         })
         return Option.fromNullable(result)

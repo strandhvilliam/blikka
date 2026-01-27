@@ -1,24 +1,25 @@
 import { RuleParamsSchema, ValidationResultSchema } from "./schemas";
-import { Data, Effect, Schema, Option } from "effect";
+import { Effect, Schema, Option } from "effect";
 import {
-  RuleKey,
-  RuleParams,
+  type RuleKey,
   ValidationFailure,
-  ValidationInput,
-  ValidationResult,
-  ValidationRule,
+  type ValidationInput,
+  type ValidationResult,
+  type ValidationRule,
   ValidationSkipped,
 } from "./types";
 import { VALIDATION_OUTCOME } from "./constants";
 
-export class ValidationParamError extends Data.TaggedError(
+export class ValidationParamError extends Schema.TaggedError<ValidationParamError>()(
   "ValidationParamError",
-)<{
-  message?: string;
-}> {}
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }) {
+}
 
 export const parseRuleParams = <K extends RuleKey>(key: K, params: unknown) =>
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     return yield* Schema.decodeUnknown(RuleParamsSchema.pick(key))(params).pipe(
       Effect.mapError(
         (error) => new ValidationParamError({ message: error.message }),

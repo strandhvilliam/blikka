@@ -1,5 +1,5 @@
 import { Config, Effect, Option, Array, Order, pipe } from "effect";
-import { type NewParticipant, type Topic, Database } from "@blikka/db";
+import { type NewParticipant, type Participant, type Submission, type Topic, Database } from "@blikka/db";
 import { S3Service } from "@blikka/s3";
 import { UploadSessionRepository } from "@blikka/kv-store";
 import { PubSubChannel, PubSubService, RunStateService } from "@blikka/pubsub";
@@ -16,7 +16,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
       PubSubService.Default,
       RunStateService.Default,
     ],
-    effect: Effect.gen(function* () {
+    effect: Effect.gen(function*() {
       const db = yield* Database;
       const s3 = yield* S3Service;
       const kv = yield* UploadSessionRepository;
@@ -28,7 +28,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
 
       const getPublicMarathon = Effect.fn(
         "UploadFlowApiService.getPublicMarathon",
-      )(function* ({ domain }) {
+      )(function*({ domain }) {
         return yield* db.marathonsQueries
           .getMarathonByDomainWithOptions({
             domain,
@@ -48,7 +48,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
 
       const checkParticipantExists = Effect.fn(
         "UploadFlowApiService.checkParticipantExists",
-      )(function* ({ domain, reference }) {
+      )(function*({ domain, reference }) {
         const existingState = yield* kv.getParticipantState(domain, reference);
 
         if (Option.isSome(existingState)) {
@@ -60,7 +60,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
 
       const initializeUploadFlow = Effect.fn(
         "UploadFlowApiService.initializeUploadFlow",
-      )(function* ({
+      )(function*({
         domain,
         reference,
         firstname,
@@ -69,7 +69,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
         competitionClassId,
         deviceGroupId,
       }) {
-        const executeEffect = Effect.gen(function* () {
+        const executeEffect = Effect.gen(function*() {
           const marathon = yield* db.marathonsQueries
             .getMarathonByDomainWithOptions({
               domain,
@@ -124,6 +124,11 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               domain,
             });
 
+          const existingSubmissions = Option.match(existingParticipant, {
+            onSome: (existing) => existing.submissions.map((s) => s.id),
+            onNone: () => [] as number[],
+          });
+
           const participantData = {
             reference,
             domain,
@@ -136,7 +141,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             status: "initialized",
           } satisfies NewParticipant;
 
-          const participant = yield* Option.match(existingParticipant, {
+          const participant: Participant = yield* Option.match(existingParticipant, {
             onSome: (existing) => {
               if (existing.status === "completed") {
                 return Effect.fail(
@@ -148,12 +153,12 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               return db.participantsQueries.updateParticipantById({
                 id: existing.id,
                 data: participantData,
-              });
+              })
             },
             onNone: () => {
               return db.participantsQueries.createParticipant({
                 data: participantData,
-              });
+              })
             },
           });
 
@@ -172,6 +177,13 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               s3.generateSubmissionKey(domain, reference, topic.orderIndex),
             { concurrency: "unbounded" },
           );
+
+
+          if (existingSubmissions.length > 0) {
+            yield* db.submissionsQueries.deleteMultipleSubmissions({
+              ids: existingSubmissions,
+            });
+          }
 
           yield* db.submissionsQueries.createMultipleSubmissions({
             data: topics.map((topic, i) => ({
@@ -196,6 +208,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             url,
           }));
         });
+
         const channel = yield* PubSubChannel.fromString(
           `${environment}:upload-flow:${domain}-${reference}`,
         );
@@ -212,7 +225,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
       });
 
       const getUploadStatus = Effect.fn("UploadFlowApiService.getUploadStatus")(
-        function* ({ domain, reference, orderIndexes }) {
+        function*({ domain, reference, orderIndexes }) {
           const participantState = yield* kv.getParticipantState(domain, reference);
           const submissionStates = yield* kv.getAllSubmissionStates(
             domain,
@@ -250,4 +263,5 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
       } as const;
     }),
   },
-) { }
+) {
+}
