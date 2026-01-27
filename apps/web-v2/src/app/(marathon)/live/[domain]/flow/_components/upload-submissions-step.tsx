@@ -19,12 +19,12 @@ import {
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { useDomain } from "@/lib/domain-provider";
 import { useTRPC } from "@/lib/trpc/client";
-import type { CompetitionClass, Topic } from "@blikka/db";
+import type { CompetitionClass, RuleConfig as DbRuleConfig, Topic } from "@blikka/db";
 import { useMutation } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useHeicConversion } from "../_hooks/use-heic-conversion";
 import { useFileUpload } from "../_hooks/use-file-upload";
@@ -37,6 +37,11 @@ import { SubmissionList } from "./submission-list";
 import { UploadProgressDialog } from "./upload-progress-dialog";
 import { UploadSection } from "./upload-section";
 import exifr from "exifr";
+import {
+  VALIDATION_OUTCOME,
+  type ValidationRule,
+  type RuleKey,
+} from "@blikka/validation";
 
 // Common image extensions for file input
 const COMMON_IMAGE_EXTENSIONS = [
@@ -49,23 +54,43 @@ const COMMON_IMAGE_EXTENSIONS = [
   "webp",
 ];
 
+// Helper to convert DB rule configs to validation rules
+function mapDbRuleConfigsToValidationRules(
+  dbRuleConfigs: DbRuleConfig[]
+): ValidationRule[] {
+  return dbRuleConfigs
+    .filter((rule) => rule.enabled)
+    .map((rule) => ({
+      ruleKey: rule.ruleKey as RuleKey,
+      enabled: rule.enabled,
+      severity: rule.severity as "error" | "warning",
+      // The params need to be wrapped in the rule key
+      params: {
+        [rule.ruleKey]: rule.params,
+      } as ValidationRule["params"],
+    }));
+}
+
 interface UploadSubmissionsStepProps {
   competitionClass: CompetitionClass;
   topics: Topic[];
+  ruleConfigs: DbRuleConfig[];
+  marathonStartDate: string;
+  marathonEndDate: string;
 }
 
 // Inner component that uses the contexts
 function UploadSubmissionsStepInner({
   competitionClass,
   topics,
-}: UploadSubmissionsStepProps) {
+}: Omit<UploadSubmissionsStepProps, "ruleConfigs" | "marathonStartDate" | "marathonEndDate">) {
   const t = useTranslations("FlowPage.uploadStep");
   const trpc = useTRPC();
   const domain = useDomain();
   const { handlePrevStep } = useStepState();
   const { uploadFlowState } = useUploadFlowState();
 
-  const { photos, addPhotos, removePhoto } = usePhotoContext();
+  const { photos, addPhotos, removePhoto, validationResults } = usePhotoContext();
   const { isUploading, setIsUploading } = useUploadContext();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -287,13 +312,23 @@ function UploadSubmissionsStepInner({
   const allPhotosSelected =
     photos.length === competitionClass.numberOfPhotos && photos.length > 0;
 
+  // Check if there are validation errors (severity: error only)
+  const hasValidationErrors = validationResults.some(
+    (result) =>
+      result.outcome === VALIDATION_OUTCOME.FAILED &&
+      result.severity === "error",
+  );
+
+  // Show finalize button only when all photos selected and no validation errors
+  const canSubmit = allPhotosSelected && !hasValidationErrors;
+
   return (
     <>
       {/* HEIC conversion dialog */}
       <Dialog open={heicState.isConverting}>
         <DialogContent showCloseButton={false} className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{t("convertingHeic")}</DialogTitle>
+            <DialogTitle className="font-rocgrotesk">{t("convertingHeic")}</DialogTitle>
             <DialogDescription>
               {heicState.isCancelling
                 ? t("cancelling")
@@ -377,8 +412,12 @@ function UploadSubmissionsStepInner({
       {/* Main content */}
       <div className="max-w-4xl mx-auto space-y-6">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">{t("title")}</CardTitle>
-          <CardDescription>{t("description")}</CardDescription>
+          <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
+            {t("title")}
+          </CardTitle>
+          <CardDescription className="text-center">
+            {t("description")}
+          </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
@@ -414,13 +453,13 @@ function UploadSubmissionsStepInner({
         </CardFooter>
       </div>
 
-      {/* Floating submit button */}
-      {allPhotosSelected && (
+      {/* Floating finalize button */}
+      {canSubmit && (
         <motion.div
           initial={{ opacity: 0, y: 100 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 100 }}
-          className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-sm border-t shadow-lg"
+          className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 backdrop-blur-sm border-t border-border shadow-lg"
         >
           <div className="max-w-4xl mx-auto">
             <PrimaryButton
@@ -438,10 +477,31 @@ function UploadSubmissionsStepInner({
 
 // Main export with providers
 export function UploadSubmissionsStep(props: UploadSubmissionsStepProps) {
+  // Convert DB rule configs to validation rules
+  const validationRules = useMemo(
+    () => mapDbRuleConfigsToValidationRules(props.ruleConfigs),
+    [props.ruleConfigs]
+  );
+
+  // Get topic order indexes
+  const topicOrderIndexes = useMemo(
+    () => props.topics.map((topic) => topic.orderIndex),
+    [props.topics]
+  );
+
   return (
-    <PhotoProvider maxPhotos={props.competitionClass.numberOfPhotos}>
+    <PhotoProvider
+      maxPhotos={props.competitionClass.numberOfPhotos}
+      validationRules={validationRules}
+      marathonStartDate={props.marathonStartDate}
+      marathonEndDate={props.marathonEndDate}
+      topicOrderIndexes={topicOrderIndexes}
+    >
       <UploadProvider>
-        <UploadSubmissionsStepInner {...props} />
+        <UploadSubmissionsStepInner
+          competitionClass={props.competitionClass}
+          topics={props.topics}
+        />
       </UploadProvider>
     </PhotoProvider>
   );

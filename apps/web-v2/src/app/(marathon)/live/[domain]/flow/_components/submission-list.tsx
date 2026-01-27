@@ -18,24 +18,25 @@ export function SubmissionList({
   onUploadClick,
   onRemovePhoto,
 }: SubmissionListProps) {
-  const { photos } = usePhotoContext();
+  const { photos, validationResults } = usePhotoContext();
   const remainingSlots = maxPhotos - photos.length;
 
   return (
-    <div className="flex flex-col gap-3">
-      <AnimatePresence mode="popLayout">
+    <AnimatePresence>
+      <div className="flex flex-col space-y-2">
         {photos.map((photo, index) => (
           <motion.div
             key={photo.file.name}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2, delay: index * 0.05 }}
-            layout
+            transition={{ duration: 0.2, delay: index * 0.1 }}
           >
             <SubmissionItem
               photo={photo}
               topic={topics[index]}
+              validationResults={validationResults.filter(
+                (result) => result.fileName === photo.file.name,
+              )}
               index={index}
               onRemove={onRemovePhoto}
             />
@@ -48,9 +49,8 @@ export function SubmissionList({
             animate={{ opacity: 1, y: 0 }}
             transition={{
               duration: 0.2,
-              delay: (photos.length + index) * 0.05,
+              delay: (photos.length + index) * 0.1,
             }}
-            layout
           >
             <SubmissionItem
               topic={topics[photos.length + index]}
@@ -59,7 +59,7 @@ export function SubmissionList({
             />
           </motion.div>
         ))}
-      </AnimatePresence>
-    </div>
+      </div>
+    </AnimatePresence>
   );
 }

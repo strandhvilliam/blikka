@@ -116,7 +116,9 @@ export function FlowClientWrapper() {
           </AnimatedStepWrapper>
         )}
         {step === PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep &&
-          selectedCompetitionClass && (
+          selectedCompetitionClass &&
+          marathon.startDate &&
+          marathon.endDate && (
             <AnimatedStepWrapper
               key={PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep}
               direction={direction}
@@ -124,6 +126,9 @@ export function FlowClientWrapper() {
               <UploadSubmissionsStep
                 competitionClass={selectedCompetitionClass}
                 topics={topicsForClass}
+                ruleConfigs={marathon.ruleConfigs}
+                marathonStartDate={marathon.startDate}
+                marathonEndDate={marathon.endDate}
               />
             </AnimatedStepWrapper>
           )}
