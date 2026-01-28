@@ -255,8 +255,220 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
         },
       );
 
+      // By-camera mode: single photo upload without competition class
+      const initializeByCameraUpload = Effect.fn(
+        "UploadFlowApiService.initializeByCameraUpload",
+      )(function*({
+        domain,
+        reference,
+        firstname,
+        lastname,
+        email,
+      }) {
+        const executeEffect = Effect.gen(function*() {
+          const marathon = yield* db.marathonsQueries
+            .getMarathonByDomainWithOptions({
+              domain,
+            })
+            .pipe(
+              Effect.andThen(
+                Option.match({
+                  onSome: (marathon) => Effect.succeed(marathon),
+                  onNone: () =>
+                    Effect.fail(
+                      new UploadFlowApiError({
+                        message: "Marathon not found",
+                      }),
+                    ),
+                }),
+              ),
+            );
+
+          const existingParticipant =
+            yield* db.participantsQueries.getParticipantByReference({
+              reference,
+              domain,
+            });
+
+          const existingSubmissions = Option.match(existingParticipant, {
+            onSome: (existing) => existing.submissions.map((s) => s.id),
+            onNone: () => [] as number[],
+          });
+
+          // For by-camera mode, no competition class or device group at initialization
+          const participantData = {
+            reference,
+            domain,
+            competitionClassId: null,
+            deviceGroupId: null,
+            marathonId: marathon.id,
+            firstname,
+            lastname,
+            email,
+            status: "initialized",
+          } satisfies NewParticipant;
+
+          const participant: Participant = yield* Option.match(existingParticipant, {
+            onSome: (existing) => {
+              if (existing.status === "completed") {
+                return Effect.fail(
+                  new UploadFlowApiError({
+                    message: "Participant already completed",
+                  }),
+                );
+              }
+              return db.participantsQueries.updateParticipantById({
+                id: existing.id,
+                data: participantData,
+              })
+            },
+            onNone: () => {
+              return db.participantsQueries.createParticipant({
+                data: participantData,
+              })
+            },
+          });
+
+          // By-camera mode: single photo with orderIndex 0
+          // Use the first topic from the marathon for the submission
+          const sortedTopics = pipe(
+            marathon.topics,
+            Array.sort(
+              Order.mapInput(Order.number, (topic: Topic) => topic.orderIndex),
+            ),
+          );
+
+          const firstTopic = yield* Array.head(sortedTopics).pipe(
+            Option.match({
+              onSome: (topic) => Effect.succeed(topic),
+              onNone: () =>
+                Effect.fail(
+                  new UploadFlowApiError({
+                    message: "No topics found for marathon",
+                  }),
+                ),
+            }),
+          );
+
+          const orderIndex = firstTopic.orderIndex;
+          const submissionKey = yield* s3.generateSubmissionKey(domain, reference, orderIndex);
+
+          if (existingSubmissions.length > 0) {
+            yield* db.submissionsQueries.deleteMultipleSubmissions({
+              ids: existingSubmissions,
+            });
+          }
+
+          // Create submission with the first topic (by-camera mode uses first topic)
+          yield* db.submissionsQueries.createMultipleSubmissions({
+            data: [{
+              participantId: participant.id,
+              key: submissionKey,
+              marathonId: marathon.id,
+              topicId: firstTopic.id,
+              status: "initialized",
+            }],
+          });
+
+          yield* kv.initializeState(domain, reference, [submissionKey]);
+
+          const presignedUrl = yield* s3.getPresignedUrl(bucketName, submissionKey, "PUT");
+
+          return [{
+            key: submissionKey,
+            url: presignedUrl,
+          }];
+        });
+
+        const channel = yield* PubSubChannel.fromString(
+          `${environment}:upload-flow:${domain}-${reference}`,
+        );
+
+        return yield* runStateService.withRunStateEvents({
+          taskName: "by-camera-upload-initializer",
+          channel,
+          effect: executeEffect,
+          metadata: {
+            domain,
+            reference,
+          },
+        });
+      });
+
+      // Finalize by-camera upload: set device group and mark as verified
+      const finalizeByCameraUpload = Effect.fn(
+        "UploadFlowApiService.finalizeByCameraUpload",
+      )(function*({
+        domain,
+        reference,
+        deviceGroupId,
+      }) {
+        const marathon = yield* db.marathonsQueries
+          .getMarathonByDomainWithOptions({
+            domain,
+          })
+          .pipe(
+            Effect.andThen(
+              Option.match({
+                onSome: (marathon) => Effect.succeed(marathon),
+                onNone: () =>
+                  Effect.fail(
+                    new UploadFlowApiError({
+                      message: "Marathon not found",
+                    }),
+                  ),
+              }),
+            ),
+          );
+
+        // Validate device group exists
+        yield* Array.findFirst(
+          marathon.deviceGroups,
+          (dg) => dg.id === deviceGroupId,
+        ).pipe(
+          Option.match({
+            onSome: (deviceGroup) => Effect.succeed(deviceGroup),
+            onNone: () =>
+              Effect.fail(
+                new UploadFlowApiError({
+                  message: "Device group not found",
+                }),
+              ),
+          }),
+        );
+
+        const existingParticipant =
+          yield* db.participantsQueries.getParticipantByReference({
+            reference,
+            domain,
+          });
+
+        const participant = yield* Option.match(existingParticipant, {
+          onSome: (p) => Effect.succeed(p),
+          onNone: () =>
+            Effect.fail(
+              new UploadFlowApiError({
+                message: "Participant not found",
+              }),
+            ),
+        });
+
+        // Update participant with device group and mark as verified (skipping verification step)
+        yield* db.participantsQueries.updateParticipantById({
+          id: participant.id,
+          data: {
+            deviceGroupId,
+            status: "verified",
+          },
+        });
+
+        return { success: true };
+      });
+
       return {
         initializeUploadFlow,
+        initializeByCameraUpload,
+        finalizeByCameraUpload,
         getPublicMarathon,
         checkParticipantExists,
         getUploadStatus,

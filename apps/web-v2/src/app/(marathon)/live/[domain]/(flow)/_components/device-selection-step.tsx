@@ -15,18 +15,36 @@ import { useTranslations } from "next-intl";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useStepState } from "../_lib/step-state-context";
 
+interface DeviceSelectionStepProps {
+  deviceGroups: DeviceGroup[];
+  isByCameraMode?: boolean;
+}
 
-export function DeviceSelectionStep({ deviceGroups }: { deviceGroups: DeviceGroup[] }) {
+export function DeviceSelectionStep({
+  deviceGroups,
+  isByCameraMode = false,
+}: DeviceSelectionStepProps) {
   const { handleNextStep, handlePrevStep } = useStepState();
   const t = useTranslations("FlowPage");
   const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
-  const isValid =
-    uploadFlowState.deviceGroupId &&
+
+  // For marathon mode, competition class is required
+  // For by-camera mode, it's not needed
+  const isValid = isByCameraMode
+    ? uploadFlowState.deviceGroupId &&
+    uploadFlowState.participantFirstName &&
+    uploadFlowState.participantLastName &&
+    uploadFlowState.participantEmail
+    : uploadFlowState.deviceGroupId &&
     uploadFlowState.competitionClassId &&
     uploadFlowState.participantFirstName &&
     uploadFlowState.participantLastName &&
     uploadFlowState.participantEmail;
 
+  const handleContinue = () => {
+    if (!isValid) return
+    handleNextStep();
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-10 min-h-[70vh] flex flex-col justify-center">
@@ -54,7 +72,7 @@ export function DeviceSelectionStep({ deviceGroups }: { deviceGroups: DeviceGrou
 
       <CardFooter className="flex flex-col gap-3 items-center justify-center pt-4 px-4 sm:px-0">
         <PrimaryButton
-          onClick={handleNextStep}
+          onClick={handleContinue}
           disabled={!isValid}
           className="w-full py-3.5 text-base sm:text-lg rounded-full"
         >

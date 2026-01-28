@@ -14,7 +14,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
 import { QrCodeGenerator } from "./qr-code-generator"
-import { useUploadFlowState } from "../../flow/_hooks/use-upload-flow-state";
+import { useUploadFlowState } from "../(flow)/_hooks/use-upload-flow-state";
 
 interface VerificationClientProps {
   participantRef: string

@@ -3,12 +3,24 @@ import { createContext, useContext, useState } from "react";
 import {
   parseAsInteger,
   useQueryState } from "nuqs";
-import { PARTICIPANT_SUBMISSION_STEPS } from "./constants";
+import { PARTICIPANT_SUBMISSION_STEPS, BY_CAMERA_STEPS, type FlowMode } from "./constants";
 
 
-const StepStateContext = createContext({
+interface StepStateContextValue {
+  step: number;
+  direction: number;
+  maxSteps: number;
+  flowMode: FlowMode;
+  handleNextStep: () => void;
+  handlePrevStep: () => void;
+  handleSetStep: (step: number) => void;
+}
+
+const StepStateContext = createContext<StepStateContextValue>({
   step: 1,
   direction: 0,
+  maxSteps: Object.keys(PARTICIPANT_SUBMISSION_STEPS).length,
+  flowMode: "marathon",
   handleNextStep: () => { },
   handlePrevStep: () => { },
   handleSetStep: (step: number) => { },
@@ -22,8 +34,14 @@ export function useStepState() {
   return context;
 }
 
+interface StepStateProviderProps {
+  children: React.ReactNode;
+  flowMode?: FlowMode;
+}
 
-export function StepStateProvider({ children }: { children: React.ReactNode }) {
+export function StepStateProvider({ children, flowMode = "marathon" }: StepStateProviderProps) {
+  const steps = flowMode === "by-camera" ? BY_CAMERA_STEPS : PARTICIPANT_SUBMISSION_STEPS;
+  const maxSteps = Object.keys(steps).length;
 
   const [step, setStep] = useQueryState(
     "s",
@@ -32,10 +50,7 @@ export function StepStateProvider({ children }: { children: React.ReactNode }) {
   const [direction, setDirection] = useState(0);
 
   const handleNextStep = () => {
-    const nextStep = Math.min(
-      step + 1,
-      Object.keys(PARTICIPANT_SUBMISSION_STEPS).length,
-    );
+    const nextStep = Math.min(step + 1, maxSteps);
     setDirection(1);
     setStep(nextStep);
   };
@@ -51,7 +66,7 @@ export function StepStateProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <StepStateContext.Provider value={{ step, direction, handleNextStep, handlePrevStep, handleSetStep }
+    <StepStateContext.Provider value={{ step, direction, maxSteps, flowMode, handleNextStep, handlePrevStep, handleSetStep }
     }>
       {children}
     </StepStateContext.Provider>

@@ -7,7 +7,7 @@ import { getQueryClient, prefetch, trpc } from "@/lib/trpc/server"
 import { Splash } from "@/components/splash"
 import { flowStateServerLoader, flowStateServerParamSerializer } from "@/lib/flow-state-params-server"
 import { notFound, redirect } from "next/navigation"
-import { VerificationClient } from "./_components/verification-client"
+import { VerificationClient } from "../_components/verification-client"
 import { formatDomainPathname } from "@/lib/utils";
 
 const _VerificationPage = Effect.fn("@blikka/web/VerificationPage")(

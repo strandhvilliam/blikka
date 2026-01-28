@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
-import { Marathon } from "@blikka/db";
 import { useDomain } from "@/lib/domain-provider";
 import { useTranslations } from "next-intl";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";

@@ -74,11 +74,19 @@
       "title": "Select Your Device",
       "description": "Choose the device you used to take your photos",
       "continue": "Continue",
-      "back": "Back"
+      "submit": "Submit",
+      "back": "Back",
+      "finalizationFailed": "Failed to finalize submission"
     },
     "uploadStep": {
       "title": "Upload Your Photos",
       "description": "Select and upload your photos for submission",
+      "byCameraTitle": "Upload Your Photo",
+      "byCameraDescription": "Select and upload your photo",
+      "takePhoto": "Take photo",
+      "chooseFromLibrary": "Choose from library",
+      "replacePhoto": "Replace",
+      "supportedFormatsShort": "Supported formats: {formats}",
       "photo": "Photo {number}",
       "tapToSelect": "Tap to select a photo",
       "noPhotoSelected": "No photo selected",
@@ -91,6 +99,7 @@
       "back": "Back",
       "confirmGoBack": "Are you sure you want to go back? This will clear all selected photos.",
       "finalizeAndSubmit": "Finalize & Submit",
+      "uploadAndContinue": "Upload & Continue",
       "noFilesSelected": "No files selected",
       "conversionCancelled": "HEIC conversion cancelled",
       "noValidFiles": "No valid image files found",
@@ -98,6 +107,10 @@
       "tooManyFiles": "Too many files selected. Only {max} more can be added.",
       "maxPhotosReached": "Maximum photos already selected",
       "selectAllPhotos": "Please select all {count} photos before submitting",
+      "selectPhoto": "Please select a photo before continuing",
+      "selectPhotoPrompt": "Tap here to select a photo",
+      "yourPhoto": "Your Photo",
+      "photoPreview": "Photo Preview",
       "missingRequiredInfo": "Missing required participant information",
       "failedToGetPresignedUrls": "Failed to get upload URLs. Please try again.",
       "uploadFailed": "Upload failed. Please try again.",
@@ -119,7 +132,8 @@
       "photoDetails": "Photo Details",
       "uploadPreviewAlt": "Preview of photo {index}",
       "photoPreviewTitle": "Photo Preview - {topic}",
-      "fullPreviewAlt": "Full preview of photo {index}"
+      "fullPreviewAlt": "Full preview of photo {index}",
+      "selectAnother": "Select another"
     },
     "uploadProgress": {
       "titleUploading": "Uploading Photos",

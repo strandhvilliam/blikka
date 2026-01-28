@@ -63,11 +63,19 @@
       "title": "Välj din enhet",
       "description": "Välj vilken enhet du använde för att ta dina foton",
       "continue": "Fortsätt",
-      "back": "Tillbaka"
+      "submit": "Skicka in",
+      "back": "Tillbaka",
+      "finalizationFailed": "Kunde inte slutföra inlämningen"
     },
     "uploadStep": {
       "title": "Ladda upp dina foton",
       "description": "Välj och ladda upp dina foton för inlämning",
+      "byCameraTitle": "Ladda upp ditt foto",
+      "byCameraDescription": "Välj och ladda upp ditt foto",
+      "takePhoto": "Ta foto",
+      "chooseFromLibrary": "Välj från biblioteket",
+      "replacePhoto": "Byt",
+      "supportedFormatsShort": "Format som stöds: {formats}",
       "photo": "Foto {number}",
       "tapToSelect": "Tryck för att välja ett foto",
       "noPhotoSelected": "Inget foto valt",
@@ -80,6 +88,7 @@
       "back": "Tillbaka",
       "confirmGoBack": "Är du säker på att du vill gå tillbaka? Detta kommer att rensa alla valda foton.",
       "finalizeAndSubmit": "Slutför & Skicka in",
+      "uploadAndContinue": "Ladda upp & Fortsätt",
       "noFilesSelected": "Inga filer valda",
       "conversionCancelled": "HEIC-konvertering avbruten",
       "noValidFiles": "Inga giltiga bildfiler hittades",
@@ -87,6 +96,10 @@
       "tooManyFiles": "För många filer valda. Endast {max} fler kan läggas till.",
       "maxPhotosReached": "Maximalt antal foton redan valda",
       "selectAllPhotos": "Vänligen välj alla {count} foton innan du skickar in",
+      "selectPhoto": "Vänligen välj ett foto innan du fortsätter",
+      "selectPhotoPrompt": "Tryck här för att välja ett foto",
+      "yourPhoto": "Ditt foto",
+      "photoPreview": "Förhandsvisning",
       "missingRequiredInfo": "Deltagarinformation saknas",
       "failedToGetPresignedUrls": "Kunde inte hämta uppladdnings-URLer. Försök igen.",
       "uploadFailed": "Uppladdning misslyckades. Försök igen.",
@@ -108,7 +121,8 @@
       "photoDetails": "Fotodetaljer",
       "uploadPreviewAlt": "Förhandsvisning av foto {index}",
       "photoPreviewTitle": "Förhandsvisning av foto - {topic}",
-      "fullPreviewAlt": "Full förhandsvisning av foto {index}"
+      "fullPreviewAlt": "Full förhandsvisning av foto {index}",
+      "selectAnother": "Välj ett annat"
     },
     "uploadProgress": {
       "titleUploading": "Laddar upp foton",

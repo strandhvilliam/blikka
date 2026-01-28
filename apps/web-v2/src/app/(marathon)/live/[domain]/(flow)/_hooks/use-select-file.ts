@@ -13,7 +13,10 @@ interface UseSelectFileOptions {
 }
 
 interface UseSelectFileResult {
-  handleFileSelect: (fileList: FileList | null) => Promise<void>;
+  handleFileSelect: (
+    fileList: FileList | null,
+    replace?: boolean,
+  ) => Promise<void>;
 }
 
 export function useSelectFile({
@@ -22,12 +25,13 @@ export function useSelectFile({
 }: UseSelectFileOptions): UseSelectFileResult {
   const photos = usePhotoStore((state) => state.photos);
   const addPhotos = usePhotoStore((state) => state.addPhotos);
-  
+  const clearPhotos = usePhotoStore((state) => state.clearPhotos);
+
   const convertFiles = useHeicStore((state) => state.convertFiles);
   const isCancelling = useHeicStore((state) => state.isCancelling);
 
   const handleFileSelect = useCallback(
-    async (fileList: FileList | null) => {
+    async (fileList: FileList | null, replace?: boolean) => {
       if (!fileList || fileList.length === 0) {
         toast.error(t("noFilesSelected"));
         return;
@@ -49,6 +53,11 @@ export function useSelectFile({
         return;
       }
 
+      // If replace mode, clear existing photos first
+      if (replace) {
+        clearPhotos();
+      }
+
       const existingNames = new Set(photos.map((p) => p.file.name));
       const duplicates = allFiles.filter((f) => existingNames.has(f.name));
       if (duplicates.length > 0) {
@@ -60,7 +69,7 @@ export function useSelectFile({
       }
 
       const uniqueFiles = allFiles.filter((f) => !existingNames.has(f.name));
-      const remainingSlots = maxPhotos - photos.length;
+      const remainingSlots = replace ? maxPhotos : maxPhotos - photos.length;
 
       if (uniqueFiles.length > remainingSlots) {
         toast.warning(t("tooManyFiles", { max: remainingSlots }));
@@ -81,14 +90,14 @@ export function useSelectFile({
             exif,
             preconvertedExif: convertedInfo?.preconvertedExif || null,
             preview: URL.createObjectURL(file),
-            orderIndex: photos.length + index,
+            orderIndex: replace ? index : photos.length + index,
           };
         }),
       );
 
       addPhotos(newPhotos);
     },
-    [photos, maxPhotos, convertFiles, isCancelling, addPhotos, t],
+    [photos, maxPhotos, convertFiles, isCancelling, addPhotos, clearPhotos, t],
   );
 
   return {

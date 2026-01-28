@@ -6,6 +6,15 @@ export const PARTICIPANT_SUBMISSION_STEPS = {
   UploadSubmissionStep: 5,
 } as const;
 
+export const BY_CAMERA_STEPS = {
+  ParticipantNumberStep: 1,
+  ParticipantDetailsStep: 2,
+  DeviceSelectionStep: 3,
+  UploadSubmissionStep: 4,
+} as const;
+
+export type FlowMode = "marathon" | "by-camera";
+
 export const PARTICIPANT_REF_LENGTH = 4;
 
 

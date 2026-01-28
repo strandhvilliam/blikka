@@ -26,6 +26,26 @@ export const InitializeUploadFlowSchema = Schema.standardSchemaV1(
   }),
 );
 
+// By-camera mode: no competition class or device group needed at initialization
+export const InitializeByCameraUploadSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    reference: Schema.String,
+    firstname: Schema.String,
+    lastname: Schema.String,
+    email: Schema.String,
+  }),
+);
+
+// Finalize by-camera upload: set device group and complete the submission
+export const FinalizeByCameraUploadSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    reference: Schema.String,
+    deviceGroupId: Schema.Number,
+  }),
+);
+
 export const CheckParticipantExistsSchema = Schema.standardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
