@@ -45,7 +45,6 @@ export function RulesForm() {
 
   const [rules, setRules] = useState<RulesFormValues>(serverRules)
 
-  // Track if user has made changes from server state
   const isDirty = useMemo(
     () => JSON.stringify(rules) !== JSON.stringify(serverRules),
     [rules, serverRules]
@@ -90,7 +89,6 @@ export function RulesForm() {
     enabled: !!marathon,
   })
 
-  // Sync local state when server data changes
   useEffect(() => {
     setRules(serverRules)
     resetToValue(serverRules)
