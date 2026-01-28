@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useHandleBeforeUnload } from "../_hooks/use-handle-before-unload";
 import { PARTICIPANT_SUBMISSION_STEPS } from "../_lib/constants";
-import { flowStateParamSerializer } from "../_lib/serialized-flow-state";
+// import { flowStateParamSerializer } from "@/lib/serialized-flow-state";
 import { formatDomainPathname } from "@/lib/utils";
 import { StepNavigator } from "./step-navigator";
 import { AnimatedStepWrapper } from "./animated-step-wrapper";
@@ -44,7 +44,6 @@ export function FlowClientWrapper() {
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
   );
 
-  // Get the selected competition class
   const selectedCompetitionClass = useMemo(() => {
     if (!uploadFlowState.competitionClassId) return null;
     return marathon.competitionClasses.find(
@@ -52,7 +51,6 @@ export function FlowClientWrapper() {
     ) || null;
   }, [marathon.competitionClasses, uploadFlowState.competitionClassId]);
 
-  // Get topics for the selected competition class
   const topicsForClass = useMemo(() => {
     if (!selectedCompetitionClass) return [];
     const sortedTopics = [...marathon.topics].sort(
@@ -65,8 +63,8 @@ export function FlowClientWrapper() {
   }, [marathon.topics, selectedCompetitionClass]);
 
   const handleNavigateToVerification = () => {
-    const params = flowStateParamSerializer(uploadFlowState);
-    router.push(formatDomainPathname(`/flow/verification${params}`, domain, 'live'));
+    // const params = flowStateParamSerializer(uploadFlowState);
+    // router.push(formatDomainPathname(`/flow/verification${params}`, domain, 'live'));
   };
 
 

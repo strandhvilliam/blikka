@@ -127,5 +127,23 @@
       "retryFailed": "Försök igen ({count})",
       "continue": "Fortsätt"
     }
+  },
+  "ConfirmationPage": {
+    "congratulations": "Grattis!",
+    "photosUploaded": "Dina {count} foton är uppladdade och redo för bedömning! Bra jobbat!",
+    "yourPhotos": "Dina foton",
+    "whatsNext": "Vad händer nu?",
+    "menu": "Meny",
+    "startAgain": "Börja om",
+    "newParticipant": "Ny deltagare",
+    "waitSeconds": "Vänta ({seconds}s)",
+    "photoPlaceholder": "Foto {id}",
+    "secondsSuffix": "({seconds}s)",
+    "steps": {
+      "1": "Vi verifierar alla bildserier medan ni sover gott. (Spara era bilder i en vecka i fall vi hittar något fel)",
+      "2": "Bilderna går till tryck redan i början av nästa vecka",
+      "3": "Jury möts {juryDate}. Först {resultsDate} får ni dela era tävlingsbilder utanför vår grupp på Facebook",
+      "4": "Boka in {prizeDate} redan nu då årets prisgala är planerad!"
+    }
   }
 }

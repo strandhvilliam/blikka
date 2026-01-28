@@ -6,7 +6,12 @@ export class ParticipantApiError extends Schema.TaggedError<ParticipantApiError>
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   }
-) {}
+) {
+}
+
+export const GetPublicParticipantByReferenceInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({ reference: Schema.String, domain: Schema.String })
+)
 
 export const GetByDomainInfiniteInputSchema = Schema.standardSchemaV1(
   Schema.Struct({
@@ -30,3 +35,28 @@ export const GetByDomainInfiniteInputSchema = Schema.standardSchemaV1(
 export const GetByReferenceInputSchema = Schema.standardSchemaV1(
   Schema.Struct({ reference: Schema.String, domain: Schema.String })
 )
+
+
+export const PublicParticipantSchema = Schema.Struct({
+  reference: Schema.String,
+  domain: Schema.String,
+  status: Schema.String,
+  publicSubmissions: Schema.Array(Schema.Struct({
+    topic: Schema.Struct({
+      name: Schema.String,
+      orderIndex: Schema.Number,
+    }),
+    status: Schema.String,
+    createdAt: Schema.String,
+    thumbnailKey: Schema.NullOr(Schema.String),
+  })),
+  competitionClass: Schema.Struct({
+    name: Schema.String,
+    description: Schema.String,
+  }),
+  deviceGroup: Schema.Struct({
+    name: Schema.String,
+    description: Schema.String,
+    icon: Schema.String,
+  }),
+})

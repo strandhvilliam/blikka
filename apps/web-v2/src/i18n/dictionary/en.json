@@ -138,5 +138,23 @@
       "retryFailed": "Retry Failed ({count})",
       "continue": "Continue"
     }
+  },
+  "ConfirmationPage": {
+    "congratulations": "Congratulations!",
+    "photosUploaded": "Your {count} photos are uploaded and ready for judging! Good work!",
+    "yourPhotos": "Your Photos",
+    "whatsNext": "What's Next?",
+    "menu": "Menu",
+    "startAgain": "Start again",
+    "newParticipant": "New participant",
+    "waitSeconds": "Wait ({seconds}s)",
+    "photoPlaceholder": "Photo {id}",
+    "secondsSuffix": "({seconds}s)",
+    "steps": {
+      "1": "We verify all photo series while you sleep well. (Save your photos for a week in case something goes wrong)",
+      "2": "The photos go to print already at the beginning of next week",
+      "3": "The jury meets {juryDate}. First {resultsDate} you can share your competition photos outside our group on Facebook",
+      "4": "Book in {prizeDate} already as the annual prize ceremony is planned!"
+    }
   }
 }

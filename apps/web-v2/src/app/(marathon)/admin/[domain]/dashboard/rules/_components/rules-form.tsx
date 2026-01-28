@@ -14,7 +14,7 @@ import { SameDeviceRule } from "./same-device-rule"
 import { NoModificationsRule } from "./no-modifications-rule"
 import { StrictTimestampOrderingRule } from "./strict-timestamp-ordering-rule"
 import { useEffect, useState, useCallback, useMemo } from "react"
-import { useAutoSave } from "../_hooks/use-auto-save"
+import { useAutoSave } from "@/hooks/use-auto-save"
 import type { RulesFormValues } from "../_lib/schemas"
 
 export function RulesForm() {

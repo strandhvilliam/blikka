@@ -1,6 +1,6 @@
 import { createSerializer, parseAsInteger, parseAsString } from "nuqs";
 
-export const flowStateParams = {
+export const flowStateClientParams = {
   competitionClassId: parseAsInteger,
   deviceGroupId: parseAsInteger,
   participantId: parseAsInteger,
@@ -10,8 +10,21 @@ export const flowStateParams = {
   participantLastName: parseAsString,
 };
 
-export const flowStateParamSerializer = createSerializer(
-  flowStateParams,
+
+export interface FlowStateClientParams {
+  competitionClassId?: number | null;
+  deviceGroupId?: number | null;
+  participantId?: number | null;
+  participantRef?: string | null;
+  participantEmail?: string | null;
+  participantFirstName?: string | null;
+  participantLastName?: string | null;
+}
+
+
+
+export const flowStateClientParamSerializer = createSerializer(
+  flowStateClientParams,
   {
     urlKeys: {
       competitionClassId: "cc",

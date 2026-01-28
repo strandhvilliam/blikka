@@ -1,13 +1,25 @@
-import { authProcedure, createTRPCRouter, domainProcedure } from "../../root"
-import { assertAllowedToAccessDomain, trpcEffect } from "../../utils"
+import { createTRPCRouter, domainProcedure, publicProcedure } from "../../root"
+import { trpcEffect } from "../../utils"
 import { Effect } from "effect"
-import { GetByDomainInfiniteInputSchema, GetByReferenceInputSchema } from "./schemas"
+import { GetByDomainInfiniteInputSchema, GetByReferenceInputSchema, GetPublicParticipantByReferenceInputSchema } from "./schemas"
 import { ParticipantsApiService } from "./service"
 
 export const participantRouter = createTRPCRouter({
+
+  getPublicParticipantByReference: publicProcedure.input(GetPublicParticipantByReferenceInputSchema).query(
+    trpcEffect(
+      Effect.fn("ParticipantRouter.getPublicParticipantByReference")(function*({ input }) {
+        return yield* ParticipantsApiService.getPublicParticipantByReference({
+          reference: input.reference,
+          domain: input.domain,
+        })
+      })
+    )),
+
+
   getByDomainInfinite: domainProcedure.input(GetByDomainInfiniteInputSchema).query(
     trpcEffect(
-      Effect.fn("ParticipantRouter.getByDomainInfinite")(function* ({ input, ctx }) {
+      Effect.fn("ParticipantRouter.getByDomainInfinite")(function*({ input, ctx }) {
         return yield* ParticipantsApiService.getInfiniteParticipantsByDomain({
           domain: input.domain,
           cursor: input.cursor ?? undefined,
@@ -26,7 +38,7 @@ export const participantRouter = createTRPCRouter({
 
   getByReference: domainProcedure.input(GetByReferenceInputSchema).query(
     trpcEffect(
-      Effect.fn("ParticipantRouter.getByReference")(function* ({ input, ctx }) {
+      Effect.fn("ParticipantRouter.getByReference")(function*({ input, ctx }) {
         return yield* ParticipantsApiService.getByReference({
           reference: input.reference,
           domain: input.domain,
@@ -37,7 +49,7 @@ export const participantRouter = createTRPCRouter({
 
   delete: domainProcedure.input(GetByReferenceInputSchema).mutation(
     trpcEffect(
-      Effect.fn("ParticipantRouter.delete")(function* ({ input, ctx }) {
+      Effect.fn("ParticipantRouter.delete")(function*({ input, ctx }) {
         return yield* ParticipantsApiService.deleteByReference({
           reference: input.reference,
           domain: input.domain,
