@@ -2,17 +2,16 @@ import { decodeParams, Page } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
 import { Suspense } from "react"
-import { LiveClientPage } from "./_components/live-client-page"
 import { Splash } from "@/components/splash"
 
-const _LivePage = Effect.fn("@blikka/web/LivePage")(
-  function*({ params }: PageProps<"/live/[domain]">) {
+const _VotePage = Effect.fn("@blikka/web/VotePage")(
+  function*({ params }: PageProps<"/vote/[domain]">) {
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
     prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }))
     return (
       <HydrateClient>
         <Suspense fallback={<Splash />}>
-          <LiveClientPage />
+          <div>Vote</div>
         </Suspense>
       </HydrateClient>
     )
@@ -22,4 +21,4 @@ const _LivePage = Effect.fn("@blikka/web/LivePage")(
   )
 )
 
-export default Page(_LivePage)
+export default Page(_VotePage)
