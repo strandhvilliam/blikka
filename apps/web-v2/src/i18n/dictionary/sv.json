@@ -128,6 +128,13 @@
       "continue": "Fortsätt"
     }
   },
+  "VerificationPage": {
+    "almostThere": "Nästan klar!",
+    "showQrCode": "Visa denna QR-kod för en crew-medlem för att verifiera ditt bidrag.",
+    "refreshAvailable": "Uppdatering tillgänglig om {seconds}s",
+    "refresh": "Uppdatera",
+    "participant": "Deltagare"
+  },
   "ConfirmationPage": {
     "congratulations": "Grattis!",
     "photosUploaded": "Dina {count} foton är uppladdade och redo för bedömning! Bra jobbat!",

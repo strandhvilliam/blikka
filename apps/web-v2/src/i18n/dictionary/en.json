@@ -139,6 +139,13 @@
       "continue": "Continue"
     }
   },
+  "VerificationPage": {
+    "almostThere": "Almost there!",
+    "showQrCode": "Show this QR code to a crew member to verify your submission.",
+    "refreshAvailable": "Refresh available in {seconds}s",
+    "refresh": "Refresh",
+    "participant": "Participant"
+  },
   "ConfirmationPage": {
     "congratulations": "Congratulations!",
     "photosUploaded": "Your {count} photos are uploaded and ready for judging! Good work!",
