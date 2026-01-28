@@ -256,6 +256,7 @@ export function ByCameraUploadStep({
         firstname: uploadFlowState.participantFirstName,
         lastname: uploadFlowState.participantLastName,
         email: uploadFlowState.participantEmail,
+        deviceGroupId: uploadFlowState.deviceGroupId,
       });
 
       if (!presignedUrls || presignedUrls.length === 0) {
@@ -361,11 +362,10 @@ export function ByCameraUploadStep({
                 className="relative"
               >
                 <div
-                  className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 cursor-pointer ${
-                    isDragOver
+                  className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 cursor-pointer ${isDragOver
                       ? "border-primary bg-primary/5 scale-[1.02]"
                       : "border-muted-foreground/25 bg-background hover:border-muted-foreground/50 hover:bg-muted/50"
-                  }`}
+                    }`}
                   onClick={handleChooseFromLibraryClick}
                   onDragEnter={(e) => {
                     e.preventDefault();
@@ -446,9 +446,9 @@ export function ByCameraUploadStep({
                   className={[
                     "rounded-3xl overflow-hidden border bg-background shadow-sm",
                     validationSummary.status === "error" &&
-                      "border-destructive/40",
+                    "border-destructive/40",
                     validationSummary.status === "warning" &&
-                      "border-amber-300/60",
+                    "border-amber-300/60",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -512,9 +512,9 @@ export function ByCameraUploadStep({
                         className={[
                           "rounded-2xl border p-3 text-sm",
                           validationSummary.status === "error" &&
-                            "border-destructive/30 bg-destructive/5 text-destructive",
+                          "border-destructive/30 bg-destructive/5 text-destructive",
                           validationSummary.status === "warning" &&
-                            "border-amber-300/50 bg-amber-50 text-amber-900",
+                          "border-amber-300/50 bg-amber-50 text-amber-900",
                         ]
                           .filter(Boolean)
                           .join(" ")}

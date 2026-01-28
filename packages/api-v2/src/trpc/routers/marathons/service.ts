@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Effect, Option, Config } from "effect"
+import { Effect, Either, Option, Config } from "effect"
 import { Database, type NewMarathon } from "@blikka/db"
 import { S3Service } from "@blikka/s3"
 import { MarathonApiError } from "./schemas"
@@ -11,11 +11,11 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
   {
     accessors: true,
     dependencies: [Database.Default, S3Service.Default],
-    effect: Effect.gen(function* () {
+    effect: Effect.gen(function*() {
       const db = yield* Database
       const s3 = yield* S3Service
 
-      const getMarathonByDomain = Effect.fn("MarathonApiService.getMarathonByDomain")(function* ({
+      const getMarathonByDomain = Effect.fn("MarathonApiService.getMarathonByDomain")(function*({
         domain,
       }) {
         const marathon = yield* db.marathonsQueries.getMarathonByDomainWithOptions({ domain })
@@ -30,13 +30,13 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         })
       })
 
-      const getUserMarathons = Effect.fn("MarathonApiService.getUserMarathons")(function* ({
+      const getUserMarathons = Effect.fn("MarathonApiService.getUserMarathons")(function*({
         userId,
       }) {
         return yield* db.usersQueries.getMarathonsByUserId({ userId })
       })
 
-      const updateMarathon = Effect.fn("MarathonApiService.updateMarathon")(function* ({
+      const updateMarathon = Effect.fn("MarathonApiService.updateMarathon")(function*({
         domain,
         data,
       }: {
@@ -88,7 +88,7 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return result
       })
 
-      const resetMarathon = Effect.fn("MarathonApiService.resetMarathon")(function* ({
+      const resetMarathon = Effect.fn("MarathonApiService.resetMarathon")(function*({
         domain,
       }: {
         domain: string
@@ -110,7 +110,7 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return yield* db.marathonsQueries.resetMarathon({ id: marathonId })
       })
 
-      const getLogoUploadUrl = Effect.fn("MarathonApiService.getLogoUploadUrl")(function* ({
+      const getLogoUploadUrl = Effect.fn("MarathonApiService.getLogoUploadUrl")(function*({
         domain,
         currentKey,
       }: {
@@ -132,7 +132,7 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return { url, key }
       })
 
-      const getTermsUploadUrl = Effect.fn("MarathonApiService.getTermsUploadUrl")(function* ({
+      const getTermsUploadUrl = Effect.fn("MarathonApiService.getTermsUploadUrl")(function*({
         domain,
       }: {
         domain: string
@@ -150,7 +150,7 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return { url, key }
       })
 
-      const getCurrentTerms = Effect.fn("MarathonApiService.getCurrentTerms")(function* ({
+      const getCurrentTerms = Effect.fn("MarathonApiService.getCurrentTerms")(function*({
         domain,
       }: {
         domain: string
@@ -160,9 +160,13 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         )
 
         const key = `${domain}/terms-and-conditions.txt`
-        const fileData = yield* s3.getFile(bucketName, key)
+        const fileDataEither = yield* Effect.either(s3.getFile(bucketName, key))
 
-        return yield* Option.match(fileData, {
+        if (Either.isLeft(fileDataEither)) {
+          return yield* Effect.succeed("")
+        }
+
+        return yield* Option.match(fileDataEither.right, {
           onSome: (data) => {
             const decoder = new TextDecoder()
             return Effect.succeed(decoder.decode(data))
@@ -182,4 +186,5 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
       } as const
     }),
   }
-) { }
+) {
+}

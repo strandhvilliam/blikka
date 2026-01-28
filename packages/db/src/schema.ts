@@ -307,6 +307,7 @@ export const marathons = pgTable(
     languages: text().default("en").notNull(),
     setupCompleted: boolean("setup_completed").default(false),
     termsAndConditionsKey: text("terms_and_conditions_key"),
+    mode: text().default("marathon").notNull(),
   },
   (table) => [
     index("marathons_domain_idx").using("btree", table.domain.asc().nullsLast().op("text_ops")),

@@ -5,7 +5,6 @@ import {
   GetPublicMarathonSchema,
   InitializeUploadFlowSchema,
   InitializeByCameraUploadSchema,
-  FinalizeByCameraUploadSchema,
   CheckParticipantExistsSchema,
   GetUploadStatusSchema,
 } from "./schemas";
@@ -33,7 +32,6 @@ export const uploadFlowRouter = createTRPCRouter({
       ),
     ),
 
-  // By-camera mode endpoints
   initializeByCameraUpload: publicProcedure
     .input(InitializeByCameraUploadSchema)
     .mutation(
@@ -42,18 +40,6 @@ export const uploadFlowRouter = createTRPCRouter({
           input,
         }) {
           return yield* UploadFlowApiService.initializeByCameraUpload(input);
-        }),
-      ),
-    ),
-
-  finalizeByCameraUpload: publicProcedure
-    .input(FinalizeByCameraUploadSchema)
-    .mutation(
-      trpcEffect(
-        Effect.fn("UploadFlowRouter.finalizeByCameraUpload")(function*({
-          input,
-        }) {
-          return yield* UploadFlowApiService.finalizeByCameraUpload(input);
         }),
       ),
     ),

@@ -39,7 +39,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
                 onSome: (marathon) => Effect.succeed(marathon),
                 onNone: () =>
                   new UploadFlowApiError({
-                    message: "Marathon not found",
+                    message: `[${domain}] Marathon not found`,
                   }),
               }),
             ),
@@ -81,7 +81,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
                   onNone: () =>
                     Effect.fail(
                       new UploadFlowApiError({
-                        message: "Marathon not found",
+                        message: `[${domain}] Marathon not found`,
                       }),
                     ),
                 }),
@@ -97,7 +97,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               onNone: () =>
                 Effect.fail(
                   new UploadFlowApiError({
-                    message: "Competition class not found",
+                    message: `[${domain}] Competition class not found`,
                   }),
                 ),
             }),
@@ -112,7 +112,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               onNone: () =>
                 Effect.fail(
                   new UploadFlowApiError({
-                    message: "Device group not found",
+                    message: `[${domain}] Device group not found`,
                   }),
                 ),
             }),
@@ -146,7 +146,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               if (existing.status === "completed") {
                 return Effect.fail(
                   new UploadFlowApiError({
-                    message: "Participant already completed the marathon",
+                    message: `[${domain}|${reference}] Participant already completed upload flow`,
                   }),
                 );
               }
@@ -255,7 +255,6 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
         },
       );
 
-      // By-camera mode: single photo upload without competition class
       const initializeByCameraUpload = Effect.fn(
         "UploadFlowApiService.initializeByCameraUpload",
       )(function*({
@@ -263,6 +262,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
         reference,
         firstname,
         lastname,
+        deviceGroupId,
         email,
       }) {
         const executeEffect = Effect.gen(function*() {
@@ -277,7 +277,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
                   onNone: () =>
                     Effect.fail(
                       new UploadFlowApiError({
-                        message: "Marathon not found",
+                        message: `[${domain}] Marathon not found`,
                       }),
                     ),
                 }),
@@ -295,12 +295,21 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             onNone: () => [] as number[],
           });
 
-          // For by-camera mode, no competition class or device group at initialization
+          const competitionClassId = yield* Array.findFirst(
+            marathon.competitionClasses,
+            (c) => c.numberOfPhotos === 0,
+          ).pipe(
+            Option.match({
+              onSome: (competitionClass) => Effect.succeed(competitionClass.id),
+              onNone: () => Effect.fail(new UploadFlowApiError({ message: `[${domain}] Competition class not found` })),
+            }),
+          );
+
           const participantData = {
             reference,
             domain,
-            competitionClassId: null,
-            deviceGroupId: null,
+            competitionClassId,
+            deviceGroupId,
             marathonId: marathon.id,
             firstname,
             lastname,
@@ -313,7 +322,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               if (existing.status === "completed") {
                 return Effect.fail(
                   new UploadFlowApiError({
-                    message: "Participant already completed",
+                    message: `[${domain}|${reference}] Participant already completed upload flow`,
                   }),
                 );
               }
@@ -329,8 +338,6 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             },
           });
 
-          // By-camera mode: single photo with orderIndex 0
-          // Use the first topic from the marathon for the submission
           const sortedTopics = pipe(
             marathon.topics,
             Array.sort(
@@ -344,7 +351,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               onNone: () =>
                 Effect.fail(
                   new UploadFlowApiError({
-                    message: "No topics found for marathon",
+                    message: `[${domain}] No topics found for marathon`,
                   }),
                 ),
             }),
@@ -359,7 +366,6 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             });
           }
 
-          // Create submission with the first topic (by-camera mode uses first topic)
           yield* db.submissionsQueries.createMultipleSubmissions({
             data: [{
               participantId: participant.id,
@@ -395,80 +401,9 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
         });
       });
 
-      // Finalize by-camera upload: set device group and mark as verified
-      const finalizeByCameraUpload = Effect.fn(
-        "UploadFlowApiService.finalizeByCameraUpload",
-      )(function*({
-        domain,
-        reference,
-        deviceGroupId,
-      }) {
-        const marathon = yield* db.marathonsQueries
-          .getMarathonByDomainWithOptions({
-            domain,
-          })
-          .pipe(
-            Effect.andThen(
-              Option.match({
-                onSome: (marathon) => Effect.succeed(marathon),
-                onNone: () =>
-                  Effect.fail(
-                    new UploadFlowApiError({
-                      message: "Marathon not found",
-                    }),
-                  ),
-              }),
-            ),
-          );
-
-        // Validate device group exists
-        yield* Array.findFirst(
-          marathon.deviceGroups,
-          (dg) => dg.id === deviceGroupId,
-        ).pipe(
-          Option.match({
-            onSome: (deviceGroup) => Effect.succeed(deviceGroup),
-            onNone: () =>
-              Effect.fail(
-                new UploadFlowApiError({
-                  message: "Device group not found",
-                }),
-              ),
-          }),
-        );
-
-        const existingParticipant =
-          yield* db.participantsQueries.getParticipantByReference({
-            reference,
-            domain,
-          });
-
-        const participant = yield* Option.match(existingParticipant, {
-          onSome: (p) => Effect.succeed(p),
-          onNone: () =>
-            Effect.fail(
-              new UploadFlowApiError({
-                message: "Participant not found",
-              }),
-            ),
-        });
-
-        // Update participant with device group and mark as verified (skipping verification step)
-        yield* db.participantsQueries.updateParticipantById({
-          id: participant.id,
-          data: {
-            deviceGroupId,
-            status: "verified",
-          },
-        });
-
-        return { success: true };
-      });
-
       return {
         initializeUploadFlow,
         initializeByCameraUpload,
-        finalizeByCameraUpload,
         getPublicMarathon,
         checkParticipantExists,
         getUploadStatus,

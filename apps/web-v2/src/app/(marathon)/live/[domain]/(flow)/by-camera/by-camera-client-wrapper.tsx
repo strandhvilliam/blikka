@@ -14,6 +14,8 @@ import { ParticipantDetailsStep } from "../_components/participant-details-step"
 import { DeviceSelectionStep } from "../_components/device-selection-step";
 import { ByCameraUploadStep } from "../_components/by-camera-upload-step";
 import { useStepState } from "../_lib/step-state-context";
+import { redirect } from "next/navigation";
+import { formatDomainPathname } from "@/lib/utils";
 
 const NetworkStatusBanner = dynamic(
   () =>
@@ -27,15 +29,16 @@ export function ByCameraClientWrapper() {
   useHandleBeforeUnload();
   const { step, direction } = useStepState();
   const trpc = useTRPC();
-  const {
-    uploadFlowState,
-  } =
-    useUploadFlowState();
+
   const domain = useDomain();
 
   const { data: marathon } = useSuspenseQuery(
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
   );
+
+  if (!marathon.startDate || !marathon.endDate) {
+    redirect(formatDomainPathname(`/live/not-configured`, domain, "live"))
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 h-screen">
@@ -71,20 +74,18 @@ export function ByCameraClientWrapper() {
             />
           </AnimatedStepWrapper>
         )}
-        {step === BY_CAMERA_STEPS.UploadSubmissionStep &&
-          marathon.startDate &&
-          marathon.endDate && (
-            <AnimatedStepWrapper
-              key={BY_CAMERA_STEPS.UploadSubmissionStep}
-              direction={direction}
-            >
-              <ByCameraUploadStep
-                ruleConfigs={marathon.ruleConfigs}
-                marathonStartDate={marathon.startDate}
-                marathonEndDate={marathon.endDate}
-              />
-            </AnimatedStepWrapper>
-          )}
+        {step === BY_CAMERA_STEPS.UploadSubmissionStep && (
+          <AnimatedStepWrapper
+            key={BY_CAMERA_STEPS.UploadSubmissionStep}
+            direction={direction}
+          >
+            <ByCameraUploadStep
+              ruleConfigs={marathon.ruleConfigs}
+              marathonStartDate={marathon.startDate}
+              marathonEndDate={marathon.endDate}
+            />
+          </AnimatedStepWrapper>
+        )}
       </AnimatePresence>
     </div>
   );

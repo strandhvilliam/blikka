@@ -50,15 +50,7 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
   const t = useTranslations("ConfirmationPage")
   const [selectedImage, setSelectedImage] = useState<{ thumbnailUrl: string | undefined; name: string; orderIndex: number } | null>(null)
 
-  const handleRedirect = () => {
-    const nextPath = formatDomainPathname("/live/flow", domain, "live")
-    window.location.replace(nextPath)
-  }
 
-  const { remainingSeconds, addSeconds } = useDesktopCountdownRedirect({
-    initialSeconds: 15,
-    onRedirect: handleRedirect,
-  })
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getPublicParticipantByReference.queryOptions({
@@ -66,6 +58,24 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
       domain,
     })
   )
+  const { data: marathon } = useSuspenseQuery(
+    trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
+  );
+  const handleRedirect = () => {
+    switch (marathon.mode) {
+      case "marathon":
+        window.location.replace(formatDomainPathname(`/live/marathon`, domain, "live"))
+        break;
+      case "by-camera":
+        window.location.replace(formatDomainPathname(`/live/by-camera`, domain, "live"))
+        break;
+    }
+  }
+
+  const { remainingSeconds, addSeconds } = useDesktopCountdownRedirect({
+    initialSeconds: 15,
+    onRedirect: handleRedirect,
+  })
 
 
   const submissions = participant?.publicSubmissions ? [...participant.publicSubmissions] : []

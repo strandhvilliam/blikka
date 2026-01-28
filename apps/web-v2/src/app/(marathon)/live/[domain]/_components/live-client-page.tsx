@@ -7,6 +7,7 @@ import { useTranslations, useLocale, Locale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PrimaryButton } from "@/components/ui/primary-button";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -56,7 +57,14 @@ export function LiveClientPage() {
 
   const handleStart = () => {
     if (termsAccepted) {
-      router.push(formatDomainPathname(`/live/flow`, domain, 'live'));
+      switch (marathon.mode) {
+        case "marathon":
+          router.push(formatDomainPathname(`/live/marathon`, domain, 'live'));
+          break;
+        case "by-camera":
+          router.push(formatDomainPathname(`/live/by-camera`, domain, 'live'));
+          break;
+      }
     }
   };
 
