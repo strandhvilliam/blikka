@@ -1,15 +1,22 @@
 "use client"
 
-import type { AnyFieldApi } from "@tanstack/react-form"
-import { RuleCard } from "./rule-card"
+import { RuleCard, type RuleValue } from "./rule-card"
 
-export function NoModificationsRule({ field }: { field: AnyFieldApi }) {
+type NoModificationsValue = RuleValue<null>
+
+interface NoModificationsRuleProps {
+  value: NoModificationsValue
+  onChange: (value: NoModificationsValue) => void
+}
+
+export function NoModificationsRule({ value, onChange }: NoModificationsRuleProps) {
   return (
     <RuleCard
       title="No Digital Modifications"
       description="Detect if photos show signs of editing in software like Photoshop, Lightroom, etc."
       recommendedSeverity="warning"
-      field={field}
+      value={value}
+      onChange={onChange}
     />
   )
 }

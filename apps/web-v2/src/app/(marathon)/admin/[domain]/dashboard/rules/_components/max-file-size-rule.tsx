@@ -1,11 +1,18 @@
 "use client"
 
-import type { AnyFieldApi } from "@tanstack/react-form"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
-import { RuleCard } from "./rule-card"
+import { RuleCard, type RuleValue } from "./rule-card"
+import type { MaxFileSizeParams } from "../_lib/schemas"
 
-export function MaxFileSizeRule({ field }: { field: AnyFieldApi }) {
+type MaxFileSizeValue = RuleValue<MaxFileSizeParams>
+
+interface MaxFileSizeRuleProps {
+  value: MaxFileSizeValue
+  onChange: (value: MaxFileSizeValue) => void
+}
+
+export function MaxFileSizeRule({ value, onChange }: MaxFileSizeRuleProps) {
   const getMbValue = (bytes: number) => Math.round(bytes / (1024 * 1024))
 
   return (
@@ -13,7 +20,8 @@ export function MaxFileSizeRule({ field }: { field: AnyFieldApi }) {
       title="Maximum File Size"
       description="Set the largest allowed file size for individual photos."
       recommendedSeverity="error"
-      field={field}
+      value={value}
+      onChange={onChange}
     >
       <div className="space-y-4 max-w-md w-full">
         <div>
@@ -22,7 +30,7 @@ export function MaxFileSizeRule({ field }: { field: AnyFieldApi }) {
               <Label htmlFor="maxFileSize" className="text-sm font-medium">
                 Limit:{" "}
                 <span className="text-primary font-semibold tabular-nums bg-muted px-2 py-1 rounded-md">
-                  {getMbValue(field.state.value.params.maxBytes)} MB
+                  {getMbValue(value.params.maxBytes)} MB
                 </span>
               </Label>
               <Slider
@@ -30,18 +38,17 @@ export function MaxFileSizeRule({ field }: { field: AnyFieldApi }) {
                 min={1}
                 max={100}
                 step={1}
-                value={[getMbValue(field.state.value.params.maxBytes)]}
+                value={[getMbValue(value.params.maxBytes)]}
                 onValueChange={(values) => {
-                  const value = values[0]
-                  if (typeof value === "number") {
-                    field.handleChange({
-                      ...field.state.value,
+                  const sliderValue = values[0]
+                  if (typeof sliderValue === "number") {
+                    onChange({
+                      ...value,
                       params: {
-                        ...field.state.value.params,
-                        maxBytes: value * 1024 * 1024,
+                        ...value.params,
+                        maxBytes: sliderValue * 1024 * 1024,
                       },
                     })
-                    field.handleBlur()
                   }
                 }}
                 className="cursor-pointer"

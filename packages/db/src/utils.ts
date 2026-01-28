@@ -72,12 +72,10 @@ export function conflictUpdateSetAllColumns<
       if (except && except.includes(columnName as E[number])) {
         return acc;
       }
-      if (!columnInfo.default) {
-        // @ts-expect-error
-        acc[columnName] = sql.raw(
-          `COALESCE("excluded"."${columnInfo.name}", "${tableName}"."${columnInfo.name}")`,
-        );
-      }
+      // @ts-expect-error
+      acc[columnName] = sql.raw(
+        `COALESCE("excluded"."${columnInfo.name}", "${tableName}"."${columnInfo.name}")`,
+      );
       return acc;
     },
     {},

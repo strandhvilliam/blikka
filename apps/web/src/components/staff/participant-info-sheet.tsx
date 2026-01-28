@@ -42,13 +42,13 @@ interface ParticipantInfoSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   participant:
-    | (Participant & {
-        validationResults: ValidationResult[];
-        competitionClass: CompetitionClass | null;
-        deviceGroup: DeviceGroup | null;
-        submissions: Submission[];
-      })
-    | null;
+  | (Participant & {
+    validationResults: ValidationResult[];
+    competitionClass: CompetitionClass | null;
+    deviceGroup: DeviceGroup | null;
+    submissions: Submission[];
+  })
+  | null;
   participantLoading: boolean;
   onParticipantVerified?: () => void;
   topics: Topic[];
@@ -319,7 +319,7 @@ export function ParticipantInfoSheet({
                       "text-center !text-4xl h-16 font-bold font-mono tracking-widest",
                       geistMono.className,
                       showRejectError &&
-                        "border-red-500 focus-visible:ring-red-500",
+                      "border-red-500 focus-visible:ring-red-500",
                     )}
                     placeholder={
                       participant?.reference

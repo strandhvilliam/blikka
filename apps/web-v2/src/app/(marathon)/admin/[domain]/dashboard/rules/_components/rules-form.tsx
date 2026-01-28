@@ -4,10 +4,8 @@ import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { useForm } from "@tanstack/react-form"
-import { RefreshCcw, Save } from "lucide-react"
+import { RefreshCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { PrimaryButton } from "@/components/ui/primary-button"
 import { parseRules, mapRulesToDbRules } from "../_lib/parse-rules"
 import { MaxFileSizeRule } from "./max-file-size-rule"
 import { AllowedFileTypesRule } from "./allowed-file-types-rule"
@@ -15,6 +13,9 @@ import { WithinTimerangeRule } from "./within-timerange-rule"
 import { SameDeviceRule } from "./same-device-rule"
 import { NoModificationsRule } from "./no-modifications-rule"
 import { StrictTimestampOrderingRule } from "./strict-timestamp-ordering-rule"
+import { useEffect, useState, useCallback, useMemo } from "react"
+import { useAutoSave } from "../_hooks/use-auto-save"
+import type { RulesFormValues } from "../_lib/schemas"
 
 export function RulesForm() {
   const trpc = useTRPC()
@@ -33,6 +34,23 @@ export function RulesForm() {
     })
   )
 
+  const serverRules = useMemo(
+    () =>
+      parseRules(dbRules, {
+        startDate: marathon?.startDate ?? undefined,
+        endDate: marathon?.endDate ?? undefined,
+      }),
+    [dbRules, marathon?.startDate, marathon?.endDate]
+  )
+
+  const [rules, setRules] = useState<RulesFormValues>(serverRules)
+
+  // Track if user has made changes from server state
+  const isDirty = useMemo(
+    () => JSON.stringify(rules) !== JSON.stringify(serverRules),
+    [rules, serverRules]
+  )
+
   const { mutate: updateRules, isPending } = useMutation(
     trpc.rules.updateMultiple.mutationOptions({
       onSuccess: () => {
@@ -43,22 +61,18 @@ export function RulesForm() {
       },
       onSettled: () => {
         queryClient.invalidateQueries({
-          queryKey: trpc.rules.pathKey(),
+          queryKey: trpc.rules.getByDomain.queryKey({ domain }),
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.marathons.getByDomain.queryKey({ domain }),
         })
       },
     })
   )
 
-  const rules = parseRules(dbRules, {
-    startDate: marathon?.startDate ?? undefined,
-    endDate: marathon?.endDate ?? undefined,
-  })
-
-  const form = useForm({
-    defaultValues: rules,
-    onSubmit: ({ value }) => {
+  const handleSave = useCallback(
+    (value: RulesFormValues) => {
       if (!marathon) {
-        toast.error("Failed to update rules")
         return
       }
       updateRules({
@@ -66,60 +80,82 @@ export function RulesForm() {
         data: mapRulesToDbRules(value),
       })
     },
+    [domain, marathon, updateRules]
+  )
+
+  const { cancelPendingSave, resetToValue } = useAutoSave({
+    value: rules,
+    onSave: handleSave,
+    delay: 500,
+    enabled: !!marathon,
   })
 
+  // Sync local state when server data changes
+  useEffect(() => {
+    setRules(serverRules)
+    resetToValue(serverRules)
+  }, [serverRules, resetToValue])
+
+  const handleReset = useCallback(() => {
+    cancelPendingSave()
+    setRules(serverRules)
+    resetToValue(serverRules)
+  }, [cancelPendingSave, serverRules, resetToValue])
+
+  const updateRule = useCallback(
+    <K extends keyof RulesFormValues>(key: K, value: RulesFormValues[K]) => {
+      setRules((prev) => ({ ...prev, [key]: value }))
+    },
+    []
+  )
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit()
-      }}
-    >
+    <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">Rules</h1>
           <p className="text-muted-foreground text-sm">
-            Configure validation rules for photo submissions.
+            Configure validation rules for photo submissions. Changes are saved automatically.
           </p>
         </div>
-        <form.Subscribe
-          selector={(state) => ({
-            isSubmitting: state.isSubmitting,
-            isDirty: state.isDirty,
-          })}
-        >
-          {({ isSubmitting, isDirty }) => (
-            <div className="flex gap-2 ml-auto">
-              <Button variant="outline" size="icon" onClick={() => form.reset()} type="button">
-                <RefreshCcw className="h-4 w-4" />
-              </Button>
-              <PrimaryButton
-                type="submit"
-                className="gap-2 w-full sm:w-auto flex-shrink-0"
-                disabled={!isDirty || isSubmitting || isPending}
-              >
-                <Save className="h-4 w-4" />
-                {isSubmitting || isPending ? "Saving..." : "Save Changes"}
-              </PrimaryButton>
-            </div>
-          )}
-        </form.Subscribe>
+        {/* <div className="flex gap-2 ml-auto">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleReset}
+            type="button"
+            disabled={!isDirty || isPending}
+          >
+            <RefreshCcw className="h-4 w-4" />
+          </Button>
+        </div> */}
       </div>
       <div className="space-y-4">
-        <form.Field name="max_file_size">{(field) => <MaxFileSizeRule field={field} />}</form.Field>
-        <form.Field name="allowed_file_types">
-          {(field) => <AllowedFileTypesRule field={field} />}
-        </form.Field>
-        <form.Field name="within_timerange">
-          {(field) => <WithinTimerangeRule field={field} />}
-        </form.Field>
-        <form.Field name="same_device">{(field) => <SameDeviceRule field={field} />}</form.Field>
-        <form.Field name="modified">{(field) => <NoModificationsRule field={field} />}</form.Field>
-        <form.Field name="strict_timestamp_ordering">
-          {(field) => <StrictTimestampOrderingRule field={field} />}
-        </form.Field>
+        <MaxFileSizeRule
+          value={rules.max_file_size}
+          onChange={(value) => updateRule("max_file_size", value)}
+        />
+        <AllowedFileTypesRule
+          value={rules.allowed_file_types}
+          onChange={(value) => updateRule("allowed_file_types", value)}
+        />
+        <WithinTimerangeRule
+          value={rules.within_timerange}
+          onChange={(value) => updateRule("within_timerange", value)}
+        />
+        <SameDeviceRule
+          value={rules.same_device}
+          onChange={(value) => updateRule("same_device", value)}
+        />
+        <NoModificationsRule
+          value={rules.modified}
+          onChange={(value) => updateRule("modified", value)}
+        />
+        <StrictTimestampOrderingRule
+          value={rules.strict_timestamp_ordering}
+          onChange={(value) => updateRule("strict_timestamp_ordering", value)}
+        />
       </div>
-    </form>
+    </div>
   )
 }

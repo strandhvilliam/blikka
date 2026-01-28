@@ -1,15 +1,22 @@
 "use client"
 
-import type { AnyFieldApi } from "@tanstack/react-form"
-import { RuleCard } from "./rule-card"
+import { RuleCard, type RuleValue } from "./rule-card"
 
-export function SameDeviceRule({ field }: { field: AnyFieldApi }) {
+type SameDeviceValue = RuleValue<null>
+
+interface SameDeviceRuleProps {
+  value: SameDeviceValue
+  onChange: (value: SameDeviceValue) => void
+}
+
+export function SameDeviceRule({ value, onChange }: SameDeviceRuleProps) {
   return (
     <RuleCard
       title="Same Device"
       description="Require all photos in a single submission to originate from the same camera/device."
       recommendedSeverity="warning"
-      field={field}
+      value={value}
+      onChange={onChange}
     />
   )
 }

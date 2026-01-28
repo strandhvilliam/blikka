@@ -3,25 +3,32 @@
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { motion } from "motion/react"
-import type { AnyFieldApi } from "@tanstack/react-form"
 import type { SeverityLevel } from "@blikka/validation"
 import { RulesSeverityToggle } from "./rules-severity-toggle"
 
-interface RuleCardProps {
+export interface RuleValue<TParams = null> {
+  enabled: boolean
+  severity: string
+  params: TParams
+}
+
+interface RuleCardProps<TParams = null> {
   title: string
   description: string
   recommendedSeverity: SeverityLevel
-  field: AnyFieldApi
+  value: RuleValue<TParams>
+  onChange: (value: RuleValue<TParams>) => void
   children?: React.ReactNode
 }
 
-export function RuleCard({
+export function RuleCard<TParams = null>({
   title,
   description,
   recommendedSeverity,
-  field,
+  value,
+  onChange,
   children,
-}: RuleCardProps) {
+}: RuleCardProps<TParams>) {
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between gap-4">
@@ -32,9 +39,9 @@ export function RuleCard({
         <div className="flex-shrink-0 self-center ml-4">
           <Switch
             id={title}
-            checked={field.state.value.enabled}
+            checked={value.enabled}
             onCheckedChange={(checked) => {
-              field.handleChange({ ...field.state.value, enabled: checked })
+              onChange({ ...value, enabled: checked })
             }}
             className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
             aria-labelledby={`${title}-heading`}
@@ -42,7 +49,7 @@ export function RuleCard({
         </div>
       </div>
 
-      {field.state.value.enabled && (
+      {value.enabled && (
         <motion.div
           key="content"
           initial={{ opacity: 0.5, height: 0 }}
@@ -52,9 +59,9 @@ export function RuleCard({
           className="overflow-hidden pt-4 border-t border-border/60 mt-4 flex justify-between items-center"
         >
           <RulesSeverityToggle
-            severity={field.state.value.severity as SeverityLevel}
+            severity={value.severity as SeverityLevel}
             onSeverityChange={(severity) => {
-              field.handleChange({ ...field.state.value, severity })
+              onChange({ ...value, severity })
             }}
             recommendedSeverity={recommendedSeverity}
           />

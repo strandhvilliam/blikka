@@ -128,14 +128,14 @@ export function parseRules(
 
 export function mapRulesToDbRules(rules: RulesFormValues): Array<{
   ruleKey: string
-  params?: unknown
+  params?: Record<string, unknown> | undefined
   severity?: string
   enabled?: boolean
 }> {
   return Object.entries(rules).map(([key, value]) => {
     return {
       ruleKey: key,
-      params: value.params,
+      params: value.params ?? undefined,
       enabled: value.enabled,
       severity: value.severity,
     }
