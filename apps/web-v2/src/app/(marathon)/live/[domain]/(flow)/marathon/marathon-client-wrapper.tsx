@@ -5,37 +5,32 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useHandleBeforeUnload } from "../_hooks/use-handle-before-unload";
 import { PARTICIPANT_SUBMISSION_STEPS } from "../_lib/constants";
-// import { flowStateParamSerializer } from "@/lib/serialized-flow-state";
-import { formatDomainPathname } from "@/lib/utils";
-import { StepNavigator } from "./step-navigator";
-import { AnimatedStepWrapper } from "./animated-step-wrapper";
-import { ParticipantNumberStep } from "./participant-number-step";
-import { ParticipantDetailsStep } from "./participant-details-step";
-import { ClassSelectionStep } from "./class-selection-step";
-import { DeviceSelectionStep } from "./device-selection-step";
-import { UploadSubmissionsStep } from "./upload-submissions-step";
+import { StepNavigator } from "../_components/step-navigator";
+import { AnimatedStepWrapper } from "../_components/animated-step-wrapper";
+import { ParticipantNumberStep } from "../_components/participant-number-step";
+import { ParticipantDetailsStep } from "../_components/participant-details-step";
+import { ClassSelectionStep } from "../_components/class-selection-step";
+import { DeviceSelectionStep } from "../_components/device-selection-step";
+import { UploadSubmissionsStep } from "../_components/upload-submissions-step";
 import { useStepState } from "../_lib/step-state-context";
 
 const NetworkStatusBanner = dynamic(
   () =>
-    import("./network-status-banner").then((mod) => ({
+    import("../_components/network-status-banner").then((mod) => ({
       default: mod.NetworkStatusBanner,
     })),
   { ssr: false },
 );
 
-export function FlowClientWrapper() {
+export function MarathonClientWrapper() {
   useHandleBeforeUnload();
   const { step, direction } = useStepState();
   const trpc = useTRPC();
-  const router = useRouter();
   const {
     uploadFlowState,
-    setUploadFlowState,
   } =
     useUploadFlowState();
   const domain = useDomain();
@@ -62,10 +57,6 @@ export function FlowClientWrapper() {
     );
   }, [marathon.topics, selectedCompetitionClass]);
 
-  const handleNavigateToVerification = () => {
-    // const params = flowStateParamSerializer(uploadFlowState);
-    // router.push(formatDomainPathname(`/flow/verification${params}`, domain, 'live'));
-  };
 
 
   return (

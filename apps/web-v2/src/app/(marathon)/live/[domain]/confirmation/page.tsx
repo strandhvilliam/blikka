@@ -5,7 +5,7 @@ import { Suspense } from "react"
 import { Splash } from "@/components/splash"
 import { notFound } from "next/navigation"
 import { flowStateServerLoader } from "@/lib/flow-state-params-server"
-import { ConfirmationClient } from "./_components/confirmation-client";
+import { ConfirmationClient } from "../_components/confirmation-client";
 
 
 

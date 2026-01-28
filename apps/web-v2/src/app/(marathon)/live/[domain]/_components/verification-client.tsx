@@ -53,7 +53,6 @@ export function VerificationClient({ participantRef, participantId }: Verificati
     )
   )
 
-  // Handle verified status
   useEffect(() => {
     if (participant?.status === "verified") {
       handleNavigateOnVerified()
@@ -64,7 +63,6 @@ export function VerificationClient({ participantRef, participantId }: Verificati
     }
   }, [participant, handleNavigateOnVerified, isLoading])
 
-  // Refresh timeout countdown
   useEffect(() => {
     if (refreshTimeout <= 0) return
 

@@ -2,13 +2,12 @@ import { decodeParams } from "@/lib/next-utils"
 import { Suspense } from "react"
 import { Effect, Schema } from "effect"
 import { HydrateClient } from "@/lib/trpc/server"
-import { FlowClientWrapper } from "./_components/flow-client-wrapper"
 import { Page } from "@/lib/next-utils"
 import { prefetch, trpc } from "@/lib/trpc/server"
-import { StepStateProvider } from "./_lib/step-state-context";
+import { StepStateProvider } from "../_lib/step-state-context";
 import { Splash } from "@/components/splash";
 
-const _FlowPage = Effect.fn("@blikka/web/FlowPage")(
+const _ByCameraPage = Effect.fn("@blikka/web/ByCameraPage")(
   function*({ params }: PageProps<"/live/[domain]">) {
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
     prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }))
@@ -16,7 +15,7 @@ const _FlowPage = Effect.fn("@blikka/web/FlowPage")(
       <HydrateClient>
         <Suspense fallback={<Splash />}>
           <StepStateProvider>
-            <FlowClientWrapper />
+            <div>By camera</div>
           </StepStateProvider>
         </Suspense>
       </HydrateClient>
@@ -27,4 +26,4 @@ const _FlowPage = Effect.fn("@blikka/web/FlowPage")(
   )
 )
 
-export default Page(_FlowPage)
+export default Page(_ByCameraPage)
