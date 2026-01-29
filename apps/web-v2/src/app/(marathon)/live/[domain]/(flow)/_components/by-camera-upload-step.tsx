@@ -241,7 +241,8 @@ export function ByCameraUploadStep({
       !uploadFlowState.participantRef ||
       !uploadFlowState.participantFirstName ||
       !uploadFlowState.participantLastName ||
-      !uploadFlowState.participantEmail
+      !uploadFlowState.participantEmail ||
+      !uploadFlowState.deviceGroupId
     ) {
       toast.error(t("missingRequiredInfo"));
       return;
@@ -363,8 +364,8 @@ export function ByCameraUploadStep({
               >
                 <div
                   className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 cursor-pointer ${isDragOver
-                      ? "border-primary bg-primary/5 scale-[1.02]"
-                      : "border-muted-foreground/25 bg-background hover:border-muted-foreground/50 hover:bg-muted/50"
+                    ? "border-primary bg-primary/5 scale-[1.02]"
+                    : "border-muted-foreground/25 bg-background hover:border-muted-foreground/50 hover:bg-muted/50"
                     }`}
                   onClick={handleChooseFromLibraryClick}
                   onDragEnter={(e) => {

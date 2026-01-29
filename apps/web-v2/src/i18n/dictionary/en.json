@@ -163,8 +163,12 @@
   "ConfirmationPage": {
     "congratulations": "Congratulations!",
     "photosUploaded": "Your {count} photos are uploaded and ready for judging! Good work!",
+    "photoUploaded": "Your photo is uploaded!",
     "yourPhotos": "Your Photos",
+    "yourPhoto": "Your Photo",
     "whatsNext": "What's Next?",
+    "votingTitle": "Voting",
+    "votingMessage": "You will get an email/SMS when the voting process starts. All participants will vote to determine the winner!",
     "menu": "Menu",
     "startAgain": "Start again",
     "newParticipant": "New participant",

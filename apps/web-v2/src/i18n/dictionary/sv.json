@@ -152,8 +152,12 @@
   "ConfirmationPage": {
     "congratulations": "Grattis!",
     "photosUploaded": "Dina {count} foton är uppladdade och redo för bedömning! Bra jobbat!",
+    "photoUploaded": "Ditt foto är uppladdat!",
     "yourPhotos": "Dina foton",
+    "yourPhoto": "Ditt foto",
     "whatsNext": "Vad händer nu?",
+    "votingTitle": "Röstning",
+    "votingMessage": "Du kommer få ett e-post/SMS när röstningen startar. Alla deltagare kommer rösta för att bestämma vinnaren!",
     "menu": "Meny",
     "startAgain": "Börja om",
     "newParticipant": "Ny deltagare",

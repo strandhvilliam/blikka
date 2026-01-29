@@ -297,7 +297,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
 
           const competitionClassId = yield* Array.findFirst(
             marathon.competitionClasses,
-            (c) => c.numberOfPhotos === 0,
+            (c) => c.numberOfPhotos === 1,
           ).pipe(
             Option.match({
               onSome: (competitionClass) => Effect.succeed(competitionClass.id),
