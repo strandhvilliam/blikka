@@ -1,21 +1,22 @@
-import "server-only"
+import "server-only";
 
-import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server"
-import { createTRPCRouter } from "../root"
-import { participantRouter } from "./participants/router"
-import { marathonRouter } from "./marathons/router"
-import { uploadFlowRouter } from "./upload-flow/router"
-import { validationsRouter } from "./validations/router"
-import { contactSheetsRouter } from "./contact-sheets/router"
-import { topicsRouter } from "./topics/router"
-import { competitionClassesRouter } from "./competition-classes/router"
-import { deviceGroupsRouter } from "./device-groups/router"
-import { rulesRouter } from "./rules/router"
-import { usersRouter } from "./users/router"
-import { exportsRouter } from "./exports/router"
-import { juryRouter } from "./jury/router"
-import { sponsorsRouter } from "./sponsors/router"
-import { zipFilesRouter } from "./zip-files/router"
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+import { createTRPCRouter } from "../root";
+import { participantRouter } from "./participants/router";
+import { marathonRouter } from "./marathons/router";
+import { uploadFlowRouter } from "./upload-flow/router";
+import { validationsRouter } from "./validations/router";
+import { contactSheetsRouter } from "./contact-sheets/router";
+import { topicsRouter } from "./topics/router";
+import { competitionClassesRouter } from "./competition-classes/router";
+import { deviceGroupsRouter } from "./device-groups/router";
+import { rulesRouter } from "./rules/router";
+import { usersRouter } from "./users/router";
+import { exportsRouter } from "./exports/router";
+import { juryRouter } from "./jury/router";
+import { sponsorsRouter } from "./sponsors/router";
+import { zipFilesRouter } from "./zip-files/router";
+import { votingRouter } from "./voting/router";
 
 export const appRouter = createTRPCRouter({
   participants: participantRouter,
@@ -32,6 +33,7 @@ export const appRouter = createTRPCRouter({
   jury: juryRouter,
   sponsors: sponsorsRouter,
   zipFiles: zipFilesRouter,
-})
+  voting: votingRouter,
+});
 
-export type AppRouter = typeof appRouter
+export type AppRouter = typeof appRouter;

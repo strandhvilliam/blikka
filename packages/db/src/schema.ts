@@ -572,6 +572,39 @@ export const sponsors = pgTable(
   ]
 )
 
+export const votingSession = pgTable(
+  "voting_session",
+  {
+    id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
+    token: text().notNull(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    email: text("email").notNull(),
+    phoneNumber: text("phone_number"),
+    marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true, mode: "string" }),
+    endsAt: timestamp("ends_at", { withTimezone: true, mode: "string" }),
+    voteSubmissionId: bigint("vote_submission_id", { mode: "number" }).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.marathonId],
+      foreignColumns: [marathons.id],
+      name: "voting_session_marathon_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.voteSubmissionId],
+      foreignColumns: [submissions.id],
+      name: "voting_session_vote_submission_id_fkey",
+    })
+  ]
+)
+
+
 export const juryRatingsRelations = relations(juryRatings, ({ one }) => ({
   juryInvitation: one(juryInvitations, {
     fields: [juryRatings.invitationId],
@@ -767,5 +800,17 @@ export const sponsorsRelations = relations(sponsors, ({ one }) => ({
   marathon: one(marathons, {
     fields: [sponsors.marathonId],
     references: [marathons.id],
+  }),
+}))
+
+
+export const votingSessionRelations = relations(votingSession, ({ one }) => ({
+  marathon: one(marathons, {
+    fields: [votingSession.marathonId],
+    references: [marathons.id],
+  }),
+  submissions: one(submissions, {
+    fields: [votingSession.voteSubmissionId],
+    references: [submissions.id],
   }),
 }))

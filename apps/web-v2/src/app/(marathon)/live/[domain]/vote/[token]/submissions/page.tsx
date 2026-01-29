@@ -7,7 +7,7 @@ import { VotingClient } from "./_components/voting-client";
 
 const _VoteSubmissionsPage = Effect.fn("@blikka/web/VoteSubmissionsPage")(
   function*({ params }: PageProps<"/live/[domain]/vote/[token]/submissions">) {
-    const { domain } = yield* decodeParams(
+    const { domain, token } = yield* decodeParams(
       Schema.Struct({ domain: Schema.String, token: Schema.String }),
     )(params);
 
