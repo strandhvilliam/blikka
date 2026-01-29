@@ -1,0 +1,19 @@
+{
+  "name": "@blikka/sms",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sns": "^3.932.0",
+    "effect": "catalog:"
+  }
+}
