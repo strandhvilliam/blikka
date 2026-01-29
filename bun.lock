@@ -142,6 +142,7 @@
         "@blikka/pubsub": "workspace:*",
         "@blikka/runtime": "workspace:*",
         "@blikka/s3": "workspace:*",
+        "@blikka/sms": "workspace:*",
         "@blikka/validation": "workspace:*",
         "@hono/trpc-server": "^0.4.0",
         "@trpc/server": "^11.7.1",

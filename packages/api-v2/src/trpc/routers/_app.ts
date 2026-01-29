@@ -17,6 +17,7 @@ import { juryRouter } from "./jury/router";
 import { sponsorsRouter } from "./sponsors/router";
 import { zipFilesRouter } from "./zip-files/router";
 import { votingRouter } from "./voting/router";
+import { smsRouter } from "./sms/router";
 
 export const appRouter = createTRPCRouter({
   participants: participantRouter,
@@ -34,6 +35,7 @@ export const appRouter = createTRPCRouter({
   sponsors: sponsorsRouter,
   zipFiles: zipFilesRouter,
   voting: votingRouter,
+  sms: smsRouter,
 });
 
 export type AppRouter = typeof appRouter;

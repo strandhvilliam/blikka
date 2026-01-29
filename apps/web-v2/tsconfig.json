@@ -24,6 +24,7 @@
       "@blikka/runtime": ["../../packages/runtime/src"],
       "@blikka/redis": ["../../packages/redis/src"],
       "@blikka/auth": ["../../packages/auth/src"],
+      "@blikka/sms": ["../../packages/sms/src"],
       "@blikka/db": ["../../packages/db/src"],
       "@blikka/telemetry": ["../../packages/telemetry/src"],
       "@blikka/email": ["../../packages/email/src"],

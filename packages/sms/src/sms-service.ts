@@ -26,24 +26,28 @@ export interface SMSDeliveryResult {
 export class SMSServiceError extends Data.TaggedError("SMSServiceError")<{
   message?: string;
   cause?: unknown;
-}> {}
+}> {
+}
 
 export class SMSService extends Effect.Service<SMSService>()(
   "@blikka/sms/sms-service",
   {
     dependencies: [SNSEffectClient.Default],
-    effect: Effect.gen(function* () {
+    effect: Effect.gen(function*() {
       const snsClient = yield* SNSEffectClient;
 
       const send = Effect.fn("SMSService.send")(
-        function* (params: SendSMSParams) {
+        function*(params: SendSMSParams) {
+
+
           const command = new PublishCommand({
             PhoneNumber: params.phoneNumber,
             Message: params.message,
             MessageAttributes: params.messageAttributes,
           });
-
+          console.log("command", command);
           const result = yield* snsClient.use((client) => client.send(command));
+          console.log("result", result);
 
           if (!result.MessageId) {
             return yield* Effect.fail(
@@ -73,7 +77,7 @@ export class SMSService extends Effect.Service<SMSService>()(
         }),
       );
 
-      const sendBatch = Effect.fn("SMSService.sendBatch")(function* (
+      const sendBatch = Effect.fn("SMSService.sendBatch")(function*(
         params: SendSMSParams[],
       ) {
         const results = yield* Effect.all(
@@ -101,7 +105,7 @@ export class SMSService extends Effect.Service<SMSService>()(
       });
 
       const getDeliveryStatus = Effect.fn("SMSService.getDeliveryStatus")(
-        function* (messageId: string) {
+        function*(messageId: string) {
           const command = new GetSMSAttributesCommand({
             attributes: [
               "MonthlySpendLimit",
@@ -137,7 +141,7 @@ export class SMSService extends Effect.Service<SMSService>()(
       const configureDeliveryTracking = Effect.fn(
         "SMSService.configureDeliveryTracking",
       )(
-        function* (iamRoleArn: string, samplingRate?: number) {
+        function*(iamRoleArn: string, samplingRate?: number) {
           const attributes: Record<string, string> = {
             DeliveryStatusIAMRole: iamRoleArn,
           };
@@ -170,7 +174,7 @@ export class SMSService extends Effect.Service<SMSService>()(
       );
 
       const isOptedOut = Effect.fn("SMSService.isOptedOut")(
-        function* (phoneNumber: string) {
+        function*(phoneNumber: string) {
           const command = new CheckIfPhoneNumberIsOptedOutCommand({
             phoneNumber,
           });
@@ -194,7 +198,7 @@ export class SMSService extends Effect.Service<SMSService>()(
       );
 
       const listOptedOut = Effect.fn("SMSService.listOptedOut")(
-        function* (nextToken?: string) {
+        function*(nextToken?: string) {
           const command = new ListPhoneNumbersOptedOutCommand({
             nextToken,
           });
@@ -221,7 +225,7 @@ export class SMSService extends Effect.Service<SMSService>()(
       );
 
       const optIn = Effect.fn("SMSService.optIn")(
-        function* (phoneNumber: string) {
+        function*(phoneNumber: string) {
           const command = new OptInPhoneNumberCommand({
             phoneNumber,
           });
@@ -245,7 +249,7 @@ export class SMSService extends Effect.Service<SMSService>()(
       );
 
       const sendWithOptOutCheck = Effect.fn("SMSService.sendWithOptOutCheck")(
-        function* (params: SendSMSParams) {
+        function*(params: SendSMSParams) {
           const optedOut = yield* isOptedOut(params.phoneNumber);
 
           if (optedOut) {
@@ -272,4 +276,5 @@ export class SMSService extends Effect.Service<SMSService>()(
       } as const;
     }),
   },
-) {}
+) {
+}

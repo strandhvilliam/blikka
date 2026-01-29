@@ -1,4 +1,5 @@
 import { Layer } from "effect";
+import { SMSService } from "@blikka/sms";
 import { UploadFlowApiService } from "./trpc/routers/upload-flow/service";
 import { ContactSheetsApiService } from "./trpc/routers/contact-sheets/service";
 import { ValidationsApiService } from "./trpc/routers/validations/service";
@@ -27,4 +28,5 @@ export const ApiV2Layer = Layer.mergeAll(
   SponsorsApiService.Default,
   ZipFilesApiService.Default,
   VotingApiService.Default,
+  SMSService.Default,
 );
