@@ -11,10 +11,14 @@ import {
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { useDomain } from "@/lib/domain-provider";
 import { useTRPC } from "@/lib/trpc/client";
-import type { CompetitionClass, RuleConfig as DbRuleConfig, Topic } from "@blikka/db";
+import type {
+  CompetitionClass,
+  RuleConfig as DbRuleConfig,
+  Topic,
+} from "@blikka/db";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { useRef, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useFileUpload } from "../_hooks/use-file-upload";
@@ -26,13 +30,11 @@ import { useStepState } from "../_lib/step-state-context";
 import type { PhotoWithPresignedUrl } from "../_lib/types";
 import { useUploadStore } from "../_lib/upload-store";
 import { SubmissionList } from "./submission-list";
-import { UploadProgressDialog } from "./upload-progress-dialog";
+import { UploadProgress } from "./upload-progress";
 import { UploadSection } from "./upload-section";
 import { HeicConversionDialog } from "./heic-conversion-dialog";
 import { UploadConfirmationDialog } from "./upload-confirmation-dialog";
-import {
-  VALIDATION_OUTCOME,
-} from "@blikka/validation";
+import { VALIDATION_OUTCOME } from "@blikka/validation";
 import { useEffect } from "react";
 import { mapDbRuleConfigsToValidationRules } from "../_lib/utils";
 import { COMMON_IMAGE_EXTENSIONS } from "../_lib/constants";
@@ -62,7 +64,7 @@ export function UploadSubmissionsStep({
   const photos = usePhotoStore((state) => state.photos);
   const removePhoto = usePhotoStore((state) => state.removePhoto);
   const validationResults = usePhotoStore((state) => state.validationResults);
-  
+
   const isUploading = useUploadStore((state) => state.isUploading);
   const setIsUploading = useUploadStore((state) => state.setIsUploading);
 
@@ -74,7 +76,6 @@ export function UploadSubmissionsStep({
   const heicProgress = useHeicStore((state) => state.progress);
   const heicCurrentFileName = useHeicStore((state) => state.currentFileName);
   const cancelHeicConversion = useHeicStore((state) => state.cancel);
-
 
   const { handleFileSelect } = useSelectFile({
     maxPhotos: competitionClass.numberOfPhotos,
@@ -99,17 +100,17 @@ export function UploadSubmissionsStep({
 
   const handleResetAndGoBack = () => {
     const confirmed = window.confirm(t("confirmGoBack"));
-    
+
     if (!confirmed) {
       return;
     }
-    
+
     clearPhotos();
     clearFiles();
     setIsUploading(false);
     setShowConfirmationDialog(false);
     handlePrevStep();
-  }
+  };
 
   const { mutateAsync: initializeUploadFlow, isPending: isInitializing } =
     useMutation(
@@ -120,8 +121,14 @@ export function UploadSubmissionsStep({
       }),
     );
 
-  const validationRules = useMemo(() => mapDbRuleConfigsToValidationRules(ruleConfigs), [ruleConfigs])
-  const topicOrderIndexes = useMemo(() => topics.map((topic) => topic.orderIndex), [topics])
+  const validationRules = useMemo(
+    () => mapDbRuleConfigsToValidationRules(ruleConfigs),
+    [ruleConfigs],
+  );
+  const topicOrderIndexes = useMemo(
+    () => topics.map((topic) => topic.orderIndex),
+    [topics],
+  );
 
   useEffect(() => {
     initializeStore({
@@ -151,15 +158,17 @@ export function UploadSubmissionsStep({
       return;
     }
     fileInputRef.current?.click();
-  }
+  };
 
   const handleSubmit = () => {
     if (photos.length !== competitionClass.numberOfPhotos) {
-      toast.error(t("selectAllPhotos", { count: competitionClass.numberOfPhotos }));
+      toast.error(
+        t("selectAllPhotos", { count: competitionClass.numberOfPhotos }),
+      );
       return;
     }
     setShowConfirmationDialog(true);
-  }
+  };
 
   const handleConfirmedUpload = async () => {
     setShowConfirmationDialog(false);
@@ -216,12 +225,12 @@ export function UploadSubmissionsStep({
       setIsUploading(false);
       toast.error(t("uploadFailed"));
     }
-  }
+  };
 
   const handleCloseUploadProgress = () => {
     setIsUploading(false);
     clearFiles();
-  }
+  };
 
   const allPhotosSelected =
     photos.length === competitionClass.numberOfPhotos && photos.length > 0;
@@ -254,60 +263,78 @@ export function UploadSubmissionsStep({
         onConfirm={handleConfirmedUpload}
       />
 
-      <UploadProgressDialog
-        open={isUploading}
-        files={uploadFiles}
-        topics={topics}
-        expectedCount={competitionClass.numberOfPhotos}
-        onClose={handleCloseUploadProgress}
-        onComplete={handleCloseUploadProgress}
-        onRetry={retryFailedFiles}
-      />
-
-      <div className="max-w-4xl mx-auto space-y-6">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
-            {t("title")}
-          </CardTitle>
-          <CardDescription className="text-center">
-            {t("description")}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <UploadSection
-            maxPhotos={competitionClass.numberOfPhotos}
-            onUploadClick={handleUploadClick}
-          />
-          <SubmissionList
-            topics={topics}
-            maxPhotos={competitionClass.numberOfPhotos}
-            onUploadClick={handleUploadClick}
-            onRemovePhoto={removePhoto}
-          />
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
-            onChange={(e) => handleFileSelect(e.target.files)}
-            className="hidden"
-          />
-        </CardContent>
-
-        <CardFooter className="flex flex-col gap-3 items-center justify-center">
-          <Button
-            variant="ghost"
-            size="lg"
-            onClick={handleResetAndGoBack}
-            className="w-[200px]"
+      <AnimatePresence mode="wait">
+        {isUploading ? (
+          <motion.div
+            key="upload-progress"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="max-w-4xl mx-auto"
           >
-            {t("back")}
-          </Button>
-        </CardFooter>
-      </div>
+            <UploadProgress
+              files={uploadFiles}
+              topics={topics}
+              expectedCount={competitionClass.numberOfPhotos}
+              onComplete={handleCloseUploadProgress}
+              onRetry={retryFailedFiles}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="upload-content"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="max-w-4xl mx-auto space-y-6"
+          >
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
+                {t("title")}
+              </CardTitle>
+              <CardDescription className="text-center">
+                {t("description")}
+              </CardDescription>
+            </CardHeader>
 
-      {canSubmit && (
+            <CardContent className="space-y-6">
+              <UploadSection
+                maxPhotos={competitionClass.numberOfPhotos}
+                onUploadClick={handleUploadClick}
+              />
+              <SubmissionList
+                topics={topics}
+                maxPhotos={competitionClass.numberOfPhotos}
+                onUploadClick={handleUploadClick}
+                onRemovePhoto={removePhoto}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(
+                  ",",
+                )}
+                onChange={(e) => handleFileSelect(e.target.files)}
+                className="hidden"
+              />
+            </CardContent>
+
+            <CardFooter className="flex flex-col gap-3 items-center justify-center">
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={handleResetAndGoBack}
+                className="w-[200px]"
+              >
+                {t("back")}
+              </Button>
+            </CardFooter>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {canSubmit && !isUploading && (
         <motion.div
           initial={{ opacity: 0, y: 100 }}
           animate={{ opacity: 1, y: 0 }}
