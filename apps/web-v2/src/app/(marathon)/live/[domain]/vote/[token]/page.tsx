@@ -8,7 +8,7 @@ import {
 } from "@/lib/trpc/server";
 import { Suspense } from "react";
 import { Splash } from "@/components/splash";
-import { VoteWelcomeClient } from "./_components/vote-welcome-client";
+import { VoteInitialClient } from "./_components/vote-initial-client";
 import { notFound } from "next/navigation";
 
 const _VotePage = Effect.fn("@blikka/web/VotePage")(
@@ -17,21 +17,22 @@ const _VotePage = Effect.fn("@blikka/web/VotePage")(
       Schema.Struct({ domain: Schema.String, token: Schema.String }),
     )(params);
 
-    // const votingData = yield* fetchEffectQuery(
-    //   trpc.voting.getVotingSession.queryOptions({ domain, token }),
-    // ).pipe(
-    //   Effect.catchAll((error) => {
-    //     console.error("Failed to fetch voting session:", error);
-    //     return Effect.fail(notFound());
-    //   }),
-    // );
+    yield* fetchEffectQuery(
+      trpc.voting.getVotingSession.queryOptions({ domain, token }),
+    ).pipe(
+      Effect.catchAll((error) => {
+        console.error("Failed to fetch voting session:", error);
+        return Effect.fail(notFound());
+      }),
+    );
+
 
     prefetch(trpc.voting.getVotingSession.queryOptions({ domain, token }));
 
     return (
       <HydrateClient>
         <Suspense fallback={<Splash />}>
-          <VoteWelcomeClient domain={domain} token={token} />
+          <VoteInitialClient domain={domain} token={token} />
         </Suspense>
       </HydrateClient>
     );
