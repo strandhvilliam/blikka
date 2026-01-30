@@ -169,6 +169,13 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             competitionClass: true,
             deviceGroup: true,
             validationResults: true,
+            votingSession: {
+              columns: {
+                token: true,
+                voteSubmissionId: true,
+                votedAt: true
+              },
+            },
             zippedSubmissions: {
               columns: {
                 key: true,

@@ -589,6 +589,8 @@ export const votingSession = pgTable(
     startsAt: timestamp("starts_at", { withTimezone: true, mode: "string" }),
     endsAt: timestamp("ends_at", { withTimezone: true, mode: "string" }),
     voteSubmissionId: bigint("vote_submission_id", { mode: "number" }).notNull(),
+    connectedParticipantId: bigint("connected_participant_id", { mode: "number" }),
+    votedAt: timestamp("voted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     foreignKey({
@@ -600,7 +602,12 @@ export const votingSession = pgTable(
       columns: [table.voteSubmissionId],
       foreignColumns: [submissions.id],
       name: "voting_session_vote_submission_id_fkey",
-    })
+    }),
+    foreignKey({
+      columns: [table.connectedParticipantId],
+      foreignColumns: [participants.id],
+      name: "voting_session_connected_participant_id_fkey",
+    }).onDelete("set null"),
   ]
 )
 
@@ -673,6 +680,10 @@ export const participantsRelations = relations(participants, ({ one, many }) => 
   submissions: many(submissions),
   zippedSubmissions: many(zippedSubmissions),
   contactSheets: many(contactSheets),
+  votingSession: one(votingSession, {
+    fields: [participants.id],
+    references: [votingSession.connectedParticipantId],
+  }),
 }))
 
 export const ruleConfigsRelations = relations(ruleConfigs, ({ one }) => ({
