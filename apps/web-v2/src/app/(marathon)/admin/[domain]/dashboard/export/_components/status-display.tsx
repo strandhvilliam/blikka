@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { AlertTriangle, CheckCircle, MoreHorizontal } from "lucide-react";
 import { formatDomainPathname } from "@/lib/utils";
-import type { ZipSubmissionStatus } from "./full-marathon-zip.types";
+import type { ZipSubmissionStatus } from "../_lib/types";
 
 interface StatusDisplayProps {
   domain: string;

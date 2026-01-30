@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, CheckCircle, Loader2, XCircle } from "lucide-react";
-import type { ProgressData } from "./full-marathon-zip.types";
+import { ProgressData } from "../_lib/types";
 
 interface ProgressDisplayProps {
   progress: ProgressData;
@@ -19,7 +19,7 @@ export function ProgressDisplay({
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-2">
           {progress.status === "processing" ||
-          progress.status === "initializing" ? (
+            progress.status === "initializing" ? (
             <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
           ) : progress.status === "completed" ? (
             <CheckCircle className="h-4 w-4 text-emerald-600" />

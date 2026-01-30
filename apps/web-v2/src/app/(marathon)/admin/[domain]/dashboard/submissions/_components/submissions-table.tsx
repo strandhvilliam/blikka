@@ -6,6 +6,7 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   flexRender,
+  type SortingState,
 } from "@tanstack/react-table";
 import { useRouter } from "next/navigation";
 import {

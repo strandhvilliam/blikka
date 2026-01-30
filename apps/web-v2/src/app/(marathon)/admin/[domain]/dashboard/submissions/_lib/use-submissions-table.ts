@@ -4,13 +4,14 @@ import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useDebounce } from "use-debounce";
 import { useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useQueryStates } from "nuqs";
+import { type SortingState } from "@tanstack/react-table";
 import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
 import { useParticipantEvents } from "./use-participant-events";
 import { submissionSearchParams } from "./search-params";
 import type { Participant, CompetitionClass, DeviceGroup } from "@blikka/db";
 
-export type TableData = Participant & {
+export type TableData = Omit<Participant, "phoneEncrypted" | "phoneHash"> & {
   competitionClass: CompetitionClass | null;
   deviceGroup: DeviceGroup | null;
   failedValidationResults: { errors: number; warnings: number };
@@ -27,8 +28,8 @@ export function useSubmissionsTable() {
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({ domain }),
   );
-  const [sorting, setSorting] = useState([]);
-  useParticipantEvents();
+  const [sorting, setSorting] = useState<SortingState>([]);
+  // useParticipantEvents();
 
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: "push",

@@ -7,12 +7,12 @@ import { ParticipantTopicSubmissionClientPage } from "./_components/client-page"
 import { SubmissionPageSkeleton } from "./_components/submission-page-skeleton"
 
 const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsPage")(
-  function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
+  function*({ params }: PageProps<"/admin/[domain]/dashboard/submissions/[participantRef]/[topicOrderIndex]">) {
     const { domain, participantRef, topicOrderIndex } = yield* decodeParams(
       Schema.Struct({
         domain: Schema.String,
         participantRef: Schema.String,
-        topicOrderIndex: Schema.NumberFromString,
+        topicOrderIndex: Schema.String,
       })
     )(params)
 
@@ -31,7 +31,7 @@ const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsP
         <Suspense fallback={<SubmissionPageSkeleton />}>
           <ParticipantTopicSubmissionClientPage
             participantRef={participantRef}
-            topicOrderIndex={topicOrderIndex}
+            topicOrderIndex={Number(topicOrderIndex)}
           />
         </Suspense>
       </HydrateClient>

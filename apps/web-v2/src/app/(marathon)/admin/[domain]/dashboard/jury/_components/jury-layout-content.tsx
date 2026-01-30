@@ -23,7 +23,7 @@ export function JuryLayoutContent({ children }: JuryLayoutContentProps) {
         <div className="border-b border-border/40">
           <div className="flex items-center justify-between p-4">
             <h2 className="text-lg font-semibold font-rocgrotesk">Jury Invitations</h2>
-            <PrimaryButton size="sm" onClick={() => setCreateSheetOpen(true)}>
+            <PrimaryButton onClick={() => setCreateSheetOpen(true)}>
               <Plus className="h-4 w-4" />
             </PrimaryButton>
           </div>
