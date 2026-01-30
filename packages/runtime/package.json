@@ -9,6 +9,7 @@
     "@blikka/db": "workspace:*",
     "@blikka/email": "workspace:*",
     "@blikka/redis": "workspace:*",
+    "@blikka/sms": "workspace:*",
     "@blikka/pubsub": "workspace:*",
     "@blikka/s3": "workspace:*",
     "@blikka/kv-store": "workspace:*",
@@ -19,4 +20,3 @@
     "effect": "^3.16.0"
   }
 }
-

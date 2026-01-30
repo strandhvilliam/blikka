@@ -4,6 +4,8 @@ import { S3Service } from "@blikka/s3";
 import { UploadSessionRepository } from "@blikka/kv-store";
 import { PubSubChannel, PubSubService, RunStateService } from "@blikka/pubsub";
 import { UploadFlowApiError } from "./schemas";
+import { ParticipantsApiService } from "../participants/service";
+import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption";
 
 export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()(
   "@blikka/api-v2/UploadFlowApiService",
@@ -15,11 +17,13 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
       UploadSessionRepository.Default,
       PubSubService.Default,
       RunStateService.Default,
+      PhoneNumberEncryptionService.layer,
     ],
     effect: Effect.gen(function*() {
       const db = yield* Database;
       const s3 = yield* S3Service;
       const kv = yield* UploadSessionRepository;
+      const phoneEncryption = yield* PhoneNumberEncryptionService;
       const runStateService = yield* RunStateService;
       const bucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME");
       const environment = yield* Config.string("NODE_ENV").pipe(
@@ -68,6 +72,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
         email,
         competitionClassId,
         deviceGroupId,
+        phoneNumber,
       }) {
         const executeEffect = Effect.gen(function*() {
           const marathon = yield* db.marathonsQueries
@@ -129,6 +134,11 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             onNone: () => [] as number[],
           });
 
+          const { encrypted, hash } = yield* Option.match(Option.fromNullable(phoneNumber), {
+            onSome: (phoneNumber) => phoneEncryption.encrypt({ phoneNumber }),
+            onNone: () => Effect.succeed<{ encrypted: null, hash: null }>({ encrypted: null, hash: null }),
+          });
+
           const participantData = {
             reference,
             domain,
@@ -139,7 +149,10 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             lastname,
             email,
             status: "initialized",
+            phoneHash: hash,
+            phoneEncrypted: encrypted,
           } satisfies NewParticipant;
+
 
           const participant: Participant = yield* Option.match(existingParticipant, {
             onSome: (existing) => {
@@ -264,6 +277,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
         lastname,
         deviceGroupId,
         email,
+        phoneNumber,
       }) {
         const executeEffect = Effect.gen(function*() {
           const marathon = yield* db.marathonsQueries
@@ -305,6 +319,11 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             }),
           );
 
+          const { encrypted, hash } = yield* Option.match(Option.fromNullable(phoneNumber), {
+            onSome: (phoneNumber) => phoneEncryption.encrypt({ phoneNumber }),
+            onNone: () => Effect.succeed<{ encrypted: null, hash: null }>({ encrypted: null, hash: null }),
+          });
+
           const participantData = {
             reference,
             domain,
@@ -315,6 +334,8 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             lastname,
             email,
             status: "initialized",
+            phoneHash: hash,
+            phoneEncrypted: encrypted,
           } satisfies NewParticipant;
 
           const participant: Participant = yield* Option.match(existingParticipant, {

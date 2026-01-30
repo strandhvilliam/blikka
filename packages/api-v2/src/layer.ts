@@ -13,6 +13,7 @@ import { JuryApiService } from "./trpc/routers/jury/service";
 import { SponsorsApiService } from "./trpc/routers/sponsors/service";
 import { ZipFilesApiService } from "./trpc/routers/zip-files/service";
 import { VotingApiService } from "./trpc/routers/voting/service";
+import { PhoneNumberEncryptionService } from "./trpc/utils/phone-number-encryption";
 
 export const ApiV2Layer = Layer.mergeAll(
   UploadFlowApiService.Default,
@@ -28,5 +29,4 @@ export const ApiV2Layer = Layer.mergeAll(
   SponsorsApiService.Default,
   ZipFilesApiService.Default,
   VotingApiService.Default,
-  SMSService.Default,
 );

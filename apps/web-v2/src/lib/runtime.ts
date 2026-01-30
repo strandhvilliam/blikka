@@ -12,7 +12,6 @@ export const serverRuntime = createRuntime({
   additionalLayers: AppSpecificLayers,
 })
 
-// Type for Effects that can run in this app's runtime
 type ApiV2Services = Layer.Layer.Success<typeof ApiV2Layer>
 type TelemetryServices = Layer.Layer.Success<ReturnType<typeof TelemetryLayer>>
 

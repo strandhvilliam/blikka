@@ -10,6 +10,7 @@ import { UploadSessionRepository } from "@blikka/kv-store"
 import { ValidationEngine } from "@blikka/validation"
 import { SharpImageService, ContactSheetBuilder } from "@blikka/image-manipulation"
 import { ExifParser } from "@blikka/exif-parser"
+import { SMSService } from "@blikka/sms"
 
 // Core layer with all common services
 export const CoreLayer = Layer.mergeAll(
@@ -24,7 +25,8 @@ export const CoreLayer = Layer.mergeAll(
   SharpImageService.Default,
   ContactSheetBuilder.Default,
   ExifParser.Default,
-  RunStateService.Default
+  RunStateService.Default,
+  SMSService.Default,
 )
 
 // Derive CoreServices type from the CoreLayer

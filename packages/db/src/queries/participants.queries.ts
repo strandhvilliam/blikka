@@ -165,6 +165,10 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
 
         const participant = yield* db.query.participants.findMany({
           where: whereConditions,
+          columns: {
+            phoneHash: false,
+            phoneEncrypted: false,
+          },
           with: {
             competitionClass: true,
             deviceGroup: true,

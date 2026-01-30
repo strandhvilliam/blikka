@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useDomain } from "@/lib/domain-provider";
 import { useTRPC } from "@/lib/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -37,7 +37,7 @@ export function ByCameraClientWrapper() {
   );
 
   if (!marathon.startDate || !marathon.endDate) {
-    redirect(formatDomainPathname(`/live/not-configured`, domain, "live"))
+    redirect(formatDomainPathname(`/live/not-configured`, domain, "live"));
   }
 
   return (
@@ -60,7 +60,7 @@ export function ByCameraClientWrapper() {
             key={BY_CAMERA_STEPS.ParticipantDetailsStep}
             direction={direction}
           >
-            <ParticipantDetailsStep />
+            <ParticipantDetailsStep mode="by-camera" />
           </AnimatedStepWrapper>
         )}
         {step === BY_CAMERA_STEPS.DeviceSelectionStep && (

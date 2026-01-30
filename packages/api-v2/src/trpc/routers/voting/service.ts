@@ -1,18 +1,21 @@
 import "server-only";
 
 import { Effect, Option } from "effect";
-import { Database, type VotingSession } from "@blikka/db";
+import { Database, type VotingSession, type NewVotingSession } from "@blikka/db";
 import { VotingApiError } from "./schemas";
 import { SMSService } from "@blikka/sms";
+import { PhoneNumberEncryptionService, type EncryptedPhoneNumber } from "../../utils/phone-number-encryption";
+import { randomBytes } from "crypto";
 
 export class VotingApiService extends Effect.Service<VotingApiService>()(
   "@blikka/api-v2/VotingApiService",
   {
     accessors: true,
-    dependencies: [Database.Default],
+    dependencies: [Database.Default, SMSService.Default, PhoneNumberEncryptionService.layer],
     effect: Effect.gen(function*() {
       const db = yield* Database;
       const smsService = yield* SMSService;
+      const phoneEncryption = yield* PhoneNumberEncryptionService;
 
       const getVotingSession = Effect.fn("VotingApiService.getVotingSession")(
         function*({ token, domain }: { token: string; domain: string }) {
@@ -75,7 +78,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
               ),
           });
 
-
           if (marathon.mode !== "by-camera") {
             return yield* Effect.fail(
               new VotingApiError({
@@ -84,15 +86,98 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             );
           }
 
-          const participants = yield* db.participantsQueries
+          const participants = yield* db.votingQueries.getParticipantsWithSubmissionsByMarathonId({
+            marathonId: marathon.id,
+          });
 
-          // create voting sessions for all participants in the marathon (by-camera mode)
+          console.log("participants", participants);
 
+          const participantsWithSubmissions = participants.filter(
+            (p) => p.submissions.length > 0,
+          );
+
+          if (participantsWithSubmissions.length === 0) {
+            return yield* Effect.fail(
+              new VotingApiError({
+                message: "No participants with submissions found for this marathon",
+              }),
+            );
+          }
+
+          const token = 
+            randomBytes(8)
+              .toString('base64url')
+              .slice(0, 8);
+
+
+          const sessionsToCreate: NewVotingSession[] = participantsWithSubmissions.map((p) => ({
+            token,
+            firstName: p.firstname,
+            lastName: p.lastname,
+            email: p.email ?? "",
+            phoneHash: p.phoneHash,
+            phoneEncrypted: p.phoneEncrypted,
+            marathonId: marathon.id,
+            voteSubmissionId: p.submissions[0]!.id,
+            connectedParticipantId: p.id,
+            notificationLastSentAt: null,
+          }));
+
+          const createdSessions = yield* db.votingQueries.createVotingSessions({
+            sessions: sessionsToCreate,
+          });
+
+          const smsResults = yield* Effect.all(
+            createdSessions
+              .filter((session) => session.phoneEncrypted)
+              .map((session) =>
+                Effect.gen(function*() {
+                  const phoneNumber = yield* phoneEncryption.decrypt({
+                    encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
+                  });
+                  console.log("phoneNumber", phoneNumber);
+
+                  const message = `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`;
+                  
+                  const result = yield* smsService.sendWithOptOutCheck({
+                    phoneNumber,
+                    message,
+                  });
+
+                  return {
+                    sessionId: session.id,
+                    phoneNumber,
+                    smsResult: result,
+                  };
+                }).pipe(
+                  Effect.catchAll((error) =>
+                    Effect.succeed({
+                      sessionId: session.id,
+                      phoneNumber: null,
+                      error: String(error),
+                    }),
+                  ),
+                ),
+              ),
+            { concurrency: 5 },
+          );
+
+          yield* db.votingQueries.updateMultipleLastNotificationSentAt({
+            ids: createdSessions.map((session) => session.id),
+            notificationLastSentAt: new Date().toISOString(),
+          });
+
+          return {
+            sessionsCreated: createdSessions.length,
+            smsSent: smsResults.filter((r) => !("error" in r)).length,
+            smsResults,
+          };
         },
       );
 
       return {
         getVotingSession,
+        startVotingSessions,
       } as const;
     }),
   },

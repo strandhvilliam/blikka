@@ -50,7 +50,18 @@
     },
     "participantDetails": {
       "title": "Dina uppgifter",
-      "description": "Vänligen bekräfta dina uppgifter för att fortsätta"
+      "description": "Vänligen bekräfta dina uppgifter för att fortsätta",
+      "firstName": "Förnamn",
+      "lastName": "Efternamn",
+      "email": "E-post",
+      "phone": "Telefonnummer",
+      "continue": "Fortsätt",
+      "back": "Tillbaka",
+      "firstNameRequired": "Förnamn krävs",
+      "lastNameRequired": "Efternamn krävs",
+      "invalidEmail": "Vänligen ange en giltig e-postadress",
+      "phoneRequired": "Telefonnummer krävs",
+      "invalidPhone": "Vänligen ange ett giltigt telefonnummer"
     },
     "classSelection": {
       "title": "Välj din klass",

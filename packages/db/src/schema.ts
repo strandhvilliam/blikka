@@ -591,6 +591,7 @@ export const votingSession = pgTable(
     marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
     startsAt: timestamp("starts_at", { withTimezone: true, mode: "string" }),
     endsAt: timestamp("ends_at", { withTimezone: true, mode: "string" }),
+    notificationLastSentAt: timestamp("notification_last_sent_at", { withTimezone: true, mode: "string" }),
     voteSubmissionId: bigint("vote_submission_id", { mode: "number" }).notNull(),
     connectedParticipantId: bigint("connected_participant_id", { mode: "number" }),
     votedAt: timestamp("voted_at", { withTimezone: true, mode: "string" }),

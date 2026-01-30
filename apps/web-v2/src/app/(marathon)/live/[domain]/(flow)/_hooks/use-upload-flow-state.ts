@@ -18,6 +18,7 @@ export function useUploadFlowState() {
       participantEmail: parseAsString,
       participantFirstName: parseAsString,
       participantLastName: parseAsString,
+      participantPhone: parseAsString,
       uploadInstructionsShown: parseAsBoolean.withDefault(false),
     },
     {
@@ -29,11 +30,11 @@ export function useUploadFlowState() {
         participantEmail: "pe",
         participantFirstName: "pf",
         participantLastName: "pl",
+        participantPhone: "pp",
         uploadInstructionsShown: "uis",
       },
     },
   );
-
 
   return { uploadFlowState, setUploadFlowState };
 }

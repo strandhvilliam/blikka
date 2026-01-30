@@ -45,9 +45,7 @@ export class SMSService extends Effect.Service<SMSService>()(
             Message: params.message,
             MessageAttributes: params.messageAttributes,
           });
-          console.log("command", command);
           const result = yield* snsClient.use((client) => client.send(command));
-          console.log("result", result);
 
           if (!result.MessageId) {
             return yield* Effect.fail(

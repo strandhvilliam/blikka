@@ -15,13 +15,11 @@ export const votingRouter = createTRPCRouter({
     ),
   ),
 
-  // startVotingSessions: domainProcedure.input(StartVotingSessionsSchema).mutation(
-  //   trpcEffect(
-  //     Effect.fn("VotingRouter.startVotingSessions")(function*({ input }) {
-  //       return yield* VotingApiService.startVotingSessions(input);
-  //     }),
-  //   ),
-  // ),
-
-  
+  startVotingSessions: domainProcedure.input(StartVotingSessionsSchema).mutation(
+    trpcEffect(
+      Effect.fn("VotingRouter.startVotingSessions")(function*({ input }) {
+        return yield* VotingApiService.startVotingSessions(input);
+      }),
+    ),
+  ),
 });

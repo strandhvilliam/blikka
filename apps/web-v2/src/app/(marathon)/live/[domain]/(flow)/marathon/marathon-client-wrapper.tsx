@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useDomain } from "@/lib/domain-provider";
 import { useTRPC } from "@/lib/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -29,10 +29,7 @@ export function MarathonClientWrapper() {
   useHandleBeforeUnload();
   const { step, direction } = useStepState();
   const trpc = useTRPC();
-  const {
-    uploadFlowState,
-  } =
-    useUploadFlowState();
+  const { uploadFlowState } = useUploadFlowState();
   const domain = useDomain();
 
   const { data: marathon } = useSuspenseQuery(
@@ -41,9 +38,11 @@ export function MarathonClientWrapper() {
 
   const selectedCompetitionClass = useMemo(() => {
     if (!uploadFlowState.competitionClassId) return null;
-    return marathon.competitionClasses.find(
-      (cc) => cc.id === uploadFlowState.competitionClassId,
-    ) || null;
+    return (
+      marathon.competitionClasses.find(
+        (cc) => cc.id === uploadFlowState.competitionClassId,
+      ) || null
+    );
   }, [marathon.competitionClasses, uploadFlowState.competitionClassId]);
 
   const topicsForClass = useMemo(() => {
@@ -53,11 +52,10 @@ export function MarathonClientWrapper() {
     );
     return sortedTopics.slice(
       selectedCompetitionClass.topicStartIndex,
-      selectedCompetitionClass.topicStartIndex + selectedCompetitionClass.numberOfPhotos,
+      selectedCompetitionClass.topicStartIndex +
+        selectedCompetitionClass.numberOfPhotos,
     );
   }, [marathon.topics, selectedCompetitionClass]);
-
-
 
   return (
     <div className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 h-screen">
@@ -71,8 +69,7 @@ export function MarathonClientWrapper() {
             key={PARTICIPANT_SUBMISSION_STEPS.ParticipantNumberStep}
             direction={direction}
           >
-            <ParticipantNumberStep
-            />
+            <ParticipantNumberStep />
           </AnimatedStepWrapper>
         )}
         {step === PARTICIPANT_SUBMISSION_STEPS.ParticipantDetailsStep && (
@@ -80,8 +77,7 @@ export function MarathonClientWrapper() {
             key={PARTICIPANT_SUBMISSION_STEPS.ParticipantDetailsStep}
             direction={direction}
           >
-            <ParticipantDetailsStep
-            />
+            <ParticipantDetailsStep mode="marathon" />
           </AnimatedStepWrapper>
         )}
         {step === PARTICIPANT_SUBMISSION_STEPS.ClassSelectionStep && (
@@ -99,9 +95,7 @@ export function MarathonClientWrapper() {
             key={PARTICIPANT_SUBMISSION_STEPS.DeviceSelectionStep}
             direction={direction}
           >
-            <DeviceSelectionStep
-              deviceGroups={marathon.deviceGroups}
-            />
+            <DeviceSelectionStep deviceGroups={marathon.deviceGroups} />
           </AnimatedStepWrapper>
         )}
         {step === PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep &&
@@ -124,4 +118,4 @@ export function MarathonClientWrapper() {
       </AnimatePresence>
     </div>
   );
-} 
+}

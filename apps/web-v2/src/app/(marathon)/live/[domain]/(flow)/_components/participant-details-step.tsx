@@ -13,33 +13,78 @@ import { Input } from "@/components/ui/input";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Schema } from "effect"
+import { Schema } from "effect";
 import { useStepState } from "../_lib/step-state-context";
+import { type FlowMode } from "../_lib/constants";
+import { useState, useEffect } from "react";
+import PhoneInput, { isPossiblePhoneNumber } from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
-const createParticipantDetailsSchema = (t: ReturnType<typeof useTranslations>) =>
-  Schema.standardSchemaV1(Schema.Struct({
-    firstname: Schema.String.pipe(
-      Schema.minLength(1)
-    ).annotations({ description: t("participantDetails.firstNameRequired") }),
-    lastname: Schema.String.pipe(
-      Schema.minLength(1)
-    ).annotations({ description: t("participantDetails.lastNameRequired") }),
-    email: Schema.String.pipe(
-      Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
-    ).annotations({ description: t("participantDetails.invalidEmail") }),
-  }));
+function getCountryFromLocale(): string {
+  if (typeof navigator === "undefined") return "SE";
 
+  const language = navigator.language;
+  if (!language) return "SE";
 
-export function ParticipantDetailsStep() {
+  // Extract country code from locale (e.g., "en-US" -> "US", "sv-SE" -> "SE")
+  const parts = language.split("-");
+  if (parts.length > 1) {
+    return parts[parts.length - 1].toUpperCase();
+  }
+
+  return "SE";
+}
+
+const createParticipantDetailsSchema = (
+  t: ReturnType<typeof useTranslations>,
+  mode: FlowMode,
+) => {
+  return Schema.standardSchemaV1(
+    Schema.Struct({
+      firstname: Schema.String.pipe(Schema.minLength(1)).annotations({
+        description: t("participantDetails.firstNameRequired"),
+      }),
+      lastname: Schema.String.pipe(Schema.minLength(1)).annotations({
+        description: t("participantDetails.lastNameRequired"),
+      }),
+      email: Schema.String.pipe(
+        Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
+      ).annotations({ description: t("participantDetails.invalidEmail") }),
+      phone:
+        mode === "by-camera"
+          ? Schema.String.pipe(
+              Schema.minLength(1),
+              Schema.filter((value) => isPossiblePhoneNumber(value), {
+                message: () => t("participantDetails.invalidPhone"),
+              }),
+            ).annotations({
+              description: t("participantDetails.phoneRequired"),
+            })
+          : Schema.String,
+    }),
+  );
+};
+
+interface ParticipantDetailsStepProps {
+  mode: FlowMode;
+}
+
+export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
   const t = useTranslations("FlowPage");
   const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
   const { handleNextStep, handlePrevStep } = useStepState();
+  const [defaultCountry, setDefaultCountry] = useState<string>("SE");
+
+  useEffect(() => {
+    setDefaultCountry(getCountryFromLocale());
+  }, []);
 
   const form = useForm({
     defaultValues: {
       firstname: uploadFlowState.participantFirstName ?? "",
       lastname: uploadFlowState.participantLastName ?? "",
       email: uploadFlowState.participantEmail ?? "",
+      phone: uploadFlowState.participantPhone ?? "",
     },
     onSubmit: async ({ value }) => {
       await setUploadFlowState((prev) => ({
@@ -47,12 +92,13 @@ export function ParticipantDetailsStep() {
         participantFirstName: value.firstname,
         participantLastName: value.lastname,
         participantEmail: value.email,
+        participantPhone: value.phone,
       }));
       handleNextStep();
     },
     validators: {
-      onChange: createParticipantDetailsSchema(t),
-      onMount: createParticipantDetailsSchema(t),
+      onChange: createParticipantDetailsSchema(t, mode),
+      onMount: createParticipantDetailsSchema(t, mode),
     },
   });
 
@@ -143,6 +189,35 @@ export function ParticipantDetailsStep() {
               </div>
             )}
           />
+
+          {mode === "by-camera" && (
+            <form.Field
+              name="phone"
+              children={(field) => (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none">
+                    {t("participantDetails.phone")}
+                  </label>
+                  <PhoneInput
+                    defaultCountry={defaultCountry as any}
+                    value={field.state.value}
+                    onChange={(value) => field.handleChange(value || "")}
+                    onBlur={field.handleBlur}
+                    international
+                    countryCallingCodeEditable={false}
+                    className="phone-input-custom"
+                    inputComponent={Input}
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors.length > 0 && (
+                      <span className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium">
+                        {field.state.meta.errors[0]?.message}
+                      </span>
+                    )}
+                </div>
+              )}
+            />
+          )}
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 pt-8">

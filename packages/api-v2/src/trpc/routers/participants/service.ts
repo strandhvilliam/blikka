@@ -1,14 +1,17 @@
 import { Effect, Option } from "effect"
 import { Database } from "@blikka/db"
 import { ParticipantApiError, PublicParticipantSchema } from "./schemas"
+import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption"
+import type { NewParticipant } from "@blikka/db"
 
 export class ParticipantsApiService extends Effect.Service<ParticipantsApiService>()(
   "@blikka/api-v2/ParticipantsApiService",
   {
     accessors: true,
-    dependencies: [Database.Default],
+    dependencies: [Database.Default, PhoneNumberEncryptionService.layer],
     effect: Effect.gen(function*() {
       const db = yield* Database
+      const phoneEncryption = yield* PhoneNumberEncryptionService
 
 
       const getPublicParticipantByReference = Effect.fn("ParticipantsApiService.getPublicParticipantByReference")(function*({
@@ -109,11 +112,42 @@ export class ParticipantsApiService extends Effect.Service<ParticipantsApiServic
         return yield* db.participantsQueries.deleteParticipant({ id: participant.id })
       })
 
+      const createParticipant = Effect.fn("ParticipantsApiService.createParticipant")(function*({
+        data,
+        phoneNumber,
+      }: {
+        data: Omit<NewParticipant, "phoneHash" | "phoneEncrypted">
+        phoneNumber?: string
+      }) {
+        let participantData: NewParticipant = {
+          ...data,
+          phoneHash: null,
+          phoneEncrypted: null,
+        }
+
+        // If a phone number is provided, encrypt it and store both hash and encrypted value
+        if (phoneNumber) {
+          const { hash, encrypted } = yield* phoneEncryption.encrypt({ phoneNumber })
+          participantData = {
+            ...participantData,
+            phoneHash: hash,
+            phoneEncrypted: encrypted,
+          }
+        }
+
+        const result = yield* db.participantsQueries.createParticipant({
+          data: participantData,
+        })
+
+        return result
+      })
+
       return {
         getPublicParticipantByReference,
         getInfiniteParticipantsByDomain,
         getByReference,
         deleteByReference,
+        createParticipant,
       } as const
     }),
   }

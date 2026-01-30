@@ -57,11 +57,14 @@
       "firstName": "First Name",
       "lastName": "Last Name",
       "email": "Email",
+      "phone": "Phone Number",
       "continue": "Continue",
       "back": "Back",
       "firstNameRequired": "First name is required",
       "lastNameRequired": "Last name is required",
-      "invalidEmail": "Please enter a valid email address"
+      "invalidEmail": "Please enter a valid email address",
+      "phoneRequired": "Phone number is required",
+      "invalidPhone": "Please enter a valid phone number"
     },
     "classSelection": {
       "title": "Select Your Class",

@@ -179,6 +179,7 @@ export function ByCameraUploadStep({
         lastname: uploadFlowState.participantLastName,
         email: uploadFlowState.participantEmail,
         deviceGroupId: uploadFlowState.deviceGroupId,
+        phoneNumber: uploadFlowState.participantPhone,
       });
 
       if (!presignedUrls || presignedUrls.length === 0) {

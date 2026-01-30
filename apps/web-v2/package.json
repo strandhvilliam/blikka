@@ -90,6 +90,7 @@
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.66.1",
     "react-markdown": "^10.1.0",
+    "react-phone-number-input": "^3.4.14",
     "react-resizable-panels": "^3.0.6",
     "recharts": "2.15.4",
     "server-only": "^0.0.1",

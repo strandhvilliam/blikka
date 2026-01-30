@@ -6,7 +6,8 @@ export class UploadFlowApiError extends Schema.TaggedError<UploadFlowApiError>()
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
-) {}
+) {
+}
 
 export const GetPublicMarathonSchema = Schema.standardSchemaV1(
   Schema.Struct({
@@ -23,6 +24,7 @@ export const InitializeUploadFlowSchema = Schema.standardSchemaV1(
     email: Schema.String,
     competitionClassId: Schema.Number,
     deviceGroupId: Schema.Number,
+    phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
   }),
 );
 
@@ -34,6 +36,7 @@ export const InitializeByCameraUploadSchema = Schema.standardSchemaV1(
     lastname: Schema.String,
     email: Schema.String,
     deviceGroupId: Schema.Number,
+    phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
   }),
 );
 

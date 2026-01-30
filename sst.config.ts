@@ -139,10 +139,10 @@ export default $config({
         dockerfile: "/tasks/zip-worker/Dockerfile",
       },
       link: [submissionsBucket, zipsBucket],
-      dev: false,
-      // dev: {
-      //   command: "bun run ./tasks/zip-worker/src/index.ts",
-      // },
+      // dev: false,
+      dev: {
+        command: "bun run ./tasks/zip-worker/src/index.ts",
+      },
     })
 
     const zipDownloaderTask = new sst.aws.Task("ZipDownloaderTask", {
@@ -152,7 +152,7 @@ export default $config({
       },
       environment: env,
       link: [zipsBucket],
-      dev: false,
+      // dev: false,
     })
 
     const zipDownloaderCallerFunction = new sst.aws.Function("ZipDownloaderCallerFunction", {
