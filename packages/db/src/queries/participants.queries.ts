@@ -329,6 +329,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         }
       )
 
+
       return {
         getParticipantById,
         getParticipantByReference,
@@ -337,7 +338,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         updateParticipantById,
         updateParticipantByReference,
         deleteParticipant,
-      }
+      } as const 
     }),
   }
 ) {

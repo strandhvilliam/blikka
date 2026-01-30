@@ -147,6 +147,8 @@ export const participants = pgTable(
     domain: text().notNull(),
     firstname: text().notNull(),
     lastname: text().notNull(),
+    phoneHash: text("phone_hash"),
+    phoneEncrypted: text("phone_encrypted"),
   },
   (table) => [
     index("participants_domain_idx").using("btree", table.domain.asc().nullsLast().op("text_ops")),
@@ -584,7 +586,8 @@ export const votingSession = pgTable(
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
     email: text("email").notNull(),
-    phoneNumber: text("phone_number"),
+    phoneHash: text("phone_hash"),
+    phoneEncrypted: text("phone_encrypted"),
     marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
     startsAt: timestamp("starts_at", { withTimezone: true, mode: "string" }),
     endsAt: timestamp("ends_at", { withTimezone: true, mode: "string" }),
