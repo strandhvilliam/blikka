@@ -53,11 +53,6 @@ declare module "sst" {
       "type": "sst.aws.Queue"
       "url": string
     }
-    "ZipDownloaderCallerFunction": {
-      "name": string
-      "type": "sst.aws.Function"
-      "url": string
-    }
     "ZipDownloaderTask": {
       "assignPublicIp": boolean
       "cluster": string

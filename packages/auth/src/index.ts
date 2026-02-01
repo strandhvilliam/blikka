@@ -1,12 +1,10 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth"
-import { Config, Context, Effect } from "effect"
+import { Context, Effect } from "effect"
 import { DrizzleClient } from "@blikka/db"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { EmailService, MagicLinkEmail, magicLinkEmailSubject, OTPEmail } from "@blikka/email"
+import { EmailService, OTPEmail } from "@blikka/email"
 import { nextCookies } from "better-auth/next-js"
-import { bearer, emailOTP, magicLink } from "better-auth/plugins"
-import { createAuthMiddleware } from "better-auth/api"
-import { userMarathons } from "../../db/src/schema"
+import { bearer, emailOTP } from "better-auth/plugins"
 
 export class AuthConfig extends Context.Tag("AuthConfig")<
   AuthConfig,
@@ -18,7 +16,8 @@ export class AuthConfig extends Context.Tag("AuthConfig")<
       companyLogoUrl: string
     }
   }
->() {}
+>() {
+}
 
 const isProduction = process.env.NODE_ENV === "production"
 const rootDomain = isProduction ? process.env.BLIKKA_PRODUCTION_URL : "localhost:3002"
@@ -94,7 +93,8 @@ export class BetterAuthService extends Effect.Service<BetterAuthService>()(
       return betterAuth(config)
     }),
   }
-) {}
+) {
+}
 
 // export const initAuth = (options: {
 //   baseUrl: string

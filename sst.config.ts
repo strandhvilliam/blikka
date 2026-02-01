@@ -1,5 +1,7 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
+
+
 export default $config({
   app(input) {
     return {
@@ -31,6 +33,18 @@ export default $config({
       ZIPS_BUCKET_NAME: process.env.ZIPS_BUCKET_NAME!,
     }
 
+    const ALLOWED_ORIGINS = [
+      "http://localhost:3002",
+      "https://vimmer.app",
+      "*.vimmer.app",
+      "*.localhost:3002",
+      "https://*.vimmer.app",
+      "*.blikka.app",
+      "https://*.blikka.app",
+      "https://blikka.app",
+    ]
+
+
     /* BUCKETS */
 
     const submissionsBucket = new sst.aws.Bucket("V2SubmissionsBucket", {
@@ -43,15 +57,7 @@ export default $config({
         },
       ],
       cors: {
-        allowOrigins: [
-          "http://localhost:3002",
-          "https://vimmer.app",
-          "*.vimmer.app",
-          "*.localhost:3002",
-          "http://localhost:3002",
-          "https://*.vimmer.app",
-          "*.localhost:3002",
-        ],
+        allowOrigins: ALLOWED_ORIGINS,
         exposeHeaders: ["Access-Control-Allow-Origin"],
       },
     })
@@ -74,15 +80,7 @@ export default $config({
         },
       ],
       cors: {
-        allowOrigins: [
-          "http://localhost:3002",
-          "https://vimmer.app",
-          "*.vimmer.app",
-          "*.localhost:3002",
-          "http://localhost:3002",
-          "https://*.vimmer.app",
-          "*.localhost:3002",
-        ],
+        allowOrigins: ALLOWED_ORIGINS,
         exposeHeaders: ["Access-Control-Allow-Origin"],
       },
     })
@@ -96,15 +94,7 @@ export default $config({
         },
       ],
       cors: {
-        allowOrigins: [
-          "http://localhost:3002",
-          "https://vimmer.app",
-          "*.vimmer.app",
-          "*.localhost:3002",
-          "http://localhost:3002",
-          "https://*.vimmer.app",
-          "*.localhost:3002",
-        ],
+        allowOrigins: ALLOWED_ORIGINS,
         exposeHeaders: ["Access-Control-Allow-Origin"],
       },
     })
@@ -140,9 +130,6 @@ export default $config({
       },
       link: [submissionsBucket, zipsBucket],
       // dev: false,
-      dev: {
-        command: "bun run ./tasks/zip-worker/src/index.ts",
-      },
     })
 
     const zipDownloaderTask = new sst.aws.Task("ZipDownloaderTask", {
@@ -153,13 +140,6 @@ export default $config({
       environment: env,
       link: [zipsBucket],
       // dev: false,
-    })
-
-    const zipDownloaderCallerFunction = new sst.aws.Function("ZipDownloaderCallerFunction", {
-      url: true,
-      handler: "./tasks/zip-downloader/src/handler.handler",
-      environment: env,
-      link: [zipDownloaderTask],
     })
 
     /* QUEUE HANDLERS */
@@ -226,7 +206,6 @@ export default $config({
       sponsorBucket: sponsorBucket.name,
       zipsBucket: zipsBucket.name,
       marathonSettingsBucket: marathonSettingsBucket.name,
-      zipDownloaderCallerFunction: zipDownloaderCallerFunction.url,
     }
   },
 })
