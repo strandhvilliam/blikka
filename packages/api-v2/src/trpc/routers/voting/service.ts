@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Effect, Option } from "effect";
+import { Effect, Option, Config } from "effect";
 import {
   Database,
   type VotingSession,
@@ -13,6 +13,16 @@ import {
   type EncryptedPhoneNumber,
 } from "../../utils/phone-number-encryption";
 import { randomBytes } from "crypto";
+
+// S3 URL builder - matches web-v2/src/lib/utils.ts
+const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com";
+function buildS3Url(
+  bucketName: string,
+  key: string | null | undefined,
+): string | undefined {
+  if (!key) return undefined;
+  return `${AWS_S3_BASE_URL}/${bucketName}/${key}`;
+}
 
 export class VotingApiService extends Effect.Service<VotingApiService>()(
   "@blikka/api-v2/VotingApiService",
@@ -397,12 +407,178 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         });
       });
 
+      const getVotingSubmissions = Effect.fn(
+        "VotingApiService.getVotingSubmissions",
+      )(function* ({ token, domain }: { token: string; domain: string }) {
+        // Validate voting session exists and hasn't expired
+        const votingSessionResult =
+          yield* db.votingQueries.getVotingSessionByToken({ token });
+
+        const votingSession = yield* Option.match(votingSessionResult, {
+          onSome: (session) => Effect.succeed(session),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: "Voting session not found",
+              }),
+            ),
+        });
+
+        // Check if already voted
+        if (votingSession.votedAt) {
+          return {
+            alreadyVoted: true as const,
+            votedAt: votingSession.votedAt,
+            votedSubmissionId: votingSession.voteSubmissionId,
+          };
+        }
+
+        // Check session hasn't expired
+        if (votingSession.endsAt) {
+          const now = new Date();
+          const endsAt = new Date(votingSession.endsAt);
+          if (endsAt < now) {
+            return yield* Effect.fail(
+              new VotingApiError({
+                message: "Voting session has expired",
+              }),
+            );
+          }
+        }
+
+        // Get bucket name for S3 URLs
+        const bucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME");
+
+        // Get all submissions for the marathon
+        const submissions = yield* db.votingQueries.getSubmissionsForVoting({
+          marathonId: votingSession.marathonId,
+        });
+
+        // Transform to response format with S3 URLs
+        const votingSubmissions = submissions
+          .filter((s) => s.key) // Only include submissions with images
+          .map((s) => ({
+            submissionId: s.id,
+            participantId: s.participantId,
+            participantFirstName: s.participant?.firstname ?? "",
+            participantLastName: s.participant?.lastname ?? "",
+            url: buildS3Url(bucketName, s.key),
+            thumbnailUrl: buildS3Url(bucketName, s.thumbnailKey),
+            previewUrl: buildS3Url(bucketName, s.previewKey),
+            topicId: s.topicId,
+            topicName: s.topic?.name ?? "",
+          }));
+
+        return {
+          alreadyVoted: false as const,
+          submissions: votingSubmissions,
+          sessionInfo: {
+            token: votingSession.token,
+            firstName: votingSession.firstName,
+            lastName: votingSession.lastName,
+            endsAt: votingSession.endsAt,
+          },
+        };
+      });
+
+      const submitVote = Effect.fn("VotingApiService.submitVote")(function* ({
+        token,
+        submissionId,
+        domain,
+      }: {
+        token: string;
+        submissionId: number;
+        domain: string;
+      }) {
+        // Validate voting session exists and hasn't expired
+        const votingSessionResult =
+          yield* db.votingQueries.getVotingSessionByToken({ token });
+
+        const votingSession = yield* Option.match(votingSessionResult, {
+          onSome: (session) => Effect.succeed(session),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: "Voting session not found",
+              }),
+            ),
+        });
+
+        // Check if already voted
+        if (votingSession.votedAt) {
+          return {
+            success: false as const,
+            error: "already_voted" as const,
+            votedAt: votingSession.votedAt,
+          };
+        }
+
+        // Check session hasn't expired
+        if (votingSession.endsAt) {
+          const now = new Date();
+          const endsAt = new Date(votingSession.endsAt);
+          if (endsAt < now) {
+            return yield* Effect.fail(
+              new VotingApiError({
+                message: "Voting session has expired",
+              }),
+            );
+          }
+        }
+
+        // Validate the submission exists and belongs to the same marathon
+        const submission = yield* db.submissionsQueries.getSubmissionById({
+          id: submissionId,
+        });
+
+        const validSubmission = yield* Option.match(submission, {
+          onSome: (s) => {
+            if (s.marathonId !== votingSession.marathonId) {
+              return Effect.fail(
+                new VotingApiError({
+                  message: "Submission does not belong to this marathon",
+                }),
+              );
+            }
+            return Effect.succeed(s);
+          },
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: "Submission not found",
+              }),
+            ),
+        });
+
+        // Record the vote
+        const updatedSession = yield* db.votingQueries.recordVote({
+          token,
+          submissionId,
+        });
+
+        if (!updatedSession) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to record vote",
+            }),
+          );
+        }
+
+        return {
+          success: true as const,
+          votedAt: updatedSession.votedAt,
+          submissionId: updatedSession.voteSubmissionId,
+        };
+      });
+
       return {
         getVotingSession,
         startVotingSessions,
         getSubmissionVoteStats,
         createOrUpdateVotingSessionForParticipant,
         getVotingSessionByParticipant,
+        getVotingSubmissions,
+        submitVote,
       } as const;
     }),
   },

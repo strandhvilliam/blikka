@@ -32,6 +32,39 @@ export function FilterBar({
 }: FilterBarProps) {
   const progress = Math.round(((currentIndex + 1) / totalCount) * 100);
 
+  const renderFilterOption = (option: typeof filterOptions[number]) => {
+
+    const count =
+      option.value === null
+        ? Object.values(ratingCounts).reduce((a, b) => a + b, 0)
+        : ratingCounts[option.value] || 0;
+
+    const isActive = currentFilter === option.value;
+
+
+    return (
+      <button
+        key={String(option.value)}
+        onClick={() => onFilterChange(option.value)}
+        className={cn(
+          "flex items-center gap-0.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0",
+          isActive
+            ? "bg-foreground text-background"
+            : "bg-muted/50 text-muted-foreground hover:bg-muted",
+        )}
+      >
+        {option.value !== null && (
+          <Star className="w-3 h-3 fill-current" />
+        )}
+        {option.label}
+        {count > 0 && (
+          <span className="ml-0.5 opacity-60">({count})</span>
+        )}
+      </button>
+    );
+  };
+
+
   return (
     <div className={cn("px-4 py-3", className)}>
       {/* Progress bar */}
@@ -54,32 +87,7 @@ export function FilterBar({
       {/* Filter options - always visible */}
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
         {filterOptions.map((option) => {
-          const count =
-            option.value === null
-              ? Object.values(ratingCounts).reduce((a, b) => a + b, 0)
-              : ratingCounts[option.value] || 0;
-          const isActive = currentFilter === option.value;
-
-          return (
-            <button
-              key={String(option.value)}
-              onClick={() => onFilterChange(option.value)}
-              className={cn(
-                "flex items-center gap-0.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0",
-                isActive
-                  ? "bg-foreground text-background"
-                  : "bg-muted/50 text-muted-foreground hover:bg-muted",
-              )}
-            >
-              {option.value !== null && (
-                <Star className="w-3 h-3 fill-current" />
-              )}
-              {option.label}
-              {count > 0 && (
-                <span className="ml-0.5 opacity-60">({count})</span>
-              )}
-            </button>
-          );
+          return renderFilterOption(option);
         })}
       </div>
     </div>

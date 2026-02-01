@@ -5,8 +5,8 @@ import { Suspense } from "react";
 import { Splash } from "@/components/splash";
 import { VotingClient } from "./_components/voting-client";
 
-const _VoteSubmissionsPage = Effect.fn("@blikka/web/VoteSubmissionsPage")(
-  function*({ params }: PageProps<"/live/[domain]/vote/[token]/submissions">) {
+const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
+  function* ({ params }: PageProps<"/live/[domain]/vote/[token]/viewer">) {
     const { domain, token } = yield* decodeParams(
       Schema.Struct({ domain: Schema.String, token: Schema.String }),
     )(params);
@@ -16,7 +16,7 @@ const _VoteSubmissionsPage = Effect.fn("@blikka/web/VoteSubmissionsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<Splash />}>
-          <VotingClient domain={domain} />
+          <VotingClient domain={domain} token={token} />
         </Suspense>
       </HydrateClient>
     );
@@ -30,4 +30,4 @@ const _VoteSubmissionsPage = Effect.fn("@blikka/web/VoteSubmissionsPage")(
   ),
 );
 
-export default Page(_VoteSubmissionsPage);
+export default Page(_VoteViewerPage);

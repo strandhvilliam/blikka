@@ -210,6 +210,51 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         return result[0] as VotingSession;
       });
 
+      const getSubmissionsForVoting = Effect.fn(
+        "VotingQueries.getSubmissionsForVoting",
+      )(function* ({ marathonId }: { marathonId: number }) {
+        const result = yield* db.query.submissions.findMany({
+          where: eq(submissions.marathonId, marathonId),
+          orderBy: submissions.id,
+          with: {
+            participant: {
+              columns: {
+                id: true,
+                firstname: true,
+                lastname: true,
+              },
+            },
+            topic: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        });
+        return result;
+      });
+
+      const recordVote = Effect.fn("VotingQueries.recordVote")(function* ({
+        token,
+        submissionId,
+      }: {
+        token: string;
+        submissionId: number;
+      }) {
+        const now = new Date().toISOString();
+        const result = yield* db
+          .update(votingSession)
+          .set({
+            voteSubmissionId: submissionId,
+            votedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(votingSession.token, token))
+          .returning();
+        return result[0] as VotingSession | undefined;
+      });
+
       return {
         getVotingSessionByToken,
         getPublicMarathonByDomain,
@@ -220,6 +265,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         getParticipantVoteInfo,
         getVotingSessionByParticipantId,
         upsertVotingSession,
+        getSubmissionsForVoting,
+        recordVote,
       } as const;
     }),
   },

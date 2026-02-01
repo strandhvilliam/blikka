@@ -41,3 +41,18 @@ export const GetVotingSessionByParticipantSchema = Schema.standardSchemaV1(
     domain: Schema.String,
   }),
 );
+
+export const GetVotingSubmissionsSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+  }),
+);
+
+export const SubmitVoteSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    submissionId: Schema.Number,
+    domain: Schema.String,
+  }),
+);
