@@ -1,11 +1,72 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TableData } from "./use-submissions-table";
 
-export const getSubmissionsColumns = (marathonMode?: string): ColumnDef<TableData>[] => {
+interface SubmissionsColumnsOptions {
+  marathonMode?: string;
+  participants: TableData[];
+  selectedIds: Set<number>;
+  onToggleSelection: (id: number, event: React.MouseEvent) => void;
+  onToggleAll: () => void;
+}
+
+export const getSubmissionsColumns = ({
+  marathonMode,
+  participants,
+  selectedIds,
+  onToggleSelection,
+  onToggleAll,
+}: SubmissionsColumnsOptions): ColumnDef<TableData>[] => {
+  // Calculate select all state based on visible participants
+  const visibleIds = participants.map((p) => p.id);
+  const selectedVisibleCount = visibleIds.filter((id) =>
+    selectedIds.has(id),
+  ).length;
+  const allVisibleSelected =
+    visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
+  const someVisibleSelected =
+    selectedVisibleCount > 0 && selectedVisibleCount < visibleIds.length;
+
   const baseColumns: ColumnDef<TableData>[] = [
+    {
+      id: "select",
+      header: () => (
+        <div className="flex items-center justify-center">
+          <Checkbox
+            checked={allVisibleSelected}
+            data-state={someVisibleSelected ? "indeterminate" : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleAll();
+            }}
+            aria-label="Select all visible"
+          />
+        </div>
+      ),
+      cell: ({ row }) => {
+        const participant = row.original;
+        const isChecked = selectedIds.has(participant.id);
+        return (
+          <div className="flex items-center justify-center">
+            <Checkbox
+              checked={isChecked}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelection(
+                  participant.id,
+                  e as unknown as React.MouseEvent,
+                );
+              }}
+              aria-label={`Select participant ${participant.reference}`}
+            />
+          </div>
+        );
+      },
+      size: 40,
+    },
     {
       accessorKey: "reference",
       header: "Reference",

@@ -22,9 +22,15 @@ import { formatDomainPathname } from "@/lib/utils";
 import { useSubmissionsTable } from "../_lib/use-submissions-table";
 import { SubmissionsFilters } from "./submissions-filters";
 import { getSubmissionsColumns } from "../_lib/submissions-columns";
+import { SubmissionsBulkToolbar } from "./submissions-bulk-toolbar";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/lib/trpc/client";
+import { toast } from "sonner";
 
 export function SubmissionsTable() {
   const router = useRouter();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const {
     domain,
     marathon,
@@ -42,11 +48,92 @@ export function SubmissionsTable() {
     observerTarget,
     handleCompetitionClassChange,
     handleDeviceGroupChange,
+    selectedIds,
+    selectedCount,
+    hasSelection,
+    toggleSelection,
+    toggleAllVisible,
+    isSelected,
+    clearSelection,
+    canVerifySelected,
+    queryParams,
   } = useSubmissionsTable();
 
+  const batchDeleteMutation = useMutation(
+    trpc.participants.batchDelete.mutationOptions({
+      onSuccess: async (data, variables) => {
+        toast.success(
+          `Deleted ${data.deletedCount} participant${data.deletedCount === 1 ? "" : "s"}`,
+        );
+        if (data.failedIds.length > 0) {
+          toast.error(
+            `Failed to delete ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"}`,
+          );
+        }
+
+        await queryClient.invalidateQueries({
+          queryKey: trpc.participants.getByDomainInfinite.pathKey(),
+        });
+
+        clearSelection();
+      },
+      onError: (error) => {
+        toast.error(`Failed to delete participants: ${error.message}`);
+      },
+    }),
+  );
+
+  const batchVerifyMutation = useMutation(
+    trpc.participants.batchVerify.mutationOptions({
+      onSuccess: async (data, variables) => {
+        toast.success(
+          `Verified ${data.updatedCount} participant${data.updatedCount === 1 ? "" : "s"}`,
+        );
+        if (data.failedIds.length > 0) {
+          toast.error(
+            `Failed to verify ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"} (not in completed status)`,
+          );
+        }
+        clearSelection();
+      },
+      onError: (error) => {
+        toast.error(`Failed to verify participants: ${error.message}`);
+      },
+    }),
+  );
+
+  const handleBatchDelete = () => {
+    if (selectedCount === 0) return;
+    batchDeleteMutation.mutate({
+      ids: Array.from(selectedIds),
+      domain,
+    });
+  };
+
+  const handleBatchVerify = () => {
+    if (selectedCount === 0 || !canVerifySelected) return;
+    batchVerifyMutation.mutate({
+      ids: Array.from(selectedIds),
+      domain,
+    });
+  };
+
   const columns = useMemo(
-    () => getSubmissionsColumns(marathon?.mode),
-    [marathon?.mode],
+    () =>
+      getSubmissionsColumns({
+        marathonMode: marathon?.mode,
+        participants,
+        selectedIds,
+        onToggleSelection: toggleSelection,
+        onToggleAll: toggleAllVisible,
+      }),
+    [
+      marathon?.mode,
+      participants,
+      selectedIds,
+      toggleSelection,
+      toggleAllVisible,
+    ],
   );
 
   const table = useReactTable({
@@ -64,18 +151,30 @@ export function SubmissionsTable() {
   return (
     <div className="flex flex-col h-full space-y-4">
       <div className="space-y-4 shrink-0">
-        <SubmissionsFilters
-          search={queryState.search}
-          onSearchChange={(search) => setQueryState({ search })}
-          sortOrder={queryState.sortOrder}
-          onSortOrderChange={(sortOrder) => setQueryState({ sortOrder })}
-          competitionClassId={queryState.competitionClassId}
-          onCompetitionClassChange={handleCompetitionClassChange}
-          competitionClasses={competitionClasses}
-          deviceGroupId={queryState.deviceGroupId}
-          onDeviceGroupChange={handleDeviceGroupChange}
-          deviceGroups={deviceGroups}
-        />
+        {hasSelection ? (
+          <SubmissionsBulkToolbar
+            selectedCount={selectedCount}
+            canVerify={canVerifySelected}
+            isDeleting={batchDeleteMutation.isPending}
+            isVerifying={batchVerifyMutation.isPending}
+            onClearSelection={clearSelection}
+            onDelete={handleBatchDelete}
+            onVerify={handleBatchVerify}
+          />
+        ) : (
+          <SubmissionsFilters
+            search={queryState.search}
+            onSearchChange={(search) => setQueryState({ search })}
+            sortOrder={queryState.sortOrder}
+            onSortOrderChange={(sortOrder) => setQueryState({ sortOrder })}
+            competitionClassId={queryState.competitionClassId}
+            onCompetitionClassChange={handleCompetitionClassChange}
+            competitionClasses={competitionClasses}
+            deviceGroupId={queryState.deviceGroupId}
+            onDeviceGroupChange={handleDeviceGroupChange}
+            deviceGroups={deviceGroups}
+          />
+        )}
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 rounded-lg border bg-card shadow-sm overflow-hidden">
@@ -162,11 +261,23 @@ export function SubmissionsTable() {
                           : `/admin/dashboard/submissions/${participant.reference}`,
                         domain,
                       );
+                      const isRowSelected = isSelected(participant.id);
                       return (
                         <TableRow
                           key={row.id}
-                          className="cursor-pointer transition-colors hover:bg-muted/60 border-b"
-                          onClick={() => router.push(href)}
+                          className={`cursor-pointer transition-colors border-b ${isRowSelected
+                            ? "bg-muted/80 hover:bg-muted/80"
+                            : "hover:bg-muted/60"
+                            }`}
+                          onClick={(e) => {
+                            // Don't navigate if clicking the checkbox
+                            const target = e.target as HTMLElement;
+                            const isCheckboxClick =
+                              target.closest('[data-slot="checkbox"]') !== null;
+                            if (!isCheckboxClick) {
+                              router.push(href);
+                            }
+                          }}
                         >
                           {row.getVisibleCells().map((cell) => (
                             <TableCell key={cell.id} className="py-2">

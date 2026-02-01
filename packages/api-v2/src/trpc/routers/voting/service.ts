@@ -6,19 +6,20 @@ import { VotingApiError } from "./schemas";
 import { SMSService } from "@blikka/sms";
 import { PhoneNumberEncryptionService, type EncryptedPhoneNumber } from "../../utils/phone-number-encryption";
 import { randomBytes } from "crypto";
+import { null } from "effect/Match";
 
 export class VotingApiService extends Effect.Service<VotingApiService>()(
   "@blikka/api-v2/VotingApiService",
   {
     accessors: true,
     dependencies: [Database.Default, SMSService.Default, PhoneNumberEncryptionService.layer],
-    effect: Effect.gen(function*() {
+    effect: Effect.gen(function* () {
       const db = yield* Database;
       const smsService = yield* SMSService;
       const phoneEncryption = yield* PhoneNumberEncryptionService;
 
       const getVotingSession = Effect.fn("VotingApiService.getVotingSession")(
-        function*({ token, domain }: { token: string; domain: string }) {
+        function* ({ token, domain }: { token: string; domain: string }) {
           const votingSessionResult =
             yield* db.votingQueries.getVotingSessionByToken({ token });
 
@@ -65,7 +66,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
       );
 
       const startVotingSessions = Effect.fn("VotingApiService.startVotingSessions")(
-        function*({ domain }: { domain: string }) {
+        function* ({ domain }: { domain: string }) {
           const marathonOpt = yield* db.marathonsQueries.getMarathonByDomain({ domain });
 
           const marathon = yield* Option.match(marathonOpt, {
@@ -104,7 +105,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             );
           }
 
-          const token = 
+          const token =
             randomBytes(8)
               .toString('base64url')
               .slice(0, 8);
@@ -118,7 +119,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             phoneHash: p.phoneHash,
             phoneEncrypted: p.phoneEncrypted,
             marathonId: marathon.id,
-            voteSubmissionId: p.submissions[0]!.id,
+            voteSubmissionId: null,
             connectedParticipantId: p.id,
             notificationLastSentAt: null,
           }));
@@ -131,14 +132,14 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             createdSessions
               .filter((session) => session.phoneEncrypted)
               .map((session) =>
-                Effect.gen(function*() {
+                Effect.gen(function* () {
                   const phoneNumber = yield* phoneEncryption.decrypt({
                     encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
                   });
                   console.log("phoneNumber", phoneNumber);
 
                   const message = `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`;
-                  
+
                   const result = yield* smsService.sendWithOptOutCheck({
                     phoneNumber,
                     message,

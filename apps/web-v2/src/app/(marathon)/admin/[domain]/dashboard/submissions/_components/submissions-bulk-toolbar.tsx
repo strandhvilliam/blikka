@@ -1,0 +1,130 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Trash2, CheckCircle, X, Loader2 } from "lucide-react";
+import { useState } from "react";
+
+interface SubmissionsBulkToolbarProps {
+  selectedCount: number;
+  canVerify: boolean;
+  isDeleting: boolean;
+  isVerifying: boolean;
+  onClearSelection: () => void;
+  onDelete: () => void;
+  onVerify: () => void;
+}
+
+export function SubmissionsBulkToolbar({
+  selectedCount,
+  canVerify,
+  isDeleting,
+  isVerifying,
+  onClearSelection,
+  onDelete,
+  onVerify,
+}: SubmissionsBulkToolbarProps) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
+    onDelete();
+    setShowDeleteDialog(false);
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 bg-card rounded-md border border-border h-9 pl-3 pr-1">
+          <span className="text-sm text-muted-foreground bg-card">
+            {selectedCount} selected
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClearSelection}
+            className="h-6 w-6 px-2 text-muted-foreground hover:text-foreground rounded-full"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="h-4 w-px bg-border mx-1" />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onVerify}
+          disabled={!canVerify || isVerifying}
+          className="h-9"
+        >
+          {isVerifying ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <CheckCircle className="h-4 w-4 mr-1" />
+          )}
+          Verify
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={handleDeleteClick}
+          disabled={isDeleting}
+          className="h-9"
+        >
+          {isDeleting ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4 mr-1" />
+          )}
+          Delete
+        </Button>
+      </div>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Participants</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedCount} participant
+              {selectedCount === 1 ? "" : "s"}? This action cannot be undone.
+              {canVerify === false && selectedCount > 0 && (
+                <span className="block mt-2 text-destructive">
+                  Note: Some selected participants are not in
+                  &quot;completed&quot; status and cannot be verified, but they
+                  can still be deleted.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Delete {selectedCount} Participant
+              {selectedCount === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

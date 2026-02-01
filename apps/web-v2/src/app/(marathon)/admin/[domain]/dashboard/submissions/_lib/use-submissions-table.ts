@@ -31,6 +31,9 @@ export function useSubmissionsTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
   // useParticipantEvents();
 
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
+
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: "push",
   });
@@ -126,7 +129,8 @@ export function useSubmissionsTable() {
   );
 
   const participants = useMemo(
-    () => (data?.pages.flatMap((page) => page.participants) ?? []) as TableData[],
+    () =>
+      (data?.pages.flatMap((page) => page.participants) ?? []) as TableData[],
     [data],
   );
 
@@ -198,6 +202,87 @@ export function useSubmissionsTable() {
     [setQueryState],
   );
 
+  // Selection helpers
+  const selectedCount = selectedIds.size;
+  const hasSelection = selectedCount > 0;
+
+  const toggleSelection = useCallback(
+    (id: number, event: React.MouseEvent) => {
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+
+        if (event.shiftKey && lastSelectedId !== null) {
+          // Range selection with shift key
+          const participantIds = participants.map((p) => p.id);
+          const lastIndex = participantIds.indexOf(lastSelectedId);
+          const currentIndex = participantIds.indexOf(id);
+
+          if (lastIndex !== -1 && currentIndex !== -1) {
+            const start = Math.min(lastIndex, currentIndex);
+            const end = Math.max(lastIndex, currentIndex);
+
+            for (let i = start; i <= end; i++) {
+              newSet.add(participantIds[i]!);
+            }
+          }
+        } else {
+          // Single toggle
+          if (newSet.has(id)) {
+            newSet.delete(id);
+          } else {
+            newSet.add(id);
+          }
+        }
+
+        return newSet;
+      });
+
+      // Update last selected if not shift-click
+      if (!event.shiftKey) {
+        setLastSelectedId(id);
+      }
+    },
+    [participants, lastSelectedId],
+  );
+
+  const isSelected = useCallback(
+    (id: number) => selectedIds.has(id),
+    [selectedIds],
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setLastSelectedId(null);
+  }, []);
+
+  const toggleAllVisible = useCallback(() => {
+    setSelectedIds((prev) => {
+      const visibleIds = participants.map((p) => p.id);
+      const allVisibleSelected = visibleIds.every((id) => prev.has(id));
+
+      if (allVisibleSelected) {
+        // Deselect all visible
+        const newSet = new Set(prev);
+        visibleIds.forEach((id) => newSet.delete(id));
+        return newSet;
+      } else {
+        // Select all visible
+        const newSet = new Set(prev);
+        visibleIds.forEach((id) => newSet.add(id));
+        return newSet;
+      }
+    });
+  }, [participants]);
+
+  // Check if all selected participants are "completed" (eligible for verify)
+  const canVerifySelected = useMemo(() => {
+    if (selectedCount === 0) return false;
+    return Array.from(selectedIds).every((id) => {
+      const participant = participants.find((p) => p.id === id);
+      return participant?.status === "completed";
+    });
+  }, [selectedIds, participants, selectedCount]);
+
   return {
     domain,
     marathon,
@@ -215,5 +300,26 @@ export function useSubmissionsTable() {
     observerTarget,
     handleCompetitionClassChange,
     handleDeviceGroupChange,
+    // Selection state
+    selectedIds,
+    selectedCount,
+    hasSelection,
+    toggleSelection,
+    toggleAllVisible,
+    isSelected,
+    clearSelection,
+    canVerifySelected,
+    // Query params for invalidation
+    queryParams: {
+      domain,
+      search: debouncedSearch || null,
+      sortOrder: sortOrder || null,
+      competitionClassId: normalizedCompetitionClassId ?? null,
+      deviceGroupId: normalizedDeviceGroupId ?? null,
+      statusFilter: tabQueryParams.statusFilter,
+      excludeStatuses: tabQueryParams.excludeStatuses,
+      hasValidationErrors: tabQueryParams.hasValidationErrors,
+      limit: 50,
+    },
   };
 }
