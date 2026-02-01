@@ -15,13 +15,17 @@ import { useTranslations } from "next-intl";
 import { useStepState } from "../_lib/step-state-context";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 
-export function ClassSelectionStep({ competitionClasses }: { competitionClasses: CompetitionClass[] }) {
+export function ClassSelectionStep({
+  competitionClasses,
+}: {
+  competitionClasses: CompetitionClass[];
+}) {
   const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
   const { handleNextStep, handlePrevStep } = useStepState();
   const t = useTranslations("FlowPage");
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 min-h-[70vh] flex flex-col justify-center">
+    <div className="max-w-4xl mx-auto space-y-10 min-h-[70dvh] flex flex-col justify-center">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("classSelection.title")}

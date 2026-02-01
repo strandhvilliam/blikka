@@ -44,6 +44,7 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
               )
             )
 
+
           const { shouldSkip } = yield* ensureReadyForSheetGeneration(
             participantState,
             params.reference,
@@ -142,4 +143,5 @@ export class SheetGeneratorService extends Effect.Service<SheetGeneratorService>
       } as const
     }),
   }
-) {}
+) {
+}

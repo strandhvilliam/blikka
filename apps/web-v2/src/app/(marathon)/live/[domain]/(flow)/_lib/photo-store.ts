@@ -6,14 +6,12 @@ import {
   ValidationEngine,
   SingleValidationsService,
   GroupedValidationsService,
-  RULE_KEYS,
   type ValidationResult,
   type ValidationRule,
   type ValidationInput,
 } from "@blikka/validation";
 import type { SelectedPhoto } from "./types";
 import { getExifDate, prepareValidationRules } from "./utils";
-
 
 interface PhotoStore {
   // State
@@ -41,7 +39,6 @@ interface PhotoStore {
   runPhotoValidation: () => Promise<void>;
   cleanup: () => void;
 }
-
 
 export const usePhotoStore = create<PhotoStore>((set, get) => ({
   photos: [],
@@ -139,7 +136,10 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       return;
     }
 
-    const preparedValidationRules = prepareValidationRules(state.validationRules, { start: state.marathonStartDate, end: state.marathonEndDate });
+    const preparedValidationRules = prepareValidationRules(
+      state.validationRules,
+      { start: state.marathonStartDate, end: state.marathonEndDate },
+    );
 
     const validationInputs: ValidationInput[] = state.photos.map((photo) => ({
       exif: photo.exif,
@@ -149,9 +149,12 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       mimeType: photo.file.type,
     }));
 
-    const program = Effect.gen(function*() {
+    const program = Effect.gen(function* () {
       const engine = yield* ValidationEngine;
-      return yield* engine.runValidations(preparedValidationRules, validationInputs);
+      return yield* engine.runValidations(
+        preparedValidationRules,
+        validationInputs,
+      );
     });
 
     // Provide the required services and run the effect

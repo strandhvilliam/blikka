@@ -41,7 +41,7 @@ export function ByCameraClientWrapper() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 h-screen">
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 min-h-dvh pb-[env(safe-area-inset-bottom)]">
       <NetworkStatusBanner />
       <div className="mb-10">
         <ByCameraStepNavigator />

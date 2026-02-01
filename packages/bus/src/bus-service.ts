@@ -8,7 +8,8 @@ import { EventBusDetailTypes } from "./event-types"
 export class EventBusError extends Data.TaggedError("EventBusError")<{
   message?: string
   cause?: unknown
-}> {}
+}> {
+}
 
 export class BusService extends Effect.Service<BusService>()("@blikka/bus/bus-service", {
   dependencies: [EventBridgeEffectClient.Default],
@@ -44,4 +45,5 @@ export class BusService extends Effect.Service<BusService>()("@blikka/bus/bus-se
       sendFinalizedEvent,
     }
   }),
-}) {}
+}) {
+}

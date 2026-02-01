@@ -17,8 +17,8 @@ import { Schema } from "effect";
 import { useStepState } from "../_lib/step-state-context";
 import { type FlowMode } from "../_lib/constants";
 import { useState, useEffect } from "react";
-import PhoneInput, { isPossiblePhoneNumber } from "react-phone-number-input";
-import "react-phone-number-input/style.css";
+import { isPossiblePhoneNumber } from "react-phone-number-input";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 function getCountryFromLocale(): string {
   if (typeof navigator === "undefined") return "SE";
@@ -41,19 +41,31 @@ const createParticipantDetailsSchema = (
 ) => {
   return Schema.standardSchemaV1(
     Schema.Struct({
-      firstname: Schema.String.pipe(Schema.minLength(1)).annotations({
+      firstname: Schema.String.pipe(
+        Schema.filter((value) => value.length > 0, {
+          message: () => t("participantDetails.firstNameRequired"),
+        }),
+      ).annotations({
         description: t("participantDetails.firstNameRequired"),
       }),
-      lastname: Schema.String.pipe(Schema.minLength(1)).annotations({
+      lastname: Schema.String.pipe(
+        Schema.filter((value) => value.length > 0, {
+          message: () => t("participantDetails.lastNameRequired"),
+        }),
+      ).annotations({
         description: t("participantDetails.lastNameRequired"),
       }),
       email: Schema.String.pipe(
-        Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
+        Schema.filter((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
+          message: () => t("participantDetails.invalidEmail"),
+        }),
       ).annotations({ description: t("participantDetails.invalidEmail") }),
       phone:
         mode === "by-camera"
           ? Schema.String.pipe(
-              Schema.minLength(1),
+              Schema.filter((value) => value.length > 0, {
+                message: () => t("participantDetails.phoneRequired"),
+              }),
               Schema.filter((value) => isPossiblePhoneNumber(value), {
                 message: () => t("participantDetails.invalidPhone"),
               }),
@@ -97,13 +109,12 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       handleNextStep();
     },
     validators: {
-      onChange: createParticipantDetailsSchema(t, mode),
-      onMount: createParticipantDetailsSchema(t, mode),
+      onBlur: createParticipantDetailsSchema(t, mode),
     },
   });
 
   return (
-    <div className="max-w-md mx-auto min-h-[70vh] space-y-10 flex flex-col justify-center">
+    <div className="max-w-md mx-auto min-h-[70dvh] space-y-10 flex flex-col justify-center">
       <CardHeader className="">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("participantDetails.title")}
@@ -126,7 +137,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="rounded-xl text-base sm:text-lg py-5"
+                  className="rounded-xl text-base sm:text-lg py-5 bg-background"
                   placeholder="James"
                 />
                 {field.state.meta.isTouched &&
@@ -151,7 +162,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="rounded-xl text-base sm:text-lg py-5"
+                  className="rounded-xl text-base sm:text-lg py-5 bg-background"
                   placeholder="Bond"
                 />
                 {field.state.meta.isTouched &&
@@ -176,7 +187,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="rounded-xl text-base sm:text-lg py-5"
+                  className="rounded-xl text-base sm:text-lg py-5 bg-background"
                   type="email"
                   placeholder="your@email.com"
                 />
@@ -205,8 +216,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                     onBlur={field.handleBlur}
                     international
                     countryCallingCodeEditable={false}
-                    className="phone-input-custom"
-                    inputComponent={Input}
+                    className="rounded-xl text-base sm:text-lg bg-background"
                   />
                   {field.state.meta.isTouched &&
                     field.state.meta.errors.length > 0 && (

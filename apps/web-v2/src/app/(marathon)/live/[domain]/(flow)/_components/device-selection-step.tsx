@@ -32,22 +32,22 @@ export function DeviceSelectionStep({
   // For by-camera mode, it's not needed
   const isValid = isByCameraMode
     ? uploadFlowState.deviceGroupId &&
-    uploadFlowState.participantFirstName &&
-    uploadFlowState.participantLastName &&
-    uploadFlowState.participantEmail
+      uploadFlowState.participantFirstName &&
+      uploadFlowState.participantLastName &&
+      uploadFlowState.participantEmail
     : uploadFlowState.deviceGroupId &&
-    uploadFlowState.competitionClassId &&
-    uploadFlowState.participantFirstName &&
-    uploadFlowState.participantLastName &&
-    uploadFlowState.participantEmail;
+      uploadFlowState.competitionClassId &&
+      uploadFlowState.participantFirstName &&
+      uploadFlowState.participantLastName &&
+      uploadFlowState.participantEmail;
 
   const handleContinue = () => {
-    if (!isValid) return
+    if (!isValid) return;
     handleNextStep();
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 min-h-[70vh] flex flex-col justify-center">
+    <div className="max-w-4xl mx-auto space-y-10 min-h-[70dvh] flex flex-col justify-center">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("deviceSelection.title")}

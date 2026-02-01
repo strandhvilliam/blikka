@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from "date-fns"
 import { protocol, rootDomain } from "@/config"
+import { AWS_S3_BASE_URL } from "./constants"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -24,6 +25,10 @@ export const formatSubdomainUrlAdmin = (subdomain: string) => {
   }
   // for local development since we don't have a subdomain
   return `${protocol}://localhost:3002/admin/${subdomain}`
+}
+export function buildS3Url(bucketName?: string, key?: string | null) {
+  if (!bucketName || !key) return undefined
+  return `${AWS_S3_BASE_URL}/${bucketName}/${key}`
 }
 
 export function truncate(str: string, options: { length?: number } = {}) {

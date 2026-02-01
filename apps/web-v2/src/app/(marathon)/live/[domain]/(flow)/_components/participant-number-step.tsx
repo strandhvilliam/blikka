@@ -45,7 +45,6 @@ const createInitializeParticipantSchema = (
     }),
   );
 
-
 export function ParticipantNumberStep() {
   const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
   const { handleNextStep } = useStepState();
@@ -104,7 +103,7 @@ export function ParticipantNumberStep() {
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-[70vh] space-y-10 flex flex-col justify-center">
+    <div className="max-w-md mx-auto min-h-[70dvh] space-y-10 flex flex-col justify-center">
       <CardHeader className="space-y-3">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("participantNumber.title")}

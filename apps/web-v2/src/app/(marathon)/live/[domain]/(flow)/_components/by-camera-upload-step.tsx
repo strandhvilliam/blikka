@@ -61,6 +61,8 @@ export function ByCameraUploadStep({
   const removePhoto = usePhotoStore((state) => state.removePhoto);
   const validationResults = usePhotoStore((state) => state.validationResults);
 
+  console.log({ validationResults });
+
   const isUploading = useUploadStore((state) => state.isUploading);
   const setIsUploading = useUploadStore((state) => state.setIsUploading);
 
@@ -218,6 +220,7 @@ export function ByCameraUploadStep({
   const photoSelected = photos.length === BY_CAMERA_MAX_PHOTOS;
   const photo = photos[0];
 
+  const hasValidationRules = validationRules.length > 0;
   const hasValidationErrors = validationResults.some(
     (result) =>
       result.outcome === VALIDATION_OUTCOME.FAILED &&
@@ -284,9 +287,10 @@ export function ByCameraUploadStep({
               <ByCameraUploadInput
                 photo={photo || null}
                 validationResults={validationResults}
+                hasValidationRules={hasValidationRules}
                 onFileSelect={handleSelectFiles}
                 onRemovePhoto={removePhoto}
-                onChooseClick={() => { }}
+                onChooseClick={() => {}}
               />
             </CardContent>
 

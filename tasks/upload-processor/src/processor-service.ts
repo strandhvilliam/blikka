@@ -24,7 +24,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
       RunStateService.Default,
       SharpImageService.Default,
     ],
-    effect: Effect.gen(function*() {
+    effect: Effect.gen(function* () {
       const s3 = yield* S3Service
       const uploadKv = yield* UploadSessionRepository
       const exifKv = yield* ExifKVRepository
@@ -36,7 +36,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
       const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
 
       const handleParticipantError = Effect.fnUntraced(
-        function*(domain: string, reference: string, errorCode: string, error: Error) {
+        function* (domain: string, reference: string, errorCode: string, error: Error) {
           yield* Effect.logError(error.message, { domain, reference, errorCode })
           return yield* uploadKv
             .setParticipantErrorState(domain, reference, errorCode)
@@ -45,7 +45,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
         Effect.catchAll((error) => Effect.logError("Failed to set participant error state", error))
       )
 
-      const generateThumbnail = Effect.fn("ThumbnailService.generateThumbnail")(function*(
+      const generateThumbnail = Effect.fn("ThumbnailService.generateThumbnail")(function* (
         photo: Buffer,
         key: string
       ) {
@@ -60,7 +60,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
         return thumbnailKey
       })
 
-      const processPhoto = Effect.fn("UploadProcessorService.processPhoto")(function*(
+      const processPhoto = Effect.fn("UploadProcessorService.processPhoto")(function* (
         key: string
       ) {
         const { domain, reference, orderIndex } = yield* parseKey(key)

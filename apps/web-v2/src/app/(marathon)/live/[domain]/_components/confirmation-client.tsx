@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
-import { AnimatePresence, motion } from "motion/react";
-import { useTranslations } from "next-intl";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useState } from "react"
+import dynamic from "next/dynamic"
+import { AnimatePresence, motion } from "motion/react"
+import { useTranslations } from "next-intl"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import {
   ArrowRight,
   CheckCircle2,
@@ -14,91 +14,87 @@ import {
   Recycle,
   Trophy,
   Vote,
-} from "lucide-react";
-import { Icon } from "@iconify/react";
+} from "lucide-react"
+import { Icon } from "@iconify/react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { formatDomainPathname } from "@/lib/utils";
-import { useDomain } from "@/lib/domain-provider";
-import { useTRPC } from "@/lib/trpc/client";
-import { useDesktopCountdownRedirect } from "@/hooks/use-desktop-countdown-redirect";
+} from "@/components/ui/dropdown-menu"
+import { buildS3Url,
+  formatDomainPathname } from "@/lib/utils"
+import { useDomain } from "@/lib/domain-provider"
+import { useTRPC } from "@/lib/trpc/client"
+import { useDesktopCountdownRedirect } from "@/hooks/use-desktop-countdown-redirect"
 
-import { ConfirmationDetailsDialog } from "./confirmation-details-dialog";
+import { ConfirmationDetailsDialog } from "./confirmation-details-dialog"
 
 const Confetti = dynamic(
   () => import("react-confetti").then((mod) => mod.default),
   {
     ssr: false,
   },
-);
+)
 
-const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com";
-const THUMBNAILS_BUCKET = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME;
-const PHOTOS_BUCKET = process.env.NEXT_PUBLIC_PHOTOS_BUCKET_NAME;
+const THUMBNAILS_BUCKET = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
+const PHOTOS_BUCKET = process.env.NEXT_PUBLIC_PHOTOS_BUCKET_NAME
 
-function buildS3Url(bucketName?: string, key?: string | null) {
-  if (!bucketName || !key) return undefined;
-  return `${AWS_S3_BASE_URL}/${bucketName}/${key}`;
-}
 
 interface ConfirmationClientProps {
   params: {
-    participantRef: string;
-    participantFirstName: string;
-    participantLastName: string;
-  };
+    participantRef: string
+    participantFirstName: string
+    participantLastName: string
+  }
 }
 
 export function ConfirmationClient({ params }: ConfirmationClientProps) {
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const t = useTranslations("ConfirmationPage");
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const t = useTranslations("ConfirmationPage")
   const [selectedImage, setSelectedImage] = useState<{
-    thumbnailUrl: string | undefined;
-    name: string;
-    orderIndex: number;
-  } | null>(null);
+    thumbnailUrl: string | undefined
+    name: string
+    orderIndex: number
+  } | null>(null)
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getPublicParticipantByReference.queryOptions({
       reference: params.participantRef ?? "",
       domain,
     }),
-  );
+  )
   const { data: marathon } = useSuspenseQuery(
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
-  );
+  )
   const handleRedirect = () => {
     switch (marathon.mode) {
       case "marathon":
         window.location.replace(
           formatDomainPathname(`/live/marathon`, domain, "live"),
-        );
-        break;
+        )
+        break
       case "by-camera":
         window.location.replace(
           formatDomainPathname(`/live/by-camera`, domain, "live"),
-        );
-        break;
+        )
+        break
     }
-  };
+  }
 
   const { remainingSeconds, addSeconds } = useDesktopCountdownRedirect({
     initialSeconds: 15,
     onRedirect: handleRedirect,
-  });
+  })
 
   const submissions = participant?.publicSubmissions
     ? [...participant.publicSubmissions]
-    : [];
+    : []
 
   const images = submissions
     .sort((a, b) => (a.topic?.orderIndex ?? 0) - (b.topic?.orderIndex ?? 0))
@@ -107,12 +103,11 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
         thumbnailUrl: buildS3Url(THUMBNAILS_BUCKET, submission.thumbnailKey),
         name: submission.topic?.name ?? t("photoPlaceholder") ?? "",
         orderIndex: submission.topic?.orderIndex ?? 0,
-      };
-    });
+      }
+    })
 
-  if (!participant) {
-    return null;
-  }
+  console.log({ images })
+
 
   return (
     <>
@@ -484,5 +479,5 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
         />
       </div>
     </>
-  );
+  )
 }

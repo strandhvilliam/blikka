@@ -25,8 +25,17 @@ function getValidationSummary(
     severity?: "error" | "warning";
     message: string;
   }>,
+  hasValidationRules: boolean,
 ): ValidationSummary {
   if (validationResults.length === 0) {
+    // If no rules configured, show as passed
+    if (!hasValidationRules) {
+      return {
+        status: "passed",
+        outcome: VALIDATION_OUTCOME.PASSED,
+        messages: [],
+      };
+    }
     return { status: "pending", messages: [] };
   }
 
@@ -84,6 +93,7 @@ interface UploadInputProps {
     severity?: "error" | "warning";
     message: string;
   }>;
+  hasValidationRules: boolean;
   onFileSelect: (files: FileList | null) => Promise<void>;
   onRemovePhoto: (orderIndex: number) => void;
   onChooseClick: () => void;
@@ -92,6 +102,7 @@ interface UploadInputProps {
 export function ByCameraUploadInput({
   photo,
   validationResults,
+  hasValidationRules,
   onFileSelect,
   onRemovePhoto,
   onChooseClick,
@@ -101,8 +112,8 @@ export function ByCameraUploadInput({
   const [isDragOver, setIsDragOver] = useState(false);
 
   const validationSummary = useMemo(
-    () => getValidationSummary(validationResults),
-    [validationResults],
+    () => getValidationSummary(validationResults, hasValidationRules),
+    [validationResults, hasValidationRules],
   );
 
   const takenAt = photo ? getTimeTaken(photo.exif) : null;
@@ -131,10 +142,11 @@ export function ByCameraUploadInput({
       >
         {!photo ? (
           <div
-            className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 cursor-pointer ${isDragOver
+            className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 cursor-pointer ${
+              isDragOver
                 ? "border-primary bg-primary/5 scale-[1.02]"
                 : "border-muted-foreground/25 bg-background hover:border-muted-foreground/50 hover:bg-muted/50"
-              }`}
+            }`}
             onClick={handleChooseClick}
             onDragEnter={(e) => {
               e.preventDefault();
@@ -262,9 +274,9 @@ export function ByCameraUploadInput({
                   className={[
                     "rounded-2xl border p-3 text-sm",
                     validationSummary.status === "error" &&
-                    "border-destructive/30 bg-destructive/5 text-destructive",
+                      "border-destructive/30 bg-destructive/5 text-destructive",
                     validationSummary.status === "warning" &&
-                    "border-amber-300/50 bg-amber-50 text-amber-900",
+                      "border-amber-300/50 bg-amber-50 text-amber-900",
                   ]
                     .filter(Boolean)
                     .join(" ")}

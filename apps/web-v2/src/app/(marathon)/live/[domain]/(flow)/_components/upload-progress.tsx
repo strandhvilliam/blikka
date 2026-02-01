@@ -88,7 +88,7 @@ export function UploadProgress({
   };
 
   return (
-    <div className="w-full flex items-center justify-center min-h-[60vh]">
+    <div className="w-full flex items-center justify-center min-h-[60dvh]">
       <Card className="w-full max-w-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
