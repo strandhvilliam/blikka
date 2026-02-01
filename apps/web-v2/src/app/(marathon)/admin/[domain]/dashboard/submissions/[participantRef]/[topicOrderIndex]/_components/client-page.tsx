@@ -1,99 +1,123 @@
-"use client"
+"use client";
 
-import { notFound } from "next/navigation"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
-import { SubmissionValidationSteps } from "./submission-validation-steps"
-import { SubmissionHeader } from "./submission-header"
-import type { Submission } from "@blikka/db"
-import { SubmissionImageViewer } from "./submission-image-viewer"
-import { SubmissionMetadataPanel } from "./submission-metadata-panel"
-import { SubmissionNavigationControls } from "./submission-navigation-controls"
-import { useState } from "react"
-import { SubmissionQuickActions } from "./submission-quick-actions"
-import { SubmissionReviewTimeline } from "./submission-review-timeline"
-import { Card } from "@/components/ui/card"
-import { useDomain } from "@/lib/domain-provider"
+import { notFound } from "next/navigation";
+import { useSuspenseQuery, useQuery, skipToken } from "@tanstack/react-query";
+import { useTRPC } from "@/lib/trpc/client";
+import { SubmissionExifDataDisplay } from "./submission-exif-data-display";
+import { SubmissionValidationSteps } from "./submission-validation-steps";
+import { SubmissionHeader } from "./submission-header";
+import type { Submission } from "@blikka/db";
+import { SubmissionImageViewer } from "./submission-image-viewer";
+import { SubmissionMetadataPanel } from "./submission-metadata-panel";
+import { SubmissionNavigationControls } from "./submission-navigation-controls";
+import { useState } from "react";
+import { SubmissionQuickActions } from "./submission-quick-actions";
+import { SubmissionReviewTimeline } from "./submission-review-timeline";
+import { Card } from "@/components/ui/card";
+import { useDomain } from "@/lib/domain-provider";
 
-const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
+const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com";
 
 const getImageUrl = (submission: Submission) => {
-  const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
-  const submissionBaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
+  const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME;
+  const submissionBaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME;
   if (submission.thumbnailKey && thumbnailBaseUrl) {
-    return `${AWS_S3_BASE_URL}/${thumbnailBaseUrl}/${submission.thumbnailKey}`
+    return `${AWS_S3_BASE_URL}/${thumbnailBaseUrl}/${submission.thumbnailKey}`;
   }
   if (submission.key && submissionBaseUrl) {
-    return `${AWS_S3_BASE_URL}/${submissionBaseUrl}/${submission.key}`
+    return `${AWS_S3_BASE_URL}/${submissionBaseUrl}/${submission.key}`;
   }
-  return null
-}
+  return null;
+};
 
 export function ParticipantTopicSubmissionClientPage({
   participantRef,
   topicOrderIndex,
 }: {
-  participantRef: string
-  topicOrderIndex: number
+  participantRef: string;
+  topicOrderIndex: number;
 }) {
-  const domain = useDomain()
+  const domain = useDomain();
 
-  const trpc = useTRPC()
-  const [showExifPanel, setShowExifPanel] = useState(false)
-  const [showValidationPanel, setShowValidationPanel] = useState(false)
+  const trpc = useTRPC();
+  const [showExifPanel, setShowExifPanel] = useState(false);
+  const [showValidationPanel, setShowValidationPanel] = useState(false);
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
       domain,
       reference: participantRef,
-    })
-  )
+    }),
+  );
 
-  const submission = participant?.submissions.find((s) => s.topic?.orderIndex === topicOrderIndex)
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({
+      domain,
+    }),
+  );
 
-  const topic = submission?.topic
+  const submission = participant?.submissions.find(
+    (s) => s.topic?.orderIndex === topicOrderIndex,
+  );
+
+  const voteStatsQuery = trpc.voting.getSubmissionVoteStats.queryOptions({
+    submissionId: submission?.id ?? 0,
+    domain,
+  });
+  const { data: voteStats } = useQuery({
+    ...voteStatsQuery,
+    enabled: marathon?.mode === "by-camera" && !!submission,
+  });
+
+  const topic = submission?.topic;
 
   const submissionValidationResults =
     participant?.validationResults?.filter(
-      (result) => result.fileName && submission?.key && result.fileName.includes(submission.key)
-    ) || []
+      (result) =>
+        result.fileName &&
+        submission?.key &&
+        result.fileName.includes(submission.key),
+    ) || [];
 
-  const hasIssues = submissionValidationResults.some((result) => result.outcome === "failed")
+  const hasIssues = submissionValidationResults.some(
+    (result) => result.outcome === "failed",
+  );
+
+  const allSubmissions = participant?.submissions
+    .filter((s) => s.topic)
+    .sort((a, b) => (a.topic?.orderIndex || 0) - (b.topic?.orderIndex || 0));
+
+  const currentIndex = allSubmissions.findIndex(
+    (s) => s.topic?.orderIndex === topicOrderIndex,
+  );
 
   if (!submission || !topic || !participant) {
-    notFound()
+    notFound();
   }
-
-  const allSubmissions = participant.submissions
-    .filter((s) => s.topic)
-    .sort((a, b) => (a.topic?.orderIndex || 0) - (b.topic?.orderIndex || 0))
-
-  const currentIndex = allSubmissions.findIndex((s) => s.topic?.orderIndex === topicOrderIndex)
 
   return (
     <div className="space-y-6">
       <SubmissionHeader
-        submission={submission}
         participant={participant}
-        topic={topic}
-        validationResults={submissionValidationResults}
+        marathonMode={marathon.mode}
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6">
         <div className="space-y-6">
           <div className="relative">
-            <SubmissionNavigationControls
-              currentIndex={currentIndex}
-              totalSubmissions={allSubmissions.length}
-              allSubmissions={allSubmissions}
-              participantRef={participantRef}
-            />
+            {marathon.mode !== "by-camera" && (
+              <SubmissionNavigationControls
+                currentIndex={currentIndex}
+                totalSubmissions={allSubmissions.length}
+                allSubmissions={allSubmissions}
+                participantRef={participantRef}
+              />
+            )}
             <SubmissionImageViewer
               imageUrl={getImageUrl(submission)}
               topic={topic}
-              submission={submission}
               competitionClass={participant.competitionClass}
+              marathonMode={marathon?.mode}
             />
           </div>
 
@@ -101,21 +125,30 @@ export function ParticipantTopicSubmissionClientPage({
             submission={submission}
             validationResults={submissionValidationResults}
             onShowExif={() => setShowExifPanel(!showExifPanel)}
-            onShowValidation={() => setShowValidationPanel(!showValidationPanel)}
+            onShowValidation={() =>
+              setShowValidationPanel(!showValidationPanel)
+            }
             showExifPanel={showExifPanel}
             showValidationPanel={showValidationPanel}
+            marathonMode={marathon?.mode}
           />
 
           {showValidationPanel && (
             <Card className="p-4">
-              <h3 className="text-base font-semibold font-rocgrotesk mb-3">Validation Results</h3>
-              <SubmissionValidationSteps validationResults={submissionValidationResults} />
+              <h3 className="text-base font-semibold font-rocgrotesk mb-3">
+                Validation Results
+              </h3>
+              <SubmissionValidationSteps
+                validationResults={submissionValidationResults}
+              />
             </Card>
           )}
 
           {showExifPanel && (
             <Card className="p-4">
-              <h3 className="text-base font-semibold font-rocgrotesk mb-3">EXIF Data</h3>
+              <h3 className="text-base font-semibold font-rocgrotesk mb-3">
+                EXIF Data
+              </h3>
               <SubmissionExifDataDisplay exifData={submission.exif} />
             </Card>
           )}
@@ -124,6 +157,7 @@ export function ParticipantTopicSubmissionClientPage({
             submission={submission}
             participant={participant}
             hasIssues={hasIssues}
+            marathonMode={marathon?.mode}
           />
         </div>
 
@@ -134,9 +168,11 @@ export function ParticipantTopicSubmissionClientPage({
             participant={participant}
             hasIssues={hasIssues}
             validationResults={submissionValidationResults}
+            marathonMode={marathon?.mode}
+            voteStats={voteStats}
           />
         </div>
       </div>
     </div>
-  )
+  );
 }

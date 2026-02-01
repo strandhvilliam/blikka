@@ -27,17 +27,21 @@ interface ReviewTimelineProps {
   submission: Submission;
   participant: Participant;
   hasIssues: boolean;
+  marathonMode?: string;
 }
 
 export function SubmissionReviewTimeline({
   submission,
   participant,
   hasIssues,
+  marathonMode,
 }: ReviewTimelineProps) {
   // Check if participant is verified
   const isParticipantVerified = participant.status === "verified";
+  const isByCameraMode = marathonMode === "by-camera";
 
-  const reviewSteps: ReviewStep[] = [
+  // Build steps based on mode
+  const baseSteps: ReviewStep[] = [
     {
       status: "completed",
       title: "Participant Initialized",
@@ -90,8 +94,21 @@ export function SubmissionReviewTimeline({
             icon: AlertTriangle,
             isPending: true,
           },
-    // Staff Verification Step - can be pending, completed (approved), or completed (rejected)
-    submission.status === "approved" || isParticipantVerified
+  ];
+
+  // Staff Verification Step - only for marathon mode
+  const verificationStep: ReviewStep = isByCameraMode
+    ? {
+        status: "completed",
+        title: "Submission Complete",
+        description: "Photo ready for voting",
+        timestamp: format(
+          new Date(submission.updatedAt || submission.createdAt),
+          "MMM d, yyyy HH:mm",
+        ),
+        icon: CheckCircle2,
+      }
+    : submission.status === "approved" || isParticipantVerified
       ? {
           status: "completed",
           title: "Staff Verified",
@@ -129,8 +146,9 @@ export function SubmissionReviewTimeline({
               title: "Staff Verification Pending",
               description: "Will be reviewed after processing",
               icon: Clock3,
-            },
-  ];
+            };
+
+  const reviewSteps: ReviewStep[] = [...baseSteps, verificationStep];
 
   return (
     <Card>

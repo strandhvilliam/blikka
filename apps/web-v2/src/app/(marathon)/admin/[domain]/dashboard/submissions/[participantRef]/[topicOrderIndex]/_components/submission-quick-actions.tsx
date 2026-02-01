@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import type { Submission, ValidationResult } from "@blikka/db"
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import type { Submission, ValidationResult } from "@blikka/db";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -14,16 +14,17 @@ import {
   ShieldCheck,
   ThumbsDown,
   ThumbsUp,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface SubmissionQuickActionsProps {
-  submission: Submission
-  validationResults: ValidationResult[]
-  onShowExif: () => void
-  onShowValidation: () => void
-  showExifPanel: boolean
-  showValidationPanel: boolean
+  submission: Submission;
+  validationResults: ValidationResult[];
+  onShowExif: () => void;
+  onShowValidation: () => void;
+  showExifPanel: boolean;
+  showValidationPanel: boolean;
+  marathonMode?: string;
 }
 
 export function SubmissionQuickActions({
@@ -33,24 +34,32 @@ export function SubmissionQuickActions({
   onShowValidation,
   showExifPanel,
   showValidationPanel,
+  marathonMode,
 }: SubmissionQuickActionsProps) {
-  const hasExif = submission.exif && Object.keys(submission.exif).length > 0
-  const hasValidation = validationResults.length > 0
-  const hasIssues = validationResults.some((result) => result.outcome === "failed")
+  const hasExif = submission.exif && Object.keys(submission.exif).length > 0;
+  const hasValidation = validationResults.length > 0;
+  const hasIssues = validationResults.some(
+    (result) => result.outcome === "failed",
+  );
+  const isByCameraMode = marathonMode === "by-camera";
 
   return (
     <Card className="p-3">
       <div className="flex flex-wrap gap-2.5 items-center justify-between">
         {/* Primary Actions */}
         <div className="flex flex-wrap gap-2">
-          <Button variant="default" size="sm" className="gap-2">
-            <ThumbsUp className="h-4 w-4" />
-            Approve
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <ThumbsDown className="h-4 w-4" />
-            Reject
-          </Button>
+          {!isByCameraMode && (
+            <>
+              <Button variant="default" size="sm" className="gap-2">
+                <ThumbsUp className="h-4 w-4" />
+                Approve
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <ThumbsDown className="h-4 w-4" />
+                Reject
+              </Button>
+            </>
+          )}
           <Button variant="outline" size="sm" className="gap-2">
             <ReplaceIcon className="h-4 w-4" />
             Replace
@@ -98,7 +107,10 @@ export function SubmissionQuickActions({
             <FileCode className="h-4 w-4" />
             EXIF Data
             {hasExif && (
-              <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 ml-1">
+              <Badge
+                variant="secondary"
+                className="bg-blue-500/20 text-blue-600 ml-1"
+              >
                 {Object.keys(submission.exif || {}).length}
               </Badge>
             )}
@@ -111,6 +123,5 @@ export function SubmissionQuickActions({
         </div>
       </div>
     </Card>
-  )
+  );
 }
-

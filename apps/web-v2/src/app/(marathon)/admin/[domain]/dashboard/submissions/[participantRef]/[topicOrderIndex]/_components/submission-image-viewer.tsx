@@ -1,32 +1,33 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card } from "@/components/ui/card"
-import type { CompetitionClass, Submission, Topic } from "@blikka/db"
-import { AlertTriangle, Download, Expand, ZoomIn, ZoomOut } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import type { CompetitionClass, Submission, Topic } from "@blikka/db";
+import { AlertTriangle, Download, Expand, ZoomIn, ZoomOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface SubmissionImageViewerProps {
-  imageUrl: string | null
-  topic: Topic
-  submission: Submission
-  competitionClass: CompetitionClass | null
+  imageUrl: string | null;
+  topic: Topic;
+  competitionClass: CompetitionClass | null;
+  marathonMode?: string;
 }
 
 export function SubmissionImageViewer({
   imageUrl,
   topic,
-  submission,
   competitionClass,
+  marathonMode,
 }: SubmissionImageViewerProps) {
-  const [hasError, setHasError] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [zoom, setZoom] = useState(1)
+  const [hasError, setHasError] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const isByCameraMode = marathonMode === "by-camera";
 
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3))
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5))
-  const handleResetZoom = () => setZoom(1)
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
+  const handleResetZoom = () => setZoom(1);
 
   return (
     <Card className="overflow-hidden bg-linear-to-br from-muted/30 to-muted/10">
@@ -37,10 +38,15 @@ export function SubmissionImageViewer({
             #{topic.orderIndex + 1}
           </Badge>
           <div>
-            <h2 className="font-semibold font-rocgrotesk text-base leading-tight">{topic.name}</h2>
-            <p className="text-xs text-muted-foreground leading-tight">
-              Topic {topic.orderIndex + 1} of {competitionClass?.numberOfPhotos || "?"}
-            </p>
+            <h2 className="font-semibold font-rocgrotesk text-base leading-tight">
+              {topic.name}
+            </h2>
+            {!isByCameraMode && (
+              <p className="text-xs text-muted-foreground leading-tight">
+                Topic {topic.orderIndex + 1} of{" "}
+                {competitionClass?.numberOfPhotos || "?"}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -90,7 +96,7 @@ export function SubmissionImageViewer({
         {imageUrl && !hasError ? (
           <div
             className="transition-transform duration-200 ease-out p-8"
-            style={{ transform: `scale(${zoom})` }}
+            style={{ transform: `scale(${zoom + 0.5})` }}
           >
             <img
               src={imageUrl}
@@ -105,10 +111,12 @@ export function SubmissionImageViewer({
               <AlertTriangle className="h-8 w-8 text-orange-500" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-2">Preview Not Available</h3>
+              <h3 className="font-semibold text-lg mb-2">
+                Preview Not Available
+              </h3>
               <p className="text-sm text-muted-foreground">
-                Cannot preview this image. It may be corrupted or in a RAW format. Download the file
-                to view it properly.
+                Cannot preview this image. It may be corrupted or in a RAW
+                format. Download the file to view it properly.
               </p>
             </div>
             <Button variant="outline" className="mt-2">
@@ -122,7 +130,9 @@ export function SubmissionImageViewer({
               <AlertTriangle className="h-8 w-8 text-muted-foreground" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-2">Image Not Available</h3>
+              <h3 className="font-semibold text-lg mb-2">
+                Image Not Available
+              </h3>
               <p className="text-sm text-muted-foreground">
                 This submission doesn't have an associated image file.
               </p>
@@ -131,5 +141,5 @@ export function SubmissionImageViewer({
         )}
       </div>
     </Card>
-  )
+  );
 }

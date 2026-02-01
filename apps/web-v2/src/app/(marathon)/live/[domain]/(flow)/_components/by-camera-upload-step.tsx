@@ -90,11 +90,11 @@ export function ByCameraUploadStep({
     onAllCompleted: () => {
       setTimeout(() => {
         toast.success(t("uploadComplete"));
-        const serializedParams =
-          flowStateClientParamSerializer(uploadFlowState);
-        router.push(
-          formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
-        );
+        // const serializedParams =
+        //   flowStateClientParamSerializer(uploadFlowState);
+        // router.push(
+        //   formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
+        // );
       }, 500);
     },
   });
@@ -290,7 +290,7 @@ export function ByCameraUploadStep({
                 hasValidationRules={hasValidationRules}
                 onFileSelect={handleSelectFiles}
                 onRemovePhoto={removePhoto}
-                onChooseClick={() => {}}
+                onChooseClick={() => { }}
               />
             </CardContent>
 

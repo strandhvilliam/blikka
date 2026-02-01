@@ -20,10 +20,30 @@ import {
   Smartphone,
   Upload,
   XCircle,
+  Trophy,
+  Vote,
+  CheckCircle,
+  Clock3,
+  Link2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { formatDomainPathname } from "@/lib/utils";
+import { useDomain } from "@/lib/domain-provider";
+
+interface VoteStats {
+  voteCount: number;
+  position: number;
+  totalSubmissions: number;
+  participantVoteInfo: {
+    hasVoted: boolean;
+    votedAt: string | null;
+    votedSubmissionId: number | null;
+    votedTopicName: string | null;
+  } | null;
+}
 
 interface SubmissionMetadataPanelProps {
   submission: Submission;
@@ -34,6 +54,8 @@ interface SubmissionMetadataPanelProps {
   };
   hasIssues: boolean;
   validationResults: ValidationResult[];
+  marathonMode?: string;
+  voteStats?: VoteStats;
 }
 
 export function SubmissionMetadataPanel({
@@ -42,87 +64,15 @@ export function SubmissionMetadataPanel({
   participant,
   hasIssues,
   validationResults,
+  marathonMode,
+  voteStats,
 }: SubmissionMetadataPanelProps) {
-  const hasErrors = validationResults.some(
-    (result) => result.severity === "error" && result.outcome === "failed",
-  );
-  const hasWarnings = validationResults.some(
-    (result) => result.severity === "warning" && result.outcome === "failed",
-  );
-  const allPassed = validationResults.length > 0 && !hasIssues;
-
-  const getStatusBadge = () => {
-    if (allPassed) {
-      return (
-        <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/20 border-green-200">
-          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-          All Checks Passed
-        </Badge>
-      );
-    }
-    if (hasErrors) {
-      return (
-        <Badge className="bg-destructive/15 text-destructive hover:bg-destructive/20 border-destructive/20">
-          <XCircle className="h-3.5 w-3.5 mr-1" />
-          Has Errors
-        </Badge>
-      );
-    }
-    if (hasWarnings) {
-      return (
-        <Badge className="bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/20 border-yellow-200">
-          <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-          Has Warnings
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="outline" className="bg-muted/50">
-        <Info className="h-3.5 w-3.5 mr-1" />
-        Not Validated
-      </Badge>
-    );
-  };
-
-  const getSubmissionStatusBadge = () => {
-    const statusConfig = {
-      initialized: { label: "Initialized", variant: "secondary", icon: Clock },
-      uploaded: { label: "Uploaded", variant: "default", icon: CheckCircle2 },
-      approved: { label: "Approved", variant: "default", icon: CheckCircle2 },
-      rejected: { label: "Rejected", variant: "destructive", icon: XCircle },
-    };
-
-    const config =
-      statusConfig[submission.status as keyof typeof statusConfig] ||
-      statusConfig.initialized;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.variant as any} className="gap-1.5">
-        <Icon className="h-3.5 w-3.5" />
-        {config.label}
-      </Badge>
-    );
-  };
+  const domain = useDomain();
+  const isByCameraMode = marathonMode === "by-camera";
 
   return (
     <div className="space-y-4">
-      {/* Status Overview */}
-      <Card>
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4 px-4 pt-2">
-          <div className="flex flex-col gap-2">
-            {getSubmissionStatusBadge()}
-            {validationResults.length > 0 && getStatusBadge()}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Submission Details */}
       <Card>
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -173,35 +123,130 @@ export function SubmissionMetadataPanel({
               </div>
             </div>
 
-            <Separator className="my-2" />
+            {!isByCameraMode && (
+              <>
+                <Separator className="my-2" />
 
-            <div className="flex items-start gap-2.5">
-              <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center min-w-[28px]">
-                {participant.competitionClass?.numberOfPhotos !== undefined ? (
-                  <span className="text-xs font-semibold">
-                    {participant.competitionClass.numberOfPhotos}
-                  </span>
-                ) : (
-                  <Image className="h-3.5 w-3.5" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground leading-tight">
-                  Competition Class
-                </p>
-                <p className="text-sm font-medium leading-tight mt-0.5">
-                  {participant.competitionClass?.name || "Not assigned"}
-                </p>
-                {participant.competitionClass?.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 leading-tight mt-0.5">
-                    {participant.competitionClass.description}
-                  </p>
-                )}
-              </div>
-            </div>
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center min-w-[28px]">
+                    {participant.competitionClass?.numberOfPhotos !==
+                      undefined ? (
+                      <span className="text-xs font-semibold">
+                        {participant.competitionClass.numberOfPhotos}
+                      </span>
+                    ) : (
+                      <Image className="h-3.5 w-3.5" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground leading-tight">
+                      Competition Class
+                    </p>
+                    <p className="text-sm font-medium leading-tight mt-0.5">
+                      {participant.competitionClass?.name || "Not assigned"}
+                    </p>
+                    {participant.competitionClass?.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-tight mt-0.5">
+                        {participant.competitionClass.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Voting Results - Only for by-camera mode */}
+      {isByCameraMode && voteStats && (
+        <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/10">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
+              <Trophy className="h-3.5 w-3.5" />
+              Voting Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4 px-4 pt-2">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                  #{voteStats.position}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  of {voteStats.totalSubmissions} submissions
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                  {voteStats.voteCount}
+                </p>
+                <p className="text-xs text-muted-foreground">total votes</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Participant's Vote Info - Only for by-camera mode */}
+      {isByCameraMode && voteStats?.participantVoteInfo && (
+        <Card>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <Vote className="h-3.5 w-3.5" />
+              Participant&apos;s Vote
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4 px-4 pt-2">
+            {voteStats.participantVoteInfo.hasVoted ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium">Has voted</span>
+                </div>
+                {voteStats.participantVoteInfo.votedAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Voted on{" "}
+                    {format(
+                      new Date(voteStats.participantVoteInfo.votedAt),
+                      "MMM d, yyyy HH:mm",
+                    )}
+                  </p>
+                )}
+                {voteStats.participantVoteInfo.votedTopicName && (
+                  <div className="p-2.5 rounded-lg bg-muted/50">
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Voted for:
+                    </p>
+                    <p className="text-sm font-medium">
+                      {voteStats.participantVoteInfo.votedTopicName}
+                    </p>
+                  </div>
+                )}
+                {voteStats.participantVoteInfo.votedSubmissionId &&
+                  voteStats.participantVoteInfo.votedSubmissionId !==
+                  submission.id && (
+                    <Link
+                      href={formatDomainPathname(
+                        `/admin/dashboard/submissions/${participant.reference}/${voteStats.participantVoteInfo.votedSubmissionId}`,
+                        domain,
+                      )}
+                      className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                    >
+                      <Link2 className="h-3 w-3" />
+                      View their choice
+                    </Link>
+                  )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock3 className="h-4 w-4" />
+                <span className="text-sm">Not voted yet</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Validation Summary */}
       {validationResults.length > 0 && (

@@ -6,8 +6,7 @@ export class VotingApiError extends Schema.TaggedError<VotingApiError>()(
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
-) {
-}
+) {}
 
 export const GetVotingSessionSchema = Schema.standardSchemaV1(
   Schema.Struct({
@@ -16,9 +15,15 @@ export const GetVotingSessionSchema = Schema.standardSchemaV1(
   }),
 );
 
-
 export const StartVotingSessionsSchema = Schema.standardSchemaV1(
   Schema.Struct({
+    domain: Schema.String,
+  }),
+);
+
+export const GetSubmissionVoteStatsSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    submissionId: Schema.Number,
     domain: Schema.String,
   }),
 );
