@@ -56,6 +56,13 @@ export const BatchVerifyInputSchema = Schema.standardSchemaV1(
   }),
 );
 
+export const VerifyParticipantInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    id: Schema.Number,
+    domain: Schema.String,
+  }),
+);
+
 export const PublicParticipantSchema = Schema.Struct({
   reference: Schema.String,
   domain: Schema.String,

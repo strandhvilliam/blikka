@@ -12,10 +12,24 @@ import {
   FileCode,
   ReplaceIcon,
   ShieldCheck,
-  ThumbsDown,
-  ThumbsUp,
+  UserCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useTRPC } from "@/lib/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDomain } from "@/lib/domain-provider";
+import { toast } from "sonner";
 
 interface SubmissionQuickActionsProps {
   submission: Submission;
@@ -25,6 +39,9 @@ interface SubmissionQuickActionsProps {
   showExifPanel: boolean;
   showValidationPanel: boolean;
   marathonMode?: string;
+  participantId?: number;
+  participantStatus?: string;
+  participantRef: string;
 }
 
 export function SubmissionQuickActions({
@@ -35,6 +52,9 @@ export function SubmissionQuickActions({
   showExifPanel,
   showValidationPanel,
   marathonMode,
+  participantId,
+  participantStatus,
+  participantRef,
 }: SubmissionQuickActionsProps) {
   const hasExif = submission.exif && Object.keys(submission.exif).length > 0;
   const hasValidation = validationResults.length > 0;
@@ -42,23 +62,89 @@ export function SubmissionQuickActions({
     (result) => result.outcome === "failed",
   );
   const isByCameraMode = marathonMode === "by-camera";
+  const isMarathonMode = !isByCameraMode;
+  const isVerified = participantStatus === "verified";
+  const domain = useDomain();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const verifyMutation = useMutation(
+    trpc.participants.verifyParticipant.mutationOptions({
+      onSuccess: () => {
+        toast.success("Participant verified successfully");
+        queryClient.invalidateQueries({
+          queryKey: trpc.participants.getByReference.queryKey({
+            reference: participantRef,
+            domain,
+          }),
+        });
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to verify participant");
+      },
+    }),
+  );
+
+  const handleVerify = () => {
+    if (participantId) {
+      verifyMutation.mutate({
+        id: participantId,
+        domain,
+      });
+    }
+  };
 
   return (
     <Card className="p-3">
       <div className="flex flex-wrap gap-2.5 items-center justify-between">
         {/* Primary Actions */}
         <div className="flex flex-wrap gap-2">
-          {!isByCameraMode && (
-            <>
-              <Button variant="default" size="sm" className="gap-2">
-                <ThumbsUp className="h-4 w-4" />
-                Approve
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2">
-                <ThumbsDown className="h-4 w-4" />
-                Reject
-              </Button>
-            </>
+          {/* Verify button - only for marathon mode when not verified */}
+          {isMarathonMode && !isVerified && participantId && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="gap-2"
+                  disabled={verifyMutation.isPending}
+                >
+                  <UserCheck className="h-4 w-4" />
+                  Verify
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Verify Participant</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to verify this participant? This will
+                    mark all their submissions as verified and complete their
+                    registration.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleVerify}
+                    disabled={verifyMutation.isPending}
+                  >
+                    {verifyMutation.isPending ? "Verifying..." : "Verify"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          {/* Verified badge - shown when already verified */}
+          {isMarathonMode && isVerified && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-green-600 border-green-200 bg-green-50/30"
+              disabled
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Verified
+            </Button>
           )}
           <Button variant="outline" size="sm" className="gap-2">
             <ReplaceIcon className="h-4 w-4" />

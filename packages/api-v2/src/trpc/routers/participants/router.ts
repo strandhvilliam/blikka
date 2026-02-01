@@ -7,6 +7,7 @@ import {
   GetPublicParticipantByReferenceInputSchema,
   BatchDeleteInputSchema,
   BatchVerifyInputSchema,
+  VerifyParticipantInputSchema,
 } from "./schemas";
 import { ParticipantsApiService } from "./service";
 
@@ -97,4 +98,20 @@ export const participantRouter = createTRPCRouter({
       }),
     ),
   ),
+
+  verifyParticipant: domainProcedure
+    .input(VerifyParticipantInputSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("ParticipantRouter.verifyParticipant")(function* ({
+          input,
+          ctx,
+        }) {
+          return yield* ParticipantsApiService.verifyParticipant({
+            id: input.id,
+            domain: input.domain,
+          });
+        }),
+      ),
+    ),
 });

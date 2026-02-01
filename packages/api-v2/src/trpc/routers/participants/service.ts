@@ -177,6 +177,15 @@ export class ParticipantsApiService extends Effect.Service<ParticipantsApiServic
         },
       );
 
+      const verifyParticipant = Effect.fn(
+        "ParticipantsApiService.verifyParticipant",
+      )(function* ({ id, domain }: { id: number; domain: string }) {
+        return yield* db.participantsQueries.batchVerifyParticipants({
+          ids: [id],
+          domain,
+        });
+      });
+
       return {
         getPublicParticipantByReference,
         getInfiniteParticipantsByDomain,
@@ -185,6 +194,7 @@ export class ParticipantsApiService extends Effect.Service<ParticipantsApiServic
         createParticipant,
         batchDelete,
         batchVerify,
+        verifyParticipant,
       } as const;
     }),
   },

@@ -1,7 +1,7 @@
 "use client";
 
 import { notFound } from "next/navigation";
-import { useSuspenseQuery, useQuery, skipToken } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
 import { SubmissionExifDataDisplay } from "./submission-exif-data-display";
 import { SubmissionValidationSteps } from "./submission-validation-steps";
@@ -15,8 +15,8 @@ import { SubmissionQuickActions } from "./submission-quick-actions";
 import { SubmissionReviewTimeline } from "./submission-review-timeline";
 import { Card } from "@/components/ui/card";
 import { useDomain } from "@/lib/domain-provider";
+import { AWS_S3_BASE_URL } from "@/lib/constants";
 
-const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com";
 
 const getImageUrl = (submission: Submission) => {
   const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME;
@@ -131,6 +131,9 @@ export function ParticipantTopicSubmissionClientPage({
             showExifPanel={showExifPanel}
             showValidationPanel={showValidationPanel}
             marathonMode={marathon?.mode}
+            participantId={participant.id}
+            participantStatus={participant.status}
+            participantRef={participantRef}
           />
 
           {showValidationPanel && (
@@ -164,7 +167,6 @@ export function ParticipantTopicSubmissionClientPage({
         <div className="space-y-6">
           <SubmissionMetadataPanel
             submission={submission}
-            topic={topic}
             participant={participant}
             hasIssues={hasIssues}
             validationResults={submissionValidationResults}

@@ -47,7 +47,6 @@ interface VoteStats {
 
 interface SubmissionMetadataPanelProps {
   submission: Submission;
-  topic: Topic;
   participant: Participant & {
     competitionClass: CompetitionClass | null;
     deviceGroup: DeviceGroup | null;
@@ -60,7 +59,6 @@ interface SubmissionMetadataPanelProps {
 
 export function SubmissionMetadataPanel({
   submission,
-  topic,
   participant,
   hasIssues,
   validationResults,

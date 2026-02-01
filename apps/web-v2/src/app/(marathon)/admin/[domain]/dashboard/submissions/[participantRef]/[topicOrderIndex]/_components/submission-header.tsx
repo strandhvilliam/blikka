@@ -50,17 +50,19 @@ export function SubmissionHeader({ participant, marathonMode }: SubmissionHeader
           </div>
         </div>
       </div>
-      <Button variant="outline" asChild>
-        <Link
-          href={formatDomainPathname(
-            `/admin/dashboard/submissions/${participant.reference}`,
-            domain
-          )}
-        >
-          <User className="h-4 w-4 mr-2" />
-          View All Submissions
-        </Link>
-      </Button>
+      {marathonMode !== "by-camera" && (
+        <Button variant="outline" asChild>
+          <Link
+            href={formatDomainPathname(
+              `/admin/dashboard/submissions/${participant.reference}`,
+              domain
+            )}
+          >
+            <User className="h-4 w-4 mr-2" />
+            View All Submissions
+          </Link>
+        </Button>
+      )}
     </div>
   )
 }
