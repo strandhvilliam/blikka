@@ -236,10 +236,173 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         };
       });
 
+      const createOrUpdateVotingSessionForParticipant = Effect.fn(
+        "VotingApiService.createOrUpdateVotingSessionForParticipant",
+      )(function* ({
+        participantId,
+        domain,
+      }: {
+        participantId: number;
+        domain: string;
+      }) {
+        // Get marathon
+        const marathonOpt = yield* db.marathonsQueries.getMarathonByDomain({
+          domain,
+        });
+
+        const marathon = yield* Option.match(marathonOpt, {
+          onSome: (m) => Effect.succeed(m),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: `Marathon not found for domain ${domain}`,
+              }),
+            ),
+        });
+
+        if (marathon.mode !== "by-camera") {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: `Marathon '${marathon.domain}' is not in by-camera mode`,
+            }),
+          );
+        }
+
+        // Get participant with submissions
+        const participantOpt = yield* db.participantsQueries.getParticipantById(
+          {
+            id: participantId,
+          },
+        );
+
+        const participant = yield* Option.match(participantOpt, {
+          onSome: (p) => Effect.succeed(p),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: `Participant not found with id ${participantId}`,
+              }),
+            ),
+        });
+
+        // Check if participant has submissions
+        const submissions =
+          yield* db.submissionsQueries.getSubmissionsByParticipantId({
+            participantId,
+          });
+
+        if (submissions.length === 0) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Participant has no submissions",
+            }),
+          );
+        }
+
+        // Check for existing voting session
+        const existingSessionOpt =
+          yield* db.votingQueries.getVotingSessionByParticipantId({
+            participantId,
+          });
+
+        // If session exists and participant has voted, return error
+        if (Option.isSome(existingSessionOpt)) {
+          const existingSession = existingSessionOpt.value;
+          if (existingSession.votedAt) {
+            return {
+              action: "already_voted" as const,
+              session: existingSession,
+            };
+          }
+        }
+
+        const token = randomBytes(8).toString("base64url").slice(0, 8);
+        const now = new Date().toISOString();
+
+        // Create or update voting session
+        const sessionData = {
+          token,
+          firstName: participant.firstname,
+          lastName: participant.lastname,
+          email: participant.email ?? "",
+          phoneHash: participant.phoneHash,
+          phoneEncrypted: participant.phoneEncrypted,
+          marathonId: marathon.id,
+          voteSubmissionId: null,
+          connectedParticipantId: participantId,
+          notificationLastSentAt: now,
+        };
+
+        const session =
+          yield* db.votingQueries.upsertVotingSession(sessionData);
+
+        // Send SMS if phone is available
+        let smsResult = null;
+        if (session.phoneEncrypted) {
+          const smsResult_ = yield* Effect.gen(function* () {
+            const phoneNumber = yield* phoneEncryption.decrypt({
+              encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
+            });
+
+            const message = `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`;
+
+            const result = yield* smsService.sendWithOptOutCheck({
+              phoneNumber,
+              message,
+            });
+
+            return {
+              phoneNumber,
+              smsResult: result,
+            };
+          }).pipe(
+            Effect.catchAll((error) =>
+              Effect.succeed({
+                phoneNumber: null,
+                error: String(error),
+              }),
+            ),
+          );
+          smsResult = smsResult_;
+        }
+
+        const action = Option.isSome(existingSessionOpt) ? "resent" : "created";
+
+        return {
+          action,
+          session,
+          smsSent: smsResult && !("error" in smsResult),
+          smsError: smsResult && "error" in smsResult ? smsResult.error : null,
+        };
+      });
+
+      const getVotingSessionByParticipant = Effect.fn(
+        "VotingApiService.getVotingSessionByParticipant",
+      )(function* ({ participantId }: { participantId: number }) {
+        const sessionOpt =
+          yield* db.votingQueries.getVotingSessionByParticipantId({
+            participantId,
+          });
+
+        return Option.match(sessionOpt, {
+          onSome: (session) => ({
+            hasSession: true as const,
+            session,
+            hasVoted: session.votedAt !== null,
+            notificationLastSentAt: session.notificationLastSentAt,
+          }),
+          onNone: () => ({
+            hasSession: false as const,
+          }),
+        });
+      });
+
       return {
         getVotingSession,
         startVotingSessions,
         getSubmissionVoteStats,
+        createOrUpdateVotingSessionForParticipant,
+        getVotingSessionByParticipant,
       } as const;
     }),
   },

@@ -8,7 +8,7 @@ import {
   topics,
 } from "../schema";
 import { eq, inArray, sql, count, and, desc } from "drizzle-orm";
-import type { NewVotingSession } from "../types";
+import type { NewVotingSession, VotingSession } from "../types";
 
 export class VotingQueries extends Effect.Service<VotingQueries>()(
   "@blikka/db/voting-queries",
@@ -177,6 +177,39 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         });
       });
 
+      const getVotingSessionByParticipantId = Effect.fn(
+        "VotingQueries.getVotingSessionByParticipantId",
+      )(function* ({ participantId }: { participantId: number }) {
+        const result = yield* db.query.votingSession.findFirst({
+          where: eq(votingSession.connectedParticipantId, participantId),
+        });
+        return Option.fromNullable(result);
+      });
+
+      const upsertVotingSession = Effect.fn(
+        "VotingQueries.upsertVotingSession",
+      )(function* (sessionData: NewVotingSession) {
+        const result = yield* db
+          .insert(votingSession)
+          .values(sessionData)
+          .onConflictDoUpdate({
+            target: votingSession.connectedParticipantId,
+            set: {
+              token: sessionData.token,
+              firstName: sessionData.firstName,
+              lastName: sessionData.lastName,
+              email: sessionData.email,
+              phoneHash: sessionData.phoneHash,
+              phoneEncrypted: sessionData.phoneEncrypted,
+              marathonId: sessionData.marathonId,
+              notificationLastSentAt: sessionData.notificationLastSentAt,
+              updatedAt: new Date().toISOString(),
+            },
+          })
+          .returning();
+        return result[0] as VotingSession;
+      });
+
       return {
         getVotingSessionByToken,
         getPublicMarathonByDomain,
@@ -185,6 +218,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         updateMultipleLastNotificationSentAt,
         getSubmissionVoteStats,
         getParticipantVoteInfo,
+        getVotingSessionByParticipantId,
+        upsertVotingSession,
       } as const;
     }),
   },

@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type {
   CompetitionClass,
   DeviceGroup,
@@ -8,6 +9,7 @@ import type {
   Submission,
   Topic,
   ValidationResult,
+  VotingSession,
 } from "@blikka/db";
 import { format } from "date-fns";
 import {
@@ -25,13 +27,17 @@ import {
   CheckCircle,
   Clock3,
   Link2,
+  Send,
+  Plus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { formatDomainPathname } from "@/lib/utils";
-import { useDomain } from "@/lib/domain-provider";
+import { useTRPC } from "@/lib/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface VoteStats {
   voteCount: number;
@@ -45,6 +51,13 @@ interface VoteStats {
   } | null;
 }
 
+interface VotingSessionData {
+  hasSession: boolean;
+  session?: VotingSession;
+  hasVoted?: boolean;
+  notificationLastSentAt?: string | null;
+}
+
 interface SubmissionMetadataPanelProps {
   submission: Submission;
   participant: Participant & {
@@ -55,6 +68,8 @@ interface SubmissionMetadataPanelProps {
   validationResults: ValidationResult[];
   marathonMode?: string;
   voteStats?: VoteStats;
+  votingSessionData?: VotingSessionData;
+  domain: string;
 }
 
 export function SubmissionMetadataPanel({
@@ -64,13 +79,45 @@ export function SubmissionMetadataPanel({
   validationResults,
   marathonMode,
   voteStats,
+  votingSessionData,
+  domain,
 }: SubmissionMetadataPanelProps) {
-  const domain = useDomain();
   const isByCameraMode = marathonMode === "by-camera";
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  const createOrUpdateVotingSessionMutation = useMutation(
+    trpc.voting.createOrUpdateVotingSession.mutationOptions({
+      onSuccess: (data) => {
+        if (data.action === "created") {
+          toast.success("Voting session created and invite sent");
+        } else if (data.action === "resent") {
+          toast.success("Vote invite resent");
+        } else if (data.action === "already_voted") {
+          toast.info("Participant has already voted");
+        }
+        queryClient.invalidateQueries({
+          queryKey: trpc.voting.getVotingSessionByParticipant.queryKey({
+            participantId: participant.id,
+            domain,
+          }),
+        });
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to create voting session");
+      },
+    }),
+  );
+
+  const handleCreateOrUpdateVotingSession = () => {
+    createOrUpdateVotingSessionMutation.mutate({
+      participantId: participant.id,
+      domain,
+    });
+  };
 
   return (
     <div className="space-y-4">
-
       <Card>
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -128,7 +175,7 @@ export function SubmissionMetadataPanel({
                 <div className="flex items-start gap-2.5">
                   <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center min-w-[28px]">
                     {participant.competitionClass?.numberOfPhotos !==
-                      undefined ? (
+                    undefined ? (
                       <span className="text-xs font-semibold">
                         {participant.competitionClass.numberOfPhotos}
                       </span>
@@ -187,7 +234,7 @@ export function SubmissionMetadataPanel({
       )}
 
       {/* Participant's Vote Info - Only for by-camera mode */}
-      {isByCameraMode && voteStats?.participantVoteInfo && (
+      {isByCameraMode && (
         <Card>
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
@@ -196,7 +243,7 @@ export function SubmissionMetadataPanel({
             </CardTitle>
           </CardHeader>
           <CardContent className="pb-4 px-4 pt-2">
-            {voteStats.participantVoteInfo.hasVoted ? (
+            {voteStats?.participantVoteInfo?.hasVoted ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
@@ -223,7 +270,7 @@ export function SubmissionMetadataPanel({
                 )}
                 {voteStats.participantVoteInfo.votedSubmissionId &&
                   voteStats.participantVoteInfo.votedSubmissionId !==
-                  submission.id && (
+                    submission.id && (
                     <Link
                       href={formatDomainPathname(
                         `/admin/dashboard/submissions/${participant.reference}/${voteStats.participantVoteInfo.votedSubmissionId}`,
@@ -237,9 +284,41 @@ export function SubmissionMetadataPanel({
                   )}
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Clock3 className="h-4 w-4" />
-                <span className="text-sm">Not voted yet</span>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock3 className="h-4 w-4" />
+                  <span className="text-sm">Not voted yet</span>
+                </div>
+                {!voteStats?.participantVoteInfo?.hasVoted && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={handleCreateOrUpdateVotingSession}
+                    disabled={createOrUpdateVotingSessionMutation.isPending}
+                  >
+                    {createOrUpdateVotingSessionMutation.isPending ? (
+                      <Clock className="h-4 w-4 animate-spin" />
+                    ) : votingSessionData?.hasSession ? (
+                      <Send className="h-4 w-4" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    {votingSessionData?.hasSession
+                      ? "Resend Vote Invite"
+                      : "Start Voting Session"}
+                  </Button>
+                )}
+                {votingSessionData?.hasSession &&
+                  votingSessionData.notificationLastSentAt && (
+                    <p className="text-xs text-muted-foreground">
+                      Invite last sent:{" "}
+                      {format(
+                        new Date(votingSessionData.notificationLastSentAt),
+                        "MMM d, HH:mm",
+                      )}
+                    </p>
+                  )}
               </div>
             )}
           </CardContent>

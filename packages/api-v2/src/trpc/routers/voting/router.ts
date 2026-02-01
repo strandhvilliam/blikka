@@ -5,6 +5,8 @@ import {
   GetVotingSessionSchema,
   StartVotingSessionsSchema,
   GetSubmissionVoteStatsSchema,
+  CreateOrUpdateVotingSessionSchema,
+  GetVotingSessionByParticipantSchema,
 } from "./schemas";
 import { trpcEffect } from "../../utils";
 import { createTRPCRouter, domainProcedure, publicProcedure } from "../../root";
@@ -35,6 +37,32 @@ export const votingRouter = createTRPCRouter({
       trpcEffect(
         Effect.fn("VotingRouter.getSubmissionVoteStats")(function* ({ input }) {
           return yield* VotingApiService.getSubmissionVoteStats(input);
+        }),
+      ),
+    ),
+
+  createOrUpdateVotingSession: domainProcedure
+    .input(CreateOrUpdateVotingSessionSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("VotingRouter.createOrUpdateVotingSession")(function* ({
+          input,
+        }) {
+          return yield* VotingApiService.createOrUpdateVotingSessionForParticipant(
+            input,
+          );
+        }),
+      ),
+    ),
+
+  getVotingSessionByParticipant: domainProcedure
+    .input(GetVotingSessionByParticipantSchema)
+    .query(
+      trpcEffect(
+        Effect.fn("VotingRouter.getVotingSessionByParticipant")(function* ({
+          input,
+        }) {
+          return yield* VotingApiService.getVotingSessionByParticipant(input);
         }),
       ),
     ),

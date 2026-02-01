@@ -17,7 +17,6 @@ import { Card } from "@/components/ui/card";
 import { useDomain } from "@/lib/domain-provider";
 import { AWS_S3_BASE_URL } from "@/lib/constants";
 
-
 const getImageUrl = (submission: Submission) => {
   const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME;
   const submissionBaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME;
@@ -67,6 +66,16 @@ export function ParticipantTopicSubmissionClientPage({
   const { data: voteStats } = useQuery({
     ...voteStatsQuery,
     enabled: marathon?.mode === "by-camera" && !!submission,
+  });
+
+  const votingSessionQuery =
+    trpc.voting.getVotingSessionByParticipant.queryOptions({
+      participantId: participant?.id ?? 0,
+      domain,
+    });
+  const { data: votingSessionData } = useQuery({
+    ...votingSessionQuery,
+    enabled: marathon?.mode === "by-camera" && !!participant,
   });
 
   const topic = submission?.topic;
@@ -172,6 +181,8 @@ export function ParticipantTopicSubmissionClientPage({
             validationResults={submissionValidationResults}
             marathonMode={marathon?.mode}
             voteStats={voteStats}
+            votingSessionData={votingSessionData}
+            domain={domain}
           />
         </div>
       </div>
