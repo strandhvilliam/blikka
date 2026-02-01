@@ -21,13 +21,17 @@ export class ValidationsApiService extends Effect.Service<ValidationsApiService>
       const validator = yield* ValidationEngine
 
       const runValidations = Effect.fn("ValidationsApiService.runValidations")(function* ({
-        input,
+        domain,
+        reference,
+      }: {
+        domain: string
+        reference: string
       }) {
         const submissionsBucketName = yield* Config.string("NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME")
 
         const participant = yield* db.participantsQueries.getParticipantByReference({
-          reference: input.reference,
-          domain: input.domain,
+          reference,
+          domain,
         })
 
         if (Option.isNone(participant)) {
@@ -39,7 +43,7 @@ export class ValidationsApiService extends Effect.Service<ValidationsApiService>
         }
 
         const rules = yield* db.rulesQueries.getRulesByDomain({
-          domain: input.domain,
+          domain,
         })
 
         const validationInputs = yield* Effect.forEach(
@@ -105,8 +109,8 @@ export class ValidationsApiService extends Effect.Service<ValidationsApiService>
 
         yield* db.validationsQueries.createMultipleValidationResults({
           data: dbValidationResults,
-          domain: input.domain,
-          reference: input.reference,
+          domain,
+          reference,
         })
 
         return {
@@ -150,4 +154,5 @@ export class ValidationsApiService extends Effect.Service<ValidationsApiService>
       } as const
     }),
   }
-) {}
+) {
+}

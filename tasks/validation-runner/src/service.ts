@@ -112,6 +112,7 @@ export class ValidationRunner extends Effect.Service<ValidationRunner>()(
           domain,
         })
 
+
         const orderIndexes = participantState.processedIndexes.map((_, i) => i)
         const [exifStates, submissionStates] = yield* Effect.all(
           [
@@ -142,4 +143,5 @@ export class ValidationRunner extends Effect.Service<ValidationRunner>()(
       } as const
     }),
   }
-) {}
+) {
+}

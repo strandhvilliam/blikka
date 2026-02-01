@@ -17,12 +17,12 @@ export class ValidationEngine extends Effect.Service<ValidationEngine>()(
       SingleValidationsService.Default,
       GroupedValidationsService.Default,
     ],
-    effect: Effect.gen(function*() {
+    effect: Effect.gen(function* () {
       const singleValidationService = yield* SingleValidationsService;
       const multipleValidationService = yield* GroupedValidationsService;
 
       const executeRule = (rule: ValidationRule, inputs: ValidationInput[]) =>
-        Effect.gen(function*() {
+        Effect.gen(function* () {
           switch (rule.ruleKey) {
             case RULE_KEYS.MAX_FILE_SIZE: {
               const params = yield* parseRuleParams(rule.ruleKey, rule.params);
@@ -134,9 +134,11 @@ export class ValidationEngine extends Effect.Service<ValidationEngine>()(
         rules: ValidationRule[],
         inputs: ValidationInput[],
       ) =>
-        Effect.gen(function*() {
-          const results = yield* Effect.forEach(rules, (rule) =>
-            Effect.try(() => executeRule(rule, inputs)).pipe(Effect.flatten),
+        Effect.gen(function* () {
+          const enabledRules = rules.filter((rule) => rule.enabled);
+
+          const results = yield* Effect.forEach(enabledRules, (rule) =>
+            executeRule(rule, inputs),
           );
           return results.flat();
         });

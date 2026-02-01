@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Download,
   FileCode,
+  RefreshCw,
   ReplaceIcon,
   ShieldCheck,
   UserCheck,
@@ -85,6 +86,28 @@ export function SubmissionQuickActions({
     }),
   );
 
+  const rerunValidationsMutation = useMutation(
+    trpc.validations.runValidations.mutationOptions({
+      onSuccess: (data) => {
+        toast.success(
+          `Validations rerun successfully (${data.resultsCount} results)`,
+        );
+        queryClient.invalidateQueries({
+          queryKey: trpc.participants.getByReference.queryKey({
+            reference: participantRef,
+            domain,
+          }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.participants.getByDomainInfinite.pathKey(),
+        });
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to rerun validations");
+      },
+    }),
+  );
+
   const handleVerify = () => {
     if (participantId) {
       verifyMutation.mutate({
@@ -92,6 +115,13 @@ export function SubmissionQuickActions({
         domain,
       });
     }
+  };
+
+  const handleRerunValidations = () => {
+    rerunValidationsMutation.mutate({
+      domain,
+      reference: participantRef,
+    });
   };
 
   return (
@@ -146,6 +176,18 @@ export function SubmissionQuickActions({
               Verified
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleRerunValidations}
+            disabled={rerunValidationsMutation.isPending}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${rerunValidationsMutation.isPending ? "animate-spin" : ""}`}
+            />
+            Rerun Validations
+          </Button>
           <Button variant="outline" size="sm" className="gap-2">
             <ReplaceIcon className="h-4 w-4" />
             Replace
