@@ -31,7 +31,7 @@ import { useUploadStore } from "../_lib/upload-store";
 import { UploadProgress } from "./upload-progress";
 import { ByCameraUploadInput } from "./by-camera-upload-input";
 import { HeicConversionDialog } from "./heic-conversion-dialog";
-import { UploadConfirmationDialog } from "./upload-confirmation-dialog";
+import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
 import { mapDbRuleConfigsToValidationRules } from "../_lib/utils";
 import { ArrowRight } from "lucide-react";
@@ -67,6 +67,7 @@ export function ByCameraUploadStep({
   const setIsUploading = useUploadStore((state) => state.setIsUploading);
 
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const heicIsConverting = useHeicStore((state) => state.isConverting);
   const heicIsCancelling = useHeicStore((state) => state.isCancelling);
@@ -88,14 +89,14 @@ export function ByCameraUploadStep({
     domain,
     reference: uploadFlowState.participantRef || "",
     onAllCompleted: () => {
-      setTimeout(() => {
-        toast.success(t("uploadComplete"));
-        // const serializedParams =
-        //   flowStateClientParamSerializer(uploadFlowState);
-        // router.push(
-        //   formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
-        // );
-      }, 500);
+      // setTimeout(() => {
+      //   toast.success(t("uploadComplete"));
+      // const serializedParams =
+      //   flowStateClientParamSerializer(uploadFlowState);
+      // router.push(
+      //   formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
+      // );
+      // }, 500);
     },
   });
 
@@ -213,8 +214,11 @@ export function ByCameraUploadStep({
   };
 
   const handleCloseUploadProgress = () => {
-    setIsUploading(false);
-    clearFiles();
+    setIsNavigating(true);
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState);
+    router.push(
+      formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
+    );
   };
 
   const photoSelected = photos.length === BY_CAMERA_MAX_PHOTOS;
@@ -240,13 +244,11 @@ export function ByCameraUploadStep({
         onCancel={cancelHeicConversion}
       />
 
-      <UploadConfirmationDialog
+      <ParticipantConfirmationDialog
         open={showConfirmationDialog}
-        isInitializing={isInitializing}
-        participantRef={uploadFlowState.participantRef || ""}
-        numberOfPhotos={BY_CAMERA_MAX_PHOTOS}
-        onOpenChange={setShowConfirmationDialog}
+        onClose={() => setShowConfirmationDialog(false)}
         onConfirm={handleConfirmedUpload}
+        expectedParticipantRef={uploadFlowState.participantRef || ""}
       />
 
       <AnimatePresence mode="wait">
@@ -264,6 +266,7 @@ export function ByCameraUploadStep({
               expectedCount={BY_CAMERA_MAX_PHOTOS}
               onComplete={handleCloseUploadProgress}
               onRetry={retryFailedFiles}
+              isNavigating={isNavigating}
             />
           </motion.div>
         ) : (
@@ -290,7 +293,7 @@ export function ByCameraUploadStep({
                 hasValidationRules={hasValidationRules}
                 onFileSelect={handleSelectFiles}
                 onRemovePhoto={removePhoto}
-                onChooseClick={() => { }}
+                onChooseClick={() => {}}
               />
             </CardContent>
 

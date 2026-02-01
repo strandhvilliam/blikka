@@ -81,6 +81,13 @@
       "back": "Back",
       "finalizationFailed": "Failed to finalize submission"
     },
+    "participantConfirmation": {
+      "title": "Confirm Participant",
+      "description": "To verify your submission, please enter your participant number again.",
+      "cancel": "Cancel",
+      "confirmUpload": "Confirm & Upload",
+      "mismatch": "Participant number does not match"
+    },
     "uploadStep": {
       "title": "Upload Your Photos",
       "description": "Select and upload your photos for submission",

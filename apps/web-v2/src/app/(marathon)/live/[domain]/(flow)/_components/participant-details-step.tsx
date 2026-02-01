@@ -99,6 +99,21 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       phone: uploadFlowState.participantPhone ?? "",
     },
     onSubmit: async ({ value }) => {
+      // Touch all fields to show validation errors on submit attempt
+      const fieldNames: Array<"firstname" | "lastname" | "email" | "phone"> = [
+        "firstname",
+        "lastname",
+        "email",
+        "phone",
+      ];
+      fieldNames.forEach((fieldName) => {
+        form.setFieldMeta(fieldName, (prev) => ({
+          ...prev,
+          isTouched: true,
+          isBlurred: true,
+        }));
+      });
+
       await setUploadFlowState((prev) => ({
         ...prev,
         participantFirstName: value.firstname,
@@ -137,12 +152,19 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="rounded-xl text-base sm:text-lg py-5 bg-background"
+                  className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                    field.state.meta.isTouched &&
+                    field.state.meta.isBlurred &&
+                    field.state.meta.errors.length > 0
+                      ? "border-destructive focus-visible:ring-destructive"
+                      : ""
+                  }`}
                   placeholder="James"
                 />
                 {field.state.meta.isTouched &&
+                  field.state.meta.isBlurred &&
                   field.state.meta.errors.length > 0 && (
-                    <span className="flex flex-1 w-full justify-center text-sm text-center  text-destructive font-medium">
+                    <span className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium">
                       {field.state.meta.errors[0]?.message}
                     </span>
                   )}
@@ -162,12 +184,19 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="rounded-xl text-base sm:text-lg py-5 bg-background"
+                  className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                    field.state.meta.isTouched &&
+                    field.state.meta.isBlurred &&
+                    field.state.meta.errors.length > 0
+                      ? "border-destructive focus-visible:ring-destructive"
+                      : ""
+                  }`}
                   placeholder="Bond"
                 />
                 {field.state.meta.isTouched &&
+                  field.state.meta.isBlurred &&
                   field.state.meta.errors.length > 0 && (
-                    <span className="flex flex-1 w-full justify-center text-sm text-center  text-destructive font-medium">
+                    <span className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium">
                       {field.state.meta.errors[0]?.message}
                     </span>
                   )}
@@ -187,13 +216,20 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  className="rounded-xl text-base sm:text-lg py-5 bg-background"
+                  className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                    field.state.meta.isTouched &&
+                    field.state.meta.isBlurred &&
+                    field.state.meta.errors.length > 0
+                      ? "border-destructive focus-visible:ring-destructive"
+                      : ""
+                  }`}
                   type="email"
                   placeholder="your@email.com"
                 />
                 {field.state.meta.isTouched &&
+                  field.state.meta.isBlurred &&
                   field.state.meta.errors.length > 0 && (
-                    <span className="flex flex-1 w-full justify-center text-sm text-center  text-destructive font-medium">
+                    <span className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium">
                       {field.state.meta.errors[0]?.message}
                     </span>
                   )}
@@ -216,9 +252,16 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                     onBlur={field.handleBlur}
                     international
                     countryCallingCodeEditable={false}
-                    className="rounded-xl text-base sm:text-lg bg-background"
+                    className={`rounded-xl text-base sm:text-lg bg-background ${
+                      field.state.meta.isTouched &&
+                      field.state.meta.isBlurred &&
+                      field.state.meta.errors.length > 0
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : ""
+                    }`}
                   />
                   {field.state.meta.isTouched &&
+                    field.state.meta.isBlurred &&
                     field.state.meta.errors.length > 0 && (
                       <span className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium">
                         {field.state.meta.errors[0]?.message}

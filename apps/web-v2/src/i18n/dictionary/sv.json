@@ -78,6 +78,13 @@
       "back": "Tillbaka",
       "finalizationFailed": "Kunde inte slutföra inlämningen"
     },
+    "participantConfirmation": {
+      "title": "Bekräfta deltagare",
+      "description": "För att verifiera ditt bidrag, ange ditt deltagarnummer igen.",
+      "cancel": "Avbryt",
+      "confirmUpload": "Bekräfta & Ladda upp",
+      "mismatch": "Deltagarnumret stämmer inte"
+    },
     "uploadStep": {
       "title": "Ladda upp dina foton",
       "description": "Välj och ladda upp dina foton för inlämning",

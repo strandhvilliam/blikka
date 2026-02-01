@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
 import type { Topic } from "@blikka/db";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -26,6 +27,7 @@ interface UploadProgressProps {
   expectedCount: number;
   onComplete?: () => void;
   onRetry?: () => void;
+  isNavigating?: boolean;
 }
 
 export function UploadProgress({
@@ -34,6 +36,7 @@ export function UploadProgress({
   expectedCount,
   onComplete,
   onRetry,
+  isNavigating = false,
 }: UploadProgressProps) {
   const t = useTranslations("FlowPage.uploadProgress");
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -90,7 +93,7 @@ export function UploadProgress({
   return (
     <div className="w-full flex items-center justify-center min-h-[60dvh]">
       <Card className="w-full max-w-lg">
-        <CardHeader>
+        <CardHeader className="pt-6">
           <div className="flex items-center justify-between">
             <div className="text-sm w-8 text-muted-foreground font-mono">
               {!hasFailures && formatTime(elapsedTime)}
@@ -174,7 +177,7 @@ export function UploadProgress({
           </div>
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-3">
+        <CardFooter className="flex flex-col gap-3 pb-6">
           {hasFailures && onRetry && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -197,8 +200,16 @@ export function UploadProgress({
               <PrimaryButton
                 onClick={onComplete}
                 className="w-full text-lg rounded-full"
+                disabled={isNavigating}
               >
-                {t("continue")}
+                {isNavigating ? (
+                  <>
+                    <Spinner className="mr-2" />
+                    {t("continue")}
+                  </>
+                ) : (
+                  t("continue")
+                )}
               </PrimaryButton>
             </motion.div>
           )}

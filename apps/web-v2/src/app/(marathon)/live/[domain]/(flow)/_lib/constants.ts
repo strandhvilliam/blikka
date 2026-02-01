@@ -29,6 +29,6 @@ export const COMMON_IMAGE_EXTENSIONS = [
 ];
 
 
-export const UPLOAD_TIMEOUT_MS = 1000 * 60 * 6; // 6 minutes
+export const UPLOAD_TIMEOUT_MS = 1000 * 60 * 3; // 3 minutes
 export const UPLOAD_CONCURRENCY_LIMIT = 1;
 export const POLLING_INTERVAL_MS = 3000; // 3 seconds

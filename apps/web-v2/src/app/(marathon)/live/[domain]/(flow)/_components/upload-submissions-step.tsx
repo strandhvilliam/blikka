@@ -33,7 +33,7 @@ import { SubmissionList } from "./submission-list";
 import { UploadProgress } from "./upload-progress";
 import { UploadSection } from "./upload-section";
 import { HeicConversionDialog } from "./heic-conversion-dialog";
-import { UploadConfirmationDialog } from "./upload-confirmation-dialog";
+import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
 import { useEffect } from "react";
 import { mapDbRuleConfigsToValidationRules } from "../_lib/utils";
@@ -254,13 +254,11 @@ export function UploadSubmissionsStep({
         onCancel={cancelHeicConversion}
       />
 
-      <UploadConfirmationDialog
+      <ParticipantConfirmationDialog
         open={showConfirmationDialog}
-        isInitializing={isInitializing}
-        participantRef={uploadFlowState.participantRef || ""}
-        numberOfPhotos={competitionClass.numberOfPhotos}
-        onOpenChange={setShowConfirmationDialog}
+        onClose={() => setShowConfirmationDialog(false)}
         onConfirm={handleConfirmedUpload}
+        expectedParticipantRef={uploadFlowState.participantRef || ""}
       />
 
       <AnimatePresence mode="wait">

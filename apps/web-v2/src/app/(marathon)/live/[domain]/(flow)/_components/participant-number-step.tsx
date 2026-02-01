@@ -68,6 +68,13 @@ export function ParticipantNumberStep() {
       const paddedRef = value.participantRef.padStart(4, "0");
       setPendingRef(paddedRef);
 
+      // Touch the field to show validation errors on submit attempt
+      form.setFieldMeta("participantRef", (prev) => ({
+        ...prev,
+        isTouched: true,
+        isBlurred: true,
+      }));
+
       try {
         const exists = await checkParticipantExists.mutateAsync({
           domain,
@@ -89,7 +96,7 @@ export function ParticipantNumberStep() {
       }
     },
     validators: {
-      onChange: createInitializeParticipantSchema(t),
+      onBlur: createInitializeParticipantSchema(t),
     },
   });
 
@@ -133,7 +140,13 @@ export function ParticipantNumberStep() {
                     type="text"
                     inputMode="numeric"
                     placeholder="0000"
-                    className="text-center text-3xl sm:text-4xl h-14 sm:h-16 bg-background tracking-widest leading-none"
+                    className={`text-center text-3xl sm:text-4xl h-14 sm:h-16 bg-background tracking-widest leading-none ${
+                      field.state.meta.isTouched &&
+                      field.state.meta.isBlurred &&
+                      field.state.meta.errors.length > 0
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : ""
+                    }`}
                     disabled={!!uploadFlowState.participantId}
                     maxLength={4}
                     value={field.state.value}
@@ -150,8 +163,8 @@ export function ParticipantNumberStep() {
                       field.handleBlur();
                     }}
                   />
-                  {field.state.meta.errors &&
-                    form.state.isSubmitted &&
+                  {field.state.meta.isTouched &&
+                    field.state.meta.isBlurred &&
                     field.state.meta.errors.length > 0 && (
                       <span className="flex flex-1 w-full justify-center text-center text-base pt-4 text-destructive font-medium">
                         {field.state.meta.errors[0]?.message}
