@@ -1,11 +1,12 @@
 "use client";
 
-interface EmptyStateProps {
-  currentFilter: number | null;
-  onClearFilter: () => void;
-}
+import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
 
-export function EmptyState({ currentFilter, onClearFilter }: EmptyStateProps) {
+export function EmptyState() {
+  const { currentFilter, setCurrentFilter } = useVotingSearchParams();
+  const onClearFilter = () => {
+    setCurrentFilter(null);
+  };
   return (
     <div className="flex flex-col items-center justify-center h-full px-4 py-2">
       <div className="text-center max-w-md">

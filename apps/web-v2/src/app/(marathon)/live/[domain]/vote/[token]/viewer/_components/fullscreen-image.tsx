@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X, ZoomIn, ZoomOut } from "lucide-react";
 
 interface FullscreenImageProps {
@@ -10,7 +10,6 @@ interface FullscreenImageProps {
   onClose: () => void;
 }
 
-// Check if fullscreen API is supported
 const isFullscreenSupported =
   typeof document !== "undefined" &&
   "fullscreenEnabled" in document &&
@@ -22,14 +21,13 @@ export function FullscreenImage({
   isOpen,
   onClose,
 }: FullscreenImageProps) {
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [scale, setScale] = React.useState(1);
-  const [position, setPosition] = React.useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = React.useState(false);
-  const dragStartRef = React.useRef({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
 
-  // Handle fullscreen API (only on supported browsers)
-  React.useEffect(() => {
+  useEffect(() => {
     if (!containerRef.current || !isFullscreenSupported) return;
 
     if (isOpen) {
@@ -43,8 +41,7 @@ export function FullscreenImage({
     }
   }, [isOpen]);
 
-  // Handle fullscreen change events (e.g., user presses Escape)
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isFullscreenSupported) return;
 
     const handleFullscreenChange = () => {
@@ -60,7 +57,7 @@ export function FullscreenImage({
   }, [isOpen, onClose]);
 
   // Lock body scroll when modal is open (especially important for iOS)
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isOpen) return;
 
     const originalOverflow = document.body.style.overflow;
@@ -86,7 +83,7 @@ export function FullscreenImage({
   }, [isOpen]);
 
   // Handle keyboard events
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
 
@@ -110,7 +107,7 @@ export function FullscreenImage({
   }, [isOpen, onClose]);
 
   // Handle wheel zoom
-  const handleWheel = React.useCallback((e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setScale((s) => {
@@ -123,7 +120,7 @@ export function FullscreenImage({
   }, []);
 
   // Handle double tap/click to zoom
-  const handleDoubleClick = React.useCallback((e: React.MouseEvent) => {
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setScale((s) => {
       if (s > 1) {
@@ -135,7 +132,7 @@ export function FullscreenImage({
   }, []);
 
   // Handle drag/pan when zoomed
-  const handleMouseDown = React.useCallback(
+  const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (scale > 1) {
         setIsDragging(true);
@@ -148,7 +145,7 @@ export function FullscreenImage({
     [scale, position],
   );
 
-  const handleMouseMove = React.useCallback(
+  const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (isDragging && scale > 1) {
         setPosition({
@@ -160,18 +157,17 @@ export function FullscreenImage({
     [isDragging, scale],
   );
 
-  const handleMouseUp = React.useCallback(() => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
-  // Handle touch events for mobile pinch zoom and pan
-  const touchStartRef = React.useRef<{
+  const touchStartRef = useRef<{
     x: number;
     y: number;
     distance?: number;
   } | null>(null);
 
-  const handleTouchStart = React.useCallback(
+  const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       if (e.touches.length === 1) {
         // Single finger - pan
@@ -197,18 +193,16 @@ export function FullscreenImage({
     [scale, position],
   );
 
-  const handleTouchMove = React.useCallback(
+  const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
       e.preventDefault();
 
       if (e.touches.length === 1 && touchStartRef.current && scale > 1) {
-        // Single finger pan
         setPosition({
           x: e.touches[0].clientX - touchStartRef.current.x,
           y: e.touches[0].clientY - touchStartRef.current.y,
         });
       } else if (e.touches.length === 2 && touchStartRef.current?.distance) {
-        // Pinch zoom
         const distance = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY,
@@ -221,7 +215,7 @@ export function FullscreenImage({
     [scale],
   );
 
-  const handleTouchEnd = React.useCallback(() => {
+  const handleTouchEnd = useCallback(() => {
     touchStartRef.current = null;
     if (scale === 1) {
       setPosition({ x: 0, y: 0 });
@@ -282,7 +276,6 @@ export function FullscreenImage({
         </button>
       </div>
 
-      {/* Image container */}
       <div
         className="flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
         onWheel={handleWheel}
@@ -292,7 +285,6 @@ export function FullscreenImage({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onClick={(e) => {
-          // Close on background click if not dragging and not zoomed
           if (e.target === e.currentTarget && scale === 1) {
             onClose();
           }
@@ -313,7 +305,6 @@ export function FullscreenImage({
         </div>
       </div>
 
-      {/* Footer hint */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm text-center pointer-events-none pb-[env(safe-area-inset-bottom)]">
         <p>Double-click or pinch to zoom • Drag to pan</p>
       </div>

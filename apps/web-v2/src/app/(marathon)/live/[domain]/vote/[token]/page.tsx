@@ -18,6 +18,8 @@ const _VotePage = Effect.fn("@blikka/web/VotePage")(
       Schema.Struct({ domain: Schema.String, token: Schema.String }),
     )(params);
 
+    prefetch(trpc.voting.getVotingSession.queryOptions({ domain, token }));
+
     const votingSession = yield* fetchEffectQuery(
       trpc.voting.getVotingSession.queryOptions({ domain, token }),
     ).pipe(
@@ -32,7 +34,6 @@ const _VotePage = Effect.fn("@blikka/web/VotePage")(
     }
 
 
-    prefetch(trpc.voting.getVotingSession.queryOptions({ domain, token }));
 
     return (
       <HydrateClient>

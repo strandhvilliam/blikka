@@ -5,49 +5,48 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type CarouselApi } from "@/components/ui/carousel";
 import { StarRating } from "./star-rating";
 import { VoteButton } from "./vote-button";
+import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
+import { useVotingCarouselApi } from "../_hooks/use-voting-carousel-api";
 
 interface VotingFooterProps {
-  viewMode: "carousel" | "grid";
   currentRating: number | undefined;
   onRatingChange: (rating: number) => void;
   isSelected: boolean;
   hasImages: boolean;
   onVote: () => void;
-  api: CarouselApi | undefined;
-  currentIndex: number;
   totalCount: number;
   completionMessage?: string;
   submissionTitle?: string;
 }
 
 export function VotingFooter({
-  viewMode,
   currentRating,
   onRatingChange,
   isSelected,
   hasImages,
   onVote,
-  api,
-  currentIndex,
   totalCount,
   completionMessage,
   submissionTitle,
 }: VotingFooterProps) {
+
+  const { viewMode, currentImageIndex } = useVotingSearchParams();
+  const { api } = useVotingCarouselApi();
+
+
   return (
     <div className="flex-none bg-background border-t">
       {/* Navigation and Rating - only show in carousel mode */}
       {viewMode === "carousel" && hasImages && (
         <div className="px-4 pt-4 pb-2 space-y-4">
-          {/* Navigation hint - subtle instruction */}
           <p className="text-center text-xs text-muted-foreground/60">
             Swipe or tap arrows to navigate
           </p>
 
-          {/* Navigation arrows - centered below image */}
           <div className="flex items-center justify-center gap-8">
             <button
               onClick={() => api?.scrollPrev()}
-              disabled={currentIndex === 0}
+              disabled={currentImageIndex === 0}
               className="h-12 w-12 rounded-full bg-muted border-0 shadow-sm hover:bg-muted/80 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
               aria-label="Previous image"
             >
@@ -55,7 +54,7 @@ export function VotingFooter({
             </button>
             <button
               onClick={() => api?.scrollNext()}
-              disabled={currentIndex >= totalCount - 1}
+              disabled={currentImageIndex >= totalCount - 1}
               className="h-12 w-12 rounded-full bg-muted border-0 shadow-sm hover:bg-muted/80 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
               aria-label="Next image"
             >
@@ -63,7 +62,6 @@ export function VotingFooter({
             </button>
           </div>
 
-          {/* Star rating - centered below navigation */}
           <StarRating value={currentRating} onChange={onRatingChange} />
         </div>
       )}

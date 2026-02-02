@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { Eye } from "lucide-react";
+import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
+import { useVotingCarouselApi } from "../_hooks/use-voting-carousel-api";
 
 interface VotingSubmission {
   submissionId: number;
   participantId: number;
-  participantFirstName: string;
-  participantLastName: string;
   url?: string;
   thumbnailUrl?: string;
   previewUrl?: string;
@@ -18,18 +18,27 @@ interface VotingSubmission {
 interface GridViewProps {
   submissions: VotingSubmission[];
   selectedSubmissionId: number | null;
-  currentImageIndex: number;
   getRating: (submissionId: number) => number | undefined;
-  onThumbnailClick: (index: number) => void;
 }
 
 export function GridView({
   submissions,
   selectedSubmissionId,
-  currentImageIndex,
   getRating,
-  onThumbnailClick,
 }: GridViewProps) {
+
+  const { currentImageIndex, setParams } = useVotingSearchParams();
+  const { isNavigatingRef } = useVotingCarouselApi();
+
+  const handleThumbnailClick = (index: number) => {
+    isNavigatingRef.current = true;
+    setParams({ image: index, view: "carousel" });
+    // Reset flag after params update
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 100);
+  };
+
   return (
     <div className="h-full overflow-y-auto p-4">
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
@@ -40,7 +49,7 @@ export function GridView({
           return (
             <button
               key={submission.submissionId}
-              onClick={() => onThumbnailClick(index)}
+              onClick={() => handleThumbnailClick(index)}
               className="relative aspect-square rounded-lg overflow-hidden bg-muted"
             >
               {submission.thumbnailUrl || submission.url ? (

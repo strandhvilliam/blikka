@@ -7,6 +7,7 @@ const parseAsViewMode = parseAsStringEnum(["carousel", "grid"]);
 export function useVotingSearchParams() {
   const [params, setParams] = useQueryStates(
     {
+      filter: parseAsInteger,
       image: parseAsInteger.withDefault(0),
       view: parseAsViewMode.withDefault("carousel"),
     },
@@ -20,6 +21,9 @@ export function useVotingSearchParams() {
   );
 
   return {
+    currentFilter: params.filter,
+    setCurrentFilter: (filter: number | null) =>
+      setParams((prev) => ({ ...prev, filter })),
     currentImageIndex: params.image,
     viewMode: params.view,
     setCurrentImageIndex: (index: number) =>

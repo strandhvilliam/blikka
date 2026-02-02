@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { type CarouselApi } from "@/components/ui/carousel";
 import { AnimatePresence, motion } from "motion/react";
 import { EmptyState } from "./empty-state";
 import { CarouselView } from "./carousel-view";
@@ -16,73 +14,33 @@ import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDomainPathname } from "@/lib/utils";
+import { FilterBarSkeleton } from "./filter-bar-skeleton";
+import { VotingCarouselApiProvider } from "../_hooks/use-voting-carousel-api";
 
-const FilterBarSkeleton = () => (
-  <div className="px-4 py-3">
-    {/* Action buttons skeleton */}
-    <div className="flex items-center justify-between mb-3">
-      <Skeleton className="h-10 w-10 rounded-xl" />
-      <Skeleton className="h-10 w-10 rounded-xl" />
-    </div>
-    {/* Progress bar skeleton */}
-    <div className="mb-3">
-      <div className="flex items-center justify-between mb-1.5">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-4 w-10" />
-      </div>
-      <Skeleton className="h-1 w-full rounded-full" />
-    </div>
-    {/* Filter options skeleton */}
-    <div className="flex items-center gap-1.5">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Skeleton key={i} className="h-7 w-12 rounded-full shrink-0" />
-      ))}
-    </div>
-  </div>
-);
 
 const FilterBar = dynamic(
   () => import("./filter-bar").then((mod) => mod.FilterBar),
   { ssr: false, loading: () => <FilterBarSkeleton /> },
 );
 
-interface VotingClientProps {
-  domain: string;
-  token: string;
-}
-
-export function VotingClient({ domain, token }: VotingClientProps) {
+export function VotingClient({ domain, token }: { domain: string, token: string }) {
   const trpc = useTRPC();
   const router = useRouter();
-  const [api, setApi] = useState<CarouselApi>();
-  const isNavigatingRef = useRef(false);
+
+
+  const submitVoteMutation = useMutation(
+    trpc.voting.submitVote.mutationOptions(),
+  );
 
   const {
     currentImageIndex,
     viewMode,
-    setCurrentImageIndex,
     setViewMode,
-    setParams,
+    currentFilter,
   } = useVotingSearchParams();
 
-  const [currentFilter, setCurrentFilter] = useState<number | null>(null);
-
-  const { data: votingData, isLoading: isLoadingSubmissions } =
-    useSuspenseQuery(
-      trpc.voting.getVotingSubmissions.queryOptions(
-        { token, domain },
-        {
-          enabled: !!token && !!domain,
-        },
-      ),
-    );
-
-  const submissions = useMemo(() => {
-    if (!votingData) return [];
-    return votingData.submissions ?? [];
-  }, [votingData]);
-
   const {
+    isLoading,
     selectedSubmissionId,
     setRating,
     setSelectedSubmission,
@@ -90,53 +48,11 @@ export function VotingClient({ domain, token }: VotingClientProps) {
     getFilteredSubmissions,
     stats,
   } = useVotingState({
-    submissions,
-    storageKey: `voting-${domain}-${token || "anon"}`,
+    domain,
+    token,
   });
 
-  const filteredSubmissions = useMemo(
-    () => getFilteredSubmissions(currentFilter),
-    [currentFilter, getFilteredSubmissions],
-  );
-
-  const handleFilterChange = (filter: number | null) => {
-    setCurrentFilter(filter);
-    setCurrentImageIndex(0);
-  };
-
-  // Track carousel index changes and sync with URL params
-  useEffect(() => {
-    if (!api) return;
-
-    const onSelect = () => {
-      // Skip if we're programmatically navigating (URL change -> carousel scroll)
-      if (isNavigatingRef.current) return;
-
-      const index = api.selectedScrollSnap();
-      if (index !== currentImageIndex) {
-        setCurrentImageIndex(index);
-      }
-    };
-
-    api.on("select", onSelect);
-
-    return () => {
-      api.off("select", onSelect);
-    };
-  }, [api, currentImageIndex, setCurrentImageIndex]);
-
-  // Sync carousel with URL param changes
-  useEffect(() => {
-    if (api) {
-      isNavigatingRef.current = true;
-      api.scrollTo(currentImageIndex);
-      // Reset flag after scroll animation
-      setTimeout(() => {
-        isNavigatingRef.current = false;
-      }, 100);
-    }
-  }, [api, currentImageIndex]);
-
+  const filteredSubmissions = getFilteredSubmissions(currentFilter)
   const currentSubmission = filteredSubmissions[currentImageIndex];
   const currentRating = currentSubmission
     ? getRating(currentSubmission.submissionId)
@@ -144,11 +60,9 @@ export function VotingClient({ domain, token }: VotingClientProps) {
   const isSelected = currentSubmission
     ? currentSubmission.submissionId === selectedSubmissionId
     : false;
+  const hasImages = filteredSubmissions.length > 0;
 
-  // Submit vote mutation
-  const submitVoteMutation = useMutation(
-    trpc.voting.submitVote.mutationOptions(),
-  );
+
 
   const handleRatingChange = (rating: number) => {
     if (!currentSubmission) return;
@@ -161,7 +75,6 @@ export function VotingClient({ domain, token }: VotingClientProps) {
 
   const handleVote = async () => {
     if (!currentSubmission) return;
-
     setSelectedSubmission(currentSubmission.submissionId);
 
     if (!token || !domain) {
@@ -178,10 +91,10 @@ export function VotingClient({ domain, token }: VotingClientProps) {
 
       if (result.success) {
         toast.success("Vote submitted successfully!");
-        router.push(`/live/${domain}/vote/${token}/voting-completed`);
+        router.push(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'));
       } else if (result.error === "already_voted") {
         toast.error("You have already voted");
-        router.push(`/live/${domain}/vote/${token}/voting-completed`);
+        router.push(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'));
       }
     } catch (error) {
       toast.error("Failed to submit vote. Please try again.");
@@ -189,18 +102,9 @@ export function VotingClient({ domain, token }: VotingClientProps) {
     }
   };
 
-  const handleThumbnailClick = (index: number) => {
-    isNavigatingRef.current = true;
-    setParams({ image: index, view: "carousel" });
-    // Reset flag after params update
-    setTimeout(() => {
-      isNavigatingRef.current = false;
-    }, 100);
-  };
 
-  const hasImages = filteredSubmissions.length > 0;
 
-  if (isLoadingSubmissions) {
+  if (isLoading) {
     return (
       <div className="flex flex-col h-dvh bg-background pb-[env(safe-area-inset-bottom)]">
         <FilterBarSkeleton />
@@ -212,85 +116,70 @@ export function VotingClient({ domain, token }: VotingClientProps) {
   }
 
   return (
-    <div className="flex flex-col h-dvh pb-[env(safe-area-inset-bottom)]">
-      {/* Header with progress and filter */}
-      <FilterBar
-        currentFilter={currentFilter}
-        onFilterChange={handleFilterChange}
-        ratingCounts={stats.ratingCounts}
-        currentIndex={currentImageIndex}
-        totalCount={filteredSubmissions.length}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        ratedCount={stats.rated}
-      />
+    <VotingCarouselApiProvider>
+      <div className="flex flex-col h-dvh pb-[env(safe-area-inset-bottom)]">
+        <FilterBar
+          ratingCounts={stats.ratingCounts}
+          totalCount={filteredSubmissions.length}
+          onViewModeChange={setViewMode}
+          ratedCount={stats.rated}
+        />
 
-      {/* Image viewer - carousel or grid */}
-      <div className="flex-1 overflow-hidden relative">
-        <AnimatePresence mode="wait">
-          {!hasImages ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="h-full"
-            >
-              <EmptyState
-                currentFilter={currentFilter}
-                onClearFilter={() => setCurrentFilter(null)}
-              />
-            </motion.div>
-          ) : viewMode === "carousel" ? (
-            <motion.div
-              key="carousel"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="h-full"
-            >
-              <CarouselView
-                submissions={filteredSubmissions}
-                currentFilter={currentFilter}
-                onApiChange={setApi}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="grid"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="h-full"
-            >
-              <GridView
-                submissions={filteredSubmissions}
-                selectedSubmissionId={selectedSubmissionId}
-                currentImageIndex={currentImageIndex}
-                getRating={getRating}
-                onThumbnailClick={handleThumbnailClick}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="flex-1 overflow-hidden relative">
+          <AnimatePresence mode="wait">
+            {!hasImages ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="h-full"
+              >
+                <EmptyState />
+              </motion.div>
+            ) : viewMode === "carousel" ? (
+              <motion.div
+                key="carousel"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="h-full"
+              >
+                <CarouselView
+                  submissions={filteredSubmissions}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="grid"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="h-full"
+              >
+                <GridView
+                  submissions={filteredSubmissions}
+                  selectedSubmissionId={selectedSubmissionId}
+                  getRating={getRating}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <VotingFooter
+          currentRating={currentRating}
+          onRatingChange={handleRatingChange}
+          isSelected={isSelected}
+          hasImages={hasImages}
+          onVote={handleVote}
+          totalCount={filteredSubmissions.length}
+          submissionTitle={currentSubmission?.topicName}
+        />
       </div>
-
-      {/* Bottom controls / Footer */}
-      <VotingFooter
-        viewMode={viewMode}
-        currentRating={currentRating}
-        onRatingChange={handleRatingChange}
-        isSelected={isSelected}
-        hasImages={hasImages}
-        onVote={handleVote}
-        api={api}
-        currentIndex={currentImageIndex}
-        totalCount={filteredSubmissions.length}
-        submissionTitle={currentSubmission?.topicName}
-      />
-    </div>
+    </VotingCarouselApiProvider>
   );
 }

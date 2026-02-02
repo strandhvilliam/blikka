@@ -38,6 +38,13 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
       const smsService = yield* SMSService;
       const phoneEncryption = yield* PhoneNumberEncryptionService;
 
+      const submissionsBucketName = yield* Config.string(
+        "SUBMISSIONS_BUCKET_NAME",
+      );
+      const thumbnailsBucketName = yield* Config.string(
+        "THUMBNAILS_BUCKET_NAME",
+      );
+
       const getVotingSession = Effect.fn("VotingApiService.getVotingSession")(
         function* ({ token, domain }: { token: string; domain: string }) {
           const votingSessionResult =
@@ -143,7 +150,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
                 const phoneNumber = yield* phoneEncryption.decrypt({
                   encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
                 });
-                console.log("phoneNumber", phoneNumber);
 
                 const message = `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`;
 
@@ -395,7 +401,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
       const getVotingSubmissions = Effect.fn(
         "VotingApiService.getVotingSubmissions",
       )(function* ({ token, domain }: { token: string; domain: string }) {
-        // Validate voting session exists and hasn't expired
         const votingSessionResult =
           yield* db.votingQueries.getVotingSessionByToken({ token });
 
@@ -409,10 +414,9 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             ),
         });
 
-        // Check if already voted
-        if (votingSession.votedAt) {
+        if (votingSession.votedAt && votingSession.voteSubmissionId) {
           return {
-            alreadyVoted: true as const,
+            alreadyVoted: true,
             votedAt: votingSession.votedAt,
             votedSubmissionId: votingSession.voteSubmissionId,
             submissions: [],
@@ -421,11 +425,12 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
               firstName: votingSession.firstName,
               lastName: votingSession.lastName,
               email: votingSession.email,
+              startsAt: votingSession.startsAt,
+              endsAt: votingSession.endsAt,
             },
           };
         }
 
-        // Check session hasn't expired
         if (votingSession.endsAt) {
           const now = new Date();
           const endsAt = new Date(votingSession.endsAt);
@@ -438,27 +443,17 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           }
         }
 
-        // Get bucket names for S3 URLs
-        const submissionsBucketName = yield* Config.string(
-          "SUBMISSIONS_BUCKET_NAME",
-        );
-        const thumbnailsBucketName = yield* Config.string(
-          "THUMBNAILS_BUCKET_NAME",
-        );
 
         // Get all submissions for the marathon
         const submissions = yield* db.votingQueries.getSubmissionsForVoting({
           marathonId: votingSession.marathonId,
         });
 
-        // Transform to response format with S3 URLs
         const votingSubmissions = submissions
-          .filter((s) => s.key) // Only include submissions with images
+          .filter((s) => s.key)
           .map((s) => ({
             submissionId: s.id,
             participantId: s.participantId,
-            participantFirstName: s.participant?.firstname ?? "",
-            participantLastName: s.participant?.lastname ?? "",
             url: buildS3Url(submissionsBucketName, s.key),
             thumbnailUrl: buildS3Url(thumbnailsBucketName, s.thumbnailKey),
             previewUrl: buildS3Url(submissionsBucketName, s.previewKey),
@@ -467,13 +462,16 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           }));
 
         return {
-          alreadyVoted: false as const,
+          alreadyVoted: false,
+          votedAt: votingSession.votedAt,
+          votedSubmissionId: votingSession.voteSubmissionId,
           submissions: votingSubmissions,
           sessionInfo: {
             token: votingSession.token,
             firstName: votingSession.firstName,
             lastName: votingSession.lastName,
             email: votingSession.email,
+            startsAt: votingSession.startsAt,
             endsAt: votingSession.endsAt,
           },
         };

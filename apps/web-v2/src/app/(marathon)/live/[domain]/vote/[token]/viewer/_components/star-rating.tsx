@@ -1,8 +1,9 @@
 "use client";
 
-import * as React from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StarRatingProps {
   value?: number;
@@ -11,21 +12,22 @@ interface StarRatingProps {
 }
 
 export function StarRating({ value, onChange, className }: StarRatingProps) {
-  const [hoverValue, setHoverValue] = React.useState<number | null>(null);
-  const [mounted, setMounted] = React.useState(false);
+  const [hoverValue, setHoverValue] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const isMobile = useIsMobile();
 
-  React.useEffect(() => {
+  useEffect(() => {
     setMounted(true);
   }, []);
 
   const handleClick = (rating: number) => {
+    if (!isMobile) setHoverValue(null);
     onChange?.(rating);
   };
 
   const displayValue = hoverValue ?? value ?? 0;
-  const activeLabel = hoverValue ?? value;
 
-  // Prevent hydration mismatch by not rendering until mounted
+
   if (!mounted) {
     return (
       <div className={cn("space-y-2", className)}>
@@ -45,18 +47,17 @@ export function StarRating({ value, onChange, className }: StarRatingProps) {
 
   return (
     <div className={cn("space-y-2", className)}>
-      {/* Stars with integrated numbers below each */}
       <div
         className="flex items-center justify-center"
-        onMouseLeave={() => setHoverValue(null)}
+        onMouseLeave={() => !isMobile ? setHoverValue(null) : undefined}
       >
         {[1, 2, 3, 4, 5].map((rating) => (
           <button
             key={rating}
             type="button"
             onClick={() => handleClick(rating)}
-            onMouseEnter={() => setHoverValue(rating)}
-            onTouchStart={() => setHoverValue(rating)}
+            onMouseEnter={() => !isMobile ? setHoverValue(rating) : undefined}
+            onTouchStart={() => !isMobile ? setHoverValue(rating) : undefined}
             className="flex flex-col items-center gap-1 px-2"
             aria-label={`Rate ${rating} stars`}
           >
@@ -82,16 +83,6 @@ export function StarRating({ value, onChange, className }: StarRatingProps) {
         ))}
       </div>
 
-      {/* Simple rating indicator */}
-      {/* <div className="text-center">
-        <p className="text-sm text-muted-foreground">
-          {activeLabel ? (
-            <span className="font-medium text-foreground">{activeLabel}/5</span>
-          ) : (
-            "Tap to rate"
-          )}
-        </p>
-      </div> */}
     </div>
   );
 }

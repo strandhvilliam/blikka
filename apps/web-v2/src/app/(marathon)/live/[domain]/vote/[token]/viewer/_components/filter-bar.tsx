@@ -5,14 +5,11 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Star, LayoutGrid, Info } from "lucide-react";
 import { VotingInfoDrawer } from "./voting-info-drawer";
+import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
 
 interface FilterBarProps {
-  currentFilter: number | null;
-  onFilterChange: (filter: number | null) => void;
   ratingCounts: Record<number, number>;
-  currentIndex: number;
   totalCount: number;
-  viewMode: "carousel" | "grid";
   onViewModeChange: (mode: "carousel" | "grid") => void;
   ratedCount: number;
   className?: string;
@@ -28,17 +25,28 @@ const filterOptions = [
 ];
 
 export function FilterBar({
-  currentFilter,
-  onFilterChange,
   ratingCounts,
-  currentIndex,
   totalCount,
-  viewMode,
   onViewModeChange,
   ratedCount,
   className,
 }: FilterBarProps) {
-  const progress = Math.round(((currentIndex + 1) / totalCount) * 100);
+
+
+  const {
+    currentImageIndex,
+    setCurrentImageIndex,
+    viewMode,
+    currentFilter,
+    setCurrentFilter,
+  } = useVotingSearchParams();
+
+  const handleFilterChange = (filter: number | null) => {
+    setCurrentFilter(filter);
+    setCurrentImageIndex(0);
+  };
+
+  const progress = Math.round(((currentImageIndex + 1) / totalCount) * 100);
 
   const renderFilterOption = (option: (typeof filterOptions)[number]) => {
     const count =
@@ -51,7 +59,7 @@ export function FilterBar({
     return (
       <button
         key={String(option.value)}
-        onClick={() => onFilterChange(option.value)}
+        onClick={() => handleFilterChange(option.value)}
         className={cn(
           "flex items-center gap-0.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0",
           isActive
@@ -110,7 +118,7 @@ export function FilterBar({
       <div className="mb-3">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
           <span className="font-medium text-foreground">
-            {currentIndex + 1} <span className="text-muted-foreground">of</span>{" "}
+            {currentImageIndex + 1} <span className="text-muted-foreground">of</span>{" "}
             {totalCount}
           </span>
           <span>{progress}%</span>

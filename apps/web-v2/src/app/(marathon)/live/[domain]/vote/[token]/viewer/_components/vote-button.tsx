@@ -33,6 +33,7 @@ export function VoteButton({
 }: VoteButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
 
+
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>

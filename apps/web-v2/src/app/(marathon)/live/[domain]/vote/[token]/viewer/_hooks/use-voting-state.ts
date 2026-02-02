@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/lib/trpc/client";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface VotingSubmission {
   submissionId: number;
   participantId: number;
-  participantFirstName: string;
-  participantLastName: string;
   url?: string | undefined;
   thumbnailUrl?: string | undefined;
   previewUrl?: string | undefined;
@@ -19,109 +21,174 @@ interface VotingState {
   selectedSubmissionId: number | null;
 }
 
-interface UseVotingStateOptions {
-  submissions: VotingSubmission[];
-  storageKey: string;
+interface VotingStore extends VotingState {
+  setRating: (submissionId: number, rating: number | undefined) => void;
+  setSelectedSubmission: (submissionId: number | null) => void;
 }
 
+interface UseVotingStateOptions {
+  domain: string;
+  token: string;
+  storageKey?: string;
+}
+
+const createVotingStore = (storageKey: string) =>
+  create<VotingStore>()(
+    persist(
+      (set) => ({
+        ratings: {},
+        selectedSubmissionId: null,
+        setRating: (submissionId, rating) =>
+          set((state) => {
+            if (rating === undefined) {
+              const { [submissionId]: _removed, ...remaining } = state.ratings;
+              return { ratings: remaining };
+            }
+            return {
+              ratings: {
+                ...state.ratings,
+                [submissionId]: rating,
+              },
+            };
+          }),
+        setSelectedSubmission: (submissionId) =>
+          set({ selectedSubmissionId: submissionId }),
+      }),
+      {
+        name: storageKey,
+        storage: createJSONStorage(() => localStorage),
+        partialize: (state) => ({
+          ratings: state.ratings,
+          selectedSubmissionId: state.selectedSubmissionId,
+        }),
+      },
+    ),
+  );
+
+const votingStores = new Map<string, ReturnType<typeof createVotingStore>>();
+
+const getVotingStore = (storageKey: string) => {
+  const existingStore = votingStores.get(storageKey);
+  if (existingStore) return existingStore;
+  const newStore = createVotingStore(storageKey);
+  votingStores.set(storageKey, newStore);
+  return newStore;
+};
+
 export function useVotingState({
-  submissions,
+  domain,
+  token,
   storageKey,
 }: UseVotingStateOptions) {
-  const [state, setState] = useState<VotingState>(() => {
-    if (typeof window === "undefined") {
-      return { ratings: {}, selectedSubmissionId: null };
-    }
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved) as VotingState;
-        // Validate that ratings only include submissions that exist
-        const validRatings: Record<number, number> = {};
-        const submissionIds = new Set(submissions.map((s) => s.submissionId));
-        for (const [key, value] of Object.entries(parsed.ratings)) {
-          const submissionId = parseInt(key, 10);
-          if (
-            !isNaN(submissionId) &&
-            submissionIds.has(submissionId) &&
-            value !== undefined &&
-            value !== null
-          ) {
-            validRatings[submissionId] = value;
-          }
-        }
-        return {
-          ratings: validRatings,
-          selectedSubmissionId:
-            parsed.selectedSubmissionId &&
-            submissionIds.has(parsed.selectedSubmissionId)
-              ? parsed.selectedSubmissionId
-              : null,
-        };
-      }
-    } catch (e) {
-      console.error("Failed to load voting state from localStorage", e);
-    }
-    return { ratings: {}, selectedSubmissionId: null };
-  });
-
-  // Persist to localStorage whenever state changes
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(state));
-    } catch (e) {
-      console.error("Failed to save voting state to localStorage", e);
-    }
-  }, [state, storageKey]);
-
-  const setRating = useCallback(
-    (submissionId: number, rating: number | undefined) => {
-      setState((prev) => ({
-        ...prev,
-        ratings: {
-          ...prev.ratings,
-          [submissionId]: rating,
-        },
-      }));
-    },
-    [],
+  const trpc = useTRPC();
+  const { data: votingData, isLoading } = useQuery(
+    trpc.voting.getVotingSubmissions.queryOptions(
+      { token, domain },
+      {
+        enabled: !!token && !!domain,
+      },
+    ),
   );
 
-  const setSelectedSubmission = useCallback((submissionId: number | null) => {
-    setState((prev) => ({
-      ...prev,
-      selectedSubmissionId: submissionId,
-    }));
-  }, []);
+  const submissions = votingData?.submissions ?? [];
+  const resolvedStorageKey = useMemo(
+    () => storageKey ?? `voting-${domain}-${token || "anon"}`,
+    [domain, storageKey, token],
+  );
+
+  const useVotingStore = useMemo(
+    () => getVotingStore(resolvedStorageKey),
+    [resolvedStorageKey],
+  );
+
+
+  const ratings = useVotingStore((state) => state.ratings);
+  const selectedSubmissionId = useVotingStore(
+    (state) => state.selectedSubmissionId,
+  );
+  const setRating = useVotingStore((state) => state.setRating);
+  const setSelectedSubmission = useVotingStore(
+    (state) => state.setSelectedSubmission,
+  );
+
+  useEffect(() => {
+    if (isLoading || !votingData) return;
+    const submissionIds = new Set(submissions.map((s) => s.submissionId));
+    const currentState = useVotingStore.getState();
+    const currentRatings = currentState.ratings;
+    const currentSelectedId = currentState.selectedSubmissionId;
+
+    if (submissionIds.size === 0) {
+      if (
+        Object.keys(currentRatings).length > 0 ||
+        currentSelectedId !== null
+      ) {
+        useVotingStore.setState(
+          { ratings: {}, selectedSubmissionId: null },
+          false,
+        );
+      }
+      return;
+    }
+
+    let hasChanges = false;
+    const nextRatings: Record<number, number> = {};
+    for (const [key, value] of Object.entries(currentRatings)) {
+      const submissionId = parseInt(key, 10);
+      if (
+        !Number.isNaN(submissionId) &&
+        submissionIds.has(submissionId) &&
+        value !== undefined &&
+        value !== null
+      ) {
+        nextRatings[submissionId] = value;
+      } else {
+        hasChanges = true;
+      }
+    }
+
+    const nextSelectedId =
+      currentSelectedId !== null && submissionIds.has(currentSelectedId)
+        ? currentSelectedId
+        : null;
+    if (nextSelectedId !== currentSelectedId) {
+      hasChanges = true;
+    }
+
+    if (hasChanges) {
+      useVotingStore.setState(
+        { ratings: nextRatings, selectedSubmissionId: nextSelectedId },
+        false,
+      );
+    }
+  }, [isLoading, submissions, useVotingStore, votingData]);
 
   const getRating = useCallback(
-    (submissionId: number) => state.ratings[submissionId],
-    [state.ratings],
+    (submissionId: number) => {
+      return ratings[submissionId];
+    },
+    [ratings],
   );
 
-  // Filter submissions by rating
   const getFilteredSubmissions = useCallback(
     (filterRating: number | null) => {
       if (filterRating === null) return submissions;
       return submissions.filter(
-        (s) => state.ratings[s.submissionId] === filterRating,
+        (s) => ratings[s.submissionId] === filterRating,
       );
     },
-    [submissions, state.ratings],
+    [submissions, ratings],
   );
 
-  // Statistics
   const stats = useMemo(() => {
     const total = submissions.length;
-    const rated = Object.keys(state.ratings).filter(
-      (id) => state.ratings[parseInt(id, 10)] !== undefined,
+    const rated = Object.keys(ratings).filter(
+      (id) => ratings[parseInt(id, 10)] !== undefined,
     ).length;
     const unrated = total - rated;
     const hasCompletedReview = rated === total && total > 0;
-    const hasSelectedFinal = state.selectedSubmissionId !== null;
+    const hasSelectedFinal = selectedSubmissionId !== null;
 
-    // Count by rating
     const ratingCounts: Record<number, number> = {
       1: 0,
       2: 0,
@@ -129,7 +196,7 @@ export function useVotingState({
       4: 0,
       5: 0,
     };
-    for (const rating of Object.values(state.ratings)) {
+    for (const rating of Object.values(ratings)) {
       if (rating !== undefined && rating >= 1 && rating <= 5) {
         ratingCounts[rating]++;
       }
@@ -143,11 +210,12 @@ export function useVotingState({
       hasSelectedFinal,
       ratingCounts,
     };
-  }, [submissions, state.ratings, state.selectedSubmissionId]);
+  }, [submissions, ratings, selectedSubmissionId]);
 
   return {
-    ratings: state.ratings,
-    selectedSubmissionId: state.selectedSubmissionId,
+    isLoading,
+    ratings,
+    selectedSubmissionId,
     setRating,
     setSelectedSubmission,
     getRating,

@@ -1,19 +1,14 @@
 "use client";
 
-import * as React from "react";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from "@/components/ui/carousel";
+import { useState, useEffect, useCallback } from "react";
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { FullscreenImage } from "./fullscreen-image";
+import { useVotingCarouselApi } from "../_hooks/use-voting-carousel-api";
+import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
 
 interface VotingSubmission {
   submissionId: number;
   participantId: number;
-  participantFirstName: string;
-  participantLastName: string;
   url?: string;
   thumbnailUrl?: string;
   previewUrl?: string;
@@ -23,30 +18,25 @@ interface VotingSubmission {
 
 interface CarouselViewProps {
   submissions: VotingSubmission[];
-  currentFilter: number | null;
-  onApiChange: (api: CarouselApi) => void;
 }
 
 export function CarouselView({
   submissions,
-  currentFilter,
-  onApiChange,
 }: CarouselViewProps) {
-  const [api, setApi] = React.useState<CarouselApi>();
-  const [isFullscreen, setIsFullscreen] = React.useState(false);
-  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Handle API setup
-  const handleApiChange = React.useCallback(
+  const { api, setApi } = useVotingCarouselApi();
+  const { currentFilter } = useVotingSearchParams();
+
+  const handleApiChange = useCallback(
     (newApi: CarouselApi) => {
       setApi(newApi);
-      onApiChange(newApi);
     },
-    [onApiChange],
+    [setApi],
   );
 
-  // Track current slide index
-  React.useEffect(() => {
+  useEffect(() => {
     if (!api) return;
 
     const onSelect = () => {
@@ -54,7 +44,7 @@ export function CarouselView({
     };
 
     api.on("select", onSelect);
-    // Set initial index
+
     setCurrentIndex(api.selectedScrollSnap());
 
     return () => {
@@ -62,7 +52,6 @@ export function CarouselView({
     };
   }, [api]);
 
-  // Get current submission for fullscreen
   const currentSubmission = submissions[currentIndex];
 
   return (
@@ -91,7 +80,7 @@ export function CarouselView({
                     >
                       <img
                         src={submission.url}
-                        alt={`Photo by ${submission.participantFirstName} ${submission.participantLastName}`}
+                        alt={`photo-${submission.submissionId}`}
                         className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
                       />
                     </button>
@@ -109,11 +98,10 @@ export function CarouselView({
         </Carousel>
       </div>
 
-      {/* Fullscreen Image Viewer */}
       {currentSubmission && (
         <FullscreenImage
           src={currentSubmission.url || ""}
-          alt={`Photo by ${currentSubmission.participantFirstName} ${currentSubmission.participantLastName}`}
+          alt={`photo-${currentSubmission.submissionId}`}
           isOpen={isFullscreen}
           onClose={() => setIsFullscreen(false)}
         />
