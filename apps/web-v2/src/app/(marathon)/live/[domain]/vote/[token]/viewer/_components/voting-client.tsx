@@ -6,6 +6,7 @@ import { useTRPC } from "@/lib/trpc/client";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { type CarouselApi } from "@/components/ui/carousel";
+import { AnimatePresence, motion } from "motion/react";
 import { EmptyState } from "./empty-state";
 import { CarouselView } from "./carousel-view";
 import { GridView } from "./grid-view";
@@ -65,7 +66,6 @@ export function VotingClient({ domain, token }: VotingClientProps) {
   } = useVotingSearchParams();
 
   const [currentFilter, setCurrentFilter] = React.useState<number | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = React.useState(false);
 
   // Fetch voting submissions
   const { data: votingData, isLoading: isLoadingSubmissions } =
@@ -82,8 +82,8 @@ export function VotingClient({ domain, token }: VotingClientProps) {
   const submissions = React.useMemo(() => {
     if (!votingData) return [];
     if (votingData.alreadyVoted) {
-      // Redirect to already voted page
-      router.push(`/live/${domain}/vote/${token}/already-voted`);
+      // Redirect to voting completed page
+      router.push(`/live/${domain}/vote/${token}/voting-completed`);
       return [];
     }
     return votingData.submissions ?? [];
@@ -153,59 +153,48 @@ export function VotingClient({ domain, token }: VotingClientProps) {
     ? currentSubmission.submissionId === selectedSubmissionId
     : false;
 
-  const handleRatingChange = (rating: number) => {
-    if (!currentSubmission) return;
-    setRating(currentSubmission.submissionId, rating);
-    toast.success(`Rated ${rating} stars`, { duration: 1000 });
-  };
-
-  const handleVote = () => {
-    if (!currentSubmission) return;
-    setSelectedSubmission(currentSubmission.submissionId);
-    toast.success("Selected as your vote!");
-  };
-
   // Submit vote mutation
   const submitVoteMutation = useMutation(
     trpc.voting.submitVote.mutationOptions(),
   );
 
-  const handleComplete = async () => {
-    if (!selectedSubmissionId) {
-      toast.error("Please select an image to vote for first");
-      return;
-    }
+  const handleRatingChange = (rating: number) => {
+    if (!currentSubmission) return;
+    setRating(currentSubmission.submissionId, rating);
+    toast.success(`Rated ${rating} stars`, {
+      duration: 1000,
+      position: "top-center",
+    });
+  };
+
+  const handleVote = async () => {
+    if (!currentSubmission) return;
+
+    setSelectedSubmission(currentSubmission.submissionId);
+
     if (!token || !domain) {
       toast.error("Missing voting session information");
       return;
     }
 
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirmVote = async () => {
-    if (!selectedSubmissionId || !token || !domain) return;
-
     try {
       const result = await submitVoteMutation.mutateAsync({
         token,
-        submissionId: selectedSubmissionId,
+        submissionId: currentSubmission.submissionId,
         domain,
       });
 
       if (result.success) {
         toast.success("Vote submitted successfully!");
-        router.push(`/live/${domain}/vote/${token}/success`);
+        router.push(`/live/${domain}/vote/${token}/voting-completed`);
       } else if (result.error === "already_voted") {
         toast.error("You have already voted");
-        router.push(`/live/${domain}/vote/${token}/already-voted`);
+        router.push(`/live/${domain}/vote/${token}/voting-completed`);
       }
     } catch (error) {
       toast.error("Failed to submit vote. Please try again.");
       console.error("Vote submission error:", error);
     }
-
-    setShowConfirmModal(false);
   };
 
   const handleThumbnailClick = (index: number) => {
@@ -221,7 +210,7 @@ export function VotingClient({ domain, token }: VotingClientProps) {
 
   if (isLoadingSubmissions) {
     return (
-      <div className="flex flex-col h-screen bg-background">
+      <div className="flex flex-col h-dvh bg-background pb-[env(safe-area-inset-bottom)]">
         <FilterBarSkeleton />
         <div className="flex-1 flex items-center justify-center">
           <Skeleton className="w-full h-full max-w-4xl max-h-[80vh]" />
@@ -231,7 +220,7 @@ export function VotingClient({ domain, token }: VotingClientProps) {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-dvh pb-[env(safe-area-inset-bottom)]">
       {/* Header with progress and filter */}
       <FilterBar
         currentFilter={currentFilter}
@@ -245,27 +234,56 @@ export function VotingClient({ domain, token }: VotingClientProps) {
       />
 
       {/* Image viewer - carousel or grid */}
-      <div className="flex-1 overflow-hidden">
-        {!hasImages ? (
-          <EmptyState
-            currentFilter={currentFilter}
-            onClearFilter={() => setCurrentFilter(null)}
-          />
-        ) : viewMode === "carousel" ? (
-          <CarouselView
-            submissions={filteredSubmissions}
-            currentFilter={currentFilter}
-            onApiChange={setApi}
-          />
-        ) : (
-          <GridView
-            submissions={filteredSubmissions}
-            selectedSubmissionId={selectedSubmissionId}
-            currentImageIndex={currentImageIndex}
-            getRating={getRating}
-            onThumbnailClick={handleThumbnailClick}
-          />
-        )}
+      <div className="flex-1 overflow-hidden relative">
+        <AnimatePresence mode="wait">
+          {!hasImages ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="h-full"
+            >
+              <EmptyState
+                currentFilter={currentFilter}
+                onClearFilter={() => setCurrentFilter(null)}
+              />
+            </motion.div>
+          ) : viewMode === "carousel" ? (
+            <motion.div
+              key="carousel"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="h-full"
+            >
+              <CarouselView
+                submissions={filteredSubmissions}
+                currentFilter={currentFilter}
+                onApiChange={setApi}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="grid"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="h-full"
+            >
+              <GridView
+                submissions={filteredSubmissions}
+                selectedSubmissionId={selectedSubmissionId}
+                currentImageIndex={currentImageIndex}
+                getRating={getRating}
+                onThumbnailClick={handleThumbnailClick}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Bottom controls / Footer */}
@@ -276,57 +294,11 @@ export function VotingClient({ domain, token }: VotingClientProps) {
         isSelected={isSelected}
         hasImages={hasImages}
         onVote={handleVote}
-        onComplete={handleComplete}
-        showComplete={stats.hasCompletedReview && stats.hasSelectedFinal}
         api={api}
         currentIndex={currentImageIndex}
         totalCount={filteredSubmissions.length}
-        completionMessage={
-          !stats.hasSelectedFinal && stats.hasCompletedReview
-            ? "You've rated all images! Select your final vote above."
-            : undefined
-        }
+        submissionTitle={currentSubmission?.topicName}
       />
-
-      {/* Confirmation Modal */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg p-6 max-w-md w-full shadow-lg">
-            <h2 className="text-xl font-semibold mb-2">Confirm Your Vote</h2>
-            <p className="text-muted-foreground mb-4">
-              Are you sure you want to submit your vote? This action cannot be
-              undone.
-            </p>
-            {selectedSubmissionId && (
-              <div className="mb-4 p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  Selected submission:
-                </p>
-                <p className="font-medium">
-                  Submission #{selectedSubmissionId}
-                </p>
-              </div>
-            )}
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="px-4 py-2 rounded-md bg-muted hover:bg-muted/80 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmVote}
-                disabled={submitVoteMutation.isPending}
-                className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                {submitVoteMutation.isPending
-                  ? "Submitting..."
-                  : "Confirm Vote"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

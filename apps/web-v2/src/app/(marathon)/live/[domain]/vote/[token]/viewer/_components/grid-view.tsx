@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Eye } from "lucide-react";
 
 interface VotingSubmission {
   submissionId: number;
@@ -64,9 +65,15 @@ export function GridView({
               {/* Active indicator - current image being viewed */}
               {isActive && (
                 <>
-                  <div className="absolute inset-0 ring-4 ring-yellow-400 ring-inset" />
-                  <div className="absolute top-1 left-1 bg-yellow-400 text-yellow-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                    VIEWING
+                  <div className="absolute inset-0 ring-2 ring-[#FF5D4B] ring-inset rounded-lg" />
+                  <div
+                    className="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 shadow-md"
+                    style={{ backgroundColor: "#FF5D4B" }}
+                  >
+                    <Eye className="w-3 h-3 text-white" />
+                    <span className="text-[10px] font-semibold text-white">
+                      Viewing
+                    </span>
                   </div>
                 </>
               )}

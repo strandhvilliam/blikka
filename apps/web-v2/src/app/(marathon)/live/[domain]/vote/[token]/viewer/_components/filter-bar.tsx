@@ -67,7 +67,7 @@ export function FilterBar({
   };
 
   return (
-    <div className={cn("px-4 py-3", className)}>
+    <div className={cn("px-4 py-3 bg-background border-b border-border", className)}>
       {/* Top action bar with Info, Logo, and Grid buttons */}
       <div className="flex items-center justify-between mb-3">
         <VotingInfoDrawer votingInfo={{ rated: ratedCount, total: totalCount }}>

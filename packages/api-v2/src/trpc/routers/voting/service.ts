@@ -430,6 +430,12 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             alreadyVoted: true as const,
             votedAt: votingSession.votedAt,
             votedSubmissionId: votingSession.voteSubmissionId,
+            sessionInfo: {
+              token: votingSession.token,
+              firstName: votingSession.firstName,
+              lastName: votingSession.lastName,
+              email: votingSession.email,
+            },
           };
         }
 
@@ -446,8 +452,13 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           }
         }
 
-        // Get bucket name for S3 URLs
-        const bucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME");
+        // Get bucket names for S3 URLs
+        const submissionsBucketName = yield* Config.string(
+          "SUBMISSIONS_BUCKET_NAME",
+        );
+        const thumbnailsBucketName = yield* Config.string(
+          "THUMBNAILS_BUCKET_NAME",
+        );
 
         // Get all submissions for the marathon
         const submissions = yield* db.votingQueries.getSubmissionsForVoting({
@@ -462,9 +473,9 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             participantId: s.participantId,
             participantFirstName: s.participant?.firstname ?? "",
             participantLastName: s.participant?.lastname ?? "",
-            url: buildS3Url(bucketName, s.key),
-            thumbnailUrl: buildS3Url(bucketName, s.thumbnailKey),
-            previewUrl: buildS3Url(bucketName, s.previewKey),
+            url: buildS3Url(submissionsBucketName, s.key),
+            thumbnailUrl: buildS3Url(thumbnailsBucketName, s.thumbnailKey),
+            previewUrl: buildS3Url(submissionsBucketName, s.previewKey),
             topicId: s.topicId,
             topicName: s.topic?.name ?? "",
           }));
@@ -476,6 +487,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             token: votingSession.token,
             firstName: votingSession.firstName,
             lastName: votingSession.lastName,
+            email: votingSession.email,
             endsAt: votingSession.endsAt,
           },
         };

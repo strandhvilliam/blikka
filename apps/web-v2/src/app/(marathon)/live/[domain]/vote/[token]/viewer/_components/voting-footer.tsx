@@ -13,12 +13,11 @@ interface VotingFooterProps {
   isSelected: boolean;
   hasImages: boolean;
   onVote: () => void;
-  onComplete: () => void;
-  showComplete: boolean;
   api: CarouselApi | undefined;
   currentIndex: number;
   totalCount: number;
   completionMessage?: string;
+  submissionTitle?: string;
 }
 
 export function VotingFooter({
@@ -28,12 +27,11 @@ export function VotingFooter({
   isSelected,
   hasImages,
   onVote,
-  onComplete,
-  showComplete,
   api,
   currentIndex,
   totalCount,
   completionMessage,
+  submissionTitle,
 }: VotingFooterProps) {
   return (
     <div className="flex-none bg-background border-t">
@@ -76,8 +74,7 @@ export function VotingFooter({
           isSelected={isSelected}
           isEnabled={hasImages}
           onVote={onVote}
-          onComplete={onComplete}
-          showComplete={showComplete}
+          submissionTitle={submissionTitle}
           className="w-full"
         />
 
