@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { Star } from "lucide-react";
+import { Star, LayoutGrid, Info } from "lucide-react";
+import { VotingInfoDrawer } from "./voting-info-drawer";
 
 interface FilterBarProps {
   currentFilter: number | null;
@@ -10,6 +12,9 @@ interface FilterBarProps {
   ratingCounts: Record<number, number>;
   currentIndex: number;
   totalCount: number;
+  viewMode: "carousel" | "grid";
+  onViewModeChange: (mode: "carousel" | "grid") => void;
+  ratedCount: number;
   className?: string;
 }
 
@@ -28,19 +33,20 @@ export function FilterBar({
   ratingCounts,
   currentIndex,
   totalCount,
+  viewMode,
+  onViewModeChange,
+  ratedCount,
   className,
 }: FilterBarProps) {
   const progress = Math.round(((currentIndex + 1) / totalCount) * 100);
 
-  const renderFilterOption = (option: typeof filterOptions[number]) => {
-
+  const renderFilterOption = (option: (typeof filterOptions)[number]) => {
     const count =
       option.value === null
         ? Object.values(ratingCounts).reduce((a, b) => a + b, 0)
         : ratingCounts[option.value] || 0;
 
     const isActive = currentFilter === option.value;
-
 
     return (
       <button
@@ -53,20 +59,53 @@ export function FilterBar({
             : "bg-muted/50 text-muted-foreground hover:bg-muted",
         )}
       >
-        {option.value !== null && (
-          <Star className="w-3 h-3 fill-current" />
-        )}
+        {option.value !== null && <Star className="w-3 h-3 fill-current" />}
         {option.label}
-        {count > 0 && (
-          <span className="ml-0.5 opacity-60">({count})</span>
-        )}
+        {count > 0 && <span className="ml-0.5 opacity-60">({count})</span>}
       </button>
     );
   };
 
-
   return (
     <div className={cn("px-4 py-3", className)}>
+      {/* Top action bar with Info, Logo, and Grid buttons */}
+      <div className="flex items-center justify-between mb-3">
+        <VotingInfoDrawer votingInfo={{ rated: ratedCount, total: totalCount }}>
+          <button
+            className="h-10 w-10 rounded-xl bg-muted/50 border-0 shadow-sm hover:bg-muted active:scale-[0.98] flex items-center justify-center transition-all"
+            aria-label="How voting works"
+          >
+            <Info className="w-5 h-5" />
+          </button>
+        </VotingInfoDrawer>
+
+        {/* Logo */}
+        <div className="flex items-center gap-1.5">
+          <Image
+            src="/blikka-logo.svg"
+            alt="Blikka"
+            width={20}
+            height={17}
+            className="w-5 h-[17px]"
+          />
+          <span className="font-rocgrotesk font-bold text-base tracking-tight">
+            blikka
+          </span>
+        </div>
+
+        <button
+          onClick={() =>
+            onViewModeChange(viewMode === "carousel" ? "grid" : "carousel")
+          }
+          className="h-10 w-10 rounded-xl bg-muted/50 border-0 shadow-sm hover:bg-muted active:scale-[0.98] flex items-center justify-center transition-all"
+          aria-label={
+            viewMode === "carousel" ? "Show grid view" : "Show carousel view"
+          }
+        >
+          <LayoutGrid className="w-5 h-5" />
+        </button>
+      </div>
+
       {/* Progress bar */}
       <div className="mb-3">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">

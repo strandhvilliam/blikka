@@ -17,6 +17,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const FilterBarSkeleton = () => (
   <div className="px-4 py-3">
+    {/* Action buttons skeleton */}
+    <div className="flex items-center justify-between mb-3">
+      <Skeleton className="h-10 w-10 rounded-xl" />
+      <Skeleton className="h-10 w-10 rounded-xl" />
+    </div>
+    {/* Progress bar skeleton */}
     <div className="mb-3">
       <div className="flex items-center justify-between mb-1.5">
         <Skeleton className="h-4 w-20" />
@@ -24,6 +30,7 @@ const FilterBarSkeleton = () => (
       </div>
       <Skeleton className="h-1 w-full rounded-full" />
     </div>
+    {/* Filter options skeleton */}
     <div className="flex items-center gap-1.5">
       {Array.from({ length: 6 }).map((_, i) => (
         <Skeleton key={i} className="h-7 w-12 rounded-full shrink-0" />
@@ -70,7 +77,6 @@ export function VotingClient({ domain, token }: VotingClientProps) {
         },
       ),
     );
-
 
   // Handle already voted redirect and extract submissions
   const submissions = React.useMemo(() => {
@@ -233,6 +239,9 @@ export function VotingClient({ domain, token }: VotingClientProps) {
         ratingCounts={stats.ratingCounts}
         currentIndex={currentImageIndex}
         totalCount={filteredSubmissions.length}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        ratedCount={stats.rated}
       />
 
       {/* Image viewer - carousel or grid */}
@@ -262,7 +271,6 @@ export function VotingClient({ domain, token }: VotingClientProps) {
       {/* Bottom controls / Footer */}
       <VotingFooter
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
         currentRating={currentRating}
         onRatingChange={handleRatingChange}
         isSelected={isSelected}
@@ -273,12 +281,6 @@ export function VotingClient({ domain, token }: VotingClientProps) {
         api={api}
         currentIndex={currentImageIndex}
         totalCount={filteredSubmissions.length}
-        stats={{
-          hasCompletedReview: stats.hasCompletedReview,
-          hasSelectedFinal: stats.hasSelectedFinal,
-          rated: stats.rated,
-          total: filteredSubmissions.length,
-        }}
         completionMessage={
           !stats.hasSelectedFinal && stats.hasCompletedReview
             ? "You've rated all images! Select your final vote above."

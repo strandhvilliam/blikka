@@ -1,23 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { LayoutGrid, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type CarouselApi } from "@/components/ui/carousel";
 import { StarRating } from "./star-rating";
 import { VoteButton } from "./vote-button";
-import { VotingInfoDrawer } from "./voting-info-drawer";
-import { NavigationControls } from "./navigation-controls";
-
-interface VotingStats {
-  hasCompletedReview: boolean;
-  hasSelectedFinal: boolean;
-  rated: number;
-  total: number;
-}
 
 interface VotingFooterProps {
   viewMode: "carousel" | "grid";
-  onViewModeChange: (mode: "carousel" | "grid") => void;
   currentRating: number | undefined;
   onRatingChange: (rating: number) => void;
   isSelected: boolean;
@@ -28,13 +18,11 @@ interface VotingFooterProps {
   api: CarouselApi | undefined;
   currentIndex: number;
   totalCount: number;
-  stats: VotingStats;
   completionMessage?: string;
 }
 
 export function VotingFooter({
   viewMode,
-  onViewModeChange,
   currentRating,
   onRatingChange,
   isSelected,
@@ -45,61 +33,60 @@ export function VotingFooter({
   api,
   currentIndex,
   totalCount,
-  stats,
   completionMessage,
 }: VotingFooterProps) {
   return (
-    <div className="flex-none p-4 space-y-4 bg-background border-t">
+    <div className="flex-none bg-background border-t">
+      {/* Navigation and Rating - only show in carousel mode */}
       {viewMode === "carousel" && hasImages && (
-        <>
-          <NavigationControls
-            api={api}
-            currentIndex={currentIndex}
-            totalCount={totalCount}
-          />
+        <div className="px-4 pt-4 pb-2 space-y-4">
+          {/* Navigation hint - subtle instruction */}
+          <p className="text-center text-xs text-muted-foreground/60">
+            Swipe or tap arrows to navigate
+          </p>
+
+          {/* Navigation arrows - centered below image */}
+          <div className="flex items-center justify-center gap-8">
+            <button
+              onClick={() => api?.scrollPrev()}
+              disabled={currentIndex === 0}
+              className="h-12 w-12 rounded-full bg-muted border-0 shadow-sm hover:bg-muted/80 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => api?.scrollNext()}
+              disabled={currentIndex >= totalCount - 1}
+              className="h-12 w-12 rounded-full bg-muted border-0 shadow-sm hover:bg-muted/80 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+              aria-label="Next image"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Star rating - centered below navigation */}
           <StarRating value={currentRating} onChange={onRatingChange} />
-        </>
+        </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() =>
-            onViewModeChange(viewMode === "carousel" ? "grid" : "carousel")
-          }
-          className="h-14 w-14 flex-none rounded-2xl bg-muted border-0 shadow-sm hover:bg-muted/80 active:scale-[0.98] flex items-center justify-center transition-all"
-          aria-label={
-            viewMode === "carousel" ? "Show grid view" : "Show carousel view"
-          }
-        >
-          <LayoutGrid className="w-6 h-6" />
-        </button>
-
+      {/* Vote button - always at bottom */}
+      <div className="p-4">
         <VoteButton
           isSelected={isSelected}
           isEnabled={hasImages}
           onVote={onVote}
           onComplete={onComplete}
           showComplete={showComplete}
-          className="flex-1"
+          className="w-full"
         />
 
-        <VotingInfoDrawer
-          votingInfo={{ rated: stats.rated, total: stats.total }}
-        >
-          <button
-            className="h-14 w-14 flex-none rounded-2xl bg-muted border-0 shadow-sm hover:bg-muted/80 active:scale-[0.98] flex items-center justify-center transition-all"
-            aria-label="How voting works"
-          >
-            <Info className="w-6 h-6" />
-          </button>
-        </VotingInfoDrawer>
+        {completionMessage && (
+          <p className="text-center text-sm text-muted-foreground mt-3">
+            {completionMessage}
+          </p>
+        )}
       </div>
-
-      {completionMessage && (
-        <p className="text-center text-sm text-muted-foreground">
-          {completionMessage}
-        </p>
-      )}
     </div>
   );
 }
