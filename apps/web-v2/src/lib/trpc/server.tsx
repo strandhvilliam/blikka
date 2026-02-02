@@ -3,7 +3,7 @@ import "server-only"
 import type { TRPCQueryOptions } from "@trpc/tanstack-react-query"
 import { cache } from "react"
 import { headers } from "next/headers"
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
+import { dehydrate, HydrationBoundary, type QueryFunction } from "@tanstack/react-query"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
 import { Data, Effect } from "effect"
 
@@ -15,7 +15,8 @@ import { serverRuntime } from "../runtime"
 export class TRPCServerError extends Data.TaggedError("TRPCCServerError")<{
   message: string
   cause?: unknown
-}> {}
+}> {
+}
 
 export const getQueryClient = cache(createQueryClient)
 
@@ -65,7 +66,17 @@ export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(query
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function fetchEffectQuery<T extends ReturnType<TRPCQueryOptions<any>>>(queryOptions: T) {
+type QueryOptionsResult<T extends ReturnType<TRPCQueryOptions<any>>> =
+  T extends { queryFn?: QueryFunction<infer TQueryFnData, any> }
+  ? TQueryFnData
+  : T["queryFn"] extends (...args: any[]) => infer TResult
+  ? Awaited<TResult>
+  : never
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function fetchEffectQuery<T extends ReturnType<TRPCQueryOptions<any>>>(
+  queryOptions: T,
+): Effect.Effect<QueryOptionsResult<T>, TRPCServerError> {
   const queryClient = getQueryClient()
 
   return Effect.tryPromise({

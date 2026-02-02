@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSuspenseQuery, useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ import { useVotingState } from "../_hooks/use-voting-state";
 import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
 import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDomainPathname } from "@/lib/utils";
 
 const FilterBarSkeleton = () => (
   <div className="px-4 py-3">
@@ -52,10 +53,9 @@ interface VotingClientProps {
 
 export function VotingClient({ domain, token }: VotingClientProps) {
   const trpc = useTRPC();
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const [api, setApi] = React.useState<CarouselApi>();
-  const isNavigatingRef = React.useRef(false);
+  const [api, setApi] = useState<CarouselApi>();
+  const isNavigatingRef = useRef(false);
 
   const {
     currentImageIndex,
@@ -65,9 +65,8 @@ export function VotingClient({ domain, token }: VotingClientProps) {
     setParams,
   } = useVotingSearchParams();
 
-  const [currentFilter, setCurrentFilter] = React.useState<number | null>(null);
+  const [currentFilter, setCurrentFilter] = useState<number | null>(null);
 
-  // Fetch voting submissions
   const { data: votingData, isLoading: isLoadingSubmissions } =
     useSuspenseQuery(
       trpc.voting.getVotingSubmissions.queryOptions(
@@ -78,19 +77,12 @@ export function VotingClient({ domain, token }: VotingClientProps) {
       ),
     );
 
-  // Handle already voted redirect and extract submissions
-  const submissions = React.useMemo(() => {
+  const submissions = useMemo(() => {
     if (!votingData) return [];
-    if (votingData.alreadyVoted) {
-      // Redirect to voting completed page
-      router.push(`/live/${domain}/vote/${token}/voting-completed`);
-      return [];
-    }
     return votingData.submissions ?? [];
-  }, [votingData, domain, token, router]);
+  }, [votingData]);
 
   const {
-    ratings,
     selectedSubmissionId,
     setRating,
     setSelectedSubmission,
@@ -102,7 +94,7 @@ export function VotingClient({ domain, token }: VotingClientProps) {
     storageKey: `voting-${domain}-${token || "anon"}`,
   });
 
-  const filteredSubmissions = React.useMemo(
+  const filteredSubmissions = useMemo(
     () => getFilteredSubmissions(currentFilter),
     [currentFilter, getFilteredSubmissions],
   );
@@ -113,7 +105,7 @@ export function VotingClient({ domain, token }: VotingClientProps) {
   };
 
   // Track carousel index changes and sync with URL params
-  React.useEffect(() => {
+  useEffect(() => {
     if (!api) return;
 
     const onSelect = () => {
@@ -134,7 +126,7 @@ export function VotingClient({ domain, token }: VotingClientProps) {
   }, [api, currentImageIndex, setCurrentImageIndex]);
 
   // Sync carousel with URL param changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (api) {
       isNavigatingRef.current = true;
       api.scrollTo(currentImageIndex);

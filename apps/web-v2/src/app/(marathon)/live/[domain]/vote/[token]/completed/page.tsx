@@ -4,6 +4,8 @@ import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server";
 import { CheckCircle2 } from "lucide-react";
 import { fetchEffectQuery } from "@/lib/trpc/server";
 import Image from "next/image";
+import { notFound, redirect } from "next/navigation";
+import { formatDomainPathname } from "@/lib/utils";
 
 // Helper function to obfuscate email for privacy
 function obfuscateEmail(email: string): string {
@@ -36,21 +38,24 @@ const VotingCompletedPage = Effect.fn("@blikka/web/VotingCompletedPage")(
       Schema.Struct({ domain: Schema.String, token: Schema.String }),
     )(params);
 
-    // Fetch voting session to get user info
-    const votingData = yield* fetchEffectQuery(
-      trpc.voting.getVotingSubmissions.queryOptions({ token, domain }),
+    const votingSession = yield* fetchEffectQuery(
+      trpc.voting.getVotingSession.queryOptions({ token, domain }),
     ).pipe(
       Effect.catchAll((error) => {
         console.error("Failed to fetch voting session:", error);
-        return Effect.succeed(null);
+        return Effect.fail(notFound());
       }),
     );
 
-    const firstName = votingData?.sessionInfo?.firstName ?? "";
-    const email = votingData?.sessionInfo?.email ?? "";
+    if (!votingSession.voteSubmissionId || !votingSession.votedAt) {
+      return redirect(formatDomainPathname(`/live/vote/${token}`, domain, 'live'));
+    }
+
+    const firstName = votingSession?.firstName ?? "";
+    const email = votingSession?.email ?? "";
     const obfuscatedEmail = obfuscateEmail(email);
 
-    prefetch(trpc.voting.getVotingSubmissions.queryOptions({ token, domain }));
+    prefetch(trpc.voting.getVotingSession.queryOptions({ token, domain }));
 
     return (
       <HydrateClient>

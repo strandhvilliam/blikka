@@ -6,6 +6,7 @@ import { useTRPC } from "@/lib/trpc/client";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { ImageIcon, PlayIcon } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export function VoteInitialClient({
   domain,
@@ -15,11 +16,13 @@ export function VoteInitialClient({
   token: string;
 }) {
   const trpc = useTRPC();
-  const { data } = useSuspenseQuery(
+  const { data: votingSession } = useSuspenseQuery(
     trpc.voting.getVotingSession.queryOptions({ domain, token }),
   );
 
-  const { votingSession, marathon } = data;
+  const { data: marathon } = useSuspenseQuery(
+    trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
+  );
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
@@ -62,15 +65,14 @@ export function VoteInitialClient({
               </p>
             </div>
 
-            <PrimaryButton
-              onClick={() => {
-                window.location.href = `/live/${domain}/vote/${token}/submissions`;
-              }}
-              className="w-full py-3 text-base text-white rounded-full"
-            >
-              Start Voting
-              <PlayIcon className="h-4 w-4" />
-            </PrimaryButton>
+            <Link href={`/live/${domain}/vote/${token}/viewer`}>
+              <PrimaryButton
+                className="w-full py-3 text-base text-white rounded-full"
+              >
+                Start Voting
+                <PlayIcon className="h-4 w-4" />
+              </PrimaryButton>
+            </Link>
 
             <p className="text-center text-xs text-muted-foreground mt-4">
               Voting as {votingSession.email}

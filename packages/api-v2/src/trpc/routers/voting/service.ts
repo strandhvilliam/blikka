@@ -65,23 +65,8 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             }
           }
 
-          const marathonResult =
-            yield* db.votingQueries.getPublicMarathonByDomain({ domain });
 
-          const marathon = yield* Option.match(marathonResult, {
-            onSome: (m) => Effect.succeed(m),
-            onNone: () =>
-              Effect.fail(
-                new VotingApiError({
-                  message: `Marathon not found for domain ${domain}`,
-                }),
-              ),
-          });
-
-          return {
-            votingSession,
-            marathon,
-          };
+          return votingSession
         },
       );
 
@@ -430,6 +415,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             alreadyVoted: true as const,
             votedAt: votingSession.votedAt,
             votedSubmissionId: votingSession.voteSubmissionId,
+            submissions: [],
             sessionInfo: {
               token: votingSession.token,
               firstName: votingSession.firstName,
@@ -594,4 +580,5 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
       } as const;
     }),
   },
-) {}
+) {
+}
