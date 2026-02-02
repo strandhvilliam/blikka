@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type CarouselApi } from "@/components/ui/carousel";
+import { ChevronLeft, ChevronRight, LayoutGrid, Images } from "lucide-react";
 import { StarRating } from "./star-rating";
 import { VoteButton } from "./vote-button";
 import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
@@ -17,6 +16,7 @@ interface VotingFooterProps {
   totalCount: number;
   completionMessage?: string;
   submissionTitle?: string;
+  onViewModeChange?: (mode: "carousel" | "grid") => void;
 }
 
 export function VotingFooter({
@@ -28,11 +28,10 @@ export function VotingFooter({
   totalCount,
   completionMessage,
   submissionTitle,
+  onViewModeChange,
 }: VotingFooterProps) {
-
   const { viewMode, currentImageIndex } = useVotingSearchParams();
   const { api } = useVotingCarouselApi();
-
 
   return (
     <div className="flex-none bg-background border-t">
@@ -42,6 +41,7 @@ export function VotingFooter({
           <p className="text-center text-xs text-muted-foreground/60">
             Swipe or tap arrows to navigate
           </p>
+          <StarRating value={currentRating} onChange={onRatingChange} />
 
           <div className="flex items-center justify-center gap-8">
             <button
@@ -53,6 +53,17 @@ export function VotingFooter({
               <ChevronLeft className="w-6 h-6" />
             </button>
             <button
+              onClick={() =>
+                onViewModeChange?.("grid")
+              }
+              className="h-12 w-12 rounded-full bg-muted border-0 shadow-sm hover:bg-muted/80 flex items-center justify-center transition-colors"
+              aria-label={
+                "Show grid view"
+              }
+            >
+              <LayoutGrid className="w-6 h-6" />
+            </button>
+            <button
               onClick={() => api?.scrollNext()}
               disabled={currentImageIndex >= totalCount - 1}
               className="h-12 w-12 rounded-full bg-muted border-0 shadow-sm hover:bg-muted/80 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
@@ -62,7 +73,6 @@ export function VotingFooter({
             </button>
           </div>
 
-          <StarRating value={currentRating} onChange={onRatingChange} />
         </div>
       )}
 

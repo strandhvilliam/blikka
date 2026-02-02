@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Eye } from "lucide-react";
+import { Eye, Images } from "lucide-react";
 import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
 import { useVotingCarouselApi } from "../_hooks/use-voting-carousel-api";
 
@@ -19,14 +19,15 @@ interface GridViewProps {
   submissions: VotingSubmission[];
   selectedSubmissionId: number | null;
   getRating: (submissionId: number) => number | undefined;
+  onViewModeChange?: (mode: "carousel" | "grid") => void;
 }
 
 export function GridView({
   submissions,
   selectedSubmissionId,
   getRating,
+  onViewModeChange,
 }: GridViewProps) {
-
   const { currentImageIndex, setParams } = useVotingSearchParams();
   const { isNavigatingRef } = useVotingCarouselApi();
 
@@ -40,7 +41,7 @@ export function GridView({
   };
 
   return (
-    <div className="h-full overflow-y-auto p-4">
+    <div className="h-full overflow-y-auto p-4 relative pb-20">
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
         {submissions.map((submission, index) => {
           const rating = getRating(submission.submissionId);
@@ -55,7 +56,7 @@ export function GridView({
               {submission.thumbnailUrl || submission.url ? (
                 <img
                   src={submission.thumbnailUrl || submission.url}
-                  alt={`Photo by ${submission.participantFirstName} ${submission.participantLastName}`}
+                  alt={`Photo by ${submission.participantId}`}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -65,13 +66,11 @@ export function GridView({
                   </span>
                 </div>
               )}
-              {/* Rating indicator */}
               {rating !== undefined && (
                 <div className="absolute top-1 right-1 bg-background/80 backdrop-blur-sm rounded-full px-1.5 py-0.5 text-xs font-medium">
                   ★{rating}
                 </div>
               )}
-              {/* Active indicator - current image being viewed */}
               {isActive && (
                 <>
                   <div className="absolute inset-0 ring-2 ring-[#FF5D4B] ring-inset rounded-lg" />
@@ -86,7 +85,6 @@ export function GridView({
                   </div>
                 </>
               )}
-              {/* Selected indicator - voted image */}
               {isSelected && (
                 <div className="absolute inset-0 ring-2 ring-primary ring-inset" />
               )}
@@ -94,6 +92,18 @@ export function GridView({
           );
         })}
       </div>
+
+      {onViewModeChange && (
+        <div className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none">
+          <button
+            onClick={() => onViewModeChange("carousel")}
+            className="pointer-events-auto h-12 w-12 rounded-full bg-muted border-0 shadow-lg hover:bg-muted/80 flex items-center justify-center transition-colors"
+            aria-label="Show carousel view"
+          >
+            <Images className="w-6 h-6" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
