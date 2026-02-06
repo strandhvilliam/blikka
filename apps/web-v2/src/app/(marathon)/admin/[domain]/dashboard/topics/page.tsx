@@ -2,9 +2,8 @@ import { decodeParams, Page } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
 import { Suspense } from "react"
-import { TopicsHeader } from "./_components/topics-header"
-import { TopicsTable } from "./_components/topics-table"
 import { TopicsSkeleton } from "./_components/topics-skeleton"
+import { TopicsContent } from "./_components/topics-content"
 
 const _TopicsPage = Effect.fn("@blikka/web/TopicsPage")(
   function* ({ params, searchParams }: PageProps<"/admin/[domain]/dashboard">) {
@@ -15,17 +14,17 @@ const _TopicsPage = Effect.fn("@blikka/web/TopicsPage")(
         domain,
       })
     )
+    prefetch(
+      trpc.topics.getWithSubmissionCount.queryOptions({
+        domain,
+      })
+    )
 
     return (
       <HydrateClient>
         <Suspense fallback={<TopicsSkeleton />}>
           <div className="container mx-auto h-full flex flex-col">
-            <div className="shrink-0 mb-6">
-              <TopicsHeader />
-            </div>
-            <div className="flex-1 min-h-0">
-              <TopicsTable />
-            </div>
+            <TopicsContent />
           </div>
         </Suspense>
       </HydrateClient>

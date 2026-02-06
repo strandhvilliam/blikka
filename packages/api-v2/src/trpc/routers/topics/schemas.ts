@@ -1,11 +1,11 @@
-import { Schema } from "effect"
+import { Schema } from "effect";
 
 export class TopicApiError extends Schema.TaggedError<TopicApiError>()(
   "@blikka/api-v2/topic-api-error",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
-  }
+  },
 ) {}
 
 export const CreateTopicInputSchema = Schema.standardSchemaV1(
@@ -16,13 +16,14 @@ export const CreateTopicInputSchema = Schema.standardSchemaV1(
       visibility: Schema.Union(
         Schema.Literal("public"),
         Schema.Literal("private"),
-        Schema.Literal("scheduled")
+        Schema.Literal("scheduled"),
       ),
+      activate: Schema.optional(Schema.Boolean),
       scheduledStart: Schema.optional(Schema.String),
       orderIndex: Schema.optional(Schema.Number),
     }),
-  })
-)
+  }),
+);
 
 export const UpdateTopicInputSchema = Schema.standardSchemaV1(
   Schema.Struct({
@@ -34,26 +35,38 @@ export const UpdateTopicInputSchema = Schema.standardSchemaV1(
         Schema.Union(
           Schema.Literal("public"),
           Schema.Literal("private"),
-          Schema.Literal("scheduled")
-        )
+          Schema.Literal("scheduled"),
+        ),
       ),
       scheduledStart: Schema.optional(Schema.NullishOr(Schema.String)),
       orderIndex: Schema.optional(Schema.Number),
     }),
-  })
-)
+  }),
+);
 
 export const DeleteTopicInputSchema = Schema.standardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     id: Schema.Number,
-  })
-)
+  }),
+);
 
 export const UpdateTopicsOrderInputSchema = Schema.standardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     topicIds: Schema.Array(Schema.Number),
-  })
-)
+  }),
+);
 
+export const GetTopicsWithSubmissionCountInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+  }),
+);
+
+export const ActivateTopicInputSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    id: Schema.Number,
+  }),
+);

@@ -90,6 +90,7 @@
       "description": "Välj och ladda upp dina foton för inlämning",
       "byCameraTitle": "Ladda upp ditt foto",
       "byCameraDescription": "Välj och ladda upp ditt foto",
+      "topicLabel": "Tema",
       "takePhoto": "Ta foto",
       "chooseFromLibrary": "Välj från biblioteket",
       "replacePhoto": "Byt",

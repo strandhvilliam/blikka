@@ -487,6 +487,7 @@ export const topics = pgTable(
       withTimezone: true,
       mode: "string",
     }),
+    activatedAt: timestamp("activated_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     foreignKey({

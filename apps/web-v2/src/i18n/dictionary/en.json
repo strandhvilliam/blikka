@@ -93,6 +93,7 @@
       "description": "Select and upload your photos for submission",
       "byCameraTitle": "Upload Your Photo",
       "byCameraDescription": "Select and upload your photo",
+      "topicLabel": "Topic",
       "takePhoto": "Take photo",
       "chooseFromLibrary": "Choose from library",
       "replacePhoto": "Replace",

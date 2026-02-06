@@ -1,84 +1,87 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { useDomain } from "@/lib/domain-provider";
-import { useTRPC } from "@/lib/trpc/client";
-import type { RuleConfig as DbRuleConfig } from "@blikka/db";
-import { useMutation } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
-import { motion, AnimatePresence } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
-import { useFileUpload } from "../_hooks/use-file-upload";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
-import { useSelectFile } from "../_hooks/use-select-file";
-import { usePhotoStore } from "../_lib/photo-store";
-import { useHeicStore } from "../_lib/heic-store";
-import { useStepState } from "../_lib/step-state-context";
-import { useRouter } from "next/navigation";
-import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client";
-import { formatDomainPathname } from "@/lib/utils";
-import type { PhotoWithPresignedUrl } from "../_lib/types";
-import { useUploadStore } from "../_lib/upload-store";
-import { UploadProgress } from "./upload-progress";
-import { ByCameraUploadInput } from "./by-camera-upload-input";
-import { HeicConversionDialog } from "./heic-conversion-dialog";
-import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
-import { VALIDATION_OUTCOME } from "@blikka/validation";
-import { mapDbRuleConfigsToValidationRules } from "../_lib/utils";
-import { ArrowRight } from "lucide-react";
+} from "@/components/ui/card"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { useDomain } from "@/lib/domain-provider"
+import { useTRPC } from "@/lib/trpc/client"
+import type { RuleConfig as DbRuleConfig, Topic } from "@blikka/db"
+import { useMutation } from "@tanstack/react-query"
+import { useTranslations } from "next-intl"
+import { motion, AnimatePresence } from "motion/react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
+import { useFileUpload } from "../_hooks/use-file-upload"
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
+import { useSelectFile } from "../_hooks/use-select-file"
+import { usePhotoStore } from "../_lib/photo-store"
+import { useHeicStore } from "../_lib/heic-store"
+import { useStepState } from "../_lib/step-state-context"
+import { useRouter } from "next/navigation"
+import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
+import { formatDomainPathname } from "@/lib/utils"
+import type { PhotoWithPresignedUrl } from "../_lib/types"
+import { useUploadStore } from "../_lib/upload-store"
+import { UploadProgress } from "./upload-progress"
+import { ByCameraUploadInput } from "./by-camera-upload-input"
+import { HeicConversionDialog } from "./heic-conversion-dialog"
+import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog"
+import { VALIDATION_OUTCOME } from "@blikka/validation"
+import { mapDbRuleConfigsToValidationRules } from "../_lib/utils"
+import { ArrowRight } from "lucide-react"
+import { Icon } from "@iconify/react"
 
-const BY_CAMERA_MAX_PHOTOS = 1;
+const BY_CAMERA_MAX_PHOTOS = 1
 
 export function ByCameraUploadStep({
+  topic,
   ruleConfigs,
   marathonStartDate,
   marathonEndDate,
 }: {
-  ruleConfigs: DbRuleConfig[];
-  marathonStartDate: string;
-  marathonEndDate: string;
+  topic?: Topic
+  ruleConfigs: DbRuleConfig[]
+  marathonStartDate: string
+  marathonEndDate: string
 }) {
-  const t = useTranslations("FlowPage.uploadStep");
-  const trpc = useTRPC();
-  const domain = useDomain();
-  const { handlePrevStep } = useStepState();
-  const router = useRouter();
-  const { uploadFlowState } = useUploadFlowState();
+  const t = useTranslations("FlowPage.uploadStep")
+  const trpc = useTRPC()
+  const domain = useDomain()
+  const { handlePrevStep } = useStepState()
+  const router = useRouter()
+  const { uploadFlowState } = useUploadFlowState()
 
-  const initializeStore = usePhotoStore((state) => state.initialize);
-  const cleanup = usePhotoStore((state) => state.cleanup);
-  const clearPhotos = usePhotoStore((state) => state.clearPhotos);
-  const photos = usePhotoStore((state) => state.photos);
-  const removePhoto = usePhotoStore((state) => state.removePhoto);
-  const validationResults = usePhotoStore((state) => state.validationResults);
+  const initializeStore = usePhotoStore((state) => state.initialize)
+  const cleanup = usePhotoStore((state) => state.cleanup)
+  const clearPhotos = usePhotoStore((state) => state.clearPhotos)
+  const photos = usePhotoStore((state) => state.photos)
+  const removePhoto = usePhotoStore((state) => state.removePhoto)
+  const validationResults = usePhotoStore((state) => state.validationResults)
 
-  console.log({ validationResults });
+  console.log({ validationResults })
 
-  const isUploading = useUploadStore((state) => state.isUploading);
-  const setIsUploading = useUploadStore((state) => state.setIsUploading);
+  const isUploading = useUploadStore((state) => state.isUploading)
+  const setIsUploading = useUploadStore((state) => state.setIsUploading)
 
-  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
 
-  const heicIsConverting = useHeicStore((state) => state.isConverting);
-  const heicIsCancelling = useHeicStore((state) => state.isCancelling);
-  const heicProgress = useHeicStore((state) => state.progress);
-  const heicCurrentFileName = useHeicStore((state) => state.currentFileName);
-  const cancelHeicConversion = useHeicStore((state) => state.cancel);
+  const heicIsConverting = useHeicStore((state) => state.isConverting)
+  const heicIsCancelling = useHeicStore((state) => state.isCancelling)
+  const heicProgress = useHeicStore((state) => state.progress)
+  const heicCurrentFileName = useHeicStore((state) => state.currentFileName)
+  const cancelHeicConversion = useHeicStore((state) => state.cancel)
 
   const { handleFileSelect } = useSelectFile({
     maxPhotos: BY_CAMERA_MAX_PHOTOS,
     t,
-  });
+  })
 
   const {
     files: uploadFiles,
@@ -98,31 +101,32 @@ export function ByCameraUploadStep({
       // );
       // }, 500);
     },
-  });
+  })
 
   const handleResetAndGoBack = () => {
-    const confirmed = window.confirm(t("confirmGoBack"));
-    if (!confirmed) return;
-    clearPhotos();
-    clearFiles();
-    setIsUploading(false);
-    setShowConfirmationDialog(false);
-    handlePrevStep();
-  };
+    const confirmed = window.confirm(t("confirmGoBack"))
+    if (!confirmed) return
+    clearPhotos()
+    clearFiles()
+    setIsUploading(false)
+    setShowConfirmationDialog(false)
+    handlePrevStep()
+  }
+
 
   const { mutateAsync: initializeByCameraUpload, isPending: isInitializing } =
     useMutation(
       trpc.uploadFlow.initializeByCameraUpload.mutationOptions({
         onError: (error) => {
-          toast.error(error.message || t("initializationFailed"));
+          toast.error(error.message || t("initializationFailed"))
         },
       }),
-    );
+    )
 
   const validationRules = useMemo(
     () => mapDbRuleConfigsToValidationRules(ruleConfigs),
     [ruleConfigs],
-  );
+  )
 
   useEffect(() => {
     initializeStore({
@@ -131,34 +135,35 @@ export function ByCameraUploadStep({
       marathonStartDate: marathonStartDate,
       marathonEndDate: marathonEndDate,
       topicOrderIndexes: [0],
-    });
+    })
 
     return () => {
-      cleanup();
-    };
+      cleanup()
+    }
   }, [
     initializeStore,
     cleanup,
     validationRules,
     marathonStartDate,
     marathonEndDate,
-  ]);
+  ])
 
   const handleSelectFiles = async (files: FileList | null) => {
-    const replace = photos.length > 0;
-    await handleFileSelect(files, replace);
-  };
+    const replace = photos.length > 0
+    await handleFileSelect(files, replace)
+  }
+
 
   const handleSubmit = () => {
     if (photos.length !== BY_CAMERA_MAX_PHOTOS) {
-      toast.error(t("selectPhoto"));
-      return;
+      toast.error(t("selectPhoto"))
+      return
     }
-    setShowConfirmationDialog(true);
-  };
+    setShowConfirmationDialog(true)
+  }
 
   const handleConfirmedUpload = async () => {
-    setShowConfirmationDialog(false);
+    setShowConfirmationDialog(false)
 
     if (
       !domain ||
@@ -168,12 +173,12 @@ export function ByCameraUploadStep({
       !uploadFlowState.participantEmail ||
       !uploadFlowState.deviceGroupId
     ) {
-      toast.error(t("missingRequiredInfo"));
-      return;
+      toast.error(t("missingRequiredInfo"))
+      return
     }
 
     try {
-      setIsUploading(true);
+      setIsUploading(true)
 
       const presignedUrls = await initializeByCameraUpload({
         domain,
@@ -183,55 +188,55 @@ export function ByCameraUploadStep({
         email: uploadFlowState.participantEmail,
         deviceGroupId: uploadFlowState.deviceGroupId,
         phoneNumber: uploadFlowState.participantPhone,
-      });
+      })
 
       if (!presignedUrls || presignedUrls.length === 0) {
-        setIsUploading(false);
-        toast.error(t("failedToGetPresignedUrls"));
-        return;
+        setIsUploading(false)
+        toast.error(t("failedToGetPresignedUrls"))
+        return
       }
 
       const photosWithUrls: PhotoWithPresignedUrl[] = photos.map(
         (photo, index) => {
-          const urlInfo = presignedUrls[index];
+          const urlInfo = presignedUrls[index]
           if (!urlInfo) {
-            throw new Error("Missing presigned URL for photo " + index);
+            throw new Error("Missing presigned URL for photo " + index)
           }
           return {
             ...photo,
             presignedUrl: urlInfo.url,
             key: urlInfo.key,
-          };
+          }
         },
-      );
+      )
 
-      await executeUpload(photosWithUrls);
+      await executeUpload(photosWithUrls)
     } catch (error) {
-      console.error("Upload failed:", error);
-      setIsUploading(false);
-      toast.error(t("uploadFailed"));
+      console.error("Upload failed:", error)
+      setIsUploading(false)
+      toast.error(t("uploadFailed"))
     }
-  };
+  }
 
   const handleCloseUploadProgress = () => {
-    setIsNavigating(true);
-    const serializedParams = flowStateClientParamSerializer(uploadFlowState);
+    setIsNavigating(true)
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
     router.push(
       formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
-    );
-  };
+    )
+  }
 
-  const photoSelected = photos.length === BY_CAMERA_MAX_PHOTOS;
-  const photo = photos[0];
+  const photoSelected = photos.length === BY_CAMERA_MAX_PHOTOS
+  const photo = photos[0]
 
-  const hasValidationRules = validationRules.length > 0;
+  const hasValidationRules = validationRules.length > 0
   const hasValidationErrors = validationResults.some(
     (result) =>
       result.outcome === VALIDATION_OUTCOME.FAILED &&
       result.severity === "error",
-  );
+  )
 
-  const canSubmit = photoSelected && !hasValidationErrors;
+  const canSubmit = photoSelected && !hasValidationErrors
 
   return (
     <>
@@ -284,16 +289,26 @@ export function ByCameraUploadStep({
               <CardDescription className="text-center">
                 {t("byCameraDescription")}
               </CardDescription>
+              {topic && (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {t("topicLabel")}
+                  </p>
+                  <p className="text-lg font-rocgrotesk font-medium text-foreground">
+                    {topic.name}
+                  </p>
+                </div>
+              )}
             </CardHeader>
 
-            <CardContent className="space-y-4 h-full pt-10">
+            <CardContent className="space-y-4 h-full pt-4">
               <ByCameraUploadInput
                 photo={photo || null}
                 validationResults={validationResults}
                 hasValidationRules={hasValidationRules}
                 onFileSelect={handleSelectFiles}
                 onRemovePhoto={removePhoto}
-                onChooseClick={() => {}}
+                onChooseClick={() => { }}
               />
             </CardContent>
 
@@ -307,7 +322,17 @@ export function ByCameraUploadStep({
                 >
                   {t("back")}
                 </Button>
-              ) : null}
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="w-[140px] rounded-full"
+                >
+                  <span className="whitespace-nowrap">
+                    Select another
+                  </span>
+                </Button>
+              )}
             </CardFooter>
           </motion.div>
         )}
@@ -332,5 +357,5 @@ export function ByCameraUploadStep({
         </motion.div>
       )}
     </>
-  );
+  )
 }

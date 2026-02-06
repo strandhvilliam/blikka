@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -22,9 +23,16 @@ import { useEffect } from "react"
 interface CreateTopicDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
+  showActiveToggle?: boolean
+  defaultActive?: boolean
 }
 
-export function TopicsCreateDialog({ isOpen, onOpenChange }: CreateTopicDialogProps) {
+export function TopicsCreateDialog({
+  isOpen,
+  onOpenChange,
+  showActiveToggle = false,
+  defaultActive = true,
+}: CreateTopicDialogProps) {
   const domain = useDomain()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -50,14 +58,19 @@ export function TopicsCreateDialog({ isOpen, onOpenChange }: CreateTopicDialogPr
     defaultValues: {
       name: "",
       visibility: true,
+      activate: showActiveToggle ? defaultActive : false,
     },
     onSubmit: async ({ value }) => {
       const visibility = value.visibility ? "public" : "private"
+      const data = {
+        name: value.name,
+        visibility: visibility as "public" | "private" | "scheduled",
+        ...(showActiveToggle && value.activate ? { activate: true } : {}),
+      }
       createTopic({
         domain,
         data: {
-          name: value.name,
-          visibility: visibility as "public" | "private" | "scheduled",
+          ...data,
         },
       })
     },
@@ -140,6 +153,28 @@ export function TopicsCreateDialog({ isOpen, onOpenChange }: CreateTopicDialogPr
               </div>
             )}
           />
+
+          {showActiveToggle ? (
+            <form.Field
+              name="activate"
+              children={(field) => (
+                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Make active
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      Move this topic to the active position
+                    </p>
+                  </div>
+                  <Switch
+                    checked={field.state.value}
+                    onCheckedChange={(checked) => field.handleChange(checked)}
+                  />
+                </div>
+              )}
+            />
+          ) : null}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)} type="button" size="sm">

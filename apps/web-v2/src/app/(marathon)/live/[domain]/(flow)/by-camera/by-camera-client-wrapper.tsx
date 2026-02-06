@@ -80,6 +80,7 @@ export function ByCameraClientWrapper() {
             direction={direction}
           >
             <ByCameraUploadStep
+              topic={marathon.topics[0]}
               ruleConfigs={marathon.ruleConfigs}
               marathonStartDate={marathon.startDate}
               marathonEndDate={marathon.endDate}
