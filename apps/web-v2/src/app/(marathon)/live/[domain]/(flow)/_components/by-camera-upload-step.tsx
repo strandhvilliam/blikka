@@ -301,7 +301,7 @@ export function ByCameraUploadStep({
               )}
             </CardHeader>
 
-            <CardContent className="space-y-4 h-full pt-4">
+            <CardContent className="space-y-4 h-full pt-0">
               <ByCameraUploadInput
                 photo={photo || null}
                 validationResults={validationResults}

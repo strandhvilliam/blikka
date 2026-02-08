@@ -17,7 +17,10 @@ import { Schema } from "effect";
 import { useStepState } from "../_lib/step-state-context";
 import { type FlowMode } from "../_lib/constants";
 import { useState, useEffect } from "react";
-import { isPossiblePhoneNumber } from "react-phone-number-input";
+import {
+  isPossiblePhoneNumber,
+  parsePhoneNumber,
+} from "react-phone-number-input";
 import { PhoneInput } from "@/components/ui/phone-input";
 
 function getCountryFromLocale(): string {
@@ -81,11 +84,15 @@ interface ParticipantDetailsStepProps {
   mode: FlowMode;
 }
 
+type ParticipantDetailsFieldName = "firstname" | "lastname" | "email" | "phone";
+
 export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
   const t = useTranslations("FlowPage");
   const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
   const { handleNextStep, handlePrevStep } = useStepState();
   const [defaultCountry, setDefaultCountry] = useState<string>("SE");
+  const [focusedField, setFocusedField] =
+    useState<ParticipantDetailsFieldName | null>(null);
 
   useEffect(() => {
     setDefaultCountry(getCountryFromLocale());
@@ -126,205 +133,279 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       </CardHeader>
       <form noValidate onSubmit={(e) => e.preventDefault()}>
         <CardContent className="space-y-6">
-          <form.Field
-            name="firstname"
-            children={(field) => {
-              const hasError =
-                field.state.meta.isTouched &&
-                field.state.meta.errors.length > 0;
+          <form.Subscribe selector={(state) => state.submissionAttempts}>
+            {(submissionAttempts) => (
+              <>
+                <form.Field
+                  name="firstname"
+                  children={(field) => {
+                    const hasValidationError =
+                      field.state.meta.errors.length > 0;
+                    const showError =
+                      hasValidationError &&
+                      (field.state.meta.isBlurred ||
+                        (submissionAttempts > 0 &&
+                          focusedField !==
+                            (field.name as ParticipantDetailsFieldName)));
 
-              return (
-                <div className="space-y-2">
-                  <label
-                    htmlFor={field.name}
-                    className="text-sm font-medium leading-none"
-                  >
-                    {t("participantDetails.firstName")}
-                  </label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    autoComplete="given-name"
-                    autoCapitalize="words"
-                    enterKeyHint="next"
-                    className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                      hasError
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : ""
-                    }`}
-                    aria-invalid={hasError}
-                    aria-describedby={
-                      hasError ? `${field.name}-error` : undefined
-                    }
-                    placeholder="James"
+                    return (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-sm font-medium leading-none"
+                        >
+                          {t("participantDetails.firstName")}
+                        </label>
+                        <Input
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onFocus={() =>
+                            setFocusedField(
+                              field.name as ParticipantDetailsFieldName,
+                            )
+                          }
+                          onBlur={() => {
+                            field.handleBlur();
+                            setFocusedField((prev) =>
+                              prev === field.name ? null : prev,
+                            );
+                          }}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          autoComplete="given-name"
+                          autoCapitalize="words"
+                          enterKeyHint="next"
+                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                            showError
+                              ? "border-destructive focus-visible:ring-destructive"
+                              : ""
+                          }`}
+                          aria-invalid={showError}
+                          aria-describedby={
+                            showError ? `${field.name}-error` : undefined
+                          }
+                          placeholder="James"
+                        />
+                        {showError && (
+                          <span
+                            id={`${field.name}-error`}
+                            className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
+                          >
+                            {field.state.meta.errors[0]?.message}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }}
+                />
+
+                <form.Field
+                  name="lastname"
+                  children={(field) => {
+                    const hasValidationError =
+                      field.state.meta.errors.length > 0;
+                    const showError =
+                      hasValidationError &&
+                      (field.state.meta.isBlurred ||
+                        (submissionAttempts > 0 &&
+                          focusedField !==
+                            (field.name as ParticipantDetailsFieldName)));
+
+                    return (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-sm font-medium leading-none"
+                        >
+                          {t("participantDetails.lastName")}
+                        </label>
+                        <Input
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onFocus={() =>
+                            setFocusedField(
+                              field.name as ParticipantDetailsFieldName,
+                            )
+                          }
+                          onBlur={() => {
+                            field.handleBlur();
+                            setFocusedField((prev) =>
+                              prev === field.name ? null : prev,
+                            );
+                          }}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          autoComplete="family-name"
+                          autoCapitalize="words"
+                          enterKeyHint="next"
+                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                            showError
+                              ? "border-destructive focus-visible:ring-destructive"
+                              : ""
+                          }`}
+                          aria-invalid={showError}
+                          aria-describedby={
+                            showError ? `${field.name}-error` : undefined
+                          }
+                          placeholder="Bond"
+                        />
+                        {showError && (
+                          <span
+                            id={`${field.name}-error`}
+                            className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
+                          >
+                            {field.state.meta.errors[0]?.message}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }}
+                />
+
+                <form.Field
+                  name="email"
+                  children={(field) => {
+                    const hasValidationError =
+                      field.state.meta.errors.length > 0;
+                    const showError =
+                      hasValidationError &&
+                      (field.state.meta.isBlurred ||
+                        (submissionAttempts > 0 &&
+                          focusedField !==
+                            (field.name as ParticipantDetailsFieldName)));
+
+                    return (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={field.name}
+                          className="text-sm font-medium leading-none"
+                        >
+                          {t("participantDetails.email")}
+                        </label>
+                        <Input
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onFocus={() =>
+                            setFocusedField(
+                              field.name as ParticipantDetailsFieldName,
+                            )
+                          }
+                          onBlur={() => {
+                            field.handleBlur();
+                            setFocusedField((prev) =>
+                              prev === field.name ? null : prev,
+                            );
+                          }}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          autoComplete="email"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                            showError
+                              ? "border-destructive focus-visible:ring-destructive"
+                              : ""
+                          }`}
+                          aria-invalid={showError}
+                          aria-describedby={
+                            showError ? `${field.name}-error` : undefined
+                          }
+                          type="email"
+                          inputMode="email"
+                          enterKeyHint={mode === "by-camera" ? "next" : "done"}
+                          placeholder="your@email.com"
+                        />
+                        {showError && (
+                          <span
+                            id={`${field.name}-error`}
+                            className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
+                          >
+                            {field.state.meta.errors[0]?.message}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }}
+                />
+
+                {mode === "by-camera" && (
+                  <form.Field
+                    name="phone"
+                    children={(field) => {
+                      const hasValidationError =
+                        field.state.meta.errors.length > 0;
+                      const isPhoneFieldFocused =
+                        focusedField ===
+                        (field.name as ParticipantDetailsFieldName);
+                      const hasEnteredNationalDigits = !!parsePhoneNumber(
+                        field.state.value,
+                      )?.nationalNumber;
+                      const showError =
+                        hasValidationError &&
+                        !isPhoneFieldFocused &&
+                        (submissionAttempts > 0 ||
+                          (field.state.meta.isBlurred &&
+                            hasEnteredNationalDigits));
+
+                      return (
+                        <div className="space-y-2">
+                          <label
+                            htmlFor={field.name}
+                            className="text-sm font-medium leading-none"
+                          >
+                            {t("participantDetails.phone")}
+                          </label>
+                          <PhoneInput
+                            id={field.name}
+                            name={field.name}
+                            defaultCountry={defaultCountry as any}
+                            value={field.state.value}
+                            onChange={(value) =>
+                              field.handleChange(value || "")
+                            }
+                            onFocus={() =>
+                              setFocusedField(
+                                field.name as ParticipantDetailsFieldName,
+                              )
+                            }
+                            onBlur={() => {
+                              field.handleBlur();
+                              setFocusedField((prev) =>
+                                prev === field.name ? null : prev,
+                              );
+                            }}
+                            autoComplete="tel"
+                            inputMode="tel"
+                            enterKeyHint="done"
+                            international
+                            countryCallingCodeEditable={false}
+                            className={`rounded-xl text-base sm:text-lg bg-background ${
+                              showError
+                                ? "border-destructive focus-visible:ring-destructive"
+                                : ""
+                            }`}
+                            aria-invalid={showError}
+                            aria-describedby={
+                              showError ? `${field.name}-error` : undefined
+                            }
+                          />
+                          {showError && (
+                            <span
+                              id={`${field.name}-error`}
+                              className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
+                            >
+                              {field.state.meta.errors[0]?.message}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }}
                   />
-                  {hasError && (
-                    <span
-                      id={`${field.name}-error`}
-                      className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
-                    >
-                      {field.state.meta.errors[0]?.message}
-                    </span>
-                  )}
-                </div>
-              );
-            }}
-          />
-
-          <form.Field
-            name="lastname"
-            children={(field) => {
-              const hasError =
-                field.state.meta.isTouched &&
-                field.state.meta.errors.length > 0;
-
-              return (
-                <div className="space-y-2">
-                  <label
-                    htmlFor={field.name}
-                    className="text-sm font-medium leading-none"
-                  >
-                    {t("participantDetails.lastName")}
-                  </label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    autoComplete="family-name"
-                    autoCapitalize="words"
-                    enterKeyHint="next"
-                    className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                      hasError
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : ""
-                    }`}
-                    aria-invalid={hasError}
-                    aria-describedby={
-                      hasError ? `${field.name}-error` : undefined
-                    }
-                    placeholder="Bond"
-                  />
-                  {hasError && (
-                    <span
-                      id={`${field.name}-error`}
-                      className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
-                    >
-                      {field.state.meta.errors[0]?.message}
-                    </span>
-                  )}
-                </div>
-              );
-            }}
-          />
-
-          <form.Field
-            name="email"
-            children={(field) => {
-              const hasError =
-                field.state.meta.isTouched &&
-                field.state.meta.errors.length > 0;
-
-              return (
-                <div className="space-y-2">
-                  <label
-                    htmlFor={field.name}
-                    className="text-sm font-medium leading-none"
-                  >
-                    {t("participantDetails.email")}
-                  </label>
-                  <Input
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    autoComplete="email"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                      hasError
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : ""
-                    }`}
-                    aria-invalid={hasError}
-                    aria-describedby={
-                      hasError ? `${field.name}-error` : undefined
-                    }
-                    type="email"
-                    inputMode="email"
-                    enterKeyHint={mode === "by-camera" ? "next" : "done"}
-                    placeholder="your@email.com"
-                  />
-                  {hasError && (
-                    <span
-                      id={`${field.name}-error`}
-                      className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
-                    >
-                      {field.state.meta.errors[0]?.message}
-                    </span>
-                  )}
-                </div>
-              );
-            }}
-          />
-
-          {mode === "by-camera" && (
-            <form.Field
-              name="phone"
-              children={(field) => {
-                const hasError =
-                  field.state.meta.isTouched &&
-                  field.state.meta.errors.length > 0;
-
-                return (
-                  <div className="space-y-2">
-                    <label
-                      htmlFor={field.name}
-                      className="text-sm font-medium leading-none"
-                    >
-                      {t("participantDetails.phone")}
-                    </label>
-                    <PhoneInput
-                      id={field.name}
-                      name={field.name}
-                      defaultCountry={defaultCountry as any}
-                      value={field.state.value}
-                      onChange={(value) => field.handleChange(value || "")}
-                      onBlur={field.handleBlur}
-                      autoComplete="tel"
-                      inputMode="tel"
-                      enterKeyHint="done"
-                      international
-                      countryCallingCodeEditable={false}
-                      className={`rounded-xl text-base sm:text-lg bg-background ${
-                        hasError
-                          ? "border-destructive focus-visible:ring-destructive"
-                          : ""
-                      }`}
-                      aria-invalid={hasError}
-                      aria-describedby={
-                        hasError ? `${field.name}-error` : undefined
-                      }
-                    />
-                    {hasError && (
-                      <span
-                        id={`${field.name}-error`}
-                        className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
-                      >
-                        {field.state.meta.errors[0]?.message}
-                      </span>
-                    )}
-                  </div>
-                );
-              }}
-            />
-          )}
+                )}
+              </>
+            )}
+          </form.Subscribe>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 pt-8">
