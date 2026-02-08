@@ -79,7 +79,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
 
       const startVotingSessions = Effect.fn(
         "VotingApiService.startVotingSessions",
-      )(function* ({ domain }: { domain: string }) {
+      )(function* ({ domain, topicId }: { domain: string, topicId: number }) {
         const marathonOpt = yield* db.marathonsQueries.getMarathonByDomain({
           domain,
         });
@@ -103,17 +103,13 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         }
 
         const participants =
-          yield* db.votingQueries.getParticipantsWithSubmissionsByMarathonId({
+          yield* db.votingQueries.getParticipantsWithSubmissionsByTopicId({
             marathonId: marathon.id,
+            topicId,
           });
 
-        console.log("participants", participants);
 
-        const participantsWithSubmissions = participants.filter(
-          (p) => p.submissions.length > 0,
-        );
-
-        if (participantsWithSubmissions.length === 0) {
+        if (participants.length === 0) {
           return yield* Effect.fail(
             new VotingApiError({
               message:
@@ -125,7 +121,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         const token = randomBytes(8).toString("base64url").slice(0, 8);
 
         const sessionsToCreate: NewVotingSession[] =
-          participantsWithSubmissions.map((p) => ({
+          participants.map((p) => ({
             token,
             firstName: p.firstname,
             lastName: p.lastname,
@@ -136,6 +132,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             voteSubmissionId: null,
             connectedParticipantId: p.id,
             notificationLastSentAt: null,
+            topicId,
           }));
 
         const createdSessions = yield* db.votingQueries.createVotingSessions({
@@ -242,11 +239,12 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
       )(function* ({
         participantId,
         domain,
+        topicId,
       }: {
         participantId: number;
         domain: string;
+        topicId: number;
       }) {
-        // Get marathon
         const marathonOpt = yield* db.marathonsQueries.getMarathonByDomain({
           domain,
         });
@@ -269,7 +267,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           );
         }
 
-        // Get participant with submissions
         const participantOpt = yield* db.participantsQueries.getParticipantById(
           {
             id: participantId,
@@ -286,7 +283,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             ),
         });
 
-        // Check if participant has submissions
         const submissions =
           yield* db.submissionsQueries.getSubmissionsByParticipantId({
             participantId,
@@ -300,13 +296,11 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           );
         }
 
-        // Check for existing voting session
         const existingSessionOpt =
           yield* db.votingQueries.getVotingSessionByParticipantId({
             participantId,
           });
 
-        // If session exists and participant has voted, return error
         if (Option.isSome(existingSessionOpt)) {
           const existingSession = existingSessionOpt.value;
           if (existingSession.votedAt) {
@@ -320,7 +314,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         const token = randomBytes(8).toString("base64url").slice(0, 8);
         const now = new Date().toISOString();
 
-        // Create or update voting session
         const sessionData = {
           token,
           firstName: participant.firstname,
@@ -332,6 +325,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           voteSubmissionId: null,
           connectedParticipantId: participantId,
           notificationLastSentAt: now,
+          topicId,
         };
 
         const session =
@@ -447,6 +441,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         // Get all submissions for the marathon
         const submissions = yield* db.votingQueries.getSubmissionsForVoting({
           marathonId: votingSession.marathonId,
+          topicId: votingSession.topicId,
         });
 
         const votingSubmissions = submissions

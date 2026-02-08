@@ -29,7 +29,6 @@ export function useSubmissionsTable() {
     trpc.marathons.getByDomain.queryOptions({ domain }),
   );
   const [sorting, setSorting] = useState<SortingState>([]);
-  // useParticipantEvents();
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);

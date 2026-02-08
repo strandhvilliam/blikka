@@ -30,7 +30,10 @@ const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
       return redirect(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'));
     }
 
-    batchPrefetch([trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }), trpc.voting.getVotingSubmissions.queryOptions({ token, domain })]);
+    batchPrefetch([
+      trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
+      trpc.voting.getVotingSubmissions.queryOptions({ token, domain })
+    ]);
 
 
     return (

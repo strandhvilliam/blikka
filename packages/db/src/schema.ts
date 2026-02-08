@@ -617,6 +617,7 @@ export const votingSession = pgTable(
       mode: "number",
     }),
     votedAt: timestamp("voted_at", { withTimezone: true, mode: "string" }),
+    topicId: bigint("topic_id", { mode: "number" }).notNull(),
   },
   (table) => [
     foreignKey({

@@ -47,21 +47,21 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         return Option.fromNullable(result);
       });
 
-      const getParticipantsWithSubmissionsByMarathonId = Effect.fn(
+      const getParticipantsWithSubmissionsByTopicId = Effect.fn(
         "VotingQueries.getParticipantsWithSubmissionsByMarathonId",
-      )(function* ({ marathonId }: { marathonId: number }) {
+      )(function* ({ marathonId, topicId }: { marathonId: number, topicId: number }) {
         const result = yield* db.query.participants.findMany({
-          where: eq(participants.marathonId, marathonId),
+          where: and(
+            eq(participants.marathonId, marathonId),
+          ),
           with: {
-            submissions: {
-              limit: 1,
-              columns: {
-                id: true,
-              },
-            },
+            submissions: true,
           },
         });
-        return result;
+        return result.filter((p) => p.submissions.some((s) => s.topicId === topicId)).map((p) => ({
+          ...p,
+          submissions: p.submissions.filter((s) => s.topicId === topicId),
+        }));
       });
 
       const createVotingSessions = Effect.fn(
@@ -212,9 +212,12 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
 
       const getSubmissionsForVoting = Effect.fn(
         "VotingQueries.getSubmissionsForVoting",
-      )(function* ({ marathonId }: { marathonId: number }) {
+      )(function* ({ marathonId, topicId }: { marathonId: number, topicId: number }) {
         const result = yield* db.query.submissions.findMany({
-          where: eq(submissions.marathonId, marathonId),
+          where: and(
+            eq(submissions.marathonId, marathonId),
+            eq(submissions.topicId, topicId),
+          ),
           orderBy: submissions.id,
           with: {
             participant: {
@@ -258,7 +261,7 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
       return {
         getVotingSessionByToken,
         getPublicMarathonByDomain,
-        getParticipantsWithSubmissionsByMarathonId,
+        getParticipantsWithSubmissionsByTopicId,
         createVotingSessions,
         updateMultipleLastNotificationSentAt,
         getSubmissionVoteStats,
@@ -270,4 +273,5 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
       } as const;
     }),
   },
-) {}
+) {
+}

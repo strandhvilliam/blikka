@@ -39,7 +39,6 @@ export function SubmissionsHeader({ domain }: SubmissionsHeaderProps) {
     history: "push",
   });
   const [isStartVotingDialogOpen, setIsStartVotingDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
   const trpc = useTRPC();
 
   const { tab: activeTab } = queryState;
