@@ -99,21 +99,6 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       phone: uploadFlowState.participantPhone ?? "",
     },
     onSubmit: async ({ value }) => {
-      // Touch all fields to show validation errors on submit attempt
-      const fieldNames: Array<"firstname" | "lastname" | "email" | "phone"> = [
-        "firstname",
-        "lastname",
-        "email",
-        "phone",
-      ];
-      fieldNames.forEach((fieldName) => {
-        form.setFieldMeta(fieldName, (prev) => ({
-          ...prev,
-          isTouched: true,
-          isBlurred: true,
-        }));
-      });
-
       await setUploadFlowState((prev) => ({
         ...prev,
         participantFirstName: value.firstname,
@@ -124,6 +109,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       handleNextStep();
     },
     validators: {
+      onChange: createParticipantDetailsSchema(t, mode),
       onBlur: createParticipantDetailsSchema(t, mode),
     },
   });
@@ -138,149 +124,217 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
           {t("participantDetails.description")}
         </CardDescription>
       </CardHeader>
-      <form onSubmit={(e) => e.preventDefault()}>
+      <form noValidate onSubmit={(e) => e.preventDefault()}>
         <CardContent className="space-y-6">
           <form.Field
             name="firstname"
-            children={(field) => (
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">
-                  {t("participantDetails.firstName")}
-                </label>
-                <Input
-                  name={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                    field.state.meta.isTouched &&
-                    field.state.meta.isBlurred &&
-                    field.state.meta.errors.length > 0
-                      ? "border-destructive focus-visible:ring-destructive"
-                      : ""
-                  }`}
-                  placeholder="James"
-                />
-                {field.state.meta.isTouched &&
-                  field.state.meta.isBlurred &&
-                  field.state.meta.errors.length > 0 && (
-                    <span className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium">
+            children={(field) => {
+              const hasError =
+                field.state.meta.isTouched &&
+                field.state.meta.errors.length > 0;
+
+              return (
+                <div className="space-y-2">
+                  <label
+                    htmlFor={field.name}
+                    className="text-sm font-medium leading-none"
+                  >
+                    {t("participantDetails.firstName")}
+                  </label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    autoComplete="given-name"
+                    autoCapitalize="words"
+                    enterKeyHint="next"
+                    className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                      hasError
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : ""
+                    }`}
+                    aria-invalid={hasError}
+                    aria-describedby={
+                      hasError ? `${field.name}-error` : undefined
+                    }
+                    placeholder="James"
+                  />
+                  {hasError && (
+                    <span
+                      id={`${field.name}-error`}
+                      className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
+                    >
                       {field.state.meta.errors[0]?.message}
                     </span>
                   )}
-              </div>
-            )}
+                </div>
+              );
+            }}
           />
 
           <form.Field
             name="lastname"
-            children={(field) => (
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">
-                  {t("participantDetails.lastName")}
-                </label>
-                <Input
-                  name={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                    field.state.meta.isTouched &&
-                    field.state.meta.isBlurred &&
-                    field.state.meta.errors.length > 0
-                      ? "border-destructive focus-visible:ring-destructive"
-                      : ""
-                  }`}
-                  placeholder="Bond"
-                />
-                {field.state.meta.isTouched &&
-                  field.state.meta.isBlurred &&
-                  field.state.meta.errors.length > 0 && (
-                    <span className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium">
+            children={(field) => {
+              const hasError =
+                field.state.meta.isTouched &&
+                field.state.meta.errors.length > 0;
+
+              return (
+                <div className="space-y-2">
+                  <label
+                    htmlFor={field.name}
+                    className="text-sm font-medium leading-none"
+                  >
+                    {t("participantDetails.lastName")}
+                  </label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    autoComplete="family-name"
+                    autoCapitalize="words"
+                    enterKeyHint="next"
+                    className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                      hasError
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : ""
+                    }`}
+                    aria-invalid={hasError}
+                    aria-describedby={
+                      hasError ? `${field.name}-error` : undefined
+                    }
+                    placeholder="Bond"
+                  />
+                  {hasError && (
+                    <span
+                      id={`${field.name}-error`}
+                      className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
+                    >
                       {field.state.meta.errors[0]?.message}
                     </span>
                   )}
-              </div>
-            )}
+                </div>
+              );
+            }}
           />
 
           <form.Field
             name="email"
-            children={(field) => (
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">
-                  {t("participantDetails.email")}
-                </label>
-                <Input
-                  name={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                    field.state.meta.isTouched &&
-                    field.state.meta.isBlurred &&
-                    field.state.meta.errors.length > 0
-                      ? "border-destructive focus-visible:ring-destructive"
-                      : ""
-                  }`}
-                  type="email"
-                  placeholder="your@email.com"
-                />
-                {field.state.meta.isTouched &&
-                  field.state.meta.isBlurred &&
-                  field.state.meta.errors.length > 0 && (
-                    <span className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium">
+            children={(field) => {
+              const hasError =
+                field.state.meta.isTouched &&
+                field.state.meta.errors.length > 0;
+
+              return (
+                <div className="space-y-2">
+                  <label
+                    htmlFor={field.name}
+                    className="text-sm font-medium leading-none"
+                  >
+                    {t("participantDetails.email")}
+                  </label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                      hasError
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : ""
+                    }`}
+                    aria-invalid={hasError}
+                    aria-describedby={
+                      hasError ? `${field.name}-error` : undefined
+                    }
+                    type="email"
+                    inputMode="email"
+                    enterKeyHint={mode === "by-camera" ? "next" : "done"}
+                    placeholder="your@email.com"
+                  />
+                  {hasError && (
+                    <span
+                      id={`${field.name}-error`}
+                      className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
+                    >
                       {field.state.meta.errors[0]?.message}
                     </span>
                   )}
-              </div>
-            )}
+                </div>
+              );
+            }}
           />
 
           {mode === "by-camera" && (
             <form.Field
               name="phone"
-              children={(field) => (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none">
-                    {t("participantDetails.phone")}
-                  </label>
-                  <PhoneInput
-                    defaultCountry={defaultCountry as any}
-                    value={field.state.value}
-                    onChange={(value) => field.handleChange(value || "")}
-                    onBlur={field.handleBlur}
-                    international
-                    countryCallingCodeEditable={false}
-                    className={`rounded-xl text-base sm:text-lg bg-background ${
-                      field.state.meta.isTouched &&
-                      field.state.meta.isBlurred &&
-                      field.state.meta.errors.length > 0
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : ""
-                    }`}
-                  />
-                  {field.state.meta.isTouched &&
-                    field.state.meta.isBlurred &&
-                    field.state.meta.errors.length > 0 && (
-                      <span className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium">
+              children={(field) => {
+                const hasError =
+                  field.state.meta.isTouched &&
+                  field.state.meta.errors.length > 0;
+
+                return (
+                  <div className="space-y-2">
+                    <label
+                      htmlFor={field.name}
+                      className="text-sm font-medium leading-none"
+                    >
+                      {t("participantDetails.phone")}
+                    </label>
+                    <PhoneInput
+                      id={field.name}
+                      name={field.name}
+                      defaultCountry={defaultCountry as any}
+                      value={field.state.value}
+                      onChange={(value) => field.handleChange(value || "")}
+                      onBlur={field.handleBlur}
+                      autoComplete="tel"
+                      inputMode="tel"
+                      enterKeyHint="done"
+                      international
+                      countryCallingCodeEditable={false}
+                      className={`rounded-xl text-base sm:text-lg bg-background ${
+                        hasError
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : ""
+                      }`}
+                      aria-invalid={hasError}
+                      aria-describedby={
+                        hasError ? `${field.name}-error` : undefined
+                      }
+                    />
+                    {hasError && (
+                      <span
+                        id={`${field.name}-error`}
+                        className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
+                      >
                         {field.state.meta.errors[0]?.message}
                       </span>
                     )}
-                </div>
-              )}
+                  </div>
+                );
+              }}
             />
           )}
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 pt-8">
           <form.Subscribe
-            selector={(state) => [state.canSubmit, state.isSubmitting]}
-            children={([canSubmit]) => (
+            selector={(state) => [state.isSubmitting]}
+            children={([isSubmitting]) => (
               <PrimaryButton
                 type="button"
                 className="w-full py-3.5 text-base sm:text-lg rounded-full"
-                disabled={!canSubmit}
+                disabled={isSubmitting}
                 // submit mannually to avoid specific bug when navigating back between steps
                 onClick={() => form.handleSubmit()}
               >

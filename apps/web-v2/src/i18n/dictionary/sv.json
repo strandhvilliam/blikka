@@ -30,7 +30,7 @@
       "title": "Ange ditt delagarnummer",
       "description": "Ange ditt 4-siffriga delagarnummer för att fortsätta",
       "descriptionAlreadyExists": "Vi hittade ditt delagarnummer. Klicka fortsätt för att fortsätta.",
-      "required": "Delagarnummer krävs",
+      "required": "Ange ett nummer med 1 till 4 siffror.",
       "continue": "Fortsätt",
       "confirmDialog": {
         "titleExists": "Välkommen tillbaka!",

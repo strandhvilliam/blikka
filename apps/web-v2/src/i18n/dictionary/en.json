@@ -30,7 +30,7 @@
       "title": "Enter your participant number",
       "description": "Enter your 4-digit participant number to continue",
       "descriptionAlreadyExists": "We found your participant number. Click continue to proceed.",
-      "required": "Participant number is required",
+      "required": "A number with 1 to 4 digits is required.",
       "continue": "Continue",
       "error": "An error occurred. Please try again.",
       "confirmDialog": {

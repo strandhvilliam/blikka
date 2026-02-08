@@ -36,9 +36,11 @@ const createInitializeParticipantSchema = (
 ) =>
   Schema.standardSchemaV1(
     Schema.Struct({
-      participantRef: Schema.String.pipe(Schema.minLength(1))
-        .pipe(Schema.pattern(/^\d+$/))
-        .annotations({ description: t("participantNumber.required") }),
+      participantRef: Schema.String.pipe(
+        Schema.filter((value) => /^\d{1,4}$/.test(value), {
+          message: () => t("participantNumber.required"),
+        }),
+      ).annotations({ description: t("participantNumber.required") }),
       domain: Schema.String.pipe(Schema.minLength(1)).annotations({
         description: "Invalid domain",
       }),
@@ -68,13 +70,6 @@ export function ParticipantNumberStep() {
       const paddedRef = value.participantRef.padStart(4, "0");
       setPendingRef(paddedRef);
 
-      // Touch the field to show validation errors on submit attempt
-      form.setFieldMeta("participantRef", (prev) => ({
-        ...prev,
-        isTouched: true,
-        isBlurred: true,
-      }));
-
       try {
         const exists = await checkParticipantExists.mutateAsync({
           domain,
@@ -96,6 +91,7 @@ export function ParticipantNumberStep() {
       }
     },
     validators: {
+      onChange: createInitializeParticipantSchema(t),
       onBlur: createInitializeParticipantSchema(t),
     },
   });
@@ -128,50 +124,72 @@ export function ParticipantNumberStep() {
           e.stopPropagation();
           form.handleSubmit();
         }}
+        noValidate
         className="space-y-8"
       >
         <CardContent className="space-y-6">
           <div>
             <form.Field
               name="participantRef"
-              children={(field) => (
-                <>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="0000"
-                    className={`text-center text-3xl sm:text-4xl h-14 sm:h-16 bg-background tracking-widest leading-none ${
-                      field.state.meta.isTouched &&
-                      field.state.meta.isBlurred &&
-                      field.state.meta.errors.length > 0
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : ""
-                    }`}
-                    disabled={!!uploadFlowState.participantId}
-                    maxLength={4}
-                    value={field.state.value}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      const numericValue = value.replace(/\D/g, "").slice(0, 4);
-                      field.handleChange(numericValue);
-                    }}
-                    onBlur={() => {
-                      if (field.state.value && field.state.value.length > 0) {
-                        const paddedValue = field.state.value.padStart(4, "0");
-                        field.handleChange(paddedValue);
+              children={(field) => {
+                const hasError =
+                  field.state.meta.isTouched &&
+                  field.state.meta.errors.length > 0;
+
+                return (
+                  <>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      aria-label={t("participantNumber.title")}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0000"
+                      autoComplete="off"
+                      enterKeyHint="done"
+                      pattern="[0-9]*"
+                      className={`text-center text-3xl sm:text-4xl h-14 sm:h-16 bg-background tracking-widest leading-none ${
+                        hasError
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : ""
+                      }`}
+                      aria-invalid={hasError}
+                      aria-describedby={
+                        hasError ? `${field.name}-error` : undefined
                       }
-                      field.handleBlur();
-                    }}
-                  />
-                  {field.state.meta.isTouched &&
-                    field.state.meta.isBlurred &&
-                    field.state.meta.errors.length > 0 && (
-                      <span className="flex flex-1 w-full justify-center text-center text-base pt-4 text-destructive font-medium">
+                      autoFocus
+                      disabled={!!uploadFlowState.participantId}
+                      maxLength={4}
+                      value={field.state.value}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const numericValue = value
+                          .replace(/\D/g, "")
+                          .slice(0, 4);
+                        field.handleChange(numericValue);
+                      }}
+                      onBlur={() => {
+                        if (field.state.value && field.state.value.length > 0) {
+                          const paddedValue = field.state.value.padStart(
+                            4,
+                            "0",
+                          );
+                          field.handleChange(paddedValue);
+                        }
+                        field.handleBlur();
+                      }}
+                    />
+                    {hasError && (
+                      <span
+                        id={`${field.name}-error`}
+                        className="flex flex-1 w-full justify-center text-center text-base pt-4 text-destructive font-medium"
+                      >
                         {field.state.meta.errors[0]?.message}
                       </span>
                     )}
-                </>
-              )}
+                  </>
+                );
+              }}
             />
           </div>
         </CardContent>
@@ -187,20 +205,12 @@ export function ParticipantNumberStep() {
             </Button>
           ) : (
             <form.Subscribe
-              selector={(state) => [
-                state.canSubmit,
-                state.isSubmitting,
-                state.values.participantRef,
-              ]}
-              children={([canSubmit, isSubmitting, participantRefValue]) => (
+              selector={(state) => [state.isSubmitting]}
+              children={([isSubmitting]) => (
                 <PrimaryButton
                   type="submit"
                   className="w-full py-3.5 text-base sm:text-lg rounded-full"
-                  disabled={
-                    !canSubmit ||
-                    !participantRefValue ||
-                    checkParticipantExists.isPending
-                  }
+                  disabled={isSubmitting || checkParticipantExists.isPending}
                 >
                   {isSubmitting || checkParticipantExists.isPending ? (
                     <Loader2 className="animate-spin" />
