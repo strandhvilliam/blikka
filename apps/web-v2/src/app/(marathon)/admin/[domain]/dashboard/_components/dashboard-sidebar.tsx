@@ -1,6 +1,10 @@
-"use client"
+"use client";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sidebar,
   SidebarContent,
@@ -13,9 +17,9 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { useSession } from "@/lib/auth/client"
-import type { Marathon } from "@blikka/db"
+} from "@/components/ui/sidebar";
+import { useSession } from "@/lib/auth/client";
+import type { Marathon } from "@blikka/db";
 import {
   BadgeCheck,
   Bell,
@@ -37,13 +41,14 @@ import {
   Tag,
   Trophy,
   Users,
-} from "lucide-react"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
-import { format } from "date-fns"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar"
+  Vote,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -52,11 +57,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuGroup,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu"
-import { Separator } from "@radix-ui/react-separator"
-import { useDomain } from "@/lib/domain-provider"
-import { formatDomainPathname } from "@/lib/utils"
-import Image from "next/image"
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@radix-ui/react-separator";
+import { useDomain } from "@/lib/domain-provider";
+import { formatDomainPathname } from "@/lib/utils";
+import Image from "next/image";
 
 export function DashboardSidebar() {
   return (
@@ -76,7 +81,7 @@ export function DashboardSidebar() {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
 
 export function DashboardSidebarHeader() {
@@ -99,32 +104,37 @@ export function DashboardSidebarHeader() {
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
-  )
+  );
 }
 
 interface DomainSwitcherProps {
-  marathons: Marathon[]
-  activeDomain: string | undefined
+  marathons: Marathon[];
+  activeDomain: string | undefined;
 }
 
-export function DomainSwitchDropdown({ marathons, activeDomain }: DomainSwitcherProps) {
-  const { isMobile } = useSidebar()
-  const router = useRouter()
-  const [hasImageError, setHasImageError] = useState(false)
+export function DomainSwitchDropdown({
+  marathons,
+  activeDomain,
+}: DomainSwitcherProps) {
+  const { isMobile } = useSidebar();
+  const router = useRouter();
+  const [hasImageError, setHasImageError] = useState(false);
 
-  const activeMarathon = marathons.find((marathon) => marathon.domain === activeDomain)
+  const activeMarathon = marathons.find(
+    (marathon) => marathon.domain === activeDomain,
+  );
 
   const handleImageError = () => {
-    setHasImageError(true)
-  }
+    setHasImageError(true);
+  };
 
   const handleImageLoad = () => {
-    setHasImageError(false)
-  }
+    setHasImageError(false);
+  };
 
   const handleSwitchMarathon = () => {
-    router.push("/select-domain")
-  }
+    router.push("/select-domain");
+  };
 
   return (
     <Popover>
@@ -148,7 +158,9 @@ export function DomainSwitchDropdown({ marathons, activeDomain }: DomainSwitcher
             )}
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold">{activeMarathon?.name}</span>
+            <span className="truncate font-semibold">
+              {activeMarathon?.name}
+            </span>
             <span className="truncate text-xs">
               {activeMarathon?.startDate
                 ? format(activeMarathon.startDate, "d MMMM yyyy")
@@ -182,14 +194,20 @@ export function DomainSwitchDropdown({ marathons, activeDomain }: DomainSwitcher
                 )}
               </div>
               <div>
-                <h3 className="font-rocgrotesk text-lg font-semibold">{activeMarathon.name}</h3>
-                <p className="text-sm text-muted-foreground">{activeMarathon.domain}</p>
+                <h3 className="font-rocgrotesk text-lg font-semibold">
+                  {activeMarathon.name}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {activeMarathon.domain}
+                </p>
               </div>
             </div>
 
             <div className="space-y-2">
               {activeMarathon.description && (
-                <p className="text-sm text-muted-foreground">{activeMarathon.description}</p>
+                <p className="text-sm text-muted-foreground">
+                  {activeMarathon.description}
+                </p>
               )}
 
               <div className="flex items-center gap-2 text-sm">
@@ -207,13 +225,20 @@ export function DomainSwitchDropdown({ marathons, activeDomain }: DomainSwitcher
               </div>
             </div>
 
-            <Button size="sm" variant="outline" onClick={handleSwitchMarathon} className="w-full">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSwitchMarathon}
+              className="w-full"
+            >
               Switch Marathon
             </Button>
           </div>
         ) : (
           <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground">No marathon selected</p>
+            <p className="text-sm text-muted-foreground">
+              No marathon selected
+            </p>
             <Button onClick={handleSwitchMarathon} className="mt-2">
               Select Marathon
             </Button>
@@ -221,7 +246,7 @@ export function DomainSwitchDropdown({ marathons, activeDomain }: DomainSwitcher
         )}
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
 export const NAV_LINKS = {
@@ -251,6 +276,11 @@ export const NAV_LINKS = {
       url: "/dashboard/jury",
       icon: Trophy as LucideIcon,
     },
+    {
+      name: "Voting",
+      url: "/dashboard/voting",
+      icon: Vote as LucideIcon,
+    },
   ],
   configuration: [
     {
@@ -279,21 +309,21 @@ export const NAV_LINKS = {
       icon: Settings as LucideIcon,
     },
   ],
-} as const
+} as const;
 
 export default function SidebarLinks() {
-  const pathname = usePathname()
-  const domain = useDomain()
+  const pathname = usePathname();
+  const domain = useDomain();
 
   const isActive = (url: string) => {
-    const formattedUrl = formatDomainPathname(`/admin${url}`, domain)
+    const formattedUrl = formatDomainPathname(`/admin${url}`, domain);
     if (url === "/dashboard/") {
-      const normalizedPathname = pathname.replace(/\/$/, "")
-      const normalizedFormattedUrl = formattedUrl.replace(/\/$/, "")
-      return normalizedPathname === normalizedFormattedUrl
+      const normalizedPathname = pathname.replace(/\/$/, "");
+      const normalizedFormattedUrl = formattedUrl.replace(/\/$/, "");
+      return normalizedPathname === normalizedFormattedUrl;
     }
-    return pathname.startsWith(formattedUrl)
-  }
+    return pathname.startsWith(formattedUrl);
+  };
 
   return (
     <>
@@ -304,7 +334,7 @@ export default function SidebarLinks() {
 
         <SidebarMenu>
           {NAV_LINKS.marathon.map((item) => {
-            const href = formatDomainPathname(`/admin${item.url}`, domain)
+            const href = formatDomainPathname(`/admin${item.url}`, domain);
             return (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton asChild isActive={isActive(item.url)}>
@@ -314,7 +344,7 @@ export default function SidebarLinks() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            )
+            );
           })}
         </SidebarMenu>
       </SidebarGroup>
@@ -323,7 +353,7 @@ export default function SidebarLinks() {
         <SidebarGroupLabel>Configuration</SidebarGroupLabel>
         <SidebarMenu>
           {NAV_LINKS.configuration.map((item) => {
-            const href = formatDomainPathname(`/admin${item.url}`, domain)
+            const href = formatDomainPathname(`/admin${item.url}`, domain);
             return (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton asChild isActive={isActive(item.url)}>
@@ -333,19 +363,19 @@ export default function SidebarLinks() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            )
+            );
           })}
         </SidebarMenu>
       </SidebarGroup>
     </>
-  )
+  );
 }
 
 export function SidebarNavUser() {
-  const { data: session } = useSession()
-  const user = session?.user
-  const { isMobile } = useSidebar()
-  if (!user) return null
+  const { data: session } = useSession();
+  const user = session?.user;
+  const { isMobile } = useSidebar();
+  if (!user) return null;
 
   return (
     <DropdownMenu>
@@ -412,5 +442,5 @@ export function SidebarNavUser() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

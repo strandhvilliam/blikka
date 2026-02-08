@@ -55,7 +55,6 @@ export function ParticipantTopicSubmissionClientPage({
     }),
   );
 
-
   const submission = participant?.submissions.find(
     (s) => s.topic?.orderIndex === topicOrderIndex,
   );
@@ -72,6 +71,7 @@ export function ParticipantTopicSubmissionClientPage({
   const votingSessionQuery =
     trpc.voting.getVotingSessionByParticipant.queryOptions({
       participantId: participant?.id ?? 0,
+      topicId: submission?.topicId ?? 0,
       domain,
     });
   const { data: votingSessionData } = useQuery({

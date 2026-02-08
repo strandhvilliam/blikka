@@ -1,24 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Vote, Loader2 } from "lucide-react";
+import { Vote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQueryState, useQueryStates } from "nuqs";
+import { useQueryStates } from "nuqs";
 import { submissionSearchParams } from "../_lib/search-params";
-import { useTRPC } from "@/lib/trpc/client";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import Link from "next/link";
+import { formatDomainPathname } from "@/lib/utils";
 
 type Tab =
   | "all"
@@ -38,44 +26,10 @@ export function SubmissionsHeader({ domain }: SubmissionsHeaderProps) {
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: "push",
   });
-  const [isStartVotingDialogOpen, setIsStartVotingDialogOpen] = useState(false);
-  const trpc = useTRPC();
 
   const { tab: activeTab } = queryState;
   const onTabChange = (tab: Tab) => {
     setQueryState({ tab });
-  };
-
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({
-      domain,
-    }),
-  );
-
-  const { mutate: startVotingSessions, isPending: isStartingVoting } =
-    useMutation(
-      trpc.voting.startVotingSessions.mutationOptions({
-        onSuccess: () => {
-          toast.success("Voting sessions started successfully");
-          setIsStartVotingDialogOpen(false);
-        },
-        onError: (error) => {
-          toast.error(error.message || "Failed to start voting sessions");
-          setIsStartVotingDialogOpen(false);
-        },
-      }),
-    );
-
-  const handleStartVoting = () => {
-
-    const activeByCameraTopic = marathon.topics.find((t) => t.orderIndex === 0);
-
-    if (!activeByCameraTopic) {
-      toast.error("No active by-camera topic found");
-      return;
-    }
-
-    startVotingSessions({ domain, topicId: activeByCameraTopic.id });
   };
 
   const tabs: { value: Tab; label: string }[] = [
@@ -99,60 +53,16 @@ export function SubmissionsHeader({ domain }: SubmissionsHeaderProps) {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setIsStartVotingDialogOpen(true)}
-            disabled={isStartingVoting}
-          >
-            {isStartingVoting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
+          <Button asChild variant="outline">
+            <Link
+              href={formatDomainPathname("/admin/dashboard/voting", domain)}
+            >
               <Vote className="h-4 w-4 mr-2" />
-            )}
-            Start Voting Sessions
+              Open Voting
+            </Link>
           </Button>
         </div>
       </div>
-
-      <AlertDialog
-        open={isStartVotingDialogOpen}
-        onOpenChange={setIsStartVotingDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="font-rocgrotesk">
-              Start Voting Sessions
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to start voting sessions? This will create
-              voting sessions for all eligible participants and cannot be
-              undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isStartingVoting}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleStartVoting}
-              disabled={isStartingVoting}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {isStartingVoting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Starting...
-                </>
-              ) : (
-                <>
-                  <Vote className="h-4 w-4 mr-2" />
-                  Start Voting Sessions
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <Tabs
         value={activeTab}

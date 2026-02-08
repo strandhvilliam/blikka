@@ -487,7 +487,10 @@ export const topics = pgTable(
       withTimezone: true,
       mode: "string",
     }),
-    activatedAt: timestamp("activated_at", { withTimezone: true, mode: "string" }),
+    activatedAt: timestamp("activated_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
   },
   (table) => [
     foreignKey({
@@ -638,8 +641,14 @@ export const votingSession = pgTable(
     index("voting_session_connected_participant_id_idx").on(
       table.connectedParticipantId,
     ),
-    uniqueIndex("voting_session_connected_participant_id_unique_idx").on(
+    uniqueIndex("voting_session_connected_participant_topic_unique_idx").on(
       table.connectedParticipantId,
+      table.topicId,
+    ),
+    uniqueIndex("voting_session_token_unique_idx").on(table.token),
+    index("voting_session_marathon_topic_idx").on(
+      table.marathonId,
+      table.topicId,
     ),
   ],
 );
@@ -717,10 +726,7 @@ export const participantsRelations = relations(
     submissions: many(submissions),
     zippedSubmissions: many(zippedSubmissions),
     contactSheets: many(contactSheets),
-    votingSession: one(votingSession, {
-      fields: [participants.id],
-      references: [votingSession.connectedParticipantId],
-    }),
+    votingSessions: many(votingSession),
   }),
 );
 
@@ -871,6 +877,14 @@ export const votingSessionRelations = relations(votingSession, ({ one }) => ({
   marathon: one(marathons, {
     fields: [votingSession.marathonId],
     references: [marathons.id],
+  }),
+  participant: one(participants, {
+    fields: [votingSession.connectedParticipantId],
+    references: [participants.id],
+  }),
+  topic: one(topics, {
+    fields: [votingSession.topicId],
+    references: [topics.id],
   }),
   submissions: one(submissions, {
     fields: [votingSession.voteSubmissionId],

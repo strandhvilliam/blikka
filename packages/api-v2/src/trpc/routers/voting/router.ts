@@ -7,6 +7,8 @@ import {
   GetSubmissionVoteStatsSchema,
   CreateOrUpdateVotingSessionSchema,
   GetVotingSessionByParticipantSchema,
+  GetVotingAdminOverviewSchema,
+  CreateManualVotingSessionSchema,
   GetVotingSubmissionsSchema,
   SubmitVoteSchema,
 } from "./schemas";
@@ -65,6 +67,28 @@ export const votingRouter = createTRPCRouter({
           input,
         }) {
           return yield* VotingApiService.getVotingSessionByParticipant(input);
+        }),
+      ),
+    ),
+
+  getVotingAdminOverview: domainProcedure
+    .input(GetVotingAdminOverviewSchema)
+    .query(
+      trpcEffect(
+        Effect.fn("VotingRouter.getVotingAdminOverview")(function* ({ input }) {
+          return yield* VotingApiService.getVotingAdminOverview(input);
+        }),
+      ),
+    ),
+
+  createManualVotingSession: domainProcedure
+    .input(CreateManualVotingSessionSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("VotingRouter.createManualVotingSession")(function* ({
+          input,
+        }) {
+          return yield* VotingApiService.createManualVotingSession(input);
         }),
       ),
     ),

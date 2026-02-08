@@ -30,6 +30,7 @@ export const GetByDomainInfiniteInputSchema = Schema.standardSchemaV1(
     deviceGroupId: Schema.NullishOr(
       Schema.Union(Schema.Number, Schema.Array(Schema.Number)),
     ),
+    topicId: Schema.NullishOr(Schema.Number),
     statusFilter: Schema.NullishOr(
       Schema.Union(Schema.Literal("completed"), Schema.Literal("verified")),
     ),

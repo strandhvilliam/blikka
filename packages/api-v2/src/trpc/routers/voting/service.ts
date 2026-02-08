@@ -14,14 +14,104 @@ import {
 } from "../../utils/phone-number-encryption";
 import { randomBytes } from "crypto";
 
-// S3 URL builder - matches web-v2/src/lib/utils.ts
 const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com";
+
 function buildS3Url(
   bucketName: string,
   key: string | null | undefined,
 ): string | undefined {
   if (!key) return undefined;
   return `${AWS_S3_BASE_URL}/${bucketName}/${key}`;
+}
+
+function parseVotingWindow({
+  startsAt,
+  endsAt,
+}: {
+  startsAt: string;
+  endsAt: string;
+}): Effect.Effect<{ startsAtIso: string; endsAtIso: string }, VotingApiError> {
+  return Effect.gen(function* () {
+    const startsAtDate = new Date(startsAt);
+    const endsAtDate = new Date(endsAt);
+
+    if (Number.isNaN(startsAtDate.getTime())) {
+      return yield* Effect.fail(
+        new VotingApiError({
+          message: "Invalid startsAt timestamp",
+        }),
+      );
+    }
+
+    if (Number.isNaN(endsAtDate.getTime())) {
+      return yield* Effect.fail(
+        new VotingApiError({
+          message: "Invalid endsAt timestamp",
+        }),
+      );
+    }
+
+    if (startsAtDate >= endsAtDate) {
+      return yield* Effect.fail(
+        new VotingApiError({
+          message: "startsAt must be before endsAt",
+        }),
+      );
+    }
+
+    return {
+      startsAtIso: startsAtDate.toISOString(),
+      endsAtIso: endsAtDate.toISOString(),
+    };
+  });
+}
+
+function ensureSessionDomain(
+  votingSession: VotingSession & { marathon?: { domain: string } | null },
+  domain: string,
+): Effect.Effect<void, VotingApiError> {
+  if (
+    votingSession.marathon?.domain &&
+    votingSession.marathon.domain !== domain
+  ) {
+    return Effect.fail(
+      new VotingApiError({
+        message: "Voting session not found",
+      }),
+    );
+  }
+
+  return Effect.void;
+}
+
+function ensureVotingSessionWindow(
+  votingSession: Pick<VotingSession, "startsAt" | "endsAt">,
+): Effect.Effect<void, VotingApiError> {
+  const now = new Date();
+
+  if (votingSession.startsAt) {
+    const startsAt = new Date(votingSession.startsAt);
+    if (startsAt > now) {
+      return Effect.fail(
+        new VotingApiError({
+          message: "Voting session has not started yet",
+        }),
+      );
+    }
+  }
+
+  if (votingSession.endsAt) {
+    const endsAt = new Date(votingSession.endsAt);
+    if (endsAt < now) {
+      return Effect.fail(
+        new VotingApiError({
+          message: "Voting session has expired",
+        }),
+      );
+    }
+  }
+
+  return Effect.void;
 }
 
 export class VotingApiService extends Effect.Service<VotingApiService>()(
@@ -45,6 +135,26 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         "THUMBNAILS_BUCKET_NAME",
       );
 
+      const generateUniqueToken = Effect.fn(
+        "VotingApiService.generateUniqueToken",
+      )(function* ({
+        usedTokens = new Set<string>(),
+      }: { usedTokens?: Set<string> } = {}) {
+        while (true) {
+          const token = randomBytes(8).toString("base64url").slice(0, 8);
+          if (usedTokens.has(token)) {
+            continue;
+          }
+          const existing = yield* db.votingQueries.getVotingSessionByToken({
+            token,
+          });
+          if (Option.isNone(existing)) {
+            usedTokens.add(token);
+            return token;
+          }
+        }
+      });
+
       const getVotingSession = Effect.fn("VotingApiService.getVotingSession")(
         function* ({ token, domain }: { token: string; domain: string }) {
           const votingSessionResult =
@@ -60,29 +170,35 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
               ),
           });
 
-          if (votingSession.endsAt) {
-            const now = new Date();
-            const endsAt = new Date(votingSession.endsAt);
-            if (endsAt < now) {
-              return yield* Effect.fail(
-                new VotingApiError({
-                  message: "Voting session has expired",
-                }),
-              );
-            }
-          }
+          yield* ensureSessionDomain(votingSession, domain);
+          yield* ensureVotingSessionWindow(votingSession);
 
-
-          return votingSession
+          return votingSession;
         },
       );
 
       const startVotingSessions = Effect.fn(
         "VotingApiService.startVotingSessions",
-      )(function* ({ domain, topicId }: { domain: string, topicId: number }) {
-        const marathonOpt = yield* db.marathonsQueries.getMarathonByDomain({
-          domain,
+      )(function* ({
+        domain,
+        topicId,
+        startsAt,
+        endsAt,
+      }: {
+        domain: string;
+        topicId: number;
+        startsAt: string;
+        endsAt: string;
+      }) {
+        const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
+          startsAt,
+          endsAt,
         });
+
+        const marathonOpt =
+          yield* db.marathonsQueries.getMarathonByDomainWithOptions({
+            domain,
+          });
 
         const marathon = yield* Option.match(marathonOpt, {
           onSome: (m) => Effect.succeed(m),
@@ -102,38 +218,71 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           );
         }
 
-        const participants =
+        const activeTopic = marathon.topics.find(
+          (topic) => topic.orderIndex === 0,
+        );
+        if (!activeTopic || activeTopic.id !== topicId) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "Voting can only be started for the active by-camera topic",
+            }),
+          );
+        }
+
+        const existingCount =
+          yield* db.votingQueries.countVotingSessionsForTopic({
+            marathonId: marathon.id,
+            topicId,
+          });
+
+        if (existingCount > 0) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Voting sessions already exist for this topic",
+            }),
+          );
+        }
+
+        const participantsWithSubmissions =
           yield* db.votingQueries.getParticipantsWithSubmissionsByTopicId({
             marathonId: marathon.id,
             topicId,
           });
 
-
-        if (participants.length === 0) {
+        if (participantsWithSubmissions.length === 0) {
           return yield* Effect.fail(
             new VotingApiError({
-              message:
-                "No participants with submissions found for this marathon",
+              message: "No participants with submissions found for this topic",
             }),
           );
         }
 
-        const token = randomBytes(8).toString("base64url").slice(0, 8);
+        const usedTokens = new Set<string>();
+        const sessionsToCreate: NewVotingSession[] = yield* Effect.forEach(
+          participantsWithSubmissions,
+          (participant) =>
+            Effect.gen(function* () {
+              const token = yield* generateUniqueToken({ usedTokens });
 
-        const sessionsToCreate: NewVotingSession[] =
-          participants.map((p) => ({
-            token,
-            firstName: p.firstname,
-            lastName: p.lastname,
-            email: p.email ?? "",
-            phoneHash: p.phoneHash,
-            phoneEncrypted: p.phoneEncrypted,
-            marathonId: marathon.id,
-            voteSubmissionId: null,
-            connectedParticipantId: p.id,
-            notificationLastSentAt: null,
-            topicId,
-          }));
+              return {
+                token,
+                firstName: participant.firstname,
+                lastName: participant.lastname,
+                email: participant.email ?? "",
+                phoneHash: participant.phoneHash,
+                phoneEncrypted: participant.phoneEncrypted,
+                marathonId: marathon.id,
+                startsAt: startsAtIso,
+                endsAt: endsAtIso,
+                voteSubmissionId: null,
+                connectedParticipantId: participant.id,
+                notificationLastSentAt: null,
+                topicId,
+              } satisfies NewVotingSession;
+            }),
+          { concurrency: 1 },
+        );
 
         const createdSessions = yield* db.votingQueries.createVotingSessions({
           sessions: sessionsToCreate,
@@ -179,8 +328,11 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         });
 
         return {
+          topicId,
+          startsAt: startsAtIso,
+          endsAt: endsAtIso,
           sessionsCreated: createdSessions.length,
-          smsSent: smsResults.filter((r) => !("error" in r)).length,
+          smsSent: smsResults.filter((result) => !("error" in result)).length,
           smsResults,
         };
       });
@@ -194,7 +346,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         submissionId: number;
         domain: string;
       }) {
-        // Get vote stats
         const statsResult = yield* db.votingQueries.getSubmissionVoteStats({
           submissionId,
           domain,
@@ -210,7 +361,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             ),
         });
 
-        // Get participant vote info if submission has a participant
         const submission = yield* db.submissionsQueries.getSubmissionById({
           id: submissionId,
         });
@@ -221,8 +371,10 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           const voteInfoResult = yield* db.votingQueries.getParticipantVoteInfo(
             {
               participantId,
+              topicId: submission.value.topicId,
             },
           );
+
           if (Option.isSome(voteInfoResult)) {
             participantVoteInfo = voteInfoResult.value;
           }
@@ -245,9 +397,10 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         domain: string;
         topicId: number;
       }) {
-        const marathonOpt = yield* db.marathonsQueries.getMarathonByDomain({
-          domain,
-        });
+        const marathonOpt =
+          yield* db.marathonsQueries.getMarathonByDomainWithOptions({
+            domain,
+          });
 
         const marathon = yield* Option.match(marathonOpt, {
           onSome: (m) => Effect.succeed(m),
@@ -288,17 +441,18 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             participantId,
           });
 
-        if (submissions.length === 0) {
+        if (!submissions.some((submission) => submission.topicId === topicId)) {
           return yield* Effect.fail(
             new VotingApiError({
-              message: "Participant has no submissions",
+              message: "Participant has no submissions for this topic",
             }),
           );
         }
 
         const existingSessionOpt =
-          yield* db.votingQueries.getVotingSessionByParticipantId({
+          yield* db.votingQueries.getVotingSessionByParticipantAndTopicId({
             participantId,
+            topicId,
           });
 
         if (Option.isSome(existingSessionOpt)) {
@@ -311,27 +465,28 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           }
         }
 
-        const token = randomBytes(8).toString("base64url").slice(0, 8);
-        const now = new Date().toISOString();
+        const now = new Date();
+        const defaultEndsAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-        const sessionData = {
-          token,
+        const sessionData: NewVotingSession = {
+          token: yield* generateUniqueToken(),
           firstName: participant.firstname,
           lastName: participant.lastname,
           email: participant.email ?? "",
           phoneHash: participant.phoneHash,
           phoneEncrypted: participant.phoneEncrypted,
           marathonId: marathon.id,
+          startsAt: now.toISOString(),
+          endsAt: defaultEndsAt.toISOString(),
           voteSubmissionId: null,
           connectedParticipantId: participantId,
-          notificationLastSentAt: now,
+          notificationLastSentAt: now.toISOString(),
           topicId,
         };
 
         const session =
           yield* db.votingQueries.upsertVotingSession(sessionData);
 
-        // Send SMS if phone is available
         let smsResult = null;
         if (session.phoneEncrypted) {
           const smsResult_ = yield* Effect.gen(function* () {
@@ -373,10 +528,17 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
 
       const getVotingSessionByParticipant = Effect.fn(
         "VotingApiService.getVotingSessionByParticipant",
-      )(function* ({ participantId }: { participantId: number }) {
+      )(function* ({
+        participantId,
+        topicId,
+      }: {
+        participantId: number;
+        topicId: number;
+      }) {
         const sessionOpt =
-          yield* db.votingQueries.getVotingSessionByParticipantId({
+          yield* db.votingQueries.getVotingSessionByParticipantAndTopicId({
             participantId,
+            topicId,
           });
 
         return Option.match(sessionOpt, {
@@ -390,6 +552,260 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             hasSession: false as const,
           }),
         });
+      });
+
+      const getVotingAdminOverview = Effect.fn(
+        "VotingApiService.getVotingAdminOverview",
+      )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
+        const marathonOpt =
+          yield* db.marathonsQueries.getMarathonByDomainWithOptions({
+            domain,
+          });
+
+        const marathon = yield* Option.match(marathonOpt, {
+          onSome: (m) => Effect.succeed(m),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: `Marathon not found for domain ${domain}`,
+              }),
+            ),
+        });
+
+        if (marathon.mode !== "by-camera") {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: `Marathon '${marathon.domain}' is not in by-camera mode`,
+            }),
+          );
+        }
+
+        const topic = marathon.topics.find((item) => item.id === topicId);
+        if (!topic) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Topic not found",
+            }),
+          );
+        }
+
+        const sessions = yield* db.votingQueries.getVotingSessionsForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
+
+        const leaderboardRows =
+          yield* db.votingQueries.getSubmissionVoteLeaderboardForTopic({
+            marathonId: marathon.id,
+            topicId,
+          });
+
+        const voteCountByValue = leaderboardRows.reduce((acc, row) => {
+          acc.set(row.voteCount, (acc.get(row.voteCount) ?? 0) + 1);
+          return acc;
+        }, new Map<number, number>());
+
+        let currentRank = 0;
+        let previousVoteCount: number | null = null;
+
+        const rankedLeaderboard = leaderboardRows.map((row, index) => {
+          if (
+            previousVoteCount === null ||
+            row.voteCount !== previousVoteCount
+          ) {
+            currentRank = index + 1;
+            previousVoteCount = row.voteCount;
+          }
+
+          const tieSize = voteCountByValue.get(row.voteCount) ?? 1;
+
+          return {
+            rank: currentRank,
+            submissionId: row.submissionId,
+            submissionCreatedAt: row.submissionCreatedAt,
+            submissionKey: row.submissionKey,
+            submissionThumbnailKey: row.submissionThumbnailKey,
+            participantId: row.participantId,
+            participantFirstName: row.participantFirstName,
+            participantLastName: row.participantLastName,
+            participantReference: row.participantReference,
+            voteCount: row.voteCount,
+            isTie: tieSize > 1,
+            tieSize,
+          };
+        });
+
+        const tieGroups = Array.from(voteCountByValue.entries())
+          .filter(([, size]) => size > 1)
+          .map(([voteCount]) => {
+            const rowsForVoteCount = rankedLeaderboard.filter(
+              (entry) => entry.voteCount === voteCount,
+            );
+
+            return {
+              voteCount,
+              rank: rowsForVoteCount[0]?.rank ?? 0,
+              submissionIds: rowsForVoteCount.map(
+                (entry) => entry.submissionId,
+              ),
+            };
+          })
+          .sort((a, b) => a.rank - b.rank);
+
+        const topRanks = Array.from(
+          rankedLeaderboard.reduce((acc, row) => {
+            if (!acc.has(row.rank)) {
+              acc.set(row.rank, [] as typeof rankedLeaderboard);
+            }
+            acc.get(row.rank)!.push(row);
+            return acc;
+          }, new Map<number, Array<(typeof rankedLeaderboard)[number]>>()),
+        )
+          .sort(([rankA], [rankB]) => rankA - rankB)
+          .slice(0, 3)
+          .map(([rank, entries]) => ({
+            rank,
+            entries,
+          }));
+
+        const completedSessions = sessions.filter(
+          (session) => session.votedAt !== null,
+        );
+        const manualSessions = sessions.filter(
+          (session) => session.connectedParticipantId === null,
+        );
+
+        return {
+          topic: {
+            id: topic.id,
+            name: topic.name,
+            orderIndex: topic.orderIndex,
+            activatedAt: topic.activatedAt,
+          },
+          votingWindow: {
+            startsAt: sessions[0]?.startsAt ?? null,
+            endsAt: sessions[0]?.endsAt ?? null,
+          },
+          sessionStats: {
+            total: sessions.length,
+            completed: completedSessions.length,
+            pending: sessions.length - completedSessions.length,
+            participantSessions: sessions.length - manualSessions.length,
+            manualSessions: manualSessions.length,
+          },
+          voteStats: {
+            totalVotes: completedSessions.length,
+          },
+          topRanks,
+          tieGroups,
+          leaderboard: rankedLeaderboard,
+        };
+      });
+
+      const createManualVotingSession = Effect.fn(
+        "VotingApiService.createManualVotingSession",
+      )(function* ({
+        domain,
+        topicId,
+        firstName,
+        lastName,
+        email,
+        startsAt,
+        endsAt,
+      }: {
+        domain: string;
+        topicId: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+        startsAt: string;
+        endsAt: string;
+      }) {
+        const parsedFirstName = firstName.trim();
+        const parsedLastName = lastName.trim();
+        const parsedEmail = email.trim();
+
+        if (!parsedFirstName || !parsedLastName || !parsedEmail) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "First name, last name and email are required",
+            }),
+          );
+        }
+
+        const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
+          startsAt,
+          endsAt,
+        });
+
+        const marathonOpt =
+          yield* db.marathonsQueries.getMarathonByDomainWithOptions({
+            domain,
+          });
+
+        const marathon = yield* Option.match(marathonOpt, {
+          onSome: (m) => Effect.succeed(m),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: `Marathon not found for domain ${domain}`,
+              }),
+            ),
+        });
+
+        if (marathon.mode !== "by-camera") {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: `Marathon '${marathon.domain}' is not in by-camera mode`,
+            }),
+          );
+        }
+
+        const activeTopic = marathon.topics.find(
+          (topic) => topic.orderIndex === 0,
+        );
+        if (!activeTopic || activeTopic.id !== topicId) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "Manual invites are only allowed on the active by-camera topic",
+            }),
+          );
+        }
+
+        const created = yield* db.votingQueries.createVotingSessions({
+          sessions: [
+            {
+              token: yield* generateUniqueToken(),
+              firstName: parsedFirstName,
+              lastName: parsedLastName,
+              email: parsedEmail,
+              phoneHash: null,
+              phoneEncrypted: null,
+              marathonId: marathon.id,
+              startsAt: startsAtIso,
+              endsAt: endsAtIso,
+              voteSubmissionId: null,
+              connectedParticipantId: null,
+              notificationLastSentAt: null,
+              topicId,
+            },
+          ],
+        });
+
+        const createdSession = created[0];
+        if (!createdSession) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to create manual voting session",
+            }),
+          );
+        }
+
+        return {
+          session: createdSession,
+          votingUrl: `https://${domain}.blikka.app/live/vote/${createdSession.token}`,
+        };
       });
 
       const getVotingSubmissions = Effect.fn(
@@ -408,6 +824,8 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             ),
         });
 
+        yield* ensureSessionDomain(votingSession, domain);
+
         if (votingSession.votedAt && votingSession.voteSubmissionId) {
           return {
             alreadyVoted: true,
@@ -425,35 +843,29 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           };
         }
 
-        if (votingSession.endsAt) {
-          const now = new Date();
-          const endsAt = new Date(votingSession.endsAt);
-          if (endsAt < now) {
-            return yield* Effect.fail(
-              new VotingApiError({
-                message: "Voting session has expired",
-              }),
-            );
-          }
-        }
+        yield* ensureVotingSessionWindow(votingSession);
 
-
-        // Get all submissions for the marathon
         const submissions = yield* db.votingQueries.getSubmissionsForVoting({
           marathonId: votingSession.marathonId,
           topicId: votingSession.topicId,
         });
 
         const votingSubmissions = submissions
-          .filter((s) => s.key)
-          .map((s) => ({
-            submissionId: s.id,
-            participantId: s.participantId,
-            url: buildS3Url(submissionsBucketName, s.key),
-            thumbnailUrl: buildS3Url(thumbnailsBucketName, s.thumbnailKey),
-            previewUrl: buildS3Url(submissionsBucketName, s.previewKey),
-            topicId: s.topicId,
-            topicName: s.topic?.name ?? "",
+          .filter((submission) => submission.key)
+          .map((submission) => ({
+            submissionId: submission.id,
+            participantId: submission.participantId,
+            url: buildS3Url(submissionsBucketName, submission.key),
+            thumbnailUrl: buildS3Url(
+              thumbnailsBucketName,
+              submission.thumbnailKey,
+            ),
+            previewUrl: buildS3Url(
+              submissionsBucketName,
+              submission.previewKey,
+            ),
+            topicId: submission.topicId,
+            topicName: submission.topic?.name ?? "",
           }));
 
         return {
@@ -481,7 +893,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         submissionId: number;
         domain: string;
       }) {
-        // Validate voting session exists and hasn't expired
         const votingSessionResult =
           yield* db.votingQueries.getVotingSessionByToken({ token });
 
@@ -495,7 +906,8 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             ),
         });
 
-        // Check if already voted
+        yield* ensureSessionDomain(votingSession, domain);
+
         if (votingSession.votedAt) {
           return {
             success: false as const,
@@ -504,34 +916,31 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           };
         }
 
-        // Check session hasn't expired
-        if (votingSession.endsAt) {
-          const now = new Date();
-          const endsAt = new Date(votingSession.endsAt);
-          if (endsAt < now) {
-            return yield* Effect.fail(
-              new VotingApiError({
-                message: "Voting session has expired",
-              }),
-            );
-          }
-        }
+        yield* ensureVotingSessionWindow(votingSession);
 
-        // Validate the submission exists and belongs to the same marathon
         const submission = yield* db.submissionsQueries.getSubmissionById({
           id: submissionId,
         });
 
-        const validSubmission = yield* Option.match(submission, {
-          onSome: (s) => {
-            if (s.marathonId !== votingSession.marathonId) {
+        yield* Option.match(submission, {
+          onSome: (resolvedSubmission) => {
+            if (resolvedSubmission.marathonId !== votingSession.marathonId) {
               return Effect.fail(
                 new VotingApiError({
                   message: "Submission does not belong to this marathon",
                 }),
               );
             }
-            return Effect.succeed(s);
+
+            if (resolvedSubmission.topicId !== votingSession.topicId) {
+              return Effect.fail(
+                new VotingApiError({
+                  message: "Submission does not belong to this voting topic",
+                }),
+              );
+            }
+
+            return Effect.void;
           },
           onNone: () =>
             Effect.fail(
@@ -541,7 +950,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             ),
         });
 
-        // Record the vote
         const updatedSession = yield* db.votingQueries.recordVote({
           token,
           submissionId,
@@ -568,10 +976,11 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         getSubmissionVoteStats,
         createOrUpdateVotingSessionForParticipant,
         getVotingSessionByParticipant,
+        getVotingAdminOverview,
+        createManualVotingSession,
         getVotingSubmissions,
         submitVote,
       } as const;
     }),
   },
-) {
-}
+) {}

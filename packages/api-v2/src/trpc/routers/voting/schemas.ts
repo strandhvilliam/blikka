@@ -6,8 +6,7 @@ export class VotingApiError extends Schema.TaggedError<VotingApiError>()(
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
-) {
-}
+) {}
 
 export const GetVotingSessionSchema = Schema.standardSchemaV1(
   Schema.Struct({
@@ -20,6 +19,8 @@ export const StartVotingSessionsSchema = Schema.standardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     topicId: Schema.Number,
+    startsAt: Schema.String,
+    endsAt: Schema.String,
   }),
 );
 
@@ -41,7 +42,27 @@ export const CreateOrUpdateVotingSessionSchema = Schema.standardSchemaV1(
 export const GetVotingSessionByParticipantSchema = Schema.standardSchemaV1(
   Schema.Struct({
     participantId: Schema.Number,
+    topicId: Schema.Number,
     domain: Schema.String,
+  }),
+);
+
+export const GetVotingAdminOverviewSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+  }),
+);
+
+export const CreateManualVotingSessionSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+    firstName: Schema.String,
+    lastName: Schema.String,
+    email: Schema.String,
+    startsAt: Schema.String,
+    endsAt: Schema.String,
   }),
 );
 

@@ -1,6 +1,11 @@
 import { decodeParams, Page } from "@/lib/next-utils";
 import { Effect, Schema } from "effect";
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server";
+import {
+  fetchEffectQuery,
+  HydrateClient,
+  prefetch,
+  trpc,
+} from "@/lib/trpc/server";
 import { SubmissionsTable } from "./_components/submissions-table";
 import { Suspense } from "react";
 import { loadSubmissionSearchParams } from "./_lib/search-params";
@@ -12,6 +17,15 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
     const { domain } = yield* decodeParams(
       Schema.Struct({ domain: Schema.String }),
     )(params);
+    const marathon = yield* fetchEffectQuery(
+      trpc.marathons.getByDomain.queryOptions({
+        domain,
+      }),
+    );
+    const activeByCameraTopicId =
+      marathon.mode === "by-camera"
+        ? marathon.topics.find((topic) => topic.orderIndex === 0)?.id
+        : null;
     const queryParams = yield* Effect.tryPromise(() =>
       loadSubmissionSearchParams(searchParams),
     );
@@ -24,6 +38,7 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
         sortOrder: queryParams.sortOrder,
         competitionClassId: queryParams.competitionClassId,
         deviceGroupId: queryParams.deviceGroupId,
+        topicId: activeByCameraTopicId,
         statusFilter: null,
         excludeStatuses: null,
         hasValidationErrors: null,

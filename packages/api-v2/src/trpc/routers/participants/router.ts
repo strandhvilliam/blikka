@@ -45,6 +45,7 @@ export const participantRouter = createTRPCRouter({
             sortOrder: input.sortOrder ?? undefined,
             competitionClassId: input.competitionClassId ?? undefined,
             deviceGroupId: input.deviceGroupId ?? undefined,
+            topicId: input.topicId ?? undefined,
             statusFilter: input.statusFilter ?? undefined,
             excludeStatuses: input.excludeStatuses
               ? [...input.excludeStatuses]

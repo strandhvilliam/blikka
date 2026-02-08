@@ -103,6 +103,7 @@ export function SubmissionMetadataPanel({
         queryClient.invalidateQueries({
           queryKey: trpc.voting.getVotingSessionByParticipant.queryKey({
             participantId: participant.id,
+            topicId: activeByCameraTopic?.id ?? 0,
             domain,
           }),
         });
@@ -114,7 +115,6 @@ export function SubmissionMetadataPanel({
   );
 
   const handleCreateOrUpdateVotingSession = () => {
-
     if (!activeByCameraTopic) {
       toast.error("No active by-camera topic found");
       return;
@@ -186,7 +186,7 @@ export function SubmissionMetadataPanel({
                 <div className="flex items-start gap-2.5">
                   <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center min-w-[28px]">
                     {participant.competitionClass?.numberOfPhotos !==
-                      undefined ? (
+                    undefined ? (
                       <span className="text-xs font-semibold">
                         {participant.competitionClass.numberOfPhotos}
                       </span>
@@ -281,7 +281,7 @@ export function SubmissionMetadataPanel({
                 )}
                 {voteStats.participantVoteInfo.votedSubmissionId &&
                   voteStats.participantVoteInfo.votedSubmissionId !==
-                  submission.id && (
+                    submission.id && (
                     <Link
                       href={formatDomainPathname(
                         `/admin/dashboard/submissions/${participant.reference}/${voteStats.participantVoteInfo.votedSubmissionId}`,

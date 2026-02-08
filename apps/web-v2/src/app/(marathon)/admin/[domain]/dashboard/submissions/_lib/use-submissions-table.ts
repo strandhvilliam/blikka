@@ -29,6 +29,10 @@ export function useSubmissionsTable() {
     trpc.marathons.getByDomain.queryOptions({ domain }),
   );
   const [sorting, setSorting] = useState<SortingState>([]);
+  const activeByCameraTopicId =
+    marathon?.mode === "by-camera"
+      ? marathon.topics.find((topic) => topic.orderIndex === 0)?.id
+      : undefined;
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
@@ -116,6 +120,7 @@ export function useSubmissionsTable() {
         sortOrder: sortOrder || null,
         competitionClassId: normalizedCompetitionClassId ?? null,
         deviceGroupId: normalizedDeviceGroupId ?? null,
+        topicId: activeByCameraTopicId ?? null,
         statusFilter: tabQueryParams.statusFilter,
         excludeStatuses: tabQueryParams.excludeStatuses,
         hasValidationErrors: tabQueryParams.hasValidationErrors,
@@ -315,6 +320,7 @@ export function useSubmissionsTable() {
       sortOrder: sortOrder || null,
       competitionClassId: normalizedCompetitionClassId ?? null,
       deviceGroupId: normalizedDeviceGroupId ?? null,
+      topicId: activeByCameraTopicId ?? null,
       statusFilter: tabQueryParams.statusFilter,
       excludeStatuses: tabQueryParams.excludeStatuses,
       hasValidationErrors: tabQueryParams.hasValidationErrors,

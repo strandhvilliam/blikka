@@ -83,6 +83,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         sortOrder = "desc",
         competitionClassId,
         deviceGroupId,
+        topicId,
         statusFilter,
         excludeStatuses,
         hasValidationErrors,
@@ -94,6 +95,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         sortOrder?: "asc" | "desc";
         competitionClassId?: number | number[] | readonly number[];
         deviceGroupId?: number | number[] | readonly number[];
+        topicId?: number;
         statusFilter?: "completed" | "verified";
         excludeStatuses?: string[];
         hasValidationErrors?: boolean;
@@ -207,11 +209,13 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             competitionClass: true,
             deviceGroup: true,
             validationResults: true,
-            votingSession: {
+            votingSessions: {
               columns: {
                 token: true,
                 voteSubmissionId: true,
                 votedAt: true,
+                topicId: true,
+                createdAt: true,
               },
             },
             zippedSubmissions: {
@@ -265,9 +269,20 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             validationResults,
             zippedSubmissions,
             contactSheets,
+            votingSessions,
             ...rest
           }) => ({
             ...rest,
+            votingSession:
+              votingSessions
+                .filter((session) =>
+                  topicId !== undefined ? session.topicId === topicId : true,
+                )
+                .sort(
+                  (left, right) =>
+                    new Date(right.createdAt).getTime() -
+                    new Date(left.createdAt).getTime(),
+                )[0] ?? null,
             zipKeys: zippedSubmissions.map((zs) => zs.key),
             contactSheetKeys: contactSheets.map((cs) => cs.key),
             failedValidationResults: countValidationResults(
