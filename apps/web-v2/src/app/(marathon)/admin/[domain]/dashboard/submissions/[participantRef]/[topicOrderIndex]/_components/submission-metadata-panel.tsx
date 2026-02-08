@@ -70,9 +70,11 @@ interface SubmissionMetadataPanelProps {
   voteStats?: VoteStats;
   votingSessionData?: VotingSessionData;
   domain: string;
+  topics: Topic[];
 }
 
 export function SubmissionMetadataPanel({
+  topics,
   submission,
   participant,
   hasIssues,
@@ -85,6 +87,8 @@ export function SubmissionMetadataPanel({
   const isByCameraMode = marathonMode === "by-camera";
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+
+  const activeByCameraTopic = topics.find((t) => t.orderIndex === 0);
 
   const createOrUpdateVotingSessionMutation = useMutation(
     trpc.voting.createOrUpdateVotingSession.mutationOptions({
@@ -110,8 +114,15 @@ export function SubmissionMetadataPanel({
   );
 
   const handleCreateOrUpdateVotingSession = () => {
+
+    if (!activeByCameraTopic) {
+      toast.error("No active by-camera topic found");
+      return;
+    }
+
     createOrUpdateVotingSessionMutation.mutate({
       participantId: participant.id,
+      topicId: activeByCameraTopic.id,
       domain,
     });
   };
@@ -175,7 +186,7 @@ export function SubmissionMetadataPanel({
                 <div className="flex items-start gap-2.5">
                   <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center min-w-[28px]">
                     {participant.competitionClass?.numberOfPhotos !==
-                    undefined ? (
+                      undefined ? (
                       <span className="text-xs font-semibold">
                         {participant.competitionClass.numberOfPhotos}
                       </span>
@@ -270,7 +281,7 @@ export function SubmissionMetadataPanel({
                 )}
                 {voteStats.participantVoteInfo.votedSubmissionId &&
                   voteStats.participantVoteInfo.votedSubmissionId !==
-                    submission.id && (
+                  submission.id && (
                     <Link
                       href={formatDomainPathname(
                         `/admin/dashboard/submissions/${participant.reference}/${voteStats.participantVoteInfo.votedSubmissionId}`,

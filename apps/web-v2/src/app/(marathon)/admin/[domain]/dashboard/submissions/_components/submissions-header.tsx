@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryState, useQueryStates } from "nuqs";
 import { submissionSearchParams } from "../_lib/search-params";
 import { useTRPC } from "@/lib/trpc/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -46,6 +46,12 @@ export function SubmissionsHeader({ domain }: SubmissionsHeaderProps) {
     setQueryState({ tab });
   };
 
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({
+      domain,
+    }),
+  );
+
   const { mutate: startVotingSessions, isPending: isStartingVoting } =
     useMutation(
       trpc.voting.startVotingSessions.mutationOptions({
@@ -61,7 +67,15 @@ export function SubmissionsHeader({ domain }: SubmissionsHeaderProps) {
     );
 
   const handleStartVoting = () => {
-    startVotingSessions({ domain });
+
+    const activeByCameraTopic = marathon.topics.find((t) => t.orderIndex === 0);
+
+    if (!activeByCameraTopic) {
+      toast.error("No active by-camera topic found");
+      return;
+    }
+
+    startVotingSessions({ domain, topicId: activeByCameraTopic.id });
   };
 
   const tabs: { value: Tab; label: string }[] = [

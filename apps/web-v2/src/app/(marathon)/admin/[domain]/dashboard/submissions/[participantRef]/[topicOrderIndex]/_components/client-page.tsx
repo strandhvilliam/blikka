@@ -55,6 +55,7 @@ export function ParticipantTopicSubmissionClientPage({
     }),
   );
 
+
   const submission = participant?.submissions.find(
     (s) => s.topic?.orderIndex === topicOrderIndex,
   );
@@ -183,6 +184,7 @@ export function ParticipantTopicSubmissionClientPage({
             voteStats={voteStats}
             votingSessionData={votingSessionData}
             domain={domain}
+            topics={marathon.topics}
           />
         </div>
       </div>
