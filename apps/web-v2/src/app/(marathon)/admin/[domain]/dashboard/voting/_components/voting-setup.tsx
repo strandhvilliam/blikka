@@ -1,30 +1,30 @@
-import { useState } from "react";
-import { addHours } from "date-fns";
-import { Loader2, Vote, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { toast } from "sonner";
+import { useState } from "react"
+import { addHours } from "date-fns"
+import { Loader2, Vote, AlertTriangle, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   toDateTimeLocalValue,
   toIsoFromLocal,
   hasValidDateRange,
-} from "./voting-utils";
+} from "../_lib/utils"
 
 interface VotingSetupProps {
-  topicName: string;
-  submissionCount: number;
-  participantWithSubmissionCount: number;
-  onStartVoting: (startsAt: string, endsAt: string) => Promise<void>;
-  isStarting: boolean;
+  topicName: string
+  submissionCount: number
+  participantWithSubmissionCount: number
+  onStartVoting: (startsAt: string, endsAt: string) => Promise<void>
+  isStarting: boolean
 }
 
 export function VotingSetup({
@@ -36,38 +36,38 @@ export function VotingSetup({
 }: VotingSetupProps) {
   const [startsAtInput, setStartsAtInput] = useState(() =>
     toDateTimeLocalValue(new Date()),
-  );
+  )
   const [endsAtInput, setEndsAtInput] = useState(() =>
     toDateTimeLocalValue(addHours(new Date(), 24)),
-  );
+  )
 
-  const launchStartsAtIso = toIsoFromLocal(startsAtInput);
-  const launchEndsAtIso = toIsoFromLocal(endsAtInput);
+  const launchStartsAtIso = toIsoFromLocal(startsAtInput)
+  const launchEndsAtIso = toIsoFromLocal(endsAtInput)
   const canStartVoting =
     submissionCount > 0 &&
-    hasValidDateRange(launchStartsAtIso, launchEndsAtIso);
+    hasValidDateRange(launchStartsAtIso, launchEndsAtIso)
 
   const handleStartVoting = () => {
-    const startsAtIso = toIsoFromLocal(startsAtInput);
-    const endsAtIso = toIsoFromLocal(endsAtInput);
+    const startsAtIso = toIsoFromLocal(startsAtInput)
+    const endsAtIso = toIsoFromLocal(endsAtInput)
 
     if (!startsAtIso || !endsAtIso) {
-      toast.error("Please provide valid start and end timestamps");
-      return;
+      toast.error("Please provide valid start and end timestamps")
+      return
     }
 
     if (!hasValidDateRange(startsAtIso, endsAtIso)) {
-      toast.error("End timestamp must be later than start timestamp");
-      return;
+      toast.error("End timestamp must be later than start timestamp")
+      return
     }
 
     if (submissionCount === 0) {
-      toast.error("No submissions are available for this topic");
-      return;
+      toast.error("No submissions are available for this topic")
+      return
     }
 
-    onStartVoting(startsAtIso, endsAtIso);
-  };
+    onStartVoting(startsAtIso, endsAtIso)
+  }
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.2fr_1fr]">
@@ -191,5 +191,5 @@ export function VotingSetup({
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

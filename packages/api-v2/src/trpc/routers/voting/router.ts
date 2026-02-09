@@ -14,6 +14,8 @@ import {
   ResendVotingSessionNotificationSchema,
   GetVotingSubmissionsSchema,
   SubmitVoteSchema,
+  ClearVoteSchema,
+  DeleteVotingSessionSchema,
 } from "./schemas";
 import { trpcEffect } from "../../utils";
 import { createTRPCRouter, domainProcedure, publicProcedure } from "../../root";
@@ -145,4 +147,22 @@ export const votingRouter = createTRPCRouter({
       }),
     ),
   ),
+
+  clearVote: domainProcedure.input(ClearVoteSchema).mutation(
+    trpcEffect(
+      Effect.fn("VotingRouter.clearVote")(function* ({ input }) {
+        return yield* VotingApiService.clearVote(input);
+      }),
+    ),
+  ),
+
+  deleteVotingSession: domainProcedure
+    .input(DeleteVotingSessionSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("VotingRouter.deleteVotingSession")(function* ({ input }) {
+          return yield* VotingApiService.deleteVotingSession(input);
+        }),
+      ),
+    ),
 });

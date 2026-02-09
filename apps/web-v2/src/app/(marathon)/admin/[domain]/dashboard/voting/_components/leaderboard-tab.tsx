@@ -1,4 +1,5 @@
 import { Medal, RefreshCw } from "lucide-react"
+import { useRouter } from "next/navigation"
 import {
   Card,
   CardContent,
@@ -16,13 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { formatDateTime, getSubmissionImageUrl } from "./voting-utils"
+import { formatDateTime, getSubmissionImageUrl } from "../_lib/utils"
+import { useDomain } from "@/lib/domain-provider"
 
 interface LeaderboardEntry {
   submissionId: number
   participantId: number
   participantFirstName: string
   participantLastName: string
+  participantReference: string
   rank: number
   voteCount: number
   isTie: boolean
@@ -60,6 +63,15 @@ export function LeaderboardTab({
   onPreviousPage,
   onNextPage,
 }: LeaderboardTabProps) {
+  const router = useRouter()
+  const domain = useDomain()
+
+  const handleRowClick = (entry: LeaderboardEntry) => {
+    router.push(
+      `/admin/${domain}/dashboard/submissions/${entry.participantReference}/${entry.submissionId}`,
+    )
+  }
+
   const topCardEntries = topRanks
     .flatMap((rankGroup) =>
       [...rankGroup.entries].sort((entryA, entryB) => {
@@ -92,24 +104,29 @@ export function LeaderboardTab({
 
 
   const getMedalTone = (rank: number) => {
-    if (rank === 1) return "text-amber-500"
-    if (rank === 2) return "text-slate-500"
-    if (rank === 3) return "text-orange-500"
-    return "text-muted-foreground"
+    switch (rank) {
+      case 1:
+        return "text-amber-500"
+      case 2:
+        return "text-slate-500"
+      case 3:
+        return "text-orange-500"
+      default:
+        return "text-muted-foreground"
+    }
   }
 
   const getRankBadgeClass = (rank: number) => {
-    if (rank === 1) {
-      return "border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 text-amber-800 shadow-amber-200/80"
+    switch (rank) {
+      case 1:
+        return "border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 text-amber-800 shadow-amber-200/80"
+      case 2:
+        return "border-slate-300 bg-gradient-to-b from-slate-100 to-slate-50 text-slate-700 shadow-slate-200/80"
+      case 3:
+        return "border-orange-300 bg-gradient-to-b from-orange-100 to-orange-50 text-orange-800 shadow-orange-200/80"
+      default:
+        return "border-zinc-300 bg-gradient-to-b from-zinc-100 to-zinc-50 text-zinc-700 shadow-zinc-200/70"
     }
-    if (rank === 2) {
-      return "border-slate-300 bg-gradient-to-b from-slate-100 to-slate-50 text-slate-700 shadow-slate-200/80"
-    }
-    if (rank === 3) {
-      return "border-orange-300 bg-gradient-to-b from-orange-100 to-orange-50 text-orange-800 shadow-orange-200/80"
-    }
-
-    return "border-zinc-300 bg-gradient-to-b from-zinc-100 to-zinc-50 text-zinc-700 shadow-zinc-200/70"
   }
 
   return (
@@ -143,7 +160,9 @@ export function LeaderboardTab({
                   return (
                     <div
                       key={`top-card-${cardIndex}`}
-                      className="relative overflow-hidden rounded-2xl border border-border/70 bg-white p-4"
+                      className={`relative overflow-hidden rounded-2xl border border-border/70 bg-white p-4 ${entry ? "cursor-pointer hover:shadow-md transition-shadow" : ""
+                        }`}
+                      onClick={entry ? () => handleRowClick(entry) : undefined}
                     >
                       {entry ? (
                         <>
@@ -161,7 +180,7 @@ export function LeaderboardTab({
                                 {getDisplayName(entry)}
                               </p>
                               <p className="truncate text-xs text-muted-foreground">
-                                Submission Id #{entry.submissionId}
+                                #{entry.participantReference}
                               </p>
                             </div>
                             <div className="flex ml-auto items-center justify-between">
@@ -200,7 +219,7 @@ export function LeaderboardTab({
                             {imageUrl ? (
                               <img
                                 src={imageUrl}
-                                alt={`Submission ${entry.submissionId}`}
+                                alt={`Participant ${entry.participantReference} submission ${entry.submissionId}`}
                                 className="aspect-[16/9] w-full object-cover"
                               />
                             ) : (
@@ -240,7 +259,7 @@ export function LeaderboardTab({
                         Participant
                       </TableHead>
                       <TableHead className="h-10 px-4 text-xs font-semibold">
-                        Submission
+                        Reference
                       </TableHead>
                       <TableHead className="h-10 px-4 text-xs font-semibold">
                         Uploaded
@@ -269,7 +288,8 @@ export function LeaderboardTab({
                         return (
                           <TableRow
                             key={entry.submissionId}
-                            className="border-b border-border/70 hover:bg-amber-50/30"
+                            className="border-b border-border/70 hover:bg-muted/30 cursor-pointer"
+                            onClick={() => handleRowClick(entry)}
                           >
                             <TableCell className="px-4 py-3 font-semibold">
                               {entry.rank}
@@ -290,7 +310,7 @@ export function LeaderboardTab({
                               </div>
                             </TableCell>
                             <TableCell className="px-4 py-3 font-medium">
-                              #{entry.submissionId}
+                              {entry.participantReference}
                             </TableCell>
                             <TableCell className="px-4 py-3 text-muted-foreground">
                               {formatDateTime(entry.submissionCreatedAt)}

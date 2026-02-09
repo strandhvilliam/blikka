@@ -813,6 +813,18 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             }),
           ]);
 
+          type VoteSubmissionDetails = {
+            id: number;
+            key: string;
+            thumbnailKey: string | null;
+            createdAt: string;
+            participant?: {
+              reference: string;
+              firstname: string;
+              lastname: string;
+            } | null;
+          };
+
           const items = yield* Effect.forEach(
             sessions,
             (session) =>
@@ -825,6 +837,12 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
                       .pipe(Effect.catchAll(() => Effect.succeed(null)))
                   : null;
 
+                const voteSubmission =
+                  "submissions" in session
+                    ? (session as { submissions?: VoteSubmissionDetails | null })
+                        .submissions ?? null
+                    : null;
+
                 return {
                   sessionId: session.id,
                   firstName: session.firstName,
@@ -835,6 +853,17 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
                   notificationLastSentAt: session.notificationLastSentAt,
                   connectedParticipantId: session.connectedParticipantId,
                   votedAt: session.votedAt,
+                  voteSubmission: voteSubmission
+                    ? {
+                        submissionId: voteSubmission.id,
+                        participantReference: voteSubmission.participant?.reference ?? null,
+                        participantFirstName: voteSubmission.participant?.firstname ?? null,
+                        participantLastName: voteSubmission.participant?.lastname ?? null,
+                        thumbnailKey: voteSubmission.thumbnailKey,
+                        key: voteSubmission.key,
+                        createdAt: voteSubmission.createdAt,
+                      }
+                    : null,
                 };
               }),
             { concurrency: 5 },
@@ -1180,6 +1209,104 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         };
       });
 
+      const clearVote = Effect.fn("VotingApiService.clearVote")(function* ({
+        domain,
+        topicId,
+        sessionId,
+      }: {
+        domain: string;
+        topicId: number;
+        sessionId: number;
+      }) {
+        const { marathon } = yield* getByCameraMarathonWithTopic({
+          domain,
+          topicId,
+        });
+
+        const sessionResult =
+          yield* db.votingQueries.getVotingSessionByIdForTopic({
+            marathonId: marathon.id,
+            topicId,
+            sessionId,
+          });
+
+        const session = yield* Option.match(sessionResult, {
+          onSome: (s) => Effect.succeed(s),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: "Voting session not found",
+              }),
+            ),
+        });
+
+        yield* ensureSessionDomain(session, domain);
+
+        const updatedSession = yield* db.votingQueries.clearVote({
+          sessionId,
+        });
+
+        if (!updatedSession) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to clear vote",
+            }),
+          );
+        }
+
+        return { success: true as const };
+      });
+
+      const deleteVotingSession = Effect.fn(
+        "VotingApiService.deleteVotingSession",
+      )(function* ({
+        domain,
+        topicId,
+        sessionId,
+      }: {
+        domain: string;
+        topicId: number;
+        sessionId: number;
+      }) {
+        const { marathon } = yield* getByCameraMarathonWithTopic({
+          domain,
+          topicId,
+        });
+
+        const sessionResult =
+          yield* db.votingQueries.getVotingSessionByIdForTopic({
+            marathonId: marathon.id,
+            topicId,
+            sessionId,
+          });
+
+        const session = yield* Option.match(sessionResult, {
+          onSome: (s) => Effect.succeed(s),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: "Voting session not found",
+              }),
+            ),
+        });
+
+        yield* ensureSessionDomain(session, domain);
+
+        const deletedSession = yield* db.votingQueries.deleteVotingSession({
+          sessionId,
+        });
+
+        if (!deletedSession) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to delete voting session",
+            }),
+          );
+        }
+
+        return { success: true as const };
+      });
+
       return {
         getVotingSession,
         startVotingSessions,
@@ -1193,6 +1320,8 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         resendVotingSessionNotification,
         getVotingSubmissions,
         submitVote,
+        clearVote,
+        deleteVotingSession,
       } as const;
     }),
   },

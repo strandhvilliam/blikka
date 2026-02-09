@@ -110,3 +110,19 @@ export const SubmitVoteSchema = Schema.standardSchemaV1(
     domain: Schema.String,
   }),
 );
+
+export const ClearVoteSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+    sessionId: Schema.Number,
+  }),
+);
+
+export const DeleteVotingSessionSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+    sessionId: Schema.Number,
+  }),
+);

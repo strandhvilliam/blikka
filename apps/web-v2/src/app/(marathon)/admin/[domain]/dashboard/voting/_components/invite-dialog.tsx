@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { addHours } from "date-fns";
-import { Copy, Loader2, Trophy } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react"
+import { addHours } from "date-fns"
+import { Copy, Loader2, Trophy } from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -10,30 +10,30 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   toDateTimeLocalValue,
   toIsoFromLocal,
   hasValidDateRange,
-} from "./voting-utils";
+} from "../_lib/utils"
 
 interface InviteDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onCreateInvite: (data: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    startsAt: string;
-    endsAt: string;
-  }) => void;
-  createdInviteUrl: string | null;
-  votingWindowStartsAt?: string | null;
-  votingWindowEndsAt?: string | null;
-  isCreating: boolean;
-  onReset?: () => void;
+    firstName: string
+    lastName: string
+    email: string
+    startsAt: string
+    endsAt: string
+  }) => void
+  createdInviteUrl: string | null
+  votingWindowStartsAt?: string | null
+  votingWindowEndsAt?: string | null
+  isCreating: boolean
+  onReset?: () => void
 }
 
 export function InviteDialog({
@@ -46,46 +46,46 @@ export function InviteDialog({
   isCreating,
   onReset,
 }: InviteDialogProps) {
-  const [inviteFirstName, setInviteFirstName] = useState("");
-  const [inviteLastName, setInviteLastName] = useState("");
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteFirstName, setInviteFirstName] = useState("")
+  const [inviteLastName, setInviteLastName] = useState("")
+  const [inviteEmail, setInviteEmail] = useState("")
   const [inviteStartsAtInput, setInviteStartsAtInput] = useState(() =>
     toDateTimeLocalValue(new Date()),
-  );
+  )
   const [inviteEndsAtInput, setInviteEndsAtInput] = useState(() =>
     toDateTimeLocalValue(addHours(new Date(), 24)),
-  );
+  )
 
   useEffect(() => {
     if (open && !createdInviteUrl) {
-      setInviteFirstName("");
-      setInviteLastName("");
-      setInviteEmail("");
+      setInviteFirstName("")
+      setInviteLastName("")
+      setInviteEmail("")
 
       const startsAt = votingWindowStartsAt
         ? toDateTimeLocalValue(new Date(votingWindowStartsAt))
-        : toDateTimeLocalValue(new Date());
+        : toDateTimeLocalValue(new Date())
       const endsAt = votingWindowEndsAt
         ? toDateTimeLocalValue(new Date(votingWindowEndsAt))
-        : toDateTimeLocalValue(addHours(new Date(), 24));
+        : toDateTimeLocalValue(addHours(new Date(), 24))
 
-      setInviteStartsAtInput(startsAt);
-      setInviteEndsAtInput(endsAt);
+      setInviteStartsAtInput(startsAt)
+      setInviteEndsAtInput(endsAt)
     }
-  }, [open, createdInviteUrl, votingWindowStartsAt, votingWindowEndsAt]);
+  }, [open, createdInviteUrl, votingWindowStartsAt, votingWindowEndsAt])
 
   const handleCreateManualInvite = () => {
-    const startsAtIso = toIsoFromLocal(inviteStartsAtInput);
-    const endsAtIso = toIsoFromLocal(inviteEndsAtInput);
+    const startsAtIso = toIsoFromLocal(inviteStartsAtInput)
+    const endsAtIso = toIsoFromLocal(inviteEndsAtInput)
 
     if (!startsAtIso || !endsAtIso) {
-      toast.error("Please provide valid start and end timestamps");
-      return;
+      toast.error("Please provide valid start and end timestamps")
+      return
     }
 
     if (!hasValidDateRange(startsAtIso, endsAtIso)) {
-      toast.error("End timestamp must be later than start timestamp");
-      return;
+      toast.error("End timestamp must be later than start timestamp")
+      return
     }
 
     onCreateInvite({
@@ -94,21 +94,21 @@ export function InviteDialog({
       email: inviteEmail,
       startsAt: startsAtIso,
       endsAt: endsAtIso,
-    });
-  };
+    })
+  }
 
   const handleCopyInviteLink = async () => {
-    if (!createdInviteUrl) return;
-    await navigator.clipboard.writeText(createdInviteUrl);
-    toast.success("Invite link copied to clipboard");
-  };
+    if (!createdInviteUrl) return
+    await navigator.clipboard.writeText(createdInviteUrl)
+    toast.success("Invite link copied to clipboard")
+  }
 
   const handleReset = () => {
-    setInviteFirstName("");
-    setInviteLastName("");
-    setInviteEmail("");
-    onReset?.();
-  };
+    setInviteFirstName("")
+    setInviteLastName("")
+    setInviteEmail("")
+    onReset?.()
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -228,5 +228,5 @@ export function InviteDialog({
         )}
       </DialogContent>
     </Dialog>
-  );
+  )
 }

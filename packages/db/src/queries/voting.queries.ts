@@ -580,6 +580,27 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             notificationLastSentAt: true,
             connectedParticipantId: true,
             votedAt: true,
+            voteSubmissionId: true,
+          },
+          with: {
+            submissions: {
+              columns: {
+                id: true,
+                key: true,
+                thumbnailKey: true,
+                createdAt: true,
+              },
+              with: {
+                participant: {
+                  columns: {
+                    id: true,
+                    reference: true,
+                    firstname: true,
+                    lastname: true,
+                  },
+                },
+              },
+            },
           },
           orderBy: [desc(votingSession.createdAt), desc(votingSession.id)],
           limit,
@@ -604,6 +625,9 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             eq(votingSession.marathonId, marathonId),
             eq(votingSession.topicId, topicId),
           ),
+          with: {
+            marathon: true,
+          },
         });
 
         return Option.fromNullable(result);
@@ -815,6 +839,36 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         return result[0] as VotingSession | undefined;
       });
 
+      const clearVote = Effect.fn("VotingQueries.clearVote")(function* ({
+        sessionId,
+      }: {
+        sessionId: number;
+      }) {
+        const now = new Date().toISOString();
+        const result = yield* db
+          .update(votingSession)
+          .set({
+            voteSubmissionId: null,
+            votedAt: null,
+            updatedAt: now,
+          })
+          .where(eq(votingSession.id, sessionId))
+          .returning();
+
+        return result[0] as VotingSession | undefined;
+      });
+
+      const deleteVotingSession = Effect.fn(
+        "VotingQueries.deleteVotingSession",
+      )(function* ({ sessionId }: { sessionId: number }) {
+        const result = yield* db
+          .delete(votingSession)
+          .where(eq(votingSession.id, sessionId))
+          .returning();
+
+        return result[0] as VotingSession | undefined;
+      });
+
       return {
         getVotingSessionByToken,
         getPublicMarathonByDomain,
@@ -839,6 +893,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         upsertVotingSession,
         getSubmissionsForVoting,
         recordVote,
+        clearVote,
+        deleteVotingSession,
       } as const;
     }),
   },

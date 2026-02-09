@@ -21,7 +21,7 @@ import { VotingProgress } from "./voting-progress"
 import { LeaderboardTab } from "./leaderboard-tab"
 import { VotersTab } from "./voters-tab"
 import { InviteDialog } from "./invite-dialog"
-import { tabTriggerClassName } from "./voting-utils"
+import { tabTriggerClassName } from "../_lib/utils"
 
 type VotingTabValue = "leaderboard" | "voters"
 
@@ -183,6 +183,50 @@ export function VotingContent() {
     }),
   )
 
+  const clearVoteMutation = useMutation(
+    trpc.voting.clearVote.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Vote cleared successfully")
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
+          }),
+        ])
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to clear vote")
+      },
+    }),
+  )
+
+  const deleteVotingSessionMutation = useMutation(
+    trpc.voting.deleteVotingSession.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Voting session deleted successfully")
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
+          }),
+        ])
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to delete voting session")
+      },
+    }),
+  )
+
   const submissionCount = summary?.submissionStats.submissionCount ?? 0
   const participantWithSubmissionCount =
     summary?.submissionStats.participantWithSubmissionCount ?? 0
@@ -272,6 +316,40 @@ export function VotingContent() {
     }
 
     resendVotingSessionNotificationMutation.mutate({
+      domain,
+      topicId: activeTopic.id,
+      sessionId,
+    })
+  }
+
+  const handleClearVote = (sessionId: number) => {
+    if (!activeTopic) {
+      toast.error("No active by-camera topic found")
+      return
+    }
+
+    clearVoteMutation.mutate({
+      domain,
+      topicId: activeTopic.id,
+      sessionId,
+    })
+  }
+
+  const handleDeleteSession = (sessionId: number) => {
+    if (!activeTopic) {
+      toast.error("No active by-camera topic found")
+      return
+    }
+
+    if (
+      !confirm(
+        "Are you sure you want to delete this voting session? This action cannot be undone.",
+      )
+    ) {
+      return
+    }
+
+    deleteVotingSessionMutation.mutate({
       domain,
       topicId: activeTopic.id,
       sessionId,
@@ -462,6 +540,20 @@ export function VotingContent() {
                 onResendNotification={handleResendSessionNotification}
                 pendingResendSessionId={pendingResendSessionId ?? null}
                 isResending={resendVotingSessionNotificationMutation.isPending}
+                onClearVote={handleClearVote}
+                onDeleteSession={handleDeleteSession}
+                pendingClearVoteSessionId={
+                  clearVoteMutation.isPending
+                    ? clearVoteMutation.variables?.sessionId ?? null
+                    : null
+                }
+                pendingDeleteSessionId={
+                  deleteVotingSessionMutation.isPending
+                    ? deleteVotingSessionMutation.variables?.sessionId ?? null
+                    : null
+                }
+                isClearingVote={clearVoteMutation.isPending}
+                isDeletingSession={deleteVotingSessionMutation.isPending}
               />
             </TabsContent>
           </Tabs>
