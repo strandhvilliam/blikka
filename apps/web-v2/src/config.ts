@@ -8,4 +8,4 @@ export const LOCALE_COOKIE_NAME = "NEXT_LOCALE"
 
 export const protocol = process.env.NODE_ENV === "production" ? "https" : "http"
 export const rootDomain =
-  protocol === "https" ? process.env.BLIKKA_PRODUCTION_URL || "blikka.app" : "localhost:3002"
+  protocol === "https" ? (process.env.BLIKKA_PRODUCTION_URL || "blikka.app") : "localhost:3002"

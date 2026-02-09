@@ -51,7 +51,7 @@ function mapEffectErrorToTRPC(error: unknown): TRPCError {
 export const getSession = Effect.fnUntraced(function* ({ headers }: { headers: Headers }) {
   const auth = yield* BetterAuthService
 
-  console.log("headers", headers)
+
 
   return yield* Effect.tryPromise({
     try: () =>
