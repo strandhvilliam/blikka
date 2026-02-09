@@ -1,12 +1,12 @@
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 
 interface VotingProgressProps {
-  totalSessions: number;
-  completedSessions: number;
-  pendingSessions: number;
-  completionRate: number;
+  totalSessions: number
+  completedSessions: number
+  pendingSessions: number
+  completionRate: number
 }
 
 export function VotingProgress({
@@ -18,14 +18,14 @@ export function VotingProgress({
   return (
     <Card className="shadow-sm">
       <CardContent className="space-y-4 px-4 py-4 sm:px-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center ">
           <div>
             <p className="text-sm font-medium">Voting progress</p>
             <p className="text-xs text-muted-foreground">
               {completedSessions} of {totalSessions} sessions completed
             </p>
           </div>
-          <Badge variant={pendingSessions > 0 ? "outline" : "secondary"}>
+          <Badge variant={pendingSessions > 0 ? "outline" : "secondary"} className="ml-auto">
             {pendingSessions > 0
               ? `${pendingSessions} pending`
               : "All sessions completed"}
@@ -40,5 +40,5 @@ export function VotingProgress({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

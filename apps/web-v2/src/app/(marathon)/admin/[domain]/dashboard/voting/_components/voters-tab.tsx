@@ -42,7 +42,7 @@ interface VotersTabProps {
   isPageLoading: boolean
   onPreviousPage: () => void
   onNextPage: () => void
-  onCopyToken: (token: string) => void
+  onCopyLink: (token: string) => void
   onResendNotification: (sessionId: number) => void
   pendingResendSessionId: number | null
   isResending: boolean
@@ -56,7 +56,7 @@ export function VotersTab({
   isPageLoading,
   onPreviousPage,
   onNextPage,
-  onCopyToken,
+  onCopyLink,
   onResendNotification,
   pendingResendSessionId,
   isResending,
@@ -140,10 +140,10 @@ export function VotersTab({
                             variant="outline"
                             size="sm"
                             className="h-7"
-                            onClick={() => onCopyToken(voter.token)}
+                            onClick={() => onCopyLink(voter.token)}
                           >
                             <Copy className="mr-1.5 size-3.5" />
-                            Copy Token
+                            Copy Link
                           </Button>
 
                           {!voter.phoneNumber ? (

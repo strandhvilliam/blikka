@@ -64,3 +64,16 @@ export const formatDomainPathname = (pathname: string, domain?: string, site: "a
   // In production, rely on subdomain routing; just return the original pathname
   return pathname
 }
+
+export const formatDomainLink = (pathname: string, domain?: string, site: "admin" | "live" = "admin") => {
+  if (!domain) return pathname
+
+  const path = formatDomainPathname(pathname, domain, site)
+
+  if (process.env.NODE_ENV === "production") {
+    return `${protocol}://${domain}.${rootDomain}${path}`
+  }
+
+  // For local development
+  return `${protocol}://${rootDomain}${path}`
+}

@@ -1,17 +1,21 @@
-import { Vote } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
+import { RefreshCw, Vote } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { UserPlus } from "lucide-react"
 
 interface VotingHeaderProps {
-  topicName: string;
-  topicOrderIndex: number;
-  hasSessions: boolean;
-  isOverviewLoading: boolean;
-  onOpenInviteDialog: () => void;
+  onRefetch: () => void
+  isRefetching: boolean
+  topicName: string
+  topicOrderIndex: number
+  hasSessions: boolean
+  isOverviewLoading: boolean
+  onOpenInviteDialog: () => void
 }
 
 export function VotingHeader({
+  onRefetch,
+  isRefetching,
   topicName,
   topicOrderIndex,
   hasSessions,
@@ -40,6 +44,14 @@ export function VotingHeader({
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
+            onClick={onRefetch}
+            disabled={isRefetching}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
             onClick={onOpenInviteDialog}
             disabled={!hasSessions || isOverviewLoading}
           >
@@ -49,5 +61,5 @@ export function VotingHeader({
         </div>
       </div>
     </section>
-  );
+  )
 }

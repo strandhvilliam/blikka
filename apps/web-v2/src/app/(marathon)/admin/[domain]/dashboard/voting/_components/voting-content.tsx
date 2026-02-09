@@ -1,72 +1,74 @@
-"use client";
+"use client"
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react"
 import {
   useMutation,
   useQuery,
   useQueryClient,
   useSuspenseQuery,
-} from "@tanstack/react-query";
-import { toast } from "sonner";
-import { AlertTriangle, Loader2 } from "lucide-react";
-import { useTRPC } from "@/lib/trpc/client";
-import { useDomain } from "@/lib/domain-provider";
-import { Card, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VotingHeader } from "./voting-header";
-import { VotingSetup } from "./voting-setup";
-import { VotingProgress } from "./voting-progress";
-import { LeaderboardTab } from "./leaderboard-tab";
-import { VotersTab } from "./voters-tab";
-import { InviteDialog } from "./invite-dialog";
-import { tabTriggerClassName } from "./voting-utils";
+} from "@tanstack/react-query"
+import { toast } from "sonner"
+import { AlertTriangle, Loader2 } from "lucide-react"
+import { useTRPC } from "@/lib/trpc/client"
+import { useDomain } from "@/lib/domain-provider"
+import { formatDomainLink } from "@/lib/utils"
+import { Card, CardContent } from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { VotingHeader } from "./voting-header"
+import { VotingSetup } from "./voting-setup"
+import { VotingProgress } from "./voting-progress"
+import { LeaderboardTab } from "./leaderboard-tab"
+import { VotersTab } from "./voters-tab"
+import { InviteDialog } from "./invite-dialog"
+import { tabTriggerClassName } from "./voting-utils"
 
-type VotingTabValue = "leaderboard" | "voters";
+type VotingTabValue = "leaderboard" | "voters"
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 50
 
 export function VotingContent() {
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
 
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({
       domain,
     }),
-  );
+  )
 
   const activeTopic =
-    marathon.topics.find((topic) => topic.visibility === "active") ?? null;
-  const isByCamera = marathon.mode === "by-camera";
+    marathon.topics.find((topic) => topic.visibility === "active") ?? null
+  const isByCamera = marathon.mode === "by-camera"
 
-  const [activeTab, setActiveTab] = useState<VotingTabValue>("leaderboard");
-  const [leaderboardPage, setLeaderboardPage] = useState(1);
-  const [votersPage, setVotersPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<VotingTabValue>("leaderboard")
+  const [leaderboardPage, setLeaderboardPage] = useState(1)
+  const [votersPage, setVotersPage] = useState(1)
 
   useEffect(() => {
-    setActiveTab("leaderboard");
-    setLeaderboardPage(1);
-    setVotersPage(1);
-  }, [activeTopic?.id]);
+    setActiveTab("leaderboard")
+    setLeaderboardPage(1)
+    setVotersPage(1)
+  }, [activeTopic?.id])
 
   const summaryQueryOptions = trpc.voting.getVotingAdminSummary.queryOptions({
     domain,
     topicId: activeTopic?.id ?? 0,
-  });
+  })
 
   const {
     data: summary,
     isLoading: isSummaryLoading,
     isError: isSummaryError,
     error: summaryError,
+    refetch: refetchSummary,
   } = useQuery({
     ...summaryQueryOptions,
     enabled: isByCamera && !!activeTopic,
-  });
+  })
 
-  const hasSessions = (summary?.sessionStats.total ?? 0) > 0;
+  const hasSessions = (summary?.sessionStats.total ?? 0) > 0
 
   const leaderboardQueryOptions = trpc.voting.getVotingLeaderboardPage.queryOptions(
     {
@@ -75,7 +77,7 @@ export function VotingContent() {
       page: leaderboardPage,
       limit: PAGE_SIZE,
     },
-  );
+  )
 
   const {
     data: leaderboardPageData,
@@ -83,6 +85,7 @@ export function VotingContent() {
     isError: isLeaderboardError,
     error: leaderboardError,
     isFetching: isLeaderboardFetching,
+    refetch: refetchLeaderboard,
   } = useQuery({
     ...leaderboardQueryOptions,
     enabled:
@@ -91,14 +94,14 @@ export function VotingContent() {
       !!summary &&
       hasSessions &&
       activeTab === "leaderboard",
-  });
+  })
 
   const votersQueryOptions = trpc.voting.getVotingVotersPage.queryOptions({
     domain,
     topicId: activeTopic?.id ?? 0,
     page: votersPage,
     limit: PAGE_SIZE,
-  });
+  })
 
   const {
     data: votersPageData,
@@ -114,15 +117,15 @@ export function VotingContent() {
       !!summary &&
       hasSessions &&
       activeTab === "voters",
-  });
+  })
 
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-  const [createdInviteUrl, setCreatedInviteUrl] = useState<string | null>(null);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
+  const [createdInviteUrl, setCreatedInviteUrl] = useState<string | null>(null)
 
   const startVotingMutation = useMutation(
     trpc.voting.startVotingSessions.mutationOptions({
       onSuccess: async () => {
-        toast.success("Voting sessions started successfully");
+        toast.success("Voting sessions started successfully")
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
@@ -133,19 +136,19 @@ export function VotingContent() {
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingVotersPage.pathKey(),
           }),
-        ]);
+        ])
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to start voting sessions");
+        toast.error(error.message || "Failed to start voting sessions")
       },
     }),
-  );
+  )
 
   const createManualVotingMutation = useMutation(
     trpc.voting.createManualVotingSession.mutationOptions({
       onSuccess: async (data) => {
-        setCreatedInviteUrl(data.votingUrl);
-        toast.success("Manual voting invite created");
+        setCreatedInviteUrl(data.votingUrl)
+        toast.success("Manual voting invite created")
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
@@ -153,18 +156,18 @@ export function VotingContent() {
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingVotersPage.pathKey(),
           }),
-        ]);
+        ])
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to create manual invite");
+        toast.error(error.message || "Failed to create manual invite")
       },
     }),
-  );
+  )
 
   const resendVotingSessionNotificationMutation = useMutation(
     trpc.voting.resendVotingSessionNotification.mutationOptions({
       onSuccess: async () => {
-        toast.success("Voting notification resent");
+        toast.success("Voting notification resent")
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
@@ -172,52 +175,52 @@ export function VotingContent() {
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingVotersPage.pathKey(),
           }),
-        ]);
+        ])
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to resend voting notification");
+        toast.error(error.message || "Failed to resend voting notification")
       },
     }),
-  );
+  )
 
-  const submissionCount = summary?.submissionStats.submissionCount ?? 0;
+  const submissionCount = summary?.submissionStats.submissionCount ?? 0
   const participantWithSubmissionCount =
-    summary?.submissionStats.participantWithSubmissionCount ?? 0;
+    summary?.submissionStats.participantWithSubmissionCount ?? 0
 
   const completionRate = useMemo(() => {
-    const total = summary?.sessionStats.total ?? 0;
-    if (total === 0) return 0;
-    return Math.round(((summary?.sessionStats.completed ?? 0) / total) * 100);
-  }, [summary?.sessionStats.completed, summary?.sessionStats.total]);
+    const total = summary?.sessionStats.total ?? 0
+    if (total === 0) return 0
+    return Math.round(((summary?.sessionStats.completed ?? 0) / total) * 100)
+  }, [summary?.sessionStats.completed, summary?.sessionStats.total])
 
-  const totalSessions = summary?.sessionStats.total ?? 0;
-  const completedSessions = summary?.sessionStats.completed ?? 0;
-  const pendingSessions = summary?.sessionStats.pending ?? 0;
+  const totalSessions = summary?.sessionStats.total ?? 0
+  const completedSessions = summary?.sessionStats.completed ?? 0
+  const pendingSessions = summary?.sessionStats.pending ?? 0
 
   const pendingResendSessionId =
     resendVotingSessionNotificationMutation.isPending
       ? resendVotingSessionNotificationMutation.variables?.sessionId
-      : null;
+      : null
 
-  const leaderboardPageCount = leaderboardPageData?.pageCount ?? 0;
-  const votersPageCount = votersPageData?.pageCount ?? 0;
+  const leaderboardPageCount = leaderboardPageData?.pageCount ?? 0
+  const votersPageCount = votersPageData?.pageCount ?? 0
 
   useEffect(() => {
     if (leaderboardPageCount > 0 && leaderboardPage > leaderboardPageCount) {
-      setLeaderboardPage(leaderboardPageCount);
+      setLeaderboardPage(leaderboardPageCount)
     }
-  }, [leaderboardPage, leaderboardPageCount]);
+  }, [leaderboardPage, leaderboardPageCount])
 
   useEffect(() => {
     if (votersPageCount > 0 && votersPage > votersPageCount) {
-      setVotersPage(votersPageCount);
+      setVotersPage(votersPageCount)
     }
-  }, [votersPage, votersPageCount]);
+  }, [votersPage, votersPageCount])
 
   const handleStartVoting = async (startsAt: string, endsAt: string) => {
     if (!activeTopic) {
-      toast.error("No active by-camera topic found");
-      return;
+      toast.error("No active by-camera topic found")
+      return
     }
 
     startVotingMutation.mutate({
@@ -225,24 +228,24 @@ export function VotingContent() {
       topicId: activeTopic.id,
       startsAt,
       endsAt,
-    });
-  };
+    })
+  }
 
   const handleOpenInviteDialog = () => {
-    setCreatedInviteUrl(null);
-    setIsInviteDialogOpen(true);
-  };
+    setCreatedInviteUrl(null)
+    setIsInviteDialogOpen(true)
+  }
 
   const handleCreateManualInvite = (data: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    startsAt: string;
-    endsAt: string;
+    firstName: string
+    lastName: string
+    email: string
+    startsAt: string
+    endsAt: string
   }) => {
     if (!activeTopic) {
-      toast.error("No active by-camera topic found");
-      return;
+      toast.error("No active by-camera topic found")
+      return
     }
 
     createManualVotingMutation.mutate({
@@ -253,26 +256,27 @@ export function VotingContent() {
       email: data.email,
       startsAt: data.startsAt,
       endsAt: data.endsAt,
-    });
-  };
+    })
+  }
 
-  const handleCopySessionToken = async (token: string) => {
-    await navigator.clipboard.writeText(token);
-    toast.success("Token copied to clipboard");
-  };
+  const handleCopySessionLink = async (token: string) => {
+    const link = formatDomainLink(`/live/vote/${token}`, domain, "live")
+    await navigator.clipboard.writeText(link)
+    toast.success("Link copied to clipboard")
+  }
 
   const handleResendSessionNotification = (sessionId: number) => {
     if (!activeTopic) {
-      toast.error("No active by-camera topic found");
-      return;
+      toast.error("No active by-camera topic found")
+      return
     }
 
     resendVotingSessionNotificationMutation.mutate({
       domain,
       topicId: activeTopic.id,
       sessionId,
-    });
-  };
+    })
+  }
 
   if (!isByCamera) {
     return (
@@ -296,7 +300,7 @@ export function VotingContent() {
           </AlertDescription>
         </Alert>
       </div>
-    );
+    )
   }
 
   if (!activeTopic) {
@@ -318,12 +322,19 @@ export function VotingContent() {
           </AlertDescription>
         </Alert>
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-8 pb-8">
       <VotingHeader
+        onRefetch={async () => {
+          await Promise.all([
+            refetchSummary(),
+            refetchLeaderboard(),
+          ])
+        }}
+        isRefetching={isLeaderboardFetching}
         topicName={activeTopic.name}
         topicOrderIndex={activeTopic.orderIndex}
         hasSessions={hasSessions}
@@ -447,7 +458,7 @@ export function VotingContent() {
                       : current + 1,
                   )
                 }
-                onCopyToken={handleCopySessionToken}
+                onCopyLink={handleCopySessionLink}
                 onResendNotification={handleResendSessionNotification}
                 pendingResendSessionId={pendingResendSessionId ?? null}
                 isResending={resendVotingSessionNotificationMutation.isPending}
@@ -468,5 +479,5 @@ export function VotingContent() {
         onReset={() => setCreatedInviteUrl(null)}
       />
     </div>
-  );
+  )
 }
