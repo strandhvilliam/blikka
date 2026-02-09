@@ -14,7 +14,7 @@ const _LivePage = Effect.fn("@blikka/web/LivePage")(
       NODE_ENV: process.env.NODE_ENV,
       VERCEL_ENV: process.env.VERCEL_ENV,
       AUTH_URL: process.env.BETTER_AUTH_URL,
-      BLIKKA_PRODUCTION_URL: process.env.BLIKKA_PRODUCTION_URL,
+      NEXT_PUBLIC_BLIKKA_PRODUCTION_URL: process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL,
     }
     return (
       <HydrateClient>
