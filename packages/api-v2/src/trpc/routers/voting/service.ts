@@ -674,6 +674,32 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         const manualSessions = sessions.filter(
           (session) => session.connectedParticipantId === null,
         );
+        const voters = yield* Effect.forEach(
+          sessions,
+          (session) =>
+            Effect.gen(function* () {
+              const phoneNumber = session.phoneEncrypted
+                ? yield* phoneEncryption
+                    .decrypt({
+                      encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
+                    })
+                    .pipe(Effect.catchAll(() => Effect.succeed(null)))
+                : null;
+
+              return {
+                sessionId: session.id,
+                firstName: session.firstName,
+                lastName: session.lastName,
+                email: session.email,
+                token: session.token,
+                phoneNumber,
+                notificationLastSentAt: session.notificationLastSentAt,
+                connectedParticipantId: session.connectedParticipantId,
+                votedAt: session.votedAt,
+              };
+            }),
+          { concurrency: 5 },
+        );
 
         return {
           topic: {
@@ -699,6 +725,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           topRanks,
           tieGroups,
           leaderboard: rankedLeaderboard,
+          voters,
         };
       });
 
@@ -805,6 +832,115 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         return {
           session: createdSession,
           votingUrl: `https://${domain}.blikka.app/live/vote/${createdSession.token}`,
+        };
+      });
+
+      const resendVotingSessionNotification = Effect.fn(
+        "VotingApiService.resendVotingSessionNotification",
+      )(function* ({
+        domain,
+        topicId,
+        sessionId,
+      }: {
+        domain: string;
+        topicId: number;
+        sessionId: number;
+      }) {
+        const marathonOpt =
+          yield* db.marathonsQueries.getMarathonByDomainWithOptions({
+            domain,
+          });
+
+        const marathon = yield* Option.match(marathonOpt, {
+          onSome: (m) => Effect.succeed(m),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: `Marathon not found for domain ${domain}`,
+              }),
+            ),
+        });
+
+        if (marathon.mode !== "by-camera") {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: `Marathon '${marathon.domain}' is not in by-camera mode`,
+            }),
+          );
+        }
+
+        const topic = marathon.topics.find((item) => item.id === topicId);
+        if (!topic) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Topic not found",
+            }),
+          );
+        }
+
+        const sessions = yield* db.votingQueries.getVotingSessionsForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
+
+        const session = sessions.find((item) => item.id === sessionId);
+        if (!session) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Voting session not found for the selected topic",
+            }),
+          );
+        }
+
+        if (!session.phoneEncrypted) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "This voter has no phone number, so SMS notification cannot be sent",
+            }),
+          );
+        }
+
+        const phoneNumber = yield* phoneEncryption
+          .decrypt({
+            encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
+          })
+          .pipe(
+            Effect.mapError(
+              () =>
+                new VotingApiError({
+                  message: "Failed to decrypt phone number for this voter",
+                }),
+            ),
+          );
+
+        yield* smsService
+          .sendWithOptOutCheck({
+            phoneNumber,
+            message: `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`,
+          })
+          .pipe(
+            Effect.mapError(
+              (error) =>
+                new VotingApiError({
+                  message:
+                    error instanceof Error
+                      ? error.message
+                      : "Failed to send voting notification to this voter",
+                  cause: error,
+                }),
+            ),
+          );
+
+        const notificationLastSentAt = new Date().toISOString();
+        yield* db.votingQueries.updateMultipleLastNotificationSentAt({
+          ids: [session.id],
+          notificationLastSentAt,
+        });
+
+        return {
+          sessionId: session.id,
+          notificationLastSentAt,
         };
       });
 
@@ -978,6 +1114,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         getVotingSessionByParticipant,
         getVotingAdminOverview,
         createManualVotingSession,
+        resendVotingSessionNotification,
         getVotingSubmissions,
         submitVote,
       } as const;

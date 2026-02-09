@@ -66,6 +66,14 @@ export const CreateManualVotingSessionSchema = Schema.standardSchemaV1(
   }),
 );
 
+export const ResendVotingSessionNotificationSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+    sessionId: Schema.Number,
+  }),
+);
+
 export const GetVotingSubmissionsSchema = Schema.standardSchemaV1(
   Schema.Struct({
     token: Schema.String,

@@ -15,6 +15,7 @@ import {
   Copy,
   Loader2,
   Medal,
+  Send,
   Trophy,
   UserPlus,
   Vote,
@@ -51,6 +52,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function toDateTimeLocalValue(date: Date) {
@@ -66,7 +73,10 @@ function toIsoFromLocal(value: string) {
   return date.toISOString();
 }
 
-function hasValidDateRange(startsAtIso: string | null, endsAtIso: string | null) {
+function hasValidDateRange(
+  startsAtIso: string | null,
+  endsAtIso: string | null,
+) {
   if (!startsAtIso || !endsAtIso) {
     return false;
   }
@@ -91,6 +101,9 @@ function getSubmissionImageUrl(
     buildS3Url(submissionsBucket, submissionKey)
   );
 }
+
+const tabTriggerClassName =
+  "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#FF5D4B] dark:data-[state=active]:text-[#FF7A6B] text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-[#FF5D4B] dark:data-[state=active]:after:bg-[#FF7A6B]";
 
 export function VotingContent() {
   const domain = useDomain();
@@ -169,6 +182,19 @@ export function VotingContent() {
       },
     }),
   );
+  const resendVotingSessionNotificationMutation = useMutation(
+    trpc.voting.resendVotingSessionNotification.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Voting notification resent");
+        await queryClient.invalidateQueries({
+          queryKey: overviewQueryOptions.queryKey,
+        });
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to resend voting notification");
+      },
+    }),
+  );
 
   const hasSessions = (overview?.sessionStats.total ?? 0) > 0;
   const submissionCount = overview?.leaderboard.length ?? 0;
@@ -186,19 +212,22 @@ export function VotingContent() {
   const totalSessions = overview?.sessionStats.total ?? 0;
   const completedSessions = overview?.sessionStats.completed ?? 0;
   const pendingSessions = overview?.sessionStats.pending ?? 0;
-  const totalVotes = overview?.voteStats.totalVotes ?? 0;
-  const tieGroupsCount = overview?.tieGroups.length ?? 0;
 
   const topRankMap = useMemo(() => {
     return new Map(
       overview?.topRanks.map((rank) => [rank.rank, rank.entries]) ?? [],
     );
   }, [overview?.topRanks]);
+  const pendingResendSessionId =
+    resendVotingSessionNotificationMutation.isPending
+      ? resendVotingSessionNotificationMutation.variables?.sessionId
+      : null;
 
   const launchStartsAtIso = toIsoFromLocal(startsAtInput);
   const launchEndsAtIso = toIsoFromLocal(endsAtInput);
   const canStartVoting =
-    submissionCount > 0 && hasValidDateRange(launchStartsAtIso, launchEndsAtIso);
+    submissionCount > 0 &&
+    hasValidDateRange(launchStartsAtIso, launchEndsAtIso);
 
   const handleStartVoting = () => {
     if (!activeTopic) {
@@ -284,6 +313,24 @@ export function VotingContent() {
     if (!createdInviteUrl) return;
     await navigator.clipboard.writeText(createdInviteUrl);
     toast.success("Invite link copied to clipboard");
+  };
+
+  const handleCopySessionToken = async (token: string) => {
+    await navigator.clipboard.writeText(token);
+    toast.success("Token copied to clipboard");
+  };
+
+  const handleResendSessionNotification = (sessionId: number) => {
+    if (!activeTopic) {
+      toast.error("No active by-camera topic found");
+      return;
+    }
+
+    resendVotingSessionNotificationMutation.mutate({
+      domain,
+      topicId: activeTopic.id,
+      sessionId,
+    });
   };
 
   if (!isByCamera) {
@@ -406,7 +453,9 @@ export function VotingContent() {
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     Submissions in topic
                   </p>
-                  <p className="mt-1 text-2xl font-semibold">{submissionCount}</p>
+                  <p className="mt-1 text-2xl font-semibold">
+                    {submissionCount}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     All uploads under <strong>{activeTopic.name}</strong>.
                   </p>
@@ -429,8 +478,8 @@ export function VotingContent() {
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>No submissions yet</AlertTitle>
                   <AlertDescription>
-                    Voting cannot start until at least one submission is uploaded
-                    for this topic.
+                    Voting cannot start until at least one submission is
+                    uploaded for this topic.
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -448,7 +497,9 @@ export function VotingContent() {
                 <p className="text-sm font-medium">When voting starts</p>
                 <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                   <li>Sessions are created for each eligible participant.</li>
-                  <li>Voting links become valid in the selected time window.</li>
+                  <li>
+                    Voting links become valid in the selected time window.
+                  </li>
                   <li>Leaderboard updates automatically as votes are cast.</li>
                 </ul>
               </div>
@@ -461,7 +512,8 @@ export function VotingContent() {
                 Schedule voting window
               </CardTitle>
               <CardDescription>
-                Set the start and end timestamps for participant voting sessions.
+                Set the start and end timestamps for participant voting
+                sessions.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -486,8 +538,8 @@ export function VotingContent() {
 
               {!canStartVoting ? (
                 <p className="text-xs text-muted-foreground">
-                  Set a valid time range with end later than start, and ensure at
-                  least one submission exists.
+                  Set a valid time range with end later than start, and ensure
+                  at least one submission exists.
                 </p>
               ) : null}
 
@@ -537,189 +589,333 @@ export function VotingContent() {
                   {completionRate}% completion
                 </p>
               </div>
-
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm py-4">
-            <CardHeader>
-              <CardTitle className="font-rocgrotesk">Leaderboard</CardTitle>
-              <CardDescription>
-                Top placements with tie-aware ranking based on total votes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {(overview?.voteStats.totalVotes ?? 0) === 0 ? (
-                <div className="rounded-xl border border-dashed bg-muted/20 p-6 text-center">
-                  <p className="text-sm font-medium">
-                    Leaderboard will appear once votes are cast
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Start the voting session and wait for participants to submit
-                    their votes.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {[1, 2, 3].map((rank) => {
-                    const entries = topRankMap.get(rank) ?? [];
-                    const tone =
-                      rank === 1
-                        ? "text-amber-600"
-                        : rank === 2
-                          ? "text-slate-600"
-                          : "text-orange-600";
+          <Tabs defaultValue="leaderboard" className="space-y-0">
+            <div className="border-b border-border">
+              <TabsList className="bg-transparent rounded-none p-0 h-auto flex gap-8 -mb-px">
+                <TabsTrigger
+                  value="leaderboard"
+                  className={tabTriggerClassName}
+                >
+                  Leaderboard
+                </TabsTrigger>
+                <TabsTrigger value="voters" className={tabTriggerClassName}>
+                  Voters
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-                    return (
-                      <div
-                        key={rank}
-                        className="space-y-3 rounded-xl border bg-muted/30 p-4"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Place {rank}
-                          </span>
-                          <Medal className={`h-4 w-4 ${tone}`} />
-                        </div>
+            <TabsContent value="leaderboard" className="mt-6 space-y-6">
+              <Card className="shadow-sm py-4">
+                <CardHeader>
+                  <CardTitle className="font-rocgrotesk">Leaderboard</CardTitle>
+                  <CardDescription>
+                    Top placements with tie-aware ranking based on total votes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(overview?.voteStats.totalVotes ?? 0) === 0 ? (
+                    <div className="rounded-xl border border-dashed bg-muted/20 p-6 text-center">
+                      <p className="text-sm font-medium">
+                        Leaderboard will appear once votes are cast
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Start the voting session and wait for participants to
+                        submit their votes.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      {[1, 2, 3].map((rank) => {
+                        const entries = topRankMap.get(rank) ?? [];
+                        const tone =
+                          rank === 1
+                            ? "text-amber-600"
+                            : rank === 2
+                              ? "text-slate-600"
+                              : "text-orange-600";
 
-                        {entries.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
-                            No ranked submission yet
-                          </p>
-                        ) : (
-                          <>
-                            <div className="grid grid-cols-3 gap-2">
-                              {entries.slice(0, 3).map((entry) => {
-                                const imageUrl = getSubmissionImageUrl(
-                                  entry.submissionThumbnailKey,
-                                  entry.submissionKey,
-                                );
-
-                                return (
-                                  <div
-                                    key={`${entry.submissionId}-thumbnail`}
-                                    className="relative aspect-square overflow-hidden rounded-md border bg-muted"
-                                  >
-                                    {imageUrl ? (
-                                      <img
-                                        src={imageUrl}
-                                        alt={`Submission ${entry.submissionId}`}
-                                        className="h-full w-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-                                        No image
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                        return (
+                          <div
+                            key={rank}
+                            className="space-y-3 rounded-xl border bg-muted/30 p-4"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                Place {rank}
+                              </span>
+                              <Medal className={`h-4 w-4 ${tone}`} />
                             </div>
 
-                            <div className="space-y-1.5">
-                              {entries.map((entry) => (
-                                <div key={entry.submissionId} className="text-sm">
+                            {entries.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">
+                                No ranked submission yet
+                              </p>
+                            ) : (
+                              <>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {entries.slice(0, 3).map((entry) => {
+                                    const imageUrl = getSubmissionImageUrl(
+                                      entry.submissionThumbnailKey,
+                                      entry.submissionKey,
+                                    );
+
+                                    return (
+                                      <div
+                                        key={`${entry.submissionId}-thumbnail`}
+                                        className="relative aspect-square overflow-hidden rounded-md border bg-muted"
+                                      >
+                                        {imageUrl ? (
+                                          <img
+                                            src={imageUrl}
+                                            alt={`Submission ${entry.submissionId}`}
+                                            className="h-full w-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                                            No image
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  {entries.map((entry) => (
+                                    <div
+                                      key={entry.submissionId}
+                                      className="text-sm"
+                                    >
+                                      <p className="font-medium">
+                                        {entry.participantFirstName}{" "}
+                                        {entry.participantLastName}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Submission #{entry.submissionId} -{" "}
+                                        {entry.voteCount} votes
+                                      </p>
+                                    </div>
+                                  ))}
+                                  {entries.length > 1 ? (
+                                    <Badge variant="outline" className="mt-1">
+                                      Tie ({entries.length} submissions)
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-sm py-4">
+                <CardHeader>
+                  <CardTitle className="font-rocgrotesk">
+                    All Ranked Submissions
+                  </CardTitle>
+                  <CardDescription>
+                    Ordered by vote count descending, then upload time, then
+                    submission id.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Rank</TableHead>
+                          <TableHead>Submission</TableHead>
+                          <TableHead>Participant</TableHead>
+                          <TableHead>Votes</TableHead>
+                          <TableHead>Tie</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {overview?.leaderboard.length ? (
+                          overview.leaderboard.map((entry) => (
+                            <TableRow key={entry.submissionId}>
+                              <TableCell className="font-medium">
+                                #{entry.rank}
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-0.5">
                                   <p className="font-medium">
-                                    {entry.participantFirstName}{" "}
-                                    {entry.participantLastName}
+                                    Submission #{entry.submissionId}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    Submission #{entry.submissionId} -{" "}
-                                    {entry.voteCount} votes
+                                    Uploaded{" "}
+                                    {formatDateTime(entry.submissionCreatedAt)}
                                   </p>
                                 </div>
-                              ))}
-                              {entries.length > 1 ? (
-                                <Badge variant="outline" className="mt-1">
-                                  Tie ({entries.length} submissions)
-                                </Badge>
-                              ) : null}
-                            </div>
-                          </>
+                              </TableCell>
+                              <TableCell>
+                                {entry.participantFirstName}{" "}
+                                {entry.participantLastName}
+                              </TableCell>
+                              <TableCell className="font-semibold">
+                                {entry.voteCount}
+                              </TableCell>
+                              <TableCell>
+                                {entry.isTie ? (
+                                  <Badge variant="outline">
+                                    Tie ({entry.tieSize})
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">
+                                    -
+                                  </span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell
+                              colSpan={5}
+                              className="h-24 text-center text-muted-foreground"
+                            >
+                              No submissions found for this topic.
+                            </TableCell>
+                          </TableRow>
                         )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <Card className="shadow-sm py-4">
-            <CardHeader>
-              <CardTitle className="font-rocgrotesk">
-                All Ranked Submissions
-              </CardTitle>
-              <CardDescription>
-                Ordered by vote count descending, then upload time, then
-                submission id.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Rank</TableHead>
-                      <TableHead>Submission</TableHead>
-                      <TableHead>Participant</TableHead>
-                      <TableHead>Votes</TableHead>
-                      <TableHead>Tie</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {overview?.leaderboard.length ? (
-                      overview.leaderboard.map((entry) => (
-                        <TableRow key={entry.submissionId}>
-                          <TableCell className="font-medium">
-                            #{entry.rank}
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-0.5">
-                              <p className="font-medium">
-                                Submission #{entry.submissionId}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Uploaded{" "}
-                                {formatDateTime(entry.submissionCreatedAt)}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {entry.participantFirstName}{" "}
-                            {entry.participantLastName}
-                          </TableCell>
-                          <TableCell className="font-semibold">
-                            {entry.voteCount}
-                          </TableCell>
-                          <TableCell>
-                            {entry.isTie ? (
-                              <Badge variant="outline">
-                                Tie ({entry.tieSize})
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">
-                                -
-                              </span>
-                            )}
-                          </TableCell>
+            <TabsContent value="voters" className="mt-6">
+              <Card className="shadow-sm py-4">
+                <CardHeader>
+                  <CardTitle className="font-rocgrotesk">
+                    Voting Sessions
+                  </CardTitle>
+                  <CardDescription>
+                    All voters for this topic, including manual invites and
+                    participant sessions.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Voter</TableHead>
+                          <TableHead>Token</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Last Notification</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={5}
-                          className="h-24 text-center text-muted-foreground"
-                        >
-                          No submissions found for this topic.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {overview.voters.length ? (
+                          overview.voters.map((voter) => (
+                            <TableRow key={voter.sessionId}>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <p className="font-medium">
+                                    {voter.firstName} {voter.lastName}
+                                  </p>
+                                  <Badge variant="outline">
+                                    {voter.connectedParticipantId
+                                      ? "Participant"
+                                      : "Manual"}
+                                  </Badge>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <code className="font-mono text-xs">
+                                  {voter.token}
+                                </code>
+                              </TableCell>
+                              <TableCell>{voter.email || "-"}</TableCell>
+                              <TableCell>{voter.phoneNumber || "-"}</TableCell>
+                              <TableCell>
+                                {formatDateTime(voter.notificationLastSentAt)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleCopySessionToken(voter.token)
+                                    }
+                                  >
+                                    <Copy className="mr-1.5 h-3.5 w-3.5" />
+                                    Copy Token
+                                  </Button>
+
+                                  {!voter.phoneNumber ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="inline-flex">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled
+                                          >
+                                            <Send className="mr-1.5 h-3.5 w-3.5" />
+                                            Resend
+                                          </Button>
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" sideOffset={8}>
+                                        Missing phone number for SMS resend
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleResendSessionNotification(
+                                          voter.sessionId,
+                                        )
+                                      }
+                                      disabled={
+                                        resendVotingSessionNotificationMutation.isPending
+                                      }
+                                    >
+                                      {pendingResendSessionId ===
+                                      voter.sessionId ? (
+                                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <Send className="mr-1.5 h-3.5 w-3.5" />
+                                      )}
+                                      Resend
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell
+                              colSpan={6}
+                              className="h-24 text-center text-muted-foreground"
+                            >
+                              No voting sessions found for this topic.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </>
       ) : null}
 
@@ -819,7 +1015,9 @@ export function VotingContent() {
                     id="invite-end-at"
                     type="datetime-local"
                     value={inviteEndsAtInput}
-                    onChange={(event) => setInviteEndsAtInput(event.target.value)}
+                    onChange={(event) =>
+                      setInviteEndsAtInput(event.target.value)
+                    }
                   />
                 </div>
               </div>
