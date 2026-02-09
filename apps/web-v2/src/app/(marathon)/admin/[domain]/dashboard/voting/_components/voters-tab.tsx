@@ -1,6 +1,16 @@
-import { Copy, Loader2, Mail, MessageSquare, Send, ExternalLink, MoreVertical, Trash2, X } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import {
+  Copy,
+  Loader2,
+  Mail,
+  MessageSquare,
+  Send,
+  ExternalLink,
+  MoreVertical,
+  Trash2,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -8,68 +18,68 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useDomain } from "@/lib/domain-provider"
-import { formatDateTime, getSubmissionImageUrl } from "../_lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { useDomain } from "@/lib/domain-provider";
+import { formatDateTime, getSubmissionImageUrl } from "../_lib/utils";
 
 interface VoteSubmission {
-  submissionId: number
-  participantReference: string | null
-  participantFirstName: string | null
-  participantLastName: string | null
-  thumbnailKey: string | null
-  key: string | null
-  createdAt: string
+  submissionId: number;
+  participantReference: string | null;
+  participantFirstName: string | null;
+  participantLastName: string | null;
+  thumbnailKey: string | null;
+  key: string | null;
+  createdAt: string;
 }
 
 interface Voter {
-  sessionId: number
-  firstName: string
-  lastName: string
-  email: string | null
-  phoneNumber: string | null
-  token: string
-  notificationLastSentAt: string | null
-  connectedParticipantId: number | null
-  voteSubmission: VoteSubmission | null
+  sessionId: number;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phoneNumber: string | null;
+  token: string;
+  notificationLastSentAt: string | null;
+  connectedParticipantId: number | null;
+  voteSubmission: VoteSubmission | null;
 }
 
 interface VotersTabProps {
-  voters: Voter[]
-  page: number
-  pageCount: number
-  total: number
-  isPageLoading: boolean
-  onPreviousPage: () => void
-  onNextPage: () => void
-  onCopyLink: (token: string) => void
-  onResendNotification: (sessionId: number) => void
-  pendingResendSessionId: number | null
-  isResending: boolean
-  onClearVote: (sessionId: number) => void
-  onDeleteSession: (sessionId: number) => void
-  pendingClearVoteSessionId: number | null
-  pendingDeleteSessionId: number | null
-  isClearingVote: boolean
-  isDeletingSession: boolean
+  voters: Voter[];
+  page: number;
+  pageCount: number;
+  total: number;
+  isPageLoading: boolean;
+  onPreviousPage: () => void;
+  onNextPage: () => void;
+  onCopyLink: (token: string) => void;
+  onResendNotification: (sessionId: number) => void;
+  pendingResendSessionId: number | null;
+  isResending: boolean;
+  onClearVote: (sessionId: number) => void;
+  onDeleteSession: (sessionId: number) => void;
+  pendingClearVoteSessionId: number | null;
+  pendingDeleteSessionId: number | null;
+  isClearingVote: boolean;
+  isDeletingSession: boolean;
 }
 
 export function VotersTab({
@@ -91,7 +101,7 @@ export function VotersTab({
   isClearingVote,
   isDeletingSession,
 }: VotersTabProps) {
-  const domain = useDomain()
+  const domain = useDomain();
 
   return (
     <div className="space-y-4">
@@ -159,7 +169,9 @@ export function VotersTab({
                       <TableCell className="py-2">
                         <code className="font-mono text-xs">{voter.token}</code>
                       </TableCell>
-                      <TableCell className="py-2">{voter.email || "-"}</TableCell>
+                      <TableCell className="py-2">
+                        {voter.email || "-"}
+                      </TableCell>
                       <TableCell className="py-2">
                         {voter.phoneNumber || "-"}
                       </TableCell>
@@ -172,27 +184,45 @@ export function VotersTab({
                                   variant="secondary"
                                   className="cursor-pointer hover:bg-secondary/80"
                                 >
-                                  {voter.voteSubmission.participantReference || "Unknown"}
+                                  {voter.voteSubmission.participantReference ||
+                                    "Unknown"}
                                 </Badge>
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-80 p-4" align="start">
                               <div className="space-y-3">
                                 <div className="space-y-1">
-                                  <h4 className="font-semibold text-sm">Voted Submission</h4>
+                                  <h4 className="font-semibold text-sm">
+                                    Voted Submission
+                                  </h4>
                                   <p className="text-xs text-muted-foreground">
-                                    Participant: {voter.voteSubmission.participantReference || "Unknown"}
+                                    Participant:{" "}
+                                    {voter.voteSubmission
+                                      .participantReference || "Unknown"}
                                   </p>
-                                  {voter.voteSubmission.participantFirstName && voter.voteSubmission.participantLastName && (
-                                    <p className="text-xs text-muted-foreground">
-                                      {voter.voteSubmission.participantFirstName} {voter.voteSubmission.participantLastName}
-                                    </p>
-                                  )}
+                                  {voter.voteSubmission.participantFirstName &&
+                                    voter.voteSubmission
+                                      .participantLastName && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {
+                                          voter.voteSubmission
+                                            .participantFirstName
+                                        }{" "}
+                                        {
+                                          voter.voteSubmission
+                                            .participantLastName
+                                        }
+                                      </p>
+                                    )}
                                   <p className="text-xs text-muted-foreground">
-                                    Submitted: {formatDateTime(voter.voteSubmission.createdAt)}
+                                    Submitted:{" "}
+                                    {formatDateTime(
+                                      voter.voteSubmission.createdAt,
+                                    )}
                                   </p>
                                 </div>
-                                {voter.voteSubmission.thumbnailKey || voter.voteSubmission.key ? (
+                                {voter.voteSubmission.thumbnailKey ||
+                                voter.voteSubmission.key ? (
                                   <div className="rounded-lg overflow-hidden border bg-muted">
                                     <img
                                       src={getSubmissionImageUrl(
@@ -205,7 +235,9 @@ export function VotersTab({
                                   </div>
                                 ) : (
                                   <div className="rounded-lg border bg-muted h-32 flex items-center justify-center">
-                                    <p className="text-xs text-muted-foreground">No image available</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      No image available
+                                    </p>
                                   </div>
                                 )}
                                 {voter.voteSubmission.participantReference && (
@@ -226,7 +258,9 @@ export function VotersTab({
                             </PopoverContent>
                           </Popover>
                         ) : (
-                          <span className="text-muted-foreground text-sm">Not voted</span>
+                          <span className="text-muted-foreground text-sm">
+                            Not voted
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="py-2">
@@ -260,31 +294,47 @@ export function VotersTab({
                             <PopoverContent className="w-56 p-3" align="end">
                               <div className="space-y-3">
                                 <div className="text-xs text-muted-foreground">
-                                  Last sent: {formatDateTime(voter.notificationLastSentAt)}
+                                  Last sent:{" "}
+                                  {formatDateTime(voter.notificationLastSentAt)}
                                 </div>
                                 <div className="space-y-2">
                                   <button
                                     className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                                    disabled={!voter.phoneNumber}
+                                    disabled={
+                                      !voter.phoneNumber ||
+                                      (isResending &&
+                                        pendingResendSessionId ===
+                                          voter.sessionId)
+                                    }
                                     onClick={() => {
-                                      // TODO: Implement SMS resend logic
+                                      onResendNotification(voter.sessionId);
                                     }}
                                   >
                                     <div className="flex items-center gap-2">
-                                      <MessageSquare className="size-4" />
-                                      <span className="text-sm font-medium">Send by SMS</span>
+                                      {isResending &&
+                                      pendingResendSessionId ===
+                                        voter.sessionId ? (
+                                        <Loader2 className="size-4 animate-spin" />
+                                      ) : (
+                                        <MessageSquare className="size-4" />
+                                      )}
+                                      <span className="text-sm font-medium">
+                                        Send by SMS
+                                      </span>
                                     </div>
                                   </button>
                                   <button
                                     className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                     disabled={!voter.email}
                                     onClick={() => {
-                                      // TODO: Implement email resend logic
+                                      onResendNotification(voter.sessionId);
                                     }}
                                   >
                                     <div className="flex items-center gap-2">
                                       <Mail className="size-4" />
-                                      <span className="text-sm font-medium">Send by Email</span>
+                                      <span className="text-sm font-medium">
+                                        Send by Email
+                                      </span>
                                     </div>
                                   </button>
                                 </div>
@@ -301,12 +351,14 @@ export function VotersTab({
                                 disabled={
                                   isClearingVote ||
                                   isDeletingSession ||
-                                  pendingClearVoteSessionId === voter.sessionId ||
+                                  pendingClearVoteSessionId ===
+                                    voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
-                                {(pendingClearVoteSessionId === voter.sessionId ||
-                                  pendingDeleteSessionId === voter.sessionId) ? (
+                                {pendingClearVoteSessionId ===
+                                  voter.sessionId ||
+                                pendingDeleteSessionId === voter.sessionId ? (
                                   <Loader2 className="size-3.5 animate-spin" />
                                 ) : (
                                   <MoreVertical className="size-3.5" />
@@ -320,7 +372,8 @@ export function VotersTab({
                                   !voter.voteSubmission ||
                                   isClearingVote ||
                                   isDeletingSession ||
-                                  pendingClearVoteSessionId === voter.sessionId ||
+                                  pendingClearVoteSessionId ===
+                                    voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
@@ -334,7 +387,8 @@ export function VotersTab({
                                 disabled={
                                   isClearingVote ||
                                   isDeletingSession ||
-                                  pendingClearVoteSessionId === voter.sessionId ||
+                                  pendingClearVoteSessionId ===
+                                    voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
@@ -389,5 +443,5 @@ export function VotersTab({
         </div>
       </div>
     </div>
-  )
+  );
 }
