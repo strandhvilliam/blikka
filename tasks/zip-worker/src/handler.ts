@@ -10,7 +10,8 @@ import { FinalizedEventSchema, EventBusDetailTypes, parseBusEvent } from "@blikk
 
 class UnableToRunZipHandlerTaskError extends Data.TaggedError("UnableToRunZipHandlerTaskError")<{
   cause?: unknown
-}> {}
+}> {
+}
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
@@ -24,8 +25,25 @@ const effectHandler = (event: SQSEvent) =>
 
         const participantStateOpt = yield* kvStore.getParticipantState(domain, reference)
 
-        if (Option.isSome(participantStateOpt) && !!participantStateOpt.value.zipKey) {
+        if (Option.isNone(participantStateOpt)) {
+          yield* Effect.logWarning(`[${reference}|${domain}] Participant state not found, skipping`)
+          return
+        }
+
+        const participantState = participantStateOpt.value
+
+        if (!!participantState.zipKey) {
           yield* Effect.logWarning(`[${reference}|${domain}] Participant already zipped, skipping`)
+          return
+        }
+
+        if (!participantState.finalized) {
+          yield* Effect.logWarning(`[${reference}|${domain}] Participant not finalized, skipping`)
+          return
+        }
+
+        if (participantState.orderIndexes.length === 1) {
+          yield* Effect.logWarning(`[${reference}|${domain}] Participant has only one submission, skipping`)
           return
         }
 
