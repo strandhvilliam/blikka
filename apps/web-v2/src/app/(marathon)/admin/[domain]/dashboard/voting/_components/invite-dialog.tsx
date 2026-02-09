@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useForm } from "@tanstack/react-form"
 import { addHours } from "date-fns"
 import { Copy, Loader2, Trophy } from "lucide-react"
 import { toast } from "sonner"
@@ -18,50 +19,87 @@ import {
   toIsoFromLocal,
   hasValidDateRange,
 } from "../_lib/utils"
+import { useTRPC } from "@/lib/trpc/client"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useDomain } from "@/lib/domain-provider"
 
 interface InviteDialogProps {
   open: boolean
+  activeTopic: { id: number; name: string; orderIndex: number }
   onOpenChange: (open: boolean) => void
-  onCreateInvite: (data: {
-    firstName: string
-    lastName: string
-    email: string
-    startsAt: string
-    endsAt: string
-  }) => void
-  createdInviteUrl: string | null
   votingWindowStartsAt?: string | null
   votingWindowEndsAt?: string | null
-  isCreating: boolean
-  onReset?: () => void
 }
 
 export function InviteDialog({
   open,
+  activeTopic,
   onOpenChange,
-  onCreateInvite,
-  createdInviteUrl,
   votingWindowStartsAt,
   votingWindowEndsAt,
-  isCreating,
-  onReset,
 }: InviteDialogProps) {
-  const [inviteFirstName, setInviteFirstName] = useState("")
-  const [inviteLastName, setInviteLastName] = useState("")
-  const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteStartsAtInput, setInviteStartsAtInput] = useState(() =>
-    toDateTimeLocalValue(new Date()),
+  const queryClient = useQueryClient()
+  const trpc = useTRPC()
+  const domain = useDomain()
+  const [createdInviteUrl, setCreatedInviteUrl] = useState<string | null>(null)
+
+
+  const createManualVotingMutation = useMutation(
+    trpc.voting.createManualVotingSession.mutationOptions({
+      onSuccess: async (data) => {
+        setCreatedInviteUrl(data.votingUrl)
+        toast.success("Manual voting invite created")
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+        ])
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to create manual invite")
+      },
+    }),
   )
-  const [inviteEndsAtInput, setInviteEndsAtInput] = useState(() =>
-    toDateTimeLocalValue(addHours(new Date(), 24)),
-  )
+
+  const form = useForm({
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      startsAt: toDateTimeLocalValue(new Date()),
+      endsAt: toDateTimeLocalValue(addHours(new Date(), 24)),
+    },
+    onSubmit: async ({ value }) => {
+      const startsAtIso = toIsoFromLocal(value.startsAt)
+      const endsAtIso = toIsoFromLocal(value.endsAt)
+
+      if (!startsAtIso || !endsAtIso) {
+        toast.error("Please provide valid start and end timestamps")
+        return
+      }
+
+      if (!hasValidDateRange(startsAtIso, endsAtIso)) {
+        toast.error("End timestamp must be later than start timestamp")
+        return
+      }
+
+      createManualVotingMutation.mutate({
+        domain,
+        topicId: activeTopic.id,
+        firstName: value.firstName,
+        lastName: value.lastName,
+        email: value.email,
+        startsAt: startsAtIso,
+        endsAt: endsAtIso,
+      })
+    },
+  })
 
   useEffect(() => {
     if (open && !createdInviteUrl) {
-      setInviteFirstName("")
-      setInviteLastName("")
-      setInviteEmail("")
-
       const startsAt = votingWindowStartsAt
         ? toDateTimeLocalValue(new Date(votingWindowStartsAt))
         : toDateTimeLocalValue(new Date())
@@ -69,33 +107,13 @@ export function InviteDialog({
         ? toDateTimeLocalValue(new Date(votingWindowEndsAt))
         : toDateTimeLocalValue(addHours(new Date(), 24))
 
-      setInviteStartsAtInput(startsAt)
-      setInviteEndsAtInput(endsAt)
+      form.setFieldValue("firstName", "")
+      form.setFieldValue("lastName", "")
+      form.setFieldValue("email", "")
+      form.setFieldValue("startsAt", startsAt)
+      form.setFieldValue("endsAt", endsAt)
     }
-  }, [open, createdInviteUrl, votingWindowStartsAt, votingWindowEndsAt])
-
-  const handleCreateManualInvite = () => {
-    const startsAtIso = toIsoFromLocal(inviteStartsAtInput)
-    const endsAtIso = toIsoFromLocal(inviteEndsAtInput)
-
-    if (!startsAtIso || !endsAtIso) {
-      toast.error("Please provide valid start and end timestamps")
-      return
-    }
-
-    if (!hasValidDateRange(startsAtIso, endsAtIso)) {
-      toast.error("End timestamp must be later than start timestamp")
-      return
-    }
-
-    onCreateInvite({
-      firstName: inviteFirstName,
-      lastName: inviteLastName,
-      email: inviteEmail,
-      startsAt: startsAtIso,
-      endsAt: endsAtIso,
-    })
-  }
+  }, [open, createdInviteUrl, votingWindowStartsAt, votingWindowEndsAt, form])
 
   const handleCopyInviteLink = async () => {
     if (!createdInviteUrl) return
@@ -104,10 +122,8 @@ export function InviteDialog({
   }
 
   const handleReset = () => {
-    setInviteFirstName("")
-    setInviteLastName("")
-    setInviteEmail("")
-    onReset?.()
+    form.reset()
+    setCreatedInviteUrl(null)
   }
 
   return (
@@ -147,71 +163,162 @@ export function InviteDialog({
             </DialogFooter>
           </div>
         ) : (
-          <div className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              form.handleSubmit()
+            }}
+            className="space-y-4"
+          >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="invite-first-name">First name</Label>
-                <Input
-                  id="invite-first-name"
-                  value={inviteFirstName}
-                  onChange={(event) => setInviteFirstName(event.target.value)}
-                  placeholder="Jane"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="invite-last-name">Last name</Label>
-                <Input
-                  id="invite-last-name"
-                  value={inviteLastName}
-                  onChange={(event) => setInviteLastName(event.target.value)}
-                  placeholder="Doe"
-                />
-              </div>
-            </div>
+              <form.Field
+                name="firstName"
+                validators={{
+                  onChange: ({ value }) =>
+                    !value ? "First name is required" : undefined,
+                }}
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>First name</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="Jane"
+                    />
+                    {field.state.meta.isTouched &&
+                      field.state.meta.errors.length > 0 && (
+                        <em className="text-sm text-red-600">
+                          {field.state.meta.errors.join(", ")}
+                        </em>
+                      )}
+                  </div>
+                )}
+              />
 
-            <div className="space-y-2">
-              <Label htmlFor="invite-email">Email</Label>
-              <Input
-                id="invite-email"
-                type="email"
-                value={inviteEmail}
-                onChange={(event) => setInviteEmail(event.target.value)}
-                placeholder="voter@example.com"
+              <form.Field
+                name="lastName"
+                validators={{
+                  onChange: ({ value }) =>
+                    !value ? "Last name is required" : undefined,
+                }}
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Last name</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="Doe"
+                    />
+                    {field.state.meta.isTouched &&
+                      field.state.meta.errors.length > 0 && (
+                        <em className="text-sm text-red-600">
+                          {field.state.meta.errors.join(", ")}
+                        </em>
+                      )}
+                  </div>
+                )}
               />
             </div>
 
+            <form.Field
+              name="email"
+              validators={{
+                onChange: ({ value }) => {
+                  if (!value) return "Email is required"
+                  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    return "Invalid email address"
+                  }
+                  return undefined
+                },
+              }}
+              children={(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Email</Label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    type="email"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="voter@example.com"
+                  />
+                  {field.state.meta.isTouched &&
+                    field.state.meta.errors.length > 0 && (
+                      <em className="text-sm text-red-600">
+                        {field.state.meta.errors.join(", ")}
+                      </em>
+                    )}
+                </div>
+              )}
+            />
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="invite-start-at">Start timestamp</Label>
-                <Input
-                  id="invite-start-at"
-                  type="datetime-local"
-                  value={inviteStartsAtInput}
-                  onChange={(event) =>
-                    setInviteStartsAtInput(event.target.value)
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="invite-end-at">End timestamp</Label>
-                <Input
-                  id="invite-end-at"
-                  type="datetime-local"
-                  value={inviteEndsAtInput}
-                  onChange={(event) =>
-                    setInviteEndsAtInput(event.target.value)
-                  }
-                />
-              </div>
+              <form.Field
+                name="startsAt"
+                validators={{
+                  onChange: ({ value }) =>
+                    !value ? "Start timestamp is required" : undefined,
+                }}
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Start timestamp</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      type="datetime-local"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.isTouched &&
+                      field.state.meta.errors.length > 0 && (
+                        <em className="text-sm text-red-600">
+                          {field.state.meta.errors.join(", ")}
+                        </em>
+                      )}
+                  </div>
+                )}
+              />
+
+              <form.Field
+                name="endsAt"
+                validators={{
+                  onChange: ({ value }) =>
+                    !value ? "End timestamp is required" : undefined,
+                }}
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>End timestamp</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      type="datetime-local"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                    />
+                    {field.state.meta.isTouched &&
+                      field.state.meta.errors.length > 0 && (
+                        <em className="text-sm text-red-600">
+                          {field.state.meta.errors.join(", ")}
+                        </em>
+                      )}
+                  </div>
+                )}
+              />
             </div>
 
             <DialogFooter>
-              <Button
-                type="button"
-                onClick={handleCreateManualInvite}
-                disabled={isCreating}
-              >
-                {isCreating ? (
+              <Button type="submit" disabled={createManualVotingMutation.isPending}>
+                {createManualVotingMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Creating invite...
@@ -224,7 +331,7 @@ export function InviteDialog({
                 )}
               </Button>
             </DialogFooter>
-          </div>
+          </form>
         )}
       </DialogContent>
     </Dialog>

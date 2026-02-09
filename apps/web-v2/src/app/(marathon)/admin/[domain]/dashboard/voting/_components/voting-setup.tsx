@@ -18,28 +18,60 @@ import {
   toIsoFromLocal,
   hasValidDateRange,
 } from "../_lib/utils"
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { useTRPC } from "@/lib/trpc/client"
+import { useDomain } from "@/lib/domain-provider"
 
 interface VotingSetupProps {
-  topicName: string
-  submissionCount: number
-  participantWithSubmissionCount: number
-  onStartVoting: (startsAt: string, endsAt: string) => Promise<void>
-  isStarting: boolean
+  activeTopic: { id: number; name: string; orderIndex: number }
 }
 
 export function VotingSetup({
-  topicName,
-  submissionCount,
-  participantWithSubmissionCount,
-  onStartVoting,
-  isStarting,
+  activeTopic,
 }: VotingSetupProps) {
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const domain = useDomain()
+
+  const startVotingMutation = useMutation(
+    trpc.voting.startVotingSessions.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Voting sessions started successfully")
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+        ])
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to start voting sessions")
+      },
+    }),
+  )
+
+  const { data: summary } = useSuspenseQuery(
+    trpc.voting.getVotingAdminSummary.queryOptions({
+      domain,
+      topicId: activeTopic.id,
+    }),
+  )
+
   const [startsAtInput, setStartsAtInput] = useState(() =>
     toDateTimeLocalValue(new Date()),
   )
   const [endsAtInput, setEndsAtInput] = useState(() =>
     toDateTimeLocalValue(addHours(new Date(), 24)),
   )
+
+  const submissionCount = summary?.submissionStats.submissionCount ?? 0
+  const participantWithSubmissionCount =
+    summary?.submissionStats.participantWithSubmissionCount ?? 0
 
   const launchStartsAtIso = toIsoFromLocal(startsAtInput)
   const launchEndsAtIso = toIsoFromLocal(endsAtInput)
@@ -66,8 +98,15 @@ export function VotingSetup({
       return
     }
 
-    onStartVoting(startsAtIso, endsAtIso)
+    startVotingMutation.mutate({
+      domain,
+      topicId: activeTopic.id,
+      startsAt: startsAtIso,
+      endsAt: endsAtIso,
+    })
   }
+
+  const isStarting = startVotingMutation.isPending
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.2fr_1fr]">
@@ -88,7 +127,7 @@ export function VotingSetup({
               </p>
               <p className="mt-1 text-2xl font-semibold">{submissionCount}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                All uploads under <strong>{topicName}</strong>.
+                All uploads under <strong>{activeTopic.name}</strong>.
               </p>
             </div>
             <div className="rounded-xl border bg-slate-50 p-4">

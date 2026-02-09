@@ -1,20 +1,38 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { useDomain } from "@/lib/domain-provider"
+import { useTRPC } from "@/lib/trpc/client"
+import { useMemo } from "react"
 
 interface VotingProgressProps {
-  totalSessions: number
-  completedSessions: number
-  pendingSessions: number
-  completionRate: number
+  activeTopic: { id: number; name: string; orderIndex: number }
 }
 
 export function VotingProgress({
-  totalSessions,
-  completedSessions,
-  pendingSessions,
-  completionRate,
+  activeTopic,
 }: VotingProgressProps) {
+  const trpc = useTRPC()
+  const domain = useDomain()
+
+  const { data: summary } = useSuspenseQuery(
+    trpc.voting.getVotingAdminSummary.queryOptions({
+      domain,
+      topicId: activeTopic.id,
+    }),
+  )
+
+  const completionRate = useMemo(() => {
+    const total = summary?.sessionStats.total ?? 0
+    if (total === 0) return 0
+    return Math.round(((summary?.sessionStats.completed ?? 0) / total) * 100)
+  }, [summary?.sessionStats.completed, summary?.sessionStats.total])
+
+  const totalSessions = summary?.sessionStats.total ?? 0
+  const completedSessions = summary?.sessionStats.completed ?? 0
+  const pendingSessions = summary?.sessionStats.pending ?? 0
+
   return (
     <Card className="shadow-sm">
       <CardContent className="space-y-4 px-4 py-4 sm:px-5">

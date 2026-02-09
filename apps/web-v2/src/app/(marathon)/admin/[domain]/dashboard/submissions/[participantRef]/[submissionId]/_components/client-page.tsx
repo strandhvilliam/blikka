@@ -1,7 +1,8 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query"
+import { Suspense } from "react"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
 import { SubmissionValidationSteps } from "./submission-validation-steps"
@@ -27,6 +28,55 @@ const getImageUrl = (submission: Submission) => {
     return `${AWS_S3_BASE_URL}/${submissionBaseUrl}/${submission.key}`
   }
   return null
+}
+
+interface VotingDataPanelProps {
+  submission: Submission
+  participant: any
+  hasIssues: boolean
+  validationResults: any[]
+  domain: string
+  topics: any[]
+}
+
+function VotingDataPanel({
+  submission,
+  participant,
+  hasIssues,
+  validationResults,
+  domain,
+  topics,
+}: VotingDataPanelProps) {
+  const trpc = useTRPC()
+
+  const voteStats = useSuspenseQuery(
+    trpc.voting.getSubmissionVoteStats.queryOptions({
+      submissionId: submission.id,
+      domain,
+    }),
+  ).data
+
+  const votingSessionData = useSuspenseQuery(
+    trpc.voting.getVotingSessionByParticipant.queryOptions({
+      participantId: participant.id,
+      topicId: submission.topicId,
+      domain,
+    }),
+  ).data
+
+  return (
+    <SubmissionMetadataPanel
+      submission={submission}
+      participant={participant}
+      hasIssues={hasIssues}
+      validationResults={validationResults}
+      marathonMode="by-camera"
+      voteStats={voteStats}
+      votingSessionData={votingSessionData}
+      domain={domain}
+      topics={topics}
+    />
+  )
 }
 
 export function ParticipantSubmissionClientPage({
@@ -58,26 +108,6 @@ export function ParticipantSubmissionClientPage({
   const submission = participant?.submissions.find((s) => s.id === submissionId)
 
   console.log({ submission })
-
-  const voteStatsQuery = trpc.voting.getSubmissionVoteStats.queryOptions({
-    submissionId: submission?.id ?? 0,
-    domain,
-  })
-  const { data: voteStats } = useQuery({
-    ...voteStatsQuery,
-    enabled: marathon?.mode === "by-camera" && !!submission,
-  })
-
-  const votingSessionQuery =
-    trpc.voting.getVotingSessionByParticipant.queryOptions({
-      participantId: participant?.id ?? 0,
-      topicId: submission?.topicId ?? 0,
-      domain,
-    })
-  const { data: votingSessionData } = useQuery({
-    ...votingSessionQuery,
-    enabled: marathon?.mode === "by-camera" && !!participant,
-  })
 
   const topic = submission?.topic
 
@@ -175,17 +205,36 @@ export function ParticipantSubmissionClientPage({
         </div>
 
         <div className="space-y-6">
-          <SubmissionMetadataPanel
-            submission={submission}
-            participant={participant}
-            hasIssues={hasIssues}
-            validationResults={submissionValidationResults}
-            marathonMode={marathon?.mode}
-            voteStats={voteStats}
-            votingSessionData={votingSessionData}
-            domain={domain}
-            topics={marathon.topics}
-          />
+          {marathon.mode === "by-camera" ? (
+            <Suspense
+              fallback={
+                <Card className="p-4 animate-pulse">
+                  <div className="h-32 bg-muted rounded" />
+                </Card>
+              }
+            >
+              <VotingDataPanel
+                submission={submission}
+                participant={participant}
+                hasIssues={hasIssues}
+                validationResults={submissionValidationResults}
+                domain={domain}
+                topics={marathon.topics}
+              />
+            </Suspense>
+          ) : (
+            <SubmissionMetadataPanel
+              submission={submission}
+              participant={participant}
+              hasIssues={hasIssues}
+              validationResults={submissionValidationResults}
+              marathonMode={marathon.mode}
+              voteStats={undefined}
+              votingSessionData={undefined}
+              domain={domain}
+              topics={marathon.topics}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { useEffect } from "react"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { Medal, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import {
@@ -17,8 +19,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useTRPC } from "@/lib/trpc/client"
 import { formatDateTime, getSubmissionImageUrl } from "../_lib/utils"
 import { useDomain } from "@/lib/domain-provider"
+import { useVotingUiState } from "../_hooks/use-voting-ui-state"
+
+const PAGE_SIZE = 50
 
 interface LeaderboardEntry {
   submissionId: number
@@ -35,36 +41,44 @@ interface LeaderboardEntry {
   submissionKey?: string | null
 }
 
-interface TopRankEntry {
-  rank: number
-  entries: LeaderboardEntry[]
-}
 
 interface LeaderboardTabProps {
-  totalVotes: number
-  topRanks: TopRankEntry[]
-  leaderboard: LeaderboardEntry[]
-  page: number
-  pageCount: number
-  total: number
-  isPageLoading: boolean
-  onPreviousPage: () => void
-  onNextPage: () => void
+  activeTopic: { id: number }
 }
 
 export function LeaderboardTab({
-  totalVotes,
-  topRanks,
-  leaderboard,
-  page,
-  pageCount,
-  total,
-  isPageLoading,
-  onPreviousPage,
-  onNextPage,
+  activeTopic,
 }: LeaderboardTabProps) {
   const router = useRouter()
+  const trpc = useTRPC()
   const domain = useDomain()
+  const { leaderboardPage, setLeaderboardPage } = useVotingUiState()
+
+  const { data: summary } = useSuspenseQuery(
+    trpc.voting.getVotingAdminSummary.queryOptions({
+      domain,
+      topicId: activeTopic.id,
+    }),
+  )
+
+  const { data: leaderboardPageData } = useSuspenseQuery(
+    trpc.voting.getVotingLeaderboardPage.queryOptions({
+      domain,
+      topicId: activeTopic.id,
+      page: leaderboardPage,
+      limit: PAGE_SIZE,
+    }),
+  )
+
+  const leaderboard = leaderboardPageData?.items ?? []
+  const pageCount = leaderboardPageData?.pageCount ?? 0
+  const total = leaderboardPageData?.total ?? 0
+
+  useEffect(() => {
+    if (pageCount > 0 && leaderboardPage > pageCount) {
+      setLeaderboardPage(pageCount)
+    }
+  }, [pageCount, leaderboardPage, setLeaderboardPage])
 
   const handleRowClick = (entry: LeaderboardEntry) => {
     router.push(
@@ -72,7 +86,7 @@ export function LeaderboardTab({
     )
   }
 
-  const topCardEntries = topRanks
+  const topCardEntries = summary.topRanks
     .flatMap((rankGroup) =>
       [...rankGroup.entries].sort((entryA, entryB) => {
         const timeDiff =
@@ -133,7 +147,7 @@ export function LeaderboardTab({
     <div className="space-y-6">
       <Card className="overflow-hidden border-border/80 shadow-sm">
         <CardContent className="p-3 sm:p-4 md:p-5">
-          {totalVotes === 0 ? (
+          {summary.voteStats.totalVotes === 0 ? (
             <div className="rounded-xl border border-dashed bg-muted/20 p-6 text-center">
               <p className="text-sm font-medium">
                 Leaderboard will appear once votes are cast
@@ -271,16 +285,7 @@ export function LeaderboardTab({
                   </TableHeader>
 
                   <TableBody>
-                    {isPageLoading && !leaderboard.length ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="h-24 text-center text-muted-foreground"
-                        >
-                          Loading leaderboard...
-                        </TableCell>
-                      </TableRow>
-                    ) : leaderboard.length ? (
+                    {leaderboard.length > 0 ? (
                       leaderboard.map((entry) => {
                         const voteProgress =
                           maxVotes > 0 ? (entry.voteCount / maxVotes) * 100 : 0
@@ -358,22 +363,28 @@ export function LeaderboardTab({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={onPreviousPage}
-                    disabled={isPageLoading || page <= 1}
+                    onClick={() =>
+                      setLeaderboardPage(Math.max(1, leaderboardPage - 1))
+                    }
+                    disabled={leaderboardPage <= 1}
                     className="bg-white"
                   >
                     Previous
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    Page {pageCount === 0 ? 0 : page} of {pageCount}
+                    Page {pageCount === 0 ? 0 : leaderboardPage} of {pageCount}
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={onNextPage}
-                    disabled={
-                      isPageLoading || pageCount === 0 || page >= pageCount
+                    onClick={() =>
+                      setLeaderboardPage(
+                        pageCount > 0
+                          ? Math.min(pageCount, leaderboardPage + 1)
+                          : leaderboardPage + 1
+                      )
                     }
+                    disabled={pageCount === 0 || leaderboardPage >= pageCount}
                     className="bg-white"
                   >
                     Next

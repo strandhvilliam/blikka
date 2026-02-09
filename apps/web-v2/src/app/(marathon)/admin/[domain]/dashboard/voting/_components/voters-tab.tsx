@@ -1,3 +1,5 @@
+import { useEffect } from "react"
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import {
   Copy,
   Loader2,
@@ -8,9 +10,10 @@ import {
   MoreVertical,
   Trash2,
   X,
-} from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+} from "lucide-react"
+import Link from "next/link"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -18,90 +21,183 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/ui/tooltip"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/popover"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useDomain } from "@/lib/domain-provider";
-import { formatDateTime, getSubmissionImageUrl } from "../_lib/utils";
+} from "@/components/ui/dropdown-menu"
+import { useTRPC } from "@/lib/trpc/client"
+import { useDomain } from "@/lib/domain-provider"
+import { formatDateTime, getSubmissionImageUrl } from "../_lib/utils"
+import { useVotingUiState } from "../_hooks/use-voting-ui-state"
+import { formatDomainLink } from "@/lib/utils"
+import { VotingProgress } from "./voting-progress"
 
-interface VoteSubmission {
-  submissionId: number;
-  participantReference: string | null;
-  participantFirstName: string | null;
-  participantLastName: string | null;
-  thumbnailKey: string | null;
-  key: string | null;
-  createdAt: string;
-}
-
-interface Voter {
-  sessionId: number;
-  firstName: string;
-  lastName: string;
-  email: string | null;
-  phoneNumber: string | null;
-  token: string;
-  notificationLastSentAt: string | null;
-  connectedParticipantId: number | null;
-  voteSubmission: VoteSubmission | null;
-}
+const PAGE_SIZE = 50
 
 interface VotersTabProps {
-  voters: Voter[];
-  page: number;
-  pageCount: number;
-  total: number;
-  isPageLoading: boolean;
-  onPreviousPage: () => void;
-  onNextPage: () => void;
-  onCopyLink: (token: string) => void;
-  onResendNotification: (sessionId: number) => void;
-  pendingResendSessionId: number | null;
-  isResending: boolean;
-  onClearVote: (sessionId: number) => void;
-  onDeleteSession: (sessionId: number) => void;
-  pendingClearVoteSessionId: number | null;
-  pendingDeleteSessionId: number | null;
-  isClearingVote: boolean;
-  isDeletingSession: boolean;
+  activeTopic: { id: number; name: string; orderIndex: number }
 }
 
 export function VotersTab({
-  voters,
-  page,
-  pageCount,
-  total,
-  isPageLoading,
-  onPreviousPage,
-  onNextPage,
-  onCopyLink,
-  onResendNotification,
-  pendingResendSessionId,
-  isResending,
-  onClearVote,
-  onDeleteSession,
-  pendingClearVoteSessionId,
-  pendingDeleteSessionId,
-  isClearingVote,
-  isDeletingSession,
+  activeTopic,
 }: VotersTabProps) {
-  const domain = useDomain();
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const domain = useDomain()
+  const { votersPage, setVotersPage } = useVotingUiState()
+
+  const handleCopySessionLink = async (token: string) => {
+    const link = formatDomainLink(`/live/vote/${token}`, domain, "live")
+    await navigator.clipboard.writeText(link)
+    toast.success("Link copied to clipboard")
+  }
+
+  const clearVoteMutation = useMutation(
+    trpc.voting.clearVote.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Vote cleared successfully")
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
+          }),
+        ])
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to clear vote")
+      },
+    }),
+  )
+
+  const deleteVotingSessionMutation = useMutation(
+    trpc.voting.deleteVotingSession.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Voting session deleted successfully")
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
+          }),
+        ])
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to delete voting session")
+      },
+    }),
+  )
+
+  const resendVotingSessionNotificationMutation = useMutation(
+    trpc.voting.resendVotingSessionNotification.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Voting notification resent")
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+        ])
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to resend voting notification")
+      },
+    }),
+  )
+
+  const handleClearVote = (sessionId: number) => {
+    clearVoteMutation.mutate({
+      domain,
+      topicId: activeTopic.id,
+      sessionId,
+    })
+  }
+
+  const handleDeleteSession = (sessionId: number) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this voting session? This action cannot be undone.",
+      )
+    ) {
+      return
+    }
+
+    deleteVotingSessionMutation.mutate({
+      domain,
+      topicId: activeTopic.id,
+      sessionId,
+    })
+  }
+
+  const handleResendSessionNotification = (sessionId: number) => {
+    resendVotingSessionNotificationMutation.mutate({
+      domain,
+      topicId: activeTopic.id,
+      sessionId,
+    })
+  }
+
+  const pendingClearVoteSessionId =
+    clearVoteMutation.isPending
+      ? clearVoteMutation.variables?.sessionId ?? null
+      : null
+  const isClearingVote = clearVoteMutation.isPending
+
+  const pendingDeleteSessionId =
+    deleteVotingSessionMutation.isPending
+      ? deleteVotingSessionMutation.variables?.sessionId ?? null
+      : null
+  const isDeletingSession = deleteVotingSessionMutation.isPending
+
+  const pendingResendSessionId =
+    resendVotingSessionNotificationMutation.isPending
+      ? resendVotingSessionNotificationMutation.variables?.sessionId
+      : null
+  const isResending = resendVotingSessionNotificationMutation.isPending
+
+  const { data: votersPageData } = useSuspenseQuery(
+    trpc.voting.getVotingVotersPage.queryOptions({
+      domain,
+      topicId: activeTopic.id,
+      page: votersPage,
+      limit: PAGE_SIZE,
+    }),
+  )
+
+  const voters = votersPageData?.items ?? []
+  const pageCount = votersPageData?.pageCount ?? 0
+  const total = votersPageData?.total ?? 0
+
+  useEffect(() => {
+    if (pageCount > 0 && votersPage > pageCount) {
+      setVotersPage(pageCount)
+    }
+  }, [pageCount, votersPage, setVotersPage])
 
   return (
     <div className="space-y-4">
@@ -112,6 +208,7 @@ export function VotersTab({
           sessions.
         </p>
       </div>
+      <VotingProgress activeTopic={activeTopic} />
       <div>
         <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
@@ -139,16 +236,7 @@ export function VotersTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isPageLoading && !voters.length ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      Loading voting sessions...
-                    </TableCell>
-                  </TableRow>
-                ) : voters.length ? (
+                {voters.length ? (
                   voters.map((voter) => (
                     <TableRow
                       key={voter.sessionId}
@@ -222,7 +310,7 @@ export function VotersTab({
                                   </p>
                                 </div>
                                 {voter.voteSubmission.thumbnailKey ||
-                                voter.voteSubmission.key ? (
+                                  voter.voteSubmission.key ? (
                                   <div className="rounded-lg overflow-hidden border bg-muted">
                                     <img
                                       src={getSubmissionImageUrl(
@@ -269,7 +357,7 @@ export function VotersTab({
                             variant="outline"
                             size="sm"
                             className="h-7"
-                            onClick={() => onCopyLink(voter.token)}
+                            onClick={() => handleCopySessionLink(voter.token)}
                           >
                             <Copy className="mr-1.5 size-3.5" />
                             Copy Link
@@ -304,15 +392,15 @@ export function VotersTab({
                                       !voter.phoneNumber ||
                                       (isResending &&
                                         pendingResendSessionId ===
-                                          voter.sessionId)
+                                        voter.sessionId)
                                     }
                                     onClick={() => {
-                                      onResendNotification(voter.sessionId);
+                                      handleResendSessionNotification(voter.sessionId)
                                     }}
                                   >
                                     <div className="flex items-center gap-2">
                                       {isResending &&
-                                      pendingResendSessionId ===
+                                        pendingResendSessionId ===
                                         voter.sessionId ? (
                                         <Loader2 className="size-4 animate-spin" />
                                       ) : (
@@ -327,7 +415,7 @@ export function VotersTab({
                                     className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                     disabled={!voter.email}
                                     onClick={() => {
-                                      onResendNotification(voter.sessionId);
+                                      handleResendSessionNotification(voter.sessionId)
                                     }}
                                   >
                                     <div className="flex items-center gap-2">
@@ -352,13 +440,13 @@ export function VotersTab({
                                   isClearingVote ||
                                   isDeletingSession ||
                                   pendingClearVoteSessionId ===
-                                    voter.sessionId ||
+                                  voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
                                 {pendingClearVoteSessionId ===
                                   voter.sessionId ||
-                                pendingDeleteSessionId === voter.sessionId ? (
+                                  pendingDeleteSessionId === voter.sessionId ? (
                                   <Loader2 className="size-3.5 animate-spin" />
                                 ) : (
                                   <MoreVertical className="size-3.5" />
@@ -367,13 +455,13 @@ export function VotersTab({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => onClearVote(voter.sessionId)}
+                                onClick={() => handleClearVote(voter.sessionId)}
                                 disabled={
                                   !voter.voteSubmission ||
                                   isClearingVote ||
                                   isDeletingSession ||
                                   pendingClearVoteSessionId ===
-                                    voter.sessionId ||
+                                  voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
@@ -383,12 +471,12 @@ export function VotersTab({
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 variant="destructive"
-                                onClick={() => onDeleteSession(voter.sessionId)}
+                                onClick={() => handleDeleteSession(voter.sessionId)}
                                 disabled={
                                   isClearingVote ||
                                   isDeletingSession ||
                                   pendingClearVoteSessionId ===
-                                    voter.sessionId ||
+                                  voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
@@ -423,19 +511,25 @@ export function VotersTab({
             <Button
               variant="outline"
               size="sm"
-              onClick={onPreviousPage}
-              disabled={isPageLoading || page <= 1}
+              onClick={() => setVotersPage(Math.max(1, votersPage - 1))}
+              disabled={votersPage <= 1}
             >
               Previous
             </Button>
             <span className="text-sm text-muted-foreground">
-              Page {pageCount === 0 ? 0 : page} of {pageCount}
+              Page {pageCount === 0 ? 0 : votersPage} of {pageCount}
             </span>
             <Button
               variant="outline"
               size="sm"
-              onClick={onNextPage}
-              disabled={isPageLoading || pageCount === 0 || page >= pageCount}
+              onClick={() =>
+                setVotersPage(
+                  pageCount > 0
+                    ? Math.min(pageCount, votersPage + 1)
+                    : votersPage + 1
+                )
+              }
+              disabled={pageCount === 0 || votersPage >= pageCount}
             >
               Next
             </Button>
@@ -443,5 +537,5 @@ export function VotersTab({
         </div>
       </div>
     </div>
-  );
+  )
 }
