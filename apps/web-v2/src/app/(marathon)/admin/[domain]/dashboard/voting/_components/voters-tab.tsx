@@ -201,13 +201,6 @@ export function VotersTab({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Voting Sessions</h2>
-        <p className="text-sm text-muted-foreground">
-          All voters for this topic, including manual invites and participant
-          sessions.
-        </p>
-      </div>
       <VotingProgress activeTopic={activeTopic} />
       <div>
         <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
