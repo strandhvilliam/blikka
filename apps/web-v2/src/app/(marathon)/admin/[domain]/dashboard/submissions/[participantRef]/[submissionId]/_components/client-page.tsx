@@ -1,85 +1,85 @@
-"use client";
+"use client"
 
-import { notFound } from "next/navigation";
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc/client";
-import { SubmissionExifDataDisplay } from "./submission-exif-data-display";
-import { SubmissionValidationSteps } from "./submission-validation-steps";
-import { SubmissionHeader } from "./submission-header";
-import type { Submission } from "@blikka/db";
-import { SubmissionImageViewer } from "./submission-image-viewer";
-import { SubmissionMetadataPanel } from "./submission-metadata-panel";
-import { SubmissionNavigationControls } from "./submission-navigation-controls";
-import { useState } from "react";
-import { SubmissionQuickActions } from "./submission-quick-actions";
-import { SubmissionReviewTimeline } from "./submission-review-timeline";
-import { Card } from "@/components/ui/card";
-import { useDomain } from "@/lib/domain-provider";
-import { AWS_S3_BASE_URL } from "@/lib/constants";
+import { notFound } from "next/navigation"
+import { useSuspenseQuery, useQuery } from "@tanstack/react-query"
+import { useTRPC } from "@/lib/trpc/client"
+import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
+import { SubmissionValidationSteps } from "./submission-validation-steps"
+import { SubmissionHeader } from "./submission-header"
+import type { Submission } from "@blikka/db"
+import { SubmissionImageViewer } from "./submission-image-viewer"
+import { SubmissionMetadataPanel } from "./submission-metadata-panel"
+import { SubmissionNavigationControls } from "./submission-navigation-controls"
+import { useState } from "react"
+import { SubmissionQuickActions } from "./submission-quick-actions"
+import { SubmissionReviewTimeline } from "./submission-review-timeline"
+import { Card } from "@/components/ui/card"
+import { useDomain } from "@/lib/domain-provider"
+import { AWS_S3_BASE_URL } from "@/lib/constants"
 
 const getImageUrl = (submission: Submission) => {
-  const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME;
-  const submissionBaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME;
+  const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
+  const submissionBaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
   if (submission.thumbnailKey && thumbnailBaseUrl) {
-    return `${AWS_S3_BASE_URL}/${thumbnailBaseUrl}/${submission.thumbnailKey}`;
+    return `${AWS_S3_BASE_URL}/${thumbnailBaseUrl}/${submission.thumbnailKey}`
   }
   if (submission.key && submissionBaseUrl) {
-    return `${AWS_S3_BASE_URL}/${submissionBaseUrl}/${submission.key}`;
+    return `${AWS_S3_BASE_URL}/${submissionBaseUrl}/${submission.key}`
   }
-  return null;
-};
+  return null
+}
 
-export function ParticipantTopicSubmissionClientPage({
+export function ParticipantSubmissionClientPage({
   participantRef,
-  topicOrderIndex,
+  submissionId,
 }: {
-  participantRef: string;
-  topicOrderIndex: number;
+  participantRef: string
+  submissionId: number
 }) {
-  const domain = useDomain();
+  const domain = useDomain()
 
-  const trpc = useTRPC();
-  const [showExifPanel, setShowExifPanel] = useState(false);
-  const [showValidationPanel, setShowValidationPanel] = useState(false);
+  const trpc = useTRPC()
+  const [showExifPanel, setShowExifPanel] = useState(false)
+  const [showValidationPanel, setShowValidationPanel] = useState(false)
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
       domain,
       reference: participantRef,
     }),
-  );
+  )
 
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({
       domain,
     }),
-  );
+  )
 
-  const submission = participant?.submissions.find(
-    (s) => s.topic?.orderIndex === topicOrderIndex,
-  );
+  const submission = participant?.submissions.find((s) => s.id === submissionId)
+
+  console.log({ submission })
 
   const voteStatsQuery = trpc.voting.getSubmissionVoteStats.queryOptions({
     submissionId: submission?.id ?? 0,
     domain,
-  });
+  })
   const { data: voteStats } = useQuery({
     ...voteStatsQuery,
     enabled: marathon?.mode === "by-camera" && !!submission,
-  });
+  })
 
   const votingSessionQuery =
     trpc.voting.getVotingSessionByParticipant.queryOptions({
       participantId: participant?.id ?? 0,
       topicId: submission?.topicId ?? 0,
       domain,
-    });
+    })
   const { data: votingSessionData } = useQuery({
     ...votingSessionQuery,
     enabled: marathon?.mode === "by-camera" && !!participant,
-  });
+  })
 
-  const topic = submission?.topic;
+  const topic = submission?.topic
 
   const submissionValidationResults =
     participant?.validationResults?.filter(
@@ -87,22 +87,22 @@ export function ParticipantTopicSubmissionClientPage({
         result.fileName &&
         submission?.key &&
         result.fileName.includes(submission.key),
-    ) || [];
+    ) || []
 
   const hasIssues = submissionValidationResults.some(
     (result) => result.outcome === "failed",
-  );
+  )
 
   const allSubmissions = participant?.submissions
     .filter((s) => s.topic)
-    .sort((a, b) => (a.topic?.orderIndex || 0) - (b.topic?.orderIndex || 0));
+    .sort((a, b) => (a.topic?.orderIndex || 0) - (b.topic?.orderIndex || 0))
 
   const currentIndex = allSubmissions.findIndex(
-    (s) => s.topic?.orderIndex === topicOrderIndex,
-  );
+    (s) => s.id === submissionId,
+  )
 
   if (!submission || !topic || !participant) {
-    notFound();
+    notFound()
   }
 
   return (
@@ -189,5 +189,5 @@ export function ParticipantTopicSubmissionClientPage({
         </div>
       </div>
     </div>
-  );
+  )
 }

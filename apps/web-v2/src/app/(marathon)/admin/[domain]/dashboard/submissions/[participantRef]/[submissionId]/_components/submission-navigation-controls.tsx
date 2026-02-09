@@ -46,7 +46,7 @@ export function SubmissionNavigationControls({
         {hasPrevious ? (
           <Link
             href={formatDomainPathname(
-              `/admin/dashboard/submissions/${participantRef}/${previousSubmission?.topic?.orderIndex}`,
+              `/admin/dashboard/submissions/${participantRef}/${previousSubmission?.id}`,
               domain
             )}
           >
@@ -75,7 +75,10 @@ export function SubmissionNavigationControls({
             {allSubmissions.map((sub, idx) => (
               <DropdownMenuItem key={sub.id} asChild>
                 <Link
-                  href={`/admin/dashboard/submissions/${participantRef}/${sub.topic?.orderIndex}`}
+                  href={formatDomainPathname(
+                    `/admin/dashboard/submissions/${participantRef}/${sub.id}`,
+                    domain
+                  )}
                   className="flex items-center gap-3 px-3 py-2"
                 >
                   <Badge
@@ -97,7 +100,10 @@ export function SubmissionNavigationControls({
       <Button variant="outline" size="sm" disabled={!hasNext} asChild={hasNext} className="gap-2">
         {hasNext ? (
           <Link
-            href={`/admin/dashboard/submissions/${participantRef}/${nextSubmission?.topic?.orderIndex}`}
+            href={formatDomainPathname(
+              `/admin/dashboard/submissions/${participantRef}/${nextSubmission?.id}`,
+              domain
+            )}
           >
             Next
             <ChevronRight className="h-4 w-4" />

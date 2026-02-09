@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect";
 import { DrizzleClient } from "../drizzle-client";
-import { participants, validationResults } from "../schema";
+import { participants, submissions, validationResults } from "../schema";
 import {
   eq,
   and,
@@ -12,7 +12,6 @@ import {
   ilike,
   inArray,
   notInArray,
-  sql,
 } from "drizzle-orm";
 import type { NewParticipant } from "../types";
 import { SqlError } from "@effect/sql/SqlError";
@@ -194,6 +193,35 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
           );
         }
 
+        if (topicId !== undefined) {
+          // Filter participants to only those who have uploaded at least one
+          // submission for the requested topic.
+          const participantsWithTopicSubmissions = yield* db
+            .selectDistinct({ participantId: submissions.participantId })
+            .from(submissions)
+            .innerJoin(participants, eq(participants.id, submissions.participantId))
+            .where(
+              and(
+                eq(participants.domain, domain),
+                eq(submissions.topicId, topicId),
+              ),
+            );
+
+          const participantIdsWithTopicSubmissions =
+            participantsWithTopicSubmissions.map((p) => p.participantId);
+
+          if (participantIdsWithTopicSubmissions.length === 0) {
+            return {
+              participants: [],
+              nextCursor: null,
+            };
+          }
+
+          baseConditions.push(
+            inArray(participants.id, participantIdsWithTopicSubmissions),
+          );
+        }
+
         const whereConditions =
           baseConditions.length > 1
             ? and(...baseConditions)
@@ -208,6 +236,18 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
           with: {
             competitionClass: true,
             deviceGroup: true,
+            ...(topicId !== undefined
+              ? {
+                  submissions: {
+                    columns: {
+                      id: true,
+                      topicId: true,
+                      createdAt: true,
+                    },
+                    where: eq(submissions.topicId, topicId),
+                  },
+                }
+              : {}),
             validationResults: true,
             votingSessions: {
               columns: {
@@ -270,34 +310,48 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             zippedSubmissions,
             contactSheets,
             votingSessions,
+            submissions: participantSubmissions = [],
             ...rest
-          }) => ({
-            ...rest,
-            votingSession:
-              votingSessions
-                .filter((session) =>
-                  topicId !== undefined ? session.topicId === topicId : true,
-                )
-                .sort(
-                  (left, right) =>
-                    new Date(right.createdAt).getTime() -
-                    new Date(left.createdAt).getTime(),
-                )[0] ?? null,
-            zipKeys: zippedSubmissions.map((zs) => zs.key),
-            contactSheetKeys: contactSheets.map((cs) => cs.key),
-            failedValidationResults: countValidationResults(
-              validationResults,
-              VALIDATION_OUTCOME.FAILED,
-            ),
-            passedValidationResults: countValidationResults(
-              validationResults,
-              VALIDATION_OUTCOME.PASSED,
-            ),
-            skippedValidationResults: countValidationResults(
-              validationResults,
-              VALIDATION_OUTCOME.SKIPPED,
-            ),
-          }),
+          }) => {
+            const activeTopicSubmissionId =
+              topicId === undefined
+                ? null
+                : participantSubmissions
+                    .sort(
+                      (left, right) =>
+                        new Date(right.createdAt).getTime() -
+                        new Date(left.createdAt).getTime(),
+                    )[0]?.id ?? null;
+
+            return {
+              ...rest,
+              activeTopicSubmissionId,
+              votingSession:
+                votingSessions
+                  .filter((session) =>
+                    topicId !== undefined ? session.topicId === topicId : true,
+                  )
+                  .sort(
+                    (left, right) =>
+                      new Date(right.createdAt).getTime() -
+                      new Date(left.createdAt).getTime(),
+                  )[0] ?? null,
+              zipKeys: zippedSubmissions.map((zs) => zs.key),
+              contactSheetKeys: contactSheets.map((cs) => cs.key),
+              failedValidationResults: countValidationResults(
+                validationResults,
+                VALIDATION_OUTCOME.FAILED,
+              ),
+              passedValidationResults: countValidationResults(
+                validationResults,
+                VALIDATION_OUTCOME.PASSED,
+              ),
+              skippedValidationResults: countValidationResults(
+                validationResults,
+                VALIDATION_OUTCOME.SKIPPED,
+              ),
+            };
+          },
         );
 
         return {

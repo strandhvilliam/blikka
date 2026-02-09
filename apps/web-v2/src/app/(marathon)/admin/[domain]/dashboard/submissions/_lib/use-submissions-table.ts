@@ -14,6 +14,7 @@ import type { Participant, CompetitionClass, DeviceGroup } from "@blikka/db";
 export type TableData = Omit<Participant, "phoneEncrypted" | "phoneHash"> & {
   competitionClass: CompetitionClass | null;
   deviceGroup: DeviceGroup | null;
+  activeTopicSubmissionId: number | null;
   failedValidationResults: { errors: number; warnings: number };
   passedValidationResults: { errors: number; warnings: number };
   skippedValidationResults: { errors: number; warnings: number };
@@ -31,7 +32,8 @@ export function useSubmissionsTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const activeByCameraTopicId =
     marathon?.mode === "by-camera"
-      ? marathon.topics.find((topic) => topic.visibility === "active")?.id
+      ? (marathon.topics.find((topic) => topic.visibility === "active")?.id ??
+        -1)
       : undefined;
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());

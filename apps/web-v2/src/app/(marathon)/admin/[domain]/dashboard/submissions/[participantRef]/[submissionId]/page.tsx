@@ -3,16 +3,16 @@ import { decodeParams, Page } from "@/lib/next-utils"
 import { HydrateClient } from "@/lib/trpc/server"
 import { Suspense } from "react"
 import { batchPrefetch, trpc } from "@/lib/trpc/server"
-import { ParticipantTopicSubmissionClientPage } from "./_components/client-page"
+import { ParticipantSubmissionClientPage } from "./_components/client-page"
 import { SubmissionPageSkeleton } from "./_components/submission-page-skeleton"
 
-const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsPage")(
-  function*({ params }: PageProps<"/admin/[domain]/dashboard/submissions/[participantRef]/[topicOrderIndex]">) {
-    const { domain, participantRef, topicOrderIndex } = yield* decodeParams(
+const _ParticipantSubmissionPage = Effect.fn("@blikka/web/ParticipantSubmissionPage")(
+  function*({ params }: PageProps<"/admin/[domain]/dashboard/submissions/[participantRef]/[submissionId]">) {
+    const { domain, participantRef, submissionId } = yield* decodeParams(
       Schema.Struct({
         domain: Schema.String,
         participantRef: Schema.String,
-        topicOrderIndex: Schema.String,
+        submissionId: Schema.String,
       })
     )(params)
 
@@ -29,9 +29,9 @@ const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsP
     return (
       <HydrateClient>
         <Suspense fallback={<SubmissionPageSkeleton />}>
-          <ParticipantTopicSubmissionClientPage
+          <ParticipantSubmissionClientPage
             participantRef={participantRef}
-            topicOrderIndex={Number(topicOrderIndex)}
+            submissionId={Number(submissionId)}
           />
         </Suspense>
       </HydrateClient>
@@ -40,4 +40,4 @@ const _ParticipantTopicSubmissionPage = Effect.fn("@blikka/web/TopicSubmissionsP
   Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
-export default Page(_ParticipantTopicSubmissionPage)
+export default Page(_ParticipantSubmissionPage)

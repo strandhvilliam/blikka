@@ -51,7 +51,7 @@ export function ParticipantSubmissionCard({
   return (
     <Link
       href={formatDomainPathname(
-        `/admin/dashboard/submissions/${participantRef}/${submission.topic?.orderIndex}`,
+        `/admin/dashboard/submissions/${participantRef}/${submission.id}`,
         domain
       )}
     >

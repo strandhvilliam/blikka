@@ -20,9 +20,17 @@ const customTabTriggerClassName =
 
 interface SubmissionsHeaderProps {
   domain: string;
+  marathonMode: string;
+  activeTopicName: string | null;
+  activeTopicOrderIndex: number | null;
 }
 
-export function SubmissionsHeader({ domain }: SubmissionsHeaderProps) {
+export function SubmissionsHeader({
+  domain,
+  marathonMode,
+  activeTopicName,
+  activeTopicOrderIndex,
+}: SubmissionsHeaderProps) {
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: "push",
   });
@@ -48,9 +56,20 @@ export function SubmissionsHeader({ domain }: SubmissionsHeaderProps) {
           <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">
             Submissions
           </h1>
-          <p className="text-muted-foreground text-sm">
-            View and manage photo submissions from participants
-          </p>
+          {marathonMode === "by-camera" ? (
+            <p className="text-muted-foreground text-sm">
+              Viewing active topic:{" "}
+              <span className="font-medium text-foreground">
+                {activeTopicName
+                  ? `${activeTopicOrderIndex !== null ? `#${activeTopicOrderIndex + 1} ` : ""}${activeTopicName}`
+                  : "No active topic"}
+              </span>
+            </p>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              View and manage photo submissions from participants
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <Button asChild variant="outline">

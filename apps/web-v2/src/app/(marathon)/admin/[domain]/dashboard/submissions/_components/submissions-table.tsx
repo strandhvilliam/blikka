@@ -255,9 +255,13 @@ export function SubmissionsTable() {
                   <>
                     {table.getRowModel().rows.map((row) => {
                       const participant = row.original;
+                      const byCameraSubmissionHref =
+                        participant.activeTopicSubmissionId !== null
+                          ? `/admin/dashboard/submissions/${participant.reference}/${participant.activeTopicSubmissionId}`
+                          : `/admin/dashboard/submissions/${participant.reference}`;
                       const href = formatDomainPathname(
                         marathon?.mode === "by-camera"
-                          ? `/admin/dashboard/submissions/${participant.reference}/0`
+                          ? byCameraSubmissionHref
                           : `/admin/dashboard/submissions/${participant.reference}`,
                         domain,
                       );
