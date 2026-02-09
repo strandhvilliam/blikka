@@ -80,7 +80,7 @@ export function VotingContent() {
   );
 
   const activeTopic =
-    marathon.topics.find((topic) => topic.orderIndex === 0) ?? null;
+    marathon.topics.find((topic) => topic.visibility === "active") ?? null;
   const isByCamera = marathon.mode === "by-camera";
 
   const overviewQueryOptions = trpc.voting.getVotingAdminOverview.queryOptions({

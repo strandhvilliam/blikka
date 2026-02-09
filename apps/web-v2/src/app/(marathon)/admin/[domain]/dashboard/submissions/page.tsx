@@ -24,7 +24,7 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
     );
     const activeByCameraTopicId =
       marathon.mode === "by-camera"
-        ? marathon.topics.find((topic) => topic.orderIndex === 0)?.id
+        ? marathon.topics.find((topic) => topic.visibility === "active")?.id
         : null;
     const queryParams = yield* Effect.tryPromise(() =>
       loadSubmissionSearchParams(searchParams),

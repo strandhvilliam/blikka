@@ -30,7 +30,7 @@ const _VotingPage = Effect.fn("@blikka/web/VotingPage")(
 
     if (marathon.mode === "by-camera") {
       const activeTopic = marathon.topics.find(
-        (topic) => topic.orderIndex === 0,
+        (topic) => topic.visibility === "active",
       );
       if (activeTopic) {
         prefetch(

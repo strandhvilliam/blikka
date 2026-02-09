@@ -200,6 +200,7 @@ export function TopicsTable() {
         header: "Visibility",
         cell: ({ row }) => {
           const VISIBILITY_LABELS = {
+            active: "Active",
             public: "Public",
             scheduled: "Scheduled",
             private: "Private",
@@ -208,7 +209,17 @@ export function TopicsTable() {
 
           const label = VISIBILITY_LABELS[visibility]
 
-          return <Badge variant={label === "Public" ? "default" : "secondary"}>{label}</Badge>
+          return (
+            <Badge
+              variant={
+                label === "Public" || label === "Active"
+                  ? "default"
+                  : "secondary"
+              }
+            >
+              {label}
+            </Badge>
+          )
         },
       },
       {

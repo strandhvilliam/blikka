@@ -36,7 +36,8 @@ export class ParticipantsApiService extends Effect.Service<ParticipantsApiServic
           publicSubmissions: result.value.submissions.map((submission) => ({
             topic: {
               name:
-                submission.topic.visibility === "public"
+                submission.topic.visibility === "public" ||
+                submission.topic.visibility === "active"
                   ? submission.topic.name
                   : "",
               orderIndex: submission.topic.orderIndex,

@@ -37,7 +37,7 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
 
       const handleParticipantError = Effect.fnUntraced(
         function* (domain: string, reference: string, errorCode: string, error: Error) {
-          yield* Effect.logError(error.message, { domain, reference, errorCode })
+          yield* Effect.logError(`[${domain}|${reference}|${errorCode}] Failed to set participant error state: ${error.message}`, error.cause)
           return yield* uploadKv
             .setParticipantErrorState(domain, reference, errorCode)
             .pipe(Effect.andThen(() => Effect.logError(error.message, error.cause)))
@@ -117,16 +117,16 @@ export class UploadProcessorService extends Effect.Service<UploadProcessorServic
             thumbnailKey: Option.getOrNull(thumbnailResult),
             exifProcessed: Option.isSome(exifResult),
           })
-          .pipe(Effect.orElse(() => Effect.logError("Failed to update submission state")))
+          .pipe(Effect.catchAll((error) => Effect.logError(`[${domain}|${reference}|${orderIndex}] Failed to update submission state: ${error.message}`)))
 
         const { finalize } = yield* uploadKv
           .incrementParticipantState(domain, reference, orderIndex)
           .pipe(
-            Effect.orElseFail(
-              () =>
+            Effect.catchAll(
+              (error) =>
                 new FailedToIncrementParticipantStateError({
-                  cause: "Failed to increment participant state",
-                  message: "Failed to increment participant state",
+                  cause: error,
+                  message: `[${domain}|${reference}|${orderIndex}] Failed to increment participant state: ${error.message}`,
                 })
             )
           )

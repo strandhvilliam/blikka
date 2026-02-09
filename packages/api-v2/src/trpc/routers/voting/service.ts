@@ -219,7 +219,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         }
 
         const activeTopic = marathon.topics.find(
-          (topic) => topic.orderIndex === 0,
+          (topic) => topic.visibility === "active",
         );
         if (!activeTopic || activeTopic.id !== topicId) {
           return yield* Effect.fail(
@@ -762,7 +762,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         }
 
         const activeTopic = marathon.topics.find(
-          (topic) => topic.orderIndex === 0,
+          (topic) => topic.visibility === "active",
         );
         if (!activeTopic || activeTopic.id !== topicId) {
           return yield* Effect.fail(

@@ -33,8 +33,6 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
         "UploadFlowApiService.getPublicMarathon",
       )(function* ({ domain }) {
 
-        // TODO: make sure in by-camera mode, the first topic is the only one that is returned
-
         const marathon = yield* db.marathonsQueries
           .getMarathonByDomainWithOptions({
             domain,
@@ -52,7 +50,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
           )
 
         const processedTopics = marathon.topics.reduce((acc, topic) => {
-          if (topic.visibility !== "public") {
+          if (topic.visibility !== "public" && topic.visibility !== "active") {
             acc.push({
               ...topic,
               name: "Redacted",
@@ -63,7 +61,11 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
           return acc
         }, [] as Topic[]).sort((a, b) => a.orderIndex - b.orderIndex)
 
-        const topics = marathon.mode === "by-camera" ? processedTopics.slice(0, 1) : processedTopics
+        const topics = marathon.mode === "by-camera"
+          ? processedTopics
+            .filter((topic) => topic.visibility === "active")
+            .slice(0, 1)
+          : processedTopics
 
 
         const publicMarathon = {
@@ -384,26 +386,22 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             },
           })
 
-          const sortedTopics = pipe(
+          const activeTopic = yield* Array.findFirst(
             marathon.topics,
-            Array.sort(
-              Order.mapInput(Order.number, (topic: Topic) => topic.orderIndex),
-            ),
-          )
-
-          const firstTopic = yield* Array.head(sortedTopics).pipe(
+            (topic) => topic.visibility === "active",
+          ).pipe(
             Option.match({
               onSome: (topic) => Effect.succeed(topic),
               onNone: () =>
                 Effect.fail(
                   new UploadFlowApiError({
-                    message: `[${domain}] No topics found for marathon`,
+                    message: `[${domain}] No active topic found for marathon`,
                   }),
                 ),
             }),
           )
 
-          const orderIndex = firstTopic.orderIndex
+          const orderIndex = activeTopic.orderIndex
           const submissionKey = yield* s3.generateSubmissionKey(domain, reference, orderIndex)
 
           if (existingSubmissions.length > 0) {
@@ -417,7 +415,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               participantId: participant.id,
               key: submissionKey,
               marathonId: marathon.id,
-              topicId: firstTopic.id,
+              topicId: activeTopic.id,
               status: "initialized",
             }],
           })

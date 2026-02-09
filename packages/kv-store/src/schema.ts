@@ -76,6 +76,7 @@ export const makeInitialSubmissionState = (key: string, orderIndex: number) =>
 
 export const ParticipantStateSchema = Schema.Struct({
   expectedCount: Schema.Number,
+  orderIndexes: Schema.Array(Schema.Number),
   processedIndexes: Schema.Array(Schema.Number),
   validated: Schema.Boolean,
   zipKey: Schema.String,
@@ -85,9 +86,13 @@ export const ParticipantStateSchema = Schema.Struct({
   checkedAt: Schema.NullOr(Schema.String),
 });
 
-export const makeInitialParticipantState = (expectedCount: number) =>
+export const makeInitialParticipantState = (
+  expectedCount: number,
+  orderIndexes: number[],
+) =>
   ParticipantStateSchema.make({
     expectedCount,
+    orderIndexes,
     processedIndexes: Array.from({ length: expectedCount }, () => 0),
     validated: false,
     zipKey: "",

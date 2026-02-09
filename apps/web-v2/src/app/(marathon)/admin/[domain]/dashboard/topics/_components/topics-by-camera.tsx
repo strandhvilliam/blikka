@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 const VISIBILITY_LABELS = {
+  active: "Active",
   public: "Public",
   scheduled: "Scheduled",
   private: "Private",
@@ -72,12 +73,12 @@ export function TopicsByCamera() {
   }, [topics]);
 
   const activeTopic = useMemo(() => {
-    return sortedTopics.length > 0 ? sortedTopics[0] : null;
+    return sortedTopics.find((topic) => topic.visibility === "active") ?? null;
   }, [sortedTopics]);
 
   const historyTopics = useMemo(() => {
-    return sortedTopics.slice(1);
-  }, [sortedTopics]);
+    return sortedTopics.filter((topic) => topic.id !== activeTopic?.id);
+  }, [activeTopic?.id, sortedTopics]);
 
 
   const { mutate: activateTopic, isPending: isActivatingTopic } = useMutation(

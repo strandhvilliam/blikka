@@ -1,4 +1,4 @@
-import { Duration, Effect, HashMap, Option, pipe, Schedule, Schema } from "effect"
+import { Duration, Effect, Option, Schedule, Schema } from "effect"
 import { RedisClient, RedisError } from "@blikka/redis"
 import { NodeFileSystem } from "@effect/platform-node"
 import { KeyFactory } from "../key-factory"
@@ -26,25 +26,51 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
 
       const initializeState = Effect.fn("UploadSessionRepository.initState")(
         function* (domain: string, reference: string, submissionKeys: string[]) {
-          const participantState = makeInitialParticipantState(submissionKeys.length)
-
           const map: Record<string, SubmissionState> = {}
+          const submissionOrderIndexes: number[] = []
 
           for (const key of submissionKeys) {
             const { orderIndex } = yield* parseKey(key)
+            submissionOrderIndexes.push(orderIndex)
             const formattedOrderIndex = (orderIndex + 1).toString().padStart(2, "0")
             const redisKey = keyFactory.submission(domain, reference, formattedOrderIndex)
             map[redisKey] = makeInitialSubmissionState(key, orderIndex)
           }
 
+          const participantState = makeInitialParticipantState(
+            submissionKeys.length,
+            submissionOrderIndexes,
+          )
+
+          const existingParticipantState = yield* getParticipantState(domain, reference)
+          const staleOrderIndexes = Option.match(existingParticipantState, {
+            onSome: (state) => state.orderIndexes,
+            onNone: () => [] as number[],
+          })
+
           yield* redis.use((client) => {
             const participantKey = keyFactory.participant(domain, reference)
             const entries = Object.entries(map)
-
-            const multi = entries.reduce(
-              (chain, [redisKey, value]) => chain.hset(redisKey, value),
-              client.multi().hset(participantKey, participantState)
+            const staleSubmissionKeys = staleOrderIndexes.map((orderIndex) =>
+              keyFactory.submission(
+                domain,
+                reference,
+                (orderIndex + 1).toString().padStart(2, "0"),
+              ),
             )
+
+            let multi = client.multi().del(participantKey)
+
+            for (const staleSubmissionKey of staleSubmissionKeys) {
+              multi = multi.del(staleSubmissionKey)
+            }
+
+            multi = multi.hset(participantKey, participantState)
+
+            for (const [redisKey, value] of entries) {
+              multi = multi.hset(redisKey, value)
+            }
+
             return multi.exec()
           })
         },
@@ -79,7 +105,7 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
           .pipe(
             Effect.mapError((error) => {
               return new RedisError({
-                message: "Failed to increment participant state",
+                message: `[${domain}|${ref}|${orderIndex}] Failed to increment participant state: ${error.message}`,
                 cause: error.cause,
               })
             })
@@ -90,14 +116,14 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
           case "INVALID_ORDER_INDEX":
             yield* setParticipantErrorState(domain, ref, code)
             return yield* new RedisError({
-              message: "Invalid order index provided",
+              message: `[${domain}|${ref}|${orderIndex}] Invalid order index provided: ${result}`,
               cause: result,
             })
             break
           case "MISSING_DATA":
             yield* setParticipantErrorState(domain, ref, code)
             return yield* new RedisError({
-              message: "Missing data provided",
+              message: `[${domain}|${ref}|${orderIndex}] Missing data provided: ${result}`,
               cause: result,
             })
             break
@@ -105,7 +131,7 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
             yield* Effect.logWarning("Duplicate order index provided, skipping")
             break
           case "ALREADY_FINALIZED":
-            yield* Effect.logWarning("Already finalized, skipping")
+            yield* Effect.logWarning(`[${domain}|${ref}|${orderIndex}] Already finalized, skipping`)
             break
         }
 
@@ -120,6 +146,7 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
           if (result === null) {
             return Option.none<ParticipantState>()
           }
+
           const parsed = yield* Schema.decodeUnknown(ParticipantStateSchema)(result)
           return Option.some<ParticipantState>(parsed)
         }
@@ -194,4 +221,5 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
       } as const
     }),
   }
-) {}
+) {
+}

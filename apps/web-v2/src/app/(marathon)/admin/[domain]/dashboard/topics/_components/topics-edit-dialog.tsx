@@ -78,15 +78,17 @@ export function TopicsEditDialog({
   const form = useForm({
     defaultValues: {
       name: topic?.name || "",
-      visibility: topic?.visibility === "public",
-      activate: topic ? topic.orderIndex === 0 : false,
+      visibility: topic ? topic.visibility !== "private" : true,
+      activate: topic ? topic.visibility === "active" : false,
     },
     onSubmit: async ({ value }) => {
       if (!topic) return;
 
       const visibility = value.visibility ? "public" : "private";
       const shouldActivate =
-        showActiveToggle && value.activate && topic.orderIndex !== 0;
+        showActiveToggle && value.activate && topic.visibility !== "active";
+      const shouldKeepActive =
+        topic.visibility === "active" && value.visibility;
 
       // Update topic fields
       updateTopic({
@@ -94,7 +96,9 @@ export function TopicsEditDialog({
         id: topic.id,
         data: {
           name: value.name,
-          visibility: visibility as "public" | "private" | "scheduled",
+          visibility: (shouldKeepActive
+            ? "active"
+            : visibility) as "public" | "private" | "scheduled" | "active",
         },
       });
 
@@ -111,8 +115,8 @@ export function TopicsEditDialog({
   useEffect(() => {
     if (topic) {
       form.setFieldValue("name", topic.name);
-      form.setFieldValue("visibility", topic.visibility === "public");
-      form.setFieldValue("activate", topic.orderIndex === 0);
+      form.setFieldValue("visibility", topic.visibility !== "private");
+      form.setFieldValue("activate", topic.visibility === "active");
     }
   }, [topic, form]);
 
@@ -199,13 +203,13 @@ export function TopicsEditDialog({
                       Make active
                     </label>
                     <p className="text-sm text-muted-foreground">
-                      Move this topic to the active position
+                      Mark this topic as the active one
                     </p>
                   </div>
                   <Switch
                     checked={field.state.value}
                     onCheckedChange={(checked) => field.handleChange(checked)}
-                    disabled={topic?.orderIndex === 0}
+                    disabled={topic?.visibility === "active"}
                   />
                 </div>
               )}

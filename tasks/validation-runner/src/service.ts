@@ -112,8 +112,8 @@ export class ValidationRunner extends Effect.Service<ValidationRunner>()(
           domain,
         })
 
+        const orderIndexes = [...participantState.orderIndexes]
 
-        const orderIndexes = participantState.processedIndexes.map((_, i) => i)
         const [exifStates, submissionStates] = yield* Effect.all(
           [
             kv.exifRepository.getAllExifStates(domain, reference, orderIndexes),

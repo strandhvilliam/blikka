@@ -64,7 +64,11 @@ export function TopicsCreateDialog({
       const visibility = value.visibility ? "public" : "private"
       const data = {
         name: value.name,
-        visibility: visibility as "public" | "private" | "scheduled",
+        visibility: visibility as
+          | "public"
+          | "private"
+          | "scheduled"
+          | "active",
         ...(showActiveToggle && value.activate ? { activate: true } : {}),
       }
       createTopic({
@@ -164,7 +168,7 @@ export function TopicsCreateDialog({
                       Make active
                     </label>
                     <p className="text-sm text-muted-foreground">
-                      Move this topic to the active position
+                      Mark this topic as the active one
                     </p>
                   </div>
                   <Switch

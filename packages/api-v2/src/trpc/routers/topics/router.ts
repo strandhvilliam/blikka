@@ -71,13 +71,18 @@ export const topicsRouter = createTRPCRouter({
         }
 
         const isByCamera = marathon.value.mode === "by-camera";
-        const shouldActivate = isByCamera && input.data.activate === true;
+        const shouldActivate =
+          isByCamera &&
+          (input.data.activate === true || input.data.visibility === "active");
 
         const { activate: _, ...createData } = input.data;
+        const createVisibility =
+          createData.visibility === "active" ? "public" : createData.visibility;
 
         const createdTopic = yield* db.topicsQueries.createTopic({
           data: {
             ...createData,
+            visibility: createVisibility,
             marathonId: marathon.value.id,
             orderIndex,
           },
@@ -87,18 +92,18 @@ export const topicsRouter = createTRPCRouter({
           return createdTopic;
         }
 
-        const sortedExisting = [...existingTopics].sort(
-          (a, b) => a.orderIndex - b.orderIndex,
+        const currentlyActiveTopics = existingTopics.filter(
+          (topic) => topic.visibility === "active",
         );
-        const topicIds = [
-          createdTopic.id,
-          ...sortedExisting.map((topic) => topic.id),
-        ];
-
-        yield* db.topicsQueries.updateTopicsOrder({
-          topicIds,
-          marathonId: marathon.value.id,
-        });
+        yield* Effect.forEach(
+          currentlyActiveTopics,
+          (activeTopic) =>
+            db.topicsQueries.updateTopic({
+              id: activeTopic.id,
+              data: { visibility: "public" },
+            }),
+          { concurrency: 1 },
+        );
 
         const activatedAt = new Date().toISOString();
 
@@ -106,6 +111,7 @@ export const topicsRouter = createTRPCRouter({
           id: createdTopic.id,
           data: {
             activatedAt,
+            visibility: "active",
           },
         });
       }),
@@ -137,6 +143,30 @@ export const topicsRouter = createTRPCRouter({
               : input.data.scheduledStart,
         };
 
+        if (updateData.visibility === "active") {
+          const siblingTopics = yield* db.topicsQueries.getTopicsByMarathonId({
+            id: topic.marathonId,
+          });
+          const currentlyActiveTopics = siblingTopics.filter(
+            (siblingTopic) =>
+              siblingTopic.id !== topic.id &&
+              siblingTopic.visibility === "active",
+          );
+
+          yield* Effect.forEach(
+            currentlyActiveTopics,
+            (activeTopic) =>
+              db.topicsQueries.updateTopic({
+                id: activeTopic.id,
+                data: { visibility: "public" },
+              }),
+            { concurrency: 1 },
+          );
+
+          updateData.activatedAt =
+            updateData.activatedAt ?? new Date().toISOString();
+        }
+
         return yield* db.topicsQueries.updateTopic({
           id: input.id,
           data: updateData,
@@ -159,22 +189,23 @@ export const topicsRouter = createTRPCRouter({
           );
         }
 
-
         const topics = yield* db.topicsQueries.getTopicsByMarathonId({
           id: topic.marathonId,
         });
-        const sortedTopics = [...topics].sort(
-          (a, b) => a.orderIndex - b.orderIndex,
+        const currentlyActiveTopics = topics.filter(
+          (candidateTopic) =>
+            candidateTopic.id !== input.id &&
+            candidateTopic.visibility === "active",
         );
-        const topicIds = [
-          input.id,
-          ...sortedTopics.filter((t) => t.id !== input.id).map((t) => t.id),
-        ];
-
-        yield* db.topicsQueries.updateTopicsOrder({
-          topicIds,
-          marathonId: topic.marathonId,
-        });
+        yield* Effect.forEach(
+          currentlyActiveTopics,
+          (activeTopic) =>
+            db.topicsQueries.updateTopic({
+              id: activeTopic.id,
+              data: { visibility: "public" },
+            }),
+          { concurrency: 1 },
+        );
 
         const activatedAt = new Date().toISOString();
 
@@ -182,6 +213,7 @@ export const topicsRouter = createTRPCRouter({
           id: input.id,
           data: {
             activatedAt,
+            visibility: "active",
           },
         });
       }),
@@ -218,23 +250,6 @@ export const topicsRouter = createTRPCRouter({
         const deletedTopic = yield* db.topicsQueries.deleteTopic({
           id: input.id,
         });
-
-        if (marathon.value.mode === "by-camera") {
-          const remainingTopics = yield* db.topicsQueries.getTopicsByMarathonId(
-            {
-              id: marathon.value.id,
-            },
-          );
-          if (remainingTopics.length > 0) {
-            const orderedIds = [...remainingTopics]
-              .sort((a, b) => a.orderIndex - b.orderIndex)
-              .map((topic) => topic.id);
-            yield* db.topicsQueries.updateTopicsOrder({
-              topicIds: orderedIds,
-              marathonId: marathon.value.id,
-            });
-          }
-        }
 
         return deletedTopic;
       }),

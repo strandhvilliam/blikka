@@ -88,7 +88,7 @@ export function SubmissionMetadataPanel({
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
-  const activeByCameraTopic = topics.find((t) => t.orderIndex === 0);
+  const activeByCameraTopic = topics.find((t) => t.visibility === "active");
 
   const createOrUpdateVotingSessionMutation = useMutation(
     trpc.voting.createOrUpdateVotingSession.mutationOptions({

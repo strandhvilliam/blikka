@@ -46,7 +46,7 @@ export class UploadFinalizerService extends Effect.Service<UploadFinalizerServic
             return
           }
 
-          const orderIndexes = participantState.value.processedIndexes.map((_, i) => i)
+          const orderIndexes = [...participantState.value.orderIndexes]
 
           const [submissionStates, exifStates] = yield* Effect.all(
             [

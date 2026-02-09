@@ -31,7 +31,7 @@ export function useSubmissionsTable() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const activeByCameraTopicId =
     marathon?.mode === "by-camera"
-      ? marathon.topics.find((topic) => topic.orderIndex === 0)?.id
+      ? marathon.topics.find((topic) => topic.visibility === "active")?.id
       : undefined;
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());

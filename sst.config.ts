@@ -12,7 +12,6 @@ export default $config({
   },
   async run() {
     const env = {
-      DEV_DATABASE_URL: process.env.DEV_DATABASE_URL!,
       UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL!,
       UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN!,
       DEV_DATABASE_USERNAME: process.env.DEV_DATABASE_USERNAME!,

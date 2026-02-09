@@ -64,7 +64,6 @@ export function ByCameraUploadStep({
   const removePhoto = usePhotoStore((state) => state.removePhoto)
   const validationResults = usePhotoStore((state) => state.validationResults)
 
-  console.log({ validationResults })
 
   const isUploading = useUploadStore((state) => state.isUploading)
   const setIsUploading = useUploadStore((state) => state.setIsUploading)
@@ -101,6 +100,7 @@ export function ByCameraUploadStep({
       // );
       // }, 500);
     },
+    activeByCameraOrderIndex: topic?.orderIndex,
   })
 
   const handleResetAndGoBack = () => {
