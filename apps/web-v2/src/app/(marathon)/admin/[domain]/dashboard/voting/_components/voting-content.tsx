@@ -11,7 +11,7 @@ import {
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  Clock3,
+  CheckCircle2,
   Copy,
   Loader2,
   Medal,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
+import { buildS3Url } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PrimaryButton } from "@/components/ui/primary-button";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -63,9 +66,30 @@ function toIsoFromLocal(value: string) {
   return date.toISOString();
 }
 
+function hasValidDateRange(startsAtIso: string | null, endsAtIso: string | null) {
+  if (!startsAtIso || !endsAtIso) {
+    return false;
+  }
+
+  return new Date(endsAtIso).getTime() > new Date(startsAtIso).getTime();
+}
+
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
   return format(new Date(value), "MMM d, yyyy HH:mm");
+}
+
+function getSubmissionImageUrl(
+  submissionThumbnailKey?: string | null,
+  submissionKey?: string | null,
+) {
+  const thumbnailBucket = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME;
+  const submissionsBucket = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME;
+
+  return (
+    buildS3Url(thumbnailBucket, submissionThumbnailKey) ??
+    buildS3Url(submissionsBucket, submissionKey)
+  );
 }
 
 export function VotingContent() {
@@ -147,12 +171,34 @@ export function VotingContent() {
   );
 
   const hasSessions = (overview?.sessionStats.total ?? 0) > 0;
+  const submissionCount = overview?.leaderboard.length ?? 0;
+  const participantWithSubmissionCount = useMemo(() => {
+    return new Set(
+      overview?.leaderboard.map((entry) => entry.participantId) ?? [],
+    ).size;
+  }, [overview?.leaderboard]);
+
+  const completionRate = useMemo(() => {
+    const total = overview?.sessionStats.total ?? 0;
+    if (total === 0) return 0;
+    return Math.round(((overview?.sessionStats.completed ?? 0) / total) * 100);
+  }, [overview?.sessionStats.completed, overview?.sessionStats.total]);
+  const totalSessions = overview?.sessionStats.total ?? 0;
+  const completedSessions = overview?.sessionStats.completed ?? 0;
+  const pendingSessions = overview?.sessionStats.pending ?? 0;
+  const totalVotes = overview?.voteStats.totalVotes ?? 0;
+  const tieGroupsCount = overview?.tieGroups.length ?? 0;
 
   const topRankMap = useMemo(() => {
     return new Map(
       overview?.topRanks.map((rank) => [rank.rank, rank.entries]) ?? [],
     );
   }, [overview?.topRanks]);
+
+  const launchStartsAtIso = toIsoFromLocal(startsAtInput);
+  const launchEndsAtIso = toIsoFromLocal(endsAtInput);
+  const canStartVoting =
+    submissionCount > 0 && hasValidDateRange(launchStartsAtIso, launchEndsAtIso);
 
   const handleStartVoting = () => {
     if (!activeTopic) {
@@ -165,6 +211,16 @@ export function VotingContent() {
 
     if (!startsAtIso || !endsAtIso) {
       toast.error("Please provide valid start and end timestamps");
+      return;
+    }
+
+    if (!hasValidDateRange(startsAtIso, endsAtIso)) {
+      toast.error("End timestamp must be later than start timestamp");
+      return;
+    }
+
+    if (submissionCount === 0) {
+      toast.error("No submissions are available for this topic");
       return;
     }
 
@@ -205,6 +261,11 @@ export function VotingContent() {
 
     if (!startsAtIso || !endsAtIso) {
       toast.error("Please provide valid start and end timestamps");
+      return;
+    }
+
+    if (!hasValidDateRange(startsAtIso, endsAtIso)) {
+      toast.error("End timestamp must be later than start timestamp");
       return;
     }
 
@@ -273,31 +334,40 @@ export function VotingContent() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">
-              Voting
-            </h1>
-            <Badge variant="secondary" className="gap-1">
-              <Vote className="h-3 w-3" />
-              Topic {activeTopic.orderIndex + 1}
-            </Badge>
+    <div className="space-y-8 pb-8">
+      <section className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">
+                Voting
+              </h1>
+              <Badge variant="secondary">
+                <Vote className="mr-1 h-3 w-3" />
+                Topic {activeTopic.orderIndex + 1}
+              </Badge>
+              <Badge variant="outline">By Camera</Badge>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Manage voting sessions and rankings for{" "}
+              <span className="font-medium text-foreground">
+                {activeTopic.name}
+              </span>
+              .
+            </p>
           </div>
-          <p className="text-muted-foreground text-sm">
-            Manage voting sessions and monitor current rankings for{" "}
-            <strong>{activeTopic.name}</strong>.
-          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={handleOpenInviteDialog}
+              disabled={!hasSessions || isOverviewLoading}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Invite Manual Voter
+            </Button>
+          </div>
         </div>
-
-        {!isOverviewLoading && hasSessions ? (
-          <Button variant="outline" onClick={handleOpenInviteDialog}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Invite Manual Voter
-          </Button>
-        ) : null}
-      </div>
+      </section>
 
       {isOverviewError ? (
         <Alert variant="destructive">
@@ -311,7 +381,7 @@ export function VotingContent() {
       ) : null}
 
       {isOverviewLoading ? (
-        <Card>
+        <Card className="border-dashed">
           <CardContent className="py-8 flex items-center justify-center text-muted-foreground gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading voting overview...
@@ -320,18 +390,81 @@ export function VotingContent() {
       ) : null}
 
       {!isOverviewLoading && !isOverviewError && !!overview && !hasSessions ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-rocgrotesk">
-              Start voting session
-            </CardTitle>
-            <CardDescription>
-              Voting sessions will be created for all participants with a
-              submission on this topic.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.2fr_1fr]">
+          <Card className="border-slate-200 shadow-sm py-4">
+            <CardHeader className="gap-1 pb-2">
+              <CardTitle className="font-rocgrotesk text-2xl">
+                Before you start
+              </CardTitle>
+              <CardDescription>
+                Verify readiness before creating voting sessions for this topic.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Submissions in topic
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold">{submissionCount}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    All uploads under <strong>{activeTopic.name}</strong>.
+                  </p>
+                </div>
+                <div className="rounded-xl border bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Eligible participants
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold">
+                    {participantWithSubmissionCount}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    One session will be created for each participant.
+                  </p>
+                </div>
+              </div>
+
+              {submissionCount === 0 ? (
+                <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>No submissions yet</AlertTitle>
+                  <AlertDescription>
+                    Voting cannot start until at least one submission is uploaded
+                    for this topic.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Alert className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-100">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertTitle>Ready to launch</AlertTitle>
+                  <AlertDescription>
+                    Session generation will include all eligible participants
+                    with a submission on this topic.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="rounded-xl border border-dashed p-4">
+                <p className="text-sm font-medium">When voting starts</p>
+                <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  <li>Sessions are created for each eligible participant.</li>
+                  <li>Voting links become valid in the selected time window.</li>
+                  <li>Leaderboard updates automatically as votes are cast.</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 shadow-sm py-4">
+            <CardHeader className="pb-4">
+              <CardTitle className="font-rocgrotesk text-2xl">
+                Schedule voting window
+              </CardTitle>
+              <CardDescription>
+                Set the start and end timestamps for participant voting sessions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="voting-start-at">Start timestamp</Label>
                 <Input
@@ -350,139 +483,169 @@ export function VotingContent() {
                   onChange={(event) => setEndsAtInput(event.target.value)}
                 />
               </div>
-            </div>
 
-            <Button
-              onClick={handleStartVoting}
-              disabled={startVotingMutation.isPending}
-            >
-              {startVotingMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Starting voting...
-                </>
-              ) : (
-                <>
-                  <Vote className="h-4 w-4 mr-2" />
-                  Start Voting Sessions
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+              {!canStartVoting ? (
+                <p className="text-xs text-muted-foreground">
+                  Set a valid time range with end later than start, and ensure at
+                  least one submission exists.
+                </p>
+              ) : null}
+
+              <PrimaryButton
+                onClick={handleStartVoting}
+                disabled={startVotingMutation.isPending || !canStartVoting}
+                className="h-10 w-full"
+              >
+                {startVotingMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Starting voting...
+                  </>
+                ) : (
+                  <>
+                    <Vote className="mr-2 h-4 w-4" />
+                    Start Voting Sessions
+                  </>
+                )}
+              </PrimaryButton>
+            </CardContent>
+          </Card>
+        </div>
       ) : null}
 
       {!isOverviewLoading && !isOverviewError && !!overview && hasSessions ? (
         <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Sessions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {overview?.sessionStats.total ?? 0}
+          <Card className="shadow-sm">
+            <CardContent className="space-y-4 px-4 py-4 sm:px-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium">Voting progress</p>
+                  <p className="text-xs text-muted-foreground">
+                    {completedSessions} of {totalSessions} sessions completed
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {overview?.sessionStats.completed ?? 0} voted,{" "}
-                  {overview?.sessionStats.pending ?? 0} pending
-                </p>
-              </CardContent>
-            </Card>
+                <Badge variant={pendingSessions > 0 ? "outline" : "secondary"}>
+                  {pendingSessions > 0
+                    ? `${pendingSessions} pending`
+                    : "All sessions completed"}
+                </Badge>
+              </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Voting Window
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  <Clock3 className="h-3 w-3 inline mr-1" />
-                  {formatDateTime(overview?.votingWindow.startsAt)} -{" "}
-                  {formatDateTime(overview?.votingWindow.endsAt)}
+              <div className="space-y-1.5">
+                <Progress value={completionRate} className="h-1.5" />
+                <p className="text-xs font-medium text-muted-foreground">
+                  {completionRate}% completion
                 </p>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Votes Cast
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {overview?.voteStats.totalVotes ?? 0}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Total completed votes
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+            </CardContent>
+          </Card>
 
-          <Card>
+          <Card className="shadow-sm py-4">
             <CardHeader>
               <CardTitle className="font-rocgrotesk">Leaderboard</CardTitle>
               <CardDescription>
                 Top placements with tie-aware ranking based on total votes.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {[1, 2, 3].map((rank) => {
-                const entries = topRankMap.get(rank) ?? [];
-                const tone =
-                  rank === 1
-                    ? "text-amber-600"
-                    : rank === 2
-                      ? "text-slate-600"
-                      : "text-orange-600";
+            <CardContent>
+              {(overview?.voteStats.totalVotes ?? 0) === 0 ? (
+                <div className="rounded-xl border border-dashed bg-muted/20 p-6 text-center">
+                  <p className="text-sm font-medium">
+                    Leaderboard will appear once votes are cast
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Start the voting session and wait for participants to submit
+                    their votes.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {[1, 2, 3].map((rank) => {
+                    const entries = topRankMap.get(rank) ?? [];
+                    const tone =
+                      rank === 1
+                        ? "text-amber-600"
+                        : rank === 2
+                          ? "text-slate-600"
+                          : "text-orange-600";
 
-                return (
-                  <div
-                    key={rank}
-                    className="rounded-xl border bg-muted/30 p-4 space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Place {rank}
-                      </span>
-                      <Medal className={`h-4 w-4 ${tone}`} />
-                    </div>
+                    return (
+                      <div
+                        key={rank}
+                        className="space-y-3 rounded-xl border bg-muted/30 p-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Place {rank}
+                          </span>
+                          <Medal className={`h-4 w-4 ${tone}`} />
+                        </div>
 
-                    {entries.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        No submission yet
-                      </p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {entries.map((entry) => (
-                          <div key={entry.submissionId} className="text-sm">
-                            <p className="font-medium">
-                              {entry.participantFirstName}{" "}
-                              {entry.participantLastName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Submission #{entry.submissionId} -{" "}
-                              {entry.voteCount} votes
-                            </p>
-                          </div>
-                        ))}
-                        {entries.length > 1 ? (
-                          <Badge variant="outline" className="mt-1">
-                            Tie ({entries.length} submissions)
-                          </Badge>
-                        ) : null}
+                        {entries.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            No ranked submission yet
+                          </p>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-3 gap-2">
+                              {entries.slice(0, 3).map((entry) => {
+                                const imageUrl = getSubmissionImageUrl(
+                                  entry.submissionThumbnailKey,
+                                  entry.submissionKey,
+                                );
+
+                                return (
+                                  <div
+                                    key={`${entry.submissionId}-thumbnail`}
+                                    className="relative aspect-square overflow-hidden rounded-md border bg-muted"
+                                  >
+                                    {imageUrl ? (
+                                      <img
+                                        src={imageUrl}
+                                        alt={`Submission ${entry.submissionId}`}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                                        No image
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            <div className="space-y-1.5">
+                              {entries.map((entry) => (
+                                <div key={entry.submissionId} className="text-sm">
+                                  <p className="font-medium">
+                                    {entry.participantFirstName}{" "}
+                                    {entry.participantLastName}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Submission #{entry.submissionId} -{" "}
+                                    {entry.voteCount} votes
+                                  </p>
+                                </div>
+                              ))}
+                              {entries.length > 1 ? (
+                                <Badge variant="outline" className="mt-1">
+                                  Tie ({entries.length} submissions)
+                                </Badge>
+                              ) : null}
+                            </div>
+                          </>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm py-4">
             <CardHeader>
               <CardTitle className="font-rocgrotesk">
                 All Ranked Submissions
@@ -656,9 +819,7 @@ export function VotingContent() {
                     id="invite-end-at"
                     type="datetime-local"
                     value={inviteEndsAtInput}
-                    onChange={(event) =>
-                      setInviteEndsAtInput(event.target.value)
-                    }
+                    onChange={(event) => setInviteEndsAtInput(event.target.value)}
                   />
                 </div>
               </div>
