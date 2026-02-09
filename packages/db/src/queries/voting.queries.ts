@@ -219,6 +219,396 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
           );
       });
 
+      const getVotingSessionStatsForTopic = Effect.fn(
+        "VotingQueries.getVotingSessionStatsForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        const result = yield* db
+          .select({
+            total: sql<number>`count(*)`.as("total"),
+            completed: sql<number>`count(${votingSession.votedAt})`.as(
+              "completed",
+            ),
+            participantSessions: sql<number>`count(${votingSession.connectedParticipantId})`.as(
+              "participant_sessions",
+            ),
+            manualSessions: sql<number>`count(*) - count(${votingSession.connectedParticipantId})`.as(
+              "manual_sessions",
+            ),
+          })
+          .from(votingSession)
+          .where(
+            and(
+              eq(votingSession.marathonId, marathonId),
+              eq(votingSession.topicId, topicId),
+            ),
+          );
+
+        return (
+          result[0] ?? {
+            total: 0,
+            completed: 0,
+            participantSessions: 0,
+            manualSessions: 0,
+          }
+        );
+      });
+
+      const getVotingWindowForTopic = Effect.fn(
+        "VotingQueries.getVotingWindowForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        return yield* db.query.votingSession.findFirst({
+          where: and(
+            eq(votingSession.marathonId, marathonId),
+            eq(votingSession.topicId, topicId),
+          ),
+          columns: {
+            startsAt: true,
+            endsAt: true,
+          },
+          orderBy: [desc(votingSession.createdAt)],
+        });
+      });
+
+      const countSubmissionsForTopic = Effect.fn(
+        "VotingQueries.countSubmissionsForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        const result = yield* db
+          .select({ value: count() })
+          .from(submissions)
+          .where(
+            and(
+              eq(submissions.marathonId, marathonId),
+              eq(submissions.topicId, topicId),
+            ),
+          );
+
+        return result[0]?.value ?? 0;
+      });
+
+      const countParticipantsWithSubmissionsForTopic = Effect.fn(
+        "VotingQueries.countParticipantsWithSubmissionsForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        const result = yield* db
+          .select({
+            value: sql<number>`count(distinct ${submissions.participantId})`.as(
+              "value",
+            ),
+          })
+          .from(submissions)
+          .where(
+            and(
+              eq(submissions.marathonId, marathonId),
+              eq(submissions.topicId, topicId),
+            ),
+          );
+
+        return result[0]?.value ?? 0;
+      });
+
+      const getLeaderboardPageForTopic = Effect.fn(
+        "VotingQueries.getLeaderboardPageForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+        page,
+        limit,
+      }: {
+        marathonId: number;
+        topicId: number;
+        page: number;
+        limit: number;
+      }) {
+        const offset = (page - 1) * limit;
+
+        const leaderboardBase = db
+          .select({
+            submissionId: sql<number>`${submissions.id}`.as("submission_id"),
+            submissionCreatedAt: submissions.createdAt,
+            submissionKey: submissions.key,
+            submissionThumbnailKey: submissions.thumbnailKey,
+            participantId: sql<number>`${participants.id}`.as("participant_id"),
+            participantFirstName: participants.firstname,
+            participantLastName: participants.lastname,
+            participantReference: participants.reference,
+            voteCount: sql<number>`count(${votingSession.id})`.as("vote_count"),
+          })
+          .from(submissions)
+          .innerJoin(
+            participants,
+            eq(participants.id, submissions.participantId),
+          )
+          .leftJoin(
+            votingSession,
+            and(
+              eq(votingSession.voteSubmissionId, submissions.id),
+              eq(votingSession.marathonId, marathonId),
+              eq(votingSession.topicId, topicId),
+            ),
+          )
+          .where(
+            and(
+              eq(submissions.marathonId, marathonId),
+              eq(submissions.topicId, topicId),
+            ),
+          )
+          .groupBy(
+            submissions.id,
+            submissions.createdAt,
+            submissions.key,
+            submissions.thumbnailKey,
+            participants.id,
+            participants.firstname,
+            participants.lastname,
+            participants.reference,
+          )
+          .as("leaderboard_base");
+
+        const rankedLeaderboard = db
+          .select({
+            submissionId: leaderboardBase.submissionId,
+            submissionCreatedAt: leaderboardBase.submissionCreatedAt,
+            submissionKey: leaderboardBase.submissionKey,
+            submissionThumbnailKey: leaderboardBase.submissionThumbnailKey,
+            participantId: leaderboardBase.participantId,
+            participantFirstName: leaderboardBase.participantFirstName,
+            participantLastName: leaderboardBase.participantLastName,
+            participantReference: leaderboardBase.participantReference,
+            voteCount: leaderboardBase.voteCount,
+            rank: sql<number>`rank() over (
+              order by ${leaderboardBase.voteCount} desc
+            )`.as("rank"),
+            tieSize: sql<number>`count(*) over (partition by ${leaderboardBase.voteCount})`.as(
+              "tie_size",
+            ),
+          })
+          .from(leaderboardBase)
+          .as("ranked_leaderboard");
+
+        return yield* db
+          .select({
+            submissionId: rankedLeaderboard.submissionId,
+            submissionCreatedAt: rankedLeaderboard.submissionCreatedAt,
+            submissionKey: rankedLeaderboard.submissionKey,
+            submissionThumbnailKey: rankedLeaderboard.submissionThumbnailKey,
+            participantId: rankedLeaderboard.participantId,
+            participantFirstName: rankedLeaderboard.participantFirstName,
+            participantLastName: rankedLeaderboard.participantLastName,
+            participantReference: rankedLeaderboard.participantReference,
+            voteCount: rankedLeaderboard.voteCount,
+            rank: rankedLeaderboard.rank,
+            tieSize: rankedLeaderboard.tieSize,
+          })
+          .from(rankedLeaderboard)
+          .orderBy(
+            desc(rankedLeaderboard.voteCount),
+            asc(rankedLeaderboard.submissionCreatedAt),
+            asc(rankedLeaderboard.submissionKey),
+          )
+          .limit(limit)
+          .offset(offset);
+      });
+
+      const getTopRanksPreviewForTopic = Effect.fn(
+        "VotingQueries.getTopRanksPreviewForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        const leaderboardBase = db
+          .select({
+            submissionId: sql<number>`${submissions.id}`.as("submission_id"),
+            submissionCreatedAt: submissions.createdAt,
+            submissionKey: submissions.key,
+            submissionThumbnailKey: submissions.thumbnailKey,
+            participantId: sql<number>`${participants.id}`.as("participant_id"),
+            participantFirstName: participants.firstname,
+            participantLastName: participants.lastname,
+            participantReference: participants.reference,
+            voteCount: sql<number>`count(${votingSession.id})`.as("vote_count"),
+          })
+          .from(submissions)
+          .innerJoin(
+            participants,
+            eq(participants.id, submissions.participantId),
+          )
+          .leftJoin(
+            votingSession,
+            and(
+              eq(votingSession.voteSubmissionId, submissions.id),
+              eq(votingSession.marathonId, marathonId),
+              eq(votingSession.topicId, topicId),
+            ),
+          )
+          .where(
+            and(
+              eq(submissions.marathonId, marathonId),
+              eq(submissions.topicId, topicId),
+            ),
+          )
+          .groupBy(
+            submissions.id,
+            submissions.createdAt,
+            submissions.key,
+            submissions.thumbnailKey,
+            participants.id,
+            participants.firstname,
+            participants.lastname,
+            participants.reference,
+          )
+          .as("leaderboard_base");
+
+        const rankedLeaderboard = db
+          .select({
+            submissionId: leaderboardBase.submissionId,
+            submissionCreatedAt: leaderboardBase.submissionCreatedAt,
+            submissionKey: leaderboardBase.submissionKey,
+            submissionThumbnailKey: leaderboardBase.submissionThumbnailKey,
+            participantId: leaderboardBase.participantId,
+            participantFirstName: leaderboardBase.participantFirstName,
+            participantLastName: leaderboardBase.participantLastName,
+            participantReference: leaderboardBase.participantReference,
+            voteCount: leaderboardBase.voteCount,
+            rank: sql<number>`rank() over (
+              order by ${leaderboardBase.voteCount} desc
+            )`.as("rank"),
+            tieSize: sql<number>`count(*) over (partition by ${leaderboardBase.voteCount})`.as(
+              "tie_size",
+            ),
+          })
+          .from(leaderboardBase)
+          .as("ranked_leaderboard");
+
+        const rankedPreview = db
+          .select({
+            submissionId: rankedLeaderboard.submissionId,
+            submissionCreatedAt: rankedLeaderboard.submissionCreatedAt,
+            submissionKey: rankedLeaderboard.submissionKey,
+            submissionThumbnailKey: rankedLeaderboard.submissionThumbnailKey,
+            participantId: rankedLeaderboard.participantId,
+            participantFirstName: rankedLeaderboard.participantFirstName,
+            participantLastName: rankedLeaderboard.participantLastName,
+            participantReference: rankedLeaderboard.participantReference,
+            voteCount: rankedLeaderboard.voteCount,
+            rank: rankedLeaderboard.rank,
+            tieSize: rankedLeaderboard.tieSize,
+            rankEntryOrder: sql<number>`row_number() over (
+              partition by ${rankedLeaderboard.rank}
+              order by ${rankedLeaderboard.submissionCreatedAt} asc, ${rankedLeaderboard.submissionKey} asc
+            )`.as("rank_entry_order"),
+          })
+          .from(rankedLeaderboard)
+          .as("ranked_preview");
+
+        return yield* db
+          .select({
+            submissionId: rankedPreview.submissionId,
+            submissionCreatedAt: rankedPreview.submissionCreatedAt,
+            submissionKey: rankedPreview.submissionKey,
+            submissionThumbnailKey: rankedPreview.submissionThumbnailKey,
+            participantId: rankedPreview.participantId,
+            participantFirstName: rankedPreview.participantFirstName,
+            participantLastName: rankedPreview.participantLastName,
+            participantReference: rankedPreview.participantReference,
+            voteCount: rankedPreview.voteCount,
+            rank: rankedPreview.rank,
+            tieSize: rankedPreview.tieSize,
+            rankEntryOrder: rankedPreview.rankEntryOrder,
+          })
+          .from(rankedPreview)
+          .where(
+            and(
+              sql`${rankedPreview.rank} <= 3`,
+              sql`${rankedPreview.rankEntryOrder} <= 3`,
+            ),
+          )
+          .orderBy(asc(rankedPreview.rank), asc(rankedPreview.rankEntryOrder));
+      });
+
+      const getVotersPageForTopic = Effect.fn(
+        "VotingQueries.getVotersPageForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+        page,
+        limit,
+      }: {
+        marathonId: number;
+        topicId: number;
+        page: number;
+        limit: number;
+      }) {
+        const offset = (page - 1) * limit;
+        return yield* db.query.votingSession.findMany({
+          where: and(
+            eq(votingSession.marathonId, marathonId),
+            eq(votingSession.topicId, topicId),
+          ),
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            token: true,
+            phoneEncrypted: true,
+            notificationLastSentAt: true,
+            connectedParticipantId: true,
+            votedAt: true,
+          },
+          orderBy: [desc(votingSession.createdAt), desc(votingSession.id)],
+          limit,
+          offset,
+        });
+      });
+
+      const getVotingSessionByIdForTopic = Effect.fn(
+        "VotingQueries.getVotingSessionByIdForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+        sessionId,
+      }: {
+        marathonId: number;
+        topicId: number;
+        sessionId: number;
+      }) {
+        const result = yield* db.query.votingSession.findFirst({
+          where: and(
+            eq(votingSession.id, sessionId),
+            eq(votingSession.marathonId, marathonId),
+            eq(votingSession.topicId, topicId),
+          ),
+        });
+
+        return Option.fromNullable(result);
+      });
+
       const getSubmissionVoteStats = Effect.fn(
         "VotingQueries.getSubmissionVoteStats",
       )(function* ({
@@ -434,6 +824,14 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         countVotingSessionsForTopic,
         getVotingSessionsForTopic,
         getSubmissionVoteLeaderboardForTopic,
+        getVotingSessionStatsForTopic,
+        getVotingWindowForTopic,
+        countSubmissionsForTopic,
+        countParticipantsWithSubmissionsForTopic,
+        getLeaderboardPageForTopic,
+        getTopRanksPreviewForTopic,
+        getVotersPageForTopic,
+        getVotingSessionByIdForTopic,
         getSubmissionVoteStats,
         getParticipantVoteInfo,
         getVotingSessionByParticipantId,

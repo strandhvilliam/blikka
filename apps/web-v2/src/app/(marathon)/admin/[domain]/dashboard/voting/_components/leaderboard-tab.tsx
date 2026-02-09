@@ -1,12 +1,13 @@
-import { Medal } from "lucide-react";
+import { Medal } from "lucide-react"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -14,53 +15,59 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { formatDateTime, getSubmissionImageUrl } from "./voting-utils";
+} from "@/components/ui/table"
+import { formatDateTime, getSubmissionImageUrl } from "./voting-utils"
 
 interface LeaderboardEntry {
-  submissionId: number;
-  participantId: number;
-  participantFirstName: string;
-  participantLastName: string;
-  rank: number;
-  voteCount: number;
-  isTie: boolean;
-  tieSize: number;
-  submissionCreatedAt: string;
-  submissionThumbnailKey?: string | null;
-  submissionKey?: string | null;
+  submissionId: number
+  participantId: number
+  participantFirstName: string
+  participantLastName: string
+  rank: number
+  voteCount: number
+  isTie: boolean
+  tieSize: number
+  submissionCreatedAt: string
+  submissionThumbnailKey?: string | null
+  submissionKey?: string | null
 }
 
 interface TopRankEntry {
-  rank: number;
-  entries: LeaderboardEntry[];
+  rank: number
+  entries: LeaderboardEntry[]
 }
 
 interface LeaderboardTabProps {
-  totalVotes: number;
-  topRanks: TopRankEntry[];
-  leaderboard: LeaderboardEntry[];
+  totalVotes: number
+  topRanks: TopRankEntry[]
+  leaderboard: LeaderboardEntry[]
+  page: number
+  pageCount: number
+  total: number
+  isPageLoading: boolean
+  onPreviousPage: () => void
+  onNextPage: () => void
 }
 
 export function LeaderboardTab({
   totalVotes,
   topRanks,
   leaderboard,
+  page,
+  pageCount,
+  total,
+  isPageLoading,
+  onPreviousPage,
+  onNextPage,
 }: LeaderboardTabProps) {
   const topRankMap = new Map(
     topRanks.map((rank) => [rank.rank, rank.entries]),
-  );
+  )
 
   return (
     <div className="space-y-6">
-      <Card className="shadow-sm py-4">
-        <CardHeader>
-          <CardTitle className="font-rocgrotesk">Leaderboard</CardTitle>
-          <CardDescription>
-            Top placements with tie-aware ranking based on total votes.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Card className="shadow-sm">
+        <CardContent className="p-2">
           {totalVotes === 0 ? (
             <div className="rounded-xl border border-dashed bg-muted/20 p-6 text-center">
               <p className="text-sm font-medium">
@@ -74,13 +81,13 @@ export function LeaderboardTab({
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {[1, 2, 3].map((rank) => {
-                const entries = topRankMap.get(rank) ?? [];
+                const entries = topRankMap.get(rank) ?? []
                 const tone =
                   rank === 1
                     ? "text-amber-600"
                     : rank === 2
                       ? "text-slate-600"
-                      : "text-orange-600";
+                      : "text-orange-600"
 
                 return (
                   <div
@@ -105,7 +112,7 @@ export function LeaderboardTab({
                             const imageUrl = getSubmissionImageUrl(
                               entry.submissionThumbnailKey,
                               entry.submissionKey,
-                            );
+                            )
 
                             return (
                               <div
@@ -124,7 +131,7 @@ export function LeaderboardTab({
                                   </div>
                                 )}
                               </div>
-                            );
+                            )
                           })}
                         </div>
 
@@ -150,15 +157,15 @@ export function LeaderboardTab({
                       </>
                     )}
                   </div>
-                );
+                )
               })}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Card className="shadow-sm py-4">
-        <CardHeader>
+      <div className="space-y-4">
+        <div>
           <CardTitle className="font-rocgrotesk">
             All Ranked Submissions
           </CardTitle>
@@ -166,68 +173,119 @@ export function LeaderboardTab({
             Ordered by vote count descending, then upload time, then submission
             id.
           </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Rank</TableHead>
-                  <TableHead>Submission</TableHead>
-                  <TableHead>Participant</TableHead>
-                  <TableHead>Votes</TableHead>
-                  <TableHead>Tie</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {leaderboard.length ? (
-                  leaderboard.map((entry) => (
-                    <TableRow key={entry.submissionId}>
-                      <TableCell className="font-medium">
-                        #{entry.rank}
+        </div>
+        <div>
+          <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-card">
+                  <TableRow className="border-b bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                      Rank
+                    </TableHead>
+                    <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                      Submission
+                    </TableHead>
+                    <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                      Uploaded
+                    </TableHead>
+                    <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                      Participant
+                    </TableHead>
+                    <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                      Votes
+                    </TableHead>
+                    <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                      Tie
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isPageLoading && !leaderboard.length ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        Loading leaderboard...
                       </TableCell>
-                      <TableCell>
-                        <div className="space-y-0.5">
+                    </TableRow>
+                  ) : leaderboard.length ? (
+                    leaderboard.map((entry) => (
+                      <TableRow
+                        key={entry.submissionId}
+                        className="border-b transition-colors hover:bg-muted/60"
+                      >
+                        <TableCell className="py-2 font-medium">
+                          #{entry.rank}
+                        </TableCell>
+                        <TableCell className="py-2">
                           <p className="font-medium">
                             Submission #{entry.submissionId}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            Uploaded {formatDateTime(entry.submissionCreatedAt)}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {entry.participantFirstName} {entry.participantLastName}
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        {entry.voteCount}
-                      </TableCell>
-                      <TableCell>
-                        {entry.isTie ? (
-                          <Badge variant="outline">
-                            Tie ({entry.tieSize})
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
+                        </TableCell>
+                        <TableCell className="py-2">
+                          {formatDateTime(entry.submissionCreatedAt)}
+                        </TableCell>
+                        <TableCell className="py-2">
+                          {entry.participantFirstName} {entry.participantLastName}
+                        </TableCell>
+                        <TableCell className="py-2 font-semibold">
+                          {entry.voteCount}
+                        </TableCell>
+                        <TableCell className="py-2">
+                          {entry.isTie ? (
+                            <Badge variant="outline">
+                              Tie ({entry.tieSize})
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        No submissions found for this topic.
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      No submissions found for this topic.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              Showing {leaderboard.length} of {total} submissions
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onPreviousPage}
+                disabled={isPageLoading || page <= 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {pageCount === 0 ? 0 : page} of {pageCount}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onNextPage}
+                disabled={isPageLoading || pageCount === 0 || page >= pageCount}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  );
+  )
 }

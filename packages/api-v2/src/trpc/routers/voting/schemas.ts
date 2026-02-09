@@ -47,10 +47,32 @@ export const GetVotingSessionByParticipantSchema = Schema.standardSchemaV1(
   }),
 );
 
-export const GetVotingAdminOverviewSchema = Schema.standardSchemaV1(
+export const GetVotingAdminSummarySchema = Schema.standardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     topicId: Schema.Number,
+  }),
+);
+
+export const GetVotingLeaderboardPageSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+    page: Schema.NullishOr(Schema.Number.pipe(Schema.greaterThan(0))),
+    limit: Schema.NullishOr(
+      Schema.Number.pipe(Schema.greaterThan(0), Schema.lessThanOrEqualTo(100)),
+    ),
+  }),
+);
+
+export const GetVotingVotersPageSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+    page: Schema.NullishOr(Schema.Number.pipe(Schema.greaterThan(0))),
+    limit: Schema.NullishOr(
+      Schema.Number.pipe(Schema.greaterThan(0), Schema.lessThanOrEqualTo(100)),
+    ),
   }),
 );
 

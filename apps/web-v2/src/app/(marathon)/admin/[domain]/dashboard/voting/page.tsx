@@ -34,9 +34,17 @@ const _VotingPage = Effect.fn("@blikka/web/VotingPage")(
       );
       if (activeTopic) {
         prefetch(
-          trpc.voting.getVotingAdminOverview.queryOptions({
+          trpc.voting.getVotingAdminSummary.queryOptions({
             domain,
             topicId: activeTopic.id,
+          }),
+        );
+        prefetch(
+          trpc.voting.getVotingLeaderboardPage.queryOptions({
+            domain,
+            topicId: activeTopic.id,
+            page: 1,
+            limit: 50,
           }),
         );
       }

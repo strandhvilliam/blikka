@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { addHours } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
 import {
   useMutation,
   useQuery,
@@ -12,7 +11,6 @@ import { toast } from "sonner";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +21,10 @@ import { LeaderboardTab } from "./leaderboard-tab";
 import { VotersTab } from "./voters-tab";
 import { InviteDialog } from "./invite-dialog";
 import { tabTriggerClassName } from "./voting-utils";
+
+type VotingTabValue = "leaderboard" | "voters";
+
+const PAGE_SIZE = 50;
 
 export function VotingContent() {
   const domain = useDomain();
@@ -39,19 +41,79 @@ export function VotingContent() {
     marathon.topics.find((topic) => topic.visibility === "active") ?? null;
   const isByCamera = marathon.mode === "by-camera";
 
-  const overviewQueryOptions = trpc.voting.getVotingAdminOverview.queryOptions({
+  const [activeTab, setActiveTab] = useState<VotingTabValue>("leaderboard");
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const [votersPage, setVotersPage] = useState(1);
+
+  useEffect(() => {
+    setActiveTab("leaderboard");
+    setLeaderboardPage(1);
+    setVotersPage(1);
+  }, [activeTopic?.id]);
+
+  const summaryQueryOptions = trpc.voting.getVotingAdminSummary.queryOptions({
     domain,
     topicId: activeTopic?.id ?? 0,
   });
 
   const {
-    data: overview,
-    isLoading: isOverviewLoading,
-    isError: isOverviewError,
-    error: overviewError,
+    data: summary,
+    isLoading: isSummaryLoading,
+    isError: isSummaryError,
+    error: summaryError,
   } = useQuery({
-    ...overviewQueryOptions,
+    ...summaryQueryOptions,
     enabled: isByCamera && !!activeTopic,
+  });
+
+  const hasSessions = (summary?.sessionStats.total ?? 0) > 0;
+
+  const leaderboardQueryOptions = trpc.voting.getVotingLeaderboardPage.queryOptions(
+    {
+      domain,
+      topicId: activeTopic?.id ?? 0,
+      page: leaderboardPage,
+      limit: PAGE_SIZE,
+    },
+  );
+
+  const {
+    data: leaderboardPageData,
+    isLoading: isLeaderboardLoading,
+    isError: isLeaderboardError,
+    error: leaderboardError,
+    isFetching: isLeaderboardFetching,
+  } = useQuery({
+    ...leaderboardQueryOptions,
+    enabled:
+      isByCamera &&
+      !!activeTopic &&
+      !!summary &&
+      hasSessions &&
+      activeTab === "leaderboard",
+  });
+
+  const votersQueryOptions = trpc.voting.getVotingVotersPage.queryOptions({
+    domain,
+    topicId: activeTopic?.id ?? 0,
+    page: votersPage,
+    limit: PAGE_SIZE,
+  });
+
+  const {
+    data: votersPageData,
+    isLoading: isVotersLoading,
+    isError: isVotersError,
+    error: votersError,
+    isFetching: isVotersFetching,
+  } = useQuery({
+    ...votersQueryOptions,
+    enabled:
+      isByCamera &&
+      !!activeTopic &&
+      !!summary &&
+      hasSessions &&
+      activeTab === "voters",
   });
 
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -61,9 +123,17 @@ export function VotingContent() {
     trpc.voting.startVotingSessions.mutationOptions({
       onSuccess: async () => {
         toast.success("Voting sessions started successfully");
-        await queryClient.invalidateQueries({
-          queryKey: overviewQueryOptions.queryKey,
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+        ]);
       },
       onError: (error) => {
         toast.error(error.message || "Failed to start voting sessions");
@@ -76,9 +146,14 @@ export function VotingContent() {
       onSuccess: async (data) => {
         setCreatedInviteUrl(data.votingUrl);
         toast.success("Manual voting invite created");
-        await queryClient.invalidateQueries({
-          queryKey: overviewQueryOptions.queryKey,
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+        ]);
       },
       onError: (error) => {
         toast.error(error.message || "Failed to create manual invite");
@@ -90,9 +165,14 @@ export function VotingContent() {
     trpc.voting.resendVotingSessionNotification.mutationOptions({
       onSuccess: async () => {
         toast.success("Voting notification resent");
-        await queryClient.invalidateQueries({
-          queryKey: overviewQueryOptions.queryKey,
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+        ]);
       },
       onError: (error) => {
         toast.error(error.message || "Failed to resend voting notification");
@@ -100,28 +180,39 @@ export function VotingContent() {
     }),
   );
 
-  const hasSessions = (overview?.sessionStats.total ?? 0) > 0;
-  const submissionCount = overview?.leaderboard.length ?? 0;
-  const participantWithSubmissionCount = useMemo(() => {
-    return new Set(
-      overview?.leaderboard.map((entry) => entry.participantId) ?? [],
-    ).size;
-  }, [overview?.leaderboard]);
+  const submissionCount = summary?.submissionStats.submissionCount ?? 0;
+  const participantWithSubmissionCount =
+    summary?.submissionStats.participantWithSubmissionCount ?? 0;
 
   const completionRate = useMemo(() => {
-    const total = overview?.sessionStats.total ?? 0;
+    const total = summary?.sessionStats.total ?? 0;
     if (total === 0) return 0;
-    return Math.round(((overview?.sessionStats.completed ?? 0) / total) * 100);
-  }, [overview?.sessionStats.completed, overview?.sessionStats.total]);
+    return Math.round(((summary?.sessionStats.completed ?? 0) / total) * 100);
+  }, [summary?.sessionStats.completed, summary?.sessionStats.total]);
 
-  const totalSessions = overview?.sessionStats.total ?? 0;
-  const completedSessions = overview?.sessionStats.completed ?? 0;
-  const pendingSessions = overview?.sessionStats.pending ?? 0;
+  const totalSessions = summary?.sessionStats.total ?? 0;
+  const completedSessions = summary?.sessionStats.completed ?? 0;
+  const pendingSessions = summary?.sessionStats.pending ?? 0;
 
   const pendingResendSessionId =
     resendVotingSessionNotificationMutation.isPending
       ? resendVotingSessionNotificationMutation.variables?.sessionId
       : null;
+
+  const leaderboardPageCount = leaderboardPageData?.pageCount ?? 0;
+  const votersPageCount = votersPageData?.pageCount ?? 0;
+
+  useEffect(() => {
+    if (leaderboardPageCount > 0 && leaderboardPage > leaderboardPageCount) {
+      setLeaderboardPage(leaderboardPageCount);
+    }
+  }, [leaderboardPage, leaderboardPageCount]);
+
+  useEffect(() => {
+    if (votersPageCount > 0 && votersPage > votersPageCount) {
+      setVotersPage(votersPageCount);
+    }
+  }, [votersPage, votersPageCount]);
 
   const handleStartVoting = async (startsAt: string, endsAt: string) => {
     if (!activeTopic) {
@@ -236,22 +327,22 @@ export function VotingContent() {
         topicName={activeTopic.name}
         topicOrderIndex={activeTopic.orderIndex}
         hasSessions={hasSessions}
-        isOverviewLoading={isOverviewLoading}
+        isOverviewLoading={isSummaryLoading}
         onOpenInviteDialog={handleOpenInviteDialog}
       />
 
-      {isOverviewError ? (
+      {isSummaryError ? (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Failed to load voting overview</AlertTitle>
           <AlertDescription>
-            {overviewError?.message ||
+            {summaryError?.message ||
               "An unknown error occurred while loading voting data."}
           </AlertDescription>
         </Alert>
       ) : null}
 
-      {isOverviewLoading ? (
+      {isSummaryLoading ? (
         <Card className="border-dashed">
           <CardContent className="py-8 flex items-center justify-center text-muted-foreground gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -260,7 +351,7 @@ export function VotingContent() {
         </Card>
       ) : null}
 
-      {!isOverviewLoading && !isOverviewError && !!overview && !hasSessions ? (
+      {!isSummaryLoading && !isSummaryError && !!summary && !hasSessions ? (
         <VotingSetup
           topicName={activeTopic.name}
           submissionCount={submissionCount}
@@ -270,7 +361,7 @@ export function VotingContent() {
         />
       ) : null}
 
-      {!isOverviewLoading && !isOverviewError && !!overview && hasSessions ? (
+      {!isSummaryLoading && !isSummaryError && !!summary && hasSessions ? (
         <>
           <VotingProgress
             totalSessions={totalSessions}
@@ -279,7 +370,11 @@ export function VotingContent() {
             completionRate={completionRate}
           />
 
-          <Tabs defaultValue="leaderboard" className="space-y-0">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as VotingTabValue)}
+            className="space-y-0"
+          >
             <div className="border-b border-border">
               <TabsList className="bg-transparent rounded-none p-0 h-auto flex gap-8 -mb-px">
                 <TabsTrigger value="leaderboard" className={tabTriggerClassName}>
@@ -292,16 +387,66 @@ export function VotingContent() {
             </div>
 
             <TabsContent value="leaderboard" className="mt-6 space-y-6">
+              {isLeaderboardError ? (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Failed to load leaderboard</AlertTitle>
+                  <AlertDescription>
+                    {leaderboardError?.message ||
+                      "An unknown error occurred while loading leaderboard data."}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
               <LeaderboardTab
-                totalVotes={overview.voteStats.totalVotes}
-                topRanks={overview.topRanks}
-                leaderboard={overview.leaderboard}
+                totalVotes={summary.voteStats.totalVotes}
+                topRanks={summary.topRanks}
+                leaderboard={leaderboardPageData?.items ?? []}
+                page={leaderboardPage}
+                pageCount={leaderboardPageCount}
+                total={leaderboardPageData?.total ?? 0}
+                isPageLoading={isLeaderboardLoading || isLeaderboardFetching}
+                onPreviousPage={() =>
+                  setLeaderboardPage((current) => Math.max(1, current - 1))
+                }
+                onNextPage={() =>
+                  setLeaderboardPage((current) =>
+                    leaderboardPageCount > 0
+                      ? Math.min(leaderboardPageCount, current + 1)
+                      : current + 1,
+                  )
+                }
               />
             </TabsContent>
 
             <TabsContent value="voters" className="mt-6">
+              {isVotersError ? (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Failed to load voters</AlertTitle>
+                  <AlertDescription>
+                    {votersError?.message ||
+                      "An unknown error occurred while loading voters."}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
               <VotersTab
-                voters={overview.voters}
+                voters={votersPageData?.items ?? []}
+                page={votersPage}
+                pageCount={votersPageCount}
+                total={votersPageData?.total ?? 0}
+                isPageLoading={isVotersLoading || isVotersFetching}
+                onPreviousPage={() =>
+                  setVotersPage((current) => Math.max(1, current - 1))
+                }
+                onNextPage={() =>
+                  setVotersPage((current) =>
+                    votersPageCount > 0
+                      ? Math.min(votersPageCount, current + 1)
+                      : current + 1,
+                  )
+                }
                 onCopyToken={handleCopySessionToken}
                 onResendNotification={handleResendSessionNotification}
                 pendingResendSessionId={pendingResendSessionId ?? null}
@@ -317,8 +462,8 @@ export function VotingContent() {
         onOpenChange={setIsInviteDialogOpen}
         onCreateInvite={handleCreateManualInvite}
         createdInviteUrl={createdInviteUrl}
-        votingWindowStartsAt={overview?.votingWindow.startsAt}
-        votingWindowEndsAt={overview?.votingWindow.endsAt}
+        votingWindowStartsAt={summary?.votingWindow.startsAt}
+        votingWindowEndsAt={summary?.votingWindow.endsAt}
         isCreating={createManualVotingMutation.isPending}
         onReset={() => setCreatedInviteUrl(null)}
       />
