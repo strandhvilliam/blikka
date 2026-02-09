@@ -6,13 +6,20 @@ import { LiveClientPage } from "./_components/live-client-page"
 import { Splash } from "@/components/splash"
 
 const _LivePage = Effect.fn("@blikka/web/LivePage")(
-  function*({ params }: PageProps<"/live/[domain]">) {
+  function* ({ params }: PageProps<"/live/[domain]">) {
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
     prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }))
+
+    const envs = {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      AUTH_URL: process.env.BETTER_AUTH_URL,
+      BLIKKA_PRODUCTION_URL: process.env.BLIKKA_PRODUCTION_URL,
+    }
     return (
       <HydrateClient>
         <Suspense fallback={<Splash />}>
-          <LiveClientPage />
+          <LiveClientPage envs={envs} />
         </Suspense>
       </HydrateClient>
     )

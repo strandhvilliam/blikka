@@ -1,79 +1,81 @@
-"use client";
+"use client"
 
-import { useState, useTransition } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc/client";
-import { useTranslations, useLocale, Locale } from "next-intl";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { toast } from "sonner";
+import { useState, useTransition } from "react"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { useTRPC } from "@/lib/trpc/client"
+import { useTranslations, useLocale, Locale } from "next-intl"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { cn, formatDomainPathname, formatPublicPathname } from "@/lib/utils";
-import { format } from "date-fns";
-import { Info, ImageIcon, Play, ExternalLink } from "lucide-react";
-import ReactCountryFlag from "react-country-flag";
-import Image from "next/image";
-import { changeLocaleAction } from "@/lib/actions/change-locale-action";
-import { useRouter } from "next/navigation";
-import { useDomain } from "@/lib/domain-provider";
+} from "@/components/ui/dialog"
+import { cn, formatDomainPathname, formatPublicPathname } from "@/lib/utils"
+import { format } from "date-fns"
+import { Info, ImageIcon, Play, ExternalLink } from "lucide-react"
+import ReactCountryFlag from "react-country-flag"
+import Image from "next/image"
+import { changeLocaleAction } from "@/lib/actions/change-locale-action"
+import { useRouter } from "next/navigation"
+import { useDomain } from "@/lib/domain-provider"
 
 
 const BUCKET_NAME =
   process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
 
-export function LiveClientPage() {
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const t = useTranslations("LivePage");
-  const locale = useLocale();
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+export function LiveClientPage({ envs }: any) {
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const t = useTranslations("LivePage")
+  const locale = useLocale()
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
+  console.log("envs", envs)
 
   const setLocale = (locale: Locale) => {
     startTransition(async () => {
-      const response = await changeLocaleAction(locale);
+      const response = await changeLocaleAction(locale)
 
       if (response.error) {
-        console.error("Failed to change locale:", response.error);
-        return;
+        console.error("Failed to change locale:", response.error)
+        return
       }
 
-      router.refresh();
-    });
-  };
+      router.refresh()
+    })
+  }
 
   const { data: marathon } = useSuspenseQuery(
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
-  );
+  )
 
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   const handleStart = () => {
     if (termsAccepted) {
       switch (marathon.mode) {
         case "marathon":
-          router.push(formatDomainPathname(`/live/marathon`, domain, 'live'));
-          break;
+          router.push(formatDomainPathname(`/live/marathon`, domain, 'live'))
+          break
         case "by-camera":
-          router.push(formatDomainPathname(`/live/by-camera`, domain, 'live'));
-          break;
+          router.push(formatDomainPathname(`/live/by-camera`, domain, 'live'))
+          break
       }
     }
-  };
+  }
 
   const sponsorImages = marathon.sponsors
     ?.filter((s) => s.type.startsWith("live-initial"))
     .sort(
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
+    )
 
 
   return (
@@ -250,5 +252,5 @@ export function LiveClientPage() {
         </main>
       </div>
     </div>
-  );
+  )
 }

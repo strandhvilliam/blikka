@@ -13,6 +13,8 @@ const _MarathonLayout = Effect.fn("@blikka/web/MarathonLayout")(
     const [locale, messages] = yield* Effect.all([getLocale(), getI18nMessages()])
     const headers = yield* getHeaders()
     const domain = headers.get("x-marathon-domain")
+
+
     return (
       <Document locale={locale}>
         <Providers locale={locale} messages={messages} domain={domain}>
