@@ -20,7 +20,11 @@ export class AuthConfig extends Context.Tag("AuthConfig")<
 }
 
 const isProduction = process.env.NODE_ENV === "production"
+console.log("AUTH isProduction", isProduction)
 const rootDomain = isProduction ? process.env.BLIKKA_PRODUCTION_URL : "localhost:3002"
+console.log("AUTH rootDomain", rootDomain)
+console.log("AUTH process.env.NODE_ENV", process.env.NODE_ENV)
+console.log("AUTH process.env.BLIKKA_PRODUCTION_URL", process.env.BLIKKA_PRODUCTION_URL)
 export class BetterAuthService extends Effect.Service<BetterAuthService>()(
   "@blikka/auth/better-auth-service",
   {

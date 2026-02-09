@@ -48,8 +48,11 @@ function mapEffectErrorToTRPC(error: unknown): TRPCError {
   })
 }
 
-export const getSession = Effect.fnUntraced(function*({ headers }: { headers: Headers }) {
+export const getSession = Effect.fnUntraced(function* ({ headers }: { headers: Headers }) {
   const auth = yield* BetterAuthService
+
+  console.log("headers", headers)
+
   return yield* Effect.tryPromise({
     try: () =>
       auth.api.getSession({
@@ -74,7 +77,7 @@ export type Permission = {
   role: string
 }
 
-export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(function*({
+export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(function* ({
   userId,
 }: {
   userId?: string
