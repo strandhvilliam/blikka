@@ -3,6 +3,12 @@ import { protocol, rootDomain } from "./config"
 import createMiddleware from "next-intl/middleware"
 import { routing } from "./i18n/routing.public"
 
+function withDomainHeader(request: NextRequest, subdomain: string) {
+  const headers = new Headers(request.headers)
+  headers.set("x-marathon-domain", subdomain)
+  return { request: { headers } }
+}
+
 function extractSubdomain(request: NextRequest): string | null {
   const url = request.url
   const host = request.headers.get("host") || ""
@@ -41,6 +47,8 @@ export async function proxy(request: NextRequest) {
   const subdomain = extractSubdomain(request)
 
   if (subdomain) {
+    const requestWithDomainHeader = withDomainHeader(request, subdomain)
+
     if (pathname.startsWith("/auth")) {
       const authUrl = new URL(`${protocol}://www.${rootDomain}/${pathname}`)
       return NextResponse.redirect(authUrl)
@@ -48,9 +56,6 @@ export async function proxy(request: NextRequest) {
 
     // For admin routes on a subdomain, inject the subdomain into the path
     if (pathname.startsWith("/admin")) {
-      const response = NextResponse.next()
-      response.headers.set("x-marathon-domain", subdomain)
-      console.log("subdomain", subdomain)
       // Check if the subdomain is already in the path to avoid double rewriting
       const adminWithSubdomain = `/admin/${subdomain}`
       if (!pathname.startsWith(adminWithSubdomain)) {
@@ -58,10 +63,10 @@ export async function proxy(request: NextRequest) {
         const restOfPath = pathname === "/admin" ? "" : pathname.slice(6) // Remove "/admin"
         const rewritePath = `${adminWithSubdomain}${restOfPath}`
         console.log("rewrite to", rewritePath)
-        return NextResponse.rewrite(new URL(rewritePath, request.url))
+        return NextResponse.rewrite(new URL(rewritePath, request.url), requestWithDomainHeader)
       }
-      // If already has subdomain, pass through and attach the subdomain to the headers
-      return response
+      // If already has subdomain, pass through and attach the subdomain to request headers
+      return NextResponse.next(requestWithDomainHeader)
     }
 
     // For live routes on a subdomain, inject the subdomain into the path
@@ -73,10 +78,10 @@ export async function proxy(request: NextRequest) {
         const restOfPath = pathname === "/live" ? "" : pathname.slice(5) // Remove "/live"
         const rewritePath = `${liveWithSubdomain}${restOfPath}`
         console.log("rewrite to", rewritePath)
-        return NextResponse.rewrite(new URL(rewritePath, request.url))
+        return NextResponse.rewrite(new URL(rewritePath, request.url), requestWithDomainHeader)
       }
-      // If already has subdomain, pass through
-      return NextResponse.next()
+      // If already has subdomain, pass through with subdomain request header
+      return NextResponse.next(requestWithDomainHeader)
     }
 
     if (pathname === "/") {
