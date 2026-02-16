@@ -4,15 +4,23 @@ import { Config, Console, Data, Effect } from "effect";
 export class SNSEffectError extends Data.TaggedError("SNSEffectError")<{
   message?: string;
   cause?: unknown;
-}> {}
+}> {
+}
 
 export class SNSEffectClient extends Effect.Service<SNSEffectClient>()(
   "@blikka/sms/sns-client",
   {
     scoped: Effect.gen(function* () {
       const region = yield* Config.string("AWS_REGION");
+      const accessKeyId = yield* Config.string("AWS_ACCESS_KEY_ID");
+      const secretAccessKey = yield* Config.string("AWS_SECRET_ACCESS_KEY");
 
-      const client = new SNSClient({ region });
+      const client = new SNSClient({
+        region, credentials: {
+          accessKeyId,
+          secretAccessKey,
+        }
+      });
       const use = <T>(
         fn: (client: SNSClient) => T,
       ): Effect.Effect<Awaited<T>, SNSEffectError, never> =>
@@ -51,4 +59,5 @@ export class SNSEffectClient extends Effect.Service<SNSEffectClient>()(
       };
     }),
   },
-) {}
+) {
+}

@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/popover"
 import {
   Sidebar,
   SidebarContent,
@@ -17,9 +17,9 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { useSession } from "@/lib/auth/client";
-import type { Marathon } from "@blikka/db";
+} from "@/components/ui/sidebar"
+import { useSession } from "@/lib/auth/client"
+import type { Marathon } from "@blikka/db"
 import {
   BadgeCheck,
   Bell,
@@ -42,13 +42,13 @@ import {
   Trophy,
   Users,
   Vote,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar";
+} from "lucide-react"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import { useState } from "react"
+import { format } from "date-fns"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -57,11 +57,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuGroup,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@radix-ui/react-separator";
-import { useDomain } from "@/lib/domain-provider";
-import { formatDomainPathname } from "@/lib/utils";
-import Image from "next/image";
+} from "@/components/ui/dropdown-menu"
+import { Separator } from "@radix-ui/react-separator"
+import { useDomain } from "@/lib/domain-provider"
+import { formatDomainPathname } from "@/lib/utils"
+import Image from "next/image"
 
 export function DashboardSidebar() {
   return (
@@ -81,7 +81,7 @@ export function DashboardSidebar() {
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }
 
 export function DashboardSidebarHeader() {
@@ -104,37 +104,37 @@ export function DashboardSidebarHeader() {
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
-  );
+  )
 }
 
 interface DomainSwitcherProps {
-  marathons: Marathon[];
-  activeDomain: string | undefined;
+  marathons: Marathon[]
+  activeDomain: string | undefined
 }
 
 export function DomainSwitchDropdown({
   marathons,
   activeDomain,
 }: DomainSwitcherProps) {
-  const { isMobile } = useSidebar();
-  const router = useRouter();
-  const [hasImageError, setHasImageError] = useState(false);
+  const { isMobile } = useSidebar()
+  const router = useRouter()
+  const [hasImageError, setHasImageError] = useState(false)
 
   const activeMarathon = marathons.find(
     (marathon) => marathon.domain === activeDomain,
-  );
+  )
 
   const handleImageError = () => {
-    setHasImageError(true);
-  };
+    setHasImageError(true)
+  }
 
   const handleImageLoad = () => {
-    setHasImageError(false);
-  };
+    setHasImageError(false)
+  }
 
   const handleSwitchMarathon = () => {
-    router.push("/select-domain");
-  };
+    router.push("/admin/")
+  }
 
   return (
     <Popover>
@@ -246,7 +246,7 @@ export function DomainSwitchDropdown({
         )}
       </PopoverContent>
     </Popover>
-  );
+  )
 }
 
 export const NAV_LINKS = {
@@ -309,21 +309,21 @@ export const NAV_LINKS = {
       icon: Settings as LucideIcon,
     },
   ],
-} as const;
+} as const
 
 export default function SidebarLinks() {
-  const pathname = usePathname();
-  const domain = useDomain();
+  const pathname = usePathname()
+  const domain = useDomain()
 
   const isActive = (url: string) => {
-    const formattedUrl = formatDomainPathname(`/admin${url}`, domain);
+    const formattedUrl = formatDomainPathname(`/admin${url}`, domain)
     if (url === "/dashboard/") {
-      const normalizedPathname = pathname.replace(/\/$/, "");
-      const normalizedFormattedUrl = formattedUrl.replace(/\/$/, "");
-      return normalizedPathname === normalizedFormattedUrl;
+      const normalizedPathname = pathname.replace(/\/$/, "")
+      const normalizedFormattedUrl = formattedUrl.replace(/\/$/, "")
+      return normalizedPathname === normalizedFormattedUrl
     }
-    return pathname.startsWith(formattedUrl);
-  };
+    return pathname.startsWith(formattedUrl)
+  }
 
   return (
     <>
@@ -334,7 +334,7 @@ export default function SidebarLinks() {
 
         <SidebarMenu>
           {NAV_LINKS.marathon.map((item) => {
-            const href = formatDomainPathname(`/admin${item.url}`, domain);
+            const href = formatDomainPathname(`/admin${item.url}`, domain)
             return (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton asChild isActive={isActive(item.url)}>
@@ -344,7 +344,7 @@ export default function SidebarLinks() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            );
+            )
           })}
         </SidebarMenu>
       </SidebarGroup>
@@ -353,7 +353,7 @@ export default function SidebarLinks() {
         <SidebarGroupLabel>Configuration</SidebarGroupLabel>
         <SidebarMenu>
           {NAV_LINKS.configuration.map((item) => {
-            const href = formatDomainPathname(`/admin${item.url}`, domain);
+            const href = formatDomainPathname(`/admin${item.url}`, domain)
             return (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton asChild isActive={isActive(item.url)}>
@@ -363,19 +363,19 @@ export default function SidebarLinks() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            );
+            )
           })}
         </SidebarMenu>
       </SidebarGroup>
     </>
-  );
+  )
 }
 
 export function SidebarNavUser() {
-  const { data: session } = useSession();
-  const user = session?.user;
-  const { isMobile } = useSidebar();
-  if (!user) return null;
+  const { data: session } = useSession()
+  const user = session?.user
+  const { isMobile } = useSidebar()
+  if (!user) return null
 
   return (
     <DropdownMenu>
@@ -442,5 +442,5 @@ export function SidebarNavUser() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }

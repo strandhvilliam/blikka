@@ -36,7 +36,7 @@ export function SelectDomainList() {
         <Link
           key={marathon.id}
           prefetch={true}
-          href={formatDomainPathname(`/admin`, marathon.domain)}
+          href={formatDomainPathname(`/admin/dashboard`, marathon.domain)}
           className="block group"
         >
           <Card className="flex flex-row items-center gap-4 p-5 w-full transition-all duration-200 hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5 cursor-pointer">

@@ -192,7 +192,7 @@ export function TopicsByCamera() {
       />
 
       {topics.length === 0 ? (
-        <Card className="border-dashed bg-muted/20">
+        <Card className="border-dashed bg-muted/20 py-4">
           <CardHeader>
             <CardTitle>No topics yet</CardTitle>
             <CardDescription>
