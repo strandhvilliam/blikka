@@ -10,7 +10,6 @@ import {
   desc,
   asc,
   isNull,
-  leftJoin,
 } from "drizzle-orm";
 import type { NewVotingSession, VotingSession } from "../types";
 
@@ -947,4 +946,5 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
       } as const;
     }),
   },
-) {}
+) {
+}

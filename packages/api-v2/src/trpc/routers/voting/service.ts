@@ -430,7 +430,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         topicId: number
         startsAt: string
         endsAt: string
-        participantIds: number[]
+        participantIds: readonly number[]
       }) {
         const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
           startsAt,
