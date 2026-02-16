@@ -11,11 +11,13 @@ interface VotingFooterProps {
   currentRating: number | undefined;
   onRatingChange: (rating: number) => void;
   isSelected: boolean;
+  hasVoted: boolean;
   hasImages: boolean;
   onVote: () => void;
   totalCount: number;
   completionMessage?: string;
   submissionTitle?: string;
+  submissionImageUrl?: string;
   onViewModeChange?: (mode: "carousel" | "grid") => void;
 }
 
@@ -23,11 +25,13 @@ export function VotingFooter({
   currentRating,
   onRatingChange,
   isSelected,
+  hasVoted,
   hasImages,
   onVote,
   totalCount,
   completionMessage,
   submissionTitle,
+  submissionImageUrl,
   onViewModeChange,
 }: VotingFooterProps) {
   const { viewMode, currentImageIndex } = useVotingSearchParams();
@@ -80,9 +84,11 @@ export function VotingFooter({
       <div className="p-4">
         <VoteButton
           isSelected={isSelected}
+          hasVoted={hasVoted}
           isEnabled={hasImages}
           onVote={onVote}
           submissionTitle={submissionTitle}
+          imageUrl={submissionImageUrl}
           className="w-full"
         />
 

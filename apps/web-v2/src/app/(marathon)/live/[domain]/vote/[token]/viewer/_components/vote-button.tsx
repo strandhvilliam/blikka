@@ -14,22 +14,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { PrimaryButton } from "@/components/ui/primary-button";
 
 interface VoteButtonProps {
   isSelected: boolean;
   isEnabled: boolean;
+  hasVoted: boolean;
   onVote: () => void;
   showComplete?: boolean;
   className?: string;
   submissionTitle?: string;
+  imageUrl?: string;
 }
 
 export function VoteButton({
   isSelected,
   isEnabled,
+  hasVoted,
   onVote,
   className,
   submissionTitle,
+  imageUrl,
 }: VoteButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -37,32 +42,31 @@ export function VoteButton({
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <button
-          disabled={!isEnabled}
-          className={cn(
-            "w-full py-4 rounded-2xl font-medium text-base transition-all",
-            isSelected
-              ? "bg-foreground text-background shadow-lg"
-              : "bg-muted text-foreground hover:bg-muted/80",
-            !isEnabled && "opacity-50 cursor-not-allowed",
-            "active:scale-[0.98]",
-            className,
-          )}
+        <PrimaryButton
+          disabled={!isEnabled || isSelected || hasVoted}
+          className={cn("w-full py-4 rounded-2xl text-base", className)}
         >
-          <span className="flex items-center justify-center gap-2">
-            <Heart
-              className={cn(
-                "w-5 h-5 transition-all",
-                isSelected && "fill-current",
-              )}
-            />
-            {isSelected ? "Your Vote" : "Vote for this"}
-          </span>
-        </button>
+          <Heart
+            className={cn(
+              "w-5 h-5 transition-all",
+              isSelected && "fill-current",
+            )}
+          />
+          {isSelected ? "Your Vote" : hasVoted ? "Already voted" : "Cast your vote!"}
+        </PrimaryButton>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Confirm Your Vote</AlertDialogTitle>
+          {imageUrl && (
+            <div className="rounded-lg overflow-hidden bg-muted aspect-video max-h-32">
+              <img
+                src={imageUrl}
+                alt="Submission"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
           <AlertDialogDescription>
             Are you sure you want to vote for this submission?
             {submissionTitle && (
@@ -77,7 +81,9 @@ export function VoteButton({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onVote}>Confirm Vote</AlertDialogAction>
+          <AlertDialogAction asChild>
+            <PrimaryButton onClick={onVote}>Confirm Vote</PrimaryButton>
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

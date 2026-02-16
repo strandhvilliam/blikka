@@ -49,12 +49,12 @@ export function FilterBar({
     setCurrentFilter,
   } = useVotingSearchParams();
 
-  const handleFilterChange = (filter: number | null) => {
-    setCurrentFilter(filter);
-    setCurrentImageIndex(0);
+  const handleFilterChange = async (filter: number | null) => {
+    await setCurrentFilter(filter);
+    await setCurrentImageIndex(0);
   };
 
-  const progress = Math.round(((currentImageIndex + 1) / totalCount) * 100);
+  const progress = totalCount > 0 ? Math.round(((currentImageIndex + 1) / totalCount) * 100) : 0;
 
   const locale = useLocale();
   const router = useRouter();
@@ -71,6 +71,8 @@ export function FilterBar({
       router.refresh();
     });
   };
+
+  const visibleCurrentIndex = totalCount > 0 ? currentImageIndex + 1 : 0;
 
   const renderFilterOption = (option: (typeof filterOptions)[number]) => {
     const count =
@@ -105,7 +107,6 @@ export function FilterBar({
         className,
       )}
     >
-      {/* Top action bar with Info, Logo, and Grid buttons */}
       <div className="flex items-center justify-between mb-3">
         <VotingInfoDrawer votingInfo={{ rated: ratedCount, total: totalCount }}>
           <button
@@ -116,7 +117,6 @@ export function FilterBar({
           </button>
         </VotingInfoDrawer>
 
-        {/* Logo */}
         <div className="flex items-center gap-1.5">
           <Image
             src="/blikka-logo.svg"
@@ -130,7 +130,6 @@ export function FilterBar({
           </span>
         </div>
 
-        {/* Language switcher dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -172,7 +171,7 @@ export function FilterBar({
       <div className="mb-3">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
           <span className="font-medium text-foreground">
-            {currentImageIndex + 1}{" "}
+            {visibleCurrentIndex}{" "}
             <span className="text-muted-foreground">of</span> {totalCount}
           </span>
           <span>{progress}%</span>

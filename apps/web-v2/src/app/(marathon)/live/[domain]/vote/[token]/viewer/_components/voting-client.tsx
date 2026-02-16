@@ -179,10 +179,14 @@ export function VotingClient({
           currentRating={currentRating}
           onRatingChange={handleRatingChange}
           isSelected={isSelected}
+          hasVoted={!!selectedSubmissionId}
           hasImages={hasImages}
           onVote={handleVote}
           totalCount={filteredSubmissions.length}
           submissionTitle={currentSubmission?.topicName}
+          submissionImageUrl={
+            currentSubmission?.thumbnailUrl || currentSubmission?.url
+          }
           onViewModeChange={setViewMode}
         />
       </div>
