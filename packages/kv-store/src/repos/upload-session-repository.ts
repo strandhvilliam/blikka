@@ -143,9 +143,11 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
           const key = keyFactory.participant(domain, ref)
           const result = yield* redis.use((client) => client.hgetall(key))
 
+
           if (result === null) {
             return Option.none<ParticipantState>()
           }
+
 
           const parsed = yield* Schema.decodeUnknown(ParticipantStateSchema)(result)
           return Option.some<ParticipantState>(parsed)

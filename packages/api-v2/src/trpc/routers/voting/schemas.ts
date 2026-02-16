@@ -54,6 +54,23 @@ export const GetVotingAdminSummarySchema = Schema.standardSchemaV1(
   }),
 );
 
+export const GetParticipantsWithoutVotingSessionSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+  }),
+);
+
+export const StartVotingSessionsForParticipantsSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+    startsAt: Schema.String,
+    endsAt: Schema.String,
+    participantIds: Schema.Array(Schema.Number),
+  }),
+);
+
 export const GetVotingLeaderboardPageSchema = Schema.standardSchemaV1(
   Schema.Struct({
     domain: Schema.String,

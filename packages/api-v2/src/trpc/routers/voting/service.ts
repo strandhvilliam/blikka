@@ -239,7 +239,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           })
 
           yield* ensureSessionDomain(votingSession, domain)
-          yield* ensureVotingSessionWindow(votingSession)
+          // yield* ensureVotingSessionWindow(votingSession)
 
           return votingSession
         },
@@ -379,6 +379,200 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           topicId,
           startsAt: startsAtIso,
           endsAt: endsAtIso,
+          sessionsCreated: createdSessions.length,
+          smsSent: smsResults.filter((result) => !("error" in result)).length,
+          smsResults,
+        }
+      })
+
+      const getParticipantsWithoutVotingSession = Effect.fn(
+        "VotingApiService.getParticipantsWithoutVotingSession",
+      )(function* ({
+        domain,
+        topicId,
+      }: {
+        domain: string
+        topicId: number
+      }) {
+        const { marathon } = yield* getByCameraMarathonWithTopic({
+          domain,
+          topicId,
+        })
+
+        const existingCount =
+          yield* db.votingQueries.countVotingSessionsForTopic({
+            marathonId: marathon.id,
+            topicId,
+          })
+
+        if (existingCount === 0) {
+          return []
+        }
+
+        return yield* db.votingQueries.getParticipantsWithSubmissionsButNoVotingSession(
+          {
+            marathonId: marathon.id,
+            topicId,
+          },
+        )
+      })
+
+      const startVotingSessionsForParticipants = Effect.fn(
+        "VotingApiService.startVotingSessionsForParticipants",
+      )(function* ({
+        domain,
+        topicId,
+        startsAt,
+        endsAt,
+        participantIds,
+      }: {
+        domain: string
+        topicId: number
+        startsAt: string
+        endsAt: string
+        participantIds: number[]
+      }) {
+        const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
+          startsAt,
+          endsAt,
+        })
+
+        const { marathon, topic, activeTopic } =
+          yield* getByCameraMarathonWithTopic({
+            domain,
+            topicId,
+          })
+
+        if (!activeTopic || activeTopic.id !== topic.id) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "Voting can only be started for the active by-camera topic",
+            }),
+          )
+        }
+
+        if (participantIds.length === 0) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No participant IDs provided",
+            }),
+          )
+        }
+
+        const participantsWithSubmissions =
+          yield* db.votingQueries.getParticipantsWithSubmissionsButNoVotingSession(
+            {
+              marathonId: marathon.id,
+              topicId,
+            },
+          )
+
+        const validParticipantIds = new Set(
+          participantsWithSubmissions.map((p) => p.id),
+        )
+        const idsToProcess = participantIds.filter((id) =>
+          validParticipantIds.has(id),
+        )
+
+        if (idsToProcess.length === 0) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "None of the provided participants are eligible (they may already have sessions or no submissions for this topic)",
+            }),
+          )
+        }
+
+        const fullParticipants = yield* Effect.all(
+          idsToProcess.map((id) =>
+            db.participantsQueries.getParticipantById({ id }),
+          ),
+        )
+
+        const participantData = fullParticipants.flatMap((opt) =>
+          Option.isSome(opt) ? [opt.value] : [],
+        )
+
+        if (participantData.length === 0) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Could not load participant data",
+            }),
+          )
+        }
+
+        const usedTokens = new Set<string>()
+        const sessionsToCreate: NewVotingSession[] = yield* Effect.forEach(
+          participantData,
+          (participant) =>
+            Effect.gen(function* () {
+              const token = yield* generateUniqueToken({ usedTokens })
+
+              return {
+                token,
+                firstName: participant.firstname,
+                lastName: participant.lastname,
+                email: participant.email ?? "",
+                phoneHash: participant.phoneHash,
+                phoneEncrypted: participant.phoneEncrypted,
+                marathonId: marathon.id,
+                startsAt: startsAtIso,
+                endsAt: endsAtIso,
+                voteSubmissionId: null,
+                connectedParticipantId: participant.id,
+                notificationLastSentAt: null,
+                topicId,
+              } satisfies NewVotingSession
+            }),
+          { concurrency: 1 },
+        )
+
+        const createdSessions = yield* db.votingQueries.createVotingSessions({
+          sessions: sessionsToCreate,
+        })
+
+        const smsResults = yield* Effect.all(
+          createdSessions
+            .filter((session) => session.phoneEncrypted)
+            .map((session) =>
+              Effect.gen(function* () {
+                const phoneNumber = yield* phoneEncryption.decrypt({
+                  encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
+                })
+
+                const message = `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`
+
+                const result = yield* smsService.sendWithOptOutCheck({
+                  phoneNumber,
+                  message,
+                })
+
+                return {
+                  sessionId: session.id,
+                  phoneNumber,
+                  smsResult: result,
+                }
+              }).pipe(
+                Effect.catchAll((error) =>
+                  Effect.succeed({
+                    sessionId: session.id,
+                    phoneNumber: null,
+                    error: String(error),
+                  }),
+                ),
+              ),
+            ),
+          { concurrency: 5 },
+        )
+
+        yield* db.votingQueries.updateMultipleLastNotificationSentAt({
+          ids: createdSessions.map((session) => session.id),
+          notificationLastSentAt: new Date().toISOString(),
+        })
+
+        return {
+          topicId,
           sessionsCreated: createdSessions.length,
           smsSent: smsResults.filter((result) => !("error" in result)).length,
           smsResults,
@@ -1066,7 +1260,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             ),
         })
 
-        yield* ensureSessionDomain(votingSession, domain)
+        // yield* ensureSessionDomain(votingSession, domain)
 
         if (votingSession.votedAt && votingSession.voteSubmissionId) {
           return {
@@ -1313,6 +1507,8 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
       return {
         getVotingSession,
         startVotingSessions,
+        getParticipantsWithoutVotingSession,
+        startVotingSessionsForParticipants,
         getSubmissionVoteStats,
         createOrUpdateVotingSessionForParticipant,
         getVotingSessionByParticipant,

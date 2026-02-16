@@ -1,7 +1,17 @@
 import { Effect, Option } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import { votingSession, marathons, participants, submissions } from "../schema";
-import { eq, inArray, sql, count, and, desc, asc } from "drizzle-orm";
+import {
+  eq,
+  inArray,
+  sql,
+  count,
+  and,
+  desc,
+  asc,
+  isNull,
+  leftJoin,
+} from "drizzle-orm";
 import type { NewVotingSession, VotingSession } from "../types";
 
 export class VotingQueries extends Effect.Service<VotingQueries>()(
@@ -64,6 +74,44 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             ...p,
             submissions: p.submissions.filter((s) => s.topicId === topicId),
           }));
+      });
+
+      const getParticipantsWithSubmissionsButNoVotingSession = Effect.fn(
+        "VotingQueries.getParticipantsWithSubmissionsButNoVotingSession",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        const result = yield* db
+          .selectDistinct({
+            id: participants.id,
+            firstname: participants.firstname,
+            lastname: participants.lastname,
+            reference: participants.reference,
+            email: participants.email,
+          })
+          .from(participants)
+          .innerJoin(
+            submissions,
+            and(
+              eq(participants.id, submissions.participantId),
+              eq(submissions.marathonId, marathonId),
+              eq(submissions.topicId, topicId),
+            ),
+          )
+          .leftJoin(
+            votingSession,
+            and(
+              eq(votingSession.connectedParticipantId, participants.id),
+              eq(votingSession.topicId, topicId),
+            ),
+          )
+          .where(isNull(votingSession.id));
+
+        return result;
       });
 
       const createVotingSessions = Effect.fn(
@@ -873,6 +921,7 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         getVotingSessionByToken,
         getPublicMarathonByDomain,
         getParticipantsWithSubmissionsByTopicId,
+        getParticipantsWithSubmissionsButNoVotingSession,
         createVotingSessions,
         updateMultipleLastNotificationSentAt,
         countVotingSessionsForTopic,

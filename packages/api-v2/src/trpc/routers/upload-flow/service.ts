@@ -120,6 +120,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
               ),
             )
 
+
           const competitionClass = yield* Array.findFirst(
             marathon.competitionClasses,
             (c) => c.id === competitionClassId,
@@ -324,6 +325,17 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
                 }),
               ),
             )
+
+          console.log('*************************8')
+          console.log('*************************8')
+          console.log('*************************8')
+          console.log('*************************8')
+          console.log("marathon", marathon)
+          console.log('*************************8')
+          console.log('*************************8')
+          console.log('*************************8')
+          console.log('*************************8')
+          console.log('*************************8')
 
           const existingParticipant =
             yield* db.participantsQueries.getParticipantByReference({

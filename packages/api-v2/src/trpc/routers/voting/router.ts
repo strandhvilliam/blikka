@@ -4,10 +4,12 @@ import { Effect } from "effect";
 import {
   GetVotingSessionSchema,
   StartVotingSessionsSchema,
+  StartVotingSessionsForParticipantsSchema,
   GetSubmissionVoteStatsSchema,
   CreateOrUpdateVotingSessionSchema,
   GetVotingSessionByParticipantSchema,
   GetVotingAdminSummarySchema,
+  GetParticipantsWithoutVotingSessionSchema,
   GetVotingLeaderboardPageSchema,
   GetVotingVotersPageSchema,
   CreateManualVotingSessionSchema,
@@ -82,6 +84,34 @@ export const votingRouter = createTRPCRouter({
       trpcEffect(
         Effect.fn("VotingRouter.getVotingAdminSummary")(function* ({ input }) {
           return yield* VotingApiService.getVotingAdminSummary(input);
+        }),
+      ),
+    ),
+
+  getParticipantsWithoutVotingSession: domainProcedure
+    .input(GetParticipantsWithoutVotingSessionSchema)
+    .query(
+      trpcEffect(
+        Effect.fn("VotingRouter.getParticipantsWithoutVotingSession")(function* ({
+          input,
+        }) {
+          return yield* VotingApiService.getParticipantsWithoutVotingSession(
+            input,
+          );
+        }),
+      ),
+    ),
+
+  startVotingSessionsForParticipants: domainProcedure
+    .input(StartVotingSessionsForParticipantsSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("VotingRouter.startVotingSessionsForParticipants")(function* ({
+          input,
+        }) {
+          return yield* VotingApiService.startVotingSessionsForParticipants(
+            input,
+          );
         }),
       ),
     ),

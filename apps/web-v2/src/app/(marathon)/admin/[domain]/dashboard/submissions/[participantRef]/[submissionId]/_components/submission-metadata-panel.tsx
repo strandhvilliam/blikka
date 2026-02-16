@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import type {
   CompetitionClass,
   DeviceGroup,
@@ -10,8 +10,8 @@ import type {
   Topic,
   ValidationResult,
   VotingSession,
-} from "@blikka/db";
-import { format } from "date-fns";
+} from "@blikka/db"
+import { format } from "date-fns"
 import {
   AlertTriangle,
   Camera,
@@ -29,48 +29,48 @@ import {
   Link2,
   Send,
   Plus,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { formatDomainPathname } from "@/lib/utils";
-import { useTRPC } from "@/lib/trpc/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { formatDomainPathname } from "@/lib/utils"
+import { useTRPC } from "@/lib/trpc/client"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 interface VoteStats {
-  voteCount: number;
-  position: number;
-  totalSubmissions: number;
+  voteCount: number
+  position: number
+  totalSubmissions: number
   participantVoteInfo: {
-    hasVoted: boolean;
-    votedAt: string | null;
-    votedSubmissionId: number | null;
-    votedTopicName: string | null;
-  } | null;
+    hasVoted: boolean
+    votedAt: string | null
+    votedSubmissionId: number | null
+    votedTopicName: string | null
+  } | null
 }
 
 interface VotingSessionData {
-  hasSession: boolean;
-  session?: VotingSession;
-  hasVoted?: boolean;
-  notificationLastSentAt?: string | null;
+  hasSession: boolean
+  session?: VotingSession
+  hasVoted?: boolean
+  notificationLastSentAt?: string | null
 }
 
 interface SubmissionMetadataPanelProps {
-  submission: Submission;
+  submission: Submission
   participant: Participant & {
-    competitionClass: CompetitionClass | null;
-    deviceGroup: DeviceGroup | null;
-  };
-  hasIssues: boolean;
-  validationResults: ValidationResult[];
-  marathonMode?: string;
-  voteStats?: VoteStats;
-  votingSessionData?: VotingSessionData;
-  domain: string;
-  topics: Topic[];
+    competitionClass: CompetitionClass | null
+    deviceGroup: DeviceGroup | null
+  }
+  hasIssues: boolean
+  validationResults: ValidationResult[]
+  marathonMode?: string
+  voteStats?: VoteStats
+  votingSessionData?: VotingSessionData
+  domain: string
+  topics: Topic[]
 }
 
 export function SubmissionMetadataPanel({
@@ -84,21 +84,21 @@ export function SubmissionMetadataPanel({
   votingSessionData,
   domain,
 }: SubmissionMetadataPanelProps) {
-  const isByCameraMode = marathonMode === "by-camera";
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const isByCameraMode = marathonMode === "by-camera"
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
 
-  const activeByCameraTopic = topics.find((t) => t.visibility === "active");
+  const activeByCameraTopic = topics.find((t) => t.visibility === "active")
 
   const createOrUpdateVotingSessionMutation = useMutation(
     trpc.voting.createOrUpdateVotingSession.mutationOptions({
       onSuccess: (data) => {
         if (data.action === "created") {
-          toast.success("Voting session created and invite sent");
+          toast.success("Voting session created and invite sent")
         } else if (data.action === "resent") {
-          toast.success("Vote invite resent");
+          toast.success("Vote invite resent")
         } else if (data.action === "already_voted") {
-          toast.info("Participant has already voted");
+          toast.info("Participant has already voted")
         }
         queryClient.invalidateQueries({
           queryKey: trpc.voting.getVotingSessionByParticipant.queryKey({
@@ -106,26 +106,26 @@ export function SubmissionMetadataPanel({
             topicId: activeByCameraTopic?.id ?? 0,
             domain,
           }),
-        });
+        })
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to create voting session");
+        toast.error(error.message || "Failed to create voting session")
       },
     }),
-  );
+  )
 
   const handleCreateOrUpdateVotingSession = () => {
     if (!activeByCameraTopic) {
-      toast.error("No active by-camera topic found");
-      return;
+      toast.error("No active by-camera topic found")
+      return
     }
 
     createOrUpdateVotingSessionMutation.mutate({
       participantId: participant.id,
       topicId: activeByCameraTopic.id,
       domain,
-    });
-  };
+    })
+  }
 
   return (
     <div className="space-y-4">
@@ -186,7 +186,7 @@ export function SubmissionMetadataPanel({
                 <div className="flex items-start gap-2.5">
                   <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center min-w-[28px]">
                     {participant.competitionClass?.numberOfPhotos !==
-                    undefined ? (
+                      undefined ? (
                       <span className="text-xs font-semibold">
                         {participant.competitionClass.numberOfPhotos}
                       </span>
@@ -281,7 +281,7 @@ export function SubmissionMetadataPanel({
                 )}
                 {voteStats.participantVoteInfo.votedSubmissionId &&
                   voteStats.participantVoteInfo.votedSubmissionId !==
-                    submission.id && (
+                  submission.id && (
                     <Link
                       href={formatDomainPathname(
                         `/admin/dashboard/submissions/${participant.reference}/${voteStats.participantVoteInfo.votedSubmissionId}`,
@@ -464,5 +464,5 @@ export function SubmissionMetadataPanel({
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

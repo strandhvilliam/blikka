@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import {
   Copy,
@@ -10,8 +10,10 @@ import {
   MoreVertical,
   Trash2,
   X,
+  UserPlus,
 } from "lucide-react"
 import Link from "next/link"
+import { addHours } from "date-fns"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -42,7 +44,25 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
-import { formatDateTime, getSubmissionImageUrl } from "../_lib/utils"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import {
+  formatDateTime,
+  getSubmissionImageUrl,
+  toDateTimeLocalValue,
+  toIsoFromLocal,
+  hasValidDateRange,
+} from "../_lib/utils"
 import { useVotingUiState } from "../_hooks/use-voting-ui-state"
 import { formatDomainLink } from "@/lib/utils"
 import { VotingProgress } from "./voting-progress"
@@ -60,6 +80,13 @@ export function VotersTab({
   const queryClient = useQueryClient()
   const domain = useDomain()
   const { votersPage, setVotersPage } = useVotingUiState()
+  const [startSessionsDialogOpen, setStartSessionsDialogOpen] = useState(false)
+  const [startsAtInput, setStartsAtInput] = useState(() =>
+    toDateTimeLocalValue(new Date()),
+  )
+  const [endsAtInput, setEndsAtInput] = useState(() =>
+    toDateTimeLocalValue(addHours(new Date(), 24)),
+  )
 
   const handleCopySessionLink = async (token: string) => {
     const link = formatDomainLink(`/live/vote/${token}`, domain, "live")
@@ -130,6 +157,35 @@ export function VotersTab({
     }),
   )
 
+  const startVotingSessionsForParticipantsMutation = useMutation(
+    trpc.voting.startVotingSessionsForParticipants.mutationOptions({
+      onSuccess: async (data) => {
+        toast.success(
+          `Voting sessions created for ${data.sessionsCreated} participant${data.sessionsCreated === 1 ? "" : "s"}`,
+        )
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingVotersPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getParticipantsWithoutVotingSession.pathKey(),
+          }),
+        ])
+      },
+      onError: (error) => {
+        toast.error(
+          error.message || "Failed to start voting sessions for participants",
+        )
+      },
+    }),
+  )
+
   const handleClearVote = (sessionId: number) => {
     clearVoteMutation.mutate({
       domain,
@@ -189,6 +245,13 @@ export function VotersTab({
     }),
   )
 
+  const { data: participantsWithoutSession = [] } = useSuspenseQuery(
+    trpc.voting.getParticipantsWithoutVotingSession.queryOptions({
+      domain,
+      topicId: activeTopic.id,
+    }),
+  )
+
   const voters = votersPageData?.items ?? []
   const pageCount = votersPageData?.pageCount ?? 0
   const total = votersPageData?.total ?? 0
@@ -199,9 +262,153 @@ export function VotersTab({
     }
   }, [pageCount, votersPage, setVotersPage])
 
+  const handleStartSessionsForParticipants = () => {
+    const startsAtIso = toIsoFromLocal(startsAtInput)
+    const endsAtIso = toIsoFromLocal(endsAtInput)
+
+    if (!startsAtIso || !endsAtIso) {
+      toast.error("Please provide valid start and end timestamps")
+      return
+    }
+
+    if (!hasValidDateRange(startsAtIso, endsAtIso)) {
+      toast.error("End timestamp must be later than start timestamp")
+      return
+    }
+
+    startVotingSessionsForParticipantsMutation.mutate(
+      {
+        domain,
+        topicId: activeTopic.id,
+        startsAt: startsAtIso,
+        endsAt: endsAtIso,
+        participantIds: participantsWithoutSession.map((p) => p.id),
+      },
+      {
+        onSuccess: () => {
+          setStartSessionsDialogOpen(false)
+        },
+      },
+    )
+  }
+
+  const launchStartsAtIso = toIsoFromLocal(startsAtInput)
+  const launchEndsAtIso = toIsoFromLocal(endsAtInput)
+  const canStartSessionsForParticipants =
+    hasValidDateRange(launchStartsAtIso, launchEndsAtIso)
+
   return (
     <div className="space-y-4">
       <VotingProgress activeTopic={activeTopic} />
+      {participantsWithoutSession.length > 0 && (
+        <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+          <UserPlus className="h-4 w-4" />
+          <AlertTitle>Participants without voting sessions</AlertTitle>
+          <AlertDescription>
+            <div className="space-y-3 mt-2">
+              <p>
+                {participantsWithoutSession.length} participant
+                {participantsWithoutSession.length === 1 ? "" : "s"} have
+                uploaded for this topic but don&apos;t have voting sessions yet
+                (voting was started before they uploaded).
+              </p>
+              <ul className="list-disc list-inside text-sm space-y-1">
+                {participantsWithoutSession.map((p) => (
+                  <li key={p.id}>
+                    {p.reference ? (
+                      <Link
+                        href={`/admin/${domain}/dashboard/submissions/${p.reference}`}
+                        className="hover:underline"
+                      >
+                        {p.firstname} {p.lastname} ({p.reference})
+                      </Link>
+                    ) : (
+                      <>
+                        {p.firstname} {p.lastname}
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <PrimaryButton
+                onClick={() => setStartSessionsDialogOpen(true)}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Start voting sessions for these participants
+              </PrimaryButton>
+              <Dialog
+                open={startSessionsDialogOpen}
+                onOpenChange={setStartSessionsDialogOpen}
+              >
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      Start voting sessions for participants
+                    </DialogTitle>
+                    <DialogDescription>
+                      Set the start and end timestamps for the voting window.
+                      Sessions will be created for{" "}
+                      {participantsWithoutSession.length} participant
+                      {participantsWithoutSession.length === 1 ? "" : "s"}.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="start-sessions-start-at">
+                        Start timestamp
+                      </Label>
+                      <Input
+                        id="start-sessions-start-at"
+                        type="datetime-local"
+                        value={startsAtInput}
+                        onChange={(e) => setStartsAtInput(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="start-sessions-end-at">
+                        End timestamp
+                      </Label>
+                      <Input
+                        id="start-sessions-end-at"
+                        type="datetime-local"
+                        value={endsAtInput}
+                        onChange={(e) => setEndsAtInput(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setStartSessionsDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <PrimaryButton
+                      onClick={handleStartSessionsForParticipants}
+                      disabled={
+                        startVotingSessionsForParticipantsMutation.isPending ||
+                        !canStartSessionsForParticipants
+                      }
+                    >
+                      {startVotingSessionsForParticipantsMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Starting...
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Start sessions
+                        </>
+                      )}
+                    </PrimaryButton>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
       <div>
         <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
