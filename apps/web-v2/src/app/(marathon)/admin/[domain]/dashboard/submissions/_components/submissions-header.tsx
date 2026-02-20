@@ -1,12 +1,20 @@
 "use client";
 
-import { Vote } from "lucide-react";
+import type {
+  CompetitionClass,
+  DeviceGroup,
+  RuleConfig,
+  Topic,
+} from "@blikka/db";
+import { Plus, Vote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryStates } from "nuqs";
 import { submissionSearchParams } from "../_lib/search-params";
 import Link from "next/link";
 import { formatDomainPathname } from "@/lib/utils";
+import { useState } from "react";
+import { AdminParticipantUploadDialog } from "./admin-participant-upload-dialog";
 
 type Tab =
   | "all"
@@ -23,6 +31,12 @@ interface SubmissionsHeaderProps {
   marathonMode: string;
   activeTopicName: string | null;
   activeTopicOrderIndex: number | null;
+  competitionClasses: CompetitionClass[];
+  deviceGroups: DeviceGroup[];
+  topics: Topic[];
+  ruleConfigs: RuleConfig[];
+  startDate: string | null;
+  endDate: string | null;
 }
 
 export function SubmissionsHeader({
@@ -30,12 +44,22 @@ export function SubmissionsHeader({
   marathonMode,
   activeTopicName,
   activeTopicOrderIndex,
+  competitionClasses,
+  deviceGroups,
+  topics,
+  ruleConfigs,
+  startDate,
+  endDate,
 }: SubmissionsHeaderProps) {
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: "push",
   });
+  const [isCreateUploadDialogOpen, setIsCreateUploadDialogOpen] =
+    useState(false);
 
   const { tab: activeTab } = queryState;
+  const normalizedMarathonMode: "marathon" | "by-camera" =
+    marathonMode === "by-camera" ? "by-camera" : "marathon";
   const onTabChange = (tab: Tab) => {
     setQueryState({ tab });
   };
@@ -56,7 +80,7 @@ export function SubmissionsHeader({
           <h1 className="font-gothic text-3xl font-normal tracking-tight">
             Submissions
           </h1>
-          {marathonMode === "by-camera" ? (
+          {normalizedMarathonMode === "by-camera" ? (
             <p className="text-muted-foreground text-sm">
               Viewing active topic:{" "}
               <span className="font-medium text-foreground">
@@ -72,6 +96,13 @@ export function SubmissionsHeader({
           )}
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            onClick={() => setIsCreateUploadDialogOpen(true)}
+            className="bg-[#20201c] hover:bg-[#313129]"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Participant Upload
+          </Button>
           <Button asChild variant="outline">
             <Link
               href={formatDomainPathname("/admin/dashboard/voting", domain)}
@@ -102,6 +133,19 @@ export function SubmissionsHeader({
           </TabsList>
         </div>
       </Tabs>
+
+      <AdminParticipantUploadDialog
+        open={isCreateUploadDialogOpen}
+        onOpenChange={setIsCreateUploadDialogOpen}
+        domain={domain}
+        marathonMode={normalizedMarathonMode}
+        competitionClasses={competitionClasses}
+        deviceGroups={deviceGroups}
+        topics={topics}
+        ruleConfigs={ruleConfigs}
+        marathonStartDate={startDate}
+        marathonEndDate={endDate}
+      />
     </div>
   );
 }

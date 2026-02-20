@@ -24,10 +24,11 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
     );
     const activeByCameraTopic =
       marathon.mode === "by-camera"
-        ? marathon.topics.find((topic) => topic.visibility === "active") ?? null
+        ? (marathon.topics.find((topic) => topic.visibility === "active") ??
+          null)
         : null;
     const activeByCameraTopicId =
-      marathon.mode === "by-camera" ? activeByCameraTopic?.id ?? -1 : null;
+      marathon.mode === "by-camera" ? (activeByCameraTopic?.id ?? -1) : null;
     const queryParams = yield* Effect.tryPromise(() =>
       loadSubmissionSearchParams(searchParams),
     );
@@ -57,6 +58,12 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
                 marathonMode={marathon.mode}
                 activeTopicName={activeByCameraTopic?.name ?? null}
                 activeTopicOrderIndex={activeByCameraTopic?.orderIndex ?? null}
+                competitionClasses={marathon.competitionClasses}
+                deviceGroups={marathon.deviceGroups}
+                topics={marathon.topics}
+                ruleConfigs={marathon.ruleConfigs}
+                startDate={marathon.startDate ?? null}
+                endDate={marathon.endDate ?? null}
               />
             </div>
             <div className="flex-1 min-h-0">
