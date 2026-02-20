@@ -6,7 +6,9 @@ import Link from "next/link"
 import { AlertTriangle, ArrowRight, CalendarClock, Clock3, Radio, Wrench } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useMarathonConfiguration } from "@/hooks/use-marathon-configuration"
-import { useMarathonCountdown } from "@/hooks/use-marathon-countdown"
+import {
+  MarathonStatus,
+  useMarathonCountdown } from "@/hooks/use-marathon-countdown"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
@@ -17,63 +19,6 @@ interface DashboardStatusDisplayProps {
   domain: string
 }
 
-function getSetupLinks(domain: string, requiredActions: RequiredAction[]) {
-  const routeForAction: Record<string, { label: string; href: string; icon: typeof Wrench }> = {
-    missing_dates: {
-      label: "Open settings",
-      href: `/admin/${domain}/dashboard/settings`,
-      icon: CalendarClock,
-    },
-    missing_name: {
-      label: "Open settings",
-      href: `/admin/${domain}/dashboard/settings`,
-      icon: CalendarClock,
-    },
-    missing_device_groups: {
-      label: "Open classes",
-      href: `/admin/${domain}/dashboard/classes`,
-      icon: Wrench,
-    },
-    missing_competition_classes: {
-      label: "Open classes",
-      href: `/admin/${domain}/dashboard/classes`,
-      icon: Wrench,
-    },
-    missing_competition_class_topics: {
-      label: "Open classes",
-      href: `/admin/${domain}/dashboard/classes`,
-      icon: Wrench,
-    },
-    missing_topics: {
-      label: "Open topics",
-      href: `/admin/${domain}/dashboard/topics`,
-      icon: Wrench,
-    },
-  }
-
-  const unique = new Map<string, { label: string; href: string; icon: typeof Wrench }>()
-  for (const action of requiredActions) {
-    const target = routeForAction[action.action]
-    if (!target) continue
-    unique.set(target.href, target)
-  }
-  return Array.from(unique.values())
-}
-
-function StatusPill({ className, children }: { className?: string; children: React.ReactNode }) {
-  return (
-    <div
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-xs select-none",
-        "bg-sidebar-accent/70 text-foreground border-border/60",
-        className
-      )}
-    >
-      {children}
-    </div>
-  )
-}
-
 export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) {
   const { marathon, requiredActions } = useMarathonConfiguration(domain)
   const { countdown, status } = useMarathonCountdown(domain)
@@ -81,40 +26,7 @@ export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) 
   const startDate = marathon?.startDate ? new Date(marathon.startDate) : null
   const endDate = marathon?.endDate ? new Date(marathon.endDate) : null
 
-  const statusMeta = (() => {
-    if (status === "not-setup") {
-      return {
-        label: "Setup required",
-        sublabel: `${requiredActions.length} item${requiredActions.length === 1 ? "" : "s"}`,
-        toneClass:
-          "bg-destructive/10 border-destructive/30 text-destructive dark:bg-destructive/20",
-        icon: AlertTriangle,
-      }
-    }
-    if (status === "upcoming") {
-      return {
-        label: "Upcoming",
-        sublabel: "Starts in",
-        toneClass: "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400",
-        icon: Clock3,
-      }
-    }
-    if (status === "live") {
-      return {
-        label: "Live",
-        sublabel: "Ends in",
-        toneClass: "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400",
-        icon: Radio,
-      }
-    }
-    return {
-      label: "Ended",
-      sublabel: "Finished",
-      toneClass: "bg-muted border-border/60 text-muted-foreground",
-      icon: CalendarClock,
-    }
-  })()
-
+  const statusMeta = getStatusMeta(status, requiredActions.length)
   const StatusIcon = statusMeta.icon
 
   return (
@@ -254,6 +166,82 @@ export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) 
   )
 }
 
+function getSetupLinks(domain: string, requiredActions: RequiredAction[]) {
+  const routeForAction: Record<string, { label: string; href: string; icon: typeof Wrench }> = {
+    missing_dates: {
+      label: "Open settings",
+      href: `/admin/${domain}/dashboard/settings`,
+      icon: CalendarClock,
+    },
+    missing_name: {
+      label: "Open settings",
+      href: `/admin/${domain}/dashboard/settings`,
+      icon: CalendarClock,
+    },
+    missing_device_groups: {
+      label: "Open classes",
+      href: `/admin/${domain}/dashboard/classes`,
+      icon: Wrench,
+    },
+    missing_competition_classes: {
+      label: "Open classes",
+      href: `/admin/${domain}/dashboard/classes`,
+      icon: Wrench,
+    },
+    missing_competition_class_topics: {
+      label: "Open classes",
+      href: `/admin/${domain}/dashboard/classes`,
+      icon: Wrench,
+    },
+    missing_topics: {
+      label: "Open topics",
+      href: `/admin/${domain}/dashboard/topics`,
+      icon: Wrench,
+    },
+  }
+
+  const unique = new Map<string, { label: string; href: string; icon: typeof Wrench }>()
+  for (const action of requiredActions) {
+    const target = routeForAction[action.action]
+    if (!target) continue
+    unique.set(target.href, target)
+  }
+  return Array.from(unique.values())
+}
+
+function getStatusMeta(status: MarathonStatus, requiredActionsCount: number) {
+  const metaForStatus: Record<
+    MarathonStatus,
+    { label: string; sublabel: string; toneClass: string; icon: typeof AlertTriangle }
+  > = {
+    "not-setup": {
+      label: "Setup required",
+      sublabel: `${requiredActionsCount} item${requiredActionsCount === 1 ? "" : "s"}`,
+      toneClass: "bg-destructive/10 border-destructive/30 text-destructive dark:bg-destructive/20",
+      icon: AlertTriangle,
+    },
+    upcoming: {
+      label: "Upcoming",
+      sublabel: "Starts in",
+      toneClass: "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400",
+      icon: Clock3,
+    },
+    live: {
+      label: "Live",
+      sublabel: "Ends in",
+      toneClass: "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400",
+      icon: Radio,
+    },
+    ended: {
+      label: "Ended",
+      sublabel: "Finished",
+      toneClass: "bg-muted border-border/60 text-muted-foreground",
+      icon: CalendarClock,
+    },
+  }
+  return metaForStatus[status]
+}
+
 export function DashboardStatusDisplaySkeleton() {
   return (
     <div className="flex items-center">
@@ -265,3 +253,17 @@ export function DashboardStatusDisplaySkeleton() {
     </div>
   )
 }
+
+function StatusPill({ className, children }: { className?: string; children: React.ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-xs select-none",
+        "bg-sidebar-accent/70 text-foreground border-border/60",
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
+} 

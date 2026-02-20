@@ -22,7 +22,7 @@ const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
           <div className="w-80 bg-background flex flex-col border border-border/70 rounded-lg shadow-sm overflow-hidden">
             <div className="border-b border-border/40">
               <div className="flex items-center justify-between p-4">
-                <h2 className="text-lg font-semibold font-gothic">Staff</h2>
+                <h1 className="text-2xl font-gothic">Staff</h1>
                 <StaffAddDialog />
               </div>
               <Suspense fallback={<StaffListSkeleton />}>

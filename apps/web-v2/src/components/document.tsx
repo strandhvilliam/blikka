@@ -16,7 +16,6 @@ const specialGothic = Special_Gothic_Expanded_One({
 
 const gothic = Special_Gothic({
   subsets: ["latin"],
-  weight: ["400"],
   variable: "--font-gothic",
   fallback: ["sans-serif"],
 })

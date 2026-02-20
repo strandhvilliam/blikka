@@ -17,7 +17,7 @@ const _DashboardLayout = Effect.fn("@blikka/web/DashboardLayout")(
           <DashboardSidebar />
           <SidebarInset className="bg-transparent flex flex-1 flex-col max-h-screen overflow-hidden relative">
             <DashboardHeader />
-            <div className="border rounded-tl-2xl overflow-y-auto h-full overflow-hidden relative z-0 px-6 pt-8 pb-4">
+            <div className="border rounded-tl-2xl overflow-y-auto h-full overflow-hidden relative z-0 px-6 pt-8 pb-4 [&_h1.font-gothic]:font-medium">
               {children}
             </div>
           </SidebarInset>

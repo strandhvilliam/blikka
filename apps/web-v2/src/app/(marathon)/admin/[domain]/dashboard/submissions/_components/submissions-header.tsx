@@ -53,7 +53,7 @@ export function SubmissionsHeader({
       {/* Title and Action Buttons */}
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <h1 className="font-gothic text-3xl font-bold tracking-tight">
+          <h1 className="font-gothic text-3xl font-normal tracking-tight">
             Submissions
           </h1>
           {marathonMode === "by-camera" ? (
