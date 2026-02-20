@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import type { Sponsor } from "@blikka/db"
+import { cn } from "@/lib/utils"
 
 type SponsorType = "contact-sheets" | "live-initial-1" | "live-initial-2" | "live-success-1" | "live-success-2"
 
@@ -108,7 +109,7 @@ export function SponsorCard({
     : null
 
   return (
-    <Card className={disabled ? "opacity-50" : ""}>
+    <Card className={cn("py-6", disabled ? "opacity-50" : "")}>
       <CardHeader className="space-y-0">
         <CardTitle className="flex items-center gap-2 text-lg font-gothic">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
