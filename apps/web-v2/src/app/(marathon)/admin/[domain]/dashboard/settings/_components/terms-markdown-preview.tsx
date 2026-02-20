@@ -13,13 +13,13 @@ export function TermsMarkdownPreview({ markdown }: TermsMarkdownPreviewProps) {
           <ReactMarkdown
             components={{
               h1: ({ children }) => (
-                <h1 className="text-base font-rocgrotesk font-bold mb-2">{children}</h1>
+                <h1 className="text-base font-gothic font-bold mb-2">{children}</h1>
               ),
               h2: ({ children }) => (
-                <h2 className="text-sm font-rocgrotesk font-semibold mb-2">{children}</h2>
+                <h2 className="text-sm font-gothic font-semibold mb-2">{children}</h2>
               ),
               h3: ({ children }) => (
-                <h3 className="text-xs font-rocgrotesk font-semibold mb-1">{children}</h3>
+                <h3 className="text-xs font-gothic font-semibold mb-1">{children}</h3>
               ),
               p: ({ children }) => <p className="text-xs mb-2">{children}</p>,
               ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,

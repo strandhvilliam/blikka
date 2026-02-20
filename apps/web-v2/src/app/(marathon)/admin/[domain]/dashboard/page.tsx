@@ -23,7 +23,7 @@ const _DashboardPage = Effect.fn("@blikka/web/DashboardPage")(
 
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+            <h1 className="font-gothic text-4xl font-bold tracking-tight text-gray-900">
               Welcome to {domain}.{rootDomain}
             </h1>
             <p className="mt-3 text-lg text-gray-600">{t("welcome")}</p>

@@ -13,6 +13,7 @@ import {
   unique,
   pgSequence,
   pgEnum,
+  check,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -491,6 +492,14 @@ export const topics = pgTable(
       withTimezone: true,
       mode: "string",
     }),
+    votingStartsAt: timestamp("voting_starts_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    votingEndsAt: timestamp("voting_ends_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
   },
   (table) => [
     foreignKey({
@@ -500,6 +509,17 @@ export const topics = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("cascade"),
+    check(
+      "topics_voting_window_range_check",
+      sql`(
+        (${table.votingStartsAt} is null and ${table.votingEndsAt} is null)
+        or (
+          ${table.votingStartsAt} is not null
+          and ${table.votingEndsAt} is not null
+          and ${table.votingStartsAt} < ${table.votingEndsAt}
+        )
+      )`,
+    ),
   ],
 );
 
@@ -609,8 +629,6 @@ export const votingSession = pgTable(
     phoneHash: text("phone_hash"),
     phoneEncrypted: text("phone_encrypted"),
     marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
-    startsAt: timestamp("starts_at", { withTimezone: true, mode: "string" }),
-    endsAt: timestamp("ends_at", { withTimezone: true, mode: "string" }),
     notificationLastSentAt: timestamp("notification_last_sent_at", {
       withTimezone: true,
       mode: "string",

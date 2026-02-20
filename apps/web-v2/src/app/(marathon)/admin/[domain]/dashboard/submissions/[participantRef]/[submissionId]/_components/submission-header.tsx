@@ -39,7 +39,7 @@ export function SubmissionHeader({ participant, marathonMode }: SubmissionHeader
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">
+          <h1 className="text-3xl font-bold tracking-tight font-gothic">
             {participant.firstname} {participant.lastname}
           </h1>
           <div className="flex items-center gap-2 mt-1">

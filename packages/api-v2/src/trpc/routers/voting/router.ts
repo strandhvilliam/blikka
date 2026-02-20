@@ -4,6 +4,8 @@ import { Effect } from "effect";
 import {
   GetVotingSessionSchema,
   StartVotingSessionsSchema,
+  SetTopicVotingWindowSchema,
+  CloseTopicVotingWindowSchema,
   StartVotingSessionsForParticipantsSchema,
   GetSubmissionVoteStatsSchema,
   CreateOrUpdateVotingSessionSchema,
@@ -38,6 +40,26 @@ export const votingRouter = createTRPCRouter({
       trpcEffect(
         Effect.fn("VotingRouter.startVotingSessions")(function* ({ input }) {
           return yield* VotingApiService.startVotingSessions(input);
+        }),
+      ),
+    ),
+
+  setTopicVotingWindow: domainProcedure
+    .input(SetTopicVotingWindowSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("VotingRouter.setTopicVotingWindow")(function* ({ input }) {
+          return yield* VotingApiService.setTopicVotingWindow(input);
+        }),
+      ),
+    ),
+
+  closeTopicVotingWindow: domainProcedure
+    .input(CloseTopicVotingWindowSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("VotingRouter.closeTopicVotingWindow")(function* ({ input }) {
+          return yield* VotingApiService.closeTopicVotingWindow(input);
         }),
       ),
     ),

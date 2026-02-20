@@ -33,7 +33,7 @@ export function SettingsPhonePreview({ marathon }: { marathon: Marathon }) {
               </div>
             )}
           </div>
-          <h1 className="text-2xl font-bold text-center font-rocgrotesk">
+          <h1 className="text-2xl font-bold text-center font-gothic">
             {marathon.name || "Stockholm Fotomaraton"}
           </h1>
           <p className="text-center text-lg mt-1 font-medium tracking-wide">
@@ -45,7 +45,7 @@ export function SettingsPhonePreview({ marathon }: { marathon: Marathon }) {
 
         <main className="flex-1 w-11/12 mx-auto pb-6 flex flex-col justify-end">
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-background/20 shadow-xl">
-            <h2 className="text-lg font-semibold mb-4 font-rocgrotesk">Getting Started</h2>
+            <h2 className="text-lg font-semibold mb-4 font-gothic">Getting Started</h2>
 
             <section className="mb-5">
               <label className="block text-xs font-medium mb-2">Choose Language</label>
@@ -98,15 +98,15 @@ export function SettingsPhonePreview({ marathon }: { marathon: Marathon }) {
                               <li className="text-xs font-medium">{children}</li>
                             ),
                             h1: ({ children }) => (
-                              <h1 className="text-sm font-rocgrotesk font-bold mb-1">{children}</h1>
+                              <h1 className="text-sm font-gothic font-bold mb-1">{children}</h1>
                             ),
                             h2: ({ children }) => (
-                              <h2 className="text-xs font-rocgrotesk font-semibold mb-1">
+                              <h2 className="text-xs font-gothic font-semibold mb-1">
                                 {children}
                               </h2>
                             ),
                             h3: ({ children }) => (
-                              <h3 className="text-xs font-rocgrotesk font-semibold mb-0.5">
+                              <h3 className="text-xs font-gothic font-semibold mb-0.5">
                                 {children}
                               </h3>
                             ),

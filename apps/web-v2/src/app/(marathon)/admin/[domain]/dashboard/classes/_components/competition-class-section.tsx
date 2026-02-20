@@ -80,7 +80,7 @@ export function CompetitionClassSection() {
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold font-rocgrotesk">
+        <h2 className="text-2xl font-semibold font-gothic">
           Competition Classes
         </h2>
         {isByCameraMode && (

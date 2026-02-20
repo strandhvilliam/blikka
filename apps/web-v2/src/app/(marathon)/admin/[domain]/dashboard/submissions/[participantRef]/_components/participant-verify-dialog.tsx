@@ -73,7 +73,7 @@ export function ParticipantVerifyDialog({
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-rocgrotesk">
+          <AlertDialogTitle className="font-gothic">
             Verify Participant
           </AlertDialogTitle>
           <AlertDialogDescription>

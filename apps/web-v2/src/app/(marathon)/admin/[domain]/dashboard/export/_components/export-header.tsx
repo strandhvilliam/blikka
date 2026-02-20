@@ -11,7 +11,7 @@ export function ExportHeader({ domain, marathonName }: ExportHeaderProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">Exports</h1>
+        <h1 className="font-gothic text-3xl font-bold tracking-tight">Exports</h1>
         <p className="text-muted-foreground text-sm">
           Generate on-demand exports for analysis, auditing, and record keeping.
         </p>

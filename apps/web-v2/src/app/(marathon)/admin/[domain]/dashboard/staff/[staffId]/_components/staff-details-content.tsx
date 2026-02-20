@@ -112,7 +112,7 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
               </Avatar>
               <div className="space-y-1.5">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-semibold font-rocgrotesk">{staff.user.name}</h2>
+                  <h2 className="text-2xl font-semibold font-gothic">{staff.user.name}</h2>
                   <Badge
                     variant={staff.role === "admin" ? "default" : "secondary"}
                     className="text-xs"
@@ -175,7 +175,7 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
       <ScrollArea className="flex-1 bg-muted/30">
         <div className=" space-y-4 p-6">
           <div className=" pt-4">
-            <h3 className="text-lg font-semibold font-rocgrotesk">Verification Activity</h3>
+            <h3 className="text-lg font-semibold font-gothic">Verification Activity</h3>
             <p className="text-sm text-muted-foreground mt-0.5">
               Participants verified by this staff member
             </p>
@@ -188,7 +188,7 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
       <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-rocgrotesk">Remove Staff Member</AlertDialogTitle>
+            <AlertDialogTitle className="font-gothic">Remove Staff Member</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to remove {staff.user.name} from the staff? This action cannot
               be undone and they will lose access to this marathon.

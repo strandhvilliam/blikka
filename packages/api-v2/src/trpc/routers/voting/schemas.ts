@@ -19,8 +19,22 @@ export const StartVotingSessionsSchema = Schema.standardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     topicId: Schema.Number,
+  }),
+);
+
+export const SetTopicVotingWindowSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
     startsAt: Schema.String,
     endsAt: Schema.String,
+  }),
+);
+
+export const CloseTopicVotingWindowSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
   }),
 );
 
@@ -65,8 +79,6 @@ export const StartVotingSessionsForParticipantsSchema = Schema.standardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     topicId: Schema.Number,
-    startsAt: Schema.String,
-    endsAt: Schema.String,
     participantIds: Schema.Array(Schema.Number),
   }),
 );
@@ -100,8 +112,6 @@ export const CreateManualVotingSessionSchema = Schema.standardSchemaV1(
     firstName: Schema.String,
     lastName: Schema.String,
     email: Schema.String,
-    startsAt: Schema.String,
-    endsAt: Schema.String,
   }),
 );
 

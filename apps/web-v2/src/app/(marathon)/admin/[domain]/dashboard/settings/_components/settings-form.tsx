@@ -1231,7 +1231,7 @@ Examples of formatting:
               <div className="mt-0 bg-white">
                 <Alert variant="destructive" className="bg-destructive/10">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle className="font-rocgrotesk">
+                  <AlertTitle className="font-gothic">
                     Danger Zone
                   </AlertTitle>
                   <AlertDescription>
@@ -1249,7 +1249,7 @@ Examples of formatting:
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle className="font-rocgrotesk">
+                            <AlertDialogTitle className="font-gothic">
                               Are you absolutely sure?
                             </AlertDialogTitle>
                             <div className="space-y-2 text-sm text-muted-foreground bg-muted/50 border border-muted p-4 rounded-lg">
@@ -1303,7 +1303,7 @@ Examples of formatting:
                 {/* SMS Test Section */}
                 <div className="mt-6 bg-muted/30 border border-muted rounded-lg p-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <h3 className="font-medium font-rocgrotesk">SMS Test</h3>
+                    <h3 className="font-medium font-gothic">SMS Test</h3>
                     <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
                       Admin Only
                     </span>
@@ -1392,7 +1392,7 @@ Examples of formatting:
         </div>
 
         <div className="relative w-fit">
-          <h2 className="text-lg font-medium mb-4 font-rocgrotesk">Preview</h2>
+          <h2 className="text-lg font-medium mb-4 font-gothic">Preview</h2>
           <div className="sticky top-8 bg-background">
             {activeTab === "terms" ? (
               <TermsMarkdownPreview markdown={termsMarkdown} />

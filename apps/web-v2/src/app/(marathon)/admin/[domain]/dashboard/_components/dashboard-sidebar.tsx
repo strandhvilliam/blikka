@@ -194,7 +194,7 @@ export function DomainSwitchDropdown({
                 )}
               </div>
               <div>
-                <h3 className="font-rocgrotesk text-lg font-semibold">
+                <h3 className="font-gothic text-lg font-semibold">
                   {activeMarathon.name}
                 </h3>
                 <p className="text-sm text-muted-foreground">

@@ -85,30 +85,26 @@ function ensureSessionDomain(
 }
 
 function ensureVotingSessionWindow(
-  votingSession: Pick<VotingSession, "startsAt" | "endsAt">,
+  votingWindow: { startsAt: string; endsAt: string },
 ): Effect.Effect<void, VotingApiError> {
   const now = new Date()
 
-  if (votingSession.startsAt) {
-    const startsAt = new Date(votingSession.startsAt)
-    if (startsAt > now) {
-      return Effect.fail(
-        new VotingApiError({
-          message: "Voting session has not started yet",
-        }),
-      )
-    }
+  const startsAt = new Date(votingWindow.startsAt)
+  if (startsAt > now) {
+    return Effect.fail(
+      new VotingApiError({
+        message: "Voting session has not started yet",
+      }),
+    )
   }
 
-  if (votingSession.endsAt) {
-    const endsAt = new Date(votingSession.endsAt)
-    if (endsAt < now) {
-      return Effect.fail(
-        new VotingApiError({
-          message: "Voting session has expired",
-        }),
-      )
-    }
+  const endsAt = new Date(votingWindow.endsAt)
+  if (endsAt < now) {
+    return Effect.fail(
+      new VotingApiError({
+        message: "Voting session has expired",
+      }),
+    )
   }
 
   return Effect.void
@@ -223,6 +219,39 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         }
       })
 
+      const getRequiredTopicVotingWindow = Effect.fn(
+        "VotingApiService.getRequiredTopicVotingWindow",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number
+        topicId: number
+      }) {
+        const votingWindow = yield* db.votingQueries.getVotingWindowForTopic({
+          marathonId,
+          topicId,
+        })
+
+        if (
+          !votingWindow ||
+          votingWindow.startsAt === null ||
+          votingWindow.endsAt === null
+        ) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "Voting window is not configured for this topic. Configure it before creating or using voting sessions.",
+            }),
+          )
+        }
+
+        return {
+          startsAt: votingWindow.startsAt,
+          endsAt: votingWindow.endsAt,
+        }
+      })
+
       const getVotingSession = Effect.fn("VotingApiService.getVotingSession")(
         function* ({ token, domain }: { token: string; domain: string }) {
           const votingSessionResult =
@@ -239,14 +268,22 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           })
 
           yield* ensureSessionDomain(votingSession, domain)
-          // yield* ensureVotingSessionWindow(votingSession)
 
-          return votingSession
+          const votingWindow = yield* getRequiredTopicVotingWindow({
+            marathonId: votingSession.marathonId,
+            topicId: votingSession.topicId,
+          })
+
+          return {
+            ...votingSession,
+            startsAt: votingWindow.startsAt,
+            endsAt: votingWindow.endsAt,
+          }
         },
       )
 
-      const startVotingSessions = Effect.fn(
-        "VotingApiService.startVotingSessions",
+      const setTopicVotingWindow = Effect.fn(
+        "VotingApiService.setTopicVotingWindow",
       )(function* ({
         domain,
         topicId,
@@ -273,10 +310,111 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           return yield* Effect.fail(
             new VotingApiError({
               message:
+                "Voting window can only be configured for the active by-camera topic",
+            }),
+          )
+        }
+
+        const window = yield* db.votingQueries.upsertTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+          startsAt: startsAtIso,
+          endsAt: endsAtIso,
+        })
+        if (!window) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to upsert voting window",
+            }),
+          )
+        }
+
+        return {
+          topicId,
+          startsAt: window.startsAt,
+          endsAt: window.endsAt,
+        }
+      })
+
+      const closeTopicVotingWindow = Effect.fn(
+        "VotingApiService.closeTopicVotingWindow",
+      )(function* ({
+        domain,
+        topicId,
+      }: {
+        domain: string
+        topicId: number
+      }) {
+        const { marathon, topic, activeTopic } =
+          yield* getByCameraMarathonWithTopic({
+            domain,
+            topicId,
+          })
+
+        if (!activeTopic || activeTopic.id !== topic.id) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "Voting window can only be closed for the active by-camera topic",
+            }),
+          )
+        }
+
+        yield* getRequiredTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+        })
+
+        const nowIso = new Date().toISOString()
+
+        const updatedWindow = yield* db.votingQueries.closeTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+          nowIso,
+        })
+
+        if (!updatedWindow) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to close voting window",
+            }),
+          )
+        }
+
+        return {
+          topicId,
+          startsAt: updatedWindow.startsAt,
+          endsAt: updatedWindow.endsAt,
+        }
+      })
+
+      const startVotingSessions = Effect.fn(
+        "VotingApiService.startVotingSessions",
+      )(function* ({
+        domain,
+        topicId,
+      }: {
+        domain: string
+        topicId: number
+      }) {
+        const { marathon, topic, activeTopic } =
+          yield* getByCameraMarathonWithTopic({
+            domain,
+            topicId,
+          })
+
+        if (!activeTopic || activeTopic.id !== topic.id) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
                 "Voting can only be started for the active by-camera topic",
             }),
           )
         }
+        const votingWindow = yield* getRequiredTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+        })
 
         const existingCount =
           yield* db.votingQueries.countVotingSessionsForTopic({
@@ -321,8 +459,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
                 phoneHash: participant.phoneHash,
                 phoneEncrypted: participant.phoneEncrypted,
                 marathonId: marathon.id,
-                startsAt: startsAtIso,
-                endsAt: endsAtIso,
                 voteSubmissionId: null,
                 connectedParticipantId: participant.id,
                 notificationLastSentAt: null,
@@ -377,8 +513,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
 
         return {
           topicId,
-          startsAt: startsAtIso,
-          endsAt: endsAtIso,
+          votingWindow,
           sessionsCreated: createdSessions.length,
           smsSent: smsResults.filter((result) => !("error" in result)).length,
           smsResults,
@@ -422,21 +557,12 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
       )(function* ({
         domain,
         topicId,
-        startsAt,
-        endsAt,
         participantIds,
       }: {
         domain: string
         topicId: number
-        startsAt: string
-        endsAt: string
         participantIds: readonly number[]
       }) {
-        const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
-          startsAt,
-          endsAt,
-        })
-
         const { marathon, topic, activeTopic } =
           yield* getByCameraMarathonWithTopic({
             domain,
@@ -451,6 +577,10 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             }),
           )
         }
+        const votingWindow = yield* getRequiredTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+        })
 
         if (participantIds.length === 0) {
           return yield* Effect.fail(
@@ -517,8 +647,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
                 phoneHash: participant.phoneHash,
                 phoneEncrypted: participant.phoneEncrypted,
                 marathonId: marathon.id,
-                startsAt: startsAtIso,
-                endsAt: endsAtIso,
                 voteSubmissionId: null,
                 connectedParticipantId: participant.id,
                 notificationLastSentAt: null,
@@ -573,6 +701,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
 
         return {
           topicId,
+          votingWindow,
           sessionsCreated: createdSessions.length,
           smsSent: smsResults.filter((result) => !("error" in result)).length,
           smsResults,
@@ -691,6 +820,11 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           )
         }
 
+        yield* getRequiredTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+        })
+
         const existingSessionOpt =
           yield* db.votingQueries.getVotingSessionByParticipantAndTopicId({
             participantId,
@@ -707,8 +841,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           }
         }
 
-        const now = new Date()
-        const defaultEndsAt = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+        const nowIso = new Date().toISOString()
 
         const sessionData: NewVotingSession = {
           token: yield* generateUniqueToken(),
@@ -718,11 +851,9 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           phoneHash: participant.phoneHash,
           phoneEncrypted: participant.phoneEncrypted,
           marathonId: marathon.id,
-          startsAt: now.toISOString(),
-          endsAt: defaultEndsAt.toISOString(),
           voteSubmissionId: null,
           connectedParticipantId: participantId,
-          notificationLastSentAt: now.toISOString(),
+          notificationLastSentAt: nowIso,
           topicId,
         }
 
@@ -1081,16 +1212,12 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         firstName,
         lastName,
         email,
-        startsAt,
-        endsAt,
       }: {
         domain: string
         topicId: number
         firstName: string
         lastName: string
         email: string
-        startsAt: string
-        endsAt: string
       }) {
         const parsedFirstName = firstName.trim()
         const parsedLastName = lastName.trim()
@@ -1103,11 +1230,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             }),
           )
         }
-
-        const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
-          startsAt,
-          endsAt,
-        })
 
         const { marathon, topic, activeTopic } =
           yield* getByCameraMarathonWithTopic({
@@ -1122,6 +1244,10 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             }),
           )
         }
+        yield* getRequiredTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+        })
 
         const created = yield* db.votingQueries.createVotingSessions({
           sessions: [
@@ -1133,8 +1259,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
               phoneHash: null,
               phoneEncrypted: null,
               marathonId: marathon.id,
-              startsAt: startsAtIso,
-              endsAt: endsAtIso,
               voteSubmissionId: null,
               connectedParticipantId: null,
               notificationLastSentAt: null,
@@ -1261,6 +1385,10 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
         })
 
         // yield* ensureSessionDomain(votingSession, domain)
+        const votingWindow = yield* getRequiredTopicVotingWindow({
+          marathonId: votingSession.marathonId,
+          topicId: votingSession.topicId,
+        })
 
         if (votingSession.votedAt && votingSession.voteSubmissionId) {
           return {
@@ -1273,13 +1401,13 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
               firstName: votingSession.firstName,
               lastName: votingSession.lastName,
               email: votingSession.email,
-              startsAt: votingSession.startsAt,
-              endsAt: votingSession.endsAt,
+              startsAt: votingWindow.startsAt,
+              endsAt: votingWindow.endsAt,
             },
           }
         }
 
-        yield* ensureVotingSessionWindow(votingSession)
+        yield* ensureVotingSessionWindow(votingWindow)
 
         const submissions = yield* db.votingQueries.getSubmissionsForVoting({
           marathonId: votingSession.marathonId,
@@ -1314,8 +1442,8 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             firstName: votingSession.firstName,
             lastName: votingSession.lastName,
             email: votingSession.email,
-            startsAt: votingSession.startsAt,
-            endsAt: votingSession.endsAt,
+            startsAt: votingWindow.startsAt,
+            endsAt: votingWindow.endsAt,
           },
         }
       })
@@ -1352,7 +1480,12 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
           }
         }
 
-        yield* ensureVotingSessionWindow(votingSession)
+        const votingWindow = yield* getRequiredTopicVotingWindow({
+          marathonId: votingSession.marathonId,
+          topicId: votingSession.topicId,
+        })
+
+        yield* ensureVotingSessionWindow(votingWindow)
 
         const submission = yield* db.submissionsQueries.getSubmissionById({
           id: submissionId,
@@ -1506,6 +1639,8 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
 
       return {
         getVotingSession,
+        setTopicVotingWindow,
+        closeTopicVotingWindow,
         startVotingSessions,
         getParticipantsWithoutVotingSession,
         startVotingSessionsForParticipants,

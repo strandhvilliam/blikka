@@ -12,7 +12,7 @@ export function TopicsHeader() {
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">Topics</h1>
+          <h1 className="font-gothic text-3xl font-bold tracking-tight">Topics</h1>
           <p className="text-muted-foreground text-sm">
             Manage and organize your marathon topics. Drag topics to reorder them.
           </p>

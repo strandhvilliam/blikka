@@ -99,7 +99,7 @@ export function StaffAddDialog() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-rocgrotesk">Add Staff Member</DialogTitle>
+          <DialogTitle className="font-gothic">Add Staff Member</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {

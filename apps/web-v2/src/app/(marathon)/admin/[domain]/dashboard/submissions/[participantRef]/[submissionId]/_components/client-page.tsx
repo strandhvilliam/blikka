@@ -178,7 +178,7 @@ export function ParticipantSubmissionClientPage({
 
           {showValidationPanel && (
             <Card className="p-4">
-              <h3 className="text-base font-semibold font-rocgrotesk mb-3">
+              <h3 className="text-base font-semibold font-gothic mb-3">
                 Validation Results
               </h3>
               <SubmissionValidationSteps
@@ -189,7 +189,7 @@ export function ParticipantSubmissionClientPage({
 
           {showExifPanel && (
             <Card className="p-4">
-              <h3 className="text-base font-semibold font-rocgrotesk mb-3">
+              <h3 className="text-base font-semibold font-gothic mb-3">
                 EXIF Data
               </h3>
               <SubmissionExifDataDisplay exifData={submission.exif} />

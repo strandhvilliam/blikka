@@ -38,7 +38,7 @@ export function SubmissionImageViewer({
             #{topic.orderIndex + 1}
           </Badge>
           <div>
-            <h2 className="font-semibold font-rocgrotesk text-base leading-tight">
+            <h2 className="font-semibold font-gothic text-base leading-tight">
               {topic.name}
             </h2>
             {!isByCameraMode && (

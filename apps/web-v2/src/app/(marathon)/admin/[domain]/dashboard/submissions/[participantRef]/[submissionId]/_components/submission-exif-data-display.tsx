@@ -8,7 +8,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
         <div className="mb-2">
           <InfoIcon className="h-10 w-10 mx-auto text-muted-foreground/30" />
         </div>
-        <h3 className="text-base font-semibold font-rocgrotesk mb-1">No EXIF data available</h3>
+        <h3 className="text-base font-semibold font-gothic mb-1">No EXIF data available</h3>
         <p className="text-xs">
           This image does not contain EXIF metadata or it couldn't be extracted.
         </p>
@@ -169,7 +169,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
           <div key={groupKey} className="border rounded-lg p-3">
             <div className="flex items-center gap-2 mb-2.5">
               {group.icon}
-              <h4 className="text-sm font-semibold font-rocgrotesk">{group.title}</h4>
+              <h4 className="text-sm font-semibold font-gothic">{group.title}</h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2.5">
               {groupData.map((key) => (
@@ -189,7 +189,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
         <div className="border rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2.5">
             <ListFilter className="h-4 w-4" />
-            <h4 className="text-sm font-semibold font-rocgrotesk">Other Metadata</h4>
+            <h4 className="text-sm font-semibold font-gothic">Other Metadata</h4>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2.5">
             {otherKeys.map((key) => (

@@ -1,6 +1,12 @@
 import { Effect, Option } from "effect";
 import { DrizzleClient } from "../drizzle-client";
-import { votingSession, marathons, participants, submissions } from "../schema";
+import {
+  votingSession,
+  marathons,
+  participants,
+  submissions,
+  topics,
+} from "../schema";
 import {
   eq,
   inArray,
@@ -315,17 +321,130 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        return yield* db.query.votingSession.findFirst({
+        const result = yield* db.query.topics.findFirst({
           where: and(
-            eq(votingSession.marathonId, marathonId),
-            eq(votingSession.topicId, topicId),
+            eq(topics.marathonId, marathonId),
+            eq(topics.id, topicId),
           ),
           columns: {
-            startsAt: true,
-            endsAt: true,
+            votingStartsAt: true,
+            votingEndsAt: true,
           },
-          orderBy: [desc(votingSession.createdAt)],
         });
+
+        if (!result) {
+          return undefined;
+        }
+
+        return {
+          startsAt: result.votingStartsAt,
+          endsAt: result.votingEndsAt,
+        };
+      });
+
+      const upsertTopicVotingWindow = Effect.fn(
+        "VotingQueries.upsertTopicVotingWindow",
+      )(function* ({
+        marathonId,
+        topicId,
+        startsAt,
+        endsAt,
+      }: {
+        marathonId: number;
+        topicId: number;
+        startsAt: string;
+        endsAt: string;
+      }) {
+        const result = yield* db
+          .update(topics)
+          .set({
+            votingStartsAt: startsAt,
+            votingEndsAt: endsAt,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(and(eq(topics.marathonId, marathonId), eq(topics.id, topicId)))
+          .returning({
+            startsAt: topics.votingStartsAt,
+            endsAt: topics.votingEndsAt,
+          });
+
+        return result[0];
+      });
+
+      const closeTopicVotingWindow = Effect.fn(
+        "VotingQueries.closeTopicVotingWindow",
+      )(function* ({
+        marathonId,
+        topicId,
+        nowIso,
+      }: {
+        marathonId: number;
+        topicId: number;
+        nowIso: string;
+      }) {
+        const result = yield* db
+          .update(topics)
+          .set({
+            votingStartsAt: sql`case
+              when ${topics.votingStartsAt} is null
+                then ${nowIso}::timestamptz - interval '1 second'
+              when ${topics.votingStartsAt} >= ${nowIso}::timestamptz
+                then ${nowIso}::timestamptz - interval '1 second'
+              else ${topics.votingStartsAt}
+            end`,
+            votingEndsAt: sql`${nowIso}::timestamptz`,
+            updatedAt: nowIso,
+          })
+          .where(
+            and(eq(topics.marathonId, marathonId), eq(topics.id, topicId)),
+          )
+          .returning({
+            startsAt: topics.votingStartsAt,
+            endsAt: topics.votingEndsAt,
+          });
+
+        return result[0];
+      });
+
+      const closeVotingWindowsForTopics = Effect.fn(
+        "VotingQueries.closeVotingWindowsForTopics",
+      )(function* ({
+        marathonId,
+        topicIds,
+        nowIso,
+      }: {
+        marathonId: number;
+        topicIds: readonly number[];
+        nowIso: string;
+      }) {
+        if (topicIds.length === 0) {
+          return [];
+        }
+
+        return yield* db
+          .update(topics)
+          .set({
+            votingStartsAt: sql`case
+              when ${topics.votingStartsAt} is null
+                then ${nowIso}::timestamptz - interval '1 second'
+              when ${topics.votingStartsAt} >= ${nowIso}::timestamptz
+                then ${nowIso}::timestamptz - interval '1 second'
+              else ${topics.votingStartsAt}
+            end`,
+            votingEndsAt: sql`${nowIso}::timestamptz`,
+            updatedAt: nowIso,
+          })
+          .where(
+            and(
+              eq(topics.marathonId, marathonId),
+              inArray(topics.id, [...topicIds]),
+            ),
+          )
+          .returning({
+            topicId: topics.id,
+            startsAt: topics.votingStartsAt,
+            endsAt: topics.votingEndsAt,
+          });
       });
 
       const countSubmissionsForTopic = Effect.fn(
@@ -819,8 +938,6 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               phoneHash: sessionData.phoneHash,
               phoneEncrypted: sessionData.phoneEncrypted,
               marathonId: sessionData.marathonId,
-              startsAt: sessionData.startsAt,
-              endsAt: sessionData.endsAt,
               notificationLastSentAt: sessionData.notificationLastSentAt,
               updatedAt: new Date().toISOString(),
             },
@@ -928,6 +1045,9 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         getSubmissionVoteLeaderboardForTopic,
         getVotingSessionStatsForTopic,
         getVotingWindowForTopic,
+        upsertTopicVotingWindow,
+        closeTopicVotingWindow,
+        closeVotingWindowsForTopics,
         countSubmissionsForTopic,
         countParticipantsWithSubmissionsForTopic,
         getLeaderboardPageForTopic,

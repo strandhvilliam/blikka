@@ -105,7 +105,7 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold font-rocgrotesk mb-1">{invitation.displayName}</h1>
+            <h1 className="text-2xl font-bold font-gothic mb-1">{invitation.displayName}</h1>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               <Mail className="h-4 w-4" />
               {invitation.email}

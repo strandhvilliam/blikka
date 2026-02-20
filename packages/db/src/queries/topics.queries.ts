@@ -83,6 +83,9 @@ export class TopicsQueries extends Effect.Service<TopicsQueries>()(
           // Update each topic's orderIndex based on its position in the array
           for (let index = 0; index < topicIds.length; index++) {
             const topicId = topicIds[index]
+            if (topicId === undefined) {
+              continue
+            }
             yield* db
               .update(topics)
               .set({ orderIndex: index })

@@ -232,7 +232,7 @@ function ParticipantHeaderInfo({
       </Button>
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight font-rocgrotesk">
+          <h1 className="text-2xl font-semibold tracking-tight font-gothic">
             {`#${participant.reference} - `}
             {`${participant.firstname} ${participant.lastname}`}
           </h1>

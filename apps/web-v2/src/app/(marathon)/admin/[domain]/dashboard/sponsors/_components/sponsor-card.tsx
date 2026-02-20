@@ -110,7 +110,7 @@ export function SponsorCard({
   return (
     <Card className={disabled ? "opacity-50" : ""}>
       <CardHeader className="space-y-0">
-        <CardTitle className="flex items-center gap-2 text-lg font-rocgrotesk">{title}</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-lg font-gothic">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

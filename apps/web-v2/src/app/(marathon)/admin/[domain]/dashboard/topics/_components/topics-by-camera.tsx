@@ -148,7 +148,7 @@ export function TopicsByCamera() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">
+            <h1 className="text-3xl font-bold tracking-tight font-gothic">
               Topics
             </h1>
             <Badge

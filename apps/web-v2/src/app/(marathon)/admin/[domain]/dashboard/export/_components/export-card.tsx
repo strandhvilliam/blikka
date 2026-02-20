@@ -211,7 +211,7 @@ export function ExportCard({
               {icon}
             </div>
             <div className="space-y-1">
-              <h3 className="font-semibold font-rocgrotesk leading-none">{title}</h3>
+              <h3 className="font-semibold font-gothic leading-none">{title}</h3>
               <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                 {description}
               </p>

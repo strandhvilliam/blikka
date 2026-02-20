@@ -106,6 +106,11 @@ export const topicsRouter = createTRPCRouter({
         );
 
         const activatedAt = new Date().toISOString();
+        yield* db.votingQueries.closeVotingWindowsForTopics({
+          marathonId: marathon.value.id,
+          topicIds: currentlyActiveTopics.map((activeTopic) => activeTopic.id),
+          nowIso: activatedAt,
+        });
 
         return yield* db.topicsQueries.updateTopic({
           id: createdTopic.id,
@@ -163,8 +168,14 @@ export const topicsRouter = createTRPCRouter({
             { concurrency: 1 },
           );
 
-          updateData.activatedAt =
+          const activatedAt =
             updateData.activatedAt ?? new Date().toISOString();
+          updateData.activatedAt = activatedAt;
+          yield* db.votingQueries.closeVotingWindowsForTopics({
+            marathonId: topic.marathonId,
+            topicIds: currentlyActiveTopics.map((activeTopic) => activeTopic.id),
+            nowIso: activatedAt,
+          });
         }
 
         return yield* db.topicsQueries.updateTopic({
@@ -208,6 +219,11 @@ export const topicsRouter = createTRPCRouter({
         );
 
         const activatedAt = new Date().toISOString();
+        yield* db.votingQueries.closeVotingWindowsForTopics({
+          marathonId: topic.marathonId,
+          topicIds: currentlyActiveTopics.map((activeTopic) => activeTopic.id),
+          nowIso: activatedAt,
+        });
 
         return yield* db.topicsQueries.updateTopic({
           id: input.id,

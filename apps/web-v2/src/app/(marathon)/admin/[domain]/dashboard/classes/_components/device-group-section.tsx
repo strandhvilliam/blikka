@@ -73,7 +73,7 @@ export function DeviceGroupSection() {
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold font-rocgrotesk">Device Groups</h2>
+        <h2 className="text-2xl font-semibold font-gothic">Device Groups</h2>
       </div>
       <p className="text-sm text-muted-foreground pb-4">
         Here you can add, edit, or remove device groups for the marathon. Each group helps you

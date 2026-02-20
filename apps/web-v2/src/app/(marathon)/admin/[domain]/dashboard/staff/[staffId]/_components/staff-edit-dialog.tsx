@@ -122,7 +122,7 @@ export function StaffEditDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-rocgrotesk">Edit Staff Member</DialogTitle>
+          <DialogTitle className="font-gothic">Edit Staff Member</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(e) => {

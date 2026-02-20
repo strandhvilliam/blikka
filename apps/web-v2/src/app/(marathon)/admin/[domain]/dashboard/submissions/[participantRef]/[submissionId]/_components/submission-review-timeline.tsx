@@ -153,7 +153,7 @@ export function SubmissionReviewTimeline({
   return (
     <Card>
       <CardHeader className="pb-2 pt-4 px-4">
-        <CardTitle className="text-base font-semibold font-rocgrotesk">
+        <CardTitle className="text-base font-semibold font-gothic">
           Submission Timeline
         </CardTitle>
       </CardHeader>

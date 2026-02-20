@@ -111,7 +111,7 @@ export function RulesForm() {
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight font-rocgrotesk">Rules</h1>
+          <h1 className="text-3xl font-bold tracking-tight font-gothic">Rules</h1>
           <p className="text-muted-foreground text-sm">
             Configure validation rules for photo submissions. Changes are saved automatically.
           </p>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import {
   Copy,
@@ -13,7 +13,6 @@ import {
   UserPlus,
 } from "lucide-react"
 import Link from "next/link"
-import { addHours } from "date-fns"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -45,23 +44,10 @@ import {
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import {
   formatDateTime,
   getSubmissionImageUrl,
-  toDateTimeLocalValue,
-  toIsoFromLocal,
-  hasValidDateRange,
 } from "../_lib/utils"
 import { useVotingUiState } from "../_hooks/use-voting-ui-state"
 import { formatDomainLink } from "@/lib/utils"
@@ -80,13 +66,6 @@ export function VotersTab({
   const queryClient = useQueryClient()
   const domain = useDomain()
   const { votersPage, setVotersPage } = useVotingUiState()
-  const [startSessionsDialogOpen, setStartSessionsDialogOpen] = useState(false)
-  const [startsAtInput, setStartsAtInput] = useState(() =>
-    toDateTimeLocalValue(new Date()),
-  )
-  const [endsAtInput, setEndsAtInput] = useState(() =>
-    toDateTimeLocalValue(addHours(new Date(), 24)),
-  )
 
   const handleCopySessionLink = async (token: string) => {
     const link = formatDomainLink(`/live/vote/${token}`, domain, "live")
@@ -262,41 +241,6 @@ export function VotersTab({
     }
   }, [pageCount, votersPage, setVotersPage])
 
-  const handleStartSessionsForParticipants = () => {
-    const startsAtIso = toIsoFromLocal(startsAtInput)
-    const endsAtIso = toIsoFromLocal(endsAtInput)
-
-    if (!startsAtIso || !endsAtIso) {
-      toast.error("Please provide valid start and end timestamps")
-      return
-    }
-
-    if (!hasValidDateRange(startsAtIso, endsAtIso)) {
-      toast.error("End timestamp must be later than start timestamp")
-      return
-    }
-
-    startVotingSessionsForParticipantsMutation.mutate(
-      {
-        domain,
-        topicId: activeTopic.id,
-        startsAt: startsAtIso,
-        endsAt: endsAtIso,
-        participantIds: participantsWithoutSession.map((p) => p.id),
-      },
-      {
-        onSuccess: () => {
-          setStartSessionsDialogOpen(false)
-        },
-      },
-    )
-  }
-
-  const launchStartsAtIso = toIsoFromLocal(startsAtInput)
-  const launchEndsAtIso = toIsoFromLocal(endsAtInput)
-  const canStartSessionsForParticipants =
-    hasValidDateRange(launchStartsAtIso, launchEndsAtIso)
-
   return (
     <div className="space-y-4">
       <VotingProgress activeTopic={activeTopic} />
@@ -331,80 +275,27 @@ export function VotersTab({
                 ))}
               </ul>
               <PrimaryButton
-                onClick={() => setStartSessionsDialogOpen(true)}
+                onClick={() =>
+                  startVotingSessionsForParticipantsMutation.mutate({
+                    domain,
+                    topicId: activeTopic.id,
+                    participantIds: participantsWithoutSession.map((p) => p.id),
+                  })
+                }
+                disabled={startVotingSessionsForParticipantsMutation.isPending}
               >
-                <UserPlus className="mr-2 h-4 w-4" />
-                Start voting sessions for these participants
+                {startVotingSessionsForParticipantsMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Start voting sessions for these participants
+                  </>
+                )}
               </PrimaryButton>
-              <Dialog
-                open={startSessionsDialogOpen}
-                onOpenChange={setStartSessionsDialogOpen}
-              >
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>
-                      Start voting sessions for participants
-                    </DialogTitle>
-                    <DialogDescription>
-                      Set the start and end timestamps for the voting window.
-                      Sessions will be created for{" "}
-                      {participantsWithoutSession.length} participant
-                      {participantsWithoutSession.length === 1 ? "" : "s"}.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="start-sessions-start-at">
-                        Start timestamp
-                      </Label>
-                      <Input
-                        id="start-sessions-start-at"
-                        type="datetime-local"
-                        value={startsAtInput}
-                        onChange={(e) => setStartsAtInput(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="start-sessions-end-at">
-                        End timestamp
-                      </Label>
-                      <Input
-                        id="start-sessions-end-at"
-                        type="datetime-local"
-                        value={endsAtInput}
-                        onChange={(e) => setEndsAtInput(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setStartSessionsDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <PrimaryButton
-                      onClick={handleStartSessionsForParticipants}
-                      disabled={
-                        startVotingSessionsForParticipantsMutation.isPending ||
-                        !canStartSessionsForParticipants
-                      }
-                    >
-                      {startVotingSessionsForParticipantsMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Starting...
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Start sessions
-                        </>
-                      )}
-                    </PrimaryButton>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </div>
           </AlertDescription>
         </Alert>

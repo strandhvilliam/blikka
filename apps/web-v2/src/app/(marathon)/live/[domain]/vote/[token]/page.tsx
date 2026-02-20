@@ -45,7 +45,6 @@ const _VotePage = Effect.fn("@blikka/web/VotePage")(
     if (votingSession.endsAt) {
       const endsAt = new Date(votingSession.endsAt)
       if (endsAt < now) {
-        console.log("endsAt < now", endsAt, now)
         return redirect(
           formatDomainPathname(`/live/vote/${token}/unavailable?reason=ended`, domain, 'live'),
         )
