@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { FadeIn } from "./fade-in"
 
 const footerLinks = {
@@ -33,8 +32,8 @@ export function Footer() {
             {/* Brand */}
             <div className="max-w-xs">
               <Link href="/" className="flex items-center" aria-label="blikka home">
-                <Image
-                  src="/images/blikka-logo.svg"
+                <img
+                  src="/blikka-logo-dark.svg"
                   alt="blikka logo"
                   width={36}
                   height={30}

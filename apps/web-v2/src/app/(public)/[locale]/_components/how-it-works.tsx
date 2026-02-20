@@ -2,16 +2,17 @@
 
 import Image from "next/image"
 import { FadeIn } from "./fade-in"
+import { eventImages } from "./landing-images"
 
 const cards = [
   {
     type: "image" as const,
-    image: "/images/photo-event-4.jpg",
+    image: eventImages.photoEvent4,
     text: "Set up your competition in minutes. Define categories, deadlines, and branding.",
   },
   {
     type: "image" as const,
-    image: "/images/photo-event-2.jpg",
+    image: eventImages.photoEvent6,
     text: "Share your branded upload link. Participants upload from any device, zero friction.",
   },
   {
@@ -21,7 +22,7 @@ const cards = [
   },
   {
     type: "image" as const,
-    image: "/images/photo-event-6.jpg",
+    image: eventImages.photoEvent8,
     text: "Announce results, share galleries, and celebrate the best work.",
   },
 ]
@@ -35,7 +36,7 @@ export function HowItWorks() {
           <FadeIn>
             <div className="max-w-xs">
               <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-foreground">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
                 How it works
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
@@ -47,7 +48,7 @@ export function HowItWorks() {
           <FadeIn delay={200}>
             <h2 className="max-w-2xl text-balance text-3xl leading-snug font-normal tracking-tight text-foreground lg:text-[2.75rem] lg:leading-[1.2]">
               Built for clarity and flow, our process{" "}
-              <span className="bg-primary/20 px-1 text-foreground">
+              <span className="bg-brand-primary/20 px-1 text-foreground">
                 gives organizers room to breathe
               </span>{" "}
               — so you can focus on creating, scaling, and standing out.
@@ -60,11 +61,11 @@ export function HowItWorks() {
           {cards.map((card, index) => (
             <FadeIn key={index} delay={index * 100}>
               {card.type === "accent" ? (
-                <div className="flex flex-col justify-between rounded-2xl bg-primary p-6 text-primary-foreground" style={{ minHeight: "360px" }}>
+                <div className="flex flex-col justify-between rounded-2xl bg-brand-primary p-6 text-brand-white" style={{ minHeight: "360px" }}>
                   <h3 className="text-2xl leading-tight font-normal">
                     {card.title}
                   </h3>
-                  <p className="mt-auto text-sm leading-relaxed text-primary-foreground/80">
+                  <p className="mt-auto text-sm leading-relaxed text-brand-white/80">
                     {card.text}
                   </p>
                 </div>

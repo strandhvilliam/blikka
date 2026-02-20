@@ -25,27 +25,27 @@ const testimonials = [
 
 export function SocialProof() {
   return (
-    <section className="border-t border-border bg-foreground px-6 py-24 lg:px-12 lg:py-36">
+    <section className="border-t border-border bg-brand-black px-6 py-24 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-6xl">
         <FadeIn>
-          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-brand-primary">
             Trusted by organizers
           </p>
-          <h2 className="max-w-2xl text-balance text-3xl leading-snug font-normal tracking-tight text-background lg:text-[2.75rem] lg:leading-[1.2]">
+          <h2 className="max-w-2xl text-balance text-3xl leading-snug font-normal tracking-tight text-brand-white lg:text-[2.75rem] lg:leading-[1.2]">
             Hear from the community
           </h2>
         </FadeIn>
 
-        <div className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-background/10 lg:grid-cols-3">
+        <div className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-brand-white/10 lg:grid-cols-3">
           {testimonials.map((testimonial, index) => (
             <FadeIn key={testimonial.name} delay={index * 150}>
-              <div className="flex h-full flex-col justify-between bg-background/5 p-8 lg:p-10">
-                <blockquote className="text-base leading-relaxed text-background/80 lg:text-lg">
+              <div className="flex h-full flex-col justify-between bg-brand-white/5 p-8 lg:p-10">
+                <blockquote className="text-base leading-relaxed text-brand-white/80 lg:text-lg">
                   {`"${testimonial.quote}"`}
                 </blockquote>
-                <div className="mt-8 border-t border-background/10 pt-6">
-                  <p className="font-semibold text-background">{testimonial.name}</p>
-                  <p className="mt-1 text-xs text-background/40">{testimonial.role}</p>
+                <div className="mt-8 border-t border-brand-white/10 pt-6">
+                  <p className="font-semibold text-brand-white">{testimonial.name}</p>
+                  <p className="mt-1 text-xs text-brand-white/40">{testimonial.role}</p>
                 </div>
               </div>
             </FadeIn>

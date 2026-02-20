@@ -75,12 +75,12 @@ export function Pricing() {
             <FadeIn key={plan.name} delay={index * 150}>
               <div
                 className={`relative flex h-full flex-col rounded-2xl border p-8 lg:p-10 ${plan.featured
-                    ? "border-primary bg-foreground text-background"
+                    ? "border-brand-primary bg-brand-black text-brand-white"
                     : "border-border bg-card text-card-foreground"
                   }`}
               >
                 {plan.featured && (
-                  <span className="absolute -top-3 left-8 rounded-full bg-primary px-4 py-1 text-xs font-medium text-primary-foreground">
+                  <span className="absolute -top-3 left-8 rounded-full bg-brand-primary px-4 py-1 text-xs font-medium text-brand-white">
                     Most popular
                   </span>
                 )}
@@ -89,20 +89,20 @@ export function Pricing() {
                 <div className="mt-4 flex items-baseline gap-1">
                   <span className="font-mono text-4xl font-bold">{plan.price}</span>
                   {plan.period && (
-                    <span className={`text-sm ${plan.featured ? "text-background/50" : "text-muted-foreground"}`}>
+                    <span className={`text-sm ${plan.featured ? "text-brand-white/50" : "text-muted-foreground"}`}>
                       {plan.period}
                     </span>
                   )}
                 </div>
-                <p className={`mt-3 text-sm ${plan.featured ? "text-background/60" : "text-muted-foreground"}`}>
+                <p className={`mt-3 text-sm ${plan.featured ? "text-brand-white/60" : "text-muted-foreground"}`}>
                   {plan.description}
                 </p>
 
                 <ul className="mt-8 flex flex-col gap-3">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-3 text-sm">
-                      <Check className="h-4 w-4 shrink-0 text-primary" />
-                      <span className={plan.featured ? "text-background/80" : "text-foreground/80"}>
+                      <Check className="h-4 w-4 shrink-0 text-brand-primary" />
+                      <span className={plan.featured ? "text-brand-white/80" : "text-foreground/80"}>
                         {feature}
                       </span>
                     </li>
@@ -112,7 +112,7 @@ export function Pricing() {
                 <Link
                   href="#"
                   className={`mt-auto block rounded-full py-3.5 text-center text-sm font-medium transition-all ${plan.featured
-                      ? "mt-10 bg-primary text-primary-foreground hover:bg-primary/90"
+                      ? "mt-10 bg-brand-primary text-brand-white hover:bg-brand-primary/90"
                       : "mt-10 border border-border bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                 >

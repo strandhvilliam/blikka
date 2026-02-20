@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { FadeIn } from "./fade-in"
+import { eventImages } from "./landing-images"
 
 export function Gallery() {
   return (
@@ -11,7 +12,7 @@ export function Gallery() {
         <FadeIn>
           <h2 className="mx-auto max-w-4xl text-center text-3xl leading-snug font-normal tracking-tight text-foreground lg:text-[3.25rem] lg:leading-[1.15]">
             Armed with smart upload tools and seamless workflows, blikka collects, organizes, and{" "}
-            <span className="bg-primary/20 px-1 text-foreground">
+            <span className="bg-brand-primary/20 px-1 text-foreground">
               showcases with precision
             </span>{" "}
             — keeping your event in control at every step.
@@ -23,8 +24,8 @@ export function Gallery() {
           <FadeIn delay={100}>
             <div className="group relative aspect-[3/4] overflow-hidden rounded-2xl">
               <Image
-                src="/images/photo-event-1.jpg"
-                alt="Hands holding a vintage film camera"
+                src={eventImages.photoEvent1}
+                alt="Photo competition entry"
                 fill
                 className="object-cover grayscale transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
               />
@@ -33,8 +34,8 @@ export function Gallery() {
           <FadeIn delay={250}>
             <div className="group relative aspect-[3/4] overflow-hidden rounded-2xl">
               <Image
-                src="/images/photo-event-2.jpg"
-                alt="Portrait of a smiling young woman"
+                src={eventImages.photoEvent2}
+                alt="Photo competition showcase"
                 fill
                 className="object-cover grayscale transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
               />

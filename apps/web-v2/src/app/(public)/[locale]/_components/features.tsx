@@ -2,22 +2,23 @@
 
 import Image from "next/image"
 import { FadeIn } from "./fade-in"
+import { eventImages } from "./landing-images"
 
 const services = [
   {
-    image: "/images/photo-event-1.jpg",
+    image: eventImages.photoEvent7,
     label: "UPLOADS",
     description:
       "Participants upload directly through a branded link. No accounts required, no friction, no lost entries.",
   },
   {
-    image: "/images/photo-event-3.jpg",
+    image: eventImages.photoEvent3,
     label: "GALLERIES",
     description:
       "Every entry is automatically organized into beautiful, shareable galleries by category or custom tags.",
   },
   {
-    image: "/images/photo-event-5.jpg",
+    image: eventImages.photoEvent5,
     label: "JUDGING",
     description:
       "Invite judges, set scoring criteria, and let the platform handle the rest. Fair, transparent, effortless.",
