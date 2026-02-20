@@ -1,8 +1,8 @@
 "use client"
 
-import Link from "next/link"
 import { ArrowRight, CalendarDays, Clock3, Users } from "lucide-react"
 import { FadeIn } from "./fade-in"
+import { GetStartedDialog } from "./get-started-dialog"
 
 export function GetStarted() {
   return (
@@ -70,16 +70,18 @@ export function GetStarted() {
             </ul>
 
             <div className="mt-8 flex flex-col items-center gap-3">
-              <Link
-                href="#"
-                className="group inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-8 py-3.5 text-sm font-semibold text-brand-white transition-[background-color,gap] duration-200 hover:gap-3 hover:bg-brand-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black"
-              >
-                Book a demo
-                <ArrowRight
-                  className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
-              </Link>
+              <GetStartedDialog>
+                <button
+                  type="button"
+                  className="group inline-flex items-center justify-center gap-2 rounded-full bg-brand-primary px-8 py-3.5 text-sm font-semibold text-brand-white transition-[background-color,gap] duration-200 hover:gap-3 hover:bg-brand-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black"
+                >
+                  Book a demo
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </button>
+              </GetStartedDialog>
               <p className="text-xs text-brand-white/45">
                 Usually scheduled within one week.
               </p>
