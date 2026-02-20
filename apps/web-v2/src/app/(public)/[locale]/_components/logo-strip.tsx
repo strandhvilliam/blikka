@@ -1,37 +1,20 @@
-"use client"
-
 import { FadeIn } from "./fade-in"
-
-const brands = [
-  "Stockholm Photo Festival",
-  "Aperture Awards",
-  "Urban Lens Collective",
-  "Nordic Light",
-  "Frame by Frame",
-  "Shutter Summit",
-  "Capture Conference",
-  "Lens & Light Co.",
-]
 
 export function LogoStrip() {
   return (
-    <section className="border-y border-border bg-card py-10">
+    <section className="border-y border-border bg-card py-10 px-6 lg:px-12">
       <FadeIn>
-        <p className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Trusted by event organizers worldwide
+        <p className="text-center text-xl text-muted-foreground leading-relaxed">
+          Used by{" "}
+          <span className="font-semibold text-foreground">
+            Stockholm Fotomarathon
+          </span>
+          {" & "}
+          <span className="font-semibold text-foreground">
+            Sthlm by Camera
+          </span>{" "}
+          to run their events
         </p>
-        <div className="relative overflow-hidden">
-          <div className="flex animate-marquee items-center gap-12 whitespace-nowrap">
-            {[...brands, ...brands].map((brand, index) => (
-              <span
-                key={`${brand}-${index}`}
-                className="text-lg font-semibold text-foreground/20"
-              >
-                {brand}
-              </span>
-            ))}
-          </div>
-        </div>
       </FadeIn>
     </section>
   )

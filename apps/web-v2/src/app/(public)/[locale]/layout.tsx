@@ -2,6 +2,7 @@ import { Metadata } from "next"
 import { NextIntlClientProvider } from "next-intl"
 import { notFound } from "next/navigation"
 import Document from "@/components/document"
+import { SmoothScrollProvider } from "@/components/smooth-scroll-provider"
 import { LOCALES } from "@/config"
 import { Suspense } from "react"
 import { DotPattern } from "@/components/dot-pattern"
@@ -23,7 +24,9 @@ export default async function PublicLocaleLayout({ children, params }: LayoutPro
     <Document locale={locale}>
       <DotPattern />
       <Suspense fallback={<div>Loading...</div>}>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <SmoothScrollProvider>{children}</SmoothScrollProvider>
+        </NextIntlClientProvider>
       </Suspense>
     </Document>
   )

@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, CalendarDays } from "lucide-react"
 import { NoiseOverlay } from "./noise-overlay"
 
 export function Hero() {
@@ -24,12 +24,37 @@ export function Hero() {
           {/* <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-black/60 via-transparent to-transparent lg:rounded-3xl" /> */}
         </div>
 
-        {/* Top-right floating info card */}
-        <div className="absolute top-24 right-6 z-10 hidden max-w-[260px] rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-2xl lg:block">
-          <div className="mb-3 h-px w-8 bg-brand-primary" />
-          <p className="text-[13px] leading-relaxed font-medium text-white/90">
-            We saw how messy photo competitions could be. So we built something better.
-          </p>
+        {/* Top-right upcoming event card */}
+        <div className="absolute top-28 right-8 z-10 hidden w-full max-w-[340px] animate-hero-fade-in [animation-delay:320ms] lg:block">
+          <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-black/35 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
+            <div className="pointer-events-none absolute inset-0 rounded-2xl " />
+            <div className="relative">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <span className="rounded-full border border-white/25 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tracking-[0.16em] text-white/85 uppercase">
+                  Upcoming Event
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-primary/40 bg-brand-primary/10 px-2 py-1 text-[11px] font-semibold text-brand-primary">
+                  <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+                  2026
+                </span>
+              </div>
+
+              <p className="text-xl leading-tight font-semibold text-white text-pretty">
+                Stockholm Fotomaraton 2026
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-white/80">
+                Ticket sales are open now. Secure your spot before it sells out.
+              </p>
+
+              <Link
+                href="https://billetto.se/e/stockholm-fotomaraton-2026-biljetter-1361256"
+                className="group mt-5 inline-flex items-center gap-2 rounded-full bg-brand-primary px-4 py-2.5 text-xs font-semibold tracking-wide text-brand-white transition-[background-color,transform] duration-200 hover:bg-brand-primary/90 hover:translate-x-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70"
+              >
+                Buy Tickets
+                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Content area - bottom aligned */}
@@ -50,15 +75,15 @@ export function Hero() {
           {/* CTA buttons */}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center lg:mt-10 animate-hero-fade-in [animation-delay:350ms]">
             <Link
-              href="#"
-              className="group inline-flex items-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-medium text-brand-white transition-all hover:gap-3 hover:bg-brand-primary/90"
+              href="#pricing"
+              className="group inline-flex items-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-medium text-brand-white transition-[background-color,gap] duration-200 hover:gap-3 hover:bg-brand-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70"
             >
-              Start your first event
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              Book a demo
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
             <Link
               href="#how-it-works"
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm text-white/80 transition-colors duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70"
             >
               See how it works
             </Link>

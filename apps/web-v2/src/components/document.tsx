@@ -1,4 +1,4 @@
-import { Inter, Geist, Special_Gothic_Expanded_One } from "next/font/google"
+import { Inter, Geist, Special_Gothic_Expanded_One, Special_Gothic } from "next/font/google"
 import { ReactNode, Suspense } from "react"
 import "../app/globals.css"
 
@@ -11,6 +11,14 @@ const specialGothic = Special_Gothic_Expanded_One({
   subsets: ["latin"],
   weight: ["400"],
   variable: "--font-special-gothic",
+  fallback: ["sans-serif"],
+})
+
+const gothic = Special_Gothic({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-gothic",
+  fallback: ["sans-serif"],
 })
 
 type Props = {
@@ -20,7 +28,7 @@ type Props = {
 
 export default function Document({ children, locale }: Props) {
   return (
-    <html className={`${geist.className} ${specialGothic.variable} relative`} lang={locale}>
+    <html className={`${geist.className} ${specialGothic.variable} ${gothic.variable} relative`} lang={locale}>
       <body>{children}</body>
     </html>
   )

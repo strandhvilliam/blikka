@@ -6,9 +6,9 @@ import { Features } from "./_components/features"
 import { HowItWorks } from "./_components/how-it-works"
 import { Gallery } from "./_components/gallery"
 import { SocialProof } from "./_components/social-proof"
-import { Pricing } from "./_components/pricing"
-import { CTA } from "./_components/cta"
+import { GetStarted } from "./_components/get-started"
 import { Footer } from "./_components/footer"
+import { CookieConsent } from "@/components/blocks/cookie-consent"
 
 export default function Home() {
   return (
@@ -21,9 +21,13 @@ export default function Home() {
       <HowItWorks />
       <Gallery />
       <SocialProof />
-      <Pricing />
-      <CTA />
+      <GetStarted />
       <Footer />
+      <CookieConsent
+        cardClassName="bg-brand-white"
+        acceptButtonClassName="bg-brand-black text-brand-white"
+        declineButtonClassName="border border-brand-black/20 text-brand-black"
+        variant="small" className="sm:left-auto sm:right-4" />
     </main>
   )
 }

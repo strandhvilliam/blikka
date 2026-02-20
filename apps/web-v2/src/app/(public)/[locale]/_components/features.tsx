@@ -36,13 +36,13 @@ export function Features() {
               <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground">
                 Features
               </p>
-              <h2 className="max-w-xl text-balance text-3xl leading-snug font-normal tracking-tight text-foreground lg:text-[2.75rem] lg:leading-[1.2]">
+              <h2 className="font-gothic max-w-xl text-balance text-3xl leading-snug font-normal tracking-tight text-foreground lg:text-[2.75rem] lg:leading-[1.2]">
                 Collecting entries, organizing galleries, and celebrating great photography.
               </h2>
             </div>
           </FadeIn>
           <FadeIn delay={200}>
-            <button className="mt-2 shrink-0 rounded-full border border-foreground/20 px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground hover:text-background lg:mt-4">
+            <button className="mt-2 shrink-0 rounded-full border border-foreground/20 px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground hover:text-background lg:mt-4 bg-brand-white">
               Explore
             </button>
           </FadeIn>

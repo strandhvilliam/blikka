@@ -31,7 +31,6 @@ export function HowItWorks() {
   return (
     <section id="how-it-works" className="border-t border-border px-6 py-24 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-6xl">
-        {/* Two-column header like screenshot 3 */}
         <div className="mb-20 flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
           <FadeIn>
             <div className="max-w-xs">
@@ -46,7 +45,7 @@ export function HowItWorks() {
           </FadeIn>
 
           <FadeIn delay={200}>
-            <h2 className="max-w-2xl text-balance text-3xl leading-snug font-normal tracking-tight text-foreground lg:text-[2.75rem] lg:leading-[1.2]">
+            <h2 className="font-gothic max-w-2xl text-balance text-3xl leading-snug font-normal tracking-tight text-foreground lg:text-[2.75rem] lg:leading-[1.2]">
               Built for clarity and flow, our process{" "}
               <span className="bg-brand-primary/20 px-1 text-foreground">
                 gives organizers room to breathe
@@ -61,11 +60,13 @@ export function HowItWorks() {
           {cards.map((card, index) => (
             <FadeIn key={index} delay={index * 100}>
               {card.type === "accent" ? (
-                <div className="flex flex-col justify-between rounded-2xl bg-brand-primary p-6 text-brand-white" style={{ minHeight: "360px" }}>
-                  <h3 className="text-2xl leading-tight font-normal">
-                    {card.title}
-                  </h3>
-                  <p className="mt-auto text-sm leading-relaxed text-brand-white/80">
+                <div >
+                  <div className="flex flex-col justify-between rounded-2xl bg-brand-primary p-6 text-brand-white" style={{ minHeight: "360px" }}>
+                    <h3 className="font-gothic text-3xl leading-tight font-normal">
+                      {card.title}
+                    </h3>
+                  </div>
+                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
                     {card.text}
                   </p>
                 </div>

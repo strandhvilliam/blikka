@@ -5,21 +5,21 @@ import { FadeIn } from "./fade-in"
 const testimonials = [
   {
     quote:
-      "We used to collect entries via email. It was a nightmare. Blikka made our annual photo walk competition feel professional and effortless.",
-    name: "Sara Lindqvist",
-    role: "Stockholm Photo Festival",
+      "The amount of administrative work for the upload process is reduced by a lot. It's a big help when you have a lot of participants and a lot of entries to manage.",
+    name: "Emil Gyllenberg",
+    role: "Stockholm Fotomaraton, Co-owner",
   },
   {
     quote:
-      "The judging tools are brilliant. We had 8 judges across 3 countries scoring 600 entries, and it just worked.",
-    name: "Marcus Chen",
-    role: "Aperture Awards",
+      "Blikka has made our photo competition so much easier to manage. The upload process is seamless, and the judging process is simple and efficient. It's been a pleasure being part of the development.",
+    name: "Gabriel Modéus",
+    role: "Stockholm Fotomaraton, Co-owner",
   },
   {
     quote:
-      "Our participants love how easy it is to upload. We saw a 40% increase in entries after switching to blikka.",
-    name: "Emilia Rossi",
-    role: "Urban Lens Collective",
+      "Our participants love how easy it is to upload. The mobile participant flow is a big improvement.",
+    name: "Deeped Strandh",
+    role: "Stockholm Fotomaraton, Co-owner",
   },
 ]
 
@@ -31,7 +31,7 @@ export function SocialProof() {
           <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-brand-primary">
             Trusted by organizers
           </p>
-          <h2 className="max-w-2xl text-balance text-3xl leading-snug font-normal tracking-tight text-brand-white lg:text-[2.75rem] lg:leading-[1.2]">
+          <h2 className="font-gothic max-w-2xl text-balance text-3xl leading-snug font-normal tracking-tight text-brand-white lg:text-[2.75rem] lg:leading-[1.2]">
             Hear from the community
           </h2>
         </FadeIn>

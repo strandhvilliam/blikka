@@ -12,8 +12,6 @@ const footerLinks = {
   ],
   Company: [
     { label: "About", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Careers", href: "#" },
     { label: "Contact", href: "#" },
   ],
   Legal: [
@@ -73,16 +71,16 @@ export function Footer() {
           {/* Bottom bar */}
           <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 sm:flex-row">
             <p className="text-xs text-muted-foreground">
-              {`© ${new Date().getFullYear()} blikka. All rights reserved.`}
+              {`© ${new Date().getFullYear()} Villiam Strandh & Fotomaraton Sverige AB. All rights reserved.`}
             </p>
             <div className="flex gap-6">
-              <Link href="#" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+              <Link href="https://x.com/villiamstrandh" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
                 Twitter
               </Link>
-              <Link href="#" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+              <Link href="https://www.instagram.com/stockholmfotomaraton" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
                 Instagram
               </Link>
-              <Link href="#" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+              <Link href="https://www.linkedin.com/in/villiam-strandh/" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
                 LinkedIn
               </Link>
             </div>
