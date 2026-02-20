@@ -1,7 +1,7 @@
 "use client"
 
 import { DashboardStatusDisplay, DashboardStatusDisplaySkeleton } from "./dashboard-status-display"
-import { DomainSwitchDropdown } from "./dashboard-sidebar"
+import { DomainSwitchDropdown } from "./domain-switch-dropdown"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -15,13 +15,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { SidebarMenuButton } from "@/components/ui/sidebar"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { cn, formatDomainLink } from "@/lib/utils"
+
 
 export function DashboardHeader() {
   const domain = useDomain()
 
-  const staffSiteUrl = `https://${domain}.blikka.app/staff`
-  const participantSiteUrl = `https://${domain}.blikka.app`
+  const staffSiteUrl = formatDomainLink(`/staff`, domain)
+  const participantSiteUrl = formatDomainLink(`/live`, domain)
 
   return (
     <div className="z-50 w-full pr-4 bg-sidebar">
@@ -29,7 +30,7 @@ export function DashboardHeader() {
         <div className="flex items-center gap-3">
           <div className="w-64">
             <Suspense fallback={<Skeleton className="h-10 w-64" />}>
-              <DashboardHeaderDomainSwitcher />
+              <DomainSwitchDropdown />
             </Suspense>
           </div>
           <div className="w-64">
@@ -61,13 +62,6 @@ export function DashboardHeader() {
   )
 }
 
-function DashboardHeaderDomainSwitcher() {
-  const trpc = useTRPC()
-  const domain = useDomain()
-  const { data: marathons } = useSuspenseQuery(trpc.marathons.getUserMarathons.queryOptions())
-
-  return <DomainSwitchDropdown marathons={marathons} activeDomain={domain} />
-}
 
 function DashboardHeaderTopicSwitcher() {
   const trpc = useTRPC()

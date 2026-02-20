@@ -65,6 +65,7 @@ export const formatDomainPathname = (pathname: string, domain?: string, site: "a
   return pathname
 }
 
+
 export const formatDomainLink = (pathname: string, domain?: string, site: "admin" | "live" = "admin") => {
   if (!domain) return pathname
 

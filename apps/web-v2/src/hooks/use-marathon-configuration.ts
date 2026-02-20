@@ -1,31 +1,42 @@
+import { useMemo } from "react"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import type {
   CompetitionClass,
   DeviceGroup,
   Marathon,
   Topic,
-} from "@blikka/db";
+} from "@blikka/db"
 
-interface RequiredAction {
-  action: string;
-  description: string;
+import { useTRPC } from "@/lib/trpc/client"
+
+export interface RequiredAction {
+  action: string
+  description: string
 }
 
-interface ConfigurationCheck {
-  isConfigured: boolean;
-  requiredActions: RequiredAction[];
+export interface MarathonConfigurationResult {
+  marathon: MarathonWithRelations | null
+  isConfigured: boolean
+  requiredActions: RequiredAction[]
 }
 
-export function checkIfMarathonIsProperlyConfigured({
+type MarathonWithRelations = Marathon & {
+  deviceGroups: DeviceGroup[]
+  competitionClasses: CompetitionClass[]
+  topics: Topic[]
+}
+
+function checkConfiguration({
   marathon,
   deviceGroups,
   competitionClasses,
   topics,
 }: {
-  marathon: Marathon;
-  deviceGroups: DeviceGroup[];
-  competitionClasses: CompetitionClass[];
-  topics: Topic[];
-}): ConfigurationCheck {
+  marathon: Marathon
+  deviceGroups: DeviceGroup[]
+  competitionClasses: CompetitionClass[]
+  topics: Topic[]
+}): MarathonConfigurationResult {
   if (!marathon?.startDate || !marathon?.endDate) {
     return {
       isConfigured: false,
@@ -35,7 +46,7 @@ export function checkIfMarathonIsProperlyConfigured({
           description: "Add the start and end dates to the marathon",
         },
       ],
-    };
+    }
   }
 
   if (!marathon?.name) {
@@ -47,8 +58,9 @@ export function checkIfMarathonIsProperlyConfigured({
           description: "Add the name to the marathon",
         },
       ],
-    };
+    }
   }
+
   if (deviceGroups.length === 0) {
     return {
       isConfigured: false,
@@ -58,7 +70,7 @@ export function checkIfMarathonIsProperlyConfigured({
           description: "Add device groups to the marathon",
         },
       ],
-    };
+    }
   }
 
   if (competitionClasses.length === 0) {
@@ -70,7 +82,7 @@ export function checkIfMarathonIsProperlyConfigured({
           description: "Add competition classes to the marathon",
         },
       ],
-    };
+    }
   }
 
   if (topics.length === 0) {
@@ -82,7 +94,7 @@ export function checkIfMarathonIsProperlyConfigured({
           description: "Add topics to the marathon",
         },
       ],
-    };
+    }
   }
 
   if (
@@ -99,11 +111,40 @@ export function checkIfMarathonIsProperlyConfigured({
             "Add topics to the competition classes to minimally match the number of photos required for each competition class",
         },
       ],
-    };
+    }
   }
 
   return {
     isConfigured: true,
     requiredActions: [],
-  };
+  }
+}
+
+export function useMarathonConfiguration(domain: string): MarathonConfigurationResult {
+  const trpc = useTRPC()
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({ domain }),
+  )
+
+  return useMemo(() => {
+    if (!marathon) {
+      return {
+        marathon: null,
+        isConfigured: false,
+        requiredActions: [],
+      }
+    }
+
+    const result = checkConfiguration({
+      marathon,
+      deviceGroups: marathon.deviceGroups ?? [],
+      competitionClasses: marathon.competitionClasses ?? [],
+      topics: marathon.topics ?? [],
+    })
+
+    return {
+      marathon,
+      ...result,
+    }
+  }, [marathon])
 }

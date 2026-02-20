@@ -1,51 +1,20 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-import { differenceInSeconds } from "date-fns"
-import { useEffect, useState } from "react"
+import { format } from "date-fns"
 import Link from "next/link"
 import { AlertTriangle, ArrowRight, CalendarClock, Clock3, Radio, Wrench } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useTRPC } from "@/lib/trpc/client"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { checkIfMarathonIsProperlyConfigured } from "@/lib/check-marathon-is-configured"
+import { useMarathonConfiguration } from "@/hooks/use-marathon-configuration"
+import { useMarathonCountdown } from "@/hooks/use-marathon-countdown"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 
-interface RequiredAction {
-  action: string
-  description: string
-}
+import type { RequiredAction } from "@/hooks/use-marathon-configuration"
 
 interface DashboardStatusDisplayProps {
   domain: string
-}
-
-type DashboardStatus = "not-setup" | "upcoming" | "live" | "ended"
-
-function formatCountdown(seconds: number) {
-  const days = Math.floor(seconds / 86400) // 86400 seconds in a day
-  const hours = Math.floor((seconds % 86400) / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const remainingSeconds = seconds % 60
-
-  // If more than 24 hours (1 day), show days and hours
-  if (seconds >= 86400) {
-    return `${days}d ${hours.toString().padStart(2, "0")}h`
-  }
-
-  // Otherwise show hours:minutes:seconds
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
-}
-
-function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date)
 }
 
 function getSetupLinks(domain: string, requiredActions: RequiredAction[]) {
@@ -106,76 +75,12 @@ function StatusPill({ className, children }: { className?: string; children: Rea
 }
 
 export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) {
-  const trpc = useTRPC()
-  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
-
-  let isSetupComplete = true
-  let requiredActions: Array<{ action: string; description: string }> = []
-
-  if (marathon) {
-    const configCheck = checkIfMarathonIsProperlyConfigured({
-      marathon,
-      deviceGroups: marathon.deviceGroups,
-      competitionClasses: marathon.competitionClasses,
-      topics: marathon.topics,
-    })
-    isSetupComplete = configCheck.isConfigured
-    requiredActions = configCheck.requiredActions
-  }
-
-  const [countdown, setCountdown] = useState<string>("00:00:00")
-  const [status, setStatus] = useState<DashboardStatus>("upcoming")
-
-  useEffect(() => {
-    const updateCountdownAndStatus = () => {
-      const now = new Date()
-
-      // If setup is not complete, show not-setup status
-      if (!isSetupComplete) {
-        setStatus("not-setup")
-        setCountdown("00:00:00")
-        return
-      }
-
-      // If no dates are provided, default to upcoming
-      if (!marathon.startDate || !marathon.endDate) {
-        setStatus("upcoming")
-        setCountdown("00:00:00")
-        return
-      }
-
-      const startDate = new Date(marathon.startDate)
-      const endDate = new Date(marathon.endDate)
-
-      if (now < startDate) {
-        // Marathon hasn't started yet - countdown to start
-        setStatus("upcoming")
-        const secondsUntilStart = differenceInSeconds(startDate, now)
-        setCountdown(formatCountdown(Math.max(0, secondsUntilStart)))
-      } else if (now >= startDate && now <= endDate) {
-        // Marathon is currently running - countdown to end
-        setStatus("live")
-        const secondsUntilEnd = differenceInSeconds(endDate, now)
-        setCountdown(formatCountdown(Math.max(0, secondsUntilEnd)))
-      } else {
-        // Marathon has ended
-        setStatus("ended")
-        setCountdown("00:00:00")
-      }
-    }
-
-    // Update immediately
-    updateCountdownAndStatus()
-
-    // Set up interval to update every second
-    const interval = setInterval(updateCountdownAndStatus, 1000)
-
-    // Cleanup interval on unmount
-    return () => clearInterval(interval)
-  }, [marathon, isSetupComplete])
+  const { marathon, requiredActions } = useMarathonConfiguration(domain)
+  const { countdown, status } = useMarathonCountdown(domain)
 
   const startDate = marathon?.startDate ? new Date(marathon.startDate) : null
   const endDate = marathon?.endDate ? new Date(marathon.endDate) : null
+
   const statusMeta = (() => {
     if (status === "not-setup") {
       return {
@@ -310,9 +215,9 @@ export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) 
                   variant="outline"
                   className={cn(
                     status === "live" &&
-                      "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400",
+                    "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400",
                     status === "upcoming" &&
-                      "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                    "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
                     status === "ended" && "text-muted-foreground"
                   )}
                 >
@@ -323,11 +228,11 @@ export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) 
               <div className="grid gap-2 text-sm">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">Start</span>
-                  <span className="font-medium">{startDate ? formatDateTime(startDate) : "—"}</span>
+                  <span className="font-medium">{startDate ? format(startDate, "MMM dd, HH:mm") : "—"}</span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">End</span>
-                  <span className="font-medium">{endDate ? formatDateTime(endDate) : "—"}</span>
+                  <span className="font-medium">{endDate ? format(endDate, "MMM dd, HH:mm") : "—"}</span>
                 </div>
               </div>
 
