@@ -89,6 +89,7 @@
     "react-country-flag": "^3.1.0",
     "react-day-picker": "^9.11.2",
     "react-dom": "^19.2.3",
+    "react-dropzone": "^15.0.0",
     "react-hook-form": "^7.66.1",
     "react-markdown": "^10.1.0",
     "react-phone-number-input": "^3.4.14",

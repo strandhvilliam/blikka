@@ -7,7 +7,7 @@ import {
 } from "./types";
 
 interface ProcessSelectedFilesInput {
-  fileList: FileList | null;
+  fileList: FileList | File[] | null;
   existingPhotos: AdminSelectedPhoto[];
   maxPhotos: number;
   topicOrderIndexes: number[];
@@ -176,7 +176,7 @@ export async function processSelectedFiles({
     };
   }
 
-  const files = Array.from(fileList);
+  const files = Array.isArray(fileList) ? fileList : Array.from(fileList);
   const { candidates, warnings: normalizationWarnings } =
     await normalizeFiles(files);
   warnings.push(...normalizationWarnings);

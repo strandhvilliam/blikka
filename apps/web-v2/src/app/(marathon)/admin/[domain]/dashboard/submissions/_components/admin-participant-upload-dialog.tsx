@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useDropzone, type Accept } from "react-dropzone";
 import type {
   CompetitionClass,
   DeviceGroup,
@@ -14,6 +15,7 @@ import { isPossiblePhoneNumber } from "react-phone-number-input";
 import {
   Camera,
   CheckCircle2,
+  ChevronDown,
   Loader2,
   RefreshCw,
   Trash2,
@@ -52,6 +54,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { PhoneInput } from "@/components/ui/phone-input";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 import { cn, formatDomainPathname } from "@/lib/utils";
 import { useTRPC } from "@/lib/trpc/client";
@@ -75,6 +82,15 @@ import { uploadPreparedFiles } from "../_lib/admin-upload/upload-runner";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POLLING_INTERVAL_MS = 3000;
+
+const DROPZONE_ACCEPT: Accept = {
+  "image/jpeg": [".jpg", ".jpeg"],
+  "image/png": [".png"],
+  "image/gif": [".gif"],
+  "image/webp": [".webp"],
+  "image/heic": [".heic"],
+  "image/heif": [".heif"],
+};
 
 type MarathonMode = "marathon" | "by-camera";
 
@@ -145,8 +161,32 @@ function getUploadPhaseClassName(phase: AdminUploadFileState["phase"]) {
   return "bg-slate-100 text-slate-700 border-slate-200";
 }
 
+function getValidationRowClass(result: ValidationResult) {
+  if (result.outcome !== VALIDATION_OUTCOME.FAILED) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (result.severity === "error") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  return "border-amber-200 bg-amber-50 text-amber-700";
+}
+
 function pluralizePhotos(count: number) {
   return `${count} photo${count === 1 ? "" : "s"}`;
+}
+
+function createValidationResultKey(result: ValidationResult) {
+  return [
+    result.ruleKey,
+    result.message,
+    result.outcome,
+    result.severity,
+    result.orderIndex ?? "none",
+    result.fileName ?? "none",
+    result.isGeneral ? "general" : "file",
+  ].join("|");
 }
 
 export function AdminParticipantUploadDialog({
@@ -165,7 +205,6 @@ export function AdminParticipantUploadDialog({
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const completionHandledRef = useRef(false);
   const signatureRef = useRef<string | null>(null);
   const photosRef = useRef<AdminSelectedPhoto[]>([]);
@@ -259,6 +298,45 @@ export function AdminParticipantUploadDialog({
     [selectedTopics],
   );
 
+  const generalValidationResults = useMemo(
+    () =>
+      validationResults.filter(
+        (result) =>
+          result.isGeneral ||
+          (result.orderIndex === undefined && !result.fileName),
+      ),
+    [validationResults],
+  );
+
+  const photoValidationMap = useMemo(() => {
+    const map = new Map<string, ValidationResult[]>();
+
+    selectedPhotos.forEach((photo) => {
+      const unique = new Map<string, ValidationResult>();
+
+      validationResults.forEach((result) => {
+        if (result.isGeneral) {
+          return;
+        }
+
+        const matchesOrder =
+          result.orderIndex !== undefined &&
+          result.orderIndex === photo.orderIndex;
+        const matchesFileName = result.fileName === photo.file.name;
+
+        if (!matchesOrder && !matchesFileName) {
+          return;
+        }
+
+        unique.set(createValidationResultKey(result), result);
+      });
+
+      map.set(photo.id, Array.from(unique.values()));
+    });
+
+    return map;
+  }, [selectedPhotos, validationResults]);
+
   const blockingValidationErrors = useMemo(
     () =>
       validationResults.filter(
@@ -309,6 +387,53 @@ export function AdminParticipantUploadDialog({
     checkParticipantExistsMutation.isPending ||
     initializeUploadFlowMutation.isPending ||
     initializeByCameraUploadMutation.isPending;
+  const isPrimaryActionBusy =
+    isProcessingFiles ||
+    isUploadingFiles ||
+    checkParticipantExistsMutation.isPending ||
+    initializeUploadFlowMutation.isPending ||
+    initializeByCameraUploadMutation.isPending;
+
+  const isMappingReady = useMemo(() => {
+    if (!formValues.deviceGroupId) {
+      return false;
+    }
+
+    if (marathonMode === "marathon") {
+      return !!formValues.competitionClassId;
+    }
+
+    return !!activeByCameraTopic;
+  }, [
+    activeByCameraTopic,
+    formValues.competitionClassId,
+    formValues.deviceGroupId,
+    marathonMode,
+  ]);
+
+  const dropzoneDisabledReason = useMemo(() => {
+    if (!formValues.deviceGroupId) {
+      return "Select a device group to enable image selection.";
+    }
+
+    if (marathonMode === "marathon" && !formValues.competitionClassId) {
+      return "Select a competition class to enable image selection.";
+    }
+
+    if (marathonMode === "by-camera" && !activeByCameraTopic) {
+      return "No active topic is available for by-camera upload.";
+    }
+
+    return null;
+  }, [
+    activeByCameraTopic,
+    formValues.competitionClassId,
+    formValues.deviceGroupId,
+    marathonMode,
+  ]);
+
+  const canSelectFiles = isMappingReady && expectedPhotoCount > 0;
+  const isDropzoneDisabled = !canSelectFiles || isBusy || uploadComplete;
 
   const updateUploadFileState = useCallback(
     (
@@ -448,7 +573,7 @@ export function AdminParticipantUploadDialog({
       }
     };
 
-    runValidation();
+    void runValidation();
 
     return () => {
       cancelled = true;
@@ -479,8 +604,6 @@ export function AdminParticipantUploadDialog({
       return;
     }
 
-    let completedAfterUpdate = 0;
-
     setUploadFiles((current) => {
       const next = current.map((file) => {
         const status = uploadStatus.submissions.find(
@@ -499,10 +622,6 @@ export function AdminParticipantUploadDialog({
         return file;
       });
 
-      completedAfterUpdate = next.filter(
-        (file) => file.phase === ADMIN_UPLOAD_PHASE.COMPLETED,
-      ).length;
-
       return next;
     });
 
@@ -510,11 +629,7 @@ export function AdminParticipantUploadDialog({
       setUploadErrorMessage(uploadStatus.participant.errors.join(", "));
     }
 
-    if (
-      uploadStatus.participant?.finalized &&
-      completedAfterUpdate === uploadFiles.length &&
-      uploadFiles.length > 0
-    ) {
+    if (uploadStatus.participant?.finalized) {
       setIsPollingStatus(false);
       setIsUploadingFiles(false);
       setUploadComplete(true);
@@ -529,10 +644,10 @@ export function AdminParticipantUploadDialog({
       }
     }
   }, [
-    uploadFiles.length,
-    uploadStatusQuery.data,
     queryClient,
     trpc.participants,
+    uploadFiles.length,
+    uploadStatusQuery.data,
   ]);
 
   const setField = useCallback(
@@ -800,8 +915,8 @@ export function AdminParticipantUploadDialog({
   }, [isBusy, updateUploadFileState, uploadFiles]);
 
   const handleFileSelect = useCallback(
-    async (fileList: FileList | null) => {
-      if (isBusy || uploadComplete) {
+    async (fileList: FileList | File[] | null) => {
+      if (isBusy || uploadComplete || !canSelectFiles) {
         return;
       }
 
@@ -839,6 +954,7 @@ export function AdminParticipantUploadDialog({
       }
     },
     [
+      canSelectFiles,
       expectedPhotoCount,
       isBusy,
       selectedPhotos,
@@ -847,12 +963,26 @@ export function AdminParticipantUploadDialog({
     ],
   );
 
-  const handleChooseFilesClick = useCallback(() => {
-    if (isBusy || uploadComplete) {
-      return;
-    }
-    fileInputRef.current?.click();
-  }, [isBusy, uploadComplete]);
+  const onDropAccepted = useCallback(
+    (files: File[]) => {
+      void handleFileSelect(files);
+    },
+    [handleFileSelect],
+  );
+
+  const onDropRejected = useCallback(() => {
+    toast.error(
+      "Some files were rejected. Please use supported image formats.",
+    );
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: DROPZONE_ACCEPT,
+    disabled: isDropzoneDisabled,
+    multiple: true,
+    onDropAccepted,
+    onDropRejected,
+  });
 
   const handleRemovePhoto = useCallback(
     (photoId: string) => {
@@ -978,43 +1108,6 @@ export function AdminParticipantUploadDialog({
 
                     <div className="space-y-2">
                       <label className="text-xs font-semibold uppercase tracking-wide text-[#66665f]">
-                        Device Group
-                      </label>
-                      <Select
-                        value={formValues.deviceGroupId}
-                        onValueChange={(value) =>
-                          setField("deviceGroupId", value)
-                        }
-                        disabled={isBusy}
-                      >
-                        <SelectTrigger
-                          className={cn(
-                            formErrors.deviceGroupId &&
-                              "border-rose-400 focus-visible:ring-rose-400",
-                          )}
-                        >
-                          <SelectValue placeholder="Select device group" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {deviceGroups.map((group) => (
-                            <SelectItem
-                              key={group.id}
-                              value={group.id.toString()}
-                            >
-                              {group.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {formErrors.deviceGroupId && (
-                        <p className="text-xs text-rose-600">
-                          {formErrors.deviceGroupId}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-wide text-[#66665f]">
                         First Name
                       </label>
                       <Input
@@ -1113,50 +1206,107 @@ export function AdminParticipantUploadDialog({
                   </p>
 
                   <div className="mt-4 space-y-4">
-                    {marathonMode === "marathon" && (
+                    <div
+                      className={cn(
+                        "grid gap-4",
+                        marathonMode === "marathon"
+                          ? "md:grid-cols-2"
+                          : "grid-cols-1",
+                      )}
+                    >
+                      {marathonMode === "marathon" && (
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-wide text-[#66665f]">
+                            Competition Class
+                          </label>
+                          <Select
+                            value={formValues.competitionClassId}
+                            onValueChange={(value) =>
+                              setField("competitionClassId", value)
+                            }
+                            disabled={isBusy}
+                          >
+                            <SelectTrigger
+                              className={cn(
+                                formErrors.competitionClassId &&
+                                  "border-rose-400 focus-visible:ring-rose-400",
+                              )}
+                            >
+                              <SelectValue placeholder="Select class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {competitionClasses.map((competitionClass) => (
+                                <SelectItem
+                                  key={competitionClass.id}
+                                  value={competitionClass.id.toString()}
+                                >
+                                  {competitionClass.name} (
+                                  {pluralizePhotos(
+                                    competitionClass.numberOfPhotos,
+                                  )}
+                                  )
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {formErrors.competitionClassId && (
+                            <p className="text-xs text-rose-600">
+                              {formErrors.competitionClassId}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <label className="text-xs font-semibold uppercase tracking-wide text-[#66665f]">
-                          Competition Class
+                          Device Group
                         </label>
                         <Select
-                          value={formValues.competitionClassId}
+                          value={formValues.deviceGroupId}
                           onValueChange={(value) =>
-                            setField("competitionClassId", value)
+                            setField("deviceGroupId", value)
                           }
                           disabled={isBusy}
                         >
                           <SelectTrigger
                             className={cn(
-                              formErrors.competitionClassId &&
+                              formErrors.deviceGroupId &&
                                 "border-rose-400 focus-visible:ring-rose-400",
                             )}
                           >
-                            <SelectValue placeholder="Select class" />
+                            <SelectValue placeholder="Select device group" />
                           </SelectTrigger>
                           <SelectContent>
-                            {competitionClasses.map((competitionClass) => (
+                            {deviceGroups.map((group) => (
                               <SelectItem
-                                key={competitionClass.id}
-                                value={competitionClass.id.toString()}
+                                key={group.id}
+                                value={group.id.toString()}
                               >
-                                {competitionClass.name} (
-                                {pluralizePhotos(
-                                  competitionClass.numberOfPhotos,
-                                )}
-                                )
+                                {group.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        {formErrors.competitionClassId && (
+                        {formErrors.deviceGroupId && (
                           <p className="text-xs text-rose-600">
-                            {formErrors.competitionClassId}
+                            {formErrors.deviceGroupId}
                           </p>
                         )}
                       </div>
-                    )}
+                    </div>
 
-                    <div className="rounded-lg border border-dashed border-[#d7d7cd] bg-[#fafaf6] p-4">
+                    <div
+                      {...getRootProps()}
+                      className={cn(
+                        "rounded-lg border border-dashed p-4 transition-colors",
+                        isDropzoneDisabled
+                          ? "cursor-not-allowed border-[#deded4] bg-[#f5f5f0] text-[#8a8a81]"
+                          : isDragActive
+                            ? "cursor-copy border-[#45453e] bg-[#efefe9]"
+                            : "cursor-pointer border-[#d7d7cd] bg-[#fafaf6] hover:bg-[#f4f4ed]",
+                      )}
+                    >
+                      <input {...getInputProps()} />
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="text-sm font-medium text-[#292922]">
@@ -1167,25 +1317,30 @@ export function AdminParticipantUploadDialog({
                             {pluralizePhotos(selectedPhotos.length)}
                           </p>
                         </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleChooseFilesClick}
-                          disabled={isBusy || uploadComplete}
-                        >
+                        <div className="inline-flex items-center rounded-full border border-[#d8d8ce] bg-white px-3 py-1.5 text-xs font-medium text-[#4f4f48]">
                           {isProcessingFiles ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <>
+                              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                              Processing...
+                            </>
                           ) : (
-                            <Camera className="mr-2 h-4 w-4" />
+                            <>
+                              <Camera className="mr-2 h-3.5 w-3.5" />
+                              Drag & drop or click to choose
+                            </>
                           )}
-                          Select Images
-                        </Button>
+                        </div>
                       </div>
 
                       <p className="mt-3 text-xs text-[#6a6a63]">
                         Accepted types:{" "}
                         {ADMIN_COMMON_IMAGE_EXTENSIONS.join(", ")}
                       </p>
+                      {!canSelectFiles && dropzoneDisabledReason && (
+                        <p className="mt-2 text-xs text-[#7a7a72]">
+                          {dropzoneDisabledReason}
+                        </p>
+                      )}
                       {formErrors.files && (
                         <p className="mt-2 text-xs text-rose-600">
                           {formErrors.files}
@@ -1239,6 +1394,49 @@ export function AdminParticipantUploadDialog({
                     </Badge>
                   </div>
 
+                  <div className="mb-3 flex items-center gap-2 text-xs">
+                    <Badge className="border border-rose-200 bg-rose-50 text-rose-700">
+                      {blockingValidationErrors.length} blocking
+                    </Badge>
+                    <Badge className="border border-amber-200 bg-amber-50 text-amber-700">
+                      {warningValidationResults.length} warnings
+                    </Badge>
+                  </div>
+
+                  {generalValidationResults.length > 0 && (
+                    <Collapsible className="mb-3 rounded-lg border border-[#e2e2d8] bg-white">
+                      <CollapsibleTrigger className="group flex w-full items-center justify-between px-3 py-2 text-left">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-[#67675f]">
+                          General validations ({generalValidationResults.length}
+                          )
+                        </span>
+                        <ChevronDown className="h-4 w-4 text-[#6f6f66] transition-transform group-data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-2 px-3 pb-3">
+                        {generalValidationResults.map((result, index) => (
+                          <div
+                            key={`${createValidationResultKey(result)}-${index}`}
+                            className={cn(
+                              "rounded-md border px-3 py-2 text-xs",
+                              getValidationRowClass(result),
+                            )}
+                          >
+                            <p className="font-semibold">
+                              {formatRuleKey(result.ruleKey)}
+                            </p>
+                            <p className="mt-1">{result.message}</p>
+                          </div>
+                        ))}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+
+                  {validationRunError && (
+                    <div className="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                      {validationRunError}
+                    </div>
+                  )}
+
                   {selectedPhotos.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-[#d7d7ce] bg-white px-4 py-6 text-center">
                       <p className="text-sm text-[#6f6f66]">
@@ -1247,90 +1445,115 @@ export function AdminParticipantUploadDialog({
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {selectedPhotos.map((photo) => (
-                        <div
-                          key={photo.id}
-                          className="rounded-lg border border-[#e3e3d9] bg-white px-3 py-3"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-[#2b2b24]">
-                                {photo.file.name}
-                              </p>
-                              <p className="mt-1 text-xs text-[#6a6a62]">
-                                Topic #{photo.orderIndex + 1} ·{" "}
-                                {(photo.file.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
+                      {selectedPhotos.map((photo) => {
+                        const photoValidationResults =
+                          photoValidationMap.get(photo.id) ?? [];
+                        const photoErrorCount = photoValidationResults.filter(
+                          (result) =>
+                            result.outcome === VALIDATION_OUTCOME.FAILED &&
+                            result.severity === "error",
+                        ).length;
+                        const photoWarningCount = photoValidationResults.filter(
+                          (result) =>
+                            result.outcome === VALIDATION_OUTCOME.FAILED &&
+                            result.severity === "warning",
+                        ).length;
+
+                        return (
+                          <div
+                            key={photo.id}
+                            className="rounded-lg border border-[#e3e3d9] bg-white px-3 py-3"
+                          >
+                            <div className="flex items-start gap-3">
+                              <img
+                                src={photo.previewUrl}
+                                alt={photo.file.name}
+                                className="h-14 w-14 rounded-md border border-[#dfdfd5] object-cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium text-[#2b2b24]">
+                                      {photo.file.name}
+                                    </p>
+                                    <p className="mt-1 text-xs text-[#6a6a62]">
+                                      Topic #{photo.orderIndex + 1} ·{" "}
+                                      {(photo.file.size / 1024 / 1024).toFixed(
+                                        2,
+                                      )}{" "}
+                                      MB
+                                    </p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-[#77776f] hover:text-rose-600"
+                                    onClick={() => handleRemovePhoto(photo.id)}
+                                    disabled={isBusy || uploadComplete}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                  {photoErrorCount > 0 && (
+                                    <Badge className="border border-rose-200 bg-rose-50 text-rose-700">
+                                      {photoErrorCount} errors
+                                    </Badge>
+                                  )}
+                                  {photoWarningCount > 0 && (
+                                    <Badge className="border border-amber-200 bg-amber-50 text-amber-700">
+                                      {photoWarningCount} warnings
+                                    </Badge>
+                                  )}
+                                  {photoErrorCount === 0 &&
+                                    photoWarningCount === 0 && (
+                                      <Badge className="border border-emerald-200 bg-emerald-50 text-emerald-700">
+                                        No validation issues
+                                      </Badge>
+                                    )}
+                                </div>
+
+                                <Collapsible className="mt-2 rounded-md border border-[#ecece2]">
+                                  <CollapsibleTrigger className="group flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium text-[#5c5c55]">
+                                    Validation details
+                                    <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="space-y-2 px-3 pb-3">
+                                    {photoValidationResults.length === 0 ? (
+                                      <p className="text-xs text-[#707069]">
+                                        No file-level validation findings.
+                                      </p>
+                                    ) : (
+                                      photoValidationResults.map(
+                                        (result, index) => (
+                                          <div
+                                            key={`${createValidationResultKey(result)}-${index}`}
+                                            className={cn(
+                                              "rounded-md border px-3 py-2 text-xs",
+                                              getValidationRowClass(result),
+                                            )}
+                                          >
+                                            <p className="font-semibold">
+                                              {formatRuleKey(result.ruleKey)}
+                                            </p>
+                                            <p className="mt-1">
+                                              {result.message}
+                                            </p>
+                                          </div>
+                                        ),
+                                      )
+                                    )}
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              </div>
                             </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-[#77776f] hover:text-rose-600"
-                              onClick={() => handleRemovePhoto(photo.id)}
-                              disabled={isBusy || uploadComplete}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
-                </section>
-
-                <Separator />
-
-                <section>
-                  <h3 className="font-gothic text-lg text-[#1f1f1f]">
-                    Validation
-                  </h3>
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Badge className="border border-rose-200 bg-rose-50 text-rose-700">
-                        {blockingValidationErrors.length} blocking
-                      </Badge>
-                      <Badge className="border border-amber-200 bg-amber-50 text-amber-700">
-                        {warningValidationResults.length} warnings
-                      </Badge>
-                    </div>
-                    {validationRunError && (
-                      <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-                        {validationRunError}
-                      </div>
-                    )}
-
-                    {validationResults.length === 0 && !validationRunError ? (
-                      <p className="text-sm text-[#6d6d64]">
-                        Validation results will appear after selecting images.
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {validationResults.map((result, index) => {
-                          const failed =
-                            result.outcome === VALIDATION_OUTCOME.FAILED;
-                          return (
-                            <div
-                              key={`${result.ruleKey}-${result.fileName ?? "general"}-${index}`}
-                              className={cn(
-                                "rounded-md border px-3 py-2 text-xs",
-                                failed
-                                  ? result.severity === "error"
-                                    ? "border-rose-200 bg-rose-50 text-rose-700"
-                                    : "border-amber-200 bg-amber-50 text-amber-700"
-                                  : "border-emerald-200 bg-emerald-50 text-emerald-700",
-                              )}
-                            >
-                              <p className="font-semibold">
-                                {formatRuleKey(result.ruleKey)}
-                              </p>
-                              <p className="mt-1">{result.message}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
                 </section>
 
                 <Separator />
@@ -1425,17 +1648,22 @@ export function AdminParticipantUploadDialog({
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 border-t border-[#e2e2d8] bg-[#fbfbf7] px-6 py-4 sm:justify-between">
+          <DialogFooter className="shrink-0 flex-row items-center justify-between gap-3 border-t border-[#e2e2d8] bg-[#fbfbf7] px-6 py-4">
             {uploadComplete ? (
               <>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => handleDialogOpenChange(false)}
+                  className="h-9"
                 >
                   Close
                 </Button>
-                <PrimaryButton type="button" onClick={handleOpenParticipant}>
+                <PrimaryButton
+                  type="button"
+                  onClick={handleOpenParticipant}
+                  className="h-9 px-4 py-2 text-sm whitespace-nowrap"
+                >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Open Participant
                 </PrimaryButton>
@@ -1447,49 +1675,26 @@ export function AdminParticipantUploadDialog({
                   variant="outline"
                   onClick={() => handleDialogOpenChange(false)}
                   disabled={isBusy}
+                  className="h-9"
                 >
                   Cancel
                 </Button>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleChooseFilesClick}
-                    disabled={isBusy}
-                  >
-                    <Camera className="mr-2 h-4 w-4" />
-                    Select Images
-                  </Button>
-                  <PrimaryButton
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={isBusy}
-                  >
-                    {isBusy ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="mr-2 h-4 w-4" />
-                    )}
-                    Create & Upload
-                  </PrimaryButton>
-                </div>
+                <PrimaryButton
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isBusy}
+                  className="h-9 px-4 py-2 text-sm whitespace-nowrap"
+                >
+                  {isPrimaryActionBusy ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  Create & Upload
+                </PrimaryButton>
               </>
             )}
           </DialogFooter>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            accept={ADMIN_COMMON_IMAGE_EXTENSIONS.map(
-              (extension) => `.${extension}`,
-            ).join(",")}
-            onChange={(event) => {
-              handleFileSelect(event.target.files);
-              event.target.value = "";
-            }}
-          />
         </DialogContent>
       </Dialog>
 
