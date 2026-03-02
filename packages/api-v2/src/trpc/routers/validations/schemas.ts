@@ -24,3 +24,19 @@ export const CreateParticipantVerificationSchema = Schema.standardSchemaV1(
     }),
   })
 )
+
+export const UpdateValidationResultSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    id: Schema.Number,
+    data: Schema.Struct({
+      overruled: Schema.Boolean,
+    }),
+  })
+)
+
+export const GetParticipantVerificationByReferenceSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    reference: Schema.String,
+  })
+)

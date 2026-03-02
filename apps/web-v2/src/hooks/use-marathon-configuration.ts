@@ -39,6 +39,7 @@ function checkConfiguration({
 }): MarathonConfigurationResult {
   if (!marathon?.startDate || !marathon?.endDate) {
     return {
+      marathon: marathon as MarathonWithRelations,
       isConfigured: false,
       requiredActions: [
         {
@@ -51,6 +52,7 @@ function checkConfiguration({
 
   if (!marathon?.name) {
     return {
+      marathon: marathon as MarathonWithRelations,
       isConfigured: false,
       requiredActions: [
         {
@@ -63,6 +65,7 @@ function checkConfiguration({
 
   if (deviceGroups.length === 0) {
     return {
+      marathon: marathon as MarathonWithRelations,
       isConfigured: false,
       requiredActions: [
         {
@@ -75,6 +78,7 @@ function checkConfiguration({
 
   if (competitionClasses.length === 0) {
     return {
+      marathon: marathon as MarathonWithRelations,
       isConfigured: false,
       requiredActions: [
         {
@@ -87,6 +91,7 @@ function checkConfiguration({
 
   if (topics.length === 0) {
     return {
+      marathon: marathon as MarathonWithRelations,
       isConfigured: false,
       requiredActions: [
         {
@@ -103,6 +108,7 @@ function checkConfiguration({
     )
   ) {
     return {
+      marathon: marathon as MarathonWithRelations,
       isConfigured: false,
       requiredActions: [
         {
@@ -115,6 +121,7 @@ function checkConfiguration({
   }
 
   return {
+    marathon: marathon as MarathonWithRelations,
     isConfigured: true,
     requiredActions: [],
   }
@@ -142,9 +149,6 @@ export function useMarathonConfiguration(domain: string): MarathonConfigurationR
       topics: marathon.topics ?? [],
     })
 
-    return {
-      marathon,
-      ...result,
-    }
+    return result
   }, [marathon])
 }

@@ -29,6 +29,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { formatDomainPathname } from "@/lib/utils"
 import { StaffVerificationsTable } from "./staff-verifications-table"
 import { StaffEditDialog } from "./staff-edit-dialog"
+import { StaffAccessCard } from "../../_components/staff-access-card"
 
 interface StaffDetailsContentProps {
   staffId: string
@@ -174,6 +175,7 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
 
       <ScrollArea className="flex-1 bg-muted/30">
         <div className=" space-y-4 p-6">
+          <StaffAccessCard />
           <div className=" pt-4">
             <h3 className="text-lg font-semibold font-gothic">Verification Activity</h3>
             <p className="text-sm text-muted-foreground mt-0.5">

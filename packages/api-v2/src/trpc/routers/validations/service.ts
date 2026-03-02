@@ -148,9 +148,43 @@ export class ValidationsApiService extends Effect.Service<ValidationsApiService>
         return { id: verification.id }
       })
 
+      const updateValidationResult = Effect.fn(
+        "ValidationsApiService.updateValidationResult"
+      )(function* ({
+        id,
+        data,
+      }: {
+        id: number
+        data: {
+          overruled: boolean
+        }
+      }) {
+        return yield* db.validationsQueries.updateValidationResult({
+          id,
+          data,
+        })
+      })
+
+      const getParticipantVerificationByReference = Effect.fn(
+        "ValidationsApiService.getParticipantVerificationByReference"
+      )(function* ({
+        domain,
+        reference,
+      }: {
+        domain: string
+        reference: string
+      }) {
+        return yield* db.validationsQueries.getParticipantVerificationByReference({
+          domain,
+          reference,
+        })
+      })
+
       return {
         runValidations,
         createParticipantVerification,
+        updateValidationResult,
+        getParticipantVerificationByReference,
       } as const
     }),
   }

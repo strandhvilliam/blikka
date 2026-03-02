@@ -305,6 +305,53 @@ export class ValidationsQueries extends Effect.Service<ValidationsQueries>()(
         }
       })
 
+      const getParticipantVerificationByReference = Effect.fn(
+        "ValidationsQueries.getParticipantVerificationByReference"
+      )(function* ({
+        domain,
+        reference,
+      }: {
+        domain: string
+        reference: string
+      }) {
+        const allVerifications = yield* db.query.participantVerifications.findMany({
+          with: {
+            participant: {
+              with: {
+                competitionClass: true,
+                deviceGroup: true,
+                validationResults: true,
+                submissions: {
+                  with: {
+                    topic: true,
+                  },
+                },
+                marathon: true,
+              },
+            },
+          },
+          orderBy: (participantVerifications, { desc }) => [
+            desc(participantVerifications.createdAt),
+          ],
+        })
+
+        const match = allVerifications.find(
+          (verification) =>
+            verification.participant.marathon.domain === domain &&
+            verification.participant.reference === reference
+        )
+
+        return match
+          ? {
+              ...match,
+              participant: {
+                ...match.participant,
+                marathon: undefined,
+              },
+            }
+          : null
+      })
+
       const clearAllValidationResults = Effect.fn("ValidationsQueries.clearAllValidationResults")(
         function* ({ participantId }: { participantId: number }) {
           yield* db
@@ -323,6 +370,7 @@ export class ValidationsQueries extends Effect.Service<ValidationsQueries>()(
         createParticipantVerification,
         clearNonEnabledRuleResults,
         getAllParticipantVerifications,
+        getParticipantVerificationByReference,
         clearAllValidationResults,
       }
     }),

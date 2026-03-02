@@ -16,7 +16,7 @@ import { DashboardHeaderTopicSwitcher } from "./dashboard-header-topic-switcher"
 export function DashboardHeader() {
   const domain = useDomain()
 
-  const staffSiteUrl = formatDomainLink(`/staff`, domain)
+  const staffSiteUrl = formatDomainLink(`/staff`, domain, "staff")
   const participantSiteUrl = formatDomainLink(`/live`, domain)
 
   return (
@@ -56,4 +56,3 @@ export function DashboardHeader() {
     </div>
   )
 }
-

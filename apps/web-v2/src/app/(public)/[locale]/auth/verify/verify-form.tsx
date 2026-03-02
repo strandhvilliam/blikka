@@ -13,10 +13,11 @@ import { verifyAction } from "./verify-action"
 
 interface VerifyFormProps {
   email: string
+  next?: string
   className?: string
 }
 
-export function VerifyForm({ email, className }: VerifyFormProps) {
+export function VerifyForm({ email, next, className }: VerifyFormProps) {
   const [otp, setOtp] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -36,6 +37,7 @@ export function VerifyForm({ email, className }: VerifyFormProps) {
       await verifyAction({
         email,
         otp,
+        next,
       })
     } catch (err) {
       console.error("OTP verification error:", err)

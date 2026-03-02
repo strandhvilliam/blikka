@@ -20,7 +20,7 @@ import {
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
-import { formatDomainPathname } from "@/lib/utils"
+import { formatDomainLink, formatDomainPathname } from "@/lib/utils"
 import { format } from "date-fns"
 import type { JuryInvitation } from "@blikka/db"
 import {
@@ -81,10 +81,15 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
     executeDelete({ id: invitationId })
   }
 
+  const juryLink = formatDomainLink(`/live/jury/${invitation.token}`, domain, "live")
+
   const handleCopyLink = () => {
-    const juryLink = `${window.location.origin}/jury/${invitation.token}`
     navigator.clipboard.writeText(juryLink)
     toast.success("Link copied to clipboard")
+  }
+
+  const handleOpenLink = () => {
+    window.open(juryLink, "_blank", "noopener,noreferrer")
   }
 
   if (!invitation) {
@@ -115,6 +120,10 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
             <Button variant="outline" size="sm" onClick={handleCopyLink}>
               <Copy className="h-4 w-4 mr-2" />
               Copy Link
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleOpenLink}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open Link
             </Button>
             <Button
               variant="destructive"
@@ -217,7 +226,7 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
               <p className="text-xs text-muted-foreground mb-2">Jury Access Link</p>
               <div className="flex items-center gap-2">
                 <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
-                  {`${typeof window !== "undefined" ? window.location.origin : ""}/jury/${invitation.token.substring(0, 20)}...`}
+                  {juryLink}
                 </code>
                 <Button size="sm" variant="ghost" onClick={handleCopyLink}>
                   <Copy className="h-3 w-3" />
@@ -252,4 +261,3 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
     </ScrollArea>
   )
 }
-

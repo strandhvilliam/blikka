@@ -1,7 +1,12 @@
 import { createTRPCRouter, domainProcedure } from "../../root"
 import { trpcEffect } from "../../utils"
 import { Effect } from "effect"
-import { RunValidationsSchema, CreateParticipantVerificationSchema } from "./schemas"
+import {
+  RunValidationsSchema,
+  CreateParticipantVerificationSchema,
+  UpdateValidationResultSchema,
+  GetParticipantVerificationByReferenceSchema,
+} from "./schemas"
 import { ValidationsApiService } from "./service"
 
 export const validationsRouter = createTRPCRouter({
@@ -12,9 +17,23 @@ export const validationsRouter = createTRPCRouter({
           domain: input.domain,
           reference: input.reference,
         })
-      })
-    )
-  ),
+        })
+      )
+    ),
+  getParticipantVerificationByReference: domainProcedure
+    .input(GetParticipantVerificationByReferenceSchema)
+    .query(
+      trpcEffect(
+        Effect.fn("ValidationsRouter.getParticipantVerificationByReference")(function* ({
+          input,
+        }) {
+          return yield* ValidationsApiService.getParticipantVerificationByReference({
+            domain: input.domain,
+            reference: input.reference,
+          })
+        })
+      )
+    ),
   createParticipantVerification: domainProcedure
     .input(CreateParticipantVerificationSchema)
     .mutation(
@@ -28,4 +47,16 @@ export const validationsRouter = createTRPCRouter({
         })
       )
     ),
+  updateValidationResult: domainProcedure.input(UpdateValidationResultSchema).mutation(
+    trpcEffect(
+      Effect.fn("ValidationsRouter.updateValidationResult")(function* ({ input }) {
+        return yield* ValidationsApiService.updateValidationResult({
+          id: input.id,
+          data: {
+            overruled: input.data.overruled,
+          },
+        })
+      })
+    )
+  ),
 })

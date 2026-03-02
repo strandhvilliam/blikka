@@ -19,7 +19,7 @@ function extractSubdomain(request: NextRequest): string | null {
     // Try to extract subdomain from the full URL
 
     const path = url.slice(url.indexOf("localhost")).split("/")
-    if (path.at(1) === "admin" || path.at(1) === "live") {
+    if (path.at(1) === "admin" || path.at(1) === "live" || path.at(1) === "staff") {
       return path.at(2) ?? null
     }
 
@@ -84,6 +84,17 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next(requestWithDomainHeader)
     }
 
+    if (pathname.startsWith("/staff")) {
+      const staffWithSubdomain = `/staff/${subdomain}`
+      if (!pathname.startsWith(staffWithSubdomain)) {
+        const restOfPath = pathname === "/staff" ? "" : pathname.slice(6)
+        const rewritePath = `${staffWithSubdomain}${restOfPath}`
+        return NextResponse.rewrite(new URL(rewritePath, request.url), requestWithDomainHeader)
+      }
+
+      return NextResponse.next(requestWithDomainHeader)
+    }
+
     if (pathname === "/") {
       return NextResponse.redirect(new URL(`/live`, request.url))
     }
@@ -101,6 +112,16 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next()
     }
     return NextResponse.redirect(new URL(`/admin`, request.url))
+  }
+
+  if (pathname.startsWith("/staff")) {
+    if (pathname === "/staff") {
+      return NextResponse.next()
+    }
+    if (request.url.includes("localhost")) {
+      return NextResponse.next()
+    }
+    return NextResponse.redirect(new URL(`/staff`, request.url))
   }
 
   // On the root domain, allow normal access

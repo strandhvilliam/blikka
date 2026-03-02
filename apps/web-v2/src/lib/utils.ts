@@ -47,7 +47,11 @@ export const formatPublicPathname = (pathname: string, domain?: string, locale?:
   return `/${locale}${pathname}`
 }
 
-export const formatDomainPathname = (pathname: string, domain?: string, site: "admin" | "live" = "admin") => {
+export const formatDomainPathname = (
+  pathname: string,
+  domain?: string,
+  site: "admin" | "live" | "staff" = "admin"
+) => {
   if (!domain) return pathname
 
   if (process.env.NODE_ENV !== "production") {
@@ -66,7 +70,11 @@ export const formatDomainPathname = (pathname: string, domain?: string, site: "a
 }
 
 
-export const formatDomainLink = (pathname: string, domain?: string, site: "admin" | "live" = "admin") => {
+export const formatDomainLink = (
+  pathname: string,
+  domain?: string,
+  site: "admin" | "live" | "staff" = "admin"
+) => {
   if (!domain) return pathname
 
   const path = formatDomainPathname(pathname, domain, site)

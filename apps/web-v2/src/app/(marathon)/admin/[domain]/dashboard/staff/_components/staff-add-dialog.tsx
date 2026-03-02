@@ -15,11 +15,10 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useDomain } from "@/lib/domain-provider"
-import { useSession } from "@/lib/auth/client"
-import { cn } from "@/lib/utils"
+import { cn, formatDomainLink } from "@/lib/utils"
 import { motion, AnimatePresence } from "motion/react"
 
 const roleTypes = [
@@ -41,6 +40,7 @@ export function StaffAddDialog() {
   const domain = useDomain()
   const [isOpen, setIsOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const staffUrl = formatDomainLink("/staff", domain, "staff")
 
   const form = useForm({
     defaultValues: {
@@ -68,7 +68,9 @@ export function StaffAddDialog() {
         setErrorMessage(error.message || "Failed to add staff member")
       },
       onSuccess: () => {
-        toast.success("Staff member added successfully")
+        toast.success("Staff member added successfully", {
+          description: "They can now sign in on the staff page with the email you added.",
+        })
         setIsOpen(false)
         setErrorMessage(null)
         form.reset()
@@ -179,6 +181,13 @@ export function StaffAddDialog() {
             )}
           />
 
+          <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
+            Staff members sign in on the standalone staff page with this email address:
+            <div className="mt-2 rounded-lg border bg-background px-3 py-2 font-mono text-xs">
+              {staffUrl}
+            </div>
+          </div>
+
           <form.Field
             name="role"
             validators={{
@@ -238,7 +247,8 @@ export function StaffAddDialog() {
                   })}
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Select the role for this staff member.
+                  Staff can use the verification desk. Admins keep dashboard access and can also
+                  use the staff page.
                 </p>
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
                   <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>

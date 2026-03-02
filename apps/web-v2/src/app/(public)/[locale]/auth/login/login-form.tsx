@@ -15,7 +15,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { loginAction } from "./login-action"
 
-export function LoginForm({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+interface LoginFormProps extends React.HTMLAttributes<HTMLDivElement> {
+  next?: string
+}
+
+export function LoginForm({ className, next, ...props }: LoginFormProps) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -40,7 +44,15 @@ export function LoginForm({ className, ...props }: React.HTMLAttributes<HTMLDivE
           }
 
           // Redirect to verify page with email
-          router.push(`/auth/verify?email=${encodeURIComponent(email)}`)
+          const params = new URLSearchParams({
+            email,
+          })
+
+          if (next) {
+            params.set("next", next)
+          }
+
+          router.push(`/auth/verify?${params.toString()}`)
         }}
       >
         <FieldGroup>

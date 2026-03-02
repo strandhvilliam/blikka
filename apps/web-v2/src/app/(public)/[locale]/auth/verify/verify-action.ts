@@ -14,9 +14,11 @@ class VerifyError extends Data.TaggedError("VerifyError")<{
 const _verifyAction = Effect.fn("@blikka/web/verifyAction")(function* ({
   email,
   otp,
+  next,
 }: {
   email: string
   otp: string
+  next?: string
 }) {
   const auth = yield* Auth
   const readonlyHeaders = yield* Effect.tryPromise(() => headers())
@@ -36,8 +38,8 @@ const _verifyAction = Effect.fn("@blikka/web/verifyAction")(function* ({
       }),
   })
 
-  redirect("/marathon/")
+  redirect(next ?? "/admin")
 }, toActionResponse)
 
-export const verifyAction = async (input: { email: string; otp: string }) =>
+export const verifyAction = async (input: { email: string; otp: string; next?: string }) =>
   Action(_verifyAction)(input)

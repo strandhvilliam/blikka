@@ -103,6 +103,7 @@
     "use-debounce": "^10.0.6",
     "vaul": "^1.1.2",
     "xlsx": "^0.18.5",
+    "@yudiel/react-qr-scanner": "^2.3.1",
     "zod": "^4.1.12",
     "zustand": "^5.0.10"
   },
