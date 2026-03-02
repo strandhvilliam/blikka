@@ -8,5 +8,5 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - SUPABASE_URL=https://ythhxzrxhaoyosfrsdkz.supabase.co
-      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0aGh4enJ4aGFveW9zZnJzZGt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQyOTI1MTUsImV4cCI6MjA0OTg2ODUxNX0.AHw1_BakNbqBxjnd1xxMFKlMRE8QlJ2ZFYDNZ4f_8zE
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}

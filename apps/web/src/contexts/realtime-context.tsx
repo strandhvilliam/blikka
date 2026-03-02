@@ -15,8 +15,8 @@ function createConnection(endpoint: string, authorizer: string) {
     {
       protocolVersion: 5,
       manualConnect: true,
-      username: "", // Must be empty for the authorizer
-      password: "PLACEHOLDER_TOKEN", // Passed as the token to the authorizer
+      username: "",
+      password: process.env.NEXT_PUBLIC_REALTIME_TOKEN ?? "",
       clientId: `client_${window.crypto.randomUUID()}`,
     },
   );

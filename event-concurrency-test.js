@@ -20,11 +20,7 @@ export let options = {
 let logged = false
 
 export default function () {
-  const url =
-    "https://5lu7elbh67q3c6yjnv3lxtb7ty0sskhq.lambda-url.eu-north-1.on.aws/"
-  // const url = "http://api.blikka.app/"
-  // const url =
-  //   "https://api.blikka.app/trpc/deviceGroups.getByDomain,competitionClasses.getByDomain,topics.getByDomain?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22domain%22%3A%22dev0%22%7D%7D%2C%221%22%3A%7B%22json%22%3A%7B%22domain%22%3A%22dev0%22%7D%7D%2C%222%22%3A%7B%22json%22%3A%7B%22domain%22%3A%22dev0%22%7D%7D%7D"
+  const url = __ENV.LOAD_TEST_URL || "http://localhost:3000"
 
   //   const payload = JSON.stringify({
   //     id: 1,

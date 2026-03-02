@@ -19,13 +19,6 @@ export function StaffLoginForm() {
     setIsLoading(true);
 
     try {
-      if (password !== "12345") {
-        toast.error("Invalid password", {
-          description: "Please check your password and try again.",
-        });
-        return;
-      }
-
       const { error } = await authClient.signIn.email({
         email,
         password,
