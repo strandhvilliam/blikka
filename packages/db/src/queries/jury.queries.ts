@@ -935,6 +935,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       updateJuryInvitation,
       deleteJuryInvitation,
       getJuryDataByTokenPayload,
+      getJurySubmissionsFromToken,
       getJurySubmissionsWithoutFilters,
       getJurySubmissionsWithRatingFilters,
       getJuryInvitationStatistics,

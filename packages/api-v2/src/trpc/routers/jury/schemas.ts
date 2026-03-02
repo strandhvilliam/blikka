@@ -61,3 +61,87 @@ export const DeleteJuryInvitationInputSchema = Schema.standardSchemaV1(
   })
 )
 
+const JuryRatingValueSchema = Schema.Number.pipe(
+  Schema.greaterThanOrEqualTo(0),
+  Schema.lessThanOrEqualTo(5)
+)
+
+export const VerifyJuryTokenSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+  })
+)
+
+export const GetJurySubmissionsFromTokenSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+    cursor: Schema.optional(Schema.Number),
+    ratingFilter: Schema.optional(Schema.Array(JuryRatingValueSchema)),
+  })
+)
+
+export const GetJuryRatingsByInvitationSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+  })
+)
+
+export const GetJuryParticipantCountSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+    ratingFilter: Schema.optional(Schema.Array(JuryRatingValueSchema)),
+  })
+)
+
+export const CreateJuryRatingSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+    participantId: Schema.Number,
+    rating: JuryRatingValueSchema,
+    notes: Schema.optional(Schema.String),
+  })
+)
+
+export const UpdateJuryRatingSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+    participantId: Schema.Number,
+    rating: JuryRatingValueSchema,
+    notes: Schema.optional(Schema.String),
+    finalRanking: Schema.optional(Schema.Number),
+  })
+)
+
+export const GetJuryRatingSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+    participantId: Schema.Number,
+  })
+)
+
+export const DeleteJuryRatingSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+    participantId: Schema.Number,
+  })
+)
+
+export const UpdateJuryInvitationStatusByTokenSchema = Schema.standardSchemaV1(
+  Schema.Struct({
+    token: Schema.String,
+    domain: Schema.String,
+    status: Schema.Union(
+      Schema.Literal("pending"),
+      Schema.Literal("in_progress"),
+      Schema.Literal("completed")
+    ),
+  })
+)

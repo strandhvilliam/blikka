@@ -1,7 +1,7 @@
 import "server-only"
 
 import { Effect } from "effect"
-import { createTRPCRouter, domainProcedure } from "../../root"
+import { createTRPCRouter, domainProcedure, publicProcedure } from "../../root"
 import { trpcEffect } from "../../utils"
 import {
   GetJuryInvitationsByDomainInputSchema,
@@ -9,6 +9,15 @@ import {
   CreateJuryInvitationInputSchema,
   UpdateJuryInvitationInputSchema,
   DeleteJuryInvitationInputSchema,
+  VerifyJuryTokenSchema,
+  GetJurySubmissionsFromTokenSchema,
+  GetJuryRatingsByInvitationSchema,
+  GetJuryParticipantCountSchema,
+  CreateJuryRatingSchema,
+  UpdateJuryRatingSchema,
+  GetJuryRatingSchema,
+  DeleteJuryRatingSchema,
+  UpdateJuryInvitationStatusByTokenSchema,
 } from "./schemas"
 import { JuryApiService } from "./service"
 
@@ -58,4 +67,78 @@ export const juryRouter = createTRPCRouter({
       })
     )
   ),
+
+  verifyTokenAndGetInitialData: publicProcedure.input(VerifyJuryTokenSchema).query(
+    trpcEffect(
+      Effect.fn("JuryRouter.verifyTokenAndGetInitialData")(function* ({ input }) {
+        return yield* JuryApiService.verifyTokenAndGetInitialData(input)
+      })
+    )
+  ),
+
+  getJurySubmissionsFromToken: publicProcedure.input(GetJurySubmissionsFromTokenSchema).query(
+    trpcEffect(
+      Effect.fn("JuryRouter.getJurySubmissionsFromToken")(function* ({ input }) {
+        return yield* JuryApiService.getJurySubmissionsFromToken(input)
+      })
+    )
+  ),
+
+  getJuryRatingsByInvitation: publicProcedure.input(GetJuryRatingsByInvitationSchema).query(
+    trpcEffect(
+      Effect.fn("JuryRouter.getJuryRatingsByInvitation")(function* ({ input }) {
+        return yield* JuryApiService.getJuryRatingsByInvitation(input)
+      })
+    )
+  ),
+
+  getJuryParticipantCount: publicProcedure.input(GetJuryParticipantCountSchema).query(
+    trpcEffect(
+      Effect.fn("JuryRouter.getJuryParticipantCount")(function* ({ input }) {
+        return yield* JuryApiService.getJuryParticipantCount(input)
+      })
+    )
+  ),
+
+  createRating: publicProcedure.input(CreateJuryRatingSchema).mutation(
+    trpcEffect(
+      Effect.fn("JuryRouter.createRating")(function* ({ input }) {
+        return yield* JuryApiService.createRating(input)
+      })
+    )
+  ),
+
+  updateRating: publicProcedure.input(UpdateJuryRatingSchema).mutation(
+    trpcEffect(
+      Effect.fn("JuryRouter.updateRating")(function* ({ input }) {
+        return yield* JuryApiService.updateRating(input)
+      })
+    )
+  ),
+
+  getRating: publicProcedure.input(GetJuryRatingSchema).query(
+    trpcEffect(
+      Effect.fn("JuryRouter.getRating")(function* ({ input }) {
+        return yield* JuryApiService.getRating(input)
+      })
+    )
+  ),
+
+  deleteRating: publicProcedure.input(DeleteJuryRatingSchema).mutation(
+    trpcEffect(
+      Effect.fn("JuryRouter.deleteRating")(function* ({ input }) {
+        return yield* JuryApiService.deleteRating(input)
+      })
+    )
+  ),
+
+  updateInvitationStatusByToken: publicProcedure
+    .input(UpdateJuryInvitationStatusByTokenSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("JuryRouter.updateInvitationStatusByToken")(function* ({ input }) {
+          return yield* JuryApiService.updateInvitationStatusByToken(input)
+        })
+      )
+    ),
 })
