@@ -1,81 +1,100 @@
-# Turborepo starter
+<p align="center">
+  <img src="blikka-github-hero.png" alt="Blikka" />
+</p>
 
-This is an official starter Turborepo.
+# Blikka
 
-## Using this example
+**Blikka** is an open-source SaaS for running photo marathons: participants upload photos during the event, staff validate submissions, and juries/voters review and score work — all in one multi-tenant, domain-based platform.
 
-Run the following command:
+## What you can do with Blikka
 
-```sh
-npx create-turbo@latest
+- **Run participant uploads**: mobile-first flow with device selection, class selection, and live upload progress.
+- **Validate submissions**: automated + manual validation (file rules, EXIF parsing, and per-marathon configuration).
+- **Admin dashboard**: configure classes, topics/prompts, rules, device groups, sponsors, and review submissions.
+- **Jury review**: token-based invite links for jurors to review/score.
+- **Public voting**: token-based voting viewer with controlled access.
+- **Exports**: generate contact sheets and downloadable ZIPs of submissions.
+
+## How it works (high level)
+
+- **Web app**: `apps/web-v2` is a Next.js App Router app (React + Tailwind + Radix UI) that serves:
+  - participant + staff + admin UIs (routed under `/(marathon)/...`)
+  - invite/token UIs for jury and voting
+  - a built-in **tRPC** API at `apps/web-v2/src/app/api/trpc/[trpc]/route.ts`
+  - auth routes at `apps/web-v2/src/app/api/auth/[...all]/route.ts` using **better-auth**
+- **API layer**: `packages/api-v2` holds the tRPC router + services used by the web app.
+- **Database**: Postgres via **Drizzle ORM** and Effect SQL (`packages/db`).
+- **Media pipeline on AWS** (SST):
+  - uploads land in **S3**
+  - S3 events enqueue work to **SQS**
+  - workers generate **thumbnails**, **contact sheets**, run **validations**, and produce **ZIP exports**
+  - a bus/queues coordinate processing (see `sst.config.ts`)
+
+## Repo layout
+
+- `apps/web-v2`: primary web app (Next.js)
+- `apps/web`, `apps/api`: legacy apps (not part of the active workspaces)
+- `packages/*`: shared libraries (auth, db, api-v2, validation, image manipulation, s3, redis/kv-store, pubsub, email, telemetry)
+- `tasks/*`: background workers (upload processing, validation, contact sheet generation, zip workers/downloaders)
+- `sst.config.ts`: AWS infrastructure (S3 + queues + tasks) using SST
+
+## Getting started (local development)
+
+### Prerequisites
+
+- **Node.js** \(>= 20\)
+- **Bun** (repo package manager; see `package.json`)
+- **AWS credentials** (SST runs against your AWS account)
+- A **Postgres database** (local or managed)
+- **Upstash Redis** (used for state/coordination)
+
+### Setup
+
+1. Install dependencies
+
+```bash
+bun install
 ```
 
-## What's inside?
+2. Create an environment file
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm build
+```bash
+cp .env.example .env
 ```
 
-### Develop
+3. Start SST (queues/workers/infrastructure)
 
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm dev
+```bash
+bun dev:sst
 ```
 
-### Remote Caching
+4. Start the web app
 
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
+```bash
+bun dev:web-v2
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+The web app runs on `http://localhost:3002`.
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+## Environment variables
 
-```
-npx turbo link
-```
+Blikka expects configuration for auth, database, Redis, and external services. See `.env.example` for the canonical list (derived from `sst.config.ts`).
 
-## Useful Links
+## Scripts
 
-Learn more about the power of Turborepo:
+- `bun dev:sst`: run SST dev (AWS-backed local dev for infra + workers)
+- `bun dev:web-v2`: run the Next.js app locally (port 3002)
+- `bun format`: format with Prettier
+- `bun test`: run unit tests (Vitest)
 
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+## Contributing
+
+Issues and pull requests are welcome.
+
+- Keep changes focused and well-scoped
+- Prefer `bun format` before opening a PR
+- Add/update tests where it makes sense
+
+## License
+
+MIT — see `LICENSE`.

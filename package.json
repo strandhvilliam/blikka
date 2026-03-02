@@ -1,11 +1,37 @@
 {
-  "name": "vimmer",
+  "name": "blikka",
+  "version": "0.1.0",
+  "description": "Open-source SaaS for running photo marathons (uploads, validation, jury review, voting, and exports).",
   "private": true,
+  "homepage": "https://blikka.app",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:strandhvilliam/blikka.git"
+  },
+  "bugs": {
+    "url": "https://github.com/strandhvilliam/blikka/issues"
+  },
+  "keywords": [
+    "saas",
+    "photography",
+    "photo-marathon",
+    "nextjs",
+    "sst",
+    "aws",
+    "trpc",
+    "drizzle",
+    "effect"
+  ],
   "scripts": {
-    "check-aws-account": "if [ \"$(aws sts get-caller-identity --query 'Account' --output text)\" = \"975050331958\" ]; then echo '✅ Correct AWS account'; else echo '❌ Wrong AWS account, aborting.' && exit 1; fi",
-    "dev": "bun check-aws-account && bunx sst dev --stage development ",
-    "deploy:prod": "bun check-aws-account && sst deploy --stage production",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "check-aws-account": "if [ -z \"$BLIKKA_AWS_ACCOUNT_ID\" ]; then echo 'ℹ️ Skipping AWS account check (set BLIKKA_AWS_ACCOUNT_ID to enforce)'; exit 0; fi; if [ \"$(aws sts get-caller-identity --query 'Account' --output text 2>/dev/null)\" = \"$BLIKKA_AWS_ACCOUNT_ID\" ]; then echo '✅ Correct AWS account'; else echo '❌ Wrong AWS account, aborting.' && exit 1; fi",
+    "dev": "bun run dev:sst",
+    "dev:sst": "bun run check-aws-account && bunx sst dev --stage development",
+    "dev:web-v2": "bun --cwd apps/web-v2 dev",
+    "build:web-v2": "bun --cwd apps/web-v2 build",
+    "lint:web-v2": "bun --cwd apps/web-v2 lint",
+    "deploy:prod": "bun run check-aws-account && bunx sst deploy --stage production",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@effect/vitest": "^0.26.0",
