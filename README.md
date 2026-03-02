@@ -97,4 +97,4 @@ Issues and pull requests are welcome.
 
 ## License
 
-MIT — see `LICENSE`.
+This project is licensed under the AGPL-3.0 for non-commercial use.
