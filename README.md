@@ -17,11 +17,11 @@
 
 ## How it works (high level)
 
-- **Web app**: `apps/web-v2` is a Next.js App Router app (React + Tailwind + Radix UI) that serves:
+- **Web app**: `apps/web` is a Next.js App Router app (React + Tailwind + Radix UI) that serves:
   - participant + staff + admin UIs (routed under `/(marathon)/...`)
   - invite/token UIs for jury and voting
-  - a built-in **tRPC** API at `apps/web-v2/src/app/api/trpc/[trpc]/route.ts`
-  - auth routes at `apps/web-v2/src/app/api/auth/[...all]/route.ts` using **better-auth**
+  - a built-in **tRPC** API at `apps/web/src/app/api/trpc/[trpc]/route.ts`
+  - auth routes at `apps/web/src/app/api/auth/[...all]/route.ts` using **better-auth**
 - **API layer**: `packages/api-v2` holds the tRPC router + services used by the web app.
 - **Database**: Postgres via **Drizzle ORM** and Effect SQL (`packages/db`).
 - **Media pipeline on AWS** (SST):
@@ -32,8 +32,7 @@
 
 ## Repo layout
 
-- `apps/web-v2`: primary web app (Next.js)
-- `apps/web`, `apps/api`: legacy apps (not part of the active workspaces)
+- `apps/web`: primary web app (Next.js)
 - `packages/*`: shared libraries (auth, db, api-v2, validation, image manipulation, s3, redis/kv-store, pubsub, email, telemetry)
 - `tasks/*`: background workers (upload processing, validation, contact sheet generation, zip workers/downloaders)
 - `sst.config.ts`: AWS infrastructure (S3 + queues + tasks) using SST
@@ -71,7 +70,7 @@ bun dev:sst
 4. Start the web app
 
 ```bash
-bun dev:web-v2
+bun dev:web
 ```
 
 The web app runs on `http://localhost:3002`.
@@ -83,7 +82,7 @@ Blikka expects configuration for auth, database, Redis, and external services. S
 ## Scripts
 
 - `bun dev:sst`: run SST dev (AWS-backed local dev for infra + workers)
-- `bun dev:web-v2`: run the Next.js app locally (port 3002)
+- `bun dev:web`: run the Next.js app locally (port 3002)
 - `bun format`: format with Prettier
 - `bun test`: run unit tests (Vitest)
 
