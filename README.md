@@ -22,7 +22,7 @@
   - invite/token UIs for jury and voting
   - a built-in **tRPC** API at `apps/web/src/app/api/trpc/[trpc]/route.ts`
   - auth routes at `apps/web/src/app/api/auth/[...all]/route.ts` using **better-auth**
-- **API layer**: `packages/api-v2` holds the tRPC router + services used by the web app.
+- **API layer**: `packages/api` holds the tRPC router + services used by the web app.
 - **Database**: Postgres via **Drizzle ORM** and Effect SQL (`packages/db`).
 - **Media pipeline on AWS** (SST):
   - uploads land in **S3**
@@ -33,7 +33,7 @@
 ## Repo layout
 
 - `apps/web`: primary web app (Next.js)
-- `packages/*`: shared libraries (auth, db, api-v2, validation, image manipulation, s3, redis/kv-store, pubsub, email, telemetry)
+- `packages/*`: shared libraries (auth, db, api, validation, image manipulation, s3, redis/kv-store, pubsub, email, telemetry)
 - `tasks/*`: background workers (upload processing, validation, contact sheet generation, zip workers/downloaders)
 - `sst.config.ts`: AWS infrastructure (S3 + queues + tasks) using SST
 

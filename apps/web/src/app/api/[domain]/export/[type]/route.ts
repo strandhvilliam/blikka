@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import * as XLSX from "xlsx"
 
-import { appRouter, createTRPCContext, createCallerFactory } from "@blikka/api-v2/trpc"
+import { appRouter, createTRPCContext, createCallerFactory } from "@blikka/api/trpc"
 import { serverRuntime } from "@/lib/runtime"
 
 const EXPORT_KEYS = {

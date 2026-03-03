@@ -2,7 +2,7 @@ import { DomainProvider } from "@/lib/domain-provider"
 import { getAppSession } from "@/lib/auth/server"
 import { decodeParams, Layout } from "@/lib/next-utils"
 import { formatDomainPathname } from "@/lib/utils"
-import { getPermissions } from "@blikka/api-v2/trpc/utils"
+import { getPermissions } from "@blikka/api/trpc/utils"
 import { Effect, Option, Schema } from "effect"
 import { redirect, RedirectType } from "next/navigation"
 

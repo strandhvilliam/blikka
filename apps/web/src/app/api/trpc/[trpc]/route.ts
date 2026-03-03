@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server"
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch"
 
-import { appRouter, createTRPCContext } from "@blikka/api-v2/trpc"
+import { appRouter, createTRPCContext } from "@blikka/api/trpc"
 import { serverRuntime } from "@/lib/runtime"
 import { redirect } from "next/navigation"
 

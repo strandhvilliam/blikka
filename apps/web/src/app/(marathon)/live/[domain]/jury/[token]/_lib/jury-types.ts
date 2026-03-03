@@ -1,5 +1,5 @@
 import type { inferRouterOutputs } from "@trpc/server"
-import type { AppRouter } from "@blikka/api-v2/trpc"
+import type { AppRouter } from "@blikka/api/trpc"
 
 type RouterOutputs = inferRouterOutputs<AppRouter>
 

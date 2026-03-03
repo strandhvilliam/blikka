@@ -6,7 +6,7 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { createTRPCClient, httpBatchStreamLink, loggerLink, TRPCLink } from "@trpc/client"
 import { createTRPCContext } from "@trpc/tanstack-react-query"
 
-import type { AppRouter } from "@blikka/api-v2/trpc"
+import type { AppRouter } from "@blikka/api/trpc"
 
 import { createQueryClient } from "./query-client"
 import { useRouter } from "next/navigation"

@@ -23,7 +23,7 @@
     "effect"
   ],
   "scripts": {
-    "check-aws-account": "if [ -z \"$BLIKKA_AWS_ACCOUNT_ID\" ]; then echo 'ℹ️ Skipping AWS account check (set BLIKKA_AWS_ACCOUNT_ID to enforce)'; exit 0; fi; if [ \"$(aws sts get-caller-identity --query 'Account' --output text 2>/dev/null)\" = \"$BLIKKA_AWS_ACCOUNT_ID\" ]; then echo '✅ Correct AWS account'; else echo '❌ Wrong AWS account, aborting.' && exit 1; fi",
+    "check-aws-account": "BLIKKA_AWS_ACCOUNT_ID=${BLIKKA_AWS_ACCOUNT_ID:-$(grep -m1 '^BLIKKA_AWS_ACCOUNT_ID=' .env 2>/dev/null | cut -d'=' -f2-)}; if [ -z \"$BLIKKA_AWS_ACCOUNT_ID\" ]; then echo 'ℹ️ Skipping AWS account check (set BLIKKA_AWS_ACCOUNT_ID to enforce)'; exit 0; fi; if [ \"$(aws sts get-caller-identity --query 'Account' --output text 2>/dev/null)\" = \"$BLIKKA_AWS_ACCOUNT_ID\" ]; then echo '✅ Correct AWS account'; else echo '❌ Wrong AWS account, aborting.' && exit 1; fi",
     "dev": "bun run dev:sst",
     "dev:sst": "bun run check-aws-account && bunx sst dev --stage development",
     "dev:web": "bun --cwd apps/web dev",
@@ -60,8 +60,6 @@
     ]
   },
   "dependencies": {
-    "@number-flow/react": "^0.5.10",
-    "@uidotdev/usehooks": "^2.4.1",
     "sst": "^3.17.19"
   }
 }

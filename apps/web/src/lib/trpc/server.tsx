@@ -7,9 +7,9 @@ import { dehydrate, HydrationBoundary, type QueryFunction } from "@tanstack/reac
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
 import { Data, Effect } from "effect"
 
-import { appRouter, type AppRouter } from "@blikka/api-v2/trpc/routers/_app"
+import { appRouter, type AppRouter } from "@blikka/api/trpc/routers/_app"
 import { createQueryClient } from "./query-client"
-import { createTRPCContext } from "@blikka/api-v2/trpc"
+import { createTRPCContext } from "@blikka/api/trpc"
 import { serverRuntime } from "../runtime"
 
 export class TRPCServerError extends Data.TaggedError("TRPCCServerError")<{

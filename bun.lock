@@ -5,8 +5,6 @@
     "": {
       "name": "vimmer",
       "dependencies": {
-        "@number-flow/react": "^0.5.10",
-        "@uidotdev/usehooks": "^2.4.1",
         "sst": "^3.17.19",
       },
       "devDependencies": {
@@ -24,7 +22,7 @@
       "dependencies": {
         "@aws-sdk/client-s3": "^3.948.0",
         "@aws-sdk/s3-request-presigner": "^3.962.0",
-        "@blikka/api-v2": "workspace:*",
+        "@blikka/api": "workspace:*",
         "@blikka/auth": "workspace:*",
         "@blikka/db": "workspace:*",
         "@blikka/email": "workspace:*",
@@ -134,8 +132,8 @@
         "typescript": "^5",
       },
     },
-    "packages/api-v2": {
-      "name": "@blikka/api-v2",
+    "packages/api": {
+      "name": "@blikka/api",
       "dependencies": {
         "@aws-sdk/client-ecs": "^3.966.0",
         "@blikka/auth": "workspace:*",
@@ -775,7 +773,7 @@
 
     "@better-fetch/fetch": ["@better-fetch/fetch@1.1.21", "", {}, "sha512-/ImESw0sskqlVR94jB+5+Pxjf+xBwDZF/N5+y2/q4EqD7IARUTSpPfIo8uf39SYpCxyOCtbyYpUrZ3F/k0zT4A=="],
 
-    "@blikka/api-v2": ["@blikka/api-v2@workspace:packages/api-v2"],
+    "@blikka/api": ["@blikka/api@workspace:packages/api"],
 
     "@blikka/auth": ["@blikka/auth@workspace:packages/auth"],
 
@@ -1666,8 +1664,6 @@
     "@typescript-eslint/utils": ["@typescript-eslint/utils@8.51.0", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.7.0", "@typescript-eslint/scope-manager": "8.51.0", "@typescript-eslint/types": "8.51.0", "@typescript-eslint/typescript-estree": "8.51.0" }, "peerDependencies": { "eslint": "^8.57.0 || ^9.0.0", "typescript": ">=4.8.4 <6.0.0" } }, "sha512-11rZYxSe0zabiKaCP2QAwRf/dnmgFgvTmeDTtZvUvXG3UuAdg/GU02NExmmIXzz3vLGgMdtrIosI84jITQOxUA=="],
 
     "@typescript-eslint/visitor-keys": ["@typescript-eslint/visitor-keys@8.51.0", "", { "dependencies": { "@typescript-eslint/types": "8.51.0", "eslint-visitor-keys": "^4.2.1" } }, "sha512-mM/JRQOzhVN1ykejrvwnBRV3+7yTKK8tVANVN3o1O0t0v7o+jqdVu9crPy5Y9dov15TJk/FTIgoUGHrTOVL3Zg=="],
-
-    "@uidotdev/usehooks": ["@uidotdev/usehooks@2.4.1", "", { "peerDependencies": { "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-1I+RwWyS+kdv3Mv0Vmc+p0dPYH0DTRAo04HLyXReYBL9AeseDWUJyi4THuksBJcu9F0Pih69Ak150VDnqbVnXg=="],
 
     "@ungap/structured-clone": ["@ungap/structured-clone@1.3.0", "", {}, "sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g=="],
 

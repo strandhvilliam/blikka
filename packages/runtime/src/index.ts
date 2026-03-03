@@ -39,7 +39,7 @@ export type AppRuntime<TAdditional = never> = ManagedRuntime.ManagedRuntime<
 >
 
 export interface RuntimeConfig<TAdditional = never> {
-  /** Additional layers to merge (e.g., AuthLayer, TelemetryLayer, ApiV2Layer) */
+  /** Additional layers to merge (e.g., AuthLayer, TelemetryLayer, ApiLayer) */
   additionalLayers?: Layer.Layer<TAdditional, any, any>
 }
 

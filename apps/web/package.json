@@ -11,7 +11,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
     "@aws-sdk/s3-request-presigner": "^3.962.0",
-    "@blikka/api-v2": "workspace:*",
+    "@blikka/api": "workspace:*",
     "@blikka/auth": "workspace:*",
     "@blikka/db": "workspace:*",
     "@blikka/email": "workspace:*",
