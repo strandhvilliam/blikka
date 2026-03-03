@@ -45,7 +45,7 @@ export function Footer() {
             </div>
 
             {/* Link columns */}
-            <div className="grid grid-cols-3 gap-8">
+            <div className="grid grid-cols-3 gap-4 sm:gap-8">
               {Object.entries(footerLinks).map(([category, links]) => (
                 <div key={category}>
                   <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground">

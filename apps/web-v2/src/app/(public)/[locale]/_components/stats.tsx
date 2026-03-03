@@ -12,7 +12,7 @@ export function Stats() {
     <section className="px-6 py-16 lg:px-12 lg:py-20">
       <FadeIn>
         <div className="mx-auto max-w-7xl ">
-          <div className="gap-32 flex justify-center">
+          <div className="flex justify-center gap-10 sm:gap-20 lg:gap-32">
             {stats.map((stat, index) => (
               <FadeIn key={stat.label} delay={index * 0.1}>
                 <div className="flex flex-col">

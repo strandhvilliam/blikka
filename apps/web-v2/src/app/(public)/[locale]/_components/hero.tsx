@@ -1,12 +1,12 @@
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, CalendarDays } from "lucide-react"
+import { ArrowRight, CalendarDays, Ticket } from "lucide-react"
 import { NoiseOverlay } from "./noise-overlay"
 
 export function Hero() {
   return (
     <div className="bg-background p-3 lg:p-4">
-      <section className="relative flex min-h-[calc(100vh-1.5rem)] overflow-hidden rounded-2xl lg:min-h-[calc(100vh-2rem)] lg:rounded-3xl">
+      <section className="relative flex min-h-[80svh] overflow-hidden rounded-2xl lg:min-h-[calc(100vh-2rem)] lg:rounded-3xl">
         {/* Background image */}
         <div className="absolute inset-0 animate-hero-fade-in-from-bottom">
           <Image
@@ -57,35 +57,47 @@ export function Hero() {
           </div>
         </div>
 
-        {/* Content area - bottom aligned */}
-        <div className="relative z-10 mt-auto flex w-full flex-col px-6 pb-12 pt-48 lg:px-12 lg:pb-16">
+        {/* Content area - vertically centred on mobile, bottom-aligned on desktop */}
+        <div className="relative z-10 mt-auto flex w-full flex-col px-6 pb-10 pt-24 lg:px-12 lg:pb-16 lg:pt-48">
           {/* Oversized brand name */}
-          <h1 className="font-special-gothic -ml-4 text-[clamp(4.5rem,18vw,14rem)] leading-[0.8] tracking-tighter text-white animate-hero-fade-in-from-left [animation-delay:150ms]">
+          <h1 className="font-special-gothic text-center text-[clamp(4.5rem,18vw,14rem)] leading-[0.8] tracking-tighter text-white animate-hero-fade-in-from-left [animation-delay:150ms] sm:-ml-4 sm:text-left">
             blikka
           </h1>
 
           {/* Tagline with accent line */}
           <div className="mt-6 flex items-start gap-4 lg:mt-8 animate-hero-fade-in [animation-delay:250ms]">
-            <p className="max-w-xl text-base leading-relaxed text-white/70 lg:max-w-2xl lg:text-lg">
+            <p className="max-w-xl text-center text-base leading-relaxed text-white/70 sm:text-left lg:max-w-2xl lg:text-lg">
               The simplest way to collect and showcase photo competition entries.
               Built for organizers who care about the creative experience.
             </p>
           </div>
 
           {/* CTA buttons */}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center lg:mt-10 animate-hero-fade-in [animation-delay:350ms]">
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-start lg:mt-10 animate-hero-fade-in [animation-delay:350ms]">
             <Link
               href="#pricing"
-              className="group inline-flex items-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-medium text-brand-white transition-[background-color,gap] duration-200 hover:gap-3 hover:bg-brand-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70"
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-medium text-brand-white transition-[background-color,gap] duration-200 hover:gap-3 hover:bg-brand-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70 sm:w-auto sm:justify-start"
             >
               Book a demo
               <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
             <Link
               href="#how-it-works"
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm text-white/80 transition-colors duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm text-white/80 transition-colors duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70 sm:w-auto sm:justify-start"
             >
               See how it works
+            </Link>
+          </div>
+
+          {/* Mobile-only upcoming event pill */}
+          <div className="mt-5 lg:hidden animate-hero-fade-in [animation-delay:450ms]">
+            <Link
+              href="https://billetto.se/e/stockholm-fotomaraton-2026-biljetter-1361256"
+              className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-black/30 px-4 py-2 text-xs text-white/80 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white"
+            >
+              <Ticket className="h-3.5 w-3.5 text-brand-primary" aria-hidden="true" />
+              Stockholm Fotomaraton 2026 — tickets available
+              <ArrowRight className="h-3 w-3 opacity-60" aria-hidden="true" />
             </Link>
           </div>
         </div>

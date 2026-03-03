@@ -61,7 +61,7 @@ export function HowItWorks() {
             <FadeIn key={index} delay={index * 100}>
               {card.type === "accent" ? (
                 <div >
-                  <div className="flex flex-col justify-between rounded-2xl bg-brand-primary p-6 text-brand-white" style={{ minHeight: "360px" }}>
+                  <div className="flex min-h-[220px] flex-col justify-between rounded-2xl bg-brand-primary p-6 text-brand-white sm:min-h-[360px]">
                     <h3 className="font-gothic text-3xl leading-tight font-normal">
                       {card.title}
                     </h3>
@@ -72,7 +72,7 @@ export function HowItWorks() {
                 </div>
               ) : (
                 <div className="group">
-                  <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: "360px" }}>
+                  <div className="relative min-h-[220px] overflow-hidden rounded-2xl sm:min-h-[360px]">
                     <Image
                       src={card.image!}
                       alt={card.text}
