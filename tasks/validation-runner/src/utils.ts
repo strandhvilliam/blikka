@@ -1,31 +1,31 @@
-import { Data, Effect, Schema } from "effect"
-import { EventBusDetailTypes, FinalizedEventSchema } from "@blikka/bus"
-import { RuleKeySchema, ValidationRule, ValidationRuleSchema } from "@blikka/validation"
-import { RuleConfig } from "@blikka/db"
-import { EventBridgeEvent } from "@effect-aws/lambda"
+import { Schema } from "effect"
 
-export class InvalidBodyError extends Schema.TaggedError<InvalidBodyError>()("InvalidBodyError", {
+export class InvalidBodyError extends Schema.TaggedErrorClass<InvalidBodyError>()("InvalidBodyError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
-}) {}
+}) {
+}
 
-export class JsonParseError extends Schema.TaggedError<JsonParseError>()("JsonParseError", {
+export class JsonParseError extends Schema.TaggedErrorClass<JsonParseError>()("JsonParseError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
-}) {}
+}) {
+}
 
-export class InvalidDataFoundError extends Schema.TaggedError<InvalidDataFoundError>()(
+export class InvalidDataFoundError extends Schema.TaggedErrorClass<InvalidDataFoundError>()(
   "InvalidDataFoundError",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   }
-) {}
+) {
+}
 
-export class InvalidValidationRuleError extends Schema.TaggedError<InvalidValidationRuleError>()(
+export class InvalidValidationRuleError extends Schema.TaggedErrorClass<InvalidValidationRuleError>()(
   "InvalidValidationRuleError",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   }
-) {}
+) {
+}

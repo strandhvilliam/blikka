@@ -6,7 +6,7 @@ import { UploadSessionRepository } from "@blikka/kv-store"
 import { parseFinalizedEvent } from "./utils"
 import { ZipWorker } from "./zip-worker"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { FinalizedEventSchema, EventBusDetailTypes, parseBusEvent } from "@blikka/bus"
+import { FinalizedEventSchema, parseBusEvent } from "@blikka/bus"
 
 class UnableToRunZipHandlerTaskError extends Data.TaggedError("UnableToRunZipHandlerTaskError")<{
   cause?: unknown
@@ -18,10 +18,7 @@ const effectHandler = (event: SQSEvent) =>
     const kvStore = yield* UploadSessionRepository
     yield* Effect.forEach(event.Records, (record) =>
       Effect.gen(function* () {
-        const { domain, reference } = yield* parseBusEvent<
-          typeof EventBusDetailTypes.Finalized,
-          typeof FinalizedEventSchema.Type
-        >(record.body, FinalizedEventSchema)
+        const { domain, reference } = yield* parseBusEvent(record.body, FinalizedEventSchema)
 
         const participantStateOpt = yield* kvStore.getParticipantState(domain, reference)
 
