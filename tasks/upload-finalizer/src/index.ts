@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect"
 import { LambdaHandler } from "@effect-aws/lambda"
 import { PubSubChannel, PubSubLoggerService, RunStateService } from "@blikka/pubsub"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { EventBusDetailTypes, FinalizedEventSchema, parseBusEvent } from "@blikka/bus"
+import { FinalizedEventSchema, parseBusEvent } from "@blikka/bus"
 import { getEnvironment } from "./utils"
 import { UploadFinalizerService } from "./service"
 
@@ -18,10 +18,7 @@ const effectHandler = (event: SQSEvent) =>
     const processSQSRecord = Effect.fn("upload-finalizer.processSQSRecord")(function* (
       record: SQSRecord
     ) {
-      const { domain, reference } = yield* parseBusEvent<
-        typeof EventBusDetailTypes.Finalized,
-        typeof FinalizedEventSchema.Type
-      >(record.body, FinalizedEventSchema)
+      const { domain, reference } = yield* parseBusEvent(record.body, FinalizedEventSchema)
 
       yield* Effect.logInfo(`[${reference}|${domain}] Finalizing participant`)
 
