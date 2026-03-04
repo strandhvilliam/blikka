@@ -1,4 +1,4 @@
-import { Config, Context, Data, Effect, Layer } from "effect"
+import { Config, Data, Effect, Layer, Schema, ServiceMap } from "effect"
 import { Resend, type CreateBatchOptions, type CreateEmailOptions } from "resend"
 import { render } from "@react-email/render"
 import type { ReactElement } from "react"
@@ -14,13 +14,14 @@ export interface SendEmailParams {
   readonly tags?: Array<{ name: string; value: string }>
 }
 
-export class SendEmailError extends Data.TaggedError("EmailError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class SendEmailError extends Schema.TaggedErrorClass<SendEmailError>()("SendEmailError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown)
+}) {
+}
 
-export class EmailService extends Effect.Service<EmailService>()("@blikka/email/email-service", {
-  effect: Effect.gen(function* () {
+export class EmailService extends ServiceMap.Service<EmailService>()("@blikka/email/email-service", {
+  make: Effect.gen(function* () {
     const apiKey = yield* Config.string("RESEND_API_KEY")
     const resend = new Resend(apiKey)
 
@@ -139,6 +140,8 @@ export class EmailService extends Effect.Service<EmailService>()("@blikka/email/
     return {
       send,
       sendBatch,
-    }
+    } as const
   }),
-}) {}
+}) {
+  static readonly layer = Layer.effect(this, this.make)
+}

@@ -1,31 +1,29 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth"
-import { Context, Effect } from "effect"
+import { ServiceMap, Effect, Layer } from "effect"
 import { DrizzleClient } from "@blikka/db"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { EmailService, OTPEmail } from "@blikka/email"
 import { nextCookies } from "better-auth/next-js"
 import { bearer, emailOTP } from "better-auth/plugins"
 
-export class AuthConfig extends Context.Tag("AuthConfig")<
-  AuthConfig,
-  {
-    readonly baseUrl: string
-    readonly secret: string
-    readonly emailConfig: {
-      companyName: string
-      companyLogoUrl: string
-    }
+export class AuthConfig extends ServiceMap.Service<AuthConfig, {
+  readonly baseUrl: string
+  readonly secret: string
+  readonly emailConfig: {
+    companyName: string
+    companyLogoUrl: string
   }
->() {
+}>()("@blikka/auth/auth-config") {
 }
+
+
 
 const isProduction = process.env.NODE_ENV === "production"
 const rootDomain = isProduction ? process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL : "localhost:3002"
-export class BetterAuthService extends Effect.Service<BetterAuthService>()(
+export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
   "@blikka/auth/better-auth-service",
   {
-    dependencies: [DrizzleClient.Default, EmailService.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const authConfig = yield* AuthConfig
       const db = yield* DrizzleClient
       const emailService = yield* EmailService
@@ -94,60 +92,9 @@ export class BetterAuthService extends Effect.Service<BetterAuthService>()(
     }),
   }
 ) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(DrizzleClient.layer, EmailService.layer))
+  )
 }
-
-// export const initAuth = (options: {
-//   baseUrl: string
-//   secret: string
-//   emailConfig: {
-//     companyName: string
-//     companyLogoUrl: string
-//   }
-// }) =>
-//   Effect.gen(function* () {
-//     const db = yield* DrizzleClient
-//     const emailService = yield* EmailService
-
-//     const config = {
-//       database: drizzleAdapter(db, {
-//         provider: "pg",
-//       }),
-//       secret: options.secret,
-//       baseURL: options.baseUrl,
-//       trustedOrigins: ["http://localhost:3002"],
-//       plugins: [
-//         magicLink({
-//           sendMagicLink: async ({ email, token, url }, ctx) => {
-//             console.log("Sending magic link to", email)
-//             await Effect.runPromise(
-//               emailService
-//                 .send({
-//                   to: email,
-//                   subject: magicLinkEmailSubject({
-//                     url,
-//                     email,
-//                   }),
-//                   template: MagicLinkEmail({
-//                     url,
-//                     email,
-//                     companyName: options.emailConfig.companyName,
-//                     companyLogoUrl: options.emailConfig.companyLogoUrl,
-//                   }),
-//                 })
-//                 .pipe(
-//                   Effect.catchAll((error) => {
-//                     console.error("Error sending magic link", error)
-//                     return Effect.succeed(undefined)
-//                   })
-//                 )
-//             )
-//           },
-//         }),
-//         nextCookies(),
-//       ],
-//     } satisfies BetterAuthOptions
-
-//     return betterAuth(config)
-//   })
 
 export type Session = ReturnType<typeof betterAuth>["$Infer"]["Session"]
