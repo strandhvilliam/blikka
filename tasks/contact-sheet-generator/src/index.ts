@@ -2,7 +2,7 @@ import { Effect, Layer } from "effect"
 import { type SQSEvent, LambdaHandler } from "@effect-aws/lambda"
 import { SheetGeneratorService } from "./sheet-generator-service"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { EventBusDetailTypes, FinalizedEventSchema, parseBusEvent } from "@blikka/bus"
+import { FinalizedEventSchema, parseBusEvent } from "@blikka/bus"
 import { PubSubChannel, RunStateService, PubSubLoggerService } from "@blikka/pubsub"
 import { Resource as SSTResource } from "sst"
 import { SQSRecord } from "aws-lambda"
@@ -25,10 +25,7 @@ const effectHandler = (event: SQSEvent) =>
     const processSQSRecord = Effect.fn("ContactSheetGenerator.processSQSRecord")(function* (
       record: SQSRecord
     ) {
-      const { domain, reference } = yield* parseBusEvent<
-        typeof EventBusDetailTypes.Finalized,
-        typeof FinalizedEventSchema.Type
-      >(record.body, FinalizedEventSchema)
+      const { domain, reference } = yield* parseBusEvent(record.body, FinalizedEventSchema)
 
       yield* Effect.logInfo(`[${reference}|${domain}] Generating contact sheet`)
 

@@ -1,7 +1,4 @@
-import { Data, Effect, Schema } from "effect"
-import { type EventBridgeEvent } from "@effect-aws/lambda"
-import type { EventBusDetailTypes } from "./event-types"
-import { FinalizedEventSchema } from "./schemas"
+import { Effect, Schema } from "effect"
 
 export class InvalidBusEventBodyError extends Schema.TaggedErrorClass<InvalidBusEventBodyError>()("InvalidBusEventBodyError", {
   message: Schema.String,
@@ -15,22 +12,22 @@ export class JsonParseError extends Schema.TaggedErrorClass<JsonParseError>()("J
 }) {
 }
 
-export const parseBusEvent = Effect.fn("BlikkaBus.parseBusEvent")(
-  function* <
-    TDetailType extends (typeof EventBusDetailTypes)[keyof typeof EventBusDetailTypes],
-    TDetailSchema,
-  >(input: string, detailSchema: Schema.Schema<TDetailSchema>) {
-    const json = (yield* Effect.try({
+export const parseBusEvent = <S extends Schema.Top>(
+  input: string,
+  detailSchema: S
+) =>
+  Effect.gen(function* () {
+    const json = yield* Effect.try({
       try: () => JSON.parse(input),
       catch: () => new JsonParseError({ message: "JSON parse error" }),
-    })) as EventBridgeEvent<TDetailType, TDetailSchema>
+    })
     return yield* Schema.decodeUnknownEffect(detailSchema)(json.detail)
-  },
-  Effect.mapError(
-    (error) =>
-      new InvalidBusEventBodyError({
+  }).pipe(
+    Effect.withSpan("BlikkaBus.parseBusEvent"),
+    Effect.catch((error) =>
+      Effect.fail(new InvalidBusEventBodyError({
         message: `Failed to parse bus event: ${error.message}`,
-        cause: error
-      })
+        cause: error,
+      }))
+    )
   )
-)

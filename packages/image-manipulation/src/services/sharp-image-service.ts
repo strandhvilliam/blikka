@@ -10,7 +10,7 @@ export class SharpError extends Schema.TaggedErrorClass<SharpError>()("SharpErro
 
 export interface SheetImagePart extends OverlayOptions { }
 
-const makeSharpImage = (image: Buffer) =>
+const makeSharpImage = (image: Uint8Array<ArrayBufferLike>) =>
   Effect.try({
     try: () => sharp(image),
     catch: (error) =>
@@ -25,7 +25,7 @@ export class SharpImageService extends ServiceMap.Service<SharpImageService>()(
   {
     make: Effect.gen(function* () {
       const resize = Effect.fn("SharpImageService.resize")(function* (
-        image: Buffer,
+        image: Uint8Array<ArrayBufferLike>,
         options: { width: number; height?: number; quality?: number }
       ) {
         const sharpImage = yield* makeSharpImage(image)

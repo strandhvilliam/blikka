@@ -1,5 +1,6 @@
 import exifr from "exifr"
-import { ServiceMap, Effect, Schema } from "effect"
+import { ServiceMap, Effect, Schema, Layer } from "effect"
+import { SharpImageService } from "./sharp-image-service"
 
 export class ExifParseError extends Schema.TaggedErrorClass<ExifParseError>()("ExifParserError", {
   message: Schema.String,
@@ -55,6 +56,7 @@ export class ExifParser extends ServiceMap.Service<ExifParser>()(
     }),
   }
 ) {
+  static readonly layer = Layer.effect(this, this.make)
 }
 
 
