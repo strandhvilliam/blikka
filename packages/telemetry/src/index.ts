@@ -1,48 +1,42 @@
+
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http"
-import { BatchLogRecordProcessor, SimpleLogRecordProcessor } from "@opentelemetry/sdk-logs"
+import { SimpleLogRecordProcessor } from "@opentelemetry/sdk-logs"
 import { NodeSdk } from "@effect/opentelemetry"
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http"
-import { BatchSpanProcessor, SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base"
+import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base"
 import {
-  FiberRef,
-  HashSet,
   Effect,
   Layer,
-  Option,
-  HashMap,
   Logger,
-  Context,
-  Tracer,
-  FiberRefs,
 } from "effect"
 
-export const addTraceDataToLoggers = Layer.scopedDiscard(
+export const addTraceDataToLoggers = Layer.effect(
+  Logger.CurrentLoggers,
   Effect.gen(function* () {
-    const currentLoggers = yield* FiberRef.get(FiberRef.currentLoggers)
-    const newLoggers = HashSet.map(
-      currentLoggers,
-      Logger.mapInputOptions((options) => {
-        const span = Context.getOption(
-          FiberRefs.getOrDefault(options.context, FiberRef.currentContext),
-          Tracer.ParentSpan
-        )
-        if (Option.isSome(span)) {
-          const annotations = options.annotations.pipe(
-            HashMap.set("traceId", span.value.traceId as unknown),
-            HashMap.set("spanId", span.value.spanId as unknown)
-          )
-          return {
-            ...options,
-            annotations,
+    const currentLoggers = yield* Effect.service(Logger.CurrentLoggers)
+
+    return new Set(Array.from(currentLoggers).map(logger =>
+      Logger.make((options) => {
+        const span = options.fiber.currentSpan
+        let output = logger.log(options)
+
+        if (span !== undefined && span._tag !== "ExternalSpan") {
+          if (typeof output === "string") {
+            output = `[traceId=${span.traceId} spanId=${span.spanId}] ${output}`
+          } else if (typeof output === "object" && output !== null) {
+            output = {
+              ...output,
+              traceId: span.traceId,
+              spanId: span.spanId
+            }
           }
         }
-        return options
+
+        return output
       })
-    )
-    yield* Effect.locallyScoped(FiberRef.currentLoggers, newLoggers)
+    ))
   })
 )
-
 export const TelemetryLayer = (serviceName: string) =>
   addTraceDataToLoggers.pipe(
     Layer.provideMerge(

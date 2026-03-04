@@ -1,19 +1,18 @@
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
-import { Data, Effect } from "effect"
+import { Schema, Effect, ServiceMap, Layer } from "effect"
 import { Resource as SSTResource } from "sst"
 import { EventBridgeEffectClient } from "./eventbridge-effect-client"
 import { FinalizedEventSchema } from "./schemas"
 import { EventBusDetailTypes } from "./event-types"
 
-export class EventBusError extends Data.TaggedError("EventBusError")<{
-  message?: string
-  cause?: unknown
-}> {
+export class EventBusError extends Schema.TaggedErrorClass<EventBusError>()("EventBusError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {
 }
 
-export class BusService extends Effect.Service<BusService>()("@blikka/bus/bus-service", {
-  dependencies: [EventBridgeEffectClient.Default],
-  effect: Effect.gen(function* () {
+export class BusService extends ServiceMap.Service<BusService>()("@blikka/bus/bus-service", {
+  make: Effect.gen(function* () {
     const eb = yield* EventBridgeEffectClient
 
     const sendFinalizedEvent = Effect.fn("BusService.sendFinalizedEvent")(
@@ -23,7 +22,7 @@ export class BusService extends Effect.Service<BusService>()("@blikka/bus/bus-se
             {
               EventBusName: SSTResource.SubmissionFinalizedBus.name,
               Source: EventBusDetailTypes.Finalized,
-              Detail: JSON.stringify(FinalizedEventSchema.make({ domain, reference })),
+              Detail: JSON.stringify(FinalizedEventSchema.makeUnsafe({ domain, reference })),
               DetailType: EventBusDetailTypes.Finalized,
             },
           ],
@@ -33,17 +32,20 @@ export class BusService extends Effect.Service<BusService>()("@blikka/bus/bus-se
 
         return yield* eb.use(async (eb) => eb.send(command))
       },
-      Effect.catchTag("EventBridgeEffectError", (error) => {
+      Effect.mapError((error) => {
         return new EventBusError({
-          cause: error.cause,
-          message: `Unexpected EventBridge error: ${error.message}`,
+          cause: error,
+          message: "Unexpected EventBridge error",
         })
       })
     )
 
     return {
       sendFinalizedEvent,
-    }
+    } as const
   }),
 }) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(EventBridgeEffectClient.layer),
+  )
 }

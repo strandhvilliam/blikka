@@ -1,20 +1,26 @@
-import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
-import { Config, Console, Data, Effect } from "effect";
+import { EventBridgeClient } from "@aws-sdk/client-eventbridge"
+import { Config, Console, Effect, Schema, ServiceMap, Layer } from "effect"
 
-export class EventBridgeEffectError extends Data.TaggedError(
-  "EventBridgeEffectError",
-)<{
-  message?: string;
-  cause?: unknown;
-}> {}
+export class EventBridgeEffectError extends Schema.TaggedErrorClass<EventBridgeEffectError>()("EventBridgeEffectError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {
+}
 
-export class EventBridgeEffectClient extends Effect.Service<EventBridgeEffectClient>()(
-  "@blikka/packages/s3-service/s3-effect-client",
+export class EventBridgeEffectClient extends ServiceMap.Service<EventBridgeEffectClient>()(
+  "@blikka/bus/eventbridge-effect-client",
   {
-    scoped: Effect.gen(function* () {
-      const region = yield* Config.string("AWS_REGION");
+    make: Effect.gen(function* () {
+      const region = yield* Config.string("AWS_REGION")
 
-      const client = new EventBridgeClient({ region });
+      const client = yield* Effect.acquireRelease(
+        Effect.sync(() => new EventBridgeClient({ region })),
+        (client) => Effect.sync(() => {
+          Console.log("Shutting down EventBridge client")
+          client.destroy()
+        }
+        ),
+      )
 
       const use = <T>(
         fn: (client: EventBridgeClient) => T,
@@ -27,7 +33,7 @@ export class EventBridgeEffectClient extends Effect.Service<EventBridgeEffectCli
                 cause: error,
                 message: "EventBridge.use error (Sync)",
               }),
-          });
+          })
           if (result instanceof Promise) {
             return yield* Effect.tryPromise({
               try: () => result,
@@ -36,18 +42,20 @@ export class EventBridgeEffectClient extends Effect.Service<EventBridgeEffectCli
                   cause: e,
                   message: "EventBridge.use error (Async)",
                 }),
-            });
+            })
           }
-          return result;
-        });
+          return result
+        })
 
       yield* Effect.addFinalizer(() =>
         Console.log("Shutting down EventBridge client"),
-      );
+      )
 
       return {
         use,
-      };
+      } as const
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make)
+}
