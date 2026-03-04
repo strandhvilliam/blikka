@@ -1,5 +1,5 @@
 {
-  "name": "upload-processor",
+  "name": "@blikka/upload-processor",
   "module": "index.ts",
   "type": "module",
   "private": true,
