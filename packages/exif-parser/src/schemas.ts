@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Schema } from "effect"
 
 // const CommonExifSchema = Schema.Struct({
 //   // Camera info
@@ -32,9 +32,6 @@ import { Schema } from "effect";
 //   GPSLongitudeRef: Schema.optional(Schema.String),
 // })
 
-export const ExifSchema = Schema.Record({
-  key: Schema.String,
-  value: Schema.Unknown,
-});
+export const ExifSchema = Schema.Record(Schema.String, Schema.Unknown)
 
-export type ExifData = typeof ExifSchema.Type;
+export type ExifData = typeof ExifSchema.Type
