@@ -1,7 +1,11 @@
-import { Config, Schema, Effect, Layer, Duration, ServiceMap } from "effect"
+import { Config, Schema, Effect, Layer, Duration, ServiceMap, Redacted } from "effect"
 import { PgClient } from "@effect/sql-pg"
-import * as PgDrizzle from "@effect/sql-drizzle/Pg"
+import * as PgDrizzle from 'drizzle-orm/effect-postgres'
 import * as schema from "./schema"
+import { relations } from "./relations"
+import { ConfigError } from "effect/Config"
+import { types } from 'pg'
+
 
 export class DbConnectionError extends Schema.TaggedErrorClass<DbConnectionError>()(
   "DrizzleConnectionError",
@@ -12,22 +16,52 @@ export class DbConnectionError extends Schema.TaggedErrorClass<DbConnectionError
 ) {
 }
 
-const PgLive = PgClient.layerConfig({
-  url: Config.redacted("DATABASE_URL"),
+const PgLive = PgClient.layer({
+  url: Redacted.make(process.env.DATABASE_URL!),
   // Serverless/transaction pooler optimizations
-  prepare: Config.boolean("false").pipe(Config.withDefault(false)),
-  maxConnections: Config.number("DB_POOL_MAX").pipe(Config.withDefault(10)),
-  idleTimeout: Config.duration("DB_IDLE_TIMEOUT").pipe(Config.withDefault(Duration.seconds(5))),
+  maxConnections: 10,
+  idleTimeout: Duration.seconds(5),
+  types: {
+    getTypeParser: (typeId, format) => {
+      // Return raw values for date/time types to let Drizzle handle parsing
+      if ([1184, 1114, 1082, 1186, 1231, 1115, 1185, 1187, 1182].includes(typeId)) {
+        return (val: any) => val
+      }
+      return types.getTypeParser(typeId, format)
+    },
+  },
 })
-export class DrizzleClient extends ServiceMap.Service<DrizzleClient>()("@blikka/db/drizzle-client", {
+
+// Create the DB effect with default services
+const dbEffect = PgDrizzle.make({ relations }).pipe(
+  Effect.provide(PgDrizzle.DefaultServices)
+)
+// Define a DB service tag for dependency injection
+// class DB extends Context.Tag('DB')<DB, Effect.Effect.Success<typeof dbEffect>>() {}
+export class DrizzleClient extends ServiceMap.Service<DrizzleClient>()("@blikka/db/db", {
   make: Effect.gen(function* () {
-    const db = yield* PgDrizzle.make<typeof schema>({
-      schema,
-    })
-    return db
+    return yield* dbEffect
   }),
 }) {
   static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(PgLive)
   )
 }
+
+
+
+
+
+// export class DrizzleClient extends ServiceMap.Service<DrizzleClient>()("@blikka/db/drizzle-client", {
+//   make: Effect.gen(function* () {
+//     const db = yield* PgDrizzle.make<typeof schema>({
+//       schema,
+//       relations,
+//     })
+//     return db
+//   }),
+// }) {
+//   static readonly layer = Layer.effect(this, this.make).pipe(
+//     Layer.provide(PgLive)
+//   )
+// }

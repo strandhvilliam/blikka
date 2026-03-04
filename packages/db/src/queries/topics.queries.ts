@@ -16,7 +16,7 @@ export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
         "TopicsQueries.getTopicsByMarathonId"
       )(function* ({ id }: { id: number }) {
         const result = yield* db.query.topics.findMany({
-          where: eq(topics.marathonId, id),
+          where: { marathonId: id },
           orderBy: (topics, { asc }) => [asc(topics.orderIndex)],
         })
         return result
@@ -25,7 +25,7 @@ export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
       const getTopicsByDomain = Effect.fn("TopicsQueries.getTopicsByDomain")(
         function* ({ domain }: { domain: string }) {
           const result = yield* db.query.marathons.findMany({
-            where: eq(marathons.domain, domain),
+            where: { domain },
             with: {
               topics: true,
             },
@@ -40,7 +40,7 @@ export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
         id: number
       }) {
         const result = yield* db.query.topics.findFirst({
-          where: eq(topics.id, id),
+          where: { id },
         })
         return result ?? null
       })
@@ -77,7 +77,6 @@ export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
           topicIds: number[]
           marathonId: number
         }) {
-          // Update each topic's orderIndex based on its position in the array
           for (let index = 0; index < topicIds.length; index++) {
             const topicId = topicIds[index]
             if (topicId === undefined) {
@@ -89,9 +88,8 @@ export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
               .where(eq(topics.id, topicId))
           }
 
-          // Return the updated topics
           return yield* db.query.topics.findMany({
-            where: eq(topics.marathonId, marathonId),
+            where: { marathonId },
             orderBy: (topics, { asc }) => [asc(topics.orderIndex)],
           })
         }
@@ -164,7 +162,7 @@ export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
       const getScheduledTopics = Effect.fn("TopicQueries.getScheduledTopics")(
         function* () {
           const [result] = yield* db.query.topics.findMany({
-            where: eq(topics.visibility, "scheduled"),
+            where: { visibility: "scheduled" },
             with: {
               marathon: true,
             },

@@ -1,6 +1,6 @@
 import { Effect, Layer, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
-import { participants, submissions, marathons } from "../schema"
+import { participants, submissions } from "../schema"
 import { eq } from "drizzle-orm"
 
 export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikka/db/exports-queries", {
@@ -10,7 +10,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
     const getParticipantsForExport = Effect.fn("ExportsQueries.getParticipantsForExport")(
       function* ({ domain }: { domain: string }) {
         const result = yield* db.query.participants.findMany({
-          where: eq(participants.domain, domain),
+          where: { domain },
           with: {
             competitionClass: true,
             deviceGroup: true,
@@ -43,22 +43,20 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
       domain: string
     }) {
       const marathon = yield* db.query.marathons.findFirst({
-        where: eq(marathons.domain, domain),
+        where: { domain },
       })
 
       if (!marathon) {
         return []
       }
 
-      // Get all participants with their validation results
       const participantsWithValidations = yield* db.query.participants.findMany({
-        where: eq(participants.domain, domain),
+        where: { domain },
         with: {
           validationResults: true,
         },
       })
 
-      // Create a map of validation results by participant and filename
       const validationsByParticipantFile = new Map<string, { passed: number; failed: number }>()
 
       for (const participant of participantsWithValidations) {
@@ -77,7 +75,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
       }
 
       const result = yield* db.query.submissions.findMany({
-        where: eq(submissions.marathonId, marathon.id),
+        where: { marathonId: marathon.id },
         with: {
           participant: {
             with: {
@@ -97,7 +95,6 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
           failed: 0,
         }
 
-        // Extract useful EXIF data if available
         const exifData = s.exif as Record<string, any> | null
         const cameraModel = exifData?.Model || exifData?.CameraModel || ""
         const imageWidth = exifData?.ImageWidth || exifData?.ExifImageWidth || ""
@@ -133,7 +130,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
       domain: string
     }) {
       const marathon = yield* db.query.marathons.findFirst({
-        where: eq(marathons.domain, domain),
+        where: { domain },
       })
 
       if (!marathon) {
@@ -141,7 +138,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
       }
 
       const result = yield* db.query.submissions.findMany({
-        where: eq(submissions.marathonId, marathon.id),
+        where: { marathonId: marathon.id },
         with: {
           participant: true,
           topic: true,
@@ -164,7 +161,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
     const getValidationResultsForExport = Effect.fn("ExportsQueries.getValidationResultsForExport")(
       function* ({ domain, onlyFailed }: { domain: string; onlyFailed?: boolean }) {
         const marathon = yield* db.query.marathons.findFirst({
-          where: eq(marathons.domain, domain),
+          where: { domain },
           with: {
             participants: {
               with: {
@@ -198,7 +195,6 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
 
         for (const participant of marathon.participants) {
           for (const validationResult of participant.validationResults) {
-            // Filter by onlyFailed if specified
             if (onlyFailed && validationResult.outcome !== "failed") {
               continue
             }
@@ -218,7 +214,6 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
           }
         }
 
-        // Remove duplicates based on participant-rule_key-fileName combination
         const uniqueResults = allResults.filter((result, index, array) => {
           const key = `${result.participantId}-${result.ruleKey}-${result.fileName || "global"}`
           return (

@@ -1,7 +1,7 @@
 import { Effect, Layer, Option, ServiceMap } from "effect"
 import { sponsors } from "../schema"
 import { DrizzleClient } from "../drizzle-client"
-import { and, desc, eq } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import type { NewSponsor } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
 
@@ -15,7 +15,7 @@ export class SponsorsQueries extends ServiceMap.Service<SponsorsQueries>()(
         "SponsorsQueries.getSponsorsByMarathonId",
       )(function* ({ marathonId }: { marathonId: number }) {
         const result = yield* db.query.sponsors.findMany({
-          where: eq(sponsors.marathonId, marathonId),
+          where: { marathonId },
         })
         return result
       })
@@ -24,11 +24,8 @@ export class SponsorsQueries extends ServiceMap.Service<SponsorsQueries>()(
         "SponsorsQueries.getLatestSponsorByType",
       )(function* ({ marathonId, type }: { marathonId: number; type: string }) {
         const result = yield* db.query.sponsors.findFirst({
-          where: and(
-            eq(sponsors.marathonId, marathonId),
-            eq(sponsors.type, type),
-          ),
-          orderBy: desc(sponsors.createdAt),
+          where: { marathonId, type },
+          orderBy: { createdAt: "desc" },
         })
         return Option.fromNullishOr(result)
       })
@@ -36,10 +33,7 @@ export class SponsorsQueries extends ServiceMap.Service<SponsorsQueries>()(
       const getSponsorsByType = Effect.fn("SponsorsQueries.getSponsorsByType")(
         function* ({ marathonId, type }: { marathonId: number; type: string }) {
           const result = yield* db.query.sponsors.findMany({
-            where: and(
-              eq(sponsors.marathonId, marathonId),
-              eq(sponsors.type, type),
-            ),
+            where: { marathonId, type },
           })
           return result
         },
@@ -48,7 +42,7 @@ export class SponsorsQueries extends ServiceMap.Service<SponsorsQueries>()(
       const getSponsorById = Effect.fn("SponsorsQueries.getSponsorById")(
         function* ({ id }: { id: number }) {
           const result = yield* db.query.sponsors.findFirst({
-            where: eq(sponsors.id, id),
+            where: { id },
           })
           return Option.fromNullishOr(result)
         },

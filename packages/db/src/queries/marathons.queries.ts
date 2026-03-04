@@ -39,7 +39,7 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
         id: number
       }) {
         const result = yield* db.query.marathons.findFirst({
-          where: eq(marathons.id, id),
+          where: { id },
         })
         return Option.fromNullishOr(result)
       })
@@ -50,7 +50,7 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
         domain: string
       }) {
         const result = yield* db.query.marathons.findFirst({
-          where: eq(marathons.domain, domain),
+          where: { domain },
         })
         return Option.fromNullishOr(result)
       })
@@ -59,7 +59,7 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
         "MarathonsQueries.getMarathonByDomainWithOptions"
       )(function* ({ domain }: { domain: string }) {
         const result = yield* db.query.marathons.findFirst({
-          where: eq(marathons.domain, domain),
+          where: { domain },
           with: {
             competitionClasses: true,
             topics: true,
@@ -149,7 +149,7 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
         id: number
       }) {
         const marathon = yield* db.query.marathons.findFirst({
-          where: eq(marathons.id, id),
+          where: { id },
         })
 
         if (!marathon) {

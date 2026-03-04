@@ -15,7 +15,7 @@ export class DeviceGroupsQueries extends ServiceMap.Service<DeviceGroupsQueries>
         "DeviceGroupsQueries.getDeviceGroupById",
       )(function* ({ id }: { id: number }) {
         const result = yield* db.query.deviceGroups.findFirst({
-          where: eq(deviceGroups.id, id),
+          where: { id },
         })
         return Option.fromNullishOr(result)
       })

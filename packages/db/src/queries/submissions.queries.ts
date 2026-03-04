@@ -1,7 +1,7 @@
 import { Effect, Layer, Option, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
-import { marathons, participants, submissions, zippedSubmissions } from "../schema"
-import { and, eq, inArray } from "drizzle-orm"
+import { submissions, zippedSubmissions } from "../schema"
+import { eq, inArray } from "drizzle-orm"
 import type { NewSubmission, NewZippedSubmission, ZippedSubmission } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
 import { conflictUpdateSetAllColumns } from "../utils"
@@ -16,7 +16,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         "SubmissionsQueries.getAllSubmissionKeysForMarathon"
       )(function* ({ marathonId }: { marathonId: number }) {
         const result = yield* db.query.submissions.findMany({
-          where: eq(submissions.marathonId, marathonId),
+          where: { marathonId },
           columns: {
             key: true,
             thumbnailKey: true,
@@ -33,7 +33,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         id: number
       }) {
         const result = yield* db.query.submissions.findFirst({
-          where: eq(submissions.id, id),
+          where: { id },
         })
 
         return Option.fromNullishOr(result)
@@ -45,7 +45,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         key: string
       }) {
         const result = yield* db.query.submissions.findFirst({
-          where: eq(submissions.key, key),
+          where: { key },
         })
 
         return Option.fromNullishOr(result)
@@ -55,7 +55,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         "SubmissionsQueries.getZippedSubmissionsByDomain"
       )(function* ({ domain }: { domain: string }) {
         const result = yield* db.query.marathons.findFirst({
-          where: eq(marathons.domain, domain),
+          where: { domain },
           with: {
             zippedSubmissions: true,
           },
@@ -86,7 +86,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         "SubmissionsQueries.getZippedSubmissionsByMarathonId"
       )(function* ({ marathonId }: { marathonId: number }) {
         const result = yield* db.query.zippedSubmissions.findMany({
-          where: eq(zippedSubmissions.marathonId, marathonId),
+          where: { marathonId },
         })
 
         return result
@@ -95,7 +95,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       const getManySubmissionsByKeys = Effect.fn("SubmissionsQueries.getManySubmissionsByKeys")(
         function* ({ keys }: { keys: string[] }) {
           const result = yield* db.query.submissions.findMany({
-            where: inArray(submissions.key, keys),
+            where: { key: { in: keys } },
           })
 
           return result
@@ -106,7 +106,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         "SubmissionsQueries.getSubmissionsByParticipantId"
       )(function* ({ participantId }: { participantId: number }) {
         const result = yield* db.query.submissions.findMany({
-          where: eq(submissions.participantId, participantId),
+          where: { participantId },
         })
 
         return result
@@ -124,20 +124,18 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
           }
         }) {
           const marathon = yield* db.query.marathons.findFirst({
-            where: eq(marathons.domain, filters.domain),
+            where: { domain: filters.domain },
           })
 
           if (!marathon) {
             return []
           }
 
-          const conditions = [
-            eq(submissions.marathonId, marathon.id),
-            eq(submissions.status, "uploaded"),
-          ]
-
           const result = yield* db.query.submissions.findMany({
-            where: and(...conditions),
+            where: {
+              marathonId: marathon.id,
+              status: "uploaded",
+            },
             with: {
               participant: {
                 with: {
@@ -216,7 +214,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         }[]
       }) {
         const participant = yield* db.query.participants.findFirst({
-          where: and(eq(participants.reference, reference), eq(participants.domain, domain)),
+          where: { reference, domain },
           with: {
             submissions: {
               with: {
@@ -330,7 +328,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         "SubmissionsQueries.getZippedSubmissionByParticipantRefQuery"
       )(function* ({ domain, participantRef }: { domain: string; participantRef: string }) {
         const participant = yield* db.query.participants.findFirst({
-          where: and(eq(participants.domain, domain), eq(participants.reference, participantRef)),
+          where: { domain, reference: participantRef },
           with: {
             zippedSubmissions: true,
           },

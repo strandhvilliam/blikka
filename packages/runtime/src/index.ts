@@ -8,25 +8,24 @@ import { PubSubService, RunStateService } from "@blikka/pubsub"
 import { S3Service } from "@blikka/s3"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { ValidationEngine } from "@blikka/validation"
-import { SharpImageService, ContactSheetBuilder } from "@blikka/image-manipulation"
-import { ExifParser } from "@blikka/exif-parser"
+import { SharpImageService, ContactSheetBuilder, ExifParser } from "@blikka/image-manipulation"
 import { SMSService } from "@blikka/sms"
 
 // Core layer with all common services
 export const CoreLayer = Layer.mergeAll(
-  DrizzleClient.Default,
-  Database.Default,
-  EmailService.Default,
-  RedisClient.Default,
-  PubSubService.Default,
-  ValidationEngine.Default,
-  S3Service.Default,
-  UploadSessionRepository.Default,
-  SharpImageService.Default,
-  ContactSheetBuilder.Default,
-  ExifParser.Default,
-  RunStateService.Default,
-  SMSService.Default,
+  DrizzleClient.layer,
+  Database.layer,
+  EmailService.layer,
+  RedisClient.layer,
+  PubSubService.layer,
+  ValidationEngine.layer,
+  S3Service.layer,
+  UploadSessionRepository.layer,
+  SharpImageService.layer,
+  ContactSheetBuilder.layer,
+  ExifParser.layer,
+  RunStateService.layer,
+  SMSService.layer,
 )
 
 // Derive CoreServices type from the CoreLayer

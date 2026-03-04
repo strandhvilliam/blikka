@@ -29,7 +29,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         "VotingQueries.getVotingSessionByToken",
       )(function* ({ token }: { token: string }) {
         const result = yield* db.query.votingSession.findFirst({
-          where: eq(votingSession.token, token),
+          where: { token },
           with: {
             marathon: true,
             topic: true,
@@ -42,7 +42,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         "VotingQueries.getPublicMarathonByDomain",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* db.query.marathons.findFirst({
-          where: eq(marathons.domain, domain),
+          where: { domain },
           columns: {
             id: true,
             name: true,
@@ -66,7 +66,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number
       }) {
         const result = yield* db.query.participants.findMany({
-          where: and(eq(participants.marathonId, marathonId)),
+          where: { marathonId },
           with: {
             submissions: true,
           },
@@ -179,10 +179,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number
       }) {
         return yield* db.query.votingSession.findMany({
-          where: and(
-            eq(votingSession.marathonId, marathonId),
-            eq(votingSession.topicId, topicId),
-          ),
+          where: { marathonId, topicId },
           with: {
             participant: {
               columns: {
@@ -210,7 +207,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               },
             },
           },
-          orderBy: [desc(votingSession.createdAt)],
+          orderBy: { createdAt: "desc" },
         })
       })
 
@@ -321,10 +318,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number
       }) {
         const result = yield* db.query.topics.findFirst({
-          where: and(
-            eq(topics.marathonId, marathonId),
-            eq(topics.id, topicId),
-          ),
+          where: { marathonId, id: topicId },
           columns: {
             votingStartsAt: true,
             votingEndsAt: true,
@@ -731,10 +725,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
       }) {
         const offset = (page - 1) * limit
         return yield* db.query.votingSession.findMany({
-          where: and(
-            eq(votingSession.marathonId, marathonId),
-            eq(votingSession.topicId, topicId),
-          ),
+          where: { marathonId, topicId },
           columns: {
             id: true,
             firstName: true,
@@ -767,7 +758,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               },
             },
           },
-          orderBy: [desc(votingSession.createdAt), desc(votingSession.id)],
+          orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
           limit,
           offset,
         })
@@ -785,11 +776,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         sessionId: number
       }) {
         const result = yield* db.query.votingSession.findFirst({
-          where: and(
-            eq(votingSession.id, sessionId),
-            eq(votingSession.marathonId, marathonId),
-            eq(votingSession.topicId, topicId),
-          ),
+          where: { id: sessionId, marathonId, topicId },
           with: {
             marathon: true,
           },
@@ -808,7 +795,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         domain: string
       }) {
         const marathonResult = yield* db.query.marathons.findFirst({
-          where: eq(marathons.domain, domain),
+          where: { domain },
           columns: {
             id: true,
           },
@@ -862,10 +849,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number
       }) {
         const votingSessionResult = yield* db.query.votingSession.findFirst({
-          where: and(
-            eq(votingSession.connectedParticipantId, participantId),
-            eq(votingSession.topicId, topicId),
-          ),
+          where: { connectedParticipantId: participantId, topicId },
           with: {
             submissions: {
               with: {
@@ -891,8 +875,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         "VotingQueries.getVotingSessionByParticipantId",
       )(function* ({ participantId }: { participantId: number }) {
         const result = yield* db.query.votingSession.findFirst({
-          where: eq(votingSession.connectedParticipantId, participantId),
-          orderBy: [desc(votingSession.createdAt)],
+          where: { connectedParticipantId: participantId },
+          orderBy: { createdAt: "desc" },
         })
 
         return Option.fromNullishOr(result)
@@ -908,11 +892,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number
       }) {
         const result = yield* db.query.votingSession.findFirst({
-          where: and(
-            eq(votingSession.connectedParticipantId, participantId),
-            eq(votingSession.topicId, topicId),
-          ),
-          orderBy: [desc(votingSession.createdAt)],
+          where: { connectedParticipantId: participantId, topicId },
+          orderBy: { createdAt: "desc" },
         })
 
         return Option.fromNullishOr(result)
@@ -956,11 +937,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number
       }) {
         const result = yield* db.query.submissions.findMany({
-          where: and(
-            eq(submissions.marathonId, marathonId),
-            eq(submissions.topicId, topicId),
-          ),
-          orderBy: submissions.id,
+          where: { marathonId, topicId },
+          orderBy: { id: "asc" },
           with: {
             participant: {
               columns: {

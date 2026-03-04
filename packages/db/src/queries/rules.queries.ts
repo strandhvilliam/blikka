@@ -1,7 +1,7 @@
 import { Effect, Layer, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
 import type { NewRuleConfig } from "../types"
-import { marathons, ruleConfigs } from "../schema"
+import { ruleConfigs } from "../schema"
 import { eq } from "drizzle-orm"
 import { SqlError } from "@effect/sql/SqlError"
 import { conflictUpdateSetAllColumns, getDefaultRuleConfigs } from "../utils"
@@ -15,7 +15,7 @@ export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
       const getRulesByDomain = Effect.fn("RulesQueries.getRulesByDomain")(
         function* ({ domain }: { domain: string }) {
           const result = yield* db.query.marathons.findFirst({
-            where: eq(marathons.domain, domain),
+            where: { domain },
             with: {
               ruleConfigs: true,
             },
@@ -31,7 +31,7 @@ export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
               }),
             )
             const newResult = yield* db.query.marathons.findFirst({
-              where: eq(marathons.id, result.id),
+              where: { id: result.id },
               with: {
                 ruleConfigs: true,
               },

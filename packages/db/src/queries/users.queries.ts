@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, ServiceMap } from "effect"
 import { and, eq } from "drizzle-orm"
-import { marathons, user, userMarathons } from "../schema"
+import { user, userMarathons } from "../schema"
 import type { NewUser, NewUserMarathonRelation } from "../types"
 import { DrizzleClient } from "../drizzle-client"
 import { SqlError } from "@effect/sql/SqlError"
@@ -15,7 +15,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
       userId: string
     }) {
       const rel = yield* db.query.userMarathons.findMany({
-        where: eq(userMarathons.userId, userId),
+        where: { userId },
         with: {
           marathon: true,
         },
@@ -32,7 +32,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
 
     const getUserById = Effect.fn("UsersQueries.getUserById")(function* ({ id }: { id: string }) {
       const result = yield* db.query.user.findFirst({
-        where: eq(user.id, id),
+        where: { id },
       })
       return Option.fromNullishOr(result)
     })
@@ -43,7 +43,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
       userId: string
     }) {
       const result = yield* db.query.user.findFirst({
-        where: eq(user.id, userId),
+        where: { id: userId },
         with: {
           userMarathons: {
             with: {
@@ -61,7 +61,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
       userId: string
     }) {
       const result = yield* db.query.userMarathons.findMany({
-        where: eq(userMarathons.userId, userId),
+        where: { userId },
         with: {
           marathon: true,
         },
@@ -73,7 +73,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
     const getUserByEmailWithMarathons = Effect.fn("UsersQueries.getUserByEmailWithMarathons")(
       function* ({ email }: { email: string }) {
         const result = yield* db.query.user.findFirst({
-          where: eq(user.email, email),
+          where: { email },
           with: {
             userMarathons: true,
           },
@@ -88,7 +88,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
       domain: string
     }) {
       const result = yield* db.query.marathons.findFirst({
-        where: eq(marathons.domain, domain),
+        where: { domain },
         with: {
           userMarathons: {
             with: {
@@ -108,7 +108,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
       domain: string
     }) {
       const marathon = yield* db.query.marathons.findFirst({
-        where: eq(marathons.domain, domain),
+        where: { domain },
         columns: { id: true },
       })
 
@@ -117,10 +117,10 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
       }
 
       const result = yield* db.query.user.findFirst({
-        where: eq(user.id, staffId),
+        where: { id: staffId },
         with: {
           userMarathons: {
-            where: eq(userMarathons.marathonId, marathon.id),
+            where: { marathonId: marathon.id },
           },
           participantVerifications: {
             with: {

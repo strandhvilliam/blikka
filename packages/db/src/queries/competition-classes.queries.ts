@@ -15,7 +15,7 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
         "CompetitionClassesQueries.getCompetitionClassById"
       )(function* ({ id }: { id: number }) {
         const result = yield* db.query.competitionClasses.findFirst({
-          where: eq(competitionClasses.id, id),
+          where: { id },
         })
         return Option.fromNullishOr(result)
       })

@@ -1,7 +1,7 @@
 import { Effect, Layer, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
-import { and, eq, notInArray, lt } from "drizzle-orm"
-import { marathons, participants, participantVerifications, validationResults } from "../schema"
+import { and, notInArray, eq } from "drizzle-orm"
+import { participantVerifications, validationResults } from "../schema"
 import type { NewParticipantVerification, NewValidationResult, ValidationResult } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
 
@@ -15,7 +15,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
         "ValidationsQueries.getValidationResultsByParticipantId"
       )(function* ({ participantId }: { participantId: number }) {
         const result = yield* db.query.validationResults.findMany({
-          where: eq(validationResults.participantId, participantId),
+          where: { participantId },
         })
 
         return result
@@ -25,7 +25,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
         "ValidationsQueries.getValidationResultsByDomain"
       )(function* ({ domain }: { domain: string }) {
         const result = yield* db.query.marathons.findFirst({
-          where: eq(marathons.domain, domain),
+          where: { domain },
           with: {
             participants: {
               with: { submissions: true, validationResults: true },
@@ -63,8 +63,8 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
       }) {
         const result = yield* db.query.participantVerifications.findMany({
           where: cursor
-            ? and(eq(participantVerifications.staffId, staffId), lt(participantVerifications.id, cursor))
-            : eq(participantVerifications.staffId, staffId),
+            ? { staffId, id: { lt: cursor } }
+            : { staffId },
           with: {
             participant: {
               with: {
@@ -127,7 +127,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
         data: Omit<NewValidationResult, "participantId">[]
       }) {
         const participant = yield* db.query.participants.findFirst({
-          where: and(eq(participants.domain, domain), eq(participants.reference, reference)),
+          where: { domain, reference },
         })
 
         if (!participant) {
@@ -138,7 +138,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
         }
 
         const existingValidationResults = yield* db.query.validationResults.findMany({
-          where: eq(validationResults.participantId, participant.id),
+          where: { participantId: participant.id },
         })
 
         const existingValidationResultsMap = new Map(

@@ -4,14 +4,8 @@ import { participants, submissions, validationResults } from "../schema"
 import {
   eq,
   and,
-  lt,
-  gt,
-  desc,
-  asc,
   or,
-  ilike,
   inArray,
-  notInArray,
 } from "drizzle-orm"
 import type { NewParticipant } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
@@ -27,7 +21,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         "ParticipantsQueries.getParticipantByIdQuery",
       )(function* ({ id }: { id: number }) {
         const result = yield* db.query.participants.findFirst({
-          where: eq(participants.id, id),
+          where: { id },
           with: {
             submissions: true,
             competitionClass: true,
@@ -50,10 +44,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         domain: string
       }) {
         const result = yield* db.query.participants.findFirst({
-          where: and(
-            eq(participants.reference, reference),
-            eq(participants.domain, domain),
-          ),
+          where: { reference, domain },
           with: {
             submissions: {
               with: {
@@ -101,62 +92,53 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         const cursorId = cursor ? parseInt(cursor, 10) : undefined
         const isValidCursor = cursorId !== undefined && !isNaN(cursorId)
 
-        const baseConditions = [eq(participants.domain, domain)]
+        const baseConditions: any[] = [{ domain }]
 
         if (isValidCursor) {
           if (sortOrder === "desc") {
-            baseConditions.push(lt(participants.id, cursorId!))
+            baseConditions.push({ id: { lt: cursorId! } })
           } else {
-            baseConditions.push(gt(participants.id, cursorId!))
+            baseConditions.push({ id: { gt: cursorId! } })
           }
         }
 
         if (competitionClassId !== undefined) {
           if (Array.isArray(competitionClassId)) {
-            const ids: number[] = [...competitionClassId]
-            baseConditions.push(inArray(participants.competitionClassId, ids))
+            baseConditions.push({ competitionClassId: { in: [...competitionClassId] } })
           } else {
-            baseConditions.push(
-              eq(participants.competitionClassId, competitionClassId as number),
-            )
+            baseConditions.push({ competitionClassId: competitionClassId as number })
           }
         }
 
         if (deviceGroupId !== undefined) {
           if (Array.isArray(deviceGroupId)) {
-            const ids: number[] = [...deviceGroupId]
-            baseConditions.push(inArray(participants.deviceGroupId, ids))
+            baseConditions.push({ deviceGroupId: { in: [...deviceGroupId] } })
           } else {
-            baseConditions.push(
-              eq(participants.deviceGroupId, deviceGroupId as number),
-            )
+            baseConditions.push({ deviceGroupId: deviceGroupId as number })
           }
         }
 
         if (search && search.trim().length > 0) {
           const searchPattern = `%${search.trim()}%`
-          const searchCondition = or(
-            ilike(participants.reference, searchPattern),
-            ilike(participants.firstname, searchPattern),
-            ilike(participants.lastname, searchPattern),
-            ilike(participants.email, searchPattern),
-          )
-          if (searchCondition) {
-            baseConditions.push(searchCondition)
-          }
+          baseConditions.push({
+            OR: [
+              { reference: { ilike: searchPattern } },
+              { firstname: { ilike: searchPattern } },
+              { lastname: { ilike: searchPattern } },
+              { email: { ilike: searchPattern } },
+            ],
+          })
         }
 
         if (statusFilter) {
-          baseConditions.push(eq(participants.status, statusFilter))
+          baseConditions.push({ status: statusFilter })
         }
 
         if (excludeStatuses && excludeStatuses.length > 0) {
-          baseConditions.push(notInArray(participants.status, excludeStatuses))
+          baseConditions.push({ status: { notIn: excludeStatuses } })
         }
 
         if (hasValidationErrors) {
-          // Filter participants that have validation results with outcome = "failed" and (severity = "error" OR severity = "warning")
-          // First, get participant IDs that have validation errors for this domain
           const participantsWithErrors = yield* db
             .selectDistinct({ participantId: validationResults.participantId })
             .from(validationResults)
@@ -180,21 +162,16 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           )
 
           if (participantIdsWithErrors.length === 0) {
-            // If no participants have validation errors, return empty result
             return {
               participants: [],
               nextCursor: null,
             }
           }
 
-          baseConditions.push(
-            inArray(participants.id, participantIdsWithErrors),
-          )
+          baseConditions.push({ id: { in: participantIdsWithErrors } })
         }
 
         if (topicId !== undefined) {
-          // Filter participants to only those who have uploaded at least one
-          // submission for the requested topic.
           const participantsWithTopicSubmissions = yield* db
             .selectDistinct({ participantId: submissions.participantId })
             .from(submissions)
@@ -216,18 +193,15 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
             }
           }
 
-          baseConditions.push(
-            inArray(participants.id, participantIdsWithTopicSubmissions),
-          )
+          baseConditions.push({ id: { in: participantIdsWithTopicSubmissions } })
         }
 
-        const whereConditions =
-          baseConditions.length > 1
-            ? and(...baseConditions)
-            : baseConditions[0]
+        const whereCondition = baseConditions.length === 1
+          ? baseConditions[0]
+          : { AND: baseConditions }
 
         const participant = yield* db.query.participants.findMany({
-          where: whereConditions,
+          where: whereCondition,
           columns: {
             phoneHash: false,
             phoneEncrypted: false,
@@ -243,7 +217,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
                     topicId: true,
                     createdAt: true,
                   },
-                  where: eq(submissions.topicId, topicId),
+                  where: { topicId },
                 },
               }
               : {}),
@@ -269,13 +243,9 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
             },
           },
           limit: limit + 1,
-          orderBy:
-            sortOrder === "desc"
-              ? [desc(participants.id)]
-              : [asc(participants.id)],
+          orderBy: sortOrder === "desc" ? { id: "desc" } : { id: "asc" },
         })
 
-        //TODO: can optimize this to a single query with some sql magic
         function countValidationResults(
           validations: { outcome: string; severity: string }[],
           outcome: string,
@@ -295,7 +265,6 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         let nextCursor: string | null = null
         let participantsToReturn = participant
 
-        // If we got more than the limit, there's a next page
         if (participant.length > limit) {
           participantsToReturn = participant.slice(0, limit)
           const lastParticipant =
@@ -491,7 +460,6 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           return { updatedCount: 0, failedIds: [] }
         }
 
-        // Only verify participants with status = "completed"
         const results = yield* db
           .update(participants)
           .set({ status: "verified" })
