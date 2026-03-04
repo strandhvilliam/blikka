@@ -13,6 +13,6 @@
   },
   "dependencies": {
     "@blikka/redis": "workspace:*",
-    "effect": "^3.18.4"
+    "effect": "catalog:"
   }
 }

@@ -1,13 +1,12 @@
-import { Chunk, Console, Data, Duration, Effect, Queue, Schedule, Schema, Stream } from "effect"
+import { Cause, Chunk, Console, Data, Duration, Effect, Layer, Queue, Schedule, Schema, ServiceMap, Stream } from "effect"
 import { RedisClient, RedisError } from "@blikka/redis"
 import { PubSubChannel, PubSubMessage } from "./schema"
 import { ChannelParseError, PubSubError } from "./utils"
 
-export class PubSubService extends Effect.Service<PubSubService>()(
+export class PubSubService extends ServiceMap.Service<PubSubService>()(
   "@blikka/pubsub/pubsub-service",
   {
-    dependencies: [RedisClient.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const redis = yield* RedisClient
 
       const publish = Effect.fn("PubSubService.publish")(
@@ -24,8 +23,8 @@ export class PubSubService extends Effect.Service<PubSubService>()(
       )
 
       const subscribe = (channel: PubSubChannel) =>
-        Stream.asyncPush<PubSubMessage, ChannelParseError | PubSubError | RedisError, never>(
-          Effect.fnUntraced(function* (emit) {
+        Stream.callback<PubSubMessage, ChannelParseError | PubSubError | RedisError>(
+          Effect.fnUntraced(function* (queue) {
             const channelString = yield* PubSubChannel.toString(channel)
 
             const subscription = yield* Effect.acquireRelease(
@@ -39,7 +38,7 @@ export class PubSubService extends Effect.Service<PubSubService>()(
                       message: "Failed to unsubscribe from channel",
                     }),
                 }).pipe(
-                  Effect.catchAll((error) =>
+                  Effect.catch((error) =>
                     Effect.logError("Failed to unsubscribe from channel", error)
                   )
                 )
@@ -49,28 +48,16 @@ export class PubSubService extends Effect.Service<PubSubService>()(
               if (data.message instanceof Error) {
                 Console.error("Error in pmessage", data.message.message)
               }
-              emit.single(data.message)
+              Queue.offerUnsafe(queue, data.message)
             })
             subscription.on("error", (error) =>
-              emit.fail(
-                new PubSubError({ cause: error, message: "Failed to subscribe to channel" })
+              Queue.failCauseUnsafe(
+                queue,
+                Cause.fail(
+                  new PubSubError({ cause: error, message: "Failed to subscribe to channel" })
+                )
               )
             )
-
-            // yield* Effect.addFinalizer(() =>
-            //   Effect.tryPromise({
-            //     try: () => subscription.unsubscribe(),
-            //     catch: (error) =>
-            //       new RedisError({
-            //         cause: error,
-            //         message: "Failed to unsubscribe from channel",
-            //       }),
-            //   }).pipe(
-            //     Effect.catchAll((error) =>
-            //       Effect.logError("Failed to unsubscribe from channel", error)
-            //     )
-            //   )
-            // )
           })
         )
 
@@ -80,4 +67,8 @@ export class PubSubService extends Effect.Service<PubSubService>()(
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(RedisClient.layer)
+  )
+}

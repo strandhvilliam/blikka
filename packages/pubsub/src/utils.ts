@@ -1,10 +1,12 @@
-import { Data } from "effect"
-export class PubSubError extends Data.TaggedError("PubSubError")<{
-  message?: string
-  cause?: unknown
-}> {}
+import { Schema } from "effect"
+export class PubSubError extends Schema.TaggedErrorClass<PubSubError>()("PubSubError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {
+}
 
-export class ChannelParseError extends Data.TaggedError("ChannelParseError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class ChannelParseError extends Schema.TaggedErrorClass<ChannelParseError>()("ChannelParseError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {
+}

@@ -1,4 +1,4 @@
-import { Effect, Config, Console, Schema } from "effect"
+import { Effect, Config, Console, Schema, ServiceMap, Layer } from "effect"
 import { PubSubService } from "./pubsub-service"
 import { PubSubChannel, PubSubMessage } from "./schema"
 
@@ -6,7 +6,7 @@ export const RunStateEventSchema = Schema.Struct({
   domain: Schema.NullOr(Schema.String),
   reference: Schema.NullOr(Schema.String),
   orderIndex: Schema.NullOr(Schema.Number),
-  state: Schema.Literal("start", "end", "once"),
+  state: Schema.Literals(["start", "end", "once"]),
   taskName: Schema.String,
   timestamp: Schema.Number,
   error: Schema.NullOr(Schema.String),
@@ -15,11 +15,10 @@ export const RunStateEventSchema = Schema.Struct({
 
 export type RunStateEvent = Schema.Schema.Type<typeof RunStateEventSchema>
 
-export class RunStateService extends Effect.Service<RunStateService>()(
+export class RunStateService extends ServiceMap.Service<RunStateService>()(
   "@blikka/pubsub/run-state-service",
   {
-    dependencies: [PubSubService.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const pubsub = yield* PubSubService
 
       const sendRunStateEvent = Effect.fn("RunStateService.sendRunStateEvent")(function* (
@@ -52,7 +51,7 @@ export class RunStateService extends Effect.Service<RunStateService>()(
         return yield* pubsub
           .publish(channel, message)
           .pipe(
-            Effect.catchAll((error) => Effect.logError(`Failed to publish ${state} event`, error))
+            Effect.catch((error) => Effect.logError(`[${taskName}:${channel.identifier}] Failed to publish ${state} event`, error))
           )
       })
 
@@ -83,7 +82,7 @@ export class RunStateService extends Effect.Service<RunStateService>()(
                   ...metadata,
                   error: error instanceof Error ? error.message : String(error),
                   duration,
-                }).pipe(Effect.catchAll(Effect.logError))
+                }).pipe(Effect.catch((error) => Effect.logError(`[${taskName}:${channel.identifier}] Failed to publish end event`, error)))
                 return yield* Effect.fail(error)
               })
             ),
@@ -93,7 +92,7 @@ export class RunStateService extends Effect.Service<RunStateService>()(
                 yield* sendRunStateEvent(taskName, channel, "end", {
                   ...metadata,
                   duration,
-                }).pipe(Effect.catchAll(Effect.logError))
+                }).pipe(Effect.catch((error) => Effect.logError(`[${taskName}:${channel.identifier}] Failed to publish end event`, error)))
                 return yield* Effect.succeed(result)
               })
             )
@@ -106,4 +105,8 @@ export class RunStateService extends Effect.Service<RunStateService>()(
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(PubSubService.layer)
+  )
+}

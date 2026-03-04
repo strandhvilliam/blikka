@@ -1,42 +1,39 @@
-import { Console, Effect, Layer, Logger, Runtime } from "effect"
+import { Effect, Layer, Logger, ServiceMap } from "effect"
 import { PubSubService } from "./pubsub-service"
 import { PubSubChannel, PubSubMessage } from "./schema"
 
 export const makePubSubLogger = (taskName: string) =>
-  Layer.unwrapEffect(
+  Logger.layer([
     Effect.gen(function* () {
       const pubsub = yield* PubSubService
 
-      const streamLogger = Logger.make(({ logLevel, message }) => {
+      return Logger.make(({ logLevel, message }) => {
         const timestamp = new Date().toISOString()
-        const level = logLevel.label
-        const logMessage = `[${timestamp}] ${level}: ${message}`
+        const logMessage = `[${timestamp}] ${logLevel}: ${message}`
 
         Effect.runFork(
           Effect.gen(function* () {
             const channel = yield* PubSubChannel.fromString(`dev:logger:${taskName}`)
             const msg = yield* PubSubMessage.create(channel, logMessage)
-            const result = yield* pubsub.publish(channel, msg)
-            return result
+            return yield* pubsub.publish(channel, msg)
           }).pipe(
-            Effect.catchAll((error) => {
-              return Console.error("Failed to publish log message", error)
+            Effect.catch((error) => {
+              return Effect.logError("Failed to publish log message", error)
             })
           )
         )
       })
-
-      const combinedLogger = Logger.zip(Logger.defaultLogger, streamLogger)
-      return Logger.replace(Logger.defaultLogger, combinedLogger)
     })
-  ).pipe(Layer.provide(PubSubService.Default))
+  ], { mergeWithExisting: true }).pipe(Layer.provide(PubSubService.layer))
 
-export class PubSubLoggerService extends Effect.Service<PubSubLoggerService>()(
+export class PubSubLoggerService extends ServiceMap.Service<PubSubLoggerService>()(
   "@blikka/pubsub/logger",
   {
-    effect: Effect.succeed({}),
+    make: Effect.succeed({}),
   }
 ) {
+  static readonly layer = Layer.effect(this, this.make)
+
   static withTaskName(taskName: string) {
     return makePubSubLogger(taskName)
   }
