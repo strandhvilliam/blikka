@@ -1,4 +1,4 @@
-import { Effect, Option, Schedule, Duration, Schema } from "effect"
+import { Effect, Option, Schedule, Duration, Schema, ServiceMap, Layer } from "effect"
 import { RedisClient } from "@blikka/redis"
 import { KeyFactory } from "../key-factory"
 import { atomicIncrementCompletedScript } from "../lua-scripts/atomic-increment-completed-script"
@@ -14,8 +14,8 @@ import {
   type DownloadProcessStatus,
 } from "../schema"
 
-const CHUNK_TTL_SECONDS = 21600 
-const PROCESS_TTL_SECONDS = 172800 
+const CHUNK_TTL_SECONDS = 21600
+const PROCESS_TTL_SECONDS = 172800
 const ACTIVE_PROCESS_TTL_SECONDS = 172800
 
 const AtomicIncrementResultSchema = Schema.Struct({
@@ -34,11 +34,10 @@ interface AtomicIncrementResult {
 
 const decodeStringArray = Schema.decodeSync(StringArrayFromString)
 
-export class DownloadStateRepository extends Effect.Service<DownloadStateRepository>()(
+export class DownloadStateRepository extends ServiceMap.Service<DownloadStateRepository>()(
   "@blikka/packages/kv-store/download-state-repository",
   {
-    dependencies: [RedisClient.Default, KeyFactory.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const redis = yield* RedisClient
       const keyFactory = yield* KeyFactory
 
@@ -78,8 +77,7 @@ export class DownloadStateRepository extends Effect.Service<DownloadStateReposit
           return Option.none<ChunkState>()
         }
 
-        const state = yield* Schema.decodeUnknown(ChunkStateSchema)(result)
-        return Option.some(state)
+        return Schema.decodeUnknownOption(ChunkStateSchema)(result)
       }, Effect.retry(retryPolicy))
 
       // --- Download Process State (using HASH) ---
@@ -121,8 +119,7 @@ export class DownloadStateRepository extends Effect.Service<DownloadStateReposit
           return Option.none<DownloadProcessState>()
         }
 
-        const state = yield* Schema.decodeUnknown(DownloadProcessStateSchema)(result)
-        return Option.some(state)
+        return Schema.decodeUnknownOption(DownloadProcessStateSchema)(result)
       }, Effect.retry(retryPolicy))
 
       const updateDownloadProcess = Effect.fn("DownloadStateRepository.updateDownloadProcess")(
@@ -193,7 +190,7 @@ export class DownloadStateRepository extends Effect.Service<DownloadStateReposit
         }
 
         // Parse JSON string returned from Lua script
-        const parsed = yield* Schema.decodeUnknown(AtomicIncrementResultSchema)(
+        const parsed = Schema.decodeUnknownSync(AtomicIncrementResultSchema)(
           typeof result === "string" ? JSON.parse(result) : result
         )
         return parsed as AtomicIncrementResult
@@ -222,8 +219,7 @@ export class DownloadStateRepository extends Effect.Service<DownloadStateReposit
             return yield* Effect.fail(new Error(`Download process not found: ${processId}`))
           }
 
-          // Parse JSON string returned from Lua script
-          const parsed = yield* Schema.decodeUnknown(AtomicIncrementResultSchema)(
+          const parsed = Schema.decodeUnknownSync(AtomicIncrementResultSchema)(
             typeof result === "string" ? JSON.parse(result) : result
           )
           return parsed as AtomicIncrementResult
@@ -278,7 +274,7 @@ export class DownloadStateRepository extends Effect.Service<DownloadStateReposit
       )(function* (domain: string) {
         const key = keyFactory.activeDownloadProcess(domain)
         const result = yield* redis.use((client) => client.get<string | null>(key))
-        return Option.fromNullable(result)
+        return Option.fromNullishOr(result)
       }, Effect.retry(retryPolicy))
 
       const setActiveProcessForDomain = Effect.fn(
@@ -360,4 +356,11 @@ export class DownloadStateRepository extends Effect.Service<DownloadStateReposit
       } as const
     }),
   }
-) {}
+) {
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      RedisClient.layer,
+      KeyFactory.layer,
+    ))
+  )
+}

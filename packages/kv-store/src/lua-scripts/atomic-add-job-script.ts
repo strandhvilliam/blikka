@@ -1,16 +1,16 @@
 import { Schema } from "effect";
-import { defineScript,lua } from "upstash-lua";
+import { defineScript, lua } from "upstash-lua";
 import { NumberToStringSchema } from "./utils";
 
 export const atomicAddJobScript = defineScript({
   name: "atomicAddJob",
   keys: {
-    key: Schema.standardSchemaV1(Schema.String),
+    key: Schema.toStandardSchemaV1(Schema.String),
   },
   args: {
-    jobId: Schema.standardSchemaV1(Schema.String),
-    now: Schema.standardSchemaV1(Schema.String),
-    ttl: Schema.standardSchemaV1(NumberToStringSchema),
+    jobId: Schema.toStandardSchemaV1(Schema.String),
+    now: Schema.toStandardSchemaV1(Schema.String),
+    ttl: Schema.toStandardSchemaV1(NumberToStringSchema),
   },
   lua: ({ KEYS, ARGV }) => lua`
     local key = ${KEYS.key}
@@ -49,5 +49,5 @@ export const atomicAddJobScript = defineScript({
 
     return status
   `,
-  returns: Schema.standardSchemaV1(Schema.NullOr(Schema.String)),
+  returns: Schema.toStandardSchemaV1(Schema.NullOr(Schema.String)),
 })

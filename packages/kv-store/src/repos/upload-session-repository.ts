@@ -1,26 +1,22 @@
-import { Duration, Effect, Option, Schedule, Schema } from "effect"
+import { Duration, Effect, Layer, Option, Schedule, Schema, ServiceMap, Struct } from "effect"
 import { RedisClient, RedisError } from "@blikka/redis"
-import { NodeFileSystem } from "@effect/platform-node"
 import { KeyFactory } from "../key-factory"
 import {
-  ExifStateSchema,
   IncrementResultSchema,
   makeInitialParticipantState,
   makeInitialSubmissionState,
   ParticipantStateSchema,
   SubmissionStateSchema,
-  type ExifState,
   type ParticipantState,
   type SubmissionState,
 } from "../schema"
 import { parseKey } from "../utils"
 import { luaIncrement } from "../lua-scripts/lua-increment"
 
-export class UploadSessionRepository extends Effect.Service<UploadSessionRepository>()(
+export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRepository>()(
   "@blikka/packages/kv-store/upload-session-repository",
   {
-    dependencies: [NodeFileSystem.layer, RedisClient.Default, KeyFactory.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const redis = yield* RedisClient
       const keyFactory = yield* KeyFactory
 
@@ -110,7 +106,7 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
               })
             })
           )
-        const code = yield* Schema.decodeUnknown(IncrementResultSchema)(result)
+        const code = Schema.decodeUnknownSync(IncrementResultSchema)(result)
 
         switch (code) {
           case "INVALID_ORDER_INDEX":
@@ -149,8 +145,8 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
           }
 
 
-          const parsed = yield* Schema.decodeUnknown(ParticipantStateSchema)(result)
-          return Option.some<ParticipantState>(parsed)
+          const parsed = Schema.decodeUnknownOption(ParticipantStateSchema)(result)
+          return parsed
         }
       )
 
@@ -165,8 +161,8 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
         if (result === null) {
           return Option.none<SubmissionState>()
         }
-        const parsed = yield* Schema.decodeUnknown(SubmissionStateSchema)(result)
-        return Option.some<SubmissionState>(parsed)
+        const parsed = Schema.decodeUnknownOption(SubmissionStateSchema)(result)
+        return parsed
       })
 
       const getAllSubmissionStates = Effect.fn("UploadSessionRepository.getAllSubmissionStates")(
@@ -183,7 +179,7 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
             return multi.exec<([string, Record<string, unknown>] | null)[]>()
           })
 
-          const parsed = yield* Schema.decodeUnknown(Schema.Array(SubmissionStateSchema))(result)
+          const parsed = Schema.decodeUnknownSync(Schema.Array(SubmissionStateSchema))(result)
 
           return parsed
         }
@@ -193,7 +189,7 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
         "UploadSessionRepository.updateParticipantSession"
       )(function* (domain: string, ref: string, state: Partial<ParticipantState>) {
         const key = keyFactory.participant(domain, ref)
-        const encodedState = yield* Schema.encode(Schema.partial(ParticipantStateSchema))(state)
+        const encodedState = yield* Schema.encodeEffect(ParticipantStateSchema.mapFields(Struct.map(Schema.optional)))(state)
         return yield* redis.use((client) => client.hset(key, encodedState))
       })
 
@@ -206,7 +202,7 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
         ) {
           const formattedOrderIndex = (Number(orderIndex) + 1).toString().padStart(2, "0")
           const key = keyFactory.submission(domain, ref, formattedOrderIndex)
-          const encodedState = yield* Schema.encode(Schema.partial(SubmissionStateSchema))(state)
+          const encodedState = yield* Schema.encodeEffect(SubmissionStateSchema.mapFields(Struct.map(Schema.optional)))(state)
           return yield* redis.use((client) => client.hset(key, encodedState))
         }
       )
@@ -224,4 +220,10 @@ export class UploadSessionRepository extends Effect.Service<UploadSessionReposit
     }),
   }
 ) {
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      RedisClient.layer,
+      KeyFactory.layer,
+    ))
+  )
 }

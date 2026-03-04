@@ -1,14 +1,13 @@
-import { Effect, Schema, Option, Schedule, Duration } from "effect"
+import { Effect, Schema, Option, Schedule, Duration, ServiceMap, Layer } from "effect"
 import { KeyFactory } from "../key-factory"
 import { RedisClient } from "@blikka/redis"
 import { NodeFileSystem } from "@effect/platform-node"
 import { ExifStateSchema, type ExifState } from "../schema"
 
-export class ExifKVRepository extends Effect.Service<ExifKVRepository>()(
+export class ExifKVRepository extends ServiceMap.Service<ExifKVRepository>()(
   "@blikka/packages/kv-store/exif-kv-repository",
   {
-    dependencies: [KeyFactory.Default, RedisClient.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const redis = yield* RedisClient
       const keyFactory = yield* KeyFactory
 
@@ -22,8 +21,8 @@ export class ExifKVRepository extends Effect.Service<ExifKVRepository>()(
         if (result === null) {
           return Option.none<ExifState>()
         }
-        const parsed = yield* Schema.decodeUnknown(ExifStateSchema)(result)
-        return Option.some<ExifState>(parsed)
+        const parsed = Schema.decodeUnknownOption(ExifStateSchema)(result)
+        return parsed
       })
 
       const getAllExifStates = Effect.fn("ExifKVRepository.getAllExifStates")(
@@ -35,7 +34,7 @@ export class ExifKVRepository extends Effect.Service<ExifKVRepository>()(
             keyFactory.exif(domain, ref, formattedOrderIndex)
           )
           const data = yield* redis.use((client) => client.mget(keys))
-          const parsed = yield* Schema.decodeUnknown(Schema.Array(ExifStateSchema))(data)
+          const parsed = Schema.decodeUnknownSync(Schema.Array(ExifStateSchema))(data)
 
           const result = formattedOrderIndexes.map((formattedOrderIndex, index) => {
             return {
@@ -46,13 +45,11 @@ export class ExifKVRepository extends Effect.Service<ExifKVRepository>()(
 
           return result
         },
-        Effect.orElse(() =>
-          Effect.succeed(
-            [] as {
-              orderIndex: number
-              exif: { readonly [x: string]: unknown }
-            }[]
-          )
+        Effect.orElseSucceed(() =>
+          [] as {
+            orderIndex: number
+            exif: { readonly [x: string]: unknown }
+          }[]
         )
       )
 
@@ -74,4 +71,11 @@ export class ExifKVRepository extends Effect.Service<ExifKVRepository>()(
       }
     }),
   }
-) {}
+) {
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      RedisClient.layer,
+      KeyFactory.layer,
+    ))
+  )
+}

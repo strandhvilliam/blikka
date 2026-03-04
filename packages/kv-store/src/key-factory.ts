@@ -1,9 +1,9 @@
-import { Effect } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 
-export class KeyFactory extends Effect.Service<KeyFactory>()(
+export class KeyFactory extends ServiceMap.Service<KeyFactory>()(
   "@blikka/packages/redis-store/key-factory",
   {
-    sync: () => ({
+    make: Effect.sync(() => ({
       submission: (domain: string, ref: string, formattedOrderIndex: string) =>
         `submission:${domain}:${ref}:${formattedOrderIndex}`,
       exif: (domain: string, ref: string, formattedOrderIndex: string) =>
@@ -14,6 +14,8 @@ export class KeyFactory extends Effect.Service<KeyFactory>()(
       downloadStateFiles: (jobId: string) => `download-state:${jobId}:files`,
       downloadProcess: (processId: string) => `download-process:${processId}`,
       activeDownloadProcess: (domain: string) => `active-download-process:${domain}`,
-    }),
+    })),
   }
-) {}
+) {
+  static layer = Layer.effect(this, this.make)
+}

@@ -1,13 +1,12 @@
-import { Effect, Option, Schedule, Duration, Schema } from "effect"
+import { Effect, Option, Schedule, Duration, Schema, ServiceMap, Layer } from "effect"
 import { KeyFactory } from "../key-factory"
 import { RedisClient } from "@blikka/redis"
 import { makeInitialZipProgress } from "../schema"
 
-export class ZipKVRepository extends Effect.Service<ZipKVRepository>()(
+export class ZipKVRepository extends ServiceMap.Service<ZipKVRepository>()(
   "@blikka/packages/kv-store/zip-kv-repository",
   {
-    dependencies: [RedisClient.Default, KeyFactory.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const redis = yield* RedisClient
       const keyFactory = yield* KeyFactory
 
@@ -15,7 +14,7 @@ export class ZipKVRepository extends Effect.Service<ZipKVRepository>()(
         function* (domain: string, ref: string) {
           const key = keyFactory.zipProgress(domain, ref)
           const result = yield* redis.use((client) => client.get<string | null>(key))
-          return Option.fromNullable(result)
+          return Option.fromNullishOr(result)
         },
         Effect.retryOrElse(
           Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
@@ -72,4 +71,11 @@ export class ZipKVRepository extends Effect.Service<ZipKVRepository>()(
       } as const
     }),
   }
-) {}
+) {
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      RedisClient.layer,
+      KeyFactory.layer,
+    ))
+  )
+}

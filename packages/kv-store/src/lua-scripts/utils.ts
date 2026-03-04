@@ -1,7 +1,11 @@
-import { Schema } from "effect";
+import { Schema, SchemaTransformation } from "effect"
 
-export const NumberToStringSchema = Schema.transform(Schema.Number, Schema.String, 
-  { 
-  encode: (s) => Number(s), 
-  decode: (n) => String(n)
-})
+export const NumberToStringSchema = Schema.Number.pipe(
+  Schema.decodeTo(
+    Schema.String,
+    SchemaTransformation.transform({
+      encode: (s) => Number(s),
+      decode: (n) => String(n),
+    }),
+  ),
+)

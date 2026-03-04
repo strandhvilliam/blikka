@@ -1,10 +1,12 @@
-import { Data, Effect } from "effect"
+import { Data, Effect, Schema } from "effect"
 
-export class InvalidKeyFormatError extends Data.TaggedError(
-  "InvalidKeyFormatError"
-)<{
-  message?: string
-}> {}
+export class InvalidKeyFormatError extends Schema.TaggedErrorClass<InvalidKeyFormatError>()(
+  "InvalidKeyFormatError",
+  {
+    message: Schema.String,
+  }
+) {
+}
 
 export const parseKey = Effect.fn("utils.parseKey")(function* (key: string) {
   const [domain, reference, formattedOrderIndex, fileName] = key.split("/")

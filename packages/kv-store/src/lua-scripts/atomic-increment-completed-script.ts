@@ -1,18 +1,18 @@
 import { Schema } from "effect";
-import { defineScript,lua } from 'upstash-lua'
+import { defineScript, lua } from 'upstash-lua'
 import { NumberToStringSchema } from "./utils";
 
 export const atomicIncrementCompletedScript = defineScript({
   name: "atomicIncrementCompleted",
   keys: {
-    key: Schema.standardSchemaV1(Schema.String),
+    key: Schema.toStandardSchemaV1(Schema.String),
   },
   args: {
-    totalChunks: Schema.standardSchemaV1(
+    totalChunks: Schema.toStandardSchemaV1(
       NumberToStringSchema
     ),
-    now: Schema.standardSchemaV1(Schema.String),
-    ttl: Schema.standardSchemaV1(NumberToStringSchema),
+    now: Schema.toStandardSchemaV1(Schema.String),
+    ttl: Schema.toStandardSchemaV1(NumberToStringSchema),
   },
   lua: ({ KEYS, ARGV }) => lua`
     local key = ${KEYS.key}
@@ -53,5 +53,5 @@ export const atomicIncrementCompletedScript = defineScript({
       status = status
     })
   `,
-  returns: Schema.standardSchemaV1(Schema.NullOr(Schema.String))
+  returns: Schema.toStandardSchemaV1(Schema.NullOr(Schema.String))
 })

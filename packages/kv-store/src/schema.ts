@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Schema, SchemaTransformation } from "effect";
 
 // ============================================================================
 // Redis Hash Encoding Strategy
@@ -22,36 +22,15 @@ import { Schema } from "effect";
  * Encoded: "a,b,c" | ""
  * Decoded: ["a", "b", "c"] | []
  */
-export const StringArrayFromString = Schema.transform(
-  Schema.String,
+export const StringArrayFromString = Schema.String.pipe(Schema.decodeTo(
   Schema.Array(Schema.String),
-  {
-    strict: true,
-    decode: (s) => (s === "" ? [] : s.split(",")),
+  SchemaTransformation.transform({
+    decode: (s) => (s === "" ? [] as readonly string[] : s.split(",") as readonly string[]),
     encode: (arr) => arr.join(","),
-  },
-);
+  }),
+));
 
-/**
- * Transform for JSON arrays stored as strings in Redis.
- * Encoded: '[]' | '[{"id":1}]'
- * Decoded: [] | [{ id: 1 }]
- */
-function JsonArrayFromString<A, I, R>(itemSchema: Schema.Schema<A, I, R>) {
-  return Schema.transform(Schema.String, Schema.Array(itemSchema), {
-    strict: true,
-    decode: (s) => {
-      if (s === "" || s === "[]") return [];
-      try {
-        const parsed = JSON.parse(s);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    },
-    encode: (arr) => JSON.stringify(arr),
-  });
-}
+
 
 // ----------------------------------------------------------------------------
 // Upload/Submission Schemas (used with JSON storage, not HASH)
@@ -66,7 +45,7 @@ export const SubmissionStateSchema = Schema.Struct({
 });
 
 export const makeInitialSubmissionState = (key: string, orderIndex: number) =>
-  SubmissionStateSchema.make({
+  SubmissionStateSchema.makeUnsafe({
     key,
     uploaded: false,
     orderIndex,
@@ -90,7 +69,7 @@ export const makeInitialParticipantState = (
   expectedCount: number,
   orderIndexes: number[],
 ) =>
-  ParticipantStateSchema.make({
+  ParticipantStateSchema.makeUnsafe({
     expectedCount,
     orderIndexes,
     processedIndexes: Array.from({ length: expectedCount }, () => 0),
@@ -102,19 +81,19 @@ export const makeInitialParticipantState = (
     checkedAt: null,
   });
 
-export const ExifStateSchema = Schema.Record({
-  key: Schema.String,
-  value: Schema.Unknown,
-});
+export const ExifStateSchema = Schema.Record(
+  Schema.String,
+  Schema.Unknown,
+);
 
-export const IncrementResultSchema = Schema.Literal(
+export const IncrementResultSchema = Schema.Literals([
   "FINALIZED",
   "PROCESSED_SUBMISSION",
   "DUPLICATE_ORDER_INDEX",
   "ALREADY_FINALIZED",
   "INVALID_ORDER_INDEX",
   "MISSING_DATA",
-);
+]);
 
 export const ZipProgressSchema = Schema.Struct({
   progress: Schema.Number,
@@ -124,7 +103,7 @@ export const ZipProgressSchema = Schema.Struct({
 });
 
 export const makeInitialZipProgress = (zipKey: string) =>
-  ZipProgressSchema.make({
+  ZipProgressSchema.makeUnsafe({
     progress: 0,
     status: "pending",
     errors: [],
@@ -135,13 +114,13 @@ export const makeInitialZipProgress = (zipKey: string) =>
 // Download State Schemas (stored as Redis HASH - all values are strings)
 // ----------------------------------------------------------------------------
 
-export const DownloadProcessStatusSchema = Schema.Literal(
+export const DownloadProcessStatusSchema = Schema.Literals([
   "initializing",
   "processing",
   "completed",
   "failed",
   "cancelled",
-);
+]);
 
 /**
  * Competition class info stored in the download process.
