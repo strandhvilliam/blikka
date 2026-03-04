@@ -6,7 +6,7 @@ import type { BetterAuthService, Session } from "@blikka/auth"
 import type { CoreServices } from "@blikka/runtime"
 import { ApiLayer } from "../layer"
 
-type ApiServices = Layer.Layer.Success<typeof ApiLayer>
+type ApiServices = Layer.Success<typeof ApiLayer>
 
 export type TRPCRequiredServices = CoreServices | ApiServices | BetterAuthService
 

@@ -1,24 +1,25 @@
-import { Effect, Array, Data, Option, Config } from "effect"
+import { Effect, Array, Data, Option, Config, ServiceMap, Schema, Layer } from "effect"
 import { Database } from "@blikka/db"
 import { DownloadStateRepository } from "@blikka/kv-store"
 import { S3Service } from "@blikka/s3"
 import { type AwsVpcConfiguration, ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs"
 import { ZipFilesApiError } from "./schemas"
 
-class UnableToRunZipDownloaderTaskError extends Data.TaggedError(
-  "UnableToRunZipDownloaderTaskError"
-)<{
-  cause?: unknown
-}> {}
+class UnableToRunZipDownloaderTaskError extends Schema.TaggedErrorClass<UnableToRunZipDownloaderTaskError>()(
+  "@blikka/api/UnableToRunZipDownloaderTaskError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {
+}
 
 const MAX_PARTICIPANTS_PER_ZIP = 200
 
-export class ZipFilesApiService extends Effect.Service<ZipFilesApiService>()(
+export class ZipFilesApiService extends ServiceMap.Service<ZipFilesApiService>()(
   "@blikka/api/ZipFilesApiService",
   {
-    accessors: true,
-    dependencies: [Database.Default, DownloadStateRepository.Default, S3Service.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
       const downloadStateRepository = yield* DownloadStateRepository
       const s3Service = yield* S3Service
@@ -391,14 +392,8 @@ export class ZipFilesApiService extends Effect.Service<ZipFilesApiService>()(
 
                       const cluster = yield* Config.string("AWS_CLUSTER")
                       const region = yield* Config.string("AWS_REGION")
-                      const subnets = yield* Config.string("AWS_SUBNETS").pipe(
-                        Effect.map((str) =>
-                          str
-                            .split(",")
-                            .map((s: string) => s.trim())
-                            .filter(Boolean)
-                        )
-                      )
+                      const subnetsRaw = yield* Config.string("AWS_SUBNETS")
+                      const subnets = subnetsRaw.split(",").map((s: string) => s.trim()).filter(Boolean)
 
                       const taskDefinition = yield* Config.string("ZIP_DOWNLOADER_TASK_DEFINITION")
 
@@ -438,7 +433,7 @@ export class ZipFilesApiService extends Effect.Service<ZipFilesApiService>()(
                               },
                             })
                           ),
-                        catch: (error) => new UnableToRunZipDownloaderTaskError({ cause: error }),
+                        catch: (error) => new UnableToRunZipDownloaderTaskError({ message: "Failed to trigger zip downloader task", cause: error }),
                       }).pipe(
                         Effect.tapError((error) =>
                           Effect.logError({
@@ -493,4 +488,12 @@ export class ZipFilesApiService extends Effect.Service<ZipFilesApiService>()(
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      Database.layer,
+      DownloadStateRepository.layer,
+      S3Service.layer,
+    ))
+  )
+}

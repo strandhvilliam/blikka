@@ -91,7 +91,7 @@ export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(functi
   const result = yield* redis
     .use((client) => client.get<Permission[] | null>(`permissions:${userId}`))
     .pipe(
-      Effect.map(Option.fromNullable),
+      Effect.map(Option.fromNullishOr),
       Effect.tapError((error) =>
         Effect.logError("Error getting cached permissions: " + error.message)
       )
@@ -104,7 +104,6 @@ export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(functi
     Effect.tapError((error) =>
       Effect.logError("Error getting user with marathons: " + error.message)
     ),
-    Effect.catchAll(() => Effect.succeed(Option.none()))
   )
   if (Option.isNone(userWithMarathons)) {
     return []
@@ -122,7 +121,7 @@ export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(functi
   yield* redis
     .use((client) => client.set(`permissions:${userId}`, permissions, { ex: 60 * 5 }))
     .pipe(
-      Effect.catchAll((error) => Effect.logError("Error caching permissions: " + error.message))
+      Effect.tapError((error) => Effect.logError("Error caching permissions: " + error.message))
     )
   return permissions
 })
