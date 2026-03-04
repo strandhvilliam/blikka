@@ -1,31 +1,27 @@
-import { Effect } from "effect";
-import { SingleValidationsService } from "./single-validations-service";
-import { RULE_KEYS } from "./constants";
-import { type ValidationRule, type ValidationInput, ValidationFailure } from "./types";
-import { GroupedValidationsService } from "./grouped-validations-service";
+import { Effect, Layer, ServiceMap } from "effect"
+import { SingleValidationsService } from "./single-validations-service"
+import { RULE_KEYS } from "./constants"
+import { type ValidationRule, type ValidationInput, ValidationFailure } from "./types"
+import { GroupedValidationsService } from "./grouped-validations-service"
 import {
   createFailureResult,
   createPassedResult,
   createSkippedResult,
   parseRuleParams,
-} from "./utils";
+} from "./utils"
 
-export class ValidationEngine extends Effect.Service<ValidationEngine>()(
+export class ValidationEngine extends ServiceMap.Service<ValidationEngine>()(
   "@blikka/packages/validation/ValidationEngine",
   {
-    dependencies: [
-      SingleValidationsService.Default,
-      GroupedValidationsService.Default,
-    ],
-    effect: Effect.gen(function* () {
-      const singleValidationService = yield* SingleValidationsService;
-      const multipleValidationService = yield* GroupedValidationsService;
+    make: Effect.gen(function* () {
+      const singleValidationService = yield* SingleValidationsService
+      const multipleValidationService = yield* GroupedValidationsService
 
       const executeRule = (rule: ValidationRule, inputs: ValidationInput[]) =>
         Effect.gen(function* () {
           switch (rule.ruleKey) {
             case RULE_KEYS.MAX_FILE_SIZE: {
-              const params = yield* parseRuleParams(rule.ruleKey, rule.params);
+              const params = yield* parseRuleParams(rule.ruleKey, rule.params)
               const results = yield* Effect.forEach(inputs, (input) =>
                 singleValidationService
                   .validateMaxFileSize(params.max_file_size, input)
@@ -35,11 +31,11 @@ export class ValidationEngine extends Effect.Service<ValidationEngine>()(
                       createFailureResult(rule, error, input),
                     ),
                   ),
-              );
-              return results;
+              )
+              return results
             }
             case RULE_KEYS.ALLOWED_FILE_TYPES: {
-              const params = yield* parseRuleParams(rule.ruleKey, rule.params);
+              const params = yield* parseRuleParams(rule.ruleKey, rule.params)
               const results = yield* Effect.forEach(inputs, (input) =>
                 singleValidationService
                   .validateAllowedFileTypes(params.allowed_file_types, input)
@@ -52,12 +48,12 @@ export class ValidationEngine extends Effect.Service<ValidationEngine>()(
                       createSkippedResult(rule, error, input),
                     ),
                   ),
-              );
-              return results;
+              )
+              return results
             }
             case RULE_KEYS.WITHIN_TIMERANGE: {
 
-              const params = yield* parseRuleParams(rule.ruleKey, rule.params);
+              const params = yield* parseRuleParams(rule.ruleKey, rule.params)
 
               const results = yield* Effect.forEach(inputs, (input) =>
                 singleValidationService
@@ -71,11 +67,11 @@ export class ValidationEngine extends Effect.Service<ValidationEngine>()(
                       createSkippedResult(rule, error, input),
                     ),
                   ),
-              );
-              return results;
+              )
+              return results
             }
             case RULE_KEYS.STRICT_TIMESTAMP_ORDERING: {
-              const params = yield* parseRuleParams(rule.ruleKey, rule.params);
+              const params = yield* parseRuleParams(rule.ruleKey, rule.params)
               const results = yield* multipleValidationService
                 .validateStrictTimestampOrdering(
                   params.strict_timestamp_ordering,
@@ -89,11 +85,11 @@ export class ValidationEngine extends Effect.Service<ValidationEngine>()(
                   Effect.catchTag("ValidationSkipped", (error) =>
                     createSkippedResult(rule, error),
                   ),
-                );
-              return [results];
+                )
+              return [results]
             }
             case RULE_KEYS.SAME_DEVICE: {
-              const params = yield* parseRuleParams(rule.ruleKey, rule.params);
+              const params = yield* parseRuleParams(rule.ruleKey, rule.params)
               const results = yield* multipleValidationService
                 .validateSameDevice(params.same_device, inputs)
                 .pipe(
@@ -104,11 +100,11 @@ export class ValidationEngine extends Effect.Service<ValidationEngine>()(
                   Effect.catchTag("ValidationSkipped", (error) =>
                     createSkippedResult(rule, error),
                   ),
-                );
-              return [results];
+                )
+              return [results]
             }
             case RULE_KEYS.MODIFIED: {
-              const params = yield* parseRuleParams(rule.ruleKey, rule.params);
+              const params = yield* parseRuleParams(rule.ruleKey, rule.params)
               const results = yield* Effect.forEach(inputs, (input) =>
                 singleValidationService
                   .validateModified(params.modified, input)
@@ -118,35 +114,41 @@ export class ValidationEngine extends Effect.Service<ValidationEngine>()(
                       createFailureResult(rule, error, input),
                     ),
                   ),
-              );
-              return results;
+              )
+              return results
             }
             default: {
               return yield* new ValidationFailure({
                 ruleKey: rule.ruleKey,
                 message: "Rule not found",
-              });
+              })
             }
           }
-        });
+        })
 
       const runValidations = (
         rules: ValidationRule[],
         inputs: ValidationInput[],
       ) =>
         Effect.gen(function* () {
-          const enabledRules = rules.filter((rule) => rule.enabled);
+          const enabledRules = rules.filter((rule) => rule.enabled)
 
           const results = yield* Effect.forEach(enabledRules, (rule) =>
             executeRule(rule, inputs),
-          );
-          return results.flat();
-        });
+          )
+          return results.flat()
+        })
 
       return {
         runValidations,
-      };
+      }
     }),
   },
 ) {
+  static layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      SingleValidationsService.layer,
+      GroupedValidationsService.layer,
+    ))
+  )
 }

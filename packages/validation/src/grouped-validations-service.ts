@@ -1,13 +1,13 @@
-import { Effect, Option } from "effect"
+import { Effect, Layer, Option, ServiceMap } from "effect"
 import type { RuleParams, ValidationInput } from "./types"
 import { RULE_KEYS } from "./constants"
 import { getTimestamp, getDeviceIdentifier } from "./utils"
 import { ValidationFailure, ValidationSkipped } from "./types"
 
-export class GroupedValidationsService extends Effect.Service<GroupedValidationsService>()(
+export class GroupedValidationsService extends ServiceMap.Service<GroupedValidationsService>()(
   "@blikka/packages/validation/GroupedValidationsService",
   {
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const validateStrictTimestampOrdering = (
         _: RuleParams["strict_timestamp_ordering"],
         inputs: ValidationInput[]
@@ -126,4 +126,6 @@ export class GroupedValidationsService extends Effect.Service<GroupedValidations
       }
     }),
   }
-) {}
+) {
+  static layer = Layer.effect(this, this.make)
+}

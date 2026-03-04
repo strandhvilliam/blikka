@@ -1,5 +1,5 @@
-import { RuleParamsSchema, ValidationResultSchema } from "./schemas";
-import { Effect, Schema, Option } from "effect";
+import { RuleParamsSchema, ValidationResultSchema } from "./schemas"
+import { Effect, Schema, Option, Struct } from "effect"
 import {
   type RuleKey,
   ValidationFailure,
@@ -7,11 +7,11 @@ import {
   type ValidationResult,
   type ValidationRule,
   ValidationSkipped,
-} from "./types";
-import { RULE_KEYS,
-  VALIDATION_OUTCOME } from "./constants";
+} from "./types"
+import {
+  VALIDATION_OUTCOME } from "./constants"
 
-export class ValidationParamError extends Schema.TaggedError<ValidationParamError>()(
+export class ValidationParamError extends Schema.TaggedErrorClass<ValidationParamError>()(
   "ValidationParamError",
   {
     message: Schema.String,
@@ -20,54 +20,54 @@ export class ValidationParamError extends Schema.TaggedError<ValidationParamErro
 }
 
 export const parseRuleParams = <K extends RuleKey>(key: K, params: unknown) =>
-  Effect.gen(function*() {
+  Effect.gen(function* () {
 
 
-    return yield* Schema.decodeUnknown(RuleParamsSchema.pick(key))(params).pipe(
+    return yield* Schema.decodeUnknownEffect(RuleParamsSchema.mapFields(Struct.pick([key])))(params).pipe(
       Effect.mapError(
         (error) => new ValidationParamError({ message: error.message }),
       ),
-    );
-  });
+    )
+  })
 
 export const getTimestamp = (
   exif: Record<string, unknown>,
 ): Option.Option<Date> =>
-  Option.fromNullable(
+  Option.fromNullishOr(
     exif.DateTimeOriginal ?? exif.DateTimeDigitized ?? exif.CreateDate,
   ).pipe(
     Option.filter((timestamp) => typeof timestamp === "string" || timestamp instanceof Date),
     Option.flatMap((timestamp) => {
-      const date = new Date(timestamp);
-      return isNaN(date.getTime()) ? Option.none() : Option.some(date);
+      const date = new Date(timestamp)
+      return isNaN(date.getTime()) ? Option.none() : Option.some(date)
     }),
-  );
+  )
 
 export const getDeviceIdentifier = (
   exif: Record<string, unknown>,
 ): Option.Option<string> =>
-  Option.fromNullable(exif.Model).pipe(
+  Option.fromNullishOr(exif.Model).pipe(
     Option.filter((m): m is string => typeof m === "string"),
     Option.map((model) => {
       if (exif.Make && typeof exif.Make === "string") {
         const serial =
           exif.SerialNumber && typeof exif.SerialNumber === "string"
             ? `-${exif.SerialNumber}`
-            : "";
-        return `${exif.Make}-${model}${serial}`;
+            : ""
+        return `${exif.Make}-${model}${serial}`
       }
-      return model;
+      return model
     }),
-  );
+  )
 
 export const getExtensionFromFilename = (
   filename: string,
 ): Option.Option<string> => {
-  const match = filename.match(/\.([^.]+)$/);
-  return Option.fromNullable(match?.[1]).pipe(
+  const match = filename.match(/\.([^.]+)$/)
+  return Option.fromNullishOr(match?.[1]).pipe(
     Option.map((extension) => extension.toLowerCase().replace(/^\./, "")),
-  );
-};
+  )
+}
 
 export const createFailureResult = (
   rule: ValidationRule,
@@ -75,7 +75,7 @@ export const createFailureResult = (
   input?: ValidationInput,
 ): Effect.Effect<ValidationResult> =>
   Effect.succeed(
-    ValidationResultSchema.make({
+    ValidationResultSchema.makeUnsafe({
       outcome: VALIDATION_OUTCOME.FAILED,
       ruleKey: rule.ruleKey,
       message: error.message,
@@ -84,7 +84,7 @@ export const createFailureResult = (
       orderIndex: input?.orderIndex,
       isGeneral: !input,
     }),
-  );
+  )
 
 export const createSkippedResult = (
   rule: ValidationRule,
@@ -92,7 +92,7 @@ export const createSkippedResult = (
   input?: ValidationInput,
 ): Effect.Effect<ValidationResult> =>
   Effect.succeed(
-    ValidationResultSchema.make({
+    ValidationResultSchema.makeUnsafe({
       outcome: VALIDATION_OUTCOME.SKIPPED,
       ruleKey: rule.ruleKey,
       message: error.reason,
@@ -101,14 +101,14 @@ export const createSkippedResult = (
       orderIndex: input?.orderIndex,
       isGeneral: !input,
     }),
-  );
+  )
 
 export const createPassedResult = (
   rule: ValidationRule,
   input?: ValidationInput,
 ): Effect.Effect<ValidationResult> =>
   Effect.succeed(
-    ValidationResultSchema.make({
+    ValidationResultSchema.makeUnsafe({
       outcome: VALIDATION_OUTCOME.PASSED,
       ruleKey: rule.ruleKey,
       message: `${rule.ruleKey} validation passed`,
@@ -117,4 +117,4 @@ export const createPassedResult = (
       orderIndex: input?.orderIndex,
       isGeneral: !input,
     }),
-  );
+  )
