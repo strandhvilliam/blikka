@@ -1,16 +1,14 @@
-import { Effect, Layer, Schema } from "effect"
+import { Config, Effect, Layer } from "effect"
 import { ZipWorker } from "./zip-worker"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubChannel, PubSubLoggerService, RunStateService } from "@blikka/pubsub"
-import { Resource as SSTResource } from "sst"
 import { InvalidArgumentsError } from "./utils"
-import { BunRuntime } from "@effect/platform-bun"
 
 const mainLayer = Layer.mergeAll(
-  ZipWorker.Default,
-  UploadSessionRepository.Default,
-  RunStateService.Default,
+  ZipWorker.layer,
+  UploadSessionRepository.layer,
+  RunStateService.layer,
   PubSubLoggerService.withTaskName("zip-worker"),
   TelemetryLayer("blikka-dev-zip-worker")
 )
@@ -23,8 +21,8 @@ const getEnvironment = (stage: string): "prod" | "dev" | "staging" => {
 
 const parseArguments = Effect.fn("ZipWorker.parseArguments")(
   function* () {
-    const domain = yield* Schema.Config("ARG_DOMAIN", Schema.String)
-    const reference = yield* Schema.Config("ARG_REFERENCE", Schema.String)
+    const domain = yield* Config.string("ARG_DOMAIN")
+    const reference = yield* Config.string("ARG_REFERENCE")
     return { domain, reference }
   },
   Effect.mapError(
@@ -39,30 +37,30 @@ const runnable = Effect.gen(function* () {
 
   const { domain, reference } = yield* parseArguments()
 
-  const channel = yield* PubSubChannel.fromString(
-    `${environment}:upload-flow:${domain}-${reference}`
-  )
-
-  yield* Effect.logInfo(`[${reference}|${domain}] Running zip task`)
-
-  const runZipTaskEffect = handler.runZipTask(domain, reference).pipe(
-    Effect.tap(() => Effect.logInfo(`[${reference}|${domain}] Zip task completed`)),
-    Effect.tapError((error) =>
-      Effect.logError(`[${reference}|${domain}] Error running zip task`, error.message)
+  return yield* Effect.gen(function* () {
+    const channel = yield* PubSubChannel.fromString(
+      `${environment}:upload-flow:${domain}-${reference}`
     )
-  )
 
-  yield* runStateService
-    .withRunStateEvents({
-      taskName: "zip-worker",
-      channel,
-      effect: runZipTaskEffect,
-      metadata: {
-        domain,
-        reference,
-      },
-    })
-    .pipe(Effect.catchAll((error) => Effect.logError("Error running zip task", error.message)))
+    yield* Effect.logInfo("Running zip task")
+
+    const runZipTaskEffect = handler.runZipTask(domain, reference).pipe(
+      Effect.tap(() => Effect.logInfo("Zip task completed")),
+      Effect.tapError((error) => Effect.logError("Error running zip task", error))
+    )
+
+    yield* runStateService
+      .withRunStateEvents({
+        taskName: "zip-worker",
+        channel,
+        effect: runZipTaskEffect,
+        metadata: {
+          domain,
+          reference,
+        },
+      })
+      .pipe(Effect.catch((error) => Effect.logError("Error running zip task", error)))
+  }).pipe(Effect.annotateLogs({ domain, reference }))
 }).pipe(Effect.provide(mainLayer))
 
 Effect.runPromise(runnable)

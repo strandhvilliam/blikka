@@ -1,16 +1,16 @@
 import { Participant } from "@blikka/db"
-import { Data, Effect, Schema } from "effect"
-import { FinalizedEventSchema } from "@blikka/bus"
+import { Schema } from "effect"
 
-export class InvalidArgumentsError extends Schema.TaggedError<InvalidArgumentsError>()(
+export class InvalidArgumentsError extends Schema.TaggedErrorClass<InvalidArgumentsError>()(
   "InvalidArgumentsError",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
-  }
-) {}
+  },
+) {
+}
 
-export class DataNotFoundError extends Schema.TaggedError<DataNotFoundError>()(
+export class DataNotFoundError extends Schema.TaggedErrorClass<DataNotFoundError>()(
   "DataNotFoundError",
   {
     message: Schema.String,
@@ -18,18 +18,20 @@ export class DataNotFoundError extends Schema.TaggedError<DataNotFoundError>()(
     reference: Schema.String,
     key: Schema.optional(Schema.String),
     cause: Schema.optional(Schema.Unknown),
-  }
-) {}
+  },
+) {
+}
 
-export class FailedToGenerateZipError extends Schema.TaggedError<FailedToGenerateZipError>()(
+export class FailedToGenerateZipError extends Schema.TaggedErrorClass<FailedToGenerateZipError>()(
   "FailedToGenerateZipError",
   {
     message: Schema.String,
     domain: Schema.String,
     reference: Schema.String,
     cause: Schema.optional(Schema.Unknown),
-  }
-) {}
+  },
+) {
+}
 
 export function makeNewZipDto(domain: string, participant: Participant) {
   return {
@@ -45,30 +47,3 @@ export function makeNewZipDto(domain: string, participant: Participant) {
   }
 }
 
-export class InvalidBodyError extends Schema.TaggedError<InvalidBodyError>()("InvalidBodyError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {}
-
-export class JsonParseError extends Schema.TaggedError<JsonParseError>()("JsonParseError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {}
-
-export const parseFinalizedEvent = Effect.fn("contactSheetGenerator.parseFinalizedEvent")(
-  function* (input: string) {
-    const json = yield* Effect.try({
-      try: () => JSON.parse(input),
-      catch: (unknown) => new JsonParseError({ message: "Failed to parse JSON" }),
-    })
-    const params = yield* Schema.decodeUnknown(FinalizedEventSchema)(json)
-    return params
-  },
-  Effect.mapError(
-    (error) =>
-      new InvalidBodyError({
-        message: "Failed to parse finalized event",
-        cause: error,
-      })
-  )
-)

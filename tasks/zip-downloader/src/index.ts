@@ -7,25 +7,27 @@ import { S3Service } from "@blikka/s3"
 import archiver from "archiver"
 import JSZip from "jszip"
 
-// Custom error types for better error tracking
-class ProcessCancelledError extends Data.TaggedError("ProcessCancelledError")<{
-  processId: string
-  jobId: string
-}> {}
+class ProcessCancelledError extends Schema.TaggedErrorClass<ProcessCancelledError>()("ProcessCancelledError", {
+  processId: Schema.String,
+  jobId: Schema.String,
+}) {
+}
 
-class ChunkStateNotFoundError extends Data.TaggedError("ChunkStateNotFoundError")<{
-  jobId: string
-}> {}
+class ChunkStateNotFoundError extends Schema.TaggedErrorClass<ChunkStateNotFoundError>()("ChunkStateNotFoundError", {
+  jobId: Schema.String
+}) {
+}
 
-class ZipProcessingError extends Data.TaggedError("ZipProcessingError")<{
-  message: string
-  jobId: string
-  processId?: string
-  cause?: unknown
-}> {}
+class ZipProcessingError extends Schema.TaggedErrorClass<ZipProcessingError>()("ZipProcessingError", {
+  message: Schema.String,
+  jobId: Schema.String,
+  processId: Schema.optional(Schema.String),
+  cause: Schema.optional(Schema.Unknown),
+}) {
+}
 
 const parseJobId = Effect.gen(function* () {
-  const jobId = yield* Schema.Config("JOB_ID", Schema.String)
+  const jobId = yield* Config.string("JOB_ID")
   return jobId
 }).pipe(
   Effect.mapError(
@@ -39,7 +41,6 @@ const processJob = Effect.gen(function* () {
   const s3Service = yield* S3Service
   const zipsBucket = yield* Config.string("ZIPS_BUCKET_NAME")
 
-  // Read JOB_ID from environment variable
   const jobId = yield* parseJobId
 
   yield* Effect.logInfo({
@@ -48,7 +49,6 @@ const processJob = Effect.gen(function* () {
   })
 
 
-  // Retrieve chunk state from Redis
   const chunkStateOption = yield* downloadStateRepository.getChunkState(jobId)
 
   yield* Effect.logInfo({
@@ -332,7 +332,7 @@ const handleJobFailure = (
       const result = yield* downloadStateRepository
         .atomicIncrementFailed(processId, totalChunks, jobId)
         .pipe(
-          Effect.catchAll((redisError) =>
+          Effect.catch((redisError) =>
             Effect.gen(function* () {
               yield* Effect.logError({
                 message: "Failed to update failed chunks counter",
@@ -362,16 +362,16 @@ const handleJobFailure = (
   })
 
 const mainLayer = Layer.mergeAll(
-  Database.Default,
-  DownloadStateRepository.Default,
-  RedisClient.Default,
-  S3Service.Default,
+  Database.layer,
+  DownloadStateRepository.layer,
+  RedisClient.layer,
+  S3Service.layer,
   TelemetryLayer("blikka-dev-zip-downloader")
 )
 
 const runnable = processJob.pipe(
   Effect.provide(mainLayer),
-  Effect.catchAll((error) =>
+  Effect.catch((error) =>
     Effect.gen(function* () {
       const jobId = yield* parseJobId.pipe(Effect.orElseSucceed(() => "unknown"))
 
@@ -407,7 +407,7 @@ const runnable = processJob.pipe(
         const downloadStateRepository = yield* DownloadStateRepository
         const chunkStateOption = yield* downloadStateRepository
           .getChunkState(jobId)
-          .pipe(Effect.catchAll(() => Effect.succeed(Option.none())))
+          .pipe(Effect.catch(() => Effect.succeed(Option.none())))
         if (Option.isSome(chunkStateOption)) {
           processId = chunkStateOption.value.processId
           totalChunks = chunkStateOption.value.totalChunks

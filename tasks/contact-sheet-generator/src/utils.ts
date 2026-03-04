@@ -4,33 +4,28 @@ import { CompetitionClass } from "@blikka/db"
 
 const VALID_PHOTO_COUNTS = [8, 24]
 
-export class InvalidSheetGenerationData extends Schema.TaggedError<InvalidSheetGenerationData>()(
+export class InvalidSheetGenerationData extends Schema.TaggedErrorClass<InvalidSheetGenerationData>()(
   "InvalidSheetGenerationData",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   }
-) {}
+) {
+}
 
 export const generateContactSheetKey = (domain: string, reference: string) =>
   `${domain}/${reference}/contact_sheet_${reference}_${new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5)}.jpg`
 
-export const ensureReadyForSheetGeneration = Effect.fnUntraced(function* (
-  kvData: ParticipantState,
-  reference: string,
-  domain: string
-) {
+export const ensureReadyForSheetGeneration = Effect.fn(
+  "contactSheetGenerator.ensureReadyForSheetGeneration"
+)(function* (kvData: ParticipantState, reference: string, domain: string) {
   if (!kvData.finalized) {
-    yield* Effect.log(
-      `Participant state not finalized for reference ${reference} and domain ${domain}`
-    )
+    yield* Effect.logInfo("Participant state not finalized, skipping")
     return yield* Effect.succeed({ shouldSkip: true })
   }
 
   if (kvData.contactSheetKey) {
-    yield* Effect.log(
-      `Contact sheet already generated for reference ${reference} and domain ${domain}`
-    )
+    yield* Effect.logInfo("Contact sheet already generated, skipping")
     return yield* Effect.succeed({ shouldSkip: true })
   }
   return yield* Effect.succeed({ shouldSkip: false })
@@ -45,7 +40,7 @@ export const validatePhotoCount = Effect.fn("contactSheetGenerator.validatePhoto
   if (!competitionClass?.numberOfPhotos) {
     return yield* Effect.fail(
       new InvalidSheetGenerationData({
-        message: `[${reference}|${domain}] Missing competition class photo count`,
+        message: "Missing competition class photo count",
       })
     )
   }
@@ -54,7 +49,7 @@ export const validatePhotoCount = Effect.fn("contactSheetGenerator.validatePhoto
   if (!VALID_PHOTO_COUNTS.includes(expectedCount)) {
     return yield* Effect.fail(
       new InvalidSheetGenerationData({
-        message: `[${reference}|${domain}] Unsupported photo count ${expectedCount} for participant ${reference}`,
+        message: `Unsupported photo count ${expectedCount} for participant ${reference}`,
       })
     )
   }
@@ -62,7 +57,7 @@ export const validatePhotoCount = Effect.fn("contactSheetGenerator.validatePhoto
   if (keys.length !== expectedCount) {
     return yield* Effect.fail(
       new InvalidSheetGenerationData({
-        message: `[${reference}|${domain}] Photo count mismatch. Expected ${expectedCount}, got ${keys.length}`,
+        message: `Photo count mismatch. Expected ${expectedCount}, got ${keys.length}`,
       })
     )
   }
