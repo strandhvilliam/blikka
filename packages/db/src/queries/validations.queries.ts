@@ -3,7 +3,7 @@ import { DrizzleClient } from "../drizzle-client"
 import { and, notInArray, eq } from "drizzle-orm"
 import { participantVerifications, validationResults } from "../schema"
 import type { NewParticipantVerification, NewValidationResult, ValidationResult } from "../types"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 
 export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()(
   "@blikka/db/validations-queries",
@@ -105,8 +105,8 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
 
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to create validation result",
+              new DbError({
+                message: "Failed to create validation result",
               })
             )
           }
@@ -131,10 +131,9 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
         })
 
         if (!participant) {
-          return yield* new SqlError({
+          return yield* Effect.fail(new DbError({
             message: "Participant not found",
-            cause: new Error("Participant not found"),
-          })
+          }))
         }
 
         const existingValidationResults = yield* db.query.validationResults.findMany({
@@ -205,8 +204,8 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
 
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to update validation result",
+              new DbError({
+                message: "Failed to update validation result",
               })
             )
           }
@@ -221,8 +220,8 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to create participant verification",
+            new DbError({
+              message: "Failed to create participant verification",
             })
           )
         }

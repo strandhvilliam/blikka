@@ -3,7 +3,7 @@ import { DrizzleClient } from "../drizzle-client"
 import { submissions, zippedSubmissions } from "../schema"
 import { eq, inArray } from "drizzle-orm"
 import type { NewSubmission, NewZippedSubmission, ZippedSubmission } from "../types"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 import { conflictUpdateSetAllColumns } from "../utils"
 
 export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()(
@@ -178,8 +178,8 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to create submission",
+            new DbError({
+              message: "Failed to create submission",
             })
           )
         }
@@ -191,9 +191,9 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         function* ({ data }: { data: NewSubmission[] }) {
           const [result] = yield* db.insert(submissions).values(data).returning()
           if (!result) {
-            return yield* new SqlError({
-              cause: "Failed to create multiple submissions",
-            })
+            return yield* Effect.fail(new DbError({
+              message: "Failed to create multiple submissions",
+            }))
           }
           return result
         }
@@ -225,9 +225,9 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         })
 
         if (!participant) {
-          return yield* new SqlError({
-            cause: "Participant not found",
-          })
+          return yield* Effect.fail(new DbError({
+            message: "Participant not found",
+          }))
         }
 
         const data = updates.reduce<NewSubmission[]>((acc, update) => {
@@ -261,8 +261,8 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
             .returning()
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to update submission by key",
+              new DbError({
+                message: "Failed to update submission by key",
               })
             )
           }
@@ -284,8 +284,8 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
           .returning()
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to update submission by id",
+            new DbError({
+              message: "Failed to update submission by id",
             })
           )
         }
@@ -297,8 +297,8 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
           const [result] = yield* db.insert(zippedSubmissions).values(data).returning()
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to create zipped submission",
+              new DbError({
+                message: "Failed to create zipped submission",
               })
             )
           }
@@ -315,8 +315,8 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
             .returning()
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to update zipped submission",
+              new DbError({
+                message: "Failed to update zipped submission",
               })
             )
           }

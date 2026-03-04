@@ -3,7 +3,7 @@ import { Effect, Layer, Option, ServiceMap } from "effect"
 import { eq, and } from "drizzle-orm"
 import { juryInvitations, juryRatings, marathons, participants, submissions } from "../schema"
 import type { NewJuryInvitation, Participant, Submission, Topic } from "../types"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 
 export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/jury-queries", {
   make: Effect.gen(function* () {
@@ -75,8 +75,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!result) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Failed to create jury invitation",
+          new DbError({
+            message: "Failed to create jury invitation",
           })
         )
       }
@@ -99,8 +99,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!result) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Failed to update jury invitation",
+          new DbError({
+            message: "Failed to update jury invitation",
           })
         )
       }
@@ -119,8 +119,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!result) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Failed to delete jury invitation",
+          new DbError({
+            message: "Failed to delete jury invitation",
           })
         )
       }
@@ -146,8 +146,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!invitation) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Invitation not found",
+          new DbError({
+            message: "Invitation not found",
           })
         )
       }
@@ -158,8 +158,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!marathon || invitation.marathonId !== marathon.id) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Marathon not found",
+          new DbError({
+            message: "Marathon not found",
           })
         )
       }
@@ -187,8 +187,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
         if (!invitation) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Invitation not found",
+            new DbError({
+              message: "Invitation not found",
             })
           )
         }
@@ -199,8 +199,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
         if (!marathon || invitation.marathonId !== marathon.id) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Marathon not found",
+            new DbError({
+              message: "Marathon not found",
             })
           )
         }
@@ -271,8 +271,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!invitation) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Invitation not found",
+          new DbError({
+            message: "Invitation not found",
           })
         )
       }
@@ -290,8 +290,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!result) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Failed to create jury rating",
+          new DbError({
+            message: "Failed to create jury rating",
           })
         )
       }
@@ -343,8 +343,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!invitation) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Invitation not found",
+          new DbError({
+            message: "Invitation not found",
           })
         )
       }
@@ -369,8 +369,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!invitation) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Invitation not found",
+          new DbError({
+            message: "Invitation not found",
           })
         )
       }
@@ -396,8 +396,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       if (invitation.inviteType === "topic") {
         if (!invitation.topicId) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Topic not found",
+            new DbError({
+              message: "Topic not found",
             })
           )
         }
@@ -463,8 +463,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       } else if (invitation.inviteType === "class") {
         if (!invitation.competitionClassId) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Class not found",
+            new DbError({
+              message: "Class not found",
             })
           )
         }
@@ -525,8 +525,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         }
       } else {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Invitation type not found",
+          new DbError({
+            message: "Invitation type not found",
           })
         )
       }
@@ -698,8 +698,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         }
       } else {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Invitation type not found",
+          new DbError({
+            message: "Invitation type not found",
           })
         )
       }
@@ -721,8 +721,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
         if (!invitation) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Invitation not found",
+            new DbError({
+              message: "Invitation not found",
             })
           )
         }
@@ -750,8 +750,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
         if (!invitation) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Invitation not found",
+            new DbError({
+              message: "Invitation not found",
             })
           )
         }
@@ -785,8 +785,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (!invitation) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Invitation not found",
+          new DbError({
+            message: "Invitation not found",
           })
         )
       }
@@ -833,8 +833,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
         if (!invitation) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Invitation not found",
+            new DbError({
+              message: "Invitation not found",
             })
           )
         }
@@ -842,8 +842,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         const invitationExpiry = new Date(invitation.expiresAt)
         if (invitationExpiry < new Date()) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Invitation expired",
+            new DbError({
+              message: "Invitation expired",
             })
           )
         }

@@ -3,7 +3,7 @@ import { DrizzleClient } from "../drizzle-client"
 import type { NewRuleConfig } from "../types"
 import { ruleConfigs } from "../schema"
 import { eq } from "drizzle-orm"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 import { conflictUpdateSetAllColumns, getDefaultRuleConfigs } from "../utils"
 
 export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
@@ -38,8 +38,8 @@ export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
             })
             if (!newResult) {
               return yield* Effect.fail(
-                new SqlError({
-                  cause: "Failed to get rules",
+                new DbError({
+                  message: "Failed to get rules",
                 }),
               )
             }
@@ -47,8 +47,8 @@ export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
           }
           if (rules.length === 0) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to get rules",
+              new DbError({
+                message: "Failed to get rules",
               }),
             )
           }
@@ -65,8 +65,8 @@ export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
             .returning()
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to create rule config",
+              new DbError({
+                message: "Failed to create rule config",
               }),
             )
           }
@@ -83,8 +83,8 @@ export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
             .returning()
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to update rule config",
+              new DbError({
+                message: "Failed to update rule config",
               }),
             )
           }
@@ -114,8 +114,8 @@ export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
             .returning()
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to delete rule config",
+              new DbError({
+                message: "Failed to delete rule config",
               }),
             )
           }

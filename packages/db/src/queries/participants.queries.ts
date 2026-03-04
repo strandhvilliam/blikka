@@ -8,7 +8,7 @@ import {
   inArray,
 } from "drizzle-orm"
 import type { NewParticipant } from "../types"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 import { VALIDATION_OUTCOME } from "@blikka/validation"
 
 export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>()(
@@ -333,8 +333,8 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
       )(function* ({ data }: { data: NewParticipant }) {
         if (!data.domain) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Domain is required",
+            new DbError({
+              message: "Domain is required",
             }),
           )
         }
@@ -346,8 +346,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to create participant",
+            new DbError({
               message: "Failed to create participant",
             }),
           )
@@ -373,8 +372,8 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to update participant",
+            new DbError({
+              message: "Failed to update participant",
             }),
           )
         }
@@ -405,8 +404,8 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           .returning({ id: participants.id })
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to update participant",
+            new DbError({
+              message: "Failed to update participant",
             }),
           )
         }
@@ -422,8 +421,8 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           .returning()
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to delete participant",
+            new DbError({
+              message: "Failed to delete participant",
             }),
           )
         }

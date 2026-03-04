@@ -3,7 +3,7 @@ import { DrizzleClient } from "../drizzle-client"
 import { competitionClasses, marathons } from "../schema"
 import { eq } from "drizzle-orm"
 import type { NewCompetitionClass } from "../types"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 
 export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionClassesQueries>()(
   "@blikka/db/competition-classes-queries",
@@ -41,8 +41,8 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
           .returning()
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to create competition class",
+            new DbError({
+              message: "Failed to create competition class",
             })
           )
         }
@@ -58,8 +58,8 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
           .returning()
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to create multiple competition classes",
+            new DbError({
+              message: "Failed to create multiple competition classes",
             })
           )
         }
@@ -83,8 +83,8 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to update competition class",
+            new DbError({
+              message: "Failed to update competition class",
             })
           )
         }
@@ -100,8 +100,8 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
           .returning()
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to delete competition class",
+            new DbError({
+              message: "Failed to delete competition class",
             })
           )
         }

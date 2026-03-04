@@ -4,7 +4,7 @@ import { marathons, submissions } from "../schema"
 import { count, eq } from "drizzle-orm"
 import { topics } from "../schema"
 import type { NewTopic } from "../types"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 
 export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
   "@blikka/db/topics-queries",
@@ -60,8 +60,8 @@ export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to update topic",
+            new DbError({
+              message: "Failed to update topic",
             })
           )
         }
@@ -104,8 +104,8 @@ export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to create topic",
+            new DbError({
+              message: "Failed to create topic",
             })
           )
         }
@@ -124,8 +124,8 @@ export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
           .returning()
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to delete topic",
+            new DbError({
+              message: "Failed to delete topic",
             })
           )
         }

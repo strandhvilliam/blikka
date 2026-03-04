@@ -16,7 +16,7 @@ import { ruleConfigs } from "../schema"
 import { sponsors } from "../schema"
 import { participantVerifications } from "../schema"
 import type { NewMarathon } from "../types"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 
 export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
   "@blikka/db/marathons-queries",
@@ -78,8 +78,8 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
       }) {
         const [result] = yield* db.insert(marathons).values(data).returning()
         if (!result) {
-          return yield* Effect.fail(new SqlError({
-            cause: "Failed to create marathon",
+          return yield* Effect.fail(new DbError({
+            message: "Failed to create marathon",
           }))
         }
         return result
@@ -99,9 +99,9 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
           .returning()
 
         if (!result) {
-          return yield* new SqlError({
-            cause: "Failed to create marathon",
-          })
+          return yield* Effect.fail(new DbError({
+            message: "Failed to update marathon",
+          }))
         }
         return result
       })
@@ -119,9 +119,9 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
             .returning()
 
           if (!result) {
-            return yield* new SqlError({
-              cause: "Failed to update marathon by domain",
-            })
+            return yield* Effect.fail(new DbError({
+              message: "Failed to update marathon by domain",
+            }))
           }
 
           return result
@@ -136,9 +136,9 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
         const [result] = yield* db.delete(marathons).where(eq(marathons.id, id)).returning()
 
         if (!result) {
-          return yield* new SqlError({
-            cause: "Failed to delete marathon",
-          })
+          return yield* Effect.fail(new DbError({
+            message: "Failed to delete marathon",
+          }))
         }
         return result
       })
@@ -153,9 +153,9 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
         })
 
         if (!marathon) {
-          return yield* new SqlError({
-            cause: "Marathon not found",
-          })
+          return yield* Effect.fail(new DbError({
+            message: "Marathon not found",
+          }))
         }
 
         const marathonParticipants = yield* db

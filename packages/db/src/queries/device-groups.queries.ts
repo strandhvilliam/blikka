@@ -3,7 +3,7 @@ import { DrizzleClient } from "../drizzle-client"
 import { deviceGroups, marathons } from "../schema"
 import { eq } from "drizzle-orm"
 import type { NewDeviceGroup } from "../types"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 
 export class DeviceGroupsQueries extends ServiceMap.Service<DeviceGroupsQueries>()(
   "@blikka.app/db/device-group-queries",
@@ -42,8 +42,8 @@ export class DeviceGroupsQueries extends ServiceMap.Service<DeviceGroupsQueries>
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to create device group",
+            new DbError({
+              message: "Failed to create device group",
             }),
           )
         }
@@ -68,8 +68,8 @@ export class DeviceGroupsQueries extends ServiceMap.Service<DeviceGroupsQueries>
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to update device group",
+            new DbError({
+              message: "Failed to update device group",
             }),
           )
         }
@@ -86,8 +86,8 @@ export class DeviceGroupsQueries extends ServiceMap.Service<DeviceGroupsQueries>
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to delete device group",
+            new DbError({
+              message: "Failed to delete device group",
             }),
           )
         }

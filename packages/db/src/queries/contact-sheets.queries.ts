@@ -2,7 +2,7 @@ import type { NewContactSheet } from "../types"
 import { DrizzleClient } from "../drizzle-client"
 import { Effect, Layer, ServiceMap } from "effect"
 import { contactSheets } from "../schema"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 
 export class ContactSheetsQueries extends ServiceMap.Service<ContactSheetsQueries>()(
   "@blikka/db/contact-sheets-queries",
@@ -18,8 +18,8 @@ export class ContactSheetsQueries extends ServiceMap.Service<ContactSheetsQuerie
         const [result] = yield* db.insert(contactSheets).values(data).returning()
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to save contact sheet",
+            new DbError({
+              message: "Failed to save contact sheet",
             })
           )
         }

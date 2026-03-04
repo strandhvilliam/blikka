@@ -3,7 +3,7 @@ import { sponsors } from "../schema"
 import { DrizzleClient } from "../drizzle-client"
 import { eq } from "drizzle-orm"
 import type { NewSponsor } from "../types"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 
 export class SponsorsQueries extends ServiceMap.Service<SponsorsQueries>()(
   "@blikka/db/sponsors-queries",
@@ -60,8 +60,8 @@ export class SponsorsQueries extends ServiceMap.Service<SponsorsQueries>()(
 
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to create sponsor",
+              new DbError({
+                message: "Failed to create sponsor",
               }),
             )
           }
@@ -84,8 +84,8 @@ export class SponsorsQueries extends ServiceMap.Service<SponsorsQueries>()(
 
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to update sponsor",
+              new DbError({
+                message: "Failed to update sponsor",
               }),
             )
           }
@@ -102,8 +102,8 @@ export class SponsorsQueries extends ServiceMap.Service<SponsorsQueries>()(
 
           if (!result) {
             return yield* Effect.fail(
-              new SqlError({
-                cause: "Failed to delete sponsor",
+              new DbError({
+                message: "Failed to delete sponsor",
               }),
             )
           }

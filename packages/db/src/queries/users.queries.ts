@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm"
 import { user, userMarathons } from "../schema"
 import type { NewUser, NewUserMarathonRelation } from "../types"
 import { DrizzleClient } from "../drizzle-client"
-import { SqlError } from "@effect/sql/SqlError"
+import { DbError } from "../utils"
 
 export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db/users-queries", {
   make: Effect.gen(function* () {
@@ -157,8 +157,8 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
 
       if (!result) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Failed to create user",
+          new DbError({
+            message: "Failed to create user",
           })
         )
       }
@@ -176,8 +176,8 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
 
       if (!result) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Failed to update user",
+          new DbError({
+            message: "Failed to update user",
           })
         )
       }
@@ -189,8 +189,8 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
 
       if (!result) {
         return yield* Effect.fail(
-          new SqlError({
-            cause: "Failed to delete user",
+          new DbError({
+            message: "Failed to delete user",
           })
         )
       }
@@ -203,8 +203,8 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to create user marathon relation",
+            new DbError({
+              message: "Failed to create user marathon relation",
             })
           )
         }
@@ -230,8 +230,8 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to update user marathon relation",
+            new DbError({
+              message: "Failed to update user marathon relation",
             })
           )
         }
@@ -248,8 +248,8 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
 
         if (!result) {
           return yield* Effect.fail(
-            new SqlError({
-              cause: "Failed to delete user marathon relation",
+            new DbError({
+              message: "Failed to delete user marathon relation",
             })
           )
         }
