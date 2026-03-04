@@ -1,23 +1,22 @@
-import { Effect } from "effect";
-import { DrizzleClient } from "../drizzle-client";
-import { marathons, participants, zippedSubmissions } from "../schema";
-import { eq, inArray, and, gte, lte, sql } from "drizzle-orm";
+import { Effect, Layer, ServiceMap } from "effect"
+import { DrizzleClient } from "../drizzle-client"
+import { marathons, participants, zippedSubmissions } from "../schema"
+import { eq, inArray, and, gte, lte, sql } from "drizzle-orm"
 
-export class ZippedSubmissionsQueries extends Effect.Service<ZippedSubmissionsQueries>()(
+export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissionsQueries>()(
   "@blikka/db/zipped-submissions-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
-      const db = yield* DrizzleClient;
+    make: Effect.gen(function* () {
+      const db = yield* DrizzleClient
 
       const getZippedSubmissionsByDomain = Effect.fn(
         "ZippedSubmissionsQueries.getZippedSubmissionsByDomain",
       )(function* ({ domain }: { domain: string }) {
         const marathon = yield* db.query.marathons.findFirst({
           where: eq(marathons.domain, domain),
-        });
+        })
         if (!marathon) {
-          return [];
+          return []
         }
         const result = yield* db.query.zippedSubmissions.findMany({
           where: eq(zippedSubmissions.marathonId, marathon.id),
@@ -28,9 +27,9 @@ export class ZippedSubmissionsQueries extends Effect.Service<ZippedSubmissionsQu
               },
             },
           },
-        });
-        return result;
-      });
+        })
+        return result
+      })
 
       const getZippedSubmissionsByReferenceRange = Effect.fn(
         "ZippedSubmissionsQueries.getZippedSubmissionsByReferenceRange",
@@ -40,19 +39,18 @@ export class ZippedSubmissionsQueries extends Effect.Service<ZippedSubmissionsQu
         minReference,
         maxReference,
       }: {
-        domain: string;
-        competitionClassId: number;
-        minReference: number;
-        maxReference: number;
+        domain: string
+        competitionClassId: number
+        minReference: number
+        maxReference: number
       }) {
         const marathon = yield* db.query.marathons.findFirst({
           where: eq(marathons.domain, domain),
-        });
+        })
         if (!marathon) {
-          return [];
+          return []
         }
 
-        // Get participant IDs that match our criteria using efficient SQL filtering
         const matchingParticipants = yield* db
           .select({ id: participants.id })
           .from(participants)
@@ -60,17 +58,16 @@ export class ZippedSubmissionsQueries extends Effect.Service<ZippedSubmissionsQu
             and(
               eq(participants.marathonId, marathon.id),
               eq(participants.competitionClassId, competitionClassId),
-              // Cast reference to integer for proper numeric comparison
               gte(sql`CAST(${participants.reference} AS INTEGER)`, minReference),
               lte(sql`CAST(${participants.reference} AS INTEGER)`, maxReference)
             )
-          );
+          )
 
         if (matchingParticipants.length === 0) {
-          return [];
+          return []
         }
 
-        const participantIds = matchingParticipants.map((p) => p.id);
+        const participantIds = matchingParticipants.map((p) => p.id)
 
         // Fetch zipped submissions for matching participants only
         const result = yield* db.query.zippedSubmissions.findMany({
@@ -85,27 +82,27 @@ export class ZippedSubmissionsQueries extends Effect.Service<ZippedSubmissionsQu
               },
             },
           },
-        });
+        })
 
         // Sort by numeric reference
         return result.sort(
           (a, b) =>
             Number(a.participant.reference) - Number(b.participant.reference),
-        );
-      });
+        )
+      })
 
       const getZipSubmissionStatsByDomain = Effect.fn(
         "ZippedSubmissionsQueries.getZipSubmissionStatsByDomain",
       )(function* ({ domain }: { domain: string }) {
         const marathon = yield* db.query.marathons.findFirst({
           where: eq(marathons.domain, domain),
-        });
+        })
         if (!marathon) {
           return {
             totalParticipants: 0,
             withZippedSubmissions: 0,
             missingReferences: [],
-          };
+          }
         }
 
         const allParticipants = yield* db.query.participants.findMany({
@@ -114,17 +111,17 @@ export class ZippedSubmissionsQueries extends Effect.Service<ZippedSubmissionsQu
             id: true,
             reference: true,
           },
-        });
+        })
 
         if (allParticipants.length === 0) {
           return {
             totalParticipants: 0,
             withZippedSubmissions: 0,
             missingReferences: [],
-          };
+          }
         }
 
-        const participantIds = allParticipants.map((p) => p.id);
+        const participantIds = allParticipants.map((p) => p.id)
 
         const zippedSubmissionsData =
           yield* db.query.zippedSubmissions.findMany({
@@ -132,30 +129,34 @@ export class ZippedSubmissionsQueries extends Effect.Service<ZippedSubmissionsQu
             columns: {
               participantId: true,
             },
-          });
+          })
 
         const zippedParticipantIds = new Set(
           zippedSubmissionsData.map((zs) => zs.participantId),
-        );
-        const withZippedSubmissions = zippedParticipantIds.size;
+        )
+        const withZippedSubmissions = zippedParticipantIds.size
 
         const missingReferences = allParticipants
           .filter((p) => !zippedParticipantIds.has(p.id))
           .map((p) => p.reference)
-          .sort((a, b) => Number(a) - Number(b));
+          .sort((a, b) => Number(a) - Number(b))
 
         return {
           totalParticipants: allParticipants.length,
           withZippedSubmissions,
           missingReferences,
-        };
-      });
+        }
+      })
 
       return {
         getZippedSubmissionsByDomain,
         getZippedSubmissionsByReferenceRange,
         getZipSubmissionStatsByDomain,
-      };
+      } as const
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer),
+  )
+}

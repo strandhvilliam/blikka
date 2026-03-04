@@ -1,14 +1,12 @@
-import { Effect, Option } from "effect"
-import { Database } from "../database"
+import { Effect, Layer, Option, ServiceMap } from "effect"
 import { and, eq } from "drizzle-orm"
 import { marathons, user, userMarathons } from "../schema"
 import type { NewUser, NewUserMarathonRelation } from "../types"
 import { DrizzleClient } from "../drizzle-client"
 import { SqlError } from "@effect/sql/SqlError"
 
-export class UsersQueries extends Effect.Service<UsersQueries>()("@blikka/db/users-queries", {
-  dependencies: [DrizzleClient.Default],
-  effect: Effect.gen(function* () {
+export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db/users-queries", {
+  make: Effect.gen(function* () {
     const db = yield* DrizzleClient
 
     const getUserPermissions = Effect.fn("UsersQueries.getUserPermissions")(function* ({
@@ -36,7 +34,7 @@ export class UsersQueries extends Effect.Service<UsersQueries>()("@blikka/db/use
       const result = yield* db.query.user.findFirst({
         where: eq(user.id, id),
       })
-      return Option.fromNullable(result)
+      return Option.fromNullishOr(result)
     })
 
     const getUserWithMarathons = Effect.fn("UsersQueries.getUserWithMarathons")(function* ({
@@ -54,7 +52,7 @@ export class UsersQueries extends Effect.Service<UsersQueries>()("@blikka/db/use
           },
         },
       })
-      return Option.fromNullable(result)
+      return Option.fromNullishOr(result)
     })
 
     const getMarathonsByUserId = Effect.fn("UsersQueries.getMarathonsByUserId")(function* ({
@@ -80,7 +78,7 @@ export class UsersQueries extends Effect.Service<UsersQueries>()("@blikka/db/use
             userMarathons: true,
           },
         })
-        return Option.fromNullable(result)
+        return Option.fromNullishOr(result)
       }
     )
 
@@ -274,4 +272,8 @@ export class UsersQueries extends Effect.Service<UsersQueries>()("@blikka/db/use
       deleteUserMarathonRelation,
     }
   }),
-}) {}
+}) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

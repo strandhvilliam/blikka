@@ -1,15 +1,14 @@
-import { Effect, Option } from "effect"
+import { Effect, Layer, Option, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
 import { competitionClasses, marathons } from "../schema"
 import { eq } from "drizzle-orm"
 import type { NewCompetitionClass } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
 
-export class CompetitionClassesQueries extends Effect.Service<CompetitionClassesQueries>()(
+export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionClassesQueries>()(
   "@blikka/db/competition-classes-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* DrizzleClient
 
       const getCompetitionClassById = Effect.fn(
@@ -18,7 +17,7 @@ export class CompetitionClassesQueries extends Effect.Service<CompetitionClasses
         const result = yield* db.query.competitionClasses.findFirst({
           where: eq(competitionClasses.id, id),
         })
-        return Option.fromNullable(result)
+        return Option.fromNullishOr(result)
       })
 
       const getCompetitionClassesByDomain = Effect.fn(
@@ -116,7 +115,11 @@ export class CompetitionClassesQueries extends Effect.Service<CompetitionClasses
         createMultipleCompetitionClasses,
         updateCompetitionClass,
         deleteCompetitionClass,
-      }
+      } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

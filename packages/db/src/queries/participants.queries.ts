@@ -1,6 +1,6 @@
-import { Effect, Option } from "effect";
-import { DrizzleClient } from "../drizzle-client";
-import { participants, submissions, validationResults } from "../schema";
+import { Effect, Layer, Option, ServiceMap } from "effect"
+import { DrizzleClient } from "../drizzle-client"
+import { participants, submissions, validationResults } from "../schema"
 import {
   eq,
   and,
@@ -12,17 +12,16 @@ import {
   ilike,
   inArray,
   notInArray,
-} from "drizzle-orm";
-import type { NewParticipant } from "../types";
-import { SqlError } from "@effect/sql/SqlError";
-import { VALIDATION_OUTCOME } from "@blikka/validation";
+} from "drizzle-orm"
+import type { NewParticipant } from "../types"
+import { SqlError } from "@effect/sql/SqlError"
+import { VALIDATION_OUTCOME } from "@blikka/validation"
 
-export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
+export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>()(
   "@blikka/db/participants-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
-      const db = yield* DrizzleClient;
+    make: Effect.gen(function* () {
+      const db = yield* DrizzleClient
 
       const getParticipantById = Effect.fn(
         "ParticipantsQueries.getParticipantByIdQuery",
@@ -36,10 +35,10 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             validationResults: true,
             zippedSubmissions: true,
           },
-        });
+        })
 
-        return Option.fromNullable(result);
-      });
+        return Option.fromNullishOr(result)
+      })
 
       const getParticipantByReference = Effect.fn(
         "ParticipantsQueries.getParticipantByReferenceQuery",
@@ -47,8 +46,8 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         reference,
         domain,
       }: {
-        reference: string;
-        domain: string;
+        reference: string
+        domain: string
       }) {
         const result = yield* db.query.participants.findFirst({
           where: and(
@@ -67,10 +66,10 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             zippedSubmissions: true,
             contactSheets: true,
           },
-        });
+        })
 
-        return Option.fromNullable(result);
-      });
+        return Option.fromNullishOr(result)
+      })
 
       const getInfiniteParticipantsByDomain = Effect.fn(
         "ParticipantsQueries.getInfiniteParticipantsByDomainQuery",
@@ -87,72 +86,72 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         excludeStatuses,
         hasValidationErrors,
       }: {
-        domain: string;
-        cursor?: string;
-        limit?: number;
-        search?: string;
-        sortOrder?: "asc" | "desc";
-        competitionClassId?: number | number[] | readonly number[];
-        deviceGroupId?: number | number[] | readonly number[];
-        topicId?: number;
-        statusFilter?: "completed" | "verified";
-        excludeStatuses?: string[];
-        hasValidationErrors?: boolean;
+        domain: string
+        cursor?: string
+        limit?: number
+        search?: string
+        sortOrder?: "asc" | "desc"
+        competitionClassId?: number | number[] | readonly number[]
+        deviceGroupId?: number | number[] | readonly number[]
+        topicId?: number
+        statusFilter?: "completed" | "verified"
+        excludeStatuses?: string[]
+        hasValidationErrors?: boolean
       }) {
-        const cursorId = cursor ? parseInt(cursor, 10) : undefined;
-        const isValidCursor = cursorId !== undefined && !isNaN(cursorId);
+        const cursorId = cursor ? parseInt(cursor, 10) : undefined
+        const isValidCursor = cursorId !== undefined && !isNaN(cursorId)
 
-        const baseConditions = [eq(participants.domain, domain)];
+        const baseConditions = [eq(participants.domain, domain)]
 
         if (isValidCursor) {
           if (sortOrder === "desc") {
-            baseConditions.push(lt(participants.id, cursorId!));
+            baseConditions.push(lt(participants.id, cursorId!))
           } else {
-            baseConditions.push(gt(participants.id, cursorId!));
+            baseConditions.push(gt(participants.id, cursorId!))
           }
         }
 
         if (competitionClassId !== undefined) {
           if (Array.isArray(competitionClassId)) {
-            const ids: number[] = [...competitionClassId];
-            baseConditions.push(inArray(participants.competitionClassId, ids));
+            const ids: number[] = [...competitionClassId]
+            baseConditions.push(inArray(participants.competitionClassId, ids))
           } else {
             baseConditions.push(
               eq(participants.competitionClassId, competitionClassId as number),
-            );
+            )
           }
         }
 
         if (deviceGroupId !== undefined) {
           if (Array.isArray(deviceGroupId)) {
-            const ids: number[] = [...deviceGroupId];
-            baseConditions.push(inArray(participants.deviceGroupId, ids));
+            const ids: number[] = [...deviceGroupId]
+            baseConditions.push(inArray(participants.deviceGroupId, ids))
           } else {
             baseConditions.push(
               eq(participants.deviceGroupId, deviceGroupId as number),
-            );
+            )
           }
         }
 
         if (search && search.trim().length > 0) {
-          const searchPattern = `%${search.trim()}%`;
+          const searchPattern = `%${search.trim()}%`
           const searchCondition = or(
             ilike(participants.reference, searchPattern),
             ilike(participants.firstname, searchPattern),
             ilike(participants.lastname, searchPattern),
             ilike(participants.email, searchPattern),
-          );
+          )
           if (searchCondition) {
-            baseConditions.push(searchCondition);
+            baseConditions.push(searchCondition)
           }
         }
 
         if (statusFilter) {
-          baseConditions.push(eq(participants.status, statusFilter));
+          baseConditions.push(eq(participants.status, statusFilter))
         }
 
         if (excludeStatuses && excludeStatuses.length > 0) {
-          baseConditions.push(notInArray(participants.status, excludeStatuses));
+          baseConditions.push(notInArray(participants.status, excludeStatuses))
         }
 
         if (hasValidationErrors) {
@@ -174,23 +173,23 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
                   eq(validationResults.severity, "warning"),
                 ),
               ),
-            );
+            )
 
           const participantIdsWithErrors = participantsWithErrors.map(
             (p) => p.participantId,
-          );
+          )
 
           if (participantIdsWithErrors.length === 0) {
             // If no participants have validation errors, return empty result
             return {
               participants: [],
               nextCursor: null,
-            };
+            }
           }
 
           baseConditions.push(
             inArray(participants.id, participantIdsWithErrors),
-          );
+          )
         }
 
         if (topicId !== undefined) {
@@ -205,27 +204,27 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
                 eq(participants.domain, domain),
                 eq(submissions.topicId, topicId),
               ),
-            );
+            )
 
           const participantIdsWithTopicSubmissions =
-            participantsWithTopicSubmissions.map((p) => p.participantId);
+            participantsWithTopicSubmissions.map((p) => p.participantId)
 
           if (participantIdsWithTopicSubmissions.length === 0) {
             return {
               participants: [],
               nextCursor: null,
-            };
+            }
           }
 
           baseConditions.push(
             inArray(participants.id, participantIdsWithTopicSubmissions),
-          );
+          )
         }
 
         const whereConditions =
           baseConditions.length > 1
             ? and(...baseConditions)
-            : baseConditions[0];
+            : baseConditions[0]
 
         const participant = yield* db.query.participants.findMany({
           where: whereConditions,
@@ -238,15 +237,15 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             deviceGroup: true,
             ...(topicId !== undefined
               ? {
-                  submissions: {
-                    columns: {
-                      id: true,
-                      topicId: true,
-                      createdAt: true,
-                    },
-                    where: eq(submissions.topicId, topicId),
+                submissions: {
+                  columns: {
+                    id: true,
+                    topicId: true,
+                    createdAt: true,
                   },
-                }
+                  where: eq(submissions.topicId, topicId),
+                },
+              }
               : {}),
             validationResults: true,
             votingSessions: {
@@ -274,7 +273,7 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             sortOrder === "desc"
               ? [desc(participants.id)]
               : [asc(participants.id)],
-        });
+        })
 
         //TODO: can optimize this to a single query with some sql magic
         function countValidationResults(
@@ -285,23 +284,23 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             .filter((vr) => vr.outcome === outcome)
             .reduce(
               (acc, vr) => {
-                if (vr.severity === "error") acc.errors++;
-                else if (vr.severity === "warning") acc.warnings++;
-                return acc;
+                if (vr.severity === "error") acc.errors++
+                else if (vr.severity === "warning") acc.warnings++
+                return acc
               },
               { errors: 0, warnings: 0 },
-            );
+            )
         }
 
-        let nextCursor: string | null = null;
-        let participantsToReturn = participant;
+        let nextCursor: string | null = null
+        let participantsToReturn = participant
 
         // If we got more than the limit, there's a next page
         if (participant.length > limit) {
-          participantsToReturn = participant.slice(0, limit);
+          participantsToReturn = participant.slice(0, limit)
           const lastParticipant =
-            participantsToReturn[participantsToReturn.length - 1];
-          nextCursor = lastParticipant ? lastParticipant.id.toString() : null;
+            participantsToReturn[participantsToReturn.length - 1]
+          nextCursor = lastParticipant ? lastParticipant.id.toString() : null
         }
 
         const mappedResult = participantsToReturn.map(
@@ -317,11 +316,11 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
               topicId === undefined
                 ? null
                 : participantSubmissions
-                    .sort(
-                      (left, right) =>
-                        new Date(right.createdAt).getTime() -
-                        new Date(left.createdAt).getTime(),
-                    )[0]?.id ?? null;
+                  .sort(
+                    (left, right) =>
+                      new Date(right.createdAt).getTime() -
+                      new Date(left.createdAt).getTime(),
+                  )[0]?.id ?? null
 
             return {
               ...rest,
@@ -350,15 +349,15 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
                 validationResults,
                 VALIDATION_OUTCOME.SKIPPED,
               ),
-            };
+            }
           },
-        );
+        )
 
         return {
           participants: mappedResult,
           nextCursor,
-        };
-      });
+        }
+      })
 
       const createParticipant = Effect.fn(
         "ParticipantsQueries.createParticipantMutation",
@@ -368,13 +367,13 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
             new SqlError({
               cause: "Domain is required",
             }),
-          );
+          )
         }
 
         const [result] = yield* db
           .insert(participants)
           .values(data)
-          .returning();
+          .returning()
 
         if (!result) {
           return yield* Effect.fail(
@@ -382,11 +381,11 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
               cause: "Failed to create participant",
               message: "Failed to create participant",
             }),
-          );
+          )
         }
 
-        return result;
-      });
+        return result
+      })
 
       const updateParticipantById = Effect.fn(
         "ParticipantsQueries.updateParticipantMutation",
@@ -394,25 +393,25 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         id,
         data,
       }: {
-        id: number;
-        data: Partial<NewParticipant>;
+        id: number
+        data: Partial<NewParticipant>
       }) {
         const [result] = yield* db
           .update(participants)
           .set(data)
           .where(eq(participants.id, id))
-          .returning();
+          .returning()
 
         if (!result) {
           return yield* Effect.fail(
             new SqlError({
               cause: "Failed to update participant",
             }),
-          );
+          )
         }
 
-        return result;
-      });
+        return result
+      })
 
       const updateParticipantByReference = Effect.fn(
         "ParticipantsQueries.updateParticipantByReference",
@@ -421,9 +420,9 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         domain,
         data,
       }: {
-        reference: string;
-        domain: string;
-        data: Partial<NewParticipant>;
+        reference: string
+        domain: string
+        data: Partial<NewParticipant>
       }) {
         const [result] = yield* db
           .update(participants)
@@ -434,16 +433,16 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
               eq(participants.domain, domain),
             ),
           )
-          .returning({ id: participants.id });
+          .returning({ id: participants.id })
         if (!result) {
           return yield* Effect.fail(
             new SqlError({
               cause: "Failed to update participant",
             }),
-          );
+          )
         }
-        return result;
-      });
+        return result
+      })
 
       const deleteParticipant = Effect.fn(
         "ParticipantsQueries.deleteParticipantMutation",
@@ -451,22 +450,22 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         const [result] = yield* db
           .delete(participants)
           .where(eq(participants.id, id))
-          .returning();
+          .returning()
         if (!result) {
           return yield* Effect.fail(
             new SqlError({
               cause: "Failed to delete participant",
             }),
-          );
+          )
         }
-        return result;
-      });
+        return result
+      })
 
       const batchDeleteParticipants = Effect.fn(
         "ParticipantsQueries.batchDeleteParticipants",
       )(function* ({ ids, domain }: { ids: number[]; domain: string }) {
         if (ids.length === 0) {
-          return { deletedCount: 0, failedIds: [] };
+          return { deletedCount: 0, failedIds: [] }
         }
 
         const results = yield* db
@@ -474,22 +473,22 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
           .where(
             and(eq(participants.domain, domain), inArray(participants.id, ids)),
           )
-          .returning({ id: participants.id });
+          .returning({ id: participants.id })
 
-        const deletedIds = results.map((r) => r.id);
-        const failedIds = ids.filter((id) => !deletedIds.includes(id));
+        const deletedIds = results.map((r) => r.id)
+        const failedIds = ids.filter((id) => !deletedIds.includes(id))
 
         return {
           deletedCount: deletedIds.length,
           failedIds,
-        };
-      });
+        }
+      })
 
       const batchVerifyParticipants = Effect.fn(
         "ParticipantsQueries.batchVerifyParticipants",
       )(function* ({ ids, domain }: { ids: number[]; domain: string }) {
         if (ids.length === 0) {
-          return { updatedCount: 0, failedIds: [] };
+          return { updatedCount: 0, failedIds: [] }
         }
 
         // Only verify participants with status = "completed"
@@ -503,16 +502,16 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
               eq(participants.status, "completed"),
             ),
           )
-          .returning({ id: participants.id });
+          .returning({ id: participants.id })
 
-        const updatedIds = results.map((r) => r.id);
-        const failedIds = ids.filter((id) => !updatedIds.includes(id));
+        const updatedIds = results.map((r) => r.id)
+        const failedIds = ids.filter((id) => !updatedIds.includes(id))
 
         return {
           updatedCount: updatedIds.length,
           failedIds,
-        };
-      });
+        }
+      })
 
       return {
         getParticipantById,
@@ -524,7 +523,11 @@ export class ParticipantsQueries extends Effect.Service<ParticipantsQueries>()(
         deleteParticipant,
         batchDeleteParticipants,
         batchVerifyParticipants,
-      } as const;
+      } as const
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

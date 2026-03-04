@@ -1,14 +1,13 @@
 import type { NewContactSheet } from "../types"
 import { DrizzleClient } from "../drizzle-client"
-import { Effect } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 import { contactSheets } from "../schema"
 import { SqlError } from "@effect/sql/SqlError"
 
-export class ContactSheetsQueries extends Effect.Service<ContactSheetsQueries>()(
+export class ContactSheetsQueries extends ServiceMap.Service<ContactSheetsQueries>()(
   "@blikka/db/contact-sheets-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* DrizzleClient
 
       const save = Effect.fn("ContactSheetsQueries.save")(function* ({
@@ -32,4 +31,8 @@ export class ContactSheetsQueries extends Effect.Service<ContactSheetsQueries>()
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

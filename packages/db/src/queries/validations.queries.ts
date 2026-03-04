@@ -1,15 +1,14 @@
-import { Effect } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
-import { and, eq, inArray, notInArray, lt } from "drizzle-orm"
+import { and, eq, notInArray, lt } from "drizzle-orm"
 import { marathons, participants, participantVerifications, validationResults } from "../schema"
 import type { NewParticipantVerification, NewValidationResult, ValidationResult } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
 
-export class ValidationsQueries extends Effect.Service<ValidationsQueries>()(
+export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()(
   "@blikka/db/validations-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* DrizzleClient
 
       const getValidationResultsByParticipantId = Effect.fn(
@@ -343,12 +342,12 @@ export class ValidationsQueries extends Effect.Service<ValidationsQueries>()(
 
         return match
           ? {
-              ...match,
-              participant: {
-                ...match.participant,
-                marathon: undefined,
-              },
-            }
+            ...match,
+            participant: {
+              ...match.participant,
+              marathon: undefined,
+            },
+          }
           : null
       })
 
@@ -372,7 +371,11 @@ export class ValidationsQueries extends Effect.Service<ValidationsQueries>()(
         getAllParticipantVerifications,
         getParticipantVerificationByReference,
         clearAllValidationResults,
-      }
+      } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

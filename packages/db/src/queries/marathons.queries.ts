@@ -1,6 +1,5 @@
-import { Effect, Option } from "effect"
+import { Effect, Layer, Option, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
-import { Database } from "../database"
 import { eq, inArray } from "drizzle-orm"
 import {
   marathons,
@@ -19,11 +18,10 @@ import { participantVerifications } from "../schema"
 import type { NewMarathon } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
 
-export class MarathonsQueries extends Effect.Service<MarathonsQueries>()(
+export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
   "@blikka/db/marathons-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* DrizzleClient
 
       const getMarathons = Effect.fn("MarathonsQueries.getMarathons")(function* () {
@@ -43,7 +41,7 @@ export class MarathonsQueries extends Effect.Service<MarathonsQueries>()(
         const result = yield* db.query.marathons.findFirst({
           where: eq(marathons.id, id),
         })
-        return Option.fromNullable(result)
+        return Option.fromNullishOr(result)
       })
 
       const getMarathonByDomain = Effect.fn("MarathonsQueries.getMarathonByDomain")(function* ({
@@ -54,7 +52,7 @@ export class MarathonsQueries extends Effect.Service<MarathonsQueries>()(
         const result = yield* db.query.marathons.findFirst({
           where: eq(marathons.domain, domain),
         })
-        return Option.fromNullable(result)
+        return Option.fromNullishOr(result)
       })
 
       const getMarathonByDomainWithOptions = Effect.fn(
@@ -70,7 +68,7 @@ export class MarathonsQueries extends Effect.Service<MarathonsQueries>()(
             ruleConfigs: true,
           },
         })
-        return Option.fromNullable(result)
+        return Option.fromNullishOr(result)
       })
 
       const createMarathon = Effect.fn("MarathonsQueries.createMarathon")(function* ({
@@ -80,9 +78,9 @@ export class MarathonsQueries extends Effect.Service<MarathonsQueries>()(
       }) {
         const [result] = yield* db.insert(marathons).values(data).returning()
         if (!result) {
-          return yield* new SqlError({
+          return yield* Effect.fail(new SqlError({
             cause: "Failed to create marathon",
-          })
+          }))
         }
         return result
       })
@@ -216,4 +214,8 @@ export class MarathonsQueries extends Effect.Service<MarathonsQueries>()(
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

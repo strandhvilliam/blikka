@@ -1,26 +1,24 @@
-import { Effect, Option } from "effect";
-import { DrizzleClient } from "../drizzle-client";
-import { Database } from "../database";
-import { deviceGroups, marathons } from "../schema";
-import { eq } from "drizzle-orm";
-import type { NewDeviceGroup } from "../types";
-import { SqlError } from "@effect/sql/SqlError";
+import { Effect, Layer, Option, ServiceMap } from "effect"
+import { DrizzleClient } from "../drizzle-client"
+import { deviceGroups, marathons } from "../schema"
+import { eq } from "drizzle-orm"
+import type { NewDeviceGroup } from "../types"
+import { SqlError } from "@effect/sql/SqlError"
 
-export class DeviceGroupsQueries extends Effect.Service<DeviceGroupsQueries>()(
+export class DeviceGroupsQueries extends ServiceMap.Service<DeviceGroupsQueries>()(
   "@blikka.app/db/device-group-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
-      const db = yield* DrizzleClient;
+    make: Effect.gen(function* () {
+      const db = yield* DrizzleClient
 
       const getDeviceGroupById = Effect.fn(
         "DeviceGroupsQueries.getDeviceGroupById",
       )(function* ({ id }: { id: number }) {
         const result = yield* db.query.deviceGroups.findFirst({
           where: eq(deviceGroups.id, id),
-        });
-        return Option.fromNullable(result);
-      });
+        })
+        return Option.fromNullishOr(result)
+      })
 
       const getDeviceGroupsByDomain = Effect.fn(
         "DeviceGroupsQueries.getDeviceGroupsByDomain",
@@ -29,10 +27,10 @@ export class DeviceGroupsQueries extends Effect.Service<DeviceGroupsQueries>()(
           .select()
           .from(deviceGroups)
           .innerJoin(marathons, eq(deviceGroups.marathonId, marathons.id))
-          .where(eq(marathons.domain, domain));
+          .where(eq(marathons.domain, domain))
 
-        return result.map((row) => row.device_groups);
-      });
+        return result.map((row) => row.device_groups)
+      })
 
       const createDeviceGroup = Effect.fn(
         "DeviceGroupsQueries.createDeviceGroup",
@@ -40,18 +38,18 @@ export class DeviceGroupsQueries extends Effect.Service<DeviceGroupsQueries>()(
         const [result] = yield* db
           .insert(deviceGroups)
           .values(data)
-          .returning();
+          .returning()
 
         if (!result) {
           return yield* Effect.fail(
             new SqlError({
               cause: "Failed to create device group",
             }),
-          );
+          )
         }
 
-        return result;
-      });
+        return result
+      })
 
       const updateDeviceGroup = Effect.fn(
         "DeviceGroupsQueries.updateDeviceGroup",
@@ -59,24 +57,24 @@ export class DeviceGroupsQueries extends Effect.Service<DeviceGroupsQueries>()(
         id,
         data,
       }: {
-        id: number;
-        data: Partial<NewDeviceGroup>;
+        id: number
+        data: Partial<NewDeviceGroup>
       }) {
         const [result] = yield* db
           .update(deviceGroups)
           .set(data)
           .where(eq(deviceGroups.id, id))
-          .returning();
+          .returning()
 
         if (!result) {
           return yield* Effect.fail(
             new SqlError({
               cause: "Failed to update device group",
             }),
-          );
+          )
         }
-        return result;
-      });
+        return result
+      })
 
       const deleteDeviceGroup = Effect.fn(
         "DeviceGroupsQueries.deleteDeviceGroup",
@@ -84,17 +82,17 @@ export class DeviceGroupsQueries extends Effect.Service<DeviceGroupsQueries>()(
         const [result] = yield* db
           .delete(deviceGroups)
           .where(eq(deviceGroups.id, id))
-          .returning();
+          .returning()
 
         if (!result) {
           return yield* Effect.fail(
             new SqlError({
               cause: "Failed to delete device group",
             }),
-          );
+          )
         }
-        return result;
-      });
+        return result
+      })
 
       return {
         getDeviceGroupById,
@@ -102,7 +100,11 @@ export class DeviceGroupsQueries extends Effect.Service<DeviceGroupsQueries>()(
         createDeviceGroup,
         updateDeviceGroup,
         deleteDeviceGroup,
-      };
+      }
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

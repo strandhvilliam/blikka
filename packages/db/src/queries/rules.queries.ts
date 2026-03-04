@@ -1,17 +1,16 @@
-import { Effect } from "effect";
-import { DrizzleClient } from "../drizzle-client";
-import type { NewRuleConfig } from "../types";
-import { marathons, ruleConfigs } from "../schema";
-import { eq } from "drizzle-orm";
-import { SqlError } from "@effect/sql/SqlError";
-import { conflictUpdateSetAllColumns, getDefaultRuleConfigs } from "../utils";
+import { Effect, Layer, ServiceMap } from "effect"
+import { DrizzleClient } from "../drizzle-client"
+import type { NewRuleConfig } from "../types"
+import { marathons, ruleConfigs } from "../schema"
+import { eq } from "drizzle-orm"
+import { SqlError } from "@effect/sql/SqlError"
+import { conflictUpdateSetAllColumns, getDefaultRuleConfigs } from "../utils"
 
-export class RulesQueries extends Effect.Service<RulesQueries>()(
+export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
   "@blikka/db/rules-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
-      const db = yield* DrizzleClient;
+    make: Effect.gen(function* () {
+      const db = yield* DrizzleClient
 
       const getRulesByDomain = Effect.fn("RulesQueries.getRulesByDomain")(
         function* ({ domain }: { domain: string }) {
@@ -20,9 +19,9 @@ export class RulesQueries extends Effect.Service<RulesQueries>()(
             with: {
               ruleConfigs: true,
             },
-          });
+          })
 
-          const rules = result?.ruleConfigs ?? [];
+          const rules = result?.ruleConfigs ?? []
 
           if (rules.length === 0 && result?.id) {
             yield* db.insert(ruleConfigs).values(
@@ -30,50 +29,50 @@ export class RulesQueries extends Effect.Service<RulesQueries>()(
                 startDate: result.startDate,
                 endDate: result.endDate,
               }),
-            );
+            )
             const newResult = yield* db.query.marathons.findFirst({
               where: eq(marathons.id, result.id),
               with: {
                 ruleConfigs: true,
               },
-            });
+            })
             if (!newResult) {
               return yield* Effect.fail(
                 new SqlError({
                   cause: "Failed to get rules",
                 }),
-              );
+              )
             }
-            return newResult.ruleConfigs;
+            return newResult.ruleConfigs
           }
           if (rules.length === 0) {
             return yield* Effect.fail(
               new SqlError({
                 cause: "Failed to get rules",
               }),
-            );
+            )
           }
 
-          return rules;
+          return rules
         },
-      );
+      )
 
       const createRuleConfig = Effect.fn("RulesQueries.createRuleConfig")(
         function* ({ data }: { data: NewRuleConfig }) {
           const [result] = yield* db
             .insert(ruleConfigs)
             .values(data)
-            .returning();
+            .returning()
           if (!result) {
             return yield* Effect.fail(
               new SqlError({
                 cause: "Failed to create rule config",
               }),
-            );
+            )
           }
-          return result;
+          return result
         },
-      );
+      )
 
       const updateRuleConfig = Effect.fn("RulesQueries.updateRuleConfig")(
         function* ({ id, data }: { id: number; data: Partial<NewRuleConfig> }) {
@@ -81,17 +80,17 @@ export class RulesQueries extends Effect.Service<RulesQueries>()(
             .update(ruleConfigs)
             .set(data)
             .where(eq(ruleConfigs.id, id))
-            .returning();
+            .returning()
           if (!result) {
             return yield* Effect.fail(
               new SqlError({
                 cause: "Failed to update rule config",
               }),
-            );
+            )
           }
-          return result;
+          return result
         },
-      );
+      )
 
       const updateMultipleRuleConfig = Effect.fn(
         "RulesQueries.updateMultipleRuleConfig",
@@ -103,26 +102,26 @@ export class RulesQueries extends Effect.Service<RulesQueries>()(
             target: ruleConfigs.id,
             set: conflictUpdateSetAllColumns(ruleConfigs, ["id"]),
           })
-          .returning();
-        return result;
-      });
+          .returning()
+        return result
+      })
 
       const deleteRuleConfig = Effect.fn("RulesQueries.deleteRuleConfig")(
         function* ({ id }: { id: number }) {
           const [result] = yield* db
             .delete(ruleConfigs)
             .where(eq(ruleConfigs.id, id))
-            .returning();
+            .returning()
           if (!result) {
             return yield* Effect.fail(
               new SqlError({
                 cause: "Failed to delete rule config",
               }),
-            );
+            )
           }
-          return result;
+          return result
         },
-      );
+      )
 
       return {
         getRulesByDomain,
@@ -130,7 +129,11 @@ export class RulesQueries extends Effect.Service<RulesQueries>()(
         updateMultipleRuleConfig,
         updateRuleConfig,
         deleteRuleConfig,
-      };
+      } as const
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

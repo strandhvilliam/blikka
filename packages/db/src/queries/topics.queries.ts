@@ -1,19 +1,16 @@
-import { Effect } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
 import { marathons, submissions } from "../schema"
 import { count, eq } from "drizzle-orm"
 import { topics } from "../schema"
 import type { NewTopic } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
-// import { SupabaseClient } from "../supabase-client"
 
-export class TopicsQueries extends Effect.Service<TopicsQueries>()(
+export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
   "@blikka/db/topics-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* DrizzleClient
-      // const supabase = yield* SupabaseClient
 
       const getTopicsByMarathonId = Effect.fn(
         "TopicsQueries.getTopicsByMarathonId"
@@ -187,7 +184,11 @@ export class TopicsQueries extends Effect.Service<TopicsQueries>()(
         getTopicsWithSubmissionCount,
         getTotalSubmissionCount,
         getScheduledTopics,
-      }
+      } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

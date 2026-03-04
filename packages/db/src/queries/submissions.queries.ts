@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect"
+import { Effect, Layer, Option, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
 import { marathons, participants, submissions, zippedSubmissions } from "../schema"
 import { and, eq, inArray } from "drizzle-orm"
@@ -6,16 +6,15 @@ import type { NewSubmission, NewZippedSubmission, ZippedSubmission } from "../ty
 import { SqlError } from "@effect/sql/SqlError"
 import { conflictUpdateSetAllColumns } from "../utils"
 
-export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
+export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()(
   "@blikka/db/submissions-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function*() {
+    make: Effect.gen(function* () {
       const db = yield* DrizzleClient
 
       const getAllSubmissionKeysForMarathon = Effect.fn(
         "SubmissionsQueries.getAllSubmissionKeysForMarathon"
-      )(function*({ marathonId }: { marathonId: number }) {
+      )(function* ({ marathonId }: { marathonId: number }) {
         const result = yield* db.query.submissions.findMany({
           where: eq(submissions.marathonId, marathonId),
           columns: {
@@ -28,7 +27,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
         return result
       })
 
-      const getSubmissionById = Effect.fn("SubmissionsQueries.getSubmissionById")(function*({
+      const getSubmissionById = Effect.fn("SubmissionsQueries.getSubmissionById")(function* ({
         id,
       }: {
         id: number
@@ -37,10 +36,10 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
           where: eq(submissions.id, id),
         })
 
-        return Option.fromNullable(result)
+        return Option.fromNullishOr(result)
       })
 
-      const getSubmissionByKey = Effect.fn("SubmissionsQueries.getSubmissionByKey")(function*({
+      const getSubmissionByKey = Effect.fn("SubmissionsQueries.getSubmissionByKey")(function* ({
         key,
       }: {
         key: string
@@ -49,12 +48,12 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
           where: eq(submissions.key, key),
         })
 
-        return Option.fromNullable(result)
+        return Option.fromNullishOr(result)
       })
 
       const getZippedSubmissionsByDomain = Effect.fn(
         "SubmissionsQueries.getZippedSubmissionsByDomain"
-      )(function*({ domain }: { domain: string }) {
+      )(function* ({ domain }: { domain: string }) {
         const result = yield* db.query.marathons.findFirst({
           where: eq(marathons.domain, domain),
           with: {
@@ -85,7 +84,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
 
       const getZippedSubmissionsByMarathonId = Effect.fn(
         "SubmissionsQueries.getZippedSubmissionsByMarathonId"
-      )(function*({ marathonId }: { marathonId: number }) {
+      )(function* ({ marathonId }: { marathonId: number }) {
         const result = yield* db.query.zippedSubmissions.findMany({
           where: eq(zippedSubmissions.marathonId, marathonId),
         })
@@ -94,7 +93,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
       })
 
       const getManySubmissionsByKeys = Effect.fn("SubmissionsQueries.getManySubmissionsByKeys")(
-        function*({ keys }: { keys: string[] }) {
+        function* ({ keys }: { keys: string[] }) {
           const result = yield* db.query.submissions.findMany({
             where: inArray(submissions.key, keys),
           })
@@ -105,7 +104,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
 
       const getSubmissionsByParticipantId = Effect.fn(
         "SubmissionsQueries.getSubmissionsByParticipantId"
-      )(function*({ participantId }: { participantId: number }) {
+      )(function* ({ participantId }: { participantId: number }) {
         const result = yield* db.query.submissions.findMany({
           where: eq(submissions.participantId, participantId),
         })
@@ -114,7 +113,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
       })
 
       const getSubmissionsForJuryQuery = Effect.fn("SubmissionsQueries.getSubmissionsForJury")(
-        function*({
+        function* ({
           filters,
         }: {
           filters: {
@@ -172,7 +171,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
         }
       )
 
-      const createSubmission = Effect.fn("SubmissionsQueries.createSubmission")(function*({
+      const createSubmission = Effect.fn("SubmissionsQueries.createSubmission")(function* ({
         data,
       }: {
         data: NewSubmission
@@ -191,7 +190,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
       })
 
       const createMultipleSubmissions = Effect.fn("SubmissionsQueries.createMultipleSubmissions")(
-        function*({ data }: { data: NewSubmission[] }) {
+        function* ({ data }: { data: NewSubmission[] }) {
           const [result] = yield* db.insert(submissions).values(data).returning()
           if (!result) {
             return yield* new SqlError({
@@ -202,7 +201,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
         }
       )
 
-      const updateAllSubmissions = Effect.fn("SubmissionsQueries.updateAllSubmissions")(function*({
+      const updateAllSubmissions = Effect.fn("SubmissionsQueries.updateAllSubmissions")(function* ({
         updates,
         reference,
         domain,
@@ -256,7 +255,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
       })
 
       const updateSubmissionByKey = Effect.fn("SubmissionsQueries.updateSubmissionByKeyMutation")(
-        function*({ key, data }: { key: string; data: Partial<NewSubmission> }) {
+        function* ({ key, data }: { key: string; data: Partial<NewSubmission> }) {
           const [result] = yield* db
             .update(submissions)
             .set(data)
@@ -273,7 +272,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
         }
       )
 
-      const updateSubmissionById = Effect.fn("SubmissionsQueries.updateSubmissionById")(function*({
+      const updateSubmissionById = Effect.fn("SubmissionsQueries.updateSubmissionById")(function* ({
         id,
         data,
       }: {
@@ -296,7 +295,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
       })
 
       const createZippedSubmission = Effect.fn("SubmissionsQueries.createZippedSubmission")(
-        function*({ data }: { data: NewZippedSubmission }) {
+        function* ({ data }: { data: NewZippedSubmission }) {
           const [result] = yield* db.insert(zippedSubmissions).values(data).returning()
           if (!result) {
             return yield* Effect.fail(
@@ -310,7 +309,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
       )
 
       const updateZippedSubmission = Effect.fn("SubmissionsQueries.updateZippedSubmission")(
-        function*({ id, data }: { id: number; data: Partial<NewZippedSubmission> }) {
+        function* ({ id, data }: { id: number; data: Partial<NewZippedSubmission> }) {
           const [result] = yield* db
             .update(zippedSubmissions)
             .set(data)
@@ -329,7 +328,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
 
       const getZippedSubmissionByParticipantRefQuery = Effect.fn(
         "SubmissionsQueries.getZippedSubmissionByParticipantRefQuery"
-      )(function*({ domain, participantRef }: { domain: string; participantRef: string }) {
+      )(function* ({ domain, participantRef }: { domain: string; participantRef: string }) {
         const participant = yield* db.query.participants.findFirst({
           where: and(eq(participants.domain, domain), eq(participants.reference, participantRef)),
           with: {
@@ -344,7 +343,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
         return participant.zippedSubmissions
       })
 
-      const deleteSubmissionById = Effect.fn("SubmissionsQueries.deleteSubmissionById")(function*({
+      const deleteSubmissionById = Effect.fn("SubmissionsQueries.deleteSubmissionById")(function* ({
         id,
       }: {
         id: number
@@ -353,7 +352,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
         return result
       })
 
-      const deleteMultipleSubmissions = Effect.fn("SubmissionsQueries.deleteMultipleSubmissions")(function*({
+      const deleteMultipleSubmissions = Effect.fn("SubmissionsQueries.deleteMultipleSubmissions")(function* ({
         ids,
       }: {
         ids: number[]
@@ -385,4 +384,7 @@ export class SubmissionsQueries extends Effect.Service<SubmissionsQueries>()(
     }),
   }
 ) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
 }

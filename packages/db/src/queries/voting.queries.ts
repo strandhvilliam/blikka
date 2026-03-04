@@ -1,12 +1,12 @@
-import { Effect, Option } from "effect";
-import { DrizzleClient } from "../drizzle-client";
+import { Effect, Layer, Option, ServiceMap } from "effect"
+import { DrizzleClient } from "../drizzle-client"
 import {
   votingSession,
   marathons,
   participants,
   submissions,
   topics,
-} from "../schema";
+} from "../schema"
 import {
   eq,
   inArray,
@@ -16,15 +16,14 @@ import {
   desc,
   asc,
   isNull,
-} from "drizzle-orm";
-import type { NewVotingSession, VotingSession } from "../types";
+} from "drizzle-orm"
+import type { NewVotingSession, VotingSession } from "../types"
 
-export class VotingQueries extends Effect.Service<VotingQueries>()(
+export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
   "@blikka/db/voting-queries",
   {
-    dependencies: [DrizzleClient.Default],
-    effect: Effect.gen(function* () {
-      const db = yield* DrizzleClient;
+    make: Effect.gen(function* () {
+      const db = yield* DrizzleClient
 
       const getVotingSessionByToken = Effect.fn(
         "VotingQueries.getVotingSessionByToken",
@@ -35,9 +34,9 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             marathon: true,
             topic: true,
           },
-        });
-        return Option.fromNullable(result);
-      });
+        })
+        return Option.fromNullishOr(result)
+      })
 
       const getPublicMarathonByDomain = Effect.fn(
         "VotingQueries.getPublicMarathonByDomain",
@@ -53,9 +52,9 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             startDate: true,
             endDate: true,
           },
-        });
-        return Option.fromNullable(result);
-      });
+        })
+        return Option.fromNullishOr(result)
+      })
 
       const getParticipantsWithSubmissionsByTopicId = Effect.fn(
         "VotingQueries.getParticipantsWithSubmissionsByMarathonId",
@@ -63,23 +62,23 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         const result = yield* db.query.participants.findMany({
           where: and(eq(participants.marathonId, marathonId)),
           with: {
             submissions: true,
           },
-        });
+        })
 
         return result
           .filter((p) => p.submissions.some((s) => s.topicId === topicId))
           .map((p) => ({
             ...p,
             submissions: p.submissions.filter((s) => s.topicId === topicId),
-          }));
-      });
+          }))
+      })
 
       const getParticipantsWithSubmissionsButNoVotingSession = Effect.fn(
         "VotingQueries.getParticipantsWithSubmissionsButNoVotingSession",
@@ -87,8 +86,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         const result = yield* db
           .selectDistinct({
@@ -114,24 +113,24 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               eq(votingSession.topicId, topicId),
             ),
           )
-          .where(isNull(votingSession.id));
+          .where(isNull(votingSession.id))
 
-        return result;
-      });
+        return result
+      })
 
       const createVotingSessions = Effect.fn(
         "VotingQueries.createVotingSessions",
       )(function* ({ sessions }: { sessions: NewVotingSession[] }) {
         if (sessions.length === 0) {
-          return [];
+          return []
         }
 
         const result = yield* db
           .insert(votingSession)
           .values(sessions)
-          .returning();
-        return result;
-      });
+          .returning()
+        return result
+      })
 
       const updateMultipleLastNotificationSentAt = Effect.fn(
         "VotingQueries.updateLastNotificationSentAt",
@@ -139,14 +138,14 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         ids,
         notificationLastSentAt,
       }: {
-        ids: number[];
-        notificationLastSentAt: string | null;
+        ids: number[]
+        notificationLastSentAt: string | null
       }) {
         yield* db
           .update(votingSession)
           .set({ notificationLastSentAt })
-          .where(inArray(votingSession.id, ids));
-      });
+          .where(inArray(votingSession.id, ids))
+      })
 
       const countVotingSessionsForTopic = Effect.fn(
         "VotingQueries.countVotingSessionsForTopic",
@@ -154,8 +153,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         const result = yield* db
           .select({ value: count() })
@@ -165,10 +164,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               eq(votingSession.marathonId, marathonId),
               eq(votingSession.topicId, topicId),
             ),
-          );
+          )
 
-        return result[0]?.value ?? 0;
-      });
+        return result[0]?.value ?? 0
+      })
 
       const getVotingSessionsForTopic = Effect.fn(
         "VotingQueries.getVotingSessionsForTopic",
@@ -176,8 +175,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         return yield* db.query.votingSession.findMany({
           where: and(
@@ -212,8 +211,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             },
           },
           orderBy: [desc(votingSession.createdAt)],
-        });
-      });
+        })
+      })
 
       const getSubmissionVoteLeaderboardForTopic = Effect.fn(
         "VotingQueries.getSubmissionVoteLeaderboardForTopic",
@@ -221,8 +220,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         return yield* db
           .select({
@@ -269,8 +268,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             desc(sql<number>`count(${votingSession.id})`),
             asc(submissions.createdAt),
             asc(submissions.id),
-          );
-      });
+          )
+      })
 
       const getVotingSessionStatsForTopic = Effect.fn(
         "VotingQueries.getVotingSessionStatsForTopic",
@@ -278,8 +277,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         const result = yield* db
           .select({
@@ -300,7 +299,7 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               eq(votingSession.marathonId, marathonId),
               eq(votingSession.topicId, topicId),
             ),
-          );
+          )
 
         return (
           result[0] ?? {
@@ -309,8 +308,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             participantSessions: 0,
             manualSessions: 0,
           }
-        );
-      });
+        )
+      })
 
       const getVotingWindowForTopic = Effect.fn(
         "VotingQueries.getVotingWindowForTopic",
@@ -318,8 +317,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         const result = yield* db.query.topics.findFirst({
           where: and(
@@ -330,17 +329,17 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             votingStartsAt: true,
             votingEndsAt: true,
           },
-        });
+        })
 
         if (!result) {
-          return undefined;
+          return undefined
         }
 
         return {
           startsAt: result.votingStartsAt,
           endsAt: result.votingEndsAt,
-        };
-      });
+        }
+      })
 
       const upsertTopicVotingWindow = Effect.fn(
         "VotingQueries.upsertTopicVotingWindow",
@@ -350,10 +349,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         startsAt,
         endsAt,
       }: {
-        marathonId: number;
-        topicId: number;
-        startsAt: string;
-        endsAt: string;
+        marathonId: number
+        topicId: number
+        startsAt: string
+        endsAt: string
       }) {
         const result = yield* db
           .update(topics)
@@ -366,10 +365,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
           .returning({
             startsAt: topics.votingStartsAt,
             endsAt: topics.votingEndsAt,
-          });
+          })
 
-        return result[0];
-      });
+        return result[0]
+      })
 
       const closeTopicVotingWindow = Effect.fn(
         "VotingQueries.closeTopicVotingWindow",
@@ -378,9 +377,9 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         topicId,
         nowIso,
       }: {
-        marathonId: number;
-        topicId: number;
-        nowIso: string;
+        marathonId: number
+        topicId: number
+        nowIso: string
       }) {
         const result = yield* db
           .update(topics)
@@ -401,10 +400,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
           .returning({
             startsAt: topics.votingStartsAt,
             endsAt: topics.votingEndsAt,
-          });
+          })
 
-        return result[0];
-      });
+        return result[0]
+      })
 
       const closeVotingWindowsForTopics = Effect.fn(
         "VotingQueries.closeVotingWindowsForTopics",
@@ -413,12 +412,12 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         topicIds,
         nowIso,
       }: {
-        marathonId: number;
-        topicIds: readonly number[];
-        nowIso: string;
+        marathonId: number
+        topicIds: readonly number[]
+        nowIso: string
       }) {
         if (topicIds.length === 0) {
-          return [];
+          return []
         }
 
         return yield* db
@@ -444,8 +443,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             topicId: topics.id,
             startsAt: topics.votingStartsAt,
             endsAt: topics.votingEndsAt,
-          });
-      });
+          })
+      })
 
       const countSubmissionsForTopic = Effect.fn(
         "VotingQueries.countSubmissionsForTopic",
@@ -453,8 +452,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         const result = yield* db
           .select({ value: count() })
@@ -464,10 +463,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               eq(submissions.marathonId, marathonId),
               eq(submissions.topicId, topicId),
             ),
-          );
+          )
 
-        return result[0]?.value ?? 0;
-      });
+        return result[0]?.value ?? 0
+      })
 
       const countParticipantsWithSubmissionsForTopic = Effect.fn(
         "VotingQueries.countParticipantsWithSubmissionsForTopic",
@@ -475,8 +474,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         const result = yield* db
           .select({
@@ -490,10 +489,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               eq(submissions.marathonId, marathonId),
               eq(submissions.topicId, topicId),
             ),
-          );
+          )
 
-        return result[0]?.value ?? 0;
-      });
+        return result[0]?.value ?? 0
+      })
 
       const getLeaderboardPageForTopic = Effect.fn(
         "VotingQueries.getLeaderboardPageForTopic",
@@ -503,12 +502,12 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         page,
         limit,
       }: {
-        marathonId: number;
-        topicId: number;
-        page: number;
-        limit: number;
+        marathonId: number
+        topicId: number
+        page: number
+        limit: number
       }) {
-        const offset = (page - 1) * limit;
+        const offset = (page - 1) * limit
 
         const leaderboardBase = db
           .select({
@@ -551,7 +550,7 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             participants.lastname,
             participants.reference,
           )
-          .as("leaderboard_base");
+          .as("leaderboard_base")
 
         const rankedLeaderboard = db
           .select({
@@ -572,7 +571,7 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             ),
           })
           .from(leaderboardBase)
-          .as("ranked_leaderboard");
+          .as("ranked_leaderboard")
 
         return yield* db
           .select({
@@ -595,8 +594,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             asc(rankedLeaderboard.submissionKey),
           )
           .limit(limit)
-          .offset(offset);
-      });
+          .offset(offset)
+      })
 
       const getTopRanksPreviewForTopic = Effect.fn(
         "VotingQueries.getTopRanksPreviewForTopic",
@@ -604,8 +603,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         const leaderboardBase = db
           .select({
@@ -648,7 +647,7 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             participants.lastname,
             participants.reference,
           )
-          .as("leaderboard_base");
+          .as("leaderboard_base")
 
         const rankedLeaderboard = db
           .select({
@@ -669,7 +668,7 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             ),
           })
           .from(leaderboardBase)
-          .as("ranked_leaderboard");
+          .as("ranked_leaderboard")
 
         const rankedPreview = db
           .select({
@@ -690,7 +689,7 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             )`.as("rank_entry_order"),
           })
           .from(rankedLeaderboard)
-          .as("ranked_preview");
+          .as("ranked_preview")
 
         return yield* db
           .select({
@@ -714,8 +713,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               sql`${rankedPreview.rankEntryOrder} <= 3`,
             ),
           )
-          .orderBy(asc(rankedPreview.rank), asc(rankedPreview.rankEntryOrder));
-      });
+          .orderBy(asc(rankedPreview.rank), asc(rankedPreview.rankEntryOrder))
+      })
 
       const getVotersPageForTopic = Effect.fn(
         "VotingQueries.getVotersPageForTopic",
@@ -725,12 +724,12 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         page,
         limit,
       }: {
-        marathonId: number;
-        topicId: number;
-        page: number;
-        limit: number;
+        marathonId: number
+        topicId: number
+        page: number
+        limit: number
       }) {
-        const offset = (page - 1) * limit;
+        const offset = (page - 1) * limit
         return yield* db.query.votingSession.findMany({
           where: and(
             eq(votingSession.marathonId, marathonId),
@@ -771,8 +770,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
           orderBy: [desc(votingSession.createdAt), desc(votingSession.id)],
           limit,
           offset,
-        });
-      });
+        })
+      })
 
       const getVotingSessionByIdForTopic = Effect.fn(
         "VotingQueries.getVotingSessionByIdForTopic",
@@ -781,9 +780,9 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         topicId,
         sessionId,
       }: {
-        marathonId: number;
-        topicId: number;
-        sessionId: number;
+        marathonId: number
+        topicId: number
+        sessionId: number
       }) {
         const result = yield* db.query.votingSession.findFirst({
           where: and(
@@ -794,10 +793,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
           with: {
             marathon: true,
           },
-        });
+        })
 
-        return Option.fromNullable(result);
-      });
+        return Option.fromNullishOr(result)
+      })
 
       const getSubmissionVoteStats = Effect.fn(
         "VotingQueries.getSubmissionVoteStats",
@@ -805,28 +804,28 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         submissionId,
         domain,
       }: {
-        submissionId: number;
-        domain: string;
+        submissionId: number
+        domain: string
       }) {
         const marathonResult = yield* db.query.marathons.findFirst({
           where: eq(marathons.domain, domain),
           columns: {
             id: true,
           },
-        });
+        })
 
         if (!marathonResult) {
-          return Option.none();
+          return Option.none()
         }
 
-        const marathonId = marathonResult.id;
+        const marathonId = marathonResult.id
 
         const voteCountResult = yield* db
           .select({ count: count() })
           .from(votingSession)
-          .where(eq(votingSession.voteSubmissionId, submissionId));
+          .where(eq(votingSession.voteSubmissionId, submissionId))
 
-        const voteCount = voteCountResult[0]?.count ?? 0;
+        const voteCount = voteCountResult[0]?.count ?? 0
 
         const allSubmissionsWithVotes = yield* db
           .select({
@@ -839,19 +838,19 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             eq(submissions.id, votingSession.voteSubmissionId),
           )
           .where(eq(submissions.marathonId, marathonId))
-          .groupBy(submissions.id);
+          .groupBy(submissions.id)
 
         const position =
           allSubmissionsWithVotes.filter((s) => s.voteCount > voteCount)
-            .length + 1;
-        const totalSubmissions = allSubmissionsWithVotes.length;
+            .length + 1
+        const totalSubmissions = allSubmissionsWithVotes.length
 
         return Option.some({
           voteCount,
           position,
           totalSubmissions,
-        });
-      });
+        })
+      })
 
       const getParticipantVoteInfo = Effect.fn(
         "VotingQueries.getParticipantVoteInfo",
@@ -859,8 +858,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         participantId,
         topicId,
       }: {
-        participantId: number;
-        topicId: number;
+        participantId: number
+        topicId: number
       }) {
         const votingSessionResult = yield* db.query.votingSession.findFirst({
           where: and(
@@ -874,10 +873,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               },
             },
           },
-        });
+        })
 
         if (!votingSessionResult) {
-          return Option.none();
+          return Option.none()
         }
 
         return Option.some({
@@ -885,8 +884,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
           votedAt: votingSessionResult.votedAt,
           votedSubmissionId: votingSessionResult.voteSubmissionId,
           votedTopicName: votingSessionResult.submissions?.topic?.name ?? null,
-        });
-      });
+        })
+      })
 
       const getVotingSessionByParticipantId = Effect.fn(
         "VotingQueries.getVotingSessionByParticipantId",
@@ -894,10 +893,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         const result = yield* db.query.votingSession.findFirst({
           where: eq(votingSession.connectedParticipantId, participantId),
           orderBy: [desc(votingSession.createdAt)],
-        });
+        })
 
-        return Option.fromNullable(result);
-      });
+        return Option.fromNullishOr(result)
+      })
 
       const getVotingSessionByParticipantAndTopicId = Effect.fn(
         "VotingQueries.getVotingSessionByParticipantAndTopicId",
@@ -905,8 +904,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         participantId,
         topicId,
       }: {
-        participantId: number;
-        topicId: number;
+        participantId: number
+        topicId: number
       }) {
         const result = yield* db.query.votingSession.findFirst({
           where: and(
@@ -914,10 +913,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             eq(votingSession.topicId, topicId),
           ),
           orderBy: [desc(votingSession.createdAt)],
-        });
+        })
 
-        return Option.fromNullable(result);
-      });
+        return Option.fromNullishOr(result)
+      })
 
       const upsertVotingSession = Effect.fn(
         "VotingQueries.upsertVotingSession",
@@ -942,10 +941,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               updatedAt: new Date().toISOString(),
             },
           })
-          .returning();
+          .returning()
 
-        return result[0] as VotingSession;
-      });
+        return result[0] as VotingSession
+      })
 
       const getSubmissionsForVoting = Effect.fn(
         "VotingQueries.getSubmissionsForVoting",
@@ -953,8 +952,8 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number;
-        topicId: number;
+        marathonId: number
+        topicId: number
       }) {
         const result = yield* db.query.submissions.findMany({
           where: and(
@@ -977,19 +976,19 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
               },
             },
           },
-        });
+        })
 
-        return result;
-      });
+        return result
+      })
 
       const recordVote = Effect.fn("VotingQueries.recordVote")(function* ({
         token,
         submissionId,
       }: {
-        token: string;
-        submissionId: number;
+        token: string
+        submissionId: number
       }) {
-        const now = new Date().toISOString();
+        const now = new Date().toISOString()
         const result = yield* db
           .update(votingSession)
           .set({
@@ -998,17 +997,17 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             updatedAt: now,
           })
           .where(eq(votingSession.token, token))
-          .returning();
+          .returning()
 
-        return result[0] as VotingSession | undefined;
-      });
+        return result[0] as VotingSession | undefined
+      })
 
       const clearVote = Effect.fn("VotingQueries.clearVote")(function* ({
         sessionId,
       }: {
-        sessionId: number;
+        sessionId: number
       }) {
-        const now = new Date().toISOString();
+        const now = new Date().toISOString()
         const result = yield* db
           .update(votingSession)
           .set({
@@ -1017,10 +1016,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
             updatedAt: now,
           })
           .where(eq(votingSession.id, sessionId))
-          .returning();
+          .returning()
 
-        return result[0] as VotingSession | undefined;
-      });
+        return result[0] as VotingSession | undefined
+      })
 
       const deleteVotingSession = Effect.fn(
         "VotingQueries.deleteVotingSession",
@@ -1028,10 +1027,10 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         const result = yield* db
           .delete(votingSession)
           .where(eq(votingSession.id, sessionId))
-          .returning();
+          .returning()
 
-        return result[0] as VotingSession | undefined;
-      });
+        return result[0] as VotingSession | undefined
+      })
 
       return {
         getVotingSessionByToken,
@@ -1063,8 +1062,11 @@ export class VotingQueries extends Effect.Service<VotingQueries>()(
         recordVote,
         clearVote,
         deleteVotingSession,
-      } as const;
+      } as const
     }),
   },
 ) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
 }

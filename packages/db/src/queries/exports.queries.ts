@@ -1,11 +1,10 @@
-import { Effect } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 import { DrizzleClient } from "../drizzle-client"
-import { participants, submissions, validationResults, marathons } from "../schema"
-import { eq, and } from "drizzle-orm"
+import { participants, submissions, marathons } from "../schema"
+import { eq } from "drizzle-orm"
 
-export class ExportsQueries extends Effect.Service<ExportsQueries>()("@blikka/db/exports-queries", {
-  dependencies: [DrizzleClient.Default],
-  effect: Effect.gen(function* () {
+export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikka/db/exports-queries", {
+  make: Effect.gen(function* () {
     const db = yield* DrizzleClient
 
     const getParticipantsForExport = Effect.fn("ExportsQueries.getParticipantsForExport")(
@@ -239,6 +238,10 @@ export class ExportsQueries extends Effect.Service<ExportsQueries>()("@blikka/db
       getSubmissionsForExport,
       getExifDataForExport,
       getValidationResultsForExport,
-    }
+    } as const
   }),
-}) {}
+}) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
+}

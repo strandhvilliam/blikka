@@ -1,17 +1,16 @@
 import { DrizzleClient } from "../drizzle-client"
-import { Effect, Option } from "effect"
+import { Effect, Layer, Option, ServiceMap } from "effect"
 import { eq, desc, and, lt } from "drizzle-orm"
 import { juryInvitations, juryRatings, marathons, participants, submissions } from "../schema"
 import type { NewJuryInvitation, Participant, Submission, Topic } from "../types"
 import { SqlError } from "@effect/sql/SqlError"
 
-export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-queries", {
-  dependencies: [DrizzleClient.Default],
-  effect: Effect.gen(function*() {
+export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/jury-queries", {
+  make: Effect.gen(function* () {
     const db = yield* DrizzleClient
 
     const getJuryInvitationsByMarathonId = Effect.fn("JuryQueries.getJuryInvitatinosByMarathonId")(
-      function*({ id }: { id: number }) {
+      function* ({ id }: { id: number }) {
         const result = yield* db.query.juryInvitations.findMany({
           where: eq(juryInvitations.marathonId, id),
           orderBy: [desc(juryInvitations.createdAt)],
@@ -20,7 +19,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       }
     )
 
-    const getJuryInvitationById = Effect.fn("JuryQueries.getJuryInvitationById")(function*({
+    const getJuryInvitationById = Effect.fn("JuryQueries.getJuryInvitationById")(function* ({
       id,
     }: {
       id: number
@@ -33,11 +32,11 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
           deviceGroup: true,
         },
       })
-      return Option.fromNullable(result)
+      return Option.fromNullishOr(result)
     })
 
     const getJuryInvitationsByDomain = Effect.fn("JuryQueries.getJuryInvitationsByDomain")(
-      function*({ domain }: { domain: string }) {
+      function* ({ domain }: { domain: string }) {
         const marathon = yield* db
           .select({ id: marathons.id })
           .from(marathons)
@@ -64,7 +63,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       }
     )
 
-    const createJuryInvitation = Effect.fn("JuryQueries.createJuryInvitation")(function*({
+    const createJuryInvitation = Effect.fn("JuryQueries.createJuryInvitation")(function* ({
       data,
     }: {
       data: NewJuryInvitation
@@ -85,7 +84,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       return result
     })
 
-    const updateJuryInvitation = Effect.fn("JuryQueries.updateJuryInvitation")(function*({
+    const updateJuryInvitation = Effect.fn("JuryQueries.updateJuryInvitation")(function* ({
       id,
       data,
     }: {
@@ -108,7 +107,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       return result
     })
 
-    const deleteJuryInvitation = Effect.fn("JuryQueries.deleteJuryInvitation")(function*({
+    const deleteJuryInvitation = Effect.fn("JuryQueries.deleteJuryInvitation")(function* ({
       id,
     }: {
       id: number
@@ -128,7 +127,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       return result
     })
 
-    const getJuryDataByTokenPayload = Effect.fn("JuryQueries.getJuryDataByToken")(function*({
+    const getJuryDataByTokenPayload = Effect.fn("JuryQueries.getJuryDataByToken")(function* ({
       domain,
       invitationId,
     }: {
@@ -168,7 +167,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
     })
 
     const getJuryParticipantSubmissions = Effect.fn("JuryQueries.getJuryParticipantSubmissions")(
-      function*({
+      function* ({
         domain,
         invitationId,
         participantId,
@@ -250,7 +249,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       }
     )
 
-    const createJuryRating = Effect.fn("JuryQueries.createJuryRating")(function*({
+    const createJuryRating = Effect.fn("JuryQueries.createJuryRating")(function* ({
       invitationId,
       participantId,
       rating,
@@ -295,7 +294,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       return result
     })
 
-    const updateJuryRating = Effect.fn("JuryQueries.updateJuryRating")(function*({
+    const updateJuryRating = Effect.fn("JuryQueries.updateJuryRating")(function* ({
       invitationId,
       participantId,
       rating,
@@ -326,7 +325,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       return result
     })
 
-    const getJuryRating = Effect.fn("JuryQueries.getJuryRating")(function*({
+    const getJuryRating = Effect.fn("JuryQueries.getJuryRating")(function* ({
       invitationId,
       participantId,
     }: {
@@ -352,10 +351,10 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
         ),
       })
 
-      return Option.fromNullable(result)
+      return Option.fromNullishOr(result)
     })
 
-    const deleteJuryRating = Effect.fn("JuryQueries.deleteJuryRating")(function*({
+    const deleteJuryRating = Effect.fn("JuryQueries.deleteJuryRating")(function* ({
       invitationId,
       participantId,
     }: {
@@ -384,12 +383,12 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
         )
         .returning()
 
-      return Option.fromNullable(result)
+      return Option.fromNullishOr(result)
     })
 
     const getJurySubmissionsWithoutFilters = Effect.fn(
       "JuryQueries.getJurySubmissionWithouFilters"
-    )(function*({ invitation, cursor }: { invitation: any; cursor?: number }) {
+    )(function* ({ invitation, cursor }: { invitation: any; cursor?: number }) {
       const limit = 50
 
       if (invitation.inviteType === "topic") {
@@ -543,7 +542,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
 
     const getJurySubmissionsWithRatingFilters = Effect.fn(
       "JuryQueries.getJurySubmissionsWithRatingFilters"
-    )(function*({
+    )(function* ({
       invitation,
       ratingFilter,
       cursor,
@@ -717,7 +716,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
     })
 
     const getJurySubmissionsFromToken = Effect.fn("JuryQueries.getJurySubmissionsFromToken")(
-      function*({
+      function* ({
         invitationId,
         cursor,
         ratingFilter,
@@ -754,7 +753,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
     )
 
     const getJuryRatingsByInvitation = Effect.fn("JuryQueries.getJuryRatingsByInvitation")(
-      function*({ invitationId }: { invitationId: number }) {
+      function* ({ invitationId }: { invitationId: number }) {
         const invitation = yield* db.query.juryInvitations.findFirst({
           where: eq(juryInvitations.id, invitationId),
         })
@@ -783,7 +782,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       }
     )
 
-    const getJuryParticipantCount = Effect.fn("JuryQueries.getJuryParticipantCount")(function*({
+    const getJuryParticipantCount = Effect.fn("JuryQueries.getJuryParticipantCount")(function* ({
       invitationId,
       ratingFilter,
     }: {
@@ -837,7 +836,7 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
     })
 
     const getJuryInvitationStatistics = Effect.fn("JuryQueries.getJuryInvitationStatistics")(
-      function*({ invitationId }: { invitationId: number }) {
+      function* ({ invitationId }: { invitationId: number }) {
         const invitation = yield* db.query.juryInvitations.findFirst({
           where: eq(juryInvitations.id, invitationId),
         })
@@ -945,7 +944,10 @@ export class JuryQueries extends Effect.Service<JuryQueries>()("@blikka/db/jury-
       createJuryRating,
       updateJuryRating,
       deleteJuryRating,
-    }
+    } as const
   }),
 }) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(DrizzleClient.layer)
+  )
 }
