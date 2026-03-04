@@ -14,11 +14,11 @@
     "@blikka/db": "workspace:*",
     "@blikka/exif-parser": "workspace:*",
     "@blikka/image-manipulation": "workspace:*",
-    "@blikka/pubsub": "workspace:*",
-    "@blikka/telemetry": "workspace:*",
     "@blikka/kv-store": "workspace:*",
+    "@blikka/pubsub": "workspace:*",
     "@blikka/s3": "workspace:*",
-    "@effect-aws/lambda": "^1.5.1",
+    "@blikka/telemetry": "workspace:*",
+    "@effect-aws/lambda": "2.0.0-beta.2",
     "effect": "catalog:",
     "sharp": "^0.34.3"
   }

@@ -7,7 +7,7 @@ export const parseJson = (input: string) =>
     catch: (unknown) => new JsonParseError({ message: "Failed to parse JSON" }),
   })
 
-export const parseKey = Effect.fn("utils.parseKey")(function* (key: string) {
+export const parseKey = Effect.fn("UploadProcessorUtils.parseKey")(function* (key: string) {
   const [domain, reference, formattedOrderIndex, fileName] = key.split("/")
   if (!domain || !reference || !formattedOrderIndex || !fileName) {
     return yield* new InvalidKeyFormatError({
@@ -20,12 +20,12 @@ export const parseKey = Effect.fn("utils.parseKey")(function* (key: string) {
   return { domain, reference, orderIndex, fileName }
 })
 
-export const makeThumbnailKey = Effect.fn("utils.makeThumbnailKey")(function* (params: {
+export const makeThumbnailKey = (params: {
   domain: string
   reference: string
   orderIndex: number
   fileName: string
-}) {
+}) => {
   const formattedOrderIndex = (params.orderIndex + 1).toString().padStart(2, "0")
   return `${params.domain}/${params.reference}/${formattedOrderIndex}/thumbnail_${params.fileName}`
-})
+}
