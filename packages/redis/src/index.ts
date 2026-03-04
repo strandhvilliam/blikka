@@ -1,10 +1,13 @@
 import { Redis } from "@upstash/redis"
-import { Config, Console, Data, Duration, Effect, Schedule } from "effect"
+import { Config, Console, Duration, Effect, Layer, Schedule, Schema, ServiceMap } from "effect"
 
-export class RedisError extends Data.TaggedError("RedisError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class RedisError extends Schema.TaggedErrorClass<RedisError>()(
+  "RedisError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }) {
+}
 
 const makeClient = Effect.fn("RedisClient.makeClient")(
   function* (url: string, token: string) {
@@ -21,15 +24,16 @@ const makeClient = Effect.fn("RedisClient.makeClient")(
   )
 )
 
-export class RedisClient extends Effect.Service<RedisClient>()(
+export class RedisClient extends ServiceMap.Service<RedisClient>()(
   "@blikka/packages/redis/redis-client",
   {
-    scoped: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const url = yield* Config.string("UPSTASH_REDIS_REST_URL")
       const token = yield* Config.string("UPSTASH_REDIS_REST_TOKEN")
-
-      const client = yield* makeClient(url, token)
-
+      const client = yield* Effect.acquireRelease(
+        makeClient(url, token),
+        (client) => Console.log("Shutting down Redis client")
+      )
       const use = <T>(fn: (client: Redis) => T): Effect.Effect<Awaited<T>, RedisError, never> =>
         Effect.gen(function* () {
           const result = yield* Effect.try({
@@ -53,11 +57,12 @@ export class RedisClient extends Effect.Service<RedisClient>()(
             return result
           }
         })
-      yield* Effect.addFinalizer(() => Console.log("Shutting down Redis client"))
       return {
         client,
         use,
       } as const
     }),
   }
-) {}
+) {
+  static layer = Layer.effect(this, this.make)
+}
