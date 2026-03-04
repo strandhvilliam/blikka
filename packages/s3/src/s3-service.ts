@@ -1,16 +1,19 @@
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
-import { Data, Duration, Effect, Option, Schedule } from "effect"
+import { Duration, Effect, Option, Schedule, Schema, ServiceMap, Layer } from "effect"
 import { S3EffectClient } from "./s3-effect-client"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-class S3ClientError extends Data.TaggedError("S3ClientError")<{
-  message?: string
-  cause?: unknown
-}> {}
+class S3ClientError extends Schema.TaggedErrorClass<S3ClientError>()(
+  "S3ClientError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {
+}
 
-export class S3Service extends Effect.Service<S3Service>()("@blikka/packages/s3-service", {
-  dependencies: [S3EffectClient.Default],
-  effect: Effect.gen(function* () {
+export class S3Service extends ServiceMap.Service<S3Service>()("@blikka/packages/s3-service", {
+  make: Effect.gen(function* () {
     const s3Client = yield* S3EffectClient
 
     const getFile = Effect.fn("S3Service.getFile")(
@@ -67,14 +70,14 @@ export class S3Service extends Effect.Service<S3Service>()("@blikka/packages/s3-
         const command =
           method === "GET"
             ? new GetObjectCommand({
-                Bucket: bucket,
-                Key: key,
-              })
+              Bucket: bucket,
+              Key: key,
+            })
             : new PutObjectCommand({
-                Bucket: bucket,
-                Key: key,
-                ContentType: options?.contentType ?? "image/jpeg",
-              })
+              Bucket: bucket,
+              Key: key,
+              ContentType: options?.contentType ?? "image/jpeg",
+            })
 
         return yield* s3Client.use((client) =>
           getSignedUrl(client, command, {
@@ -130,4 +133,6 @@ export class S3Service extends Effect.Service<S3Service>()("@blikka/packages/s3-
       generateSubmissionKey,
     } as const
   }),
-}) {}
+}) {
+  static readonly layer = Layer.effect(this, this.make).pipe(Layer.provide(S3EffectClient.layer))
+}

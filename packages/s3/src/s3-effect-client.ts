@@ -1,15 +1,19 @@
 import { S3Client } from "@aws-sdk/client-s3"
-import { Config, Console, Data, Effect } from "effect"
+import { Config, Console, ServiceMap, Effect, Schema, Layer } from "effect"
 
-export class S3EffectError extends Data.TaggedError("S3EffectError")<{
-  message?: string
-  cause?: unknown
-}> {}
+export class S3EffectError extends Schema.TaggedErrorClass<S3EffectError>()(
+  "S3EffectError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {
+}
 
-export class S3EffectClient extends Effect.Service<S3EffectClient>()(
+export class S3EffectClient extends ServiceMap.Service<S3EffectClient>()(
   "@blikka/packages/s3-service/s3-effect-client",
   {
-    scoped: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const region = yield* Config.string("AWS_REGION")
 
       const client = new S3Client({ region })
@@ -47,4 +51,7 @@ export class S3EffectClient extends Effect.Service<S3EffectClient>()(
       }
     }),
   }
-) {}
+) {
+
+  static readonly layer = Layer.effect(this, this.make)
+}
