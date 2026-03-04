@@ -33,21 +33,23 @@ import {
   ROW_SPACING,
 } from "./constants"
 
-export class InvalidKeyFormatError extends Schema.TaggedError<InvalidKeyFormatError>()(
+export class InvalidKeyFormatError extends Schema.TaggedErrorClass<InvalidKeyFormatError>()(
   "InvalidKeyFormatError",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   }
-) {}
+) {
+}
 
-export class SvgGenerationError extends Schema.TaggedError<SvgGenerationError>()(
+export class SvgGenerationError extends Schema.TaggedErrorClass<SvgGenerationError>()(
   "SvgGenerationError",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   }
-) {}
+) {
+}
 
 export const parseKey = (key: string) =>
   Effect.sync(() => {

@@ -1,9 +1,10 @@
-import { Effect, Schema } from "effect"
+import { Effect, Schema, Layer, ServiceMap } from "effect"
 
-export class CanvasImageError extends Schema.TaggedError<CanvasImageError>()("CanvasImageError", {
+export class CanvasImageError extends Schema.TaggedErrorClass<CanvasImageError>()("CanvasImageError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
-}) {}
+}) {
+}
 
 export interface ResizeOptions {
   width: number
@@ -17,11 +18,10 @@ export interface ResizedImage {
   height: number
 }
 
-export class CanvasImageService extends Effect.Service<CanvasImageService>()(
+export class CanvasImageService extends ServiceMap.Service<CanvasImageService>()(
   "@blikka/packages/image-manipulation/canvas-image-service",
   {
-    dependencies: [],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       if (typeof window === "undefined") {
         return yield* new CanvasImageError({
           message: "CanvasImageService is not supported in this environment",
@@ -34,7 +34,7 @@ export class CanvasImageService extends Effect.Service<CanvasImageService>()(
       ) {
         const { width: targetWidth, quality = 0.9, format = "image/jpeg" } = options
 
-        return Effect.async<ResizedImage, Error>((resume) => {
+        return Effect.callback<ResizedImage, Error>((resume) => {
           const img = new Image()
 
           img.onload = () => {
@@ -109,4 +109,7 @@ export class CanvasImageService extends Effect.Service<CanvasImageService>()(
       } as const
     }),
   }
-) {}
+) {
+
+  static readonly layer = Layer.effect(this, this.make)
+}

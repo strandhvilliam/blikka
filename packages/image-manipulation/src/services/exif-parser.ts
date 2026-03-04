@@ -1,36 +1,35 @@
 import exifr from "exifr"
-import { Data, Effect, Either, Schema } from "effect"
+import { ServiceMap, Effect, Schema } from "effect"
 
-export class ExifParseError extends Data.TaggedError("ExifParserError")<{
-  message?: string
-  cause?: unknown
-}> {
+export class ExifParseError extends Schema.TaggedErrorClass<ExifParseError>()("ExifParserError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown)
+}) {
 }
 
-export const ExifSchema = Schema.Record({
-  key: Schema.String,
-  value: Schema.Unknown,
-});
+export const ExifSchema = Schema.Record(
+  Schema.String,
+  Schema.Unknown,
+)
 
-export type ExifData = typeof ExifSchema.Type;
+export type ExifData = typeof ExifSchema.Type
 
-export class ExifParser extends Effect.Service<ExifParser>()(
+export class ExifParser extends ServiceMap.Service<ExifParser>()(
   "@blikka/exif-parser/exif-parser",
   {
-    dependencies: [],
-    accessors: true,
-    effect: Effect.gen(function*() {
+    make: Effect.gen(function* () {
       const parse = Effect.fn("ExifParser.parse")(
-        function*(
+        function* (
           file: Uint8Array<ArrayBufferLike>,
           options: { keepBinaryData: boolean } = { keepBinaryData: false }
         ) {
           const exif = yield* Effect.tryPromise(() => exifr.parse(file))
-          const sanitizedExif = yield* Effect.try(() =>
-            sanitizeExifData(exif, options?.keepBinaryData)
-          )
+          const sanitizedExif = yield* Effect.try({
+            try: () => sanitizeExifData(exif, options?.keepBinaryData),
+            catch: (error) => new ExifParseError({ message: 'Failed to sanitize EXIF data', cause: error })
+          })
 
-          const decoded = yield* Schema.decodeUnknown(ExifSchema)(sanitizedExif)
+          const decoded = Schema.decodeUnknownSync(ExifSchema)(sanitizedExif)
           return decoded
         },
         Effect.mapError(
@@ -43,7 +42,7 @@ export class ExifParser extends Effect.Service<ExifParser>()(
       )
       const parseExcludeLocationData = Effect.fn(
         "ExifParser.parseExcludeLocationData"
-      )(function*(file: Buffer) {
+      )(function* (file: Buffer) {
         const exif = yield* parse(file)
         const withoutLocationData = yield* removeGpsData(exif)
         return withoutLocationData
@@ -56,7 +55,7 @@ export class ExifParser extends Effect.Service<ExifParser>()(
     }),
   }
 ) {
-} 
+}
 
 
 /**

@@ -8,8 +8,4 @@ node_modules/
 .env.development.local
 
 
-services
 scripts
-apps/api
-apps/observer
-apps/cli

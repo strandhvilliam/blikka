@@ -64,5 +64,5 @@ export class RedisClient extends ServiceMap.Service<RedisClient>()(
     }),
   }
 ) {
-  static layer = Layer.effect(this, this.make)
+  static readonly layer = Layer.effect(this, this.make)
 }

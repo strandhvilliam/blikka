@@ -1,4 +1,4 @@
-import { Config, Effect, Option, Schema } from "effect"
+import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { SharpImageService } from "./sharp-image-service"
 import { S3Service } from "@blikka/s3"
 import {
@@ -20,19 +20,19 @@ import {
   WHITE_BACKGROUND,
 } from "../constants"
 
-export class InvalidSheetParamsError extends Schema.TaggedError<InvalidSheetParamsError>()(
+export class InvalidSheetParamsError extends Schema.TaggedErrorClass<InvalidSheetParamsError>()(
   "InvalidSheetParamsError",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
-  }
-) {}
+  },
+) {
+}
 
-export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
+export class ContactSheetBuilder extends ServiceMap.Service<ContactSheetBuilder>()(
   "@blikka/packages/image-manipulation/ContactSheetBuilder",
   {
-    dependencies: [SharpImageService.Default, S3Service.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const sharp = yield* SharpImageService
       const s3 = yield* S3Service
 
@@ -55,9 +55,9 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
                 key,
                 buffer: buffer.value,
               }
-            })
+            }),
           ),
-          { concurrency: 5 }
+          { concurrency: 5 },
         )
         if (results.length !== keys.length) {
           return yield* new InvalidSheetParamsError({
@@ -69,14 +69,14 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
 
       const processSponsorImage = Effect.fn("SheetBuilder.processSponsorImage")(function* (
         sponsorFile: Buffer,
-        sheetVariables: SheetVariables
+        sheetVariables: SheetVariables,
       ) {
         return yield* sharp.prepareForCanvas(
           Buffer.from(sponsorFile),
           sheetVariables.cellWidth,
           sheetVariables.cellHeight,
           "inside",
-          WHITE_BACKGROUND
+          WHITE_BACKGROUND,
         )
       })
 
@@ -84,14 +84,14 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
         imageFile: Buffer,
         orderIndex: number,
         topics: { name: string; orderIndex: number }[],
-        sheetVariables: SheetVariables
+        sheetVariables: SheetVariables,
       ) {
         const image = yield* sharp.prepareForCanvas(
           Buffer.from(imageFile),
           sheetVariables.cellWidth,
           sheetVariables.availableImageHeight,
           "inside",
-          WHITE_BACKGROUND
+          WHITE_BACKGROUND,
         )
 
         const textBuffer = yield* getImageLabel(orderIndex, topics).pipe(
@@ -102,16 +102,16 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
                 Effect.fail(
                   new InvalidSheetParamsError({
                     message: `Label not found (orderIndex: ${orderIndex})`,
-                  })
+                  }),
                 ),
-            })
+            }),
           ),
           Effect.andThen((label) =>
             generateTextLabelSvg({
               sheetVariables,
               label,
-            })
-          )
+            }),
+          ),
         )
 
         return {
@@ -142,12 +142,12 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
 
         const { cols, rows, sponsorRow, sponsorCol } = getGridConfig(
           sponsorPosition,
-          imageFiles.length
+          imageFiles.length,
         )
         const sheetVariables = calculateSheetVariables(reference, cols, rows)
 
         const cellPositions = Array.from({ length: rows }, (_, row) =>
-          Array.from({ length: cols }, (_, col) => ({ row, col }))
+          Array.from({ length: cols }, (_, col) => ({ row, col })),
         ).flat()
 
         const compositeImages = yield* Effect.forEach(
@@ -165,7 +165,7 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
               if (isSponsor && Option.isSome(sponsorFile)) {
                 return yield* processSponsorImage(
                   Buffer.from(sponsorFile.value),
-                  sheetVariables
+                  sheetVariables,
                 ).pipe(Effect.map((sponsorImage) => [{ input: sponsorImage, ...imagePosition }]))
               }
 
@@ -175,14 +175,14 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
                   return yield* Effect.fail(
                     new InvalidSheetParamsError({
                       message: "Image not found when processing",
-                    })
+                    }),
                   )
                 }
                 return yield* processImage(
                   Buffer.from(file.buffer),
                   index,
                   topics,
-                  sheetVariables
+                  sheetVariables,
                 ).pipe(
                   Effect.map(({ image, textBuffer }) => [
                     { input: image, ...imagePosition },
@@ -191,13 +191,13 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
                       top: y + sheetVariables.availableImageHeight + TEXT_TOP_GAP,
                       left: x,
                     },
-                  ])
+                  ]),
                 )
               }
 
               return yield* Effect.succeed<{ input: Buffer; top: number; left: number }[]>([])
             }),
-          { concurrency: 8 }
+          { concurrency: 8 },
         ).pipe(Effect.map((data) => data.flat()))
 
         const participantReferenceSvg = yield* generateParticipantReferenceSvg({
@@ -225,5 +225,9 @@ export class ContactSheetBuilder extends Effect.Service<ContactSheetBuilder>()(
         createSheet,
       } as const
     }),
-  }
-) {}
+  },
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(SharpImageService.layer, S3Service.layer)),
+  )
+}

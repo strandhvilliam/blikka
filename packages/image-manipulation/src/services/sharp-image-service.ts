@@ -1,8 +1,8 @@
-import { Effect, Schema } from "effect"
+import { Effect, Layer, Schema, ServiceMap } from "effect"
 import sharp from "sharp"
 import type { OverlayOptions } from "sharp"
 
-export class SharpError extends Schema.TaggedError<SharpError>()("SharpError", {
+export class SharpError extends Schema.TaggedErrorClass<SharpError>()("SharpError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {
@@ -20,12 +20,11 @@ const makeSharpImage = (image: Buffer) =>
       }),
   })
 
-export class SharpImageService extends Effect.Service<SharpImageService>()(
+export class SharpImageService extends ServiceMap.Service<SharpImageService>()(
   "@blikka/packages/image-manipulation/SharpImageService",
   {
-    dependencies: [],
-    effect: Effect.gen(function*() {
-      const resize = Effect.fn("SharpImageService.resize")(function*(
+    make: Effect.gen(function* () {
+      const resize = Effect.fn("SharpImageService.resize")(function* (
         image: Buffer,
         options: { width: number; height?: number; quality?: number }
       ) {
@@ -52,7 +51,7 @@ export class SharpImageService extends Effect.Service<SharpImageService>()(
         return resized
       })
 
-      const prepareForCanvas = Effect.fn("SharpImageService.prepareForCanvas")(function*(
+      const prepareForCanvas = Effect.fn("SharpImageService.prepareForCanvas")(function* (
         buffer: Buffer,
         width: number,
         height: number,
@@ -79,7 +78,7 @@ export class SharpImageService extends Effect.Service<SharpImageService>()(
         })
       })
 
-      const createCanvasSheet = Effect.fn("SharpImageService.createCanvasSheet")(function*({
+      const createCanvasSheet = Effect.fn("SharpImageService.createCanvasSheet")(function* ({
         width,
         height,
         background,
@@ -125,4 +124,6 @@ export class SharpImageService extends Effect.Service<SharpImageService>()(
     }),
   }
 ) {
+
+  static readonly layer = Layer.effect(this, this.make)
 }
