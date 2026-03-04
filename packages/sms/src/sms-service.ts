@@ -7,7 +7,7 @@ import {
   OptInPhoneNumberCommand,
   type MessageAttributeValue,
 } from "@aws-sdk/client-sns"
-import { Data, Effect } from "effect"
+import { Data, Effect, Layer, Schema, ServiceMap } from "effect"
 import { SNSEffectClient, SNSEffectError } from "./sns-client"
 
 export interface SendSMSParams {
@@ -23,17 +23,16 @@ export interface SMSDeliveryResult {
   readonly error?: string
 }
 
-export class SMSServiceError extends Data.TaggedError("SMSServiceError")<{
-  message?: string
-  cause?: unknown
-}> {
+export class SMSServiceError extends Schema.TaggedErrorClass<SMSServiceError>()("SMSServiceError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {
 }
 
-export class SMSService extends Effect.Service<SMSService>()(
+export class SMSService extends ServiceMap.Service<SMSService>()(
   "@blikka/sms/sms-service",
   {
-    dependencies: [SNSEffectClient.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const snsClient = yield* SNSEffectClient
 
       const send = Effect.fn("SMSService.send")(
@@ -276,4 +275,7 @@ export class SMSService extends Effect.Service<SMSService>()(
     }),
   },
 ) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(SNSEffectClient.layer),
+  )
 }
