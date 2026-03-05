@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Effect, Option, Config } from "effect"
+import { Config, Effect, Layer, Option, ServiceMap } from "effect"
 import {
   Database,
   type VotingSession,
@@ -129,16 +129,10 @@ function normalizePaginationInput({
   }
 }
 
-export class VotingApiService extends Effect.Service<VotingApiService>()(
+export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
   "@blikka/api/VotingApiService",
   {
-    accessors: true,
-    dependencies: [
-      Database.Default,
-      SMSService.Default,
-      PhoneNumberEncryptionService.layer,
-    ],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
       const smsService = yield* SMSService
       const phoneEncryption = yield* PhoneNumberEncryptionService
@@ -494,7 +488,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
                   smsResult: result,
                 }
               }).pipe(
-                Effect.catchAll((error) =>
+                Effect.catch((error) =>
                   Effect.succeed({
                     sessionId: session.id,
                     phoneNumber: null,
@@ -682,7 +676,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
                   smsResult: result,
                 }
               }).pipe(
-                Effect.catchAll((error) =>
+                Effect.catch((error) =>
                   Effect.succeed({
                     sessionId: session.id,
                     phoneNumber: null,
@@ -879,7 +873,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
               smsResult: result,
             }
           }).pipe(
-            Effect.catchAll((error) =>
+            Effect.catch((error) =>
               Effect.succeed({
                 phoneNumber: null,
                 error: String(error),
@@ -1159,7 +1153,7 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
                     .decrypt({
                       encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
                     })
-                    .pipe(Effect.catchAll(() => Effect.succeed(null)))
+                    .pipe(Effect.catch(() => Effect.succeed(null)))
                   : null
 
                 const voteSubmission =
@@ -1341,9 +1335,6 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
             message: `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`,
           })
           .pipe(
-            Effect.tap((result) => {
-              console.log("SMS result", result)
-            }),
             Effect.mapError(
               (error) =>
                 new VotingApiError({
@@ -1660,4 +1651,11 @@ export class VotingApiService extends Effect.Service<VotingApiService>()(
     }),
   },
 ) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      Database.layer,
+      SMSService.layer,
+      PhoneNumberEncryptionService.layer,
+    ))
+  )
 }
