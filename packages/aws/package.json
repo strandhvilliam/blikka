@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./s3": "./src/s3/index.ts",
+    "./sqs": "./src/sqs/index.ts",
     "./bus": "./src/bus/index.ts",
     "./sms": "./src/sms/index.ts"
   },
@@ -19,6 +20,7 @@
     "@aws-sdk/client-eventbridge": "^3.887.0",
     "@aws-sdk/client-s3": "^3.932.0",
     "@aws-sdk/client-sns": "^3.932.0",
+    "@aws-sdk/client-sqs": "^3.1003.0",
     "@aws-sdk/s3-request-presigner": "^3.932.0",
     "effect": "catalog:",
     "sst": "^3.17.19"
