@@ -1,17 +1,17 @@
-"use client";
+"use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useDropzone, type Accept } from "react-dropzone";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import { useDropzone, type Accept } from "react-dropzone"
 import type {
   CompetitionClass,
   DeviceGroup,
   RuleConfig,
   Topic,
-} from "@blikka/db";
-import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation";
-import { isPossiblePhoneNumber } from "react-phone-number-input";
+} from "@blikka/db"
+import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation"
+import { isPossiblePhoneNumber } from "react-phone-number-input"
 import {
   Camera,
   CheckCircle2,
@@ -20,10 +20,10 @@ import {
   RefreshCw,
   Trash2,
   Upload,
-} from "lucide-react";
-import { toast } from "sonner";
+} from "lucide-react"
+import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -31,18 +31,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { PrimaryButton } from "@/components/ui/primary-button";
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { PrimaryButton } from "@/components/ui/primary-button"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,36 +52,36 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { PhoneInput } from "@/components/ui/phone-input";
+} from "@/components/ui/alert-dialog"
+import { PhoneInput } from "@/components/ui/phone-input"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@/components/ui/collapsible"
 
-import { cn, formatDomainPathname } from "@/lib/utils";
-import { useTRPC } from "@/lib/trpc/client";
+import { cn, formatDomainPathname } from "@/lib/utils"
+import { useTRPC } from "@/lib/trpc/client"
 import {
   ADMIN_COMMON_IMAGE_EXTENSIONS,
   ADMIN_UPLOAD_PHASE,
   type AdminPreparedUpload,
   type AdminSelectedPhoto,
   type AdminUploadFileState,
-} from "../_lib/admin-upload/types";
+} from "../_lib/admin-upload/types"
 import {
   processSelectedFiles,
   reassignPhotoOrderIndexes,
   revokePhotoPreviewUrls,
-} from "../_lib/admin-upload/file-processing";
+} from "../_lib/admin-upload/file-processing"
 import {
   hasBlockingValidationErrors,
   runAdminPhotoValidation,
-} from "../_lib/admin-upload/validation";
-import { uploadPreparedFiles } from "../_lib/admin-upload/upload-runner";
+} from "../_lib/admin-upload/validation"
+import { uploadPreparedFiles } from "../_lib/admin-upload/upload-runner"
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const POLLING_INTERVAL_MS = 3000;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const POLLING_INTERVAL_MS = 3000
 
 const DROPZONE_ACCEPT: Accept = {
   "image/jpeg": [".jpg", ".jpeg"],
@@ -90,33 +90,33 @@ const DROPZONE_ACCEPT: Accept = {
   "image/webp": [".webp"],
   "image/heic": [".heic"],
   "image/heif": [".heif"],
-};
-
-type MarathonMode = "marathon" | "by-camera";
-
-interface FormState {
-  reference: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  competitionClassId: string;
-  deviceGroupId: string;
 }
 
-type FormErrors = Partial<Record<keyof FormState | "files", string>>;
+type MarathonMode = "marathon" | "by-camera"
+
+interface FormState {
+  reference: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  competitionClassId: string
+  deviceGroupId: string
+}
+
+type FormErrors = Partial<Record<keyof FormState | "files", string>>
 
 interface AdminParticipantUploadDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  domain: string;
-  marathonMode: MarathonMode;
-  competitionClasses: CompetitionClass[];
-  deviceGroups: DeviceGroup[];
-  topics: Topic[];
-  ruleConfigs: RuleConfig[];
-  marathonStartDate?: string | null;
-  marathonEndDate?: string | null;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  domain: string
+  marathonMode: MarathonMode
+  competitionClasses: CompetitionClass[]
+  deviceGroups: DeviceGroup[]
+  topics: Topic[]
+  ruleConfigs: RuleConfig[]
+  marathonStartDate?: string | null
+  marathonEndDate?: string | null
 }
 
 const DEFAULT_FORM_VALUES: FormState = {
@@ -127,54 +127,54 @@ const DEFAULT_FORM_VALUES: FormState = {
   phone: "",
   competitionClassId: "",
   deviceGroupId: "",
-};
+}
 
 function formatRuleKey(ruleKey: string) {
   return ruleKey
     .split("_")
     .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
-    .join(" ");
+    .join(" ")
 }
 
 function getUploadPhaseLabel(phase: AdminUploadFileState["phase"]) {
-  if (phase === ADMIN_UPLOAD_PHASE.PRESIGNED) return "Ready";
-  if (phase === ADMIN_UPLOAD_PHASE.UPLOADING) return "Uploading";
-  if (phase === ADMIN_UPLOAD_PHASE.PROCESSING) return "Processing";
-  if (phase === ADMIN_UPLOAD_PHASE.COMPLETED) return "Completed";
-  if (phase === ADMIN_UPLOAD_PHASE.ERROR) return "Failed";
-  return "Unknown";
+  if (phase === ADMIN_UPLOAD_PHASE.PRESIGNED) return "Ready"
+  if (phase === ADMIN_UPLOAD_PHASE.UPLOADING) return "Uploading"
+  if (phase === ADMIN_UPLOAD_PHASE.PROCESSING) return "Processing"
+  if (phase === ADMIN_UPLOAD_PHASE.COMPLETED) return "Completed"
+  if (phase === ADMIN_UPLOAD_PHASE.ERROR) return "Failed"
+  return "Unknown"
 }
 
 function getUploadPhaseClassName(phase: AdminUploadFileState["phase"]) {
   if (phase === ADMIN_UPLOAD_PHASE.COMPLETED) {
-    return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    return "bg-emerald-50 text-emerald-700 border-emerald-200"
   }
   if (phase === ADMIN_UPLOAD_PHASE.ERROR) {
-    return "bg-rose-50 text-rose-700 border-rose-200";
+    return "bg-rose-50 text-rose-700 border-rose-200"
   }
   if (
     phase === ADMIN_UPLOAD_PHASE.UPLOADING ||
     phase === ADMIN_UPLOAD_PHASE.PROCESSING
   ) {
-    return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-amber-50 text-amber-700 border-amber-200"
   }
-  return "bg-slate-100 text-slate-700 border-slate-200";
+  return "bg-slate-100 text-slate-700 border-slate-200"
 }
 
 function getValidationRowClass(result: ValidationResult) {
   if (result.outcome !== VALIDATION_OUTCOME.FAILED) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    return "border-emerald-200 bg-emerald-50 text-emerald-700"
   }
 
   if (result.severity === "error") {
-    return "border-rose-200 bg-rose-50 text-rose-700";
+    return "border-rose-200 bg-rose-50 text-rose-700"
   }
 
-  return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-amber-200 bg-amber-50 text-amber-700"
 }
 
 function pluralizePhotos(count: number) {
-  return `${count} photo${count === 1 ? "" : "s"}`;
+  return `${count} photo${count === 1 ? "" : "s"}`
 }
 
 function createValidationResultKey(result: ValidationResult) {
@@ -186,7 +186,7 @@ function createValidationResultKey(result: ValidationResult) {
     result.orderIndex ?? "none",
     result.fileName ?? "none",
     result.isGeneral ? "general" : "file",
-  ].join("|");
+  ].join("|")
 }
 
 export function AdminParticipantUploadDialog({
@@ -201,59 +201,59 @@ export function AdminParticipantUploadDialog({
   marathonStartDate,
   marathonEndDate,
 }: AdminParticipantUploadDialogProps) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const router = useRouter();
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const router = useRouter()
 
-  const completionHandledRef = useRef(false);
-  const signatureRef = useRef<string | null>(null);
-  const photosRef = useRef<AdminSelectedPhoto[]>([]);
+  const completionHandledRef = useRef(false)
+  const signatureRef = useRef<string | null>(null)
+  const photosRef = useRef<AdminSelectedPhoto[]>([])
 
-  const [formValues, setFormValues] = useState<FormState>(DEFAULT_FORM_VALUES);
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [formValues, setFormValues] = useState<FormState>(DEFAULT_FORM_VALUES)
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [selectedPhotos, setSelectedPhotos] = useState<AdminSelectedPhoto[]>(
     [],
-  );
+  )
 
-  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false)
   const [validationResults, setValidationResults] = useState<
     ValidationResult[]
-  >([]);
+  >([])
   const [validationRunError, setValidationRunError] = useState<string | null>(
     null,
-  );
+  )
 
-  const [uploadFiles, setUploadFiles] = useState<AdminUploadFileState[]>([]);
-  const [submittedReference, setSubmittedReference] = useState("");
-  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
-  const [isPollingStatus, setIsPollingStatus] = useState(false);
+  const [uploadFiles, setUploadFiles] = useState<AdminUploadFileState[]>([])
+  const [submittedReference, setSubmittedReference] = useState("")
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false)
+  const [isPollingStatus, setIsPollingStatus] = useState(false)
   const [uploadErrorMessage, setUploadErrorMessage] = useState<string | null>(
     null,
-  );
-  const [uploadComplete, setUploadComplete] = useState(false);
+  )
+  const [uploadComplete, setUploadComplete] = useState(false)
 
-  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
-  const [pendingReference, setPendingReference] = useState<string | null>(null);
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false)
+  const [pendingReference, setPendingReference] = useState<string | null>(null)
 
   const checkParticipantExistsMutation = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
-  );
+  )
   const initializeUploadFlowMutation = useMutation(
     trpc.uploadFlow.initializeUploadFlow.mutationOptions(),
-  );
+  )
   const initializeByCameraUploadMutation = useMutation(
     trpc.uploadFlow.initializeByCameraUpload.mutationOptions(),
-  );
+  )
 
   const sortedTopics = useMemo(
     () => [...topics].sort((a, b) => a.orderIndex - b.orderIndex),
     [topics],
-  );
+  )
 
   const activeByCameraTopic = useMemo(
     () => sortedTopics.find((topic) => topic.visibility === "active") ?? null,
     [sortedTopics],
-  );
+  )
 
   const selectedCompetitionClass = useMemo(
     () =>
@@ -262,41 +262,41 @@ export function AdminParticipantUploadDialog({
           competitionClass.id === Number(formValues.competitionClassId),
       ) ?? null,
     [competitionClasses, formValues.competitionClassId],
-  );
+  )
 
   const selectedTopics = useMemo(() => {
     if (marathonMode === "by-camera") {
-      return activeByCameraTopic ? [activeByCameraTopic] : [];
+      return activeByCameraTopic ? [activeByCameraTopic] : []
     }
 
     if (!selectedCompetitionClass) {
-      return [];
+      return []
     }
 
     return sortedTopics.slice(
       selectedCompetitionClass.topicStartIndex,
       selectedCompetitionClass.topicStartIndex +
-        selectedCompetitionClass.numberOfPhotos,
-    );
+      selectedCompetitionClass.numberOfPhotos,
+    )
   }, [
     activeByCameraTopic,
     marathonMode,
     selectedCompetitionClass,
     sortedTopics,
-  ]);
+  ])
 
   const expectedPhotoCount = useMemo(() => {
     if (marathonMode === "by-camera") {
-      return activeByCameraTopic ? 1 : 0;
+      return activeByCameraTopic ? 1 : 0
     }
 
-    return selectedCompetitionClass?.numberOfPhotos ?? 0;
-  }, [activeByCameraTopic, marathonMode, selectedCompetitionClass]);
+    return selectedCompetitionClass?.numberOfPhotos ?? 0
+  }, [activeByCameraTopic, marathonMode, selectedCompetitionClass])
 
   const topicOrderIndexes = useMemo(
     () => selectedTopics.map((topic) => topic.orderIndex),
     [selectedTopics],
-  );
+  )
 
   const generalValidationResults = useMemo(
     () =>
@@ -306,36 +306,37 @@ export function AdminParticipantUploadDialog({
           (result.orderIndex === undefined && !result.fileName),
       ),
     [validationResults],
-  );
+  )
 
   const photoValidationMap = useMemo(() => {
-    const map = new Map<string, ValidationResult[]>();
+    const map = new Map<string, ValidationResult[]>()
 
     selectedPhotos.forEach((photo) => {
-      const unique = new Map<string, ValidationResult>();
+      const unique = new Map<string, ValidationResult>()
 
       validationResults.forEach((result) => {
         if (result.isGeneral) {
-          return;
+          return
         }
 
         const matchesOrder =
           result.orderIndex !== undefined &&
-          result.orderIndex === photo.orderIndex;
-        const matchesFileName = result.fileName === photo.file.name;
+          result.orderIndex === photo.orderIndex
+        const matchesFileName = result.fileName === photo.file.name
 
         if (!matchesOrder && !matchesFileName) {
-          return;
+          return
         }
 
-        unique.set(createValidationResultKey(result), result);
-      });
+        unique.set(createValidationResultKey(result), result)
+      })
 
-      map.set(photo.id, Array.from(unique.values()));
-    });
+      map.set(photo.id, Array.from(unique.values()))
+    })
 
-    return map;
-  }, [selectedPhotos, validationResults]);
+    return map
+  }, [selectedPhotos, validationResults])
+
 
   const blockingValidationErrors = useMemo(
     () =>
@@ -345,7 +346,7 @@ export function AdminParticipantUploadDialog({
           result.severity === "error",
       ),
     [validationResults],
-  );
+  )
 
   const warningValidationResults = useMemo(
     () =>
@@ -355,30 +356,30 @@ export function AdminParticipantUploadDialog({
           result.severity === "warning",
       ),
     [validationResults],
-  );
+  )
 
   const canRetryFailedUploads = useMemo(
     () => uploadFiles.some((file) => file.phase === ADMIN_UPLOAD_PHASE.ERROR),
     [uploadFiles],
-  );
+  )
 
   const uploadProgress = useMemo(() => {
     if (uploadFiles.length === 0) {
       return {
         completed: 0,
         total: 0,
-      };
+      }
     }
 
     const completed = uploadFiles.filter(
       (file) => file.phase === ADMIN_UPLOAD_PHASE.COMPLETED,
-    ).length;
+    ).length
 
     return {
       completed,
       total: uploadFiles.length,
-    };
-  }, [uploadFiles]);
+    }
+  }, [uploadFiles])
 
   const isBusy =
     isProcessingFiles ||
@@ -386,54 +387,54 @@ export function AdminParticipantUploadDialog({
     isPollingStatus ||
     checkParticipantExistsMutation.isPending ||
     initializeUploadFlowMutation.isPending ||
-    initializeByCameraUploadMutation.isPending;
+    initializeByCameraUploadMutation.isPending
   const isPrimaryActionBusy =
     isProcessingFiles ||
     isUploadingFiles ||
     checkParticipantExistsMutation.isPending ||
     initializeUploadFlowMutation.isPending ||
-    initializeByCameraUploadMutation.isPending;
+    initializeByCameraUploadMutation.isPending
 
   const isMappingReady = useMemo(() => {
     if (!formValues.deviceGroupId) {
-      return false;
+      return false
     }
 
     if (marathonMode === "marathon") {
-      return !!formValues.competitionClassId;
+      return !!formValues.competitionClassId
     }
 
-    return !!activeByCameraTopic;
+    return !!activeByCameraTopic
   }, [
     activeByCameraTopic,
     formValues.competitionClassId,
     formValues.deviceGroupId,
     marathonMode,
-  ]);
+  ])
 
   const dropzoneDisabledReason = useMemo(() => {
     if (!formValues.deviceGroupId) {
-      return "Select a device group to enable image selection.";
+      return "Select a device group to enable image selection."
     }
 
     if (marathonMode === "marathon" && !formValues.competitionClassId) {
-      return "Select a competition class to enable image selection.";
+      return "Select a competition class to enable image selection."
     }
 
     if (marathonMode === "by-camera" && !activeByCameraTopic) {
-      return "No active topic is available for by-camera upload.";
+      return "No active topic is available for by-camera upload."
     }
 
-    return null;
+    return null
   }, [
     activeByCameraTopic,
     formValues.competitionClassId,
     formValues.deviceGroupId,
     marathonMode,
-  ]);
+  ])
 
-  const canSelectFiles = isMappingReady && expectedPhotoCount > 0;
-  const isDropzoneDisabled = !canSelectFiles || isBusy || uploadComplete;
+  const canSelectFiles = isMappingReady && expectedPhotoCount > 0
+  const isDropzoneDisabled = !canSelectFiles || isBusy || uploadComplete
 
   const updateUploadFileState = useCallback(
     (
@@ -446,101 +447,101 @@ export function AdminParticipantUploadDialog({
         current.map((file) =>
           file.key === key
             ? {
-                ...file,
-                ...patch,
-              }
+              ...file,
+              ...patch,
+            }
             : file,
         ),
-      );
+      )
     },
     [],
-  );
+  )
 
   const resetDialogState = useCallback(() => {
-    setFormValues(DEFAULT_FORM_VALUES);
-    setFormErrors({});
+    setFormValues(DEFAULT_FORM_VALUES)
+    setFormErrors({})
 
     setSelectedPhotos((current) => {
-      revokePhotoPreviewUrls(current);
-      return [];
-    });
+      revokePhotoPreviewUrls(current)
+      return []
+    })
 
-    setValidationResults([]);
-    setValidationRunError(null);
-    setIsProcessingFiles(false);
+    setValidationResults([])
+    setValidationRunError(null)
+    setIsProcessingFiles(false)
 
-    setUploadFiles([]);
-    setSubmittedReference("");
-    setIsUploadingFiles(false);
-    setIsPollingStatus(false);
-    setUploadErrorMessage(null);
-    setUploadComplete(false);
+    setUploadFiles([])
+    setSubmittedReference("")
+    setIsUploadingFiles(false)
+    setIsPollingStatus(false)
+    setUploadErrorMessage(null)
+    setUploadComplete(false)
 
-    setPendingReference(null);
-    setShowOverwriteDialog(false);
+    setPendingReference(null)
+    setShowOverwriteDialog(false)
 
-    completionHandledRef.current = false;
-    signatureRef.current = null;
-  }, []);
+    completionHandledRef.current = false
+    signatureRef.current = null
+  }, [])
 
   const handleDialogOpenChange = useCallback(
     (nextOpen: boolean) => {
       if (!nextOpen) {
-        resetDialogState();
+        resetDialogState()
       }
-      onOpenChange(nextOpen);
+      onOpenChange(nextOpen)
     },
     [onOpenChange, resetDialogState],
-  );
+  )
 
   useEffect(() => {
-    photosRef.current = selectedPhotos;
-  }, [selectedPhotos]);
+    photosRef.current = selectedPhotos
+  }, [selectedPhotos])
 
   useEffect(() => {
     return () => {
-      revokePhotoPreviewUrls(photosRef.current);
-    };
-  }, []);
+      revokePhotoPreviewUrls(photosRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (!open) {
-      return;
+      return
     }
 
-    const signature = `${expectedPhotoCount}:${topicOrderIndexes.join(",")}`;
+    const signature = `${expectedPhotoCount}:${topicOrderIndexes.join(",")}`
 
     if (!signatureRef.current) {
-      signatureRef.current = signature;
-      return;
+      signatureRef.current = signature
+      return
     }
 
     if (signatureRef.current !== signature && selectedPhotos.length > 0) {
-      revokePhotoPreviewUrls(selectedPhotos);
-      setSelectedPhotos([]);
-      setValidationResults([]);
-      setUploadFiles([]);
-      setUploadComplete(false);
-      setUploadErrorMessage(null);
+      revokePhotoPreviewUrls(selectedPhotos)
+      setSelectedPhotos([])
+      setValidationResults([])
+      setUploadFiles([])
+      setUploadComplete(false)
+      setUploadErrorMessage(null)
       toast.message(
         "Image selection cleared because class/topic mapping changed",
-      );
+      )
     }
 
-    signatureRef.current = signature;
-  }, [open, expectedPhotoCount, topicOrderIndexes, selectedPhotos]);
+    signatureRef.current = signature
+  }, [open, expectedPhotoCount, topicOrderIndexes, selectedPhotos])
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
 
     if (!open) {
-      return;
+      return
     }
 
     if (selectedPhotos.length === 0) {
-      setValidationResults([]);
-      setValidationRunError(null);
-      return;
+      setValidationResults([])
+      setValidationRunError(null)
+      return
     }
 
     const runValidation = async () => {
@@ -550,35 +551,35 @@ export function AdminParticipantUploadDialog({
           ruleConfigs,
           marathonStartDate,
           marathonEndDate,
-        });
+        })
 
         if (cancelled) {
-          return;
+          return
         }
 
-        setValidationResults(results);
-        setValidationRunError(null);
+        setValidationResults(results)
+        setValidationRunError(null)
       } catch (error) {
         if (cancelled) {
-          return;
+          return
         }
 
         const message =
           error instanceof Error
             ? error.message
-            : "Failed to validate selected images";
+            : "Failed to validate selected images"
 
-        setValidationRunError(message);
-        setValidationResults([]);
+        setValidationRunError(message)
+        setValidationResults([])
       }
-    };
+    }
 
-    void runValidation();
+    void runValidation()
 
     return () => {
-      cancelled = true;
-    };
-  }, [open, selectedPhotos, ruleConfigs, marathonStartDate, marathonEndDate]);
+      cancelled = true
+    }
+  }, [open, selectedPhotos, ruleConfigs, marathonStartDate, marathonEndDate])
 
   const uploadStatusQuery = useQuery(
     trpc.uploadFlow.getUploadStatus.queryOptions(
@@ -596,19 +597,19 @@ export function AdminParticipantUploadDialog({
         refetchIntervalInBackground: false,
       },
     ),
-  );
+  )
 
   useEffect(() => {
-    const uploadStatus = uploadStatusQuery.data;
+    const uploadStatus = uploadStatusQuery.data
     if (!uploadStatus || uploadFiles.length === 0) {
-      return;
+      return
     }
 
     setUploadFiles((current) => {
       const next = current.map((file) => {
         const status = uploadStatus.submissions.find(
           (submission) => submission.key === file.key,
-        );
+        )
 
         if (status?.uploaded && file.phase !== ADMIN_UPLOAD_PHASE.COMPLETED) {
           return {
@@ -616,31 +617,31 @@ export function AdminParticipantUploadDialog({
             phase: ADMIN_UPLOAD_PHASE.COMPLETED,
             progress: 100,
             error: undefined,
-          };
+          }
         }
 
-        return file;
-      });
+        return file
+      })
 
-      return next;
-    });
+      return next
+    })
 
     if (uploadStatus.participant?.errors.length) {
-      setUploadErrorMessage(uploadStatus.participant.errors.join(", "));
+      setUploadErrorMessage(uploadStatus.participant.errors.join(", "))
     }
 
     if (uploadStatus.participant?.finalized) {
-      setIsPollingStatus(false);
-      setIsUploadingFiles(false);
-      setUploadComplete(true);
-      setUploadErrorMessage(null);
+      setIsPollingStatus(false)
+      setIsUploadingFiles(false)
+      setUploadComplete(true)
+      setUploadErrorMessage(null)
 
       if (!completionHandledRef.current) {
-        completionHandledRef.current = true;
-        toast.success("Participant created and upload completed");
+        completionHandledRef.current = true
+        toast.success("Participant created and upload completed")
         queryClient.invalidateQueries({
           queryKey: trpc.participants.getByDomainInfinite.pathKey(),
-        });
+        })
       }
     }
   }, [
@@ -648,79 +649,79 @@ export function AdminParticipantUploadDialog({
     trpc.participants,
     uploadFiles.length,
     uploadStatusQuery.data,
-  ]);
+  ])
 
   const setField = useCallback(
     <K extends keyof FormState>(name: K, value: FormState[K]) => {
       setFormValues((current) => ({
         ...current,
         [name]: value,
-      }));
+      }))
 
       setFormErrors((current) => ({
         ...current,
         [name]: undefined,
-      }));
+      }))
     },
     [],
-  );
+  )
 
   const validateForm = useCallback(() => {
-    const nextErrors: FormErrors = {};
+    const nextErrors: FormErrors = {}
 
-    const normalizedReference = formValues.reference.trim();
+    const normalizedReference = formValues.reference.trim()
     if (!/^\d{1,4}$/.test(normalizedReference)) {
-      nextErrors.reference = "Participant reference must be 1-4 digits";
+      nextErrors.reference = "Participant reference must be 1-4 digits"
     }
 
     if (!formValues.firstName.trim()) {
-      nextErrors.firstName = "First name is required";
+      nextErrors.firstName = "First name is required"
     }
 
     if (!formValues.lastName.trim()) {
-      nextErrors.lastName = "Last name is required";
+      nextErrors.lastName = "Last name is required"
     }
 
     if (!EMAIL_REGEX.test(formValues.email.trim())) {
-      nextErrors.email = "Enter a valid email address";
+      nextErrors.email = "Enter a valid email address"
     }
 
     if (marathonMode === "by-camera") {
       if (!formValues.phone.trim()) {
-        nextErrors.phone = "Phone number is required in by-camera mode";
+        nextErrors.phone = "Phone number is required in by-camera mode"
       } else if (!isPossiblePhoneNumber(formValues.phone)) {
-        nextErrors.phone = "Enter a valid phone number";
+        nextErrors.phone = "Enter a valid phone number"
       }
     }
 
     if (!formValues.deviceGroupId) {
-      nextErrors.deviceGroupId = "Select a device group";
+      nextErrors.deviceGroupId = "Select a device group"
     }
 
     if (marathonMode === "marathon" && !formValues.competitionClassId) {
-      nextErrors.competitionClassId = "Select a competition class";
+      nextErrors.competitionClassId = "Select a competition class"
     }
 
     if (expectedPhotoCount === 0) {
       nextErrors.files =
         marathonMode === "marathon"
           ? "Select a competition class before adding images"
-          : "No active topic available for by-camera upload";
+          : "No active topic available for by-camera upload"
     } else if (selectedPhotos.length !== expectedPhotoCount) {
-      nextErrors.files = `Select exactly ${pluralizePhotos(expectedPhotoCount)}`;
+      nextErrors.files = `Select exactly ${pluralizePhotos(expectedPhotoCount)}`
     } else if (validationRunError) {
       nextErrors.files =
-        "Validation failed. Please reselect files and try again";
+        "Validation failed. Please reselect files and try again"
     } else if (hasBlockingValidationErrors(validationResults)) {
-      nextErrors.files = "Resolve blocking validation errors before uploading";
+      nextErrors.files = "Resolve blocking validation errors before uploading"
     }
 
-    setFormErrors(nextErrors);
+    setFormErrors(nextErrors)
 
     return {
       isValid: Object.keys(nextErrors).length === 0,
       reference: normalizedReference.padStart(4, "0"),
-    };
+    }
   }, [
     expectedPhotoCount,
     formValues,
@@ -728,19 +729,19 @@ export function AdminParticipantUploadDialog({
     selectedPhotos.length,
     validationResults,
     validationRunError,
-  ]);
+  ])
 
   const runUpload = useCallback(
     async (reference: string) => {
       if (selectedPhotos.length === 0) {
-        return;
+        return
       }
 
-      setUploadErrorMessage(null);
-      setUploadComplete(false);
-      setIsUploadingFiles(true);
-      setIsPollingStatus(false);
-      completionHandledRef.current = false;
+      setUploadErrorMessage(null)
+      setUploadComplete(false)
+      setIsUploadingFiles(true)
+      setIsPollingStatus(false)
+      completionHandledRef.current = false
 
       try {
         const commonPayload = {
@@ -751,34 +752,34 @@ export function AdminParticipantUploadDialog({
           email: formValues.email.trim(),
           deviceGroupId: Number(formValues.deviceGroupId),
           phoneNumber: formValues.phone.trim() ? formValues.phone.trim() : null,
-        };
+        }
 
         const presignedUrls =
           marathonMode === "marathon"
             ? await initializeUploadFlowMutation.mutateAsync({
-                ...commonPayload,
-                competitionClassId: Number(formValues.competitionClassId),
-              })
-            : await initializeByCameraUploadMutation.mutateAsync(commonPayload);
+              ...commonPayload,
+              competitionClassId: Number(formValues.competitionClassId),
+            })
+            : await initializeByCameraUploadMutation.mutateAsync(commonPayload)
 
         if (!presignedUrls.length) {
-          throw new Error("Failed to initialize upload URLs");
+          throw new Error("Failed to initialize upload URLs")
         }
 
         const preparedUploads: AdminPreparedUpload[] = selectedPhotos.map(
           (photo, index) => {
-            const urlData = presignedUrls[index];
+            const urlData = presignedUrls[index]
             if (!urlData) {
-              throw new Error(`Missing upload URL for image #${index + 1}`);
+              throw new Error(`Missing upload URL for image #${index + 1}`)
             }
 
             return {
               ...photo,
               key: urlData.key,
               presignedUrl: urlData.url,
-            };
+            }
           },
-        );
+        )
 
         const initialUploadState: AdminUploadFileState[] = preparedUploads.map(
           (photo) => ({
@@ -787,34 +788,34 @@ export function AdminParticipantUploadDialog({
             progress: 0,
             error: undefined,
           }),
-        );
+        )
 
-        setUploadFiles(initialUploadState);
-        setSubmittedReference(reference);
+        setUploadFiles(initialUploadState)
+        setSubmittedReference(reference)
 
         const { successKeys, failedKeys } = await uploadPreparedFiles({
           files: preparedUploads,
           onFileStateChange: updateUploadFileState,
-        });
+        })
 
         if (successKeys.length > 0) {
-          setIsPollingStatus(true);
+          setIsPollingStatus(true)
         }
 
         if (failedKeys.length > 0) {
-          const message = `${failedKeys.length} ${pluralizePhotos(failedKeys.length)} failed to upload`;
-          setUploadErrorMessage(message);
-          toast.error(message);
+          const message = `${failedKeys.length} ${pluralizePhotos(failedKeys.length)} failed to upload`
+          setUploadErrorMessage(message)
+          toast.error(message)
         }
       } catch (error) {
         const message =
           error instanceof Error
             ? error.message
-            : "Failed to initialize upload";
-        setUploadErrorMessage(message);
-        toast.error(message);
+            : "Failed to initialize upload"
+        setUploadErrorMessage(message)
+        toast.error(message)
       } finally {
-        setIsUploadingFiles(false);
+        setIsUploadingFiles(false)
       }
     },
     [
@@ -831,37 +832,37 @@ export function AdminParticipantUploadDialog({
       selectedPhotos,
       updateUploadFileState,
     ],
-  );
+  )
 
   const handleSubmit = useCallback(async () => {
     if (isBusy || uploadComplete) {
-      return;
+      return
     }
 
-    const { isValid, reference } = validateForm();
+    const { isValid, reference } = validateForm()
     if (!isValid) {
-      return;
+      return
     }
 
     try {
       const exists = await checkParticipantExistsMutation.mutateAsync({
         domain,
         reference,
-      });
+      })
 
       if (exists) {
-        setPendingReference(reference);
-        setShowOverwriteDialog(true);
-        return;
+        setPendingReference(reference)
+        setShowOverwriteDialog(true)
+        return
       }
 
-      await runUpload(reference);
+      await runUpload(reference)
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : "Failed to check participant reference";
-      toast.error(message);
+          : "Failed to check participant reference"
+      toast.error(message)
     }
   }, [
     checkParticipantExistsMutation,
@@ -870,61 +871,61 @@ export function AdminParticipantUploadDialog({
     runUpload,
     uploadComplete,
     validateForm,
-  ]);
+  ])
 
   const handleConfirmOverwrite = useCallback(async () => {
     if (!pendingReference) {
-      return;
+      return
     }
 
-    setShowOverwriteDialog(false);
-    await runUpload(pendingReference);
-    setPendingReference(null);
-  }, [pendingReference, runUpload]);
+    setShowOverwriteDialog(false)
+    await runUpload(pendingReference)
+    setPendingReference(null)
+  }, [pendingReference, runUpload])
 
   const handleRetryFailed = useCallback(async () => {
     const failedUploads = uploadFiles.filter(
       (file) => file.phase === ADMIN_UPLOAD_PHASE.ERROR,
-    );
+    )
 
     if (failedUploads.length === 0 || isBusy) {
-      return;
+      return
     }
 
-    setUploadErrorMessage(null);
-    setIsUploadingFiles(true);
+    setUploadErrorMessage(null)
+    setIsUploadingFiles(true)
 
     try {
       const { successKeys, failedKeys } = await uploadPreparedFiles({
         files: failedUploads,
         onFileStateChange: updateUploadFileState,
-      });
+      })
 
       if (successKeys.length > 0) {
-        setIsPollingStatus(true);
+        setIsPollingStatus(true)
       }
 
       if (failedKeys.length > 0) {
-        const message = `${failedKeys.length} ${pluralizePhotos(failedKeys.length)} still failing`;
-        setUploadErrorMessage(message);
-        toast.error(message);
+        const message = `${failedKeys.length} ${pluralizePhotos(failedKeys.length)} still failing`
+        setUploadErrorMessage(message)
+        toast.error(message)
       }
     } finally {
-      setIsUploadingFiles(false);
+      setIsUploadingFiles(false)
     }
-  }, [isBusy, updateUploadFileState, uploadFiles]);
+  }, [isBusy, updateUploadFileState, uploadFiles])
 
   const handleFileSelect = useCallback(
     async (fileList: FileList | File[] | null) => {
       if (isBusy || uploadComplete || !canSelectFiles) {
-        return;
+        return
       }
 
-      setIsProcessingFiles(true);
-      setUploadComplete(false);
-      setUploadErrorMessage(null);
-      setUploadFiles([]);
-      completionHandledRef.current = false;
+      setIsProcessingFiles(true)
+      setUploadComplete(false)
+      setUploadErrorMessage(null)
+      setUploadFiles([])
+      completionHandledRef.current = false
 
       try {
         const result = await processSelectedFiles({
@@ -932,25 +933,25 @@ export function AdminParticipantUploadDialog({
           existingPhotos: selectedPhotos,
           maxPhotos: expectedPhotoCount,
           topicOrderIndexes,
-        });
+        })
 
         if (result.errors.length > 0) {
-          result.errors.forEach((message) => toast.error(message));
+          result.errors.forEach((message) => toast.error(message))
         }
 
         if (result.warnings.length > 0) {
-          result.warnings.forEach((message) => toast.message(message));
+          result.warnings.forEach((message) => toast.message(message))
         }
 
         if (result.photos !== selectedPhotos) {
-          setSelectedPhotos(result.photos);
+          setSelectedPhotos(result.photos)
           setFormErrors((current) => ({
             ...current,
             files: undefined,
-          }));
+          }))
         }
       } finally {
-        setIsProcessingFiles(false);
+        setIsProcessingFiles(false)
       }
     },
     [
@@ -961,20 +962,20 @@ export function AdminParticipantUploadDialog({
       topicOrderIndexes,
       uploadComplete,
     ],
-  );
+  )
 
   const onDropAccepted = useCallback(
     (files: File[]) => {
-      void handleFileSelect(files);
+      void handleFileSelect(files)
     },
     [handleFileSelect],
-  );
+  )
 
   const onDropRejected = useCallback(() => {
     toast.error(
       "Some files were rejected. Please use supported image formats.",
-    );
-  }, []);
+    )
+  }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: DROPZONE_ACCEPT,
@@ -982,45 +983,45 @@ export function AdminParticipantUploadDialog({
     multiple: true,
     onDropAccepted,
     onDropRejected,
-  });
+  })
 
   const handleRemovePhoto = useCallback(
     (photoId: string) => {
       if (isBusy || uploadComplete) {
-        return;
+        return
       }
 
-      setUploadFiles([]);
-      setUploadComplete(false);
-      setUploadErrorMessage(null);
-      completionHandledRef.current = false;
+      setUploadFiles([])
+      setUploadComplete(false)
+      setUploadErrorMessage(null)
+      completionHandledRef.current = false
 
       setSelectedPhotos((current) => {
-        const target = current.find((photo) => photo.id === photoId);
+        const target = current.find((photo) => photo.id === photoId)
         if (target) {
-          URL.revokeObjectURL(target.previewUrl);
+          URL.revokeObjectURL(target.previewUrl)
         }
 
-        const remaining = current.filter((photo) => photo.id !== photoId);
-        return reassignPhotoOrderIndexes(remaining, topicOrderIndexes);
-      });
+        const remaining = current.filter((photo) => photo.id !== photoId)
+        return reassignPhotoOrderIndexes(remaining, topicOrderIndexes)
+      })
     },
     [isBusy, topicOrderIndexes, uploadComplete],
-  );
+  )
 
   const handleOpenParticipant = useCallback(() => {
     if (!submittedReference) {
-      return;
+      return
     }
 
     const targetHref = formatDomainPathname(
       `/admin/dashboard/submissions/${submittedReference}`,
       domain,
-    );
+    )
 
-    handleDialogOpenChange(false);
-    router.push(targetHref);
-  }, [domain, handleDialogOpenChange, router, submittedReference]);
+    handleDialogOpenChange(false)
+    router.push(targetHref)
+  }, [domain, handleDialogOpenChange, router, submittedReference])
 
   return (
     <>
@@ -1079,15 +1080,15 @@ export function AdminParticipantUploadDialog({
                         onChange={(event) => {
                           const value = event.target.value
                             .replace(/\D/g, "")
-                            .slice(0, 4);
-                          setField("reference", value);
+                            .slice(0, 4)
+                          setField("reference", value)
                         }}
                         onBlur={() => {
                           if (formValues.reference.length > 0) {
                             setField(
                               "reference",
                               formValues.reference.padStart(4, "0"),
-                            );
+                            )
                           }
                         }}
                         placeholder="0001"
@@ -1096,7 +1097,7 @@ export function AdminParticipantUploadDialog({
                         className={cn(
                           "font-mono tracking-[0.2em]",
                           formErrors.reference &&
-                            "border-rose-400 focus-visible:ring-rose-400",
+                          "border-rose-400 focus-visible:ring-rose-400",
                         )}
                       />
                       {formErrors.reference && (
@@ -1118,7 +1119,7 @@ export function AdminParticipantUploadDialog({
                         placeholder="James"
                         className={cn(
                           formErrors.firstName &&
-                            "border-rose-400 focus-visible:ring-rose-400",
+                          "border-rose-400 focus-visible:ring-rose-400",
                         )}
                       />
                       {formErrors.firstName && (
@@ -1140,7 +1141,7 @@ export function AdminParticipantUploadDialog({
                         placeholder="Bond"
                         className={cn(
                           formErrors.lastName &&
-                            "border-rose-400 focus-visible:ring-rose-400",
+                          "border-rose-400 focus-visible:ring-rose-400",
                         )}
                       />
                       {formErrors.lastName && (
@@ -1162,7 +1163,7 @@ export function AdminParticipantUploadDialog({
                         placeholder="participant@example.com"
                         className={cn(
                           formErrors.email &&
-                            "border-rose-400 focus-visible:ring-rose-400",
+                          "border-rose-400 focus-visible:ring-rose-400",
                         )}
                       />
                       {formErrors.email && (
@@ -1183,7 +1184,7 @@ export function AdminParticipantUploadDialog({
                           defaultCountry="SE"
                           className={cn(
                             formErrors.phone &&
-                              "[&_input]:border-rose-400 [&_input]:focus-visible:ring-rose-400",
+                            "[&_input]:border-rose-400 [&_input]:focus-visible:ring-rose-400",
                           )}
                         />
                         {formErrors.phone && (
@@ -1229,7 +1230,7 @@ export function AdminParticipantUploadDialog({
                             <SelectTrigger
                               className={cn(
                                 formErrors.competitionClassId &&
-                                  "border-rose-400 focus-visible:ring-rose-400",
+                                "border-rose-400 focus-visible:ring-rose-400",
                               )}
                             >
                               <SelectValue placeholder="Select class" />
@@ -1271,7 +1272,7 @@ export function AdminParticipantUploadDialog({
                           <SelectTrigger
                             className={cn(
                               formErrors.deviceGroupId &&
-                                "border-rose-400 focus-visible:ring-rose-400",
+                              "border-rose-400 focus-visible:ring-rose-400",
                             )}
                           >
                             <SelectValue placeholder="Select device group" />
@@ -1447,17 +1448,17 @@ export function AdminParticipantUploadDialog({
                     <div className="space-y-2">
                       {selectedPhotos.map((photo) => {
                         const photoValidationResults =
-                          photoValidationMap.get(photo.id) ?? [];
+                          photoValidationMap.get(photo.id) ?? []
                         const photoErrorCount = photoValidationResults.filter(
                           (result) =>
                             result.outcome === VALIDATION_OUTCOME.FAILED &&
                             result.severity === "error",
-                        ).length;
+                        ).length
                         const photoWarningCount = photoValidationResults.filter(
                           (result) =>
                             result.outcome === VALIDATION_OUTCOME.FAILED &&
                             result.severity === "warning",
-                        ).length;
+                        ).length
 
                         return (
                           <div
@@ -1550,7 +1551,7 @@ export function AdminParticipantUploadDialog({
                               </div>
                             </div>
                           </div>
-                        );
+                        )
                       })}
                     </div>
                   )}
@@ -1714,8 +1715,8 @@ export function AdminParticipantUploadDialog({
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
-                setPendingReference(null);
-                setShowOverwriteDialog(false);
+                setPendingReference(null)
+                setShowOverwriteDialog(false)
               }}
             >
               Cancel
@@ -1727,5 +1728,5 @@ export function AdminParticipantUploadDialog({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }

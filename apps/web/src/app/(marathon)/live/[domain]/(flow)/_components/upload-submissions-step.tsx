@@ -36,7 +36,7 @@ import { HeicConversionDialog } from "./heic-conversion-dialog";
 import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
 import { useEffect } from "react";
-import { mapDbRuleConfigsToValidationRules } from "../_lib/utils";
+import { mapRuleConfigsToValidationRules } from "~/lib/validation"
 import { COMMON_IMAGE_EXTENSIONS } from "../_lib/constants";
 
 export function UploadSubmissionsStep({
@@ -122,7 +122,7 @@ export function UploadSubmissionsStep({
     );
 
   const validationRules = useMemo(
-    () => mapDbRuleConfigsToValidationRules(ruleConfigs),
+    () => mapRuleConfigsToValidationRules(ruleConfigs),
     [ruleConfigs],
   );
   const topicOrderIndexes = useMemo(

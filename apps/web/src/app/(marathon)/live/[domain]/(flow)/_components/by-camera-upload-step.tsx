@@ -15,7 +15,7 @@ import type { RuleConfig as DbRuleConfig, Topic } from "@blikka/db"
 import { useMutation } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { motion, AnimatePresence } from "motion/react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { useFileUpload } from "../_hooks/use-file-upload"
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
@@ -33,9 +33,8 @@ import { ByCameraUploadInput } from "./by-camera-upload-input"
 import { HeicConversionDialog } from "./heic-conversion-dialog"
 import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog"
 import { VALIDATION_OUTCOME } from "@blikka/validation"
-import { mapDbRuleConfigsToValidationRules } from "../_lib/utils"
+import { mapRuleConfigsToValidationRules } from "~/lib/validation"
 import { ArrowRight } from "lucide-react"
-import { Icon } from "@iconify/react"
 
 const BY_CAMERA_MAX_PHOTOS = 1
 
@@ -124,7 +123,7 @@ export function ByCameraUploadStep({
     )
 
   const validationRules = useMemo(
-    () => mapDbRuleConfigsToValidationRules(ruleConfigs),
+    () => mapRuleConfigsToValidationRules(ruleConfigs),
     [ruleConfigs],
   )
 

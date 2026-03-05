@@ -1,11 +1,6 @@
 import { Effect } from "effect"
 import { ExifParser } from "@blikka/image-manipulation/exif-parser"
 
-import type { RuleConfig } from "@blikka/db"
-import {
-  RULE_KEYS,
-  type ValidationRule, type RuleKey, type RuleParams, type SeverityLevel } from "@blikka/validation"
-
 export function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = []
   for (let i = 0; i < array.length; i += size) {
@@ -13,44 +8,6 @@ export function chunk<T>(array: T[], size: number): T[][] {
   }
   return chunks
 }
-
-export function mapDbRuleConfigsToValidationRules(
-  dbRuleConfigs: RuleConfig[]
-): ValidationRule[] {
-  console.log({ dbRuleConfigs })
-  return dbRuleConfigs
-    .filter((rule) => rule.enabled)
-    .map((rule) => ({
-      ruleKey: rule.ruleKey as RuleKey,
-      enabled: rule.enabled,
-      severity: rule.severity as SeverityLevel,
-      params: {
-        [rule.ruleKey]: rule.params,
-      } as RuleParams
-    }))
-}
-export function prepareValidationRules(validationRules: ValidationRule[], { start, end }: { start?: string | Date, end?: string | Date }): ValidationRule[] {
-  return validationRules.map((rule) => {
-    if (
-      rule.ruleKey === RULE_KEYS.WITHIN_TIMERANGE &&
-      start &&
-      end
-    ) {
-      return {
-        ...rule,
-        params: {
-          ...rule.params,
-          [RULE_KEYS.WITHIN_TIMERANGE]: {
-            start: start instanceof Date ? start.toISOString() : new Date(start).toISOString(),
-            end: end instanceof Date ? end.toISOString() : new Date(end).toISOString(),
-          },
-        },
-      }
-    }
-    return rule
-  })
-}
-
 
 export async function parseExifData(file: File): Promise<Record<string, unknown> | null> {
   try {
