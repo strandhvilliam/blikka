@@ -16,7 +16,7 @@ export const AuthConfigLayer = Layer.succeed(AuthConfig, {
   },
 })
 
-export const AuthLayer = Layer.provide(BetterAuthService.Default, AuthConfigLayer)
+export const AuthLayer = Layer.provide(BetterAuthService.layer, AuthConfigLayer)
 
 export const getAppSession = Effect.fnUntraced(
   function* () {
@@ -28,10 +28,10 @@ export const getAppSession = Effect.fnUntraced(
       })
     )
 
-    return Option.fromNullable<Session | null>(session)
+    return Option.fromNullishOr<Session | null>(session)
   },
   Effect.tapError((error) => Effect.logError(error.message)),
-  Effect.catchAll(() => Effect.succeed(Option.none<Session>()))
+  Effect.catch(() => Effect.succeed(Option.none<Session>()))
 )
 
 export { BetterAuthService as Auth }

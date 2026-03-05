@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only"
 
 import type { TRPCQueryOptions } from "@trpc/tanstack-react-query"
@@ -44,20 +45,17 @@ export function HydrateClient(props: { children: React.ReactNode }) {
 export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(queryOptions: T) {
   const queryClient = getQueryClient()
   if (queryOptions.queryKey[1]?.type === "infinite") {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     void queryClient.prefetchInfiniteQuery(queryOptions as any)
   } else {
     void queryClient.prefetchQuery(queryOptions)
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(queryOptionsArray: T[]) {
   const queryClient = getQueryClient()
 
   for (const queryOptions of queryOptionsArray) {
     if (queryOptions.queryKey[1]?.type === "infinite") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       void queryClient.prefetchInfiniteQuery(queryOptions as any)
     } else {
       void queryClient.prefetchQuery(queryOptions)
@@ -65,7 +63,6 @@ export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(query
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type QueryOptionsResult<T extends ReturnType<TRPCQueryOptions<any>>> =
   T extends { queryFn?: QueryFunction<infer TQueryFnData, any> }
   ? TQueryFnData
@@ -73,7 +70,6 @@ type QueryOptionsResult<T extends ReturnType<TRPCQueryOptions<any>>> =
   ? Awaited<TResult>
   : never
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function fetchEffectQuery<T extends ReturnType<TRPCQueryOptions<any>>>(
   queryOptions: T,
 ): Effect.Effect<QueryOptionsResult<T>, TRPCServerError> {

@@ -12,8 +12,8 @@ export const serverRuntime = createRuntime({
   additionalLayers: AppSpecificLayers,
 })
 
-type ApiServices = Layer.Layer.Success<typeof ApiLayer>
-type TelemetryServices = Layer.Layer.Success<ReturnType<typeof TelemetryLayer>>
+type ApiServices = Layer.Success<typeof ApiLayer>
+type TelemetryServices = Layer.Success<ReturnType<typeof TelemetryLayer>>
 
 export type RuntimeDependencies =
   | CoreServices

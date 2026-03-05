@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect"
 import type { RuntimeDependencies } from "./runtime"
 import { connection } from "next/server"
 import { serverRuntime } from "./runtime"
-import { Exit, Chunk, Cause } from "effect"
+import { Exit, Cause } from "effect"
 import { unstable_rethrow } from "next/navigation"
 import { Suspense, use } from "react"
 
@@ -22,19 +22,19 @@ export type ActionResponse<T> = T extends void
     }
 
 export const decodeParams =
-  <T, P extends NextBaseParams>(schema: Schema.Schema<T>) =>
-  (p: P) =>
+  <S extends Schema.Top>(schema: S) =>
+  <P extends NextBaseParams>(p: P) =>
     Effect.gen(function* () {
       const params = yield* Effect.promise(() => p)
-      return yield* Schema.decodeUnknown(schema)(params)
+      return yield* Schema.decodeUnknownEffect(schema)(params)
     })
 
 export const decodeSearchParams =
-  <T, P extends NextBaseSearchParams>(schema: Schema.Schema<T>) =>
-  (search: P) =>
+  <S extends Schema.Top>(schema: S) =>
+  <P extends NextBaseSearchParams>(search: P) =>
     Effect.gen(function* () {
       const searchParams = yield* Effect.promise(() => search)
-      return yield* Schema.decodeUnknown(schema)(searchParams)
+      return yield* Schema.decodeUnknownEffect(schema)(searchParams)
     })
 
 export function toActionResponse<T>(
@@ -43,7 +43,7 @@ export function toActionResponse<T>(
   return effect.pipe(
     Effect.map((data) => ({ data, error: null as string | null }) as ActionResponse<T>),
     Effect.tapError((error) => Effect.logError(error)),
-    Effect.catchAll((error) =>
+    Effect.catch((error) =>
       Effect.succeed({
         data: undefined as T extends void ? undefined : T,
         error: error instanceof Error ? error.message : String(error),
@@ -52,16 +52,16 @@ export function toActionResponse<T>(
   )
 }
 
-function Next<I extends Array<unknown>, A>(
-  effectFn: (...args: I) => Effect.Effect<A, never, RuntimeDependencies>
+function Next<I extends Array<unknown>, A, E>(
+  effectFn: (...args: I) => Effect.Effect<A, E, RuntimeDependencies>
 ) {
   return async (...args: I): Promise<A> => {
     return serverRuntime.runPromiseExit(effectFn(...args)).then((res) => {
       if (Exit.isFailure(res)) {
-        const defects = Chunk.toArray(Cause.defects(res.cause))
+        const defects = res.cause.reasons.filter(Cause.isDieReason)
 
         if (defects.length === 1) {
-          unstable_rethrow(defects[0])
+          unstable_rethrow(defects[0].defect)
         }
 
         const errors = Cause.prettyErrors(res.cause)
@@ -73,8 +73,8 @@ function Next<I extends Array<unknown>, A>(
   }
 }
 
-function NextSuspense<I extends Array<unknown>, A>(
-  effectFn: (...args: I) => Effect.Effect<A, never, RuntimeDependencies>
+function NextSuspense<I extends Array<unknown>, A, E>(
+  effectFn: (...args: I) => Effect.Effect<A, E, RuntimeDependencies>
 ) {
   return (...args: I): A =>
     use(
@@ -82,10 +82,10 @@ function NextSuspense<I extends Array<unknown>, A>(
         await connection()
         const res = await serverRuntime.runPromiseExit(effectFn(...args))
         if (Exit.isFailure(res)) {
-          const defects = Chunk.toArray(Cause.defects(res.cause))
+          const defects = res.cause.reasons.filter(Cause.isDieReason)
 
           if (defects.length === 1) {
-            unstable_rethrow(defects[0])
+            unstable_rethrow(defects[0].defect)
           }
 
           const errors = Cause.prettyErrors(res.cause)
@@ -97,8 +97,8 @@ function NextSuspense<I extends Array<unknown>, A>(
     )
 }
 
-function LayoutSuspense<I extends Array<unknown>, A>(
-  effectFn: (...args: I) => Effect.Effect<A, never, RuntimeDependencies>
+function LayoutSuspense<I extends Array<unknown>, A, E>(
+  effectFn: (...args: I) => Effect.Effect<A, E, RuntimeDependencies>
 ) {
   const ComponentWithData = NextSuspense(effectFn)
   return function SuspenseLayout(

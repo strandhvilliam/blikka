@@ -1,10 +1,11 @@
-import { Data, Effect } from "effect"
+import { Effect, Schema } from "effect"
 import { getMessages } from "next-intl/server"
 
-export class I18nError extends Data.TaggedError("MessagesNotFoundError")<{
-  cause?: unknown
-  message?: string
-}> {}
+export class I18nError extends Schema.TaggedErrorClass<I18nError>()("MessagesNotFoundError", {
+  cause: Schema.optional(Schema.Unknown),
+  message: Schema.String,
+}) {
+}
 
 export const getI18nMessages = Effect.fnUntraced(function* () {
   return yield* Effect.tryPromise({
