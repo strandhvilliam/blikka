@@ -78,9 +78,6 @@ export class RulesApiService extends ServiceMap.Service<RulesApiService>()(
           }>
         )
 
-        console.log('rulesToUpdate', rulesToUpdate)
-
-
         const result = yield* db.rulesQueries.updateMultipleRuleConfig({
           data: rulesToUpdate,
         })

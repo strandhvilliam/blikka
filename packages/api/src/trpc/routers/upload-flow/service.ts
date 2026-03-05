@@ -319,17 +319,6 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
               ),
             )
 
-          console.log('*************************8')
-          console.log('*************************8')
-          console.log('*************************8')
-          console.log('*************************8')
-          console.log("marathon", marathon)
-          console.log('*************************8')
-          console.log('*************************8')
-          console.log('*************************8')
-          console.log('*************************8')
-          console.log('*************************8')
-
           const existingParticipant =
             yield* db.participantsQueries.getParticipantByReference({
               reference,

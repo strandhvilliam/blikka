@@ -406,8 +406,6 @@ export class ZipFilesApiService extends ServiceMap.Service<ZipFilesApiService>()
                         assignPublicIp: "ENABLED",
                       } satisfies AwsVpcConfiguration
 
-                      console.log("networkConfig", networkConfig)
-
                       yield* Effect.tryPromise({
                         try: () =>
                           ecsClient.send(

@@ -136,12 +136,13 @@ export class ValidationEngine extends ServiceMap.Service<ValidationEngine>()(
           const results = yield* Effect.forEach(enabledRules, (rule) =>
             executeRule(rule, inputs),
           )
+          console.log("results", results)
           return results.flat()
         })
 
       return {
         runValidations,
-      }
+      } as const
     }),
   },
 ) {
