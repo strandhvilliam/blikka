@@ -11,25 +11,9 @@ import {
   uniqueIndex,
   integer,
   unique,
-  pgSequence,
-  pgEnum,
   check,
 } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
-
-export const inviteType = pgEnum("invite_type", [
-  "topic",
-  "class",
-  "custom",
-  "all",
-  "device",
-])
-export const uploadStatus = pgEnum("upload_status", [
-  "initialized",
-  "processing",
-  "error",
-  "completed",
-])
 
 export const juryRatings = pgTable(
   "jury_ratings",
@@ -41,11 +25,14 @@ export const juryRatings = pgTable(
     invitationId: bigint("invitation_id", { mode: "number" }).notNull(),
     rating: smallint().notNull(),
     participantId: bigint("participant_id", { mode: "number" }).notNull(),
-    notes: text().default(""),
+    notes: text(),
     marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
     finalRanking: smallint("final_ranking"),
   },
   (table) => [
+    index("jury_ratings_invitation_id_idx").on(table.invitationId),
+    index("jury_ratings_participant_id_idx").on(table.participantId),
+    index("jury_ratings_marathon_id_idx").on(table.marathonId),
     foreignKey({
       columns: [table.invitationId],
       foreignColumns: [juryInvitations.id],
@@ -79,11 +66,12 @@ export const ruleConfigs = pgTable(
     enabled: boolean().default(false).notNull(),
   },
   (table) => [
+    index("rule_configs_marathon_id_idx").on(table.marathonId),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
       name: "rule_configs_marathon_id_fkey",
-    }),
+    }).onDelete("cascade"),
   ],
 )
 
@@ -103,18 +91,20 @@ export const juryInvitations = pgTable(
     }).notNull(),
     email: text().notNull(),
     displayName: text("display_name").notNull(),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     topicId: bigint("topic_id", { mode: "number" }),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     competitionClassId: bigint("competition_class_id", { mode: "number" }),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     deviceGroupId: bigint("device_group_id", { mode: "number" }),
     notes: text(),
-    inviteType: inviteType("invite_type").default("topic").notNull(),
+    inviteType: text("invite_type").default("topic").notNull(),
   },
   (table) => [
+    uniqueIndex("jury_invitations_token_unique_idx").on(table.token),
+    index("jury_invitations_marathon_id_idx").on(table.marathonId),
+    check(
+      "jury_invitations_invite_type_check",
+      sql`${table.inviteType} in ('topic', 'class', 'custom', 'all', 'device')`,
+    ),
     foreignKey({
       columns: [table.competitionClassId],
       foreignColumns: [competitionClasses.id],
@@ -214,7 +204,7 @@ export const account = pgTable(
       columns: [table.userId],
       foreignColumns: [user.id],
       name: "account_userId_fkey",
-    }),
+    }).onDelete("cascade"),
   ],
 )
 
@@ -235,7 +225,7 @@ export const session = pgTable(
       columns: [table.userId],
       foreignColumns: [user.id],
       name: "session_userId_fkey",
-    }),
+    }).onDelete("cascade"),
     unique("session_token_key").on(table.token),
   ],
 )
@@ -252,16 +242,18 @@ export const userMarathons = pgTable(
     userId: text("user_id").notNull(),
   },
   (table) => [
+    index("user_marathons_marathon_id_idx").on(table.marathonId),
+    index("user_marathons_user_id_idx").on(table.userId),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
       name: "user_marathons_marathon_id_fkey",
-    }),
+    }).onDelete("cascade"),
     foreignKey({
       columns: [table.userId],
       foreignColumns: [user.id],
       name: "user_marathons_user_id_fkey",
-    }),
+    }).onDelete("cascade"),
   ],
 )
 
@@ -400,6 +392,9 @@ export const participantVerifications = pgTable(
     notes: text(),
   },
   (table) => [
+    index("participant_verifications_participant_id_idx").on(
+      table.participantId,
+    ),
     index("participant_verifications_staff_id_idx").using(
       "btree",
       table.staffId.asc().nullsLast().op("text_ops"),
@@ -450,6 +445,7 @@ export const submissions = pgTable(
       "btree",
       table.participantId.asc().nullsLast().op("int8_ops"),
     ),
+    index("submissions_topic_id_idx").on(table.topicId),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
@@ -536,11 +532,13 @@ export const zippedSubmissions = pgTable(
     participantId: bigint("participant_id", { mode: "number" }).notNull(),
   },
   (table) => [
+    index("zipped_submissions_marathon_id_idx").on(table.marathonId),
+    index("zipped_submissions_participant_id_idx").on(table.participantId),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
       name: "zipped_submissions_marathon_id_fkey",
-    }),
+    }).onDelete("cascade"),
     foreignKey({
       columns: [table.participantId],
       foreignColumns: [participants.id],
@@ -562,11 +560,13 @@ export const contactSheets = pgTable(
     participantId: bigint("participant_id", { mode: "number" }).notNull(),
   },
   (table) => [
+    index("contact_sheets_marathon_id_idx").on(table.marathonId),
+    index("contact_sheets_participant_id_idx").on(table.participantId),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
       name: "contact_sheets_marathon_id_fkey",
-    }),
+    }).onDelete("cascade"),
     foreignKey({
       columns: [table.participantId],
       foreignColumns: [participants.id],
@@ -641,21 +641,6 @@ export const votingSession = pgTable(
     topicId: bigint("topic_id", { mode: "number" }).notNull(),
   },
   (table) => [
-    foreignKey({
-      columns: [table.marathonId],
-      foreignColumns: [marathons.id],
-      name: "voting_session_marathon_id_fkey",
-    }).onDelete("cascade"),
-    foreignKey({
-      columns: [table.voteSubmissionId],
-      foreignColumns: [submissions.id],
-      name: "voting_session_vote_submission_id_fkey",
-    }),
-    foreignKey({
-      columns: [table.connectedParticipantId],
-      foreignColumns: [participants.id],
-      name: "voting_session_connected_participant_id_fkey",
-    }).onDelete("set null"),
     index("voting_session_connected_participant_id_idx").on(
       table.connectedParticipantId,
     ),
@@ -668,6 +653,25 @@ export const votingSession = pgTable(
       table.marathonId,
       table.topicId,
     ),
+    foreignKey({
+      columns: [table.marathonId],
+      foreignColumns: [marathons.id],
+      name: "voting_session_marathon_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.topicId],
+      foreignColumns: [topics.id],
+      name: "voting_session_topic_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.voteSubmissionId],
+      foreignColumns: [submissions.id],
+      name: "voting_session_vote_submission_id_fkey",
+    }).onDelete("set null"),
+    foreignKey({
+      columns: [table.connectedParticipantId],
+      foreignColumns: [participants.id],
+      name: "voting_session_connected_participant_id_fkey",
+    }).onDelete("set null"),
   ],
 )
-
