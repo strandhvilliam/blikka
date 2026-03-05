@@ -1,15 +1,16 @@
 "use client"
 
-import { Plus } from "lucide-react"
+import { Plus, RefreshCw } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useQueryStates } from "nuqs"
 import { submissionSearchParams } from "../_lib/search-params"
 import { useEffect, useState } from "react"
 import { AdminParticipantUploadDialog } from "./admin-participant-upload-dialog"
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import { PrimaryButton } from "@/components/ui/primary-button"
+import { Button } from "@/components/ui/button"
 
 function getActiveTopicDisplayText({
   activeTopicName,
@@ -43,6 +44,8 @@ const customTabTriggerClassName =
 export function SubmissionsHeader() {
   const domain = useDomain()
   const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({ domain }),
   )
@@ -111,6 +114,17 @@ export function SubmissionsHeader() {
     }
   }, [marathon.mode, activeTab, setQueryState])
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await queryClient.invalidateQueries({
+        queryKey: trpc.participants.getByDomainInfinite.pathKey(),
+      })
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between">
@@ -135,6 +149,16 @@ export function SubmissionsHeader() {
           )}
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
           <PrimaryButton
             onClick={() => setIsCreateUploadDialogOpen(true)}
             className="bg-[#20201c] hover:bg-[#313129]"
