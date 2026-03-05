@@ -1,6 +1,6 @@
 import { Schema } from "effect"
 
-export class DeviceGroupApiError extends Schema.TaggedError<DeviceGroupApiError>()(
+export class DeviceGroupApiError extends Schema.TaggedErrorClass<DeviceGroupApiError>()(
   "@blikka/api/device-group-api-error",
   {
     message: Schema.String,
@@ -8,7 +8,7 @@ export class DeviceGroupApiError extends Schema.TaggedError<DeviceGroupApiError>
   }
 ) {}
 
-export const CreateDeviceGroupInputSchema = Schema.standardSchemaV1(
+export const CreateDeviceGroupInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     data: Schema.Struct({
@@ -19,7 +19,7 @@ export const CreateDeviceGroupInputSchema = Schema.standardSchemaV1(
   })
 )
 
-export const UpdateDeviceGroupInputSchema = Schema.standardSchemaV1(
+export const UpdateDeviceGroupInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     id: Schema.Number,
@@ -31,7 +31,7 @@ export const UpdateDeviceGroupInputSchema = Schema.standardSchemaV1(
   })
 )
 
-export const DeleteDeviceGroupInputSchema = Schema.standardSchemaV1(
+export const DeleteDeviceGroupInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     id: Schema.Number,
