@@ -1,6 +1,6 @@
 import { Schema } from "effect"
 
-export class MarathonApiError extends Schema.TaggedError<MarathonApiError>()(
+export class MarathonApiError extends Schema.TaggedErrorClass<MarathonApiError>()(
   "@blikka/api/marathon-api-error",
   {
     message: Schema.String,
@@ -8,11 +8,11 @@ export class MarathonApiError extends Schema.TaggedError<MarathonApiError>()(
   }
 ) { }
 
-export const GetByDomainInputSchema = Schema.standardSchemaV1(
+export const GetByDomainInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({ domain: Schema.String })
 )
 
-export const UpdateMarathonInputSchema = Schema.standardSchemaV1(
+export const UpdateMarathonInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     data: Schema.Struct({
@@ -27,27 +27,27 @@ export const UpdateMarathonInputSchema = Schema.standardSchemaV1(
   })
 )
 
-export const ResetMarathonInputSchema = Schema.standardSchemaV1(
+export const ResetMarathonInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
   })
 )
 
-export const GetLogoUploadUrlInputSchema = Schema.standardSchemaV1(
+export const GetLogoUploadUrlInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
-    currentKey: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+    currentKey: Schema.optional(Schema.Union([Schema.String, Schema.Null])),
   })
 )
 
-export const GetTermsUploadUrlInputSchema = Schema.standardSchemaV1(
+export const GetTermsUploadUrlInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
   })
 )
 
 
-export const GetCurrentTermsInputSchema = Schema.standardSchemaV1(
+export const GetCurrentTermsInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
   })

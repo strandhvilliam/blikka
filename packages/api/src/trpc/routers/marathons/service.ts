@@ -1,21 +1,19 @@
 import "server-only"
 
-import { Effect, Either, Option, Config } from "effect"
+import { Effect, Result, Option, Config, ServiceMap, Layer } from "effect"
 import { Database, type NewMarathon } from "@blikka/db"
 import { S3Service } from "@blikka/s3"
 import { MarathonApiError } from "./schemas"
 import { RULE_KEYS } from "@blikka/validation"
 
-export class MarathonApiService extends Effect.Service<MarathonApiService>()(
+export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()(
   "@blikka/api/MarathonApiService",
   {
-    accessors: true,
-    dependencies: [Database.Default, S3Service.Default],
-    effect: Effect.gen(function*() {
+    make: Effect.gen(function* () {
       const db = yield* Database
       const s3 = yield* S3Service
 
-      const getMarathonByDomain = Effect.fn("MarathonApiService.getMarathonByDomain")(function*({
+      const getMarathonByDomain = Effect.fn("MarathonApiService.getMarathonByDomain")(function* ({
         domain,
       }) {
         const marathon = yield* db.marathonsQueries.getMarathonByDomainWithOptions({ domain })
@@ -30,13 +28,13 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         })
       })
 
-      const getUserMarathons = Effect.fn("MarathonApiService.getUserMarathons")(function*({
+      const getUserMarathons = Effect.fn("MarathonApiService.getUserMarathons")(function* ({
         userId,
       }) {
         return yield* db.usersQueries.getMarathonsByUserId({ userId })
       })
 
-      const updateMarathon = Effect.fn("MarathonApiService.updateMarathon")(function*({
+      const updateMarathon = Effect.fn("MarathonApiService.updateMarathon")(function* ({
         domain,
         data,
       }: {
@@ -88,7 +86,7 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return result
       })
 
-      const resetMarathon = Effect.fn("MarathonApiService.resetMarathon")(function*({
+      const resetMarathon = Effect.fn("MarathonApiService.resetMarathon")(function* ({
         domain,
       }: {
         domain: string
@@ -110,7 +108,7 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return yield* db.marathonsQueries.resetMarathon({ id: marathonId })
       })
 
-      const getLogoUploadUrl = Effect.fn("MarathonApiService.getLogoUploadUrl")(function*({
+      const getLogoUploadUrl = Effect.fn("MarathonApiService.getLogoUploadUrl")(function* ({
         domain,
         currentKey,
       }: {
@@ -132,7 +130,7 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return { url, key }
       })
 
-      const getTermsUploadUrl = Effect.fn("MarathonApiService.getTermsUploadUrl")(function*({
+      const getTermsUploadUrl = Effect.fn("MarathonApiService.getTermsUploadUrl")(function* ({
         domain,
       }: {
         domain: string
@@ -150,7 +148,7 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         return { url, key }
       })
 
-      const getCurrentTerms = Effect.fn("MarathonApiService.getCurrentTerms")(function*({
+      const getCurrentTerms = Effect.fn("MarathonApiService.getCurrentTerms")(function* ({
         domain,
       }: {
         domain: string
@@ -160,13 +158,13 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
         )
 
         const key = `${domain}/terms-and-conditions.txt`
-        const fileDataEither = yield* Effect.either(s3.getFile(bucketName, key))
+        const fileDataEither = yield* Effect.result(s3.getFile(bucketName, key))
 
-        if (Either.isLeft(fileDataEither)) {
+        if (Result.isFailure(fileDataEither)) {
           return yield* Effect.succeed("")
         }
 
-        return yield* Option.match(fileDataEither.right, {
+        return yield* Option.match(fileDataEither.success, {
           onSome: (data) => {
             const decoder = new TextDecoder()
             return Effect.succeed(decoder.decode(data))
@@ -187,4 +185,10 @@ export class MarathonApiService extends Effect.Service<MarathonApiService>()(
     }),
   }
 ) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      Database.layer,
+      S3Service.layer,
+    ))
+  )
 }
