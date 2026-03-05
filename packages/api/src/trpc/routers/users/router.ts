@@ -17,7 +17,7 @@ export const usersRouter = createTRPCRouter({
   getStaffMembersByDomain: domainProcedure.input(GetStaffMembersByDomainInputSchema).query(
     trpcEffect(
       Effect.fn("UsersRouter.getStaffMembersByDomain")(function* ({ input }) {
-        return yield* UsersApiService.getStaffMembersByDomain({ domain: input.domain })
+        return yield* UsersApiService.use((s) => s.getStaffMembersByDomain({ domain: input.domain }))
       })
     )
   ),
@@ -25,10 +25,12 @@ export const usersRouter = createTRPCRouter({
   getStaffMemberById: domainProcedure.input(GetStaffMemberByIdInputSchema).query(
     trpcEffect(
       Effect.fn("UsersRouter.getStaffMemberById")(function* ({ input }) {
-        return yield* UsersApiService.getStaffMemberById({
-          staffId: input.staffId,
-          domain: input.domain,
-        })
+        return yield* UsersApiService.use((s) =>
+          s.getStaffMemberById({
+            staffId: input.staffId,
+            domain: input.domain,
+          })
+        )
       })
     )
   ),
@@ -36,10 +38,12 @@ export const usersRouter = createTRPCRouter({
   createStaffMember: domainProcedure.input(CreateStaffMemberInputSchema).mutation(
     trpcEffect(
       Effect.fn("UsersRouter.createStaffMember")(function* ({ input }) {
-        return yield* UsersApiService.createStaffMember({
-          domain: input.domain,
-          data: input.data,
-        })
+        return yield* UsersApiService.use((s) =>
+          s.createStaffMember({
+            domain: input.domain,
+            data: input.data,
+          })
+        )
       })
     )
   ),
@@ -47,10 +51,12 @@ export const usersRouter = createTRPCRouter({
   deleteUserMarathonRelation: domainProcedure.input(DeleteUserMarathonRelationInputSchema).mutation(
     trpcEffect(
       Effect.fn("UsersRouter.deleteUserMarathonRelation")(function* ({ input }) {
-        return yield* UsersApiService.deleteUserMarathonRelation({
-          domain: input.domain,
-          userId: input.userId,
-        })
+        return yield* UsersApiService.use((s) =>
+          s.deleteUserMarathonRelation({
+            domain: input.domain,
+            userId: input.userId,
+          })
+        )
       })
     )
   ),
@@ -58,12 +64,14 @@ export const usersRouter = createTRPCRouter({
   getVerificationsByStaffId: domainProcedure.input(GetVerificationsByStaffIdInputSchema).query(
     trpcEffect(
       Effect.fn("UsersRouter.getVerificationsByStaffId")(function* ({ input }) {
-        return yield* UsersApiService.getVerificationsByStaffId({
-          staffId: input.staffId,
-          domain: input.domain,
-          cursor: input.cursor ?? undefined,
-          limit: input.limit ?? undefined,
-        })
+        return yield* UsersApiService.use((s) =>
+          s.getVerificationsByStaffId({
+            staffId: input.staffId,
+            domain: input.domain,
+            cursor: input.cursor ?? undefined,
+            limit: input.limit ?? undefined,
+          })
+        )
       })
     )
   ),
@@ -71,11 +79,13 @@ export const usersRouter = createTRPCRouter({
   updateStaffMember: domainProcedure.input(UpdateStaffMemberInputSchema).mutation(
     trpcEffect(
       Effect.fn("UsersRouter.updateStaffMember")(function* ({ input }) {
-        return yield* UsersApiService.updateStaffMember({
-          staffId: input.staffId,
-          domain: input.domain,
-          data: input.data,
-        })
+        return yield* UsersApiService.use((s) =>
+          s.updateStaffMember({
+            staffId: input.staffId,
+            domain: input.domain,
+            data: input.data,
+          })
+        )
       })
     )
   ),

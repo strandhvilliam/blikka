@@ -1,16 +1,14 @@
 import "server-only"
 
-import { Effect, Option } from "effect"
+import { Effect, Layer, Option, ServiceMap } from "effect"
 import { Database } from "@blikka/db"
 import { UsersApiError } from "./schemas"
 import crypto from "crypto"
 
-export class UsersApiService extends Effect.Service<UsersApiService>()(
+export class UsersApiService extends ServiceMap.Service<UsersApiService>()(
   "@blikka/api/UsersApiService",
   {
-    accessors: true,
-    dependencies: [Database.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
 
       const getStaffMembersByDomain = Effect.fn("UsersApiService.getStaffMembersByDomain")(
@@ -213,4 +211,8 @@ export class UsersApiService extends Effect.Service<UsersApiService>()(
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Database.layer)
+  )
+}
