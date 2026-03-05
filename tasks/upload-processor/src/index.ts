@@ -1,10 +1,8 @@
-import { Effect, Layer, Schema } from "effect"
+import { Effect, Layer } from "effect"
 import { type SQSEvent, LambdaHandler } from "@effect-aws/lambda"
-import { parseJson, parseKey } from "./utils"
-import { InvalidS3EventError } from "./errors"
+import { parseAndNormalizeMessage, parseKey } from "./utils"
 import { type SQSRecord } from "aws-lambda"
 import { UploadProcessorService } from "./processor-service"
-import { S3EventSchema } from "./schemas"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubChannel, RunStateService, PubSubLoggerService } from "@blikka/pubsub"
 import { Resource as SSTResource } from "sst"
@@ -27,22 +25,13 @@ const effectHandler = (event: SQSEvent) =>
     const processSQSRecord = Effect.fn("upload-processor.processSQSRecord")(function* (
       record: SQSRecord,
     ) {
-      const s3Event = yield* parseJson(record.body).pipe(
-        Effect.flatMap(Schema.decodeUnknownEffect(S3EventSchema)),
-        Effect.mapError(
-          (cause) =>
-            new InvalidS3EventError({
-              cause,
-              message: "Failed to parse S3 event",
-            }),
-        ),
-      )
+      const items = yield* parseAndNormalizeMessage(record.body)
 
       yield* Effect.forEach(
-        s3Event.Records,
-        (record) =>
+        items,
+        (item) =>
           Effect.gen(function* () {
-            const key = record.s3.object.key
+            const key = item.key
             const parsed = yield* parseKey(key)
             const { domain, reference, orderIndex } = parsed
 
@@ -69,7 +58,7 @@ const effectHandler = (event: SQSEvent) =>
                 orderIndex,
               },
             })
-          }).pipe(Effect.annotateLogs({ key: record.s3.object.key })),
+          }).pipe(Effect.annotateLogs({ key: item.key })),
         { concurrency: 2 },
       )
     })

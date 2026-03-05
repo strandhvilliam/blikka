@@ -62,8 +62,8 @@
     ]
   },
   "dependencies": {
+    "@pulumi/pulumi": "^3.225.1",
     "sst": "^3.17.19"
   },
-  "overrides": {
-  }
+  "overrides": {}
 }

@@ -1,10 +1,35 @@
-import { Effect } from "effect"
-import { JsonParseError, InvalidKeyFormatError } from "./errors"
+import { Effect, Option, Schema } from "effect"
+import { JsonParseError, InvalidKeyFormatError, InvalidMessageError } from "./errors"
+import { DirectMessageSchema, S3EventSchema } from "./schemas"
 
 export const parseJson = (input: string) =>
   Effect.try({
     try: () => JSON.parse(input),
     catch: (unknown) => new JsonParseError({ message: "Failed to parse JSON" }),
+  })
+
+const BODY_PREVIEW_MAX_LENGTH = 200
+
+export const parseAndNormalizeMessage = (body: string) =>
+  Effect.gen(function* () {
+    const parsed = yield* parseJson(body)
+
+    const s3Option = Schema.decodeUnknownOption(S3EventSchema)(parsed)
+    if (Option.isSome(s3Option)) {
+      return s3Option.value.Records.map((record) => ({ key: record.s3.object.key }))
+    }
+
+    const directOption = Schema.decodeUnknownOption(DirectMessageSchema)(parsed)
+    if (Option.isSome(directOption)) {
+      return directOption.value.submissionKeys.map((key) => ({ key }))
+    }
+
+    return yield* Effect.fail(
+      new InvalidMessageError({
+        message: "Message body is neither S3 event nor direct submissionKeys format",
+        bodyPreview: body.slice(0, BODY_PREVIEW_MAX_LENGTH),
+      }),
+    )
   })
 
 export const parseKey = Effect.fn("UploadProcessorUtils.parseKey")(function* (key: string) {

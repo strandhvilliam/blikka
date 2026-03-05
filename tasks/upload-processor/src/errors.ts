@@ -33,6 +33,16 @@ export class InvalidS3EventError extends Schema.TaggedErrorClass<InvalidS3EventE
 ) {
 }
 
+export class InvalidMessageError extends Schema.TaggedErrorClass<InvalidMessageError>()(
+  "InvalidMessageError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+    bodyPreview: Schema.optional(Schema.String),
+  },
+) {
+}
+
 export class FailedToIncrementParticipantStateError extends Schema.TaggedErrorClass<FailedToIncrementParticipantStateError>()(
   "FailedToIncrementParticipantStateError",
   {

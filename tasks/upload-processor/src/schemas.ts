@@ -13,4 +13,8 @@ export const S3EventSchema = Schema.Struct({
       }),
     }),
   ),
-});
+})
+
+export const DirectMessageSchema = Schema.Struct({
+  submissionKeys: Schema.Array(Schema.String),
+})
