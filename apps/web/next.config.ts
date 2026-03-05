@@ -5,6 +5,9 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
 
 const nextConfig: NextConfig = {
   /* config options here */
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
   reactCompiler: true,
   cacheComponents: true,
   // Externalize server-only packages to prevent bundling issues with Node.js-specific modules
