@@ -13,6 +13,18 @@ import { cn } from "@/lib/utils"
 
 type SponsorType = "contact-sheets" | "live-initial-1" | "live-initial-2" | "live-success-1" | "live-success-2"
 
+function getSponsorUploadButtonLabel({
+  uploading,
+  hasSponsor,
+}: {
+  uploading: boolean
+  hasSponsor: boolean
+}) {
+  if (uploading) return "Uploading..."
+  if (hasSponsor) return "Replace Image"
+  return "Upload Image"
+}
+
 interface SponsorCardProps {
   title: string
   description: string
@@ -150,7 +162,7 @@ export function SponsorCard({
               }}
             >
               <Upload className="h-4 w-4 mr-2" />
-              {uploading ? "Uploading..." : sponsor ? "Replace Image" : "Upload Image"}
+              {getSponsorUploadButtonLabel({ uploading, hasSponsor: !!sponsor })}
             </Button>
           </div>
         )}

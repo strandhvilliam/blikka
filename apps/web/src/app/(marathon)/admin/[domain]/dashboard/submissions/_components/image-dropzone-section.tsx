@@ -1,21 +1,24 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ADMIN_COMMON_IMAGE_EXTENSIONS } from "../../_lib/admin-upload/types";
-import { pluralizePhotos } from "../../_hooks/use-participant-upload-form";
+import { ADMIN_COMMON_IMAGE_EXTENSIONS } from "../_lib/types";
+import { pluralizePhotos } from "../_hooks/use-participant-upload-form";
 import { DropzoneStatusBadge } from "./dropzone-status-badge";
 
-type DropzoneVariant =
+export type DropzoneVariant =
   | "disabled"
   | "ready"
   | "complete"
   | "success"
   | "processing";
 
-interface ImageDropzoneSectionProps {
+export interface ImageDropzoneSectionDropzoneProps {
   getRootProps: () => Record<string, unknown>;
   getInputProps: () => Record<string, unknown>;
   isDragActive: boolean;
+}
+
+export interface ImageDropzoneSectionDropzoneState {
   isDropzoneDisabled: boolean;
   variant: DropzoneVariant;
   isProcessingFiles: boolean;
@@ -26,19 +29,26 @@ interface ImageDropzoneSectionProps {
   formErrorsFiles?: string;
 }
 
+interface ImageDropzoneSectionProps {
+  dropzoneProps: ImageDropzoneSectionDropzoneProps;
+  dropzoneState: ImageDropzoneSectionDropzoneState;
+}
+
 export function ImageDropzoneSection({
-  getRootProps,
-  getInputProps,
-  isDragActive,
-  isDropzoneDisabled,
-  variant,
-  isProcessingFiles,
-  expectedPhotoCount,
-  selectedPhotosCount,
-  isMaxImagesReached,
-  dropzoneDisabledReason,
-  formErrorsFiles,
+  dropzoneProps,
+  dropzoneState,
 }: ImageDropzoneSectionProps) {
+  const { getRootProps, getInputProps, isDragActive } = dropzoneProps;
+  const {
+    isDropzoneDisabled,
+    variant,
+    isProcessingFiles,
+    expectedPhotoCount,
+    selectedPhotosCount,
+    isMaxImagesReached,
+    dropzoneDisabledReason,
+    formErrorsFiles,
+  } = dropzoneState;
   return (
     <section>
       <h3 className="mb-3 font-gothic text-lg text-[#1f1f1f]">

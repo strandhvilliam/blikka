@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { isPossiblePhoneNumber } from "react-phone-number-input";
 
-type MarathonMode = "marathon" | "by-camera";
 
 const referenceSchema = z
   .string()
@@ -19,12 +18,13 @@ const baseParticipantSchema = z.object({
   deviceGroupId: z.string().min(1, "Select a device group"),
 });
 
-export function createParticipantFormSchema(marathonMode: MarathonMode) {
+export function createParticipantFormSchema(marathonMode: string) {
   return baseParticipantSchema.superRefine((data, ctx) => {
     if (marathonMode === "by-camera") {
       if (!data.phone.trim()) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'invalid_type',
+          expected: 'string',
           message: "Phone number is required in by-camera mode",
           path: ["phone"],
         });
@@ -39,7 +39,8 @@ export function createParticipantFormSchema(marathonMode: MarathonMode) {
 
     if (marathonMode === "marathon" && !data.competitionClassId) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'invalid_type',
+        expected: 'string',
         message: "Select a competition class",
         path: ["competitionClassId"],
       });

@@ -1,6 +1,6 @@
 import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation";
-import type { AdminUploadFileState } from "../../_lib/admin-upload/types";
-import { ADMIN_UPLOAD_PHASE } from "../../_lib/admin-upload/types";
+import type { AdminUploadFileState } from "./types";
+import { ADMIN_UPLOAD_PHASE } from "./types";
 
 export function formatRuleKey(ruleKey: string) {
   return ruleKey
@@ -56,4 +56,80 @@ export function createValidationResultKey(result: ValidationResult) {
     result.fileName ?? "none",
     result.isGeneral ? "general" : "file",
   ].join("|");
+}
+
+type Topic = { orderIndex: number };
+
+export function getDropzoneDisabledReason(params: {
+  deviceGroupId: string;
+  marathonMode: string;
+  competitionClassId: string;
+  activeByCameraTopic: Topic | null;
+}): string | null {
+  const {
+    deviceGroupId,
+    marathonMode,
+    competitionClassId,
+    activeByCameraTopic,
+  } = params;
+
+  if (!deviceGroupId) {
+    return "Select a device group to enable image selection.";
+  }
+  if (marathonMode === "marathon" && !competitionClassId) {
+    return "Select a competition class to enable image selection.";
+  }
+  if (marathonMode === "by-camera" && !activeByCameraTopic) {
+    return "No active topic is available for by-camera upload.";
+  }
+  return null;
+}
+
+type CompetitionClass = {
+  topicStartIndex: number
+  numberOfPhotos: number
+}
+
+export function getSelectedTopics<T extends { orderIndex: number }>(
+  marathonMode: MarathonMode,
+  activeByCameraTopic: T | null,
+  selectedCompetitionClass: CompetitionClass | null,
+  sortedTopics: T[],
+): T[] {
+  if (marathonMode === "by-camera") {
+    return activeByCameraTopic ? [activeByCameraTopic] : []
+  }
+  if (selectedCompetitionClass) {
+    return sortedTopics.slice(
+      selectedCompetitionClass.topicStartIndex,
+      selectedCompetitionClass.topicStartIndex + selectedCompetitionClass.numberOfPhotos,
+    )
+  }
+  return []
+}
+
+export function getExpectedPhotoCount(
+  marathonMode: MarathonMode,
+  activeByCameraTopic: { orderIndex: number } | null,
+  selectedCompetitionClass: { numberOfPhotos: number } | null,
+): number {
+  if (marathonMode === "by-camera") {
+    return activeByCameraTopic ? 1 : 0
+  }
+  return selectedCompetitionClass?.numberOfPhotos ?? 0
+}
+
+export function getDropzoneVariant(params: {
+  canSelectFiles: boolean;
+  isMaxImagesReached: boolean;
+  uploadComplete: boolean;
+  isBusy: boolean;
+}): "disabled" | "complete" | "success" | "processing" | "ready" {
+  const { canSelectFiles, isMaxImagesReached, uploadComplete, isBusy } = params;
+
+  if (!canSelectFiles) return "disabled";
+  if (isMaxImagesReached) return "complete";
+  if (uploadComplete) return "success";
+  if (isBusy) return "processing";
+  return "ready";
 }

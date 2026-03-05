@@ -1,6 +1,5 @@
 "use client";
 
-import type { FormApi } from "@tanstack/react-form";
 import {
   Select,
   SelectContent,
@@ -10,14 +9,15 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { CompetitionClass, DeviceGroup, Topic } from "@blikka/db";
-import type { ParticipantFormValues } from "../../_lib/participant-form-schema";
-import { pluralizePhotos } from "../../_hooks/use-participant-upload-form";
+import {
+  pluralizePhotos,
+  type ParticipantUploadFormApi,
+} from "../_hooks/use-participant-upload-form";
 
-type MarathonMode = "marathon" | "by-camera";
 
 interface UploadMappingSectionProps {
-  form: FormApi<ParticipantFormValues, undefined>;
-  marathonMode: MarathonMode;
+  form: ParticipantUploadFormApi;
+  marathonMode: string;
   competitionClasses: CompetitionClass[];
   deviceGroups: DeviceGroup[];
   selectedTopics: Topic[];
@@ -63,8 +63,8 @@ export function UploadMappingSection({
                     <SelectTrigger
                       className={cn(
                         !field.state.meta.isValid &&
-                          field.state.meta.isTouched &&
-                          "border-rose-400 focus-visible:ring-rose-400",
+                        field.state.meta.isTouched &&
+                        "border-rose-400 focus-visible:ring-rose-400",
                       )}
                     >
                       <SelectValue placeholder="Select class" />
@@ -105,8 +105,8 @@ export function UploadMappingSection({
                   <SelectTrigger
                     className={cn(
                       !field.state.meta.isValid &&
-                        field.state.meta.isTouched &&
-                        "border-rose-400 focus-visible:ring-rose-400",
+                      field.state.meta.isTouched &&
+                      "border-rose-400 focus-visible:ring-rose-400",
                     )}
                   >
                     <SelectValue placeholder="Select device group" />

@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TableData } from "./use-submissions-table";
+import type { TableData } from "../_hooks/use-submissions-table";
 
 interface SubmissionsColumnsOptions {
   marathonMode?: string;

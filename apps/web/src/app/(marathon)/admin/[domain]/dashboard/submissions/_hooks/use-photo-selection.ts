@@ -1,15 +1,16 @@
-"use client";
+"use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation";
-import type { RuleConfig } from "@blikka/db";
-import type { AdminSelectedPhoto } from "../_lib/admin-upload/types";
+import { useEffect, useRef, useState } from "react"
+import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation"
+import type { RuleConfig } from "@blikka/db"
+import type { AdminSelectedPhoto } from "../_lib/types"
+import { toast } from "sonner"
 import {
   processSelectedFiles,
   reassignPhotoOrderIndexes,
   revokePhotoPreviewUrls,
-} from "../_lib/admin-upload/file-processing";
-import { runAdminPhotoValidation } from "../_lib/admin-upload/validation";
+} from "../_lib/file-processing"
+import { runAdminPhotoValidation } from "../_lib/validation"
 
 function createValidationResultKey(result: ValidationResult) {
   return [
@@ -20,21 +21,52 @@ function createValidationResultKey(result: ValidationResult) {
     result.orderIndex ?? "none",
     result.fileName ?? "none",
     result.isGeneral ? "general" : "file",
-  ].join("|");
+  ].join("|")
+}
+
+function splitValidationResultsBySeverity(results: ValidationResult[]) {
+  const blocking: ValidationResult[] = []
+  const warnings: ValidationResult[] = []
+  for (const r of results) {
+    if (r.outcome === VALIDATION_OUTCOME.FAILED) {
+      if (r.severity === "error") {
+        blocking.push(r)
+      } else {
+        warnings.push(r)
+      }
+    }
+  }
+  return { blocking, warnings }
+}
+
+function buildPhotoValidationMap(photos: AdminSelectedPhoto[], results: ValidationResult[]) {
+  const map = new Map<string, ValidationResult[]>()
+  for (const photo of photos) {
+    const unique = new Map<string, ValidationResult>()
+    for (const result of results) {
+      if (result.isGeneral) continue
+      const matchesOrder = result.orderIndex !== undefined && result.orderIndex === photo.orderIndex
+      const matchesFileName = result.fileName === photo.file.name
+      if (!matchesOrder && !matchesFileName) continue
+      unique.set(createValidationResultKey(result), result)
+    }
+    map.set(photo.id, Array.from(unique.values()))
+  }
+  return map
 }
 
 interface UsePhotoSelectionInput {
-  open: boolean;
-  topicOrderIndexes: number[];
-  expectedPhotoCount: number;
-  ruleConfigs: RuleConfig[];
-  marathonStartDate?: string | null;
-  marathonEndDate?: string | null;
-  isUploadBusy: boolean;
-  uploadComplete: boolean;
-  canSelectFiles: boolean;
-  onClearFormFilesError?: () => void;
-  onResetUploadState?: () => void;
+  open: boolean
+  topicOrderIndexes: number[]
+  expectedPhotoCount: number
+  ruleConfigs: RuleConfig[]
+  marathonStartDate?: string | null
+  marathonEndDate?: string | null
+  isUploadBusy: boolean
+  uploadComplete: boolean
+  canSelectFiles: boolean
+  onClearFormFilesError?: () => void
+  onResetUploadState?: () => void
 }
 
 export function usePhotoSelection({
@@ -50,38 +82,31 @@ export function usePhotoSelection({
   onClearFormFilesError,
   onResetUploadState,
 }: UsePhotoSelectionInput) {
-  const photosRef = useRef<AdminSelectedPhoto[]>([]);
+  const photosRef = useRef<AdminSelectedPhoto[]>([])
 
-  const [selectedPhotos, setSelectedPhotos] = useState<AdminSelectedPhoto[]>([]);
-  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
-  const [validationResults, setValidationResults] = useState<ValidationResult[]>(
-    [],
-  );
-  const [validationRunError, setValidationRunError] = useState<string | null>(
-    null,
-  );
+  const [selectedPhotos, setSelectedPhotos] = useState<AdminSelectedPhoto[]>([])
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false)
+  const [validationResults, setValidationResults] = useState<ValidationResult[]>([])
+  const [validationRunError, setValidationRunError] = useState<string | null>(null)
 
   useEffect(() => {
-    photosRef.current = selectedPhotos;
-  }, [selectedPhotos]);
+    photosRef.current = selectedPhotos
+  }, [selectedPhotos])
 
   useEffect(() => {
     return () => {
-      revokePhotoPreviewUrls(photosRef.current);
-    };
-  }, []);
+      revokePhotoPreviewUrls(photosRef.current)
+    }
+  }, [])
 
   useEffect(() => {
-    let cancelled = false;
-
-    if (!open) {
-      return;
-    }
+    let cancelled = false
+    if (!open) return
 
     if (selectedPhotos.length === 0) {
-      setValidationResults([]);
-      setValidationRunError(null);
-      return;
+      setValidationResults([])
+      setValidationRunError(null)
+      return
     }
 
     const runValidation = async () => {
@@ -91,187 +116,94 @@ export function usePhotoSelection({
           ruleConfigs,
           marathonStartDate,
           marathonEndDate,
-        });
+        })
 
         if (cancelled) {
-          return;
+          return
         }
 
-        setValidationResults(results);
-        setValidationRunError(null);
+        setValidationResults(results)
+        setValidationRunError(null)
       } catch (error) {
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return
 
         const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to validate selected images";
+          error instanceof Error ? error.message : "Failed to validate selected images"
 
-        setValidationRunError(message);
-        setValidationResults([]);
+        setValidationRunError(message)
+        setValidationResults([])
       }
-    };
+    }
 
-    void runValidation();
+    void runValidation()
 
     return () => {
-      cancelled = true;
-    };
-  }, [
-    open,
-    selectedPhotos,
-    ruleConfigs,
-    marathonStartDate,
-    marathonEndDate,
-  ]);
+      cancelled = true
+    }
+  }, [open, selectedPhotos, ruleConfigs, marathonStartDate, marathonEndDate])
 
-  const generalValidationResults = useMemo(
-    () =>
-      validationResults.filter(
-        (result) =>
-          result.isGeneral ||
-          (result.orderIndex === undefined && !result.fileName),
-      ),
-    [validationResults],
-  );
+  const generalValidationResults = validationResults.filter(
+    (result) => result.isGeneral || (result.orderIndex === undefined && !result.fileName),
+  )
 
-  const photoValidationMap = useMemo(() => {
-    const map = new Map<string, ValidationResult[]>();
-
-    selectedPhotos.forEach((photo) => {
-      const unique = new Map<string, ValidationResult>();
-
-      validationResults.forEach((result) => {
-        if (result.isGeneral) {
-          return;
-        }
-
-        const matchesOrder =
-          result.orderIndex !== undefined &&
-          result.orderIndex === photo.orderIndex;
-        const matchesFileName = result.fileName === photo.file.name;
-
-        if (!matchesOrder && !matchesFileName) {
-          return;
-        }
-
-        unique.set(createValidationResultKey(result), result);
-      });
-
-      map.set(photo.id, Array.from(unique.values()));
-    });
-
-    return map;
-  }, [selectedPhotos, validationResults]);
+  const photoValidationMap = buildPhotoValidationMap(selectedPhotos, validationResults)
 
   const { blocking: blockingValidationErrors, warnings: warningValidationResults } =
-    useMemo(() => {
-      const blocking: ValidationResult[] = [];
-      const warnings: ValidationResult[] = [];
+    splitValidationResultsBySeverity(validationResults)
 
-      for (const r of validationResults) {
-        if (r.outcome === VALIDATION_OUTCOME.FAILED) {
-          if (r.severity === "error") {
-            blocking.push(r);
-          } else {
-            warnings.push(r);
-          }
-        }
+  async function handleFileSelect(fileList: FileList | File[] | null) {
+    if (isUploadBusy || uploadComplete || !canSelectFiles) return
+
+    setIsProcessingFiles(true)
+    onResetUploadState?.()
+
+    try {
+      const result = await processSelectedFiles({
+        fileList,
+        existingPhotos: selectedPhotos,
+        maxPhotos: expectedPhotoCount,
+        topicOrderIndexes,
+      })
+
+      if (result.errors.length > 0) {
+        result.errors.forEach((message) => toast.error(message))
       }
-
-      return { blocking, warnings };
-    }, [validationResults]);
-
-  const handleFileSelect = useCallback(
-    async (fileList: FileList | File[] | null) => {
-      if (isUploadBusy || uploadComplete || !canSelectFiles) {
-        return;
+      if (result.warnings.length > 0) {
+        result.warnings.forEach((message) => toast.message(message))
       }
-
-      setIsProcessingFiles(true);
-      onResetUploadState?.();
-
-      try {
-        const result = await processSelectedFiles({
-          fileList,
-          existingPhotos: selectedPhotos,
-          maxPhotos: expectedPhotoCount,
-          topicOrderIndexes,
-        });
-
-        if (result.errors.length > 0) {
-          const { toast } = await import("sonner");
-          result.errors.forEach((message) => toast.error(message));
-        }
-
-        if (result.warnings.length > 0) {
-          const { toast } = await import("sonner");
-          result.warnings.forEach((message) => toast.message(message));
-        }
-
-        if (result.photos !== selectedPhotos) {
-          setSelectedPhotos(result.photos);
-          onClearFormFilesError?.();
-        }
-      } finally {
-        setIsProcessingFiles(false);
+      if (result.photos !== selectedPhotos) {
+        setSelectedPhotos(result.photos)
+        onClearFormFilesError?.()
       }
-    },
-    [
-      canSelectFiles,
-      expectedPhotoCount,
-      isUploadBusy,
-      selectedPhotos,
-      topicOrderIndexes,
-      uploadComplete,
-      onResetUploadState,
-      onClearFormFilesError,
-    ],
-  );
+    } finally {
+      setIsProcessingFiles(false)
+    }
+  }
 
-  const handleRemovePhoto = useCallback(
-    (photoId: string) => {
-      if (isUploadBusy || uploadComplete) {
-        return;
-      }
-
-      onResetUploadState?.();
-
-      setSelectedPhotos((current) => {
-        const target = current.find((photo) => photo.id === photoId);
-        if (target) {
-          URL.revokeObjectURL(target.previewUrl);
-        }
-
-        const remaining = current.filter((photo) => photo.id !== photoId);
-        return reassignPhotoOrderIndexes(remaining, topicOrderIndexes);
-      });
-    },
-    [isUploadBusy, topicOrderIndexes, uploadComplete, onResetUploadState],
-  );
-
-  const resetPhotoSelection = useCallback(() => {
+  function handleRemovePhoto(photoId: string) {
+    if (isUploadBusy || uploadComplete) return
+    onResetUploadState?.()
     setSelectedPhotos((current) => {
-      revokePhotoPreviewUrls(current);
-      return [];
-    });
-    setValidationResults([]);
-    setValidationRunError(null);
-    setIsProcessingFiles(false);
-  }, []);
+      const target = current.find((photo) => photo.id === photoId)
+      if (target) URL.revokeObjectURL(target.previewUrl)
+      const remaining = current.filter((photo) => photo.id !== photoId)
+      return reassignPhotoOrderIndexes(remaining, topicOrderIndexes)
+    })
+  }
 
-  const setSelectedPhotosExternal = useCallback(
-    (photos: AdminSelectedPhoto[] | ((prev: AdminSelectedPhoto[]) => AdminSelectedPhoto[])) => {
-      setSelectedPhotos(photos);
-    },
-    [],
-  );
+  function resetPhotoSelection() {
+    setSelectedPhotos((current) => {
+      revokePhotoPreviewUrls(current)
+      return []
+    })
+    setValidationResults([])
+    setValidationRunError(null)
+    setIsProcessingFiles(false)
+  }
 
   return {
     selectedPhotos,
-    setSelectedPhotos: setSelectedPhotosExternal,
+    setSelectedPhotos,
     validationResults,
     validationRunError,
     isProcessingFiles,
@@ -282,5 +214,5 @@ export function usePhotoSelection({
     handleFileSelect,
     handleRemovePhoto,
     resetPhotoSelection,
-  };
+  }
 }

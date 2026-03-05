@@ -1,17 +1,15 @@
 "use client";
 
-import type { FormApi } from "@tanstack/react-form";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { ParticipantFormValues } from "../../_lib/participant-form-schema";
+import type { ParticipantUploadFormApi } from "../_hooks/use-participant-upload-form";
 
-type MarathonMode = "marathon" | "by-camera";
 
 interface ParticipantDetailsFormProps {
-  form: FormApi<ParticipantFormValues, undefined>;
-  marathonMode: MarathonMode;
+  form: ParticipantUploadFormApi;
+  marathonMode: string;
 }
 
 export function ParticipantDetailsForm({
@@ -68,8 +66,8 @@ export function ParticipantDetailsForm({
                 className={cn(
                   "font-mono text-lg tracking-[0.2em]",
                   !field.state.meta.isValid &&
-                    field.state.meta.isTouched &&
-                    "border-rose-400 focus-visible:ring-rose-400",
+                  field.state.meta.isTouched &&
+                  "border-rose-400 focus-visible:ring-rose-400",
                 )}
               />
               {!field.state.meta.isValid && field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
@@ -95,8 +93,8 @@ export function ParticipantDetailsForm({
                   placeholder="James"
                   className={cn(
                     !field.state.meta.isValid &&
-                      field.state.meta.isTouched &&
-                      "border-rose-400 focus-visible:ring-rose-400",
+                    field.state.meta.isTouched &&
+                    "border-rose-400 focus-visible:ring-rose-400",
                   )}
                 />
                 {!field.state.meta.isValid && field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
@@ -121,8 +119,8 @@ export function ParticipantDetailsForm({
                   placeholder="Bond"
                   className={cn(
                     !field.state.meta.isValid &&
-                      field.state.meta.isTouched &&
-                      "border-rose-400 focus-visible:ring-rose-400",
+                    field.state.meta.isTouched &&
+                    "border-rose-400 focus-visible:ring-rose-400",
                   )}
                 />
                 {!field.state.meta.isValid && field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
@@ -149,8 +147,8 @@ export function ParticipantDetailsForm({
                   placeholder="participant@example.com"
                   className={cn(
                     !field.state.meta.isValid &&
-                      field.state.meta.isTouched &&
-                      "border-rose-400 focus-visible:ring-rose-400",
+                    field.state.meta.isTouched &&
+                    "border-rose-400 focus-visible:ring-rose-400",
                   )}
                 />
                 {!field.state.meta.isValid && field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
@@ -176,8 +174,8 @@ export function ParticipantDetailsForm({
                     defaultCountry="SE"
                     className={cn(
                       !field.state.meta.isValid &&
-                        field.state.meta.isTouched &&
-                        "[&_input]:border-rose-400 [&_input]:focus-visible:ring-rose-400",
+                      field.state.meta.isTouched &&
+                      "[&_input]:border-rose-400 [&_input]:focus-visible:ring-rose-400",
                     )}
                   />
                   {!field.state.meta.isValid && field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (

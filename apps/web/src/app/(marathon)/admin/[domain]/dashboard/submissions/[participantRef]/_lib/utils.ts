@@ -107,6 +107,24 @@ export const getDeviceIcon = (icon?: string): LucideIcon => {
   }
 }
 
+function getValidationBadgeColor(allPassed: boolean, hasErrors: boolean) {
+  if (allPassed) return "bg-green-500/15 text-green-600 hover:bg-green-500/20"
+  if (hasErrors) return "bg-destructive/15 text-destructive hover:bg-destructive/20"
+  return "bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20"
+}
+
+function getValidationBadgeIcon(allPassed: boolean, hasErrors: boolean): LucideIcon {
+  if (allPassed) return CheckCircle
+  if (hasErrors) return XCircle
+  return AlertTriangle
+}
+
+function getValidationBadgeLabel(allPassed: boolean, hasErrors: boolean) {
+  if (allPassed) return "Valid"
+  if (hasErrors) return "Error"
+  return "Warning"
+}
+
 export const getValidationBadgeConfig = (validationResults: ValidationResult[]) => {
   const globalValidations = validationResults.filter((result) => !result.fileName)
   const hasFailedValidations = globalValidations.some((result) => result.outcome === "failed")
@@ -116,13 +134,9 @@ export const getValidationBadgeConfig = (validationResults: ValidationResult[]) 
   const allPassed = globalValidations.length > 0 && !hasFailedValidations
 
   return {
-    badgeColor: allPassed
-      ? "bg-green-500/15 text-green-600 hover:bg-green-500/20"
-      : hasErrors
-        ? "bg-destructive/15 text-destructive hover:bg-destructive/20"
-        : "bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20",
-    icon: allPassed ? CheckCircle : hasErrors ? XCircle : AlertTriangle,
-    label: allPassed ? "Valid" : hasErrors ? "Error" : "Warning",
+    badgeColor: getValidationBadgeColor(allPassed, hasErrors),
+    icon: getValidationBadgeIcon(allPassed, hasErrors),
+    label: getValidationBadgeLabel(allPassed, hasErrors),
     hasValidations: globalValidations.length > 0,
   }
 }

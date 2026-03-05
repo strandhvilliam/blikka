@@ -53,18 +53,7 @@ const _SubmissionsPage = Effect.fn("@blikka/web/SubmissionsPage")(
         <Suspense fallback={<SubmissionsSkeleton />}>
           <div className="container mx-auto h-full flex flex-col">
             <div className="shrink-0 mb-6">
-              <SubmissionsHeader
-                domain={domain}
-                marathonMode={marathon.mode}
-                activeTopicName={activeByCameraTopic?.name ?? null}
-                activeTopicOrderIndex={activeByCameraTopic?.orderIndex ?? null}
-                competitionClasses={marathon.competitionClasses}
-                deviceGroups={marathon.deviceGroups}
-                topics={marathon.topics}
-                ruleConfigs={marathon.ruleConfigs}
-                startDate={marathon.startDate ?? null}
-                endDate={marathon.endDate ?? null}
-              />
+              <SubmissionsHeader />
             </div>
             <div className="flex-1 min-h-0">
               <SubmissionsTable />

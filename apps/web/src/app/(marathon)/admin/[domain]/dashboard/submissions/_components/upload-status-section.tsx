@@ -4,15 +4,15 @@ import { CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ADMIN_UPLOAD_PHASE } from "../../_lib/admin-upload/types";
-import type { AdminUploadFileState } from "../../_lib/admin-upload/types";
+import { ADMIN_UPLOAD_PHASE } from "../_lib/types";
+import type { AdminUploadFileState } from "../_lib/types";
 import {
   getUploadPhaseLabel,
   getUploadPhaseClassName,
-} from "./upload-utils";
+} from "../_lib/upload-utils";
 import { cn } from "@/lib/utils";
 
-interface UploadStatusSectionProps {
+export interface UploadStatusSectionUploadFlow {
   uploadFiles: AdminUploadFileState[];
   uploadProgress: { completed: number; total: number };
   uploadErrorMessage: string | null;
@@ -20,21 +20,28 @@ interface UploadStatusSectionProps {
   uploadComplete: boolean;
   submittedReference: string;
   isUploadingFiles: boolean;
+  handleRetryFailed: () => void;
+}
+
+interface UploadStatusSectionProps {
+  uploadFlow: UploadStatusSectionUploadFlow;
   isBusy: boolean;
-  onRetryFailed: () => void;
 }
 
 export function UploadStatusSection({
-  uploadFiles,
-  uploadProgress,
-  uploadErrorMessage,
-  canRetryFailedUploads,
-  uploadComplete,
-  submittedReference,
-  isUploadingFiles,
+  uploadFlow,
   isBusy,
-  onRetryFailed,
 }: UploadStatusSectionProps) {
+  const {
+    uploadFiles,
+    uploadProgress,
+    uploadErrorMessage,
+    canRetryFailedUploads,
+    uploadComplete,
+    submittedReference,
+    isUploadingFiles,
+    handleRetryFailed,
+  } = uploadFlow;
   return (
     <>
       <Separator />
@@ -98,7 +105,7 @@ export function UploadStatusSection({
             type="button"
             variant="outline"
             className="mt-3 w-full"
-            onClick={onRetryFailed}
+            onClick={handleRetryFailed}
             disabled={isBusy}
           >
             {isUploadingFiles ? (

@@ -6,7 +6,6 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   flexRender,
-  type SortingState,
 } from "@tanstack/react-table"
 import { useRouter } from "next/navigation"
 import {
@@ -19,20 +18,21 @@ import {
 } from "@/components/ui/table"
 import { Loader2, AlertCircle, FileText } from "lucide-react"
 import { formatDomainPathname } from "@/lib/utils"
-import { useSubmissionsTable } from "../_lib/use-submissions-table"
+import { useSubmissionsTable } from "../_hooks/use-submissions-table"
 import { SubmissionsFilters } from "./submissions-filters"
 import { getSubmissionsColumns } from "../_lib/submissions-columns"
 import { SubmissionsBulkToolbar } from "./submissions-bulk-toolbar"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { toast } from "sonner"
+import { useDomain } from "@/lib/domain-provider"
 
 export function SubmissionsTable() {
   const router = useRouter()
   const trpc = useTRPC()
+  const domain = useDomain()
   const queryClient = useQueryClient()
   const {
-    domain,
     marathon,
     sorting,
     setSorting,
@@ -60,7 +60,7 @@ export function SubmissionsTable() {
 
   const batchDeleteMutation = useMutation(
     trpc.participants.batchDelete.mutationOptions({
-      onSuccess: async (data, variables) => {
+      onSuccess: async (data,) => {
         toast.success(
           `Deleted ${data.deletedCount} participant${data.deletedCount === 1 ? "" : "s"}`,
         )
@@ -84,7 +84,7 @@ export function SubmissionsTable() {
 
   const batchVerifyMutation = useMutation(
     trpc.participants.batchVerify.mutationOptions({
-      onSuccess: async (data, variables) => {
+      onSuccess: async (data) => {
         toast.success(
           `Verified ${data.updatedCount} participant${data.updatedCount === 1 ? "" : "s"}`,
         )

@@ -1,15 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useDropzone, type Accept } from "react-dropzone";
-import type {
-  CompetitionClass,
-  DeviceGroup,
-  RuleConfig,
-  Topic,
-} from "@blikka/db";
 import { CheckCircle2, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,15 +31,22 @@ import {
 
 import { formatDomainPathname } from "@/lib/utils";
 import { useTRPC } from "@/lib/trpc/client";
-import { revokePhotoPreviewUrls } from "../_lib/admin-upload/file-processing";
+import { revokePhotoPreviewUrls } from "../_lib/file-processing";
+import {
+  getDropzoneDisabledReason,
+  getDropzoneVariant,
+  getExpectedPhotoCount,
+  getSelectedTopics,
+} from "../_lib/upload-utils";
 import { pluralizePhotos, useParticipantUploadForm } from "../_hooks/use-participant-upload-form";
 import { usePhotoSelection } from "../_hooks/use-photo-selection";
 import { useUploadFlow } from "../_hooks/use-upload-flow";
-import { ParticipantDetailsForm } from "./admin-upload-dialog/participant-details-form";
-import { UploadMappingSection } from "./admin-upload-dialog/upload-mapping-section";
-import { ImageDropzoneSection } from "./admin-upload-dialog/image-dropzone-section";
-import { SelectedImagesSection } from "./admin-upload-dialog/selected-images-section";
-import { UploadStatusSection } from "./admin-upload-dialog/upload-status-section";
+import { ParticipantDetailsForm } from "./participant-details-form";
+import { UploadMappingSection } from "./upload-mapping-section";
+import { ImageDropzoneSection } from "./image-dropzone-section";
+import { SelectedImagesSection } from "./selected-images-section";
+import { UploadStatusSection } from "./upload-status-section";
+import { useDomain } from "@/lib/domain-provider";
 
 const DROPZONE_ACCEPT: Accept = {
   "image/jpeg": [".jpg", ".jpeg"],
@@ -56,36 +57,24 @@ const DROPZONE_ACCEPT: Accept = {
   "image/heif": [".heif"],
 };
 
-type MarathonMode = "marathon" | "by-camera";
 
 interface AdminParticipantUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  domain: string;
-  marathonMode: MarathonMode;
-  competitionClasses: CompetitionClass[];
-  deviceGroups: DeviceGroup[];
-  topics: Topic[];
-  ruleConfigs: RuleConfig[];
-  marathonStartDate?: string | null;
-  marathonEndDate?: string | null;
 }
 
 export function AdminParticipantUploadDialog({
   open,
   onOpenChange,
-  domain,
-  marathonMode,
-  competitionClasses,
-  deviceGroups,
-  topics,
-  ruleConfigs,
-  marathonStartDate,
-  marathonEndDate,
 }: AdminParticipantUploadDialogProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const domain = useDomain();
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({ domain }),
+  );
+
   const signatureRef = useRef<string | null>(null);
 
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
@@ -104,97 +93,53 @@ export function AdminParticipantUploadDialog({
     formValues,
     validateFiles,
     resetForm,
-  } = useParticipantUploadForm(marathonMode, {
+  } = useParticipantUploadForm(marathon.mode, {
     onSubmit: async (value) => {
       await submitLogicRef.current?.(value);
     },
   });
 
-  const sortedTopics = useMemo(
-    () => topics.toSorted((a, b) => a.orderIndex - b.orderIndex),
-    [topics],
-  );
+  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex);
+  const activeByCameraTopic =
+    sortedTopics.find((topic) => topic.visibility === "active") ?? null;
+  const selectedCompetitionClass =
+    marathon.competitionClasses.find(
+      (competitionClass) =>
+        competitionClass.id === Number(formValues.competitionClassId),
+    ) ?? null;
 
-  const activeByCameraTopic = useMemo(
-    () => sortedTopics.find((topic) => topic.visibility === "active") ?? null,
-    [sortedTopics],
-  );
-
-  const selectedCompetitionClass = useMemo(
-    () =>
-      competitionClasses.find(
-        (competitionClass) =>
-          competitionClass.id === Number(formValues.competitionClassId),
-      ) ?? null,
-    [competitionClasses, formValues.competitionClassId],
-  );
-
-  const selectedTopics = useMemo(() => {
-    if (marathonMode === "by-camera") {
-      return activeByCameraTopic ? [activeByCameraTopic] : [];
-    }
-
-    if (!selectedCompetitionClass) {
-      return [];
-    }
-
-    return sortedTopics.slice(
-      selectedCompetitionClass.topicStartIndex,
-      selectedCompetitionClass.topicStartIndex +
-        selectedCompetitionClass.numberOfPhotos,
-    );
-  }, [
+  const selectedTopics = getSelectedTopics(
+    marathon.mode,
     activeByCameraTopic,
-    marathonMode,
     selectedCompetitionClass,
     sortedTopics,
-  ]);
-
-  const expectedPhotoCount = useMemo(() => {
-    if (marathonMode === "by-camera") {
-      return activeByCameraTopic ? 1 : 0;
-    }
-
-    return selectedCompetitionClass?.numberOfPhotos ?? 0;
-  }, [activeByCameraTopic, marathonMode, selectedCompetitionClass]);
-
-  const topicOrderIndexes = useMemo(
-    () => selectedTopics.map((topic) => topic.orderIndex),
-    [selectedTopics],
   );
+
+  const expectedPhotoCount = getExpectedPhotoCount(
+    marathon.mode,
+    activeByCameraTopic,
+    selectedCompetitionClass,
+  );
+
+  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex);
 
   const isMappingReady =
     !!formValues.deviceGroupId &&
-    (marathonMode === "marathon" ? !!formValues.competitionClassId : !!activeByCameraTopic);
+    (marathon.mode === "marathon" ? !!formValues.competitionClassId : !!activeByCameraTopic);
 
-  const dropzoneDisabledReason = useMemo(() => {
-    if (!formValues.deviceGroupId) {
-      return "Select a device group to enable image selection.";
-    }
-
-    if (marathonMode === "marathon" && !formValues.competitionClassId) {
-      return "Select a competition class to enable image selection.";
-    }
-
-    if (marathonMode === "by-camera" && !activeByCameraTopic) {
-      return "No active topic is available for by-camera upload.";
-    }
-
-    return null;
-  }, [
+  const dropzoneDisabledReason = getDropzoneDisabledReason({
+    deviceGroupId: formValues.deviceGroupId,
+    marathonMode: marathon.mode,
+    competitionClassId: formValues.competitionClassId,
     activeByCameraTopic,
-    formValues.competitionClassId,
-    formValues.deviceGroupId,
-    marathonMode,
-  ]);
+  });
 
   const canSelectFiles = isMappingReady && expectedPhotoCount > 0;
 
   const uploadFlow = useUploadFlow({
     domain,
-    marathonMode,
+    marathonMode: marathon.mode,
     formValues,
-    trpc,
     queryClient,
   });
 
@@ -204,25 +149,20 @@ export function AdminParticipantUploadDialog({
     uploadFlow.initializeUploadFlowMutation.isPending ||
     uploadFlow.initializeByCameraUploadMutation.isPending;
 
-  const handleResetUploadState = useCallback(() => {
-    uploadFlow.resetUploadFlow();
-  }, [uploadFlow]);
-
   const photoSelection = usePhotoSelection({
     open,
     topicOrderIndexes,
     expectedPhotoCount,
-    ruleConfigs,
-    marathonStartDate,
-    marathonEndDate,
+    ruleConfigs: marathon.ruleConfigs,
+    marathonStartDate: marathon.startDate ?? null,
+    marathonEndDate: marathon.endDate ?? null,
     isUploadBusy,
     uploadComplete: uploadFlow.uploadComplete,
     canSelectFiles,
     onClearFormFilesError: () => setFilesError(null),
-    onResetUploadState: handleResetUploadState,
+    onResetUploadState: () => uploadFlow.resetUploadFlow(),
   });
 
-  const { selectedPhotos } = photoSelection;
 
   const isBusy =
     photoSelection.isProcessingFiles ||
@@ -240,24 +180,23 @@ export function AdminParticipantUploadDialog({
     uploadFlow.initializeByCameraUploadMutation.isPending;
 
   const isMaxImagesReached =
-    selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0;
+    photoSelection.selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0;
   const isDropzoneDisabled =
     !canSelectFiles || isBusy || uploadFlow.uploadComplete || isMaxImagesReached;
 
-  const dropzoneVariant = useMemo(() => {
-    if (!canSelectFiles) return "disabled" as const;
-    if (isMaxImagesReached) return "complete" as const;
-    if (uploadFlow.uploadComplete) return "success" as const;
-    if (isBusy) return "processing" as const;
-    return "ready" as const;
-  }, [canSelectFiles, isMaxImagesReached, uploadFlow.uploadComplete, isBusy]);
+  const dropzoneVariant = getDropzoneVariant({
+    canSelectFiles,
+    isMaxImagesReached,
+    uploadComplete: uploadFlow.uploadComplete,
+    isBusy,
+  });
 
   useEffect(() => {
     submitLogicRef.current = async (formValue) => {
       setFilesError(null);
       const filesValidationError = validateFiles({
         expectedPhotoCount,
-        selectedPhotosCount: selectedPhotos.length,
+        selectedPhotosCount: photoSelection.selectedPhotos.length,
         validationResults: photoSelection.validationResults,
         validationRunError: photoSelection.validationRunError,
       });
@@ -275,7 +214,7 @@ export function AdminParticipantUploadDialog({
           setShowOverwriteDialog(true);
           return;
         }
-        await uploadFlow.runUpload(formValue.reference, selectedPhotos);
+        await uploadFlow.runUpload(formValue.reference, photoSelection.selectedPhotos);
       } catch (error) {
         const message =
           error instanceof Error
@@ -287,7 +226,7 @@ export function AdminParticipantUploadDialog({
   }, [
     domain,
     expectedPhotoCount,
-    selectedPhotos,
+    photoSelection.selectedPhotos,
     photoSelection.validationResults,
     photoSelection.validationRunError,
     checkParticipantExistsMutation,
@@ -295,7 +234,7 @@ export function AdminParticipantUploadDialog({
     validateFiles,
   ]);
 
-  const resetDialogState = useCallback(() => {
+  const resetDialogState = () => {
     resetForm();
     setFilesError(null);
     photoSelection.resetPhotoSelection();
@@ -303,17 +242,14 @@ export function AdminParticipantUploadDialog({
     setPendingReference(null);
     setShowOverwriteDialog(false);
     signatureRef.current = null;
-  }, [resetForm, photoSelection, uploadFlow]);
+  }
 
-  const handleDialogOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      if (!nextOpen) {
-        resetDialogState();
-      }
-      onOpenChange(nextOpen);
-    },
-    [onOpenChange, resetDialogState],
-  );
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      resetDialogState();
+    }
+    onOpenChange(nextOpen);
+  }
 
   useEffect(() => {
     if (!open) {
@@ -327,8 +263,8 @@ export function AdminParticipantUploadDialog({
       return;
     }
 
-    if (signatureRef.current !== signature && selectedPhotos.length > 0) {
-      revokePhotoPreviewUrls(selectedPhotos);
+    if (signatureRef.current !== signature && photoSelection.selectedPhotos.length > 0) {
+      revokePhotoPreviewUrls(photoSelection.selectedPhotos);
       photoSelection.setSelectedPhotos([]);
       uploadFlow.resetUploadFlow();
       toast.message(
@@ -341,40 +277,36 @@ export function AdminParticipantUploadDialog({
     open,
     expectedPhotoCount,
     topicOrderIndexes,
-    selectedPhotos,
     photoSelection,
     uploadFlow,
   ]);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = () => {
     if (isBusy || uploadFlow.uploadComplete) {
       return;
     }
     void form.handleSubmit();
-  }, [isBusy, uploadFlow.uploadComplete, form]);
+  }
 
-  const handleConfirmOverwrite = useCallback(async () => {
+  const handleConfirmOverwrite = async () => {
     if (!pendingReference) {
       return;
     }
 
     setShowOverwriteDialog(false);
-    await uploadFlow.runUpload(pendingReference, selectedPhotos);
+    await uploadFlow.runUpload(pendingReference, photoSelection.selectedPhotos);
     setPendingReference(null);
-  }, [pendingReference, uploadFlow, selectedPhotos]);
+  }
 
-  const onDropAccepted = useCallback(
-    (files: File[]) => {
-      void photoSelection.handleFileSelect(files);
-    },
-    [photoSelection],
-  );
+  const onDropAccepted = (files: File[]) => {
+    void photoSelection.handleFileSelect(files);
+  }
 
-  const onDropRejected = useCallback(() => {
+  const onDropRejected = () => {
     toast.error(
       "Some files were rejected. Please use supported image formats.",
     );
-  }, []);
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: DROPZONE_ACCEPT,
@@ -384,7 +316,7 @@ export function AdminParticipantUploadDialog({
     onDropRejected,
   });
 
-  const handleOpenParticipant = useCallback(() => {
+  const handleOpenParticipant = () => {
     if (!uploadFlow.submittedReference) {
       return;
     }
@@ -396,7 +328,7 @@ export function AdminParticipantUploadDialog({
 
     handleDialogOpenChange(false);
     router.push(targetHref);
-  }, [domain, handleDialogOpenChange, router, uploadFlow.submittedReference]);
+  }
 
   return (
     <>
@@ -414,7 +346,7 @@ export function AdminParticipantUploadDialog({
                 <DialogDescription className="mt-1 text-sm text-[#66665f]">
                   Create participant details and upload{" "}
                   {pluralizePhotos(expectedPhotoCount || 0)}
-                  {marathonMode === "by-camera"
+                  {marathon.mode === "by-camera"
                     ? " for the active topic"
                     : " with class mapping"}
                   .
@@ -424,7 +356,7 @@ export function AdminParticipantUploadDialog({
                 variant="outline"
                 className="border-[#d8d8cf] bg-white text-[#5f5f58]"
               >
-                {marathonMode === "by-camera" ? "By Camera" : "Marathon"}
+                {marathon.mode === "by-camera" ? "By Camera" : "Marathon"}
               </Badge>
             </div>
           </DialogHeader>
@@ -434,13 +366,13 @@ export function AdminParticipantUploadDialog({
               <div className="space-y-6">
                 <ParticipantDetailsForm
                   form={form}
-                  marathonMode={marathonMode}
+                  marathonMode={marathon.mode}
                 />
                 <UploadMappingSection
                   form={form}
-                  marathonMode={marathonMode}
-                  competitionClasses={competitionClasses}
-                  deviceGroups={deviceGroups}
+                  marathonMode={marathon.mode}
+                  competitionClasses={marathon.competitionClasses}
+                  deviceGroups={marathon.deviceGroups}
                   selectedTopics={selectedTopics}
                   isBusy={isBusy}
                 />
@@ -450,48 +382,29 @@ export function AdminParticipantUploadDialog({
             <div className="min-h-0 overflow-y-auto border-l border-[#e2e2d8] bg-[#fcfcf8] px-6 py-6">
               <div className="space-y-5">
                 <ImageDropzoneSection
-                  getRootProps={getRootProps}
-                  getInputProps={getInputProps}
-                  isDragActive={isDragActive}
-                  isDropzoneDisabled={isDropzoneDisabled}
-                  variant={dropzoneVariant}
-                  isProcessingFiles={photoSelection.isProcessingFiles}
-                  expectedPhotoCount={expectedPhotoCount}
-                  selectedPhotosCount={selectedPhotos.length}
-                  isMaxImagesReached={isMaxImagesReached}
-                  dropzoneDisabledReason={dropzoneDisabledReason}
-                  formErrorsFiles={filesError}
+                  dropzoneProps={{ getRootProps, getInputProps, isDragActive }}
+                  dropzoneState={{
+                    isDropzoneDisabled: isDropzoneDisabled,
+                    variant: dropzoneVariant,
+                    isProcessingFiles: photoSelection.isProcessingFiles,
+                    expectedPhotoCount,
+                    selectedPhotosCount: photoSelection.selectedPhotos.length,
+                    isMaxImagesReached,
+                    dropzoneDisabledReason,
+                    formErrorsFiles: filesError ?? undefined,
+                  }}
                 />
 
                 <SelectedImagesSection
-                  selectedPhotos={selectedPhotos}
+                  photoSelection={photoSelection}
+                  uploadFlow={{ uploadComplete: uploadFlow.uploadComplete }}
                   expectedPhotoCount={expectedPhotoCount}
-                  photoValidationMap={photoSelection.photoValidationMap}
-                  generalValidationResults={
-                    photoSelection.generalValidationResults
-                  }
-                  blockingValidationErrors={
-                    photoSelection.blockingValidationErrors
-                  }
-                  warningValidationResults={
-                    photoSelection.warningValidationResults
-                  }
-                  validationRunError={photoSelection.validationRunError}
                   isBusy={isBusy}
-                  uploadComplete={uploadFlow.uploadComplete}
-                  onRemovePhoto={photoSelection.handleRemovePhoto}
                 />
 
                 <UploadStatusSection
-                  uploadFiles={uploadFlow.uploadFiles}
-                  uploadProgress={uploadFlow.uploadProgress}
-                  uploadErrorMessage={uploadFlow.uploadErrorMessage}
-                  canRetryFailedUploads={uploadFlow.canRetryFailedUploads}
-                  uploadComplete={uploadFlow.uploadComplete}
-                  submittedReference={uploadFlow.submittedReference}
-                  isUploadingFiles={uploadFlow.isUploadingFiles}
+                  uploadFlow={uploadFlow}
                   isBusy={isBusy}
-                  onRetryFailed={uploadFlow.handleRetryFailed}
                 />
               </div>
             </div>

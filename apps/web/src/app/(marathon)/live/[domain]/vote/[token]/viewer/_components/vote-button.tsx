@@ -16,6 +16,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PrimaryButton } from "@/components/ui/primary-button";
 
+function getVoteButtonLabel({
+  isSelected,
+  hasVoted,
+}: {
+  isSelected: boolean
+  hasVoted: boolean
+}) {
+  if (isSelected) return "Your Vote"
+  if (hasVoted) return "Already voted"
+  return "Cast your vote!"
+}
+
 interface VoteButtonProps {
   isSelected: boolean;
   isEnabled: boolean;
@@ -52,7 +64,7 @@ export function VoteButton({
               isSelected && "fill-current",
             )}
           />
-          {isSelected ? "Your Vote" : hasVoted ? "Already voted" : "Cast your vote!"}
+          {getVoteButtonLabel({ isSelected, hasVoted })}
         </PrimaryButton>
       </AlertDialogTrigger>
       <AlertDialogContent>

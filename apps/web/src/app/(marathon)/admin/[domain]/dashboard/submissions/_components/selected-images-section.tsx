@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,27 +10,33 @@ import {
 } from "@/components/ui/collapsible";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
 import type { ValidationResult } from "@blikka/validation";
-import type { AdminSelectedPhoto } from "../../_lib/admin-upload/types";
-import { pluralizePhotos } from "../../_hooks/use-participant-upload-form";
+import type { AdminSelectedPhoto } from "../_lib/types";
+import { cn } from "@/lib/utils";
 import {
+  createValidationResultKey,
   formatRuleKey,
   getValidationRowClass,
-  createValidationResultKey,
-} from "./upload-utils";
-import { Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+} from "../_lib/upload-utils";
 
-interface SelectedImagesSectionProps {
+export interface SelectedImagesSectionPhotoSelection {
   selectedPhotos: AdminSelectedPhoto[];
-  expectedPhotoCount: number;
   photoValidationMap: Map<string, ValidationResult[]>;
   generalValidationResults: ValidationResult[];
   blockingValidationErrors: ValidationResult[];
   warningValidationResults: ValidationResult[];
   validationRunError: string | null;
-  isBusy: boolean;
+  handleRemovePhoto: (photoId: string) => void;
+}
+
+interface SelectedImagesSectionUploadFlow {
   uploadComplete: boolean;
-  onRemovePhoto: (photoId: string) => void;
+}
+
+interface SelectedImagesSectionProps {
+  photoSelection: SelectedImagesSectionPhotoSelection;
+  uploadFlow: SelectedImagesSectionUploadFlow;
+  expectedPhotoCount: number;
+  isBusy: boolean;
 }
 
 const EMPTY_STATE = (
@@ -40,17 +46,21 @@ const EMPTY_STATE = (
 );
 
 export function SelectedImagesSection({
-  selectedPhotos,
+  photoSelection,
+  uploadFlow,
   expectedPhotoCount,
-  photoValidationMap,
-  generalValidationResults,
-  blockingValidationErrors,
-  warningValidationResults,
-  validationRunError,
   isBusy,
-  uploadComplete,
-  onRemovePhoto,
 }: SelectedImagesSectionProps) {
+  const {
+    selectedPhotos,
+    photoValidationMap,
+    generalValidationResults,
+    blockingValidationErrors,
+    warningValidationResults,
+    validationRunError,
+    handleRemovePhoto,
+  } = photoSelection;
+  const { uploadComplete } = uploadFlow;
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
@@ -154,7 +164,7 @@ export function SelectedImagesSection({
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-[#77776f] hover:text-rose-600"
-                        onClick={() => onRemovePhoto(photo.id)}
+                        onClick={() => handleRemovePhoto(photo.id)}
                         disabled={isBusy || uploadComplete}
                       >
                         <Trash2 className="h-4 w-4" />
