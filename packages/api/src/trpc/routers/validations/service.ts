@@ -1,4 +1,4 @@
-import { Config, Effect, Option, Schema } from "effect"
+import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { type RuleConfig, type Submission, Database } from "@blikka/db"
 import { S3Service } from "@blikka/s3"
 import {
@@ -10,12 +10,10 @@ import {
 } from "@blikka/validation"
 import { ValidationsApiError } from "./schemas"
 
-export class ValidationsApiService extends Effect.Service<ValidationsApiService>()(
+export class ValidationsApiService extends ServiceMap.Service<ValidationsApiService>()(
   "@blikka/api/validations-api-service",
   {
-    accessors: true,
-    dependencies: [Database.Default, S3Service.Default, ValidationEngine.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
       const s3 = yield* S3Service
       const validator = yield* ValidationEngine
@@ -56,20 +54,20 @@ export class ValidationsApiService extends Effect.Service<ValidationsApiService>
               if (!submission.size || !submission.mimeType) {
                 const head = yield* s3
                   .getHead(submissionsBucketName, submission.key)
-                  .pipe(Effect.catchAll(() => Effect.succeed(null)))
+                  .pipe(Effect.catch(() => Effect.succeed(null)))
                 if (head) {
                   fileSize = head.ContentLength ?? fileSize
                   mimeType = head.ContentType ?? mimeType
                 }
               }
 
-              const validationInput = ValidationInputSchema.make({
+              const validationInput = {
                 exif: (submission.exif as Record<string, unknown>) ?? {},
                 fileName: submission.key,
                 fileSize,
                 mimeType,
                 orderIndex: submission.topic.orderIndex,
-              })
+              }
               return validationInput
             }),
           { concurrency: "unbounded" }
@@ -79,9 +77,9 @@ export class ValidationsApiService extends Effect.Service<ValidationsApiService>
           rules,
           (rule: RuleConfig) =>
             Effect.gen(function* () {
-              const validationRuleKey = yield* Schema.decodeUnknown(RuleKeySchema)(rule.ruleKey)
+              const validationRuleKey = yield* Schema.decodeUnknownEffect(RuleKeySchema)(rule.ruleKey)
               const ruleKeyStr = validationRuleKey as string
-              const parsed = yield* Schema.decodeUnknown(ValidationRuleSchema(validationRuleKey))({
+              const parsed = yield* Schema.decodeUnknownEffect(ValidationRuleSchema(validationRuleKey))({
                 ruleKey: validationRuleKey,
                 enabled: rule.enabled,
                 severity: rule.severity,
@@ -189,4 +187,11 @@ export class ValidationsApiService extends Effect.Service<ValidationsApiService>
     }),
   }
 ) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      Database.layer,
+      S3Service.layer,
+      ValidationEngine.layer,
+    ))
+  )
 }

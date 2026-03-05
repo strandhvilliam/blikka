@@ -13,10 +13,12 @@ export const validationsRouter = createTRPCRouter({
   runValidations: domainProcedure.input(RunValidationsSchema).mutation(
     trpcEffect(
       Effect.fn("ValidationsRouter.runValidations")(function* ({ input }) {
-        return yield* ValidationsApiService.runValidations({
-          domain: input.domain,
-          reference: input.reference,
-        })
+        return yield* ValidationsApiService.use((s) =>
+          s.runValidations({
+            domain: input.domain,
+            reference: input.reference,
+          })
+        )
         })
       )
     ),
@@ -27,10 +29,12 @@ export const validationsRouter = createTRPCRouter({
         Effect.fn("ValidationsRouter.getParticipantVerificationByReference")(function* ({
           input,
         }) {
-          return yield* ValidationsApiService.getParticipantVerificationByReference({
-            domain: input.domain,
-            reference: input.reference,
-          })
+          return yield* ValidationsApiService.use((s) =>
+            s.getParticipantVerificationByReference({
+              domain: input.domain,
+              reference: input.reference,
+            })
+          )
         })
       )
     ),
@@ -39,23 +43,27 @@ export const validationsRouter = createTRPCRouter({
     .mutation(
       trpcEffect(
         Effect.fn("ValidationsRouter.createParticipantVerification")(function* ({ input, ctx }) {
-          return yield* ValidationsApiService.createParticipantVerification({
-            participantId: input.data.participantId,
-            staffId: ctx.session.user.id,
-            notes: input.data.notes,
-          })
+          return yield* ValidationsApiService.use((s) =>
+            s.createParticipantVerification({
+              participantId: input.data.participantId,
+              staffId: ctx.session.user.id,
+              notes: input.data.notes,
+            })
+          )
         })
       )
     ),
   updateValidationResult: domainProcedure.input(UpdateValidationResultSchema).mutation(
     trpcEffect(
       Effect.fn("ValidationsRouter.updateValidationResult")(function* ({ input }) {
-        return yield* ValidationsApiService.updateValidationResult({
-          id: input.id,
-          data: {
-            overruled: input.data.overruled,
-          },
-        })
+        return yield* ValidationsApiService.use((s) =>
+          s.updateValidationResult({
+            id: input.id,
+            data: {
+              overruled: input.data.overruled,
+            },
+          })
+        )
       })
     )
   ),
