@@ -17,7 +17,7 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
         domain,
       }) {
         const marathon = yield* db.marathonsQueries.getMarathonByDomainWithOptions({ domain })
-        return yield* Option.match(marathon, {
+        const result = yield* Option.match(marathon, {
           onSome: (m) => Effect.succeed(m),
           onNone: () =>
             Effect.fail(
@@ -26,6 +26,19 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
               })
             ),
         })
+
+        if (result.mode === 'by-camera' && result.competitionClasses.length === 0) {
+          yield* db.competitionClassesQueries.createCompetitionClass({
+            data: {
+              name: "Default",
+              numberOfPhotos: 1,
+              marathonId: result.id,
+              description: "Default competition class for by-camera competitions",
+            },
+          })
+        }
+
+        return result
       })
 
       const getUserMarathons = Effect.fn("MarathonApiService.getUserMarathons")(function* ({
@@ -115,9 +128,7 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
         domain: string
         currentKey?: string | null
       }) {
-        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME").pipe(
-          Config.withDefault("marathon-settings-bucket")
-        )
+        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
 
         const version = currentKey ? currentKey.split("?")[1]?.split("=")[1] : undefined
         const newVersion = version ? parseInt(version) + 1 : 1
@@ -135,9 +146,7 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
       }: {
         domain: string
       }) {
-        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME").pipe(
-          Config.withDefault("marathon-settings-bucket")
-        )
+        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
 
         const key = `${domain}/terms-and-conditions.txt`
         const url = yield* s3.getPresignedUrl(bucketName, key, "PUT", {
@@ -153,9 +162,7 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
       }: {
         domain: string
       }) {
-        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME").pipe(
-          Config.withDefault("marathon-settings-bucket")
-        )
+        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
 
         const key = `${domain}/terms-and-conditions.txt`
         const fileDataEither = yield* Effect.result(s3.getFile(bucketName, key))
