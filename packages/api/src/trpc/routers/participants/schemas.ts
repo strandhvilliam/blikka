@@ -1,63 +1,64 @@
 import { Schema } from "effect";
 
-export class ParticipantApiError extends Schema.TaggedError<ParticipantApiError>()(
+export class ParticipantApiError extends Schema.TaggedErrorClass<ParticipantApiError>()(
   "@blikka/api/ParticipantApiError",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
-) {}
+) {
+}
 
 export const GetPublicParticipantByReferenceInputSchema =
-  Schema.standardSchemaV1(
+  Schema.toStandardSchemaV1(
     Schema.Struct({ reference: Schema.String, domain: Schema.String }),
   );
 
-export const GetByDomainInfiniteInputSchema = Schema.standardSchemaV1(
+export const GetByDomainInfiniteInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     cursor: Schema.NullishOr(Schema.String),
     limit: Schema.NullishOr(
-      Schema.Number.pipe(Schema.greaterThan(0), Schema.lessThanOrEqualTo(100)),
+      Schema.Number.check(Schema.isGreaterThan(0), Schema.isLessThanOrEqualTo(100)),
     ),
     search: Schema.NullishOr(Schema.String),
     sortOrder: Schema.NullishOr(
-      Schema.Union(Schema.Literal("asc"), Schema.Literal("desc")),
+      Schema.Literals(["asc", "desc"]),
     ),
     competitionClassId: Schema.NullishOr(
-      Schema.Union(Schema.Number, Schema.Array(Schema.Number)),
+      Schema.Union([Schema.Number, Schema.Array(Schema.Number)]),
     ),
     deviceGroupId: Schema.NullishOr(
-      Schema.Union(Schema.Number, Schema.Array(Schema.Number)),
+      Schema.Union([Schema.Number, Schema.Array(Schema.Number)]),
     ),
     topicId: Schema.NullishOr(Schema.Number),
     statusFilter: Schema.NullishOr(
-      Schema.Union(Schema.Literal("completed"), Schema.Literal("verified")),
+      Schema.Literals(["completed", "verified"]),
     ),
     excludeStatuses: Schema.NullishOr(Schema.Array(Schema.String)),
     hasValidationErrors: Schema.NullishOr(Schema.Boolean),
   }),
 );
 
-export const GetByReferenceInputSchema = Schema.standardSchemaV1(
+export const GetByReferenceInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({ reference: Schema.String, domain: Schema.String }),
 );
 
-export const BatchDeleteInputSchema = Schema.standardSchemaV1(
+export const BatchDeleteInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     ids: Schema.Array(Schema.Number),
     domain: Schema.String,
   }),
 );
 
-export const BatchVerifyInputSchema = Schema.standardSchemaV1(
+export const BatchVerifyInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     ids: Schema.Array(Schema.Number),
     domain: Schema.String,
   }),
 );
 
-export const VerifyParticipantInputSchema = Schema.standardSchemaV1(
+export const VerifyParticipantInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     id: Schema.Number,
     domain: Schema.String,

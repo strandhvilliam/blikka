@@ -1,15 +1,13 @@
-import { Effect, Option } from "effect";
+import { Effect, Layer, Option, ServiceMap } from "effect";
 import { Database } from "@blikka/db";
 import { ParticipantApiError, PublicParticipantSchema } from "./schemas";
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption";
 import type { NewParticipant } from "@blikka/db";
 
-export class ParticipantsApiService extends Effect.Service<ParticipantsApiService>()(
+export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiService>()(
   "@blikka/api/ParticipantsApiService",
   {
-    accessors: true,
-    dependencies: [Database.Default, PhoneNumberEncryptionService.layer],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database;
       const phoneEncryption = yield* PhoneNumberEncryptionService;
 
@@ -29,7 +27,7 @@ export class ParticipantsApiService extends Effect.Service<ParticipantsApiServic
           );
         }
 
-        return PublicParticipantSchema.make({
+        return {
           reference: result.value.reference,
           domain: result.value.domain,
           status: result.value.status,
@@ -55,7 +53,7 @@ export class ParticipantsApiService extends Effect.Service<ParticipantsApiServic
             description: result.value.deviceGroup?.description ?? "",
             icon: result.value.deviceGroup?.icon ?? "",
           },
-        });
+        };
       });
 
       const getInfiniteParticipantsByDomain = Effect.fn(
@@ -201,4 +199,11 @@ export class ParticipantsApiService extends Effect.Service<ParticipantsApiServic
       } as const;
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      Database.layer,
+      PhoneNumberEncryptionService.layer,
+    ))
+  )
+}

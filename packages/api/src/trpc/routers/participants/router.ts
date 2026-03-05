@@ -18,11 +18,11 @@ export const participantRouter = createTRPCRouter({
       trpcEffect(
         Effect.fn("ParticipantRouter.getPublicParticipantByReference")(
           function* ({ input }) {
-            return yield* ParticipantsApiService.getPublicParticipantByReference(
-              {
+            return yield* ParticipantsApiService.use((s) =>
+              s.getPublicParticipantByReference({
                 reference: input.reference,
                 domain: input.domain,
-              },
+              })
             );
           },
         ),
@@ -37,7 +37,7 @@ export const participantRouter = createTRPCRouter({
           input,
           ctx,
         }) {
-          return yield* ParticipantsApiService.getInfiniteParticipantsByDomain({
+          return yield* ParticipantsApiService.use((s) => s.getInfiniteParticipantsByDomain({
             domain: input.domain,
             cursor: input.cursor ?? undefined,
             limit: input.limit ?? undefined,
@@ -51,7 +51,7 @@ export const participantRouter = createTRPCRouter({
               ? [...input.excludeStatuses]
               : undefined,
             hasValidationErrors: input.hasValidationErrors ?? undefined,
-          });
+          }));
         }),
       ),
     ),
@@ -59,10 +59,10 @@ export const participantRouter = createTRPCRouter({
   getByReference: domainProcedure.input(GetByReferenceInputSchema).query(
     trpcEffect(
       Effect.fn("ParticipantRouter.getByReference")(function* ({ input, ctx }) {
-        return yield* ParticipantsApiService.getByReference({
+        return yield* ParticipantsApiService.use((s) => s.getByReference({
           reference: input.reference,
           domain: input.domain,
-        });
+        }));
       }),
     ),
   ),
@@ -70,10 +70,10 @@ export const participantRouter = createTRPCRouter({
   delete: domainProcedure.input(GetByReferenceInputSchema).mutation(
     trpcEffect(
       Effect.fn("ParticipantRouter.delete")(function* ({ input, ctx }) {
-        return yield* ParticipantsApiService.deleteByReference({
+        return yield* ParticipantsApiService.use((s) => s.deleteByReference({
           reference: input.reference,
           domain: input.domain,
-        });
+        }));
       }),
     ),
   ),
@@ -81,10 +81,10 @@ export const participantRouter = createTRPCRouter({
   batchDelete: domainProcedure.input(BatchDeleteInputSchema).mutation(
     trpcEffect(
       Effect.fn("ParticipantRouter.batchDelete")(function* ({ input, ctx }) {
-        return yield* ParticipantsApiService.batchDelete({
+        return yield* ParticipantsApiService.use((s) => s.batchDelete({
           ids: input.ids,
           domain: input.domain,
-        });
+        }));
       }),
     ),
   ),
@@ -92,10 +92,10 @@ export const participantRouter = createTRPCRouter({
   batchVerify: domainProcedure.input(BatchVerifyInputSchema).mutation(
     trpcEffect(
       Effect.fn("ParticipantRouter.batchVerify")(function* ({ input, ctx }) {
-        return yield* ParticipantsApiService.batchVerify({
+        return yield* ParticipantsApiService.use((s) => s.batchVerify({
           ids: input.ids,
           domain: input.domain,
-        });
+        }));
       }),
     ),
   ),
@@ -108,10 +108,10 @@ export const participantRouter = createTRPCRouter({
           input,
           ctx,
         }) {
-          return yield* ParticipantsApiService.verifyParticipant({
+          return yield* ParticipantsApiService.use((s) => s.verifyParticipant({
             id: input.id,
             domain: input.domain,
-          });
+          }));
         }),
       ),
     ),
