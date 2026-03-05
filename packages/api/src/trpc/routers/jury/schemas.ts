@@ -1,6 +1,6 @@
 import { Schema } from "effect"
 
-export class JuryApiError extends Schema.TaggedError<JuryApiError>()(
+export class JuryApiError extends Schema.TaggedErrorClass<JuryApiError>()(
   "@blikka/api/jury-api-error",
   {
     message: Schema.String,
@@ -8,23 +8,23 @@ export class JuryApiError extends Schema.TaggedError<JuryApiError>()(
   }
 ) {}
 
-export const GetJuryInvitationsByDomainInputSchema = Schema.standardSchemaV1(
+export const GetJuryInvitationsByDomainInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({ domain: Schema.String })
 )
 
-export const GetJuryInvitationByIdInputSchema = Schema.standardSchemaV1(
+export const GetJuryInvitationByIdInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     id: Schema.Number,
   })
 )
 
-export const CreateJuryInvitationInputSchema = Schema.standardSchemaV1(
+export const CreateJuryInvitationInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     data: Schema.Struct({
       email: Schema.String,
       displayName: Schema.String,
-      inviteType: Schema.Union(Schema.Literal("topic"), Schema.Literal("class")),
+      inviteType: Schema.Union([Schema.Literal("topic"), Schema.Literal("class")]),
       topicId: Schema.optional(Schema.Number),
       competitionClassId: Schema.optional(Schema.Number),
       deviceGroupId: Schema.optional(Schema.Number),
@@ -35,14 +35,14 @@ export const CreateJuryInvitationInputSchema = Schema.standardSchemaV1(
   })
 )
 
-export const UpdateJuryInvitationInputSchema = Schema.standardSchemaV1(
+export const UpdateJuryInvitationInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     id: Schema.Number,
     data: Schema.Struct({
       email: Schema.optional(Schema.String),
       displayName: Schema.optional(Schema.String),
       inviteType: Schema.optional(
-        Schema.Union(Schema.Literal("topic"), Schema.Literal("class"))
+        Schema.Union([Schema.Literal("topic"), Schema.Literal("class")])
       ),
       topicId: Schema.optional(Schema.Number),
       competitionClassId: Schema.optional(Schema.Number),
@@ -55,25 +55,25 @@ export const UpdateJuryInvitationInputSchema = Schema.standardSchemaV1(
   })
 )
 
-export const DeleteJuryInvitationInputSchema = Schema.standardSchemaV1(
+export const DeleteJuryInvitationInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     id: Schema.Number,
   })
 )
 
-const JuryRatingValueSchema = Schema.Number.pipe(
-  Schema.greaterThanOrEqualTo(0),
-  Schema.lessThanOrEqualTo(5)
+const JuryRatingValueSchema = Schema.Number.check(
+  Schema.isGreaterThanOrEqualTo(0),
+  Schema.isLessThanOrEqualTo(5)
 )
 
-export const VerifyJuryTokenSchema = Schema.standardSchemaV1(
+export const VerifyJuryTokenSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
   })
 )
 
-export const GetJurySubmissionsFromTokenSchema = Schema.standardSchemaV1(
+export const GetJurySubmissionsFromTokenSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
@@ -82,14 +82,14 @@ export const GetJurySubmissionsFromTokenSchema = Schema.standardSchemaV1(
   })
 )
 
-export const GetJuryRatingsByInvitationSchema = Schema.standardSchemaV1(
+export const GetJuryRatingsByInvitationSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
   })
 )
 
-export const GetJuryParticipantCountSchema = Schema.standardSchemaV1(
+export const GetJuryParticipantCountSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
@@ -97,7 +97,7 @@ export const GetJuryParticipantCountSchema = Schema.standardSchemaV1(
   })
 )
 
-export const CreateJuryRatingSchema = Schema.standardSchemaV1(
+export const CreateJuryRatingSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
@@ -107,7 +107,7 @@ export const CreateJuryRatingSchema = Schema.standardSchemaV1(
   })
 )
 
-export const UpdateJuryRatingSchema = Schema.standardSchemaV1(
+export const UpdateJuryRatingSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
@@ -118,7 +118,7 @@ export const UpdateJuryRatingSchema = Schema.standardSchemaV1(
   })
 )
 
-export const GetJuryRatingSchema = Schema.standardSchemaV1(
+export const GetJuryRatingSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
@@ -126,7 +126,7 @@ export const GetJuryRatingSchema = Schema.standardSchemaV1(
   })
 )
 
-export const DeleteJuryRatingSchema = Schema.standardSchemaV1(
+export const DeleteJuryRatingSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
@@ -134,14 +134,14 @@ export const DeleteJuryRatingSchema = Schema.standardSchemaV1(
   })
 )
 
-export const UpdateJuryInvitationStatusByTokenSchema = Schema.standardSchemaV1(
+export const UpdateJuryInvitationStatusByTokenSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
-    status: Schema.Union(
+    status: Schema.Union([
       Schema.Literal("pending"),
       Schema.Literal("in_progress"),
       Schema.Literal("completed")
-    ),
+    ]),
   })
 )

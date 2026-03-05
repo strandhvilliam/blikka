@@ -25,7 +25,7 @@ export const juryRouter = createTRPCRouter({
   getJuryInvitationsByDomain: domainProcedure.input(GetJuryInvitationsByDomainInputSchema).query(
     trpcEffect(
       Effect.fn("JuryRouter.getJuryInvitationsByDomain")(function* ({ input }) {
-        return yield* JuryApiService.getJuryInvitationsByDomain({ domain: input.domain })
+        return yield* JuryApiService.use((s) => s.getJuryInvitationsByDomain({ domain: input.domain }))
       })
     )
   ),
@@ -33,7 +33,7 @@ export const juryRouter = createTRPCRouter({
   getJuryInvitationById: domainProcedure.input(GetJuryInvitationByIdInputSchema).query(
     trpcEffect(
       Effect.fn("JuryRouter.getJuryInvitationById")(function* ({ input }) {
-        return yield* JuryApiService.getJuryInvitationById({ id: input.id })
+        return yield* JuryApiService.use((s) => s.getJuryInvitationById({ id: input.id }))
       })
     )
   ),
@@ -41,10 +41,10 @@ export const juryRouter = createTRPCRouter({
   createJuryInvitation: domainProcedure.input(CreateJuryInvitationInputSchema).mutation(
     trpcEffect(
       Effect.fn("JuryRouter.createJuryInvitation")(function* ({ input }) {
-        return yield* JuryApiService.createJuryInvitation({
+        return yield* JuryApiService.use((s) => s.createJuryInvitation({
           domain: input.domain,
           data: input.data,
-        })
+        }))
       })
     )
   ),
@@ -52,10 +52,10 @@ export const juryRouter = createTRPCRouter({
   updateJuryInvitation: domainProcedure.input(UpdateJuryInvitationInputSchema).mutation(
     trpcEffect(
       Effect.fn("JuryRouter.updateJuryInvitation")(function* ({ input }) {
-        return yield* JuryApiService.updateJuryInvitation({
+        return yield* JuryApiService.use((s) => s.updateJuryInvitation({
           id: input.id,
           data: input.data,
-        })
+        }))
       })
     )
   ),
@@ -63,7 +63,7 @@ export const juryRouter = createTRPCRouter({
   deleteJuryInvitation: domainProcedure.input(DeleteJuryInvitationInputSchema).mutation(
     trpcEffect(
       Effect.fn("JuryRouter.deleteJuryInvitation")(function* ({ input }) {
-        return yield* JuryApiService.deleteJuryInvitation({ id: input.id })
+        return yield* JuryApiService.use((s) => s.deleteJuryInvitation({ id: input.id }))
       })
     )
   ),
@@ -71,7 +71,7 @@ export const juryRouter = createTRPCRouter({
   verifyTokenAndGetInitialData: publicProcedure.input(VerifyJuryTokenSchema).query(
     trpcEffect(
       Effect.fn("JuryRouter.verifyTokenAndGetInitialData")(function* ({ input }) {
-        return yield* JuryApiService.verifyTokenAndGetInitialData(input)
+        return yield* JuryApiService.use((s) => s.verifyTokenAndGetInitialData(input))
       })
     )
   ),
@@ -79,7 +79,7 @@ export const juryRouter = createTRPCRouter({
   getJurySubmissionsFromToken: publicProcedure.input(GetJurySubmissionsFromTokenSchema).query(
     trpcEffect(
       Effect.fn("JuryRouter.getJurySubmissionsFromToken")(function* ({ input }) {
-        return yield* JuryApiService.getJurySubmissionsFromToken(input)
+        return yield* JuryApiService.use((s) => s.getJurySubmissionsFromToken(input))
       })
     )
   ),
@@ -87,7 +87,7 @@ export const juryRouter = createTRPCRouter({
   getJuryRatingsByInvitation: publicProcedure.input(GetJuryRatingsByInvitationSchema).query(
     trpcEffect(
       Effect.fn("JuryRouter.getJuryRatingsByInvitation")(function* ({ input }) {
-        return yield* JuryApiService.getJuryRatingsByInvitation(input)
+        return yield* JuryApiService.use((s) => s.getJuryRatingsByInvitation(input))
       })
     )
   ),
@@ -95,7 +95,7 @@ export const juryRouter = createTRPCRouter({
   getJuryParticipantCount: publicProcedure.input(GetJuryParticipantCountSchema).query(
     trpcEffect(
       Effect.fn("JuryRouter.getJuryParticipantCount")(function* ({ input }) {
-        return yield* JuryApiService.getJuryParticipantCount(input)
+        return yield* JuryApiService.use((s) => s.getJuryParticipantCount(input))
       })
     )
   ),
@@ -103,7 +103,7 @@ export const juryRouter = createTRPCRouter({
   createRating: publicProcedure.input(CreateJuryRatingSchema).mutation(
     trpcEffect(
       Effect.fn("JuryRouter.createRating")(function* ({ input }) {
-        return yield* JuryApiService.createRating(input)
+        return yield* JuryApiService.use((s) => s.createRating(input))
       })
     )
   ),
@@ -111,7 +111,7 @@ export const juryRouter = createTRPCRouter({
   updateRating: publicProcedure.input(UpdateJuryRatingSchema).mutation(
     trpcEffect(
       Effect.fn("JuryRouter.updateRating")(function* ({ input }) {
-        return yield* JuryApiService.updateRating(input)
+        return yield* JuryApiService.use((s) => s.updateRating(input))
       })
     )
   ),
@@ -119,7 +119,7 @@ export const juryRouter = createTRPCRouter({
   getRating: publicProcedure.input(GetJuryRatingSchema).query(
     trpcEffect(
       Effect.fn("JuryRouter.getRating")(function* ({ input }) {
-        return yield* JuryApiService.getRating(input)
+        return yield* JuryApiService.use((s) => s.getRating(input))
       })
     )
   ),
@@ -127,7 +127,7 @@ export const juryRouter = createTRPCRouter({
   deleteRating: publicProcedure.input(DeleteJuryRatingSchema).mutation(
     trpcEffect(
       Effect.fn("JuryRouter.deleteRating")(function* ({ input }) {
-        return yield* JuryApiService.deleteRating(input)
+        return yield* JuryApiService.use((s) => s.deleteRating(input))
       })
     )
   ),
@@ -137,7 +137,7 @@ export const juryRouter = createTRPCRouter({
     .mutation(
       trpcEffect(
         Effect.fn("JuryRouter.updateInvitationStatusByToken")(function* ({ input }) {
-          return yield* JuryApiService.updateInvitationStatusByToken(input)
+          return yield* JuryApiService.use((s) => s.updateInvitationStatusByToken(input))
         })
       )
     ),

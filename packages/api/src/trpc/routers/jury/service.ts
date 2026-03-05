@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Config, Effect, Option, Schema } from "effect"
+import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { Database, type NewJuryInvitation } from "@blikka/db"
 import { TRPCError } from "@trpc/server"
 import { SignJWT, jwtVerify } from "jose"
@@ -24,27 +24,17 @@ function mapTokenError(message: string, code: TRPCError["code"]) {
   })
 }
 
-export class JuryApiService extends Effect.Service<JuryApiService>()(
+export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
   "@blikka/api/JuryApiService",
   {
-    accessors: true,
-    dependencies: [Database.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
 
       const _generateJuryToken = Effect.fn("JuryApiService._generateJuryToken")(function* (
         domain: string,
         invitationId: number
       ) {
-        const secretEnv = yield* Config.string("JURY_JWT_SECRET").pipe(
-          Effect.mapError(
-            (error) =>
-              new JuryApiError({
-                message: `JURY_JWT_SECRET is not set: ${error instanceof Error ? error.message : String(error)}`,
-                cause: error,
-              })
-          )
-        )
+        const secretEnv = yield* Config.string("JURY_JWT_SECRET")
         const secret = new TextEncoder().encode(secretEnv)
         const iat = Math.floor(Date.now() / 1000)
         const exp = iat + 60 * 60 * 24 * MAX_EXPIRY_DAYS
@@ -78,22 +68,14 @@ export class JuryApiService extends Effect.Service<JuryApiService>()(
         token: string
         domain: string
       }) {
-        const secretEnv = yield* Config.string("JURY_JWT_SECRET").pipe(
-          Effect.mapError(
-            (error) =>
-              new JuryApiError({
-                message: `JURY_JWT_SECRET is not set: ${error instanceof Error ? error.message : String(error)}`,
-                cause: error,
-              })
-          )
-        )
+        const secretEnv = yield* Config.string("JURY_JWT_SECRET")
 
         const verified = yield* Effect.tryPromise({
           try: () => jwtVerify(token, new TextEncoder().encode(secretEnv)),
           catch: () => mapTokenError("Invalid token", "NOT_FOUND"),
         })
 
-        const payload = yield* Schema.decodeUnknown(JuryTokenPayloadSchema)(verified.payload).pipe(
+        const payload = yield* Schema.decodeUnknownEffect(JuryTokenPayloadSchema)(verified.payload).pipe(
           Effect.mapError(() => mapTokenError("Invalid token", "NOT_FOUND"))
         )
 
@@ -600,4 +582,8 @@ export class JuryApiService extends Effect.Service<JuryApiService>()(
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Database.layer)
+  )
+}
