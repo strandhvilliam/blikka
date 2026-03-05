@@ -1,13 +1,11 @@
-import { Effect, Option } from "effect"
-import { type CompetitionClass, Database, type NewCompetitionClass } from "@blikka/db"
+import { Effect, Layer, Option, ServiceMap } from "effect"
+import { type NewCompetitionClass, Database } from "@blikka/db"
 import { CompetitionClassApiError } from "./schemas"
 
-export class CompetitionClassesApiService extends Effect.Service<CompetitionClassesApiService>()(
-  "@blikka/api/competition-classes-api-service",
+export class CompetitionClassesApiService extends ServiceMap.Service<CompetitionClassesApiService>()(
+  "@blikka/api/CompetitionClassesApiService",
   {
-    accessors: true,
-    dependencies: [Database.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
 
       const createCompetitionClass = Effect.fn(
@@ -118,4 +116,8 @@ export class CompetitionClassesApiService extends Effect.Service<CompetitionClas
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Database.layer)
+  )
+}

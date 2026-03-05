@@ -1,14 +1,15 @@
 import { Schema } from "effect"
 
-export class CompetitionClassApiError extends Schema.TaggedError<CompetitionClassApiError>()(
+export class CompetitionClassApiError extends Schema.TaggedErrorClass<CompetitionClassApiError>()(
   "@blikka/api/competition-class-api-error",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   }
-) {}
+) {
+}
 
-export const CreateCompetitionClassInputSchema = Schema.standardSchemaV1(
+export const CreateCompetitionClassInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     data: Schema.Struct({
@@ -20,7 +21,7 @@ export const CreateCompetitionClassInputSchema = Schema.standardSchemaV1(
   })
 )
 
-export const UpdateCompetitionClassInputSchema = Schema.standardSchemaV1(
+export const UpdateCompetitionClassInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     id: Schema.Number,
@@ -33,7 +34,7 @@ export const UpdateCompetitionClassInputSchema = Schema.standardSchemaV1(
   })
 )
 
-export const DeleteCompetitionClassInputSchema = Schema.standardSchemaV1(
+export const DeleteCompetitionClassInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     id: Schema.Number,
