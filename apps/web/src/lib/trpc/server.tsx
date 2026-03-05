@@ -11,7 +11,7 @@ import { Data, Effect } from "effect"
 import { appRouter, type AppRouter } from "@blikka/api/trpc/routers/_app"
 import { createQueryClient } from "./query-client"
 import { createTRPCContext } from "@blikka/api/trpc"
-import { serverRuntime } from "../runtime"
+import { serverRuntime } from "../server-runtime"
 
 export class TRPCServerError extends Data.TaggedError("TRPCCServerError")<{
   message: string
@@ -41,7 +41,6 @@ export function HydrateClient(props: { children: React.ReactNode }) {
   return <HydrationBoundary state={dehydrate(queryClient)}>{props.children}</HydrationBoundary>
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(queryOptions: T) {
   const queryClient = getQueryClient()
   if (queryOptions.queryKey[1]?.type === "infinite") {

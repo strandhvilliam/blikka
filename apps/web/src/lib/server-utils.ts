@@ -1,3 +1,4 @@
+import "server-only"
 import { DEFAULT_LOCALE } from "@/config"
 import { Schema, Effect } from "effect"
 import { getLocale as getLocaleServer } from "next-intl/server"

@@ -1,8 +1,7 @@
 import "server-only"
 import { Effect, Schema } from "effect"
-import type { RuntimeDependencies } from "./runtime"
+import { type RuntimeDependencies, serverRuntime } from "./server-runtime"
 import { connection } from "next/server"
-import { serverRuntime } from "./runtime"
 import { Exit, Cause } from "effect"
 import { unstable_rethrow } from "next/navigation"
 import { Suspense, use } from "react"
@@ -13,29 +12,29 @@ type NextBaseSearchParams = Promise<Record<string, string | Array<string> | unde
 
 export type ActionResponse<T> = T extends void
   ? {
-      data: undefined
-      error: string | null
-    }
+    data: undefined
+    error: string | null
+  }
   : {
-      data: T
-      error: string | null
-    }
+    data: T
+    error: string | null
+  }
 
 export const decodeParams =
   <S extends Schema.Top>(schema: S) =>
-  <P extends NextBaseParams>(p: P) =>
-    Effect.gen(function* () {
-      const params = yield* Effect.promise(() => p)
-      return yield* Schema.decodeUnknownEffect(schema)(params)
-    })
+    <P extends NextBaseParams>(p: P) =>
+      Effect.gen(function* () {
+        const params = yield* Effect.promise(() => p)
+        return yield* Schema.decodeUnknownEffect(schema)(params)
+      })
 
 export const decodeSearchParams =
   <S extends Schema.Top>(schema: S) =>
-  <P extends NextBaseSearchParams>(search: P) =>
-    Effect.gen(function* () {
-      const searchParams = yield* Effect.promise(() => search)
-      return yield* Schema.decodeUnknownEffect(schema)(searchParams)
-    })
+    <P extends NextBaseSearchParams>(search: P) =>
+      Effect.gen(function* () {
+        const searchParams = yield* Effect.promise(() => search)
+        return yield* Schema.decodeUnknownEffect(schema)(searchParams)
+      })
 
 export function toActionResponse<T>(
   effect: Effect.Effect<T, unknown, RuntimeDependencies>
