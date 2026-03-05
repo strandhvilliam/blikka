@@ -1,17 +1,15 @@
 import { ContactSheetBuilder } from "@blikka/image-manipulation"
-import { Config, Effect, Option } from "effect"
+import { Config, Effect, Layer, Option, ServiceMap } from "effect"
 import { type CompetitionClass, Database } from "@blikka/db"
 import { S3Service } from "@blikka/s3"
 import { ContactSheetApiError } from "./schemas"
 
 const VALID_PHOTO_COUNTS = [8, 24]
 
-export class ContactSheetsApiService extends Effect.Service<ContactSheetsApiService>()(
+export class ContactSheetsApiService extends ServiceMap.Service<ContactSheetsApiService>()(
   "@blikka/api/contact-sheets-api-service",
   {
-    accessors: true,
-    dependencies: [Database.Default, S3Service.Default, ContactSheetBuilder.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
       const s3 = yield* S3Service
       const contactSheetBuilder = yield* ContactSheetBuilder
@@ -136,4 +134,12 @@ export class ContactSheetsApiService extends Effect.Service<ContactSheetsApiServ
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      Database.layer,
+      S3Service.layer,
+      ContactSheetBuilder.layer,
+    ))
+  )
+}

@@ -1,6 +1,6 @@
 import { Schema } from "effect"
 
-export class ContactSheetApiError extends Schema.TaggedError<ContactSheetApiError>()(
+export class ContactSheetApiError extends Schema.TaggedErrorClass<ContactSheetApiError>()(
   "ContactSheetApiError",
   {
     message: Schema.String,
@@ -8,7 +8,7 @@ export class ContactSheetApiError extends Schema.TaggedError<ContactSheetApiErro
   }
 ) {}
 
-export const GenerateContactSheetSchema = Schema.standardSchemaV1(
+export const GenerateContactSheetSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     reference: Schema.String,

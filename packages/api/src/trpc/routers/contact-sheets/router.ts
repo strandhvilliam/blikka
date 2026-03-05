@@ -10,10 +10,12 @@ export const contactSheetsRouter = createTRPCRouter({
   generateContactSheet: domainProcedure.input(GenerateContactSheetSchema).mutation(
     trpcEffect(
       Effect.fn("ContactSheetsRouter.generateContactSheet")(function* ({ input }) {
-        return yield* ContactSheetsApiService.generateContactSheet({
-          domain: input.domain,
-          reference: input.reference,
-        })
+        return yield* ContactSheetsApiService.use((s) =>
+          s.generateContactSheet({
+            domain: input.domain,
+            reference: input.reference,
+          })
+        )
       })
     )
   ),
