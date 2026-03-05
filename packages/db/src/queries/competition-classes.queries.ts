@@ -1,113 +1,112 @@
-import { Effect, Layer, Option, ServiceMap } from "effect"
-import { DrizzleClient } from "../drizzle-client"
-import { competitionClasses, marathons } from "../schema"
-import { eq } from "drizzle-orm"
-import type { NewCompetitionClass } from "../types"
-import { DbError } from "../utils"
-
+import { Effect, Layer, Option, ServiceMap } from "effect";
+import { DrizzleClient } from "../drizzle-client";
+import { competitionClasses, marathons } from "../schema";
+import { eq } from "drizzle-orm";
+import type { NewCompetitionClass } from "../types";
+import { DbError } from "../utils";
 export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionClassesQueries>()(
   "@blikka/db/competition-classes-queries",
   {
     make: Effect.gen(function* () {
-      const { use } = yield* DrizzleClient
-
+      const { use } = yield* DrizzleClient;
       const getCompetitionClassById = Effect.fn(
-        "CompetitionClassesQueries.getCompetitionClassById"
+        "CompetitionClassesQueries.getCompetitionClassById",
       )(function* ({ id }: { id: number }) {
-        const result = yield* use(db => db.query.competitionClasses.findFirst({
-          where: { id },
-        }))
-        return Option.fromNullishOr(result)
-      })
-
+        const result = yield* use((db) =>
+          db.query.competitionClasses.findFirst({
+            where: (table, operators) => operators.eq(table.id, id),
+          }),
+        );
+        return Option.fromNullishOr(result);
+      });
       const getCompetitionClassesByDomain = Effect.fn(
-        "CompetitionClassesQueries.getCompetitionClassesByDomain"
+        "CompetitionClassesQueries.getCompetitionClassesByDomain",
       )(function* ({ domain }: { domain: string }) {
-        const result = yield* use(db => db
-          .select()
-          .from(competitionClasses)
-          .innerJoin(marathons, eq(competitionClasses.marathonId, marathons.id))
-          .where(eq(marathons.domain, domain)))
-
-        return result.map((row) => row.competition_classes)
-      })
-
+        const result = yield* use((db) =>
+          db
+            .select()
+            .from(competitionClasses)
+            .innerJoin(
+              marathons,
+              eq(competitionClasses.marathonId, marathons.id),
+            )
+            .where(eq(marathons.domain, domain)),
+        );
+        return result.map((row) => row.competition_classes);
+      });
       const createCompetitionClass = Effect.fn(
-        "CompetitionClassesQueries.createCompetitionClass"
+        "CompetitionClassesQueries.createCompetitionClass",
       )(function* ({ data }: { data: NewCompetitionClass }) {
-        const [result] = yield* use(db => db
-          .insert(competitionClasses)
-          .values(data)
-          .returning())
+        const [result] = yield* use((db) =>
+          db.insert(competitionClasses).values(data).returning(),
+        );
         if (!result) {
           return yield* Effect.fail(
             new DbError({
               message: "Failed to create competition class",
-            })
-          )
+            }),
+          );
         }
-        return result
-      })
-
+        return result;
+      });
       const createMultipleCompetitionClasses = Effect.fn(
-        "CompetitionClassesQueries.createMultipleCompetitionClasses"
+        "CompetitionClassesQueries.createMultipleCompetitionClasses",
       )(function* ({ data }: { data: NewCompetitionClass[] }) {
-        const result = yield* use(db => db
-          .insert(competitionClasses)
-          .values(data)
-          .returning())
+        const result = yield* use((db) =>
+          db.insert(competitionClasses).values(data).returning(),
+        );
         if (!result) {
           return yield* Effect.fail(
             new DbError({
               message: "Failed to create multiple competition classes",
-            })
-          )
+            }),
+          );
         }
-        return result
-      })
-
+        return result;
+      });
       const updateCompetitionClass = Effect.fn(
-        "CompetitionClassesQueries.updateCompetitionClass"
+        "CompetitionClassesQueries.updateCompetitionClass",
       )(function* ({
         id,
         data,
       }: {
-        id: number
-        data: Partial<NewCompetitionClass>
+        id: number;
+        data: Partial<NewCompetitionClass>;
       }) {
-        const [result] = yield* use(db => db
-          .update(competitionClasses)
-          .set(data)
-          .where(eq(competitionClasses.id, id))
-          .returning())
-
+        const [result] = yield* use((db) =>
+          db
+            .update(competitionClasses)
+            .set(data)
+            .where(eq(competitionClasses.id, id))
+            .returning(),
+        );
         if (!result) {
           return yield* Effect.fail(
             new DbError({
               message: "Failed to update competition class",
-            })
-          )
+            }),
+          );
         }
-        return result
-      })
-
+        return result;
+      });
       const deleteCompetitionClass = Effect.fn(
-        "CompetitionClassesQueries.deleteCompetitionClass"
+        "CompetitionClassesQueries.deleteCompetitionClass",
       )(function* ({ id }: { id: number }) {
-        const [result] = yield* use(db => db
-          .delete(competitionClasses)
-          .where(eq(competitionClasses.id, id))
-          .returning())
+        const [result] = yield* use((db) =>
+          db
+            .delete(competitionClasses)
+            .where(eq(competitionClasses.id, id))
+            .returning(),
+        );
         if (!result) {
           return yield* Effect.fail(
             new DbError({
               message: "Failed to delete competition class",
-            })
-          )
+            }),
+          );
         }
-        return result
-      })
-
+        return result;
+      });
       return {
         getCompetitionClassById,
         getCompetitionClassesByDomain,
@@ -115,11 +114,11 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
         createMultipleCompetitionClasses,
         updateCompetitionClass,
         deleteCompetitionClass,
-      } as const
+      } as const;
     }),
-  }
+  },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(DrizzleClient.layer)
-  )
+    Layer.provide(DrizzleClient.layer),
+  );
 }

@@ -1,139 +1,137 @@
-import { Effect, Layer, ServiceMap } from "effect"
-import { DrizzleClient } from "../drizzle-client"
-import type { NewRuleConfig } from "../types"
-import { ruleConfigs } from "../schema"
-import { eq } from "drizzle-orm"
-import { DbError } from "../utils"
-import { conflictUpdateSetAllColumns, getDefaultRuleConfigs } from "../utils"
-
+import { Effect, Layer, ServiceMap } from "effect";
+import { DrizzleClient } from "../drizzle-client";
+import type { NewRuleConfig } from "../types";
+import { ruleConfigs } from "../schema";
+import { eq } from "drizzle-orm";
+import { DbError } from "../utils";
+import { conflictUpdateSetAllColumns, getDefaultRuleConfigs } from "../utils";
 export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
   "@blikka/db/rules-queries",
   {
     make: Effect.gen(function* () {
-      const { use } = yield* DrizzleClient
-
+      const { use } = yield* DrizzleClient;
       const getRulesByDomain = Effect.fn("RulesQueries.getRulesByDomain")(
         function* ({ domain }: { domain: string }) {
-          const result = yield* use(db => db.query.marathons.findFirst({
-            where: { domain },
-            with: {
-              ruleConfigs: true,
-            },
-          }))
-
-          const rules = result?.ruleConfigs ?? []
-
-          if (rules.length === 0 && result?.id) {
-            yield* use(db => db.insert(ruleConfigs).values(
-              getDefaultRuleConfigs(result.id, {
-                startDate: result.startDate,
-                endDate: result.endDate,
-              }),
-            ))
-            const newResult = yield* use(db => db.query.marathons.findFirst({
-              where: { id: result.id },
+          const result = yield* use((db) =>
+            db.query.marathons.findFirst({
+              where: (table, operators) => operators.eq(table.domain, domain),
               with: {
                 ruleConfigs: true,
               },
-            }))
+            }),
+          );
+          const rules = result?.ruleConfigs ?? [];
+          if (rules.length === 0 && result?.id) {
+            yield* use((db) =>
+              db.insert(ruleConfigs).values(
+                getDefaultRuleConfigs(result.id, {
+                  startDate: result.startDate,
+                  endDate: result.endDate,
+                }),
+              ),
+            );
+            const newResult = yield* use((db) =>
+              db.query.marathons.findFirst({
+                where: (table, operators) => operators.eq(table.id, result.id),
+                with: {
+                  ruleConfigs: true,
+                },
+              }),
+            );
             if (!newResult) {
               return yield* Effect.fail(
                 new DbError({
                   message: "Failed to get rules",
                 }),
-              )
+              );
             }
-            return newResult.ruleConfigs
+            return newResult.ruleConfigs;
           }
           if (rules.length === 0) {
             return yield* Effect.fail(
               new DbError({
                 message: "Failed to get rules",
               }),
-            )
+            );
           }
-
-          return rules
+          return rules;
         },
-      )
-
+      );
       const createRuleConfig = Effect.fn("RulesQueries.createRuleConfig")(
         function* ({ data }: { data: NewRuleConfig }) {
-          const [result] = yield* use(db => db
-            .insert(ruleConfigs)
-            .values(data)
-            .returning())
+          const [result] = yield* use((db) =>
+            db.insert(ruleConfigs).values(data).returning(),
+          );
           if (!result) {
             return yield* Effect.fail(
               new DbError({
                 message: "Failed to create rule config",
               }),
-            )
+            );
           }
-          return result
+          return result;
         },
-      )
-
+      );
       const updateRuleConfig = Effect.fn("RulesQueries.updateRuleConfig")(
         function* ({ id, data }: { id: number; data: Partial<NewRuleConfig> }) {
-          const [result] = yield* use(db => db
-            .update(ruleConfigs)
-            .set(data)
-            .where(eq(ruleConfigs.id, id))
-            .returning())
+          const [result] = yield* use((db) =>
+            db
+              .update(ruleConfigs)
+              .set(data)
+              .where(eq(ruleConfigs.id, id))
+              .returning(),
+          );
           if (!result) {
             return yield* Effect.fail(
               new DbError({
                 message: "Failed to update rule config",
               }),
-            )
+            );
           }
-          return result
+          return result;
         },
-      )
-
+      );
       const updateMultipleRuleConfig = Effect.fn(
         "RulesQueries.updateMultipleRuleConfig",
       )(function* ({ data }: { data: NewRuleConfig[] }) {
-        const result = yield* use(db => db
-          .insert(ruleConfigs)
-          .values(data)
-          .onConflictDoUpdate({
-            target: ruleConfigs.id,
-            set: conflictUpdateSetAllColumns(ruleConfigs, ["id"]),
-          })
-          .returning())
-        return result
-      })
-
+        const result = yield* use((db) =>
+          db
+            .insert(ruleConfigs)
+            .values(data)
+            .onConflictDoUpdate({
+              target: ruleConfigs.id,
+              set: conflictUpdateSetAllColumns(ruleConfigs),
+            })
+            .returning(),
+        );
+        return result;
+      });
       const deleteRuleConfig = Effect.fn("RulesQueries.deleteRuleConfig")(
         function* ({ id }: { id: number }) {
-          const [result] = yield* use(db => db
-            .delete(ruleConfigs)
-            .where(eq(ruleConfigs.id, id))
-            .returning())
+          const [result] = yield* use((db) =>
+            db.delete(ruleConfigs).where(eq(ruleConfigs.id, id)).returning(),
+          );
           if (!result) {
             return yield* Effect.fail(
               new DbError({
                 message: "Failed to delete rule config",
               }),
-            )
+            );
           }
-          return result
+          return result;
         },
-      )
-
+      );
       return {
         getRulesByDomain,
         createRuleConfig,
         updateMultipleRuleConfig,
         updateRuleConfig,
         deleteRuleConfig,
-      } as const
+      } as const;
     }),
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(DrizzleClient.layer)
-  )
+    Layer.provide(DrizzleClient.layer),
+  );
 }

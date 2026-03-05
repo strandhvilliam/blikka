@@ -1,67 +1,64 @@
-import { Effect, Layer, Option, ServiceMap } from "effect"
-import { DrizzleClient } from "../drizzle-client"
-import { participants, submissions, validationResults } from "../schema"
-import {
-  eq,
-  and,
-  or,
-  inArray,
-} from "drizzle-orm"
-import type { NewParticipant } from "../types"
-import { DbError } from "../utils"
-import { VALIDATION_OUTCOME } from "@blikka/validation"
-
+import { Effect, Layer, Option, ServiceMap } from "effect";
+import { DrizzleClient } from "../drizzle-client";
+import { participants, submissions, validationResults } from "../schema";
+import { eq, and, or, inArray, gt, lt, ilike, notInArray } from "drizzle-orm";
+import type { NewParticipant } from "../types";
+import { DbError } from "../utils";
+import { VALIDATION_OUTCOME } from "@blikka/validation";
 export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>()(
   "@blikka/db/participants-queries",
   {
     make: Effect.gen(function* () {
-      const { use } = yield* DrizzleClient
-
+      const { use } = yield* DrizzleClient;
       const getParticipantById = Effect.fn(
         "ParticipantsQueries.getParticipantByIdQuery",
       )(function* ({ id }: { id: number }) {
-        const result = yield* use(db => db.query.participants.findFirst({
-          where: { id },
-          with: {
-            submissions: true,
-            competitionClass: true,
-            deviceGroup: true,
-            validationResults: true,
-            zippedSubmissions: true,
-          },
-        }))
-
-        return Option.fromNullishOr(result)
-      })
-
+        const result = yield* use((db) =>
+          db.query.participants.findFirst({
+            where: (table, operators) => operators.eq(table.id, id),
+            with: {
+              submissions: true,
+              competitionClass: true,
+              deviceGroup: true,
+              validationResults: true,
+              zippedSubmissions: true,
+            },
+          }),
+        );
+        return Option.fromNullishOr(result);
+      });
       const getParticipantByReference = Effect.fn(
         "ParticipantsQueries.getParticipantByReferenceQuery",
       )(function* ({
         reference,
         domain,
       }: {
-        reference: string
-        domain: string
+        reference: string;
+        domain: string;
       }) {
-        const result = yield* use(db => db.query.participants.findFirst({
-          where: { reference, domain },
-          with: {
-            submissions: {
-              with: {
-                topic: true,
+        const result = yield* use((db) =>
+          db.query.participants.findFirst({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.reference, reference),
+                operators.eq(table.domain, domain),
+              ),
+            with: {
+              submissions: {
+                with: {
+                  topic: true,
+                },
               },
+              competitionClass: true,
+              deviceGroup: true,
+              validationResults: true,
+              zippedSubmissions: true,
+              contactSheets: true,
             },
-            competitionClass: true,
-            deviceGroup: true,
-            validationResults: true,
-            zippedSubmissions: true,
-            contactSheets: true,
-          },
-        }))
-
-        return Option.fromNullishOr(result)
-      })
-
+          }),
+        );
+        return Option.fromNullishOr(result);
+      });
       const getInfiniteParticipantsByDomain = Effect.fn(
         "ParticipantsQueries.getInfiniteParticipantsByDomainQuery",
       )(function* ({
@@ -77,201 +74,211 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         excludeStatuses,
         hasValidationErrors,
       }: {
-        domain: string
-        cursor?: string
-        limit?: number
-        search?: string
-        sortOrder?: "asc" | "desc"
-        competitionClassId?: number | number[] | readonly number[]
-        deviceGroupId?: number | number[] | readonly number[]
-        topicId?: number
-        statusFilter?: "completed" | "verified"
-        excludeStatuses?: string[]
-        hasValidationErrors?: boolean
+        domain: string;
+        cursor?: string;
+        limit?: number;
+        search?: string;
+        sortOrder?: "asc" | "desc";
+        competitionClassId?: number | number[] | readonly number[];
+        deviceGroupId?: number | number[] | readonly number[];
+        topicId?: number;
+        statusFilter?: "completed" | "verified";
+        excludeStatuses?: string[];
+        hasValidationErrors?: boolean;
       }) {
-        const cursorId = cursor ? parseInt(cursor, 10) : undefined
-        const isValidCursor = cursorId !== undefined && !isNaN(cursorId)
-
-        const baseConditions: any[] = [{ domain }]
-
+        const cursorId = cursor ? parseInt(cursor, 10) : undefined;
+        const isValidCursor = cursorId !== undefined && !isNaN(cursorId);
+        const baseConditions = [eq(participants.domain, domain)];
         if (isValidCursor) {
           if (sortOrder === "desc") {
-            baseConditions.push({ id: { lt: cursorId! } })
+            baseConditions.push(lt(participants.id, cursorId!));
           } else {
-            baseConditions.push({ id: { gt: cursorId! } })
+            baseConditions.push(gt(participants.id, cursorId!));
           }
         }
-
         if (competitionClassId !== undefined) {
           if (Array.isArray(competitionClassId)) {
-            baseConditions.push({ competitionClassId: { in: [...competitionClassId] } })
+            baseConditions.push(
+              inArray(participants.competitionClassId, [...competitionClassId]),
+            );
           } else {
-            baseConditions.push({ competitionClassId: competitionClassId as number })
+            baseConditions.push(
+              eq(participants.competitionClassId, competitionClassId as number),
+            );
           }
         }
-
         if (deviceGroupId !== undefined) {
           if (Array.isArray(deviceGroupId)) {
-            baseConditions.push({ deviceGroupId: { in: [...deviceGroupId] } })
+            baseConditions.push(
+              inArray(participants.deviceGroupId, [...deviceGroupId]),
+            );
           } else {
-            baseConditions.push({ deviceGroupId: deviceGroupId as number })
+            baseConditions.push(
+              eq(participants.deviceGroupId, deviceGroupId as number),
+            );
           }
         }
-
         if (search && search.trim().length > 0) {
-          const searchPattern = `%${search.trim()}%`
-          baseConditions.push({
-            OR: [
-              { reference: { ilike: searchPattern } },
-              { firstname: { ilike: searchPattern } },
-              { lastname: { ilike: searchPattern } },
-              { email: { ilike: searchPattern } },
-            ],
-          })
+          const searchPattern = `%${search.trim()}%`;
+          baseConditions.push(
+            or(
+              ilike(participants.reference, searchPattern),
+              ilike(participants.firstname, searchPattern),
+              ilike(participants.lastname, searchPattern),
+              ilike(participants.email, searchPattern),
+            )!,
+          );
         }
-
         if (statusFilter) {
-          baseConditions.push({ status: statusFilter })
+          baseConditions.push(eq(participants.status, statusFilter));
         }
-
         if (excludeStatuses && excludeStatuses.length > 0) {
-          baseConditions.push({ status: { notIn: excludeStatuses } })
+          baseConditions.push(notInArray(participants.status, excludeStatuses));
         }
-
         if (hasValidationErrors) {
-          const participantsWithErrors = yield* use(db => db
-            .selectDistinct({ participantId: validationResults.participantId })
-            .from(validationResults)
-            .innerJoin(
-              participants,
-              eq(participants.id, validationResults.participantId),
-            )
-            .where(
-              and(
-                eq(participants.domain, domain),
-                eq(validationResults.outcome, VALIDATION_OUTCOME.FAILED),
-                or(
-                  eq(validationResults.severity, "error"),
-                  eq(validationResults.severity, "warning"),
+          const participantsWithErrors = yield* use((db) =>
+            db
+              .selectDistinct({
+                participantId: validationResults.participantId,
+              })
+              .from(validationResults)
+              .innerJoin(
+                participants,
+                eq(participants.id, validationResults.participantId),
+              )
+              .where(
+                and(
+                  eq(participants.domain, domain),
+                  eq(validationResults.outcome, VALIDATION_OUTCOME.FAILED),
+                  or(
+                    eq(validationResults.severity, "error"),
+                    eq(validationResults.severity, "warning"),
+                  ),
                 ),
               ),
-            ))
-
+          );
           const participantIdsWithErrors = participantsWithErrors.map(
             (p) => p.participantId,
-          )
-
+          );
           if (participantIdsWithErrors.length === 0) {
             return {
               participants: [],
               nextCursor: null,
-            }
+            };
           }
-
-          baseConditions.push({ id: { in: participantIdsWithErrors } })
+          baseConditions.push(
+            inArray(participants.id, participantIdsWithErrors),
+          );
         }
-
         if (topicId !== undefined) {
-          const participantsWithTopicSubmissions = yield* use(db => db
-            .selectDistinct({ participantId: submissions.participantId })
-            .from(submissions)
-            .innerJoin(participants, eq(participants.id, submissions.participantId))
-            .where(
-              and(
-                eq(participants.domain, domain),
-                eq(submissions.topicId, topicId),
+          const participantsWithTopicSubmissions = yield* use((db) =>
+            db
+              .selectDistinct({ participantId: submissions.participantId })
+              .from(submissions)
+              .innerJoin(
+                participants,
+                eq(participants.id, submissions.participantId),
+              )
+              .where(
+                and(
+                  eq(participants.domain, domain),
+                  eq(submissions.topicId, topicId),
+                ),
               ),
-            ))
-
+          );
           const participantIdsWithTopicSubmissions =
-            participantsWithTopicSubmissions.map((p) => p.participantId)
-
+            participantsWithTopicSubmissions.map((p) => p.participantId);
           if (participantIdsWithTopicSubmissions.length === 0) {
             return {
               participants: [],
               nextCursor: null,
-            }
+            };
           }
-
-          baseConditions.push({ id: { in: participantIdsWithTopicSubmissions } })
+          baseConditions.push(
+            inArray(participants.id, participantIdsWithTopicSubmissions),
+          );
         }
-
-        const whereCondition = baseConditions.length === 1
-          ? baseConditions[0]
-          : { AND: baseConditions }
-
-        const participant = yield* use(db => db.query.participants.findMany({
-          where: whereCondition,
-          columns: {
-            phoneHash: false,
-            phoneEncrypted: false,
-          },
-          with: {
-            competitionClass: true,
-            deviceGroup: true,
-            ...(topicId !== undefined
-              ? {
-                submissions: {
-                  columns: {
-                    id: true,
-                    topicId: true,
-                    createdAt: true,
-                  },
-                  where: { topicId },
+        const whereCondition =
+          baseConditions.length === 1
+            ? baseConditions[0]
+            : and(...baseConditions);
+        const participant = yield* use((db) =>
+          db.query.participants.findMany({
+            where: whereCondition,
+            columns: {
+              phoneHash: false,
+              phoneEncrypted: false,
+            },
+            with: {
+              competitionClass: true,
+              deviceGroup: true,
+              ...(topicId !== undefined
+                ? {
+                    submissions: {
+                      columns: {
+                        id: true,
+                        topicId: true,
+                        createdAt: true,
+                      },
+                      where: (table, operators) =>
+                        operators.eq(table.topicId, topicId),
+                    },
+                  }
+                : {}),
+              validationResults: true,
+              votingSessions: {
+                columns: {
+                  token: true,
+                  voteSubmissionId: true,
+                  votedAt: true,
+                  topicId: true,
+                  createdAt: true,
                 },
-              }
-              : {}),
-            validationResults: true,
-            votingSessions: {
-              columns: {
-                token: true,
-                voteSubmissionId: true,
-                votedAt: true,
-                topicId: true,
-                createdAt: true,
+              },
+              zippedSubmissions: {
+                columns: {
+                  key: true,
+                },
+              },
+              contactSheets: {
+                columns: {
+                  key: true,
+                },
               },
             },
-            zippedSubmissions: {
-              columns: {
-                key: true,
-              },
-            },
-            contactSheets: {
-              columns: {
-                key: true,
-              },
-            },
-          },
-          limit: limit + 1,
-          orderBy: sortOrder === "desc" ? { id: "desc" } : { id: "asc" },
-        }))
-
+            limit: limit + 1,
+            orderBy: (table, operators) =>
+              sortOrder === "desc"
+                ? operators.desc(table.id)
+                : operators.asc(table.id),
+          }),
+        );
         function countValidationResults(
-          validations: { outcome: string; severity: string }[],
+          validations: {
+            outcome: string;
+            severity: string;
+          }[],
           outcome: string,
         ) {
           return validations
             .filter((vr) => vr.outcome === outcome)
             .reduce(
               (acc, vr) => {
-                if (vr.severity === "error") acc.errors++
-                else if (vr.severity === "warning") acc.warnings++
-                return acc
+                if (vr.severity === "error") acc.errors++;
+                else if (vr.severity === "warning") acc.warnings++;
+                return acc;
               },
               { errors: 0, warnings: 0 },
-            )
+            );
         }
-
-        let nextCursor: string | null = null
-        let participantsToReturn = participant
-
+        let nextCursor: string | null = null;
+        let participantsToReturn = participant;
         if (participant.length > limit) {
-          participantsToReturn = participant.slice(0, limit)
+          participantsToReturn = participant.slice(0, limit);
           const lastParticipant =
-            participantsToReturn[participantsToReturn.length - 1]
-          nextCursor = lastParticipant ? lastParticipant.id.toString() : null
+            participantsToReturn[participantsToReturn.length - 1];
+          nextCursor = lastParticipant ? lastParticipant.id.toString() : null;
         }
-
         const mappedResult = participantsToReturn.map(
           ({
             validationResults,
@@ -284,13 +291,11 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
             const activeTopicSubmissionId =
               topicId === undefined
                 ? null
-                : participantSubmissions
-                  .sort(
+                : (participantSubmissions.sort(
                     (left, right) =>
                       new Date(right.createdAt).getTime() -
                       new Date(left.createdAt).getTime(),
-                  )[0]?.id ?? null
-
+                  )[0]?.id ?? null);
             return {
               ...rest,
               activeTopicSubmissionId,
@@ -318,16 +323,14 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
                 validationResults,
                 VALIDATION_OUTCOME.SKIPPED,
               ),
-            }
+            };
           },
-        )
-
+        );
         return {
           participants: mappedResult,
           nextCursor,
-        }
-      })
-
+        };
+      });
       const createParticipant = Effect.fn(
         "ParticipantsQueries.createParticipantMutation",
       )(function* ({ data }: { data: NewParticipant }) {
@@ -336,51 +339,45 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
             new DbError({
               message: "Domain is required",
             }),
-          )
+          );
         }
-
-        const [result] = yield* use(db => db
-          .insert(participants)
-          .values(data)
-          .returning())
-
+        const [result] = yield* use((db) =>
+          db.insert(participants).values(data).returning(),
+        );
         if (!result) {
           return yield* Effect.fail(
             new DbError({
               message: "Failed to create participant",
             }),
-          )
+          );
         }
-
-        return result
-      })
-
+        return result;
+      });
       const updateParticipantById = Effect.fn(
         "ParticipantsQueries.updateParticipantMutation",
       )(function* ({
         id,
         data,
       }: {
-        id: number
-        data: Partial<NewParticipant>
+        id: number;
+        data: Partial<NewParticipant>;
       }) {
-        const [result] = yield* use(db => db
-          .update(participants)
-          .set(data)
-          .where(eq(participants.id, id))
-          .returning())
-
+        const [result] = yield* use((db) =>
+          db
+            .update(participants)
+            .set(data)
+            .where(eq(participants.id, id))
+            .returning(),
+        );
         if (!result) {
           return yield* Effect.fail(
             new DbError({
               message: "Failed to update participant",
             }),
-          )
+          );
         }
-
-        return result
-      })
-
+        return result;
+      });
       const updateParticipantByReference = Effect.fn(
         "ParticipantsQueries.updateParticipantByReference",
       )(function* ({
@@ -388,98 +385,96 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         domain,
         data,
       }: {
-        reference: string
-        domain: string
-        data: Partial<NewParticipant>
+        reference: string;
+        domain: string;
+        data: Partial<NewParticipant>;
       }) {
-        const [result] = yield* use(db => db
-          .update(participants)
-          .set(data)
-          .where(
-            and(
-              eq(participants.reference, reference),
-              eq(participants.domain, domain),
-            ),
-          )
-          .returning({ id: participants.id }))
+        const [result] = yield* use((db) =>
+          db
+            .update(participants)
+            .set(data)
+            .where(
+              and(
+                eq(participants.reference, reference),
+                eq(participants.domain, domain),
+              ),
+            )
+            .returning({ id: participants.id }),
+        );
         if (!result) {
           return yield* Effect.fail(
             new DbError({
               message: "Failed to update participant",
             }),
-          )
+          );
         }
-        return result
-      })
-
+        return result;
+      });
       const deleteParticipant = Effect.fn(
         "ParticipantsQueries.deleteParticipantMutation",
       )(function* ({ id }: { id: number }) {
-        const [result] = yield* use(db => db
-          .delete(participants)
-          .where(eq(participants.id, id))
-          .returning())
+        const [result] = yield* use((db) =>
+          db.delete(participants).where(eq(participants.id, id)).returning(),
+        );
         if (!result) {
           return yield* Effect.fail(
             new DbError({
               message: "Failed to delete participant",
             }),
-          )
+          );
         }
-        return result
-      })
-
+        return result;
+      });
       const batchDeleteParticipants = Effect.fn(
         "ParticipantsQueries.batchDeleteParticipants",
       )(function* ({ ids, domain }: { ids: number[]; domain: string }) {
         if (ids.length === 0) {
-          return { deletedCount: 0, failedIds: [] }
+          return { deletedCount: 0, failedIds: [] };
         }
-
-        const results = yield* use(db => db
-          .delete(participants)
-          .where(
-            and(eq(participants.domain, domain), inArray(participants.id, ids)),
-          )
-          .returning({ id: participants.id }))
-
-        const deletedIds = results.map((r) => r.id)
-        const failedIds = ids.filter((id) => !deletedIds.includes(id))
-
+        const results = yield* use((db) =>
+          db
+            .delete(participants)
+            .where(
+              and(
+                eq(participants.domain, domain),
+                inArray(participants.id, ids),
+              ),
+            )
+            .returning({ id: participants.id }),
+        );
+        const deletedIds = results.map((r) => r.id);
+        const failedIds = ids.filter((id) => !deletedIds.includes(id));
         return {
           deletedCount: deletedIds.length,
           failedIds,
-        }
-      })
-
+        };
+      });
       const batchVerifyParticipants = Effect.fn(
         "ParticipantsQueries.batchVerifyParticipants",
       )(function* ({ ids, domain }: { ids: number[]; domain: string }) {
         if (ids.length === 0) {
-          return { updatedCount: 0, failedIds: [] }
+          return { updatedCount: 0, failedIds: [] };
         }
-
-        const results = yield* use(db => db
-          .update(participants)
-          .set({ status: "verified" })
-          .where(
-            and(
-              eq(participants.domain, domain),
-              inArray(participants.id, ids),
-              eq(participants.status, "completed"),
-            ),
-          )
-          .returning({ id: participants.id }))
-
-        const updatedIds = results.map((r) => r.id)
-        const failedIds = ids.filter((id) => !updatedIds.includes(id))
-
+        const results = yield* use((db) =>
+          db
+            .update(participants)
+            .set({ status: "verified" })
+            .where(
+              and(
+                eq(participants.domain, domain),
+                inArray(participants.id, ids),
+                eq(participants.status, "completed"),
+              ),
+            )
+            .returning({ id: participants.id }),
+        );
+        const updatedIds = results.map((r) => r.id);
+        const failedIds = ids.filter((id) => !updatedIds.includes(id));
         return {
           updatedCount: updatedIds.length,
           failedIds,
-        }
-      })
-
+        };
+      });
       return {
         getParticipantById,
         getParticipantByReference,
@@ -490,11 +485,11 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         deleteParticipant,
         batchDeleteParticipants,
         batchVerifyParticipants,
-      } as const
+      } as const;
     }),
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(DrizzleClient.layer)
-  )
+    Layer.provide(DrizzleClient.layer),
+  );
 }
