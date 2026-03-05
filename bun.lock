@@ -24,6 +24,7 @@
         "@aws-sdk/s3-request-presigner": "^3.962.0",
         "@blikka/api": "workspace:*",
         "@blikka/auth": "workspace:*",
+        "@blikka/aws": "workspace:*",
         "@blikka/db": "workspace:*",
         "@blikka/email": "workspace:*",
         "@blikka/exif-parser": "workspace:*",
@@ -31,7 +32,6 @@
         "@blikka/kv-store": "workspace:*",
         "@blikka/pubsub": "workspace:*",
         "@blikka/runtime": "workspace:*",
-        "@blikka/s3": "workspace:*",
         "@blikka/telemetry": "workspace:*",
         "@blikka/validation": "workspace:*",
         "@dnd-kit/core": "^6.3.1",
@@ -138,14 +138,13 @@
       "dependencies": {
         "@aws-sdk/client-ecs": "^3.966.0",
         "@blikka/auth": "workspace:*",
+        "@blikka/aws": "workspace:*",
         "@blikka/db": "workspace:*",
         "@blikka/email": "workspace:*",
         "@blikka/image-manipulation": "workspace:*",
         "@blikka/kv-store": "workspace:*",
         "@blikka/pubsub": "workspace:*",
         "@blikka/runtime": "workspace:*",
-        "@blikka/s3": "workspace:*",
-        "@blikka/sms": "workspace:*",
         "@blikka/validation": "workspace:*",
         "@hono/trpc-server": "^0.4.0",
         "@trpc/server": "^11.7.1",
@@ -181,7 +180,15 @@
       },
     },
     "packages/aws": {
-      "name": "aws",
+      "name": "@blikka/aws",
+      "dependencies": {
+        "@aws-sdk/client-eventbridge": "^3.887.0",
+        "@aws-sdk/client-s3": "^3.932.0",
+        "@aws-sdk/client-sns": "^3.932.0",
+        "@aws-sdk/s3-request-presigner": "^3.932.0",
+        "effect": "catalog:",
+        "sst": "^3.17.19",
+      },
       "devDependencies": {
         "@types/bun": "latest",
       },
@@ -272,6 +279,7 @@
     "packages/image-manipulation": {
       "name": "@blikka/image-manipulation",
       "dependencies": {
+        "@blikka/aws": "workspace:*",
         "effect": "catalog:",
         "exifr": "^7.1.3",
         "sharp": "^0.34.3",
@@ -331,6 +339,7 @@
       "name": "@blikka/runtime",
       "version": "0.0.1",
       "dependencies": {
+        "@blikka/aws": "workspace:*",
         "@blikka/db": "workspace:*",
         "@blikka/email": "workspace:*",
         "@blikka/exif-parser": "workspace:*",
@@ -338,8 +347,6 @@
         "@blikka/kv-store": "workspace:*",
         "@blikka/pubsub": "workspace:*",
         "@blikka/redis": "workspace:*",
-        "@blikka/s3": "workspace:*",
-        "@blikka/sms": "workspace:*",
         "@blikka/validation": "workspace:*",
         "@effect/platform-node": "catalog:",
         "effect": "catalog:",
@@ -416,12 +423,11 @@
     "tasks/contact-sheet-generator": {
       "name": "@blikka/contact-sheet-generator",
       "dependencies": {
-        "@blikka/bus": "workspace:*",
+        "@blikka/aws": "workspace:*",
         "@blikka/db": "workspace:*",
         "@blikka/image-manipulation": "workspace:*",
         "@blikka/kv-store": "workspace:*",
         "@blikka/pubsub": "workspace:*",
-        "@blikka/s3": "workspace:*",
         "@blikka/telemetry": "workspace:*",
         "@effect-aws/lambda": "catalog:",
         "effect": "catalog:",
@@ -438,7 +444,7 @@
       "name": "dev-caller",
       "dependencies": {
         "@aws-sdk/client-eventbridge": "^3.888.0",
-        "@blikka/bus": "workspace:*",
+        "@blikka/aws": "workspace:*",
         "@effect-aws/lambda": "catalog:",
         "effect": "catalog:",
       },
@@ -452,11 +458,10 @@
     "tasks/upload-finalizer": {
       "name": "upload-finalizer",
       "dependencies": {
-        "@blikka/bus": "workspace:*",
+        "@blikka/aws": "workspace:*",
         "@blikka/db": "workspace:*",
         "@blikka/kv-store": "workspace:*",
         "@blikka/pubsub": "workspace:*",
-        "@blikka/s3": "workspace:*",
         "@blikka/telemetry": "workspace:*",
         "@effect-aws/lambda": "catalog:",
         "effect": "catalog:",
@@ -471,13 +476,12 @@
     "tasks/upload-processor": {
       "name": "@blikka/upload-processor",
       "dependencies": {
-        "@blikka/bus": "workspace:*",
+        "@blikka/aws": "workspace:*",
         "@blikka/db": "workspace:*",
         "@blikka/exif-parser": "workspace:*",
         "@blikka/image-manipulation": "workspace:*",
         "@blikka/kv-store": "workspace:*",
         "@blikka/pubsub": "workspace:*",
-        "@blikka/s3": "workspace:*",
         "@blikka/telemetry": "workspace:*",
         "@effect-aws/lambda": "catalog:",
         "effect": "catalog:",
@@ -493,7 +497,7 @@
     "tasks/validation-runner": {
       "name": "validation-runner",
       "dependencies": {
-        "@blikka/bus": "workspace:*",
+        "@blikka/aws": "workspace:*",
         "@blikka/telemetry": "workspace:*",
         "@blikka/validation": "workspace:*",
         "@effect-aws/lambda": "catalog:",
@@ -509,6 +513,7 @@
     "tasks/zip-downloader": {
       "name": "@blikka/zip-downloader",
       "dependencies": {
+        "@blikka/aws": "workspace:*",
         "@blikka/kv-store": "workspace:*",
         "@effect-aws/lambda": "catalog:",
         "archiver": "^7.0.1",
@@ -526,7 +531,7 @@
     "tasks/zip-worker": {
       "name": "@blikka/zip-worker",
       "dependencies": {
-        "@blikka/bus": "workspace:*",
+        "@blikka/aws": "workspace:*",
         "@effect-aws/lambda": "catalog:",
         "effect": "catalog:",
         "jszip": "^3.10.1",
@@ -705,6 +710,8 @@
     "@blikka/api": ["@blikka/api@workspace:packages/api"],
 
     "@blikka/auth": ["@blikka/auth@workspace:packages/auth"],
+
+    "@blikka/aws": ["@blikka/aws@workspace:packages/aws"],
 
     "@blikka/bus": ["@blikka/bus@workspace:packages/bus"],
 
@@ -1693,8 +1700,6 @@
     "attr-accept": ["attr-accept@2.2.5", "", {}, "sha512-0bDNnY/u6pPwHDMoF0FieU354oBi0a8rD9FcsLwzcGWbc8KS8KPIi7y+s13OlVY+gMWc/9xEMUgNE6Qm8ZllYQ=="],
 
     "available-typed-arrays": ["available-typed-arrays@1.0.7", "", { "dependencies": { "possible-typed-array-names": "^1.0.0" } }, "sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ=="],
-
-    "aws": ["aws@workspace:packages/aws"],
 
     "aws-sdk": ["aws-sdk@2.1692.0", "", { "dependencies": { "buffer": "4.9.2", "events": "1.1.1", "ieee754": "1.1.13", "jmespath": "0.16.0", "querystring": "0.2.0", "sax": "1.2.1", "url": "0.10.3", "util": "^0.12.4", "uuid": "8.0.0", "xml2js": "0.6.2" } }, "sha512-x511uiJ/57FIsbgUe5csJ13k3uzu25uWQE+XqfBis/sB0SFoiElJWXRkgEAUh0U6n40eT3ay5Ue4oPkRMu1LYw=="],
 

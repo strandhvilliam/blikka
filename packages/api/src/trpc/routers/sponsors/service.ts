@@ -2,7 +2,7 @@ import "server-only"
 
 import { Config, Effect, Layer, Option, ServiceMap } from "effect"
 import { Database, type NewSponsor } from "@blikka/db"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import { SponsorsApiError } from "./schemas"
 
 export class SponsorsApiService extends ServiceMap.Service<SponsorsApiService>()(

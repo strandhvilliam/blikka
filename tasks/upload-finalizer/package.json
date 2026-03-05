@@ -7,14 +7,13 @@
     "@types/bun": "latest"
   },
   "dependencies": {
-    "@blikka/bus": "workspace:*",
     "@blikka/db": "workspace:*",
     "@blikka/pubsub": "workspace:*",
     "@blikka/telemetry": "workspace:*",
     "@blikka/kv-store": "workspace:*",
-    "@blikka/s3": "workspace:*",
     "@effect-aws/lambda": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "@blikka/aws": "workspace:*"
   },
   "peerDependencies": {
     "typescript": "^5"

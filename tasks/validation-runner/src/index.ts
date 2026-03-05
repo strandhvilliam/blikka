@@ -1,7 +1,7 @@
 import { LambdaHandler } from "@effect-aws/lambda"
 import { Effect, Layer } from "effect"
 import { type SQSEvent } from "@effect-aws/lambda"
-import { FinalizedEventSchema, parseBusEvent } from "@blikka/bus"
+import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 import { ValidationRunner } from "./service"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubChannel, PubSubLoggerService, RunStateService } from "@blikka/pubsub"

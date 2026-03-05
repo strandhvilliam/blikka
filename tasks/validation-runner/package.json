@@ -10,10 +10,10 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@blikka/bus": "workspace:*",
     "@blikka/telemetry": "workspace:*",
     "@blikka/validation": "workspace:*",
     "@effect-aws/lambda": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "@blikka/aws": "workspace:*"
   }
 }

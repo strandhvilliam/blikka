@@ -28,8 +28,7 @@
       "@blikka/auth": ["../../packages/auth/src"],
       "@blikka/email": ["../../packages/email/src"],
       "@blikka/redis": ["../../packages/redis/src"],
-      "@blikka/sms": ["../../packages/sms/src"]
-      "@blikka/s3": ["../../packages/s3/src"],
+      "@blikka/aws": ["../../packages/aws/src"],
       "@blikka/kv-store": ["../../packages/kv-store/src"],
       "@blikka/image-manipulation": ["../../packages/image-manipulation/src"],
       "@blikka/pubsub": ["../../packages/pubsub/src"],

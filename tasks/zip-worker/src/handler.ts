@@ -4,7 +4,7 @@ import { LambdaHandler, type SQSEvent } from "@effect-aws/lambda"
 import { Resource as SSTResource } from "sst"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { FinalizedEventSchema, parseBusEvent } from "@blikka/bus"
+import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 
 class UnableToRunZipHandlerTaskError extends Schema.TaggedErrorClass<UnableToRunZipHandlerTaskError>()("UnableToRunZipHandlerTaskError", {
   message: Schema.String,

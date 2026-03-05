@@ -1,6 +1,6 @@
 import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { SharpImageService } from "./sharp-image-service"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import {
   calculateCoordinateValues,
   calculateSheetVariables,

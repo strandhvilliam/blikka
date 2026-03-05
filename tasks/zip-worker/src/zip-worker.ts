@@ -1,7 +1,7 @@
 import { Effect, Layer, Option, ServiceMap } from "effect"
 import { ZipKVRepository } from "@blikka/kv-store"
 import { Database, Submission, Topic } from "@blikka/db"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import { Resource as SSTResource } from "sst"
 import path from "path"
 import JSZip from "jszip"

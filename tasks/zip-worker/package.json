@@ -10,9 +10,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@blikka/bus": "workspace:*",
     "@effect-aws/lambda": "catalog:",
     "effect": "catalog:",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "@blikka/aws": "workspace:*"
   }
 }

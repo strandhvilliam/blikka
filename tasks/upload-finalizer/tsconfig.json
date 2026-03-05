@@ -10,9 +10,8 @@
     "allowJs": true,
     "paths": {
       "@/*": ["src/*"],
-      "@blikka/s3": ["../../packages/s3/src"],
+      "@blikka/aws": ["../../packages/aws/src"],
       "@blikka/kv-store": ["../../packages/kv-store/src"],
-      "@blikka/bus": ["../../packages/bus/src"],
       "@blikka/db": ["../../packages/db/src"],
       "@blikka/telemetry": ["../../packages/telemetry/src"],
       "@blikka/pubsub": ["../../packages/pubsub/src"]

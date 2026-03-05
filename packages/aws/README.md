@@ -1,15 +1,21 @@
-# aws
+# @blikka/aws
 
-To install dependencies:
+Consolidated AWS wrapper package for Blikka.
 
-```bash
-bun install
+It contains:
+
+- S3 utilities and Effect client/service wrappers
+- EventBridge bus utilities and schema helpers
+- SNS/SMS Effect client/service wrappers
+
+## Usage
+
+```ts
+import { S3Service, BusService, SMSService } from "@blikka/aws"
 ```
 
-To run:
+Subpath exports are also available:
 
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.3.5. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+- `@blikka/aws/s3`
+- `@blikka/aws/bus`
+- `@blikka/aws/sms`

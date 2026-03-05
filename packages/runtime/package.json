@@ -9,14 +9,13 @@
     "@blikka/db": "workspace:*",
     "@blikka/email": "workspace:*",
     "@blikka/redis": "workspace:*",
-    "@blikka/sms": "workspace:*",
     "@blikka/pubsub": "workspace:*",
-    "@blikka/s3": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@blikka/validation": "workspace:*",
     "@blikka/image-manipulation": "workspace:*",
     "@blikka/exif-parser": "workspace:*",
     "@effect/platform-node": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "@blikka/aws": "workspace:*"
   }
 }

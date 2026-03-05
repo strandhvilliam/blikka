@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect"
 import { LambdaHandler } from "@effect-aws/lambda"
 import { PubSubChannel, PubSubLoggerService, RunStateService } from "@blikka/pubsub"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { FinalizedEventSchema, parseBusEvent } from "@blikka/bus"
+import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 import { getEnvironment } from "./utils"
 import { UploadFinalizerService } from "./service"
 

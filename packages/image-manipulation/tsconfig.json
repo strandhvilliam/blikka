@@ -26,7 +26,7 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
     "paths": {
-      "@blikka/s3": ["../../packages/s3/src"]
+      "@blikka/aws": ["../../packages/aws/src"]
     }
   }
 }

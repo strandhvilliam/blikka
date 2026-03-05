@@ -2,7 +2,7 @@ import { LambdaHandler } from "@effect-aws/lambda"
 import { Resource as SSTResource } from "sst"
 import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { Console, Effect, Layer } from "effect"
-import { BusService } from "@blikka/bus"
+import { BusService } from "@blikka/aws"
 import { PubSubChannel, PubSubLoggerService, RunStateService } from "@blikka/pubsub"
 
 const getEnvironment = (stage: string): "prod" | "dev" | "staging" => {

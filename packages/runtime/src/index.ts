@@ -5,11 +5,11 @@ import { EmailService } from "@blikka/email"
 import { RedisClient } from "@blikka/redis"
 import { NodeServices } from "@effect/platform-node"
 import { PubSubService, RunStateService } from "@blikka/pubsub"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { ValidationEngine } from "@blikka/validation"
 import { SharpImageService, ContactSheetBuilder, ExifParser } from "@blikka/image-manipulation"
-import { SMSService } from "@blikka/sms"
+import { SMSService } from "@blikka/aws"
 
 // Core layer with all common services
 export const CoreLayer = Layer.mergeAll(

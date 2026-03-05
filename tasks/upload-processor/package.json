@@ -10,16 +10,15 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@blikka/bus": "workspace:*",
     "@blikka/db": "workspace:*",
     "@blikka/exif-parser": "workspace:*",
     "@blikka/image-manipulation": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@blikka/pubsub": "workspace:*",
-    "@blikka/s3": "workspace:*",
     "@blikka/telemetry": "workspace:*",
     "@effect-aws/lambda": "catalog:",
     "effect": "catalog:",
-    "sharp": "^0.34.3"
+    "sharp": "^0.34.3",
+    "@blikka/aws": "workspace:*"
   }
 }

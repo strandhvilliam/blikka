@@ -1,7 +1,7 @@
 import { Effect, Array, Data, Option, Config, ServiceMap, Schema, Layer } from "effect"
 import { Database } from "@blikka/db"
 import { DownloadStateRepository } from "@blikka/kv-store"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import { type AwsVpcConfiguration, ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs"
 import { ZipFilesApiError } from "./schemas"
 

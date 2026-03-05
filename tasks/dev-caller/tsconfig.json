@@ -9,7 +9,7 @@
     "allowJs": true,
     "paths": {
       "@/*": ["src/*"],
-      "@blikka/bus": ["../../packages/bus/src"],
+      "@blikka/aws": ["../../packages/aws/src"],
       "@blikka/pubsub": ["../../packages/pubsub/src"]
     },
     "strict": true

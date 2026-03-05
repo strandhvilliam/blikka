@@ -4,7 +4,7 @@ import { Effect } from "effect";
 import { createTRPCRouter, authProcedure } from "../../root";
 import { trpcEffect } from "../../utils";
 import { SendTestSMSInputSchema } from "./schemas";
-import { SMSService } from "@blikka/sms";
+import { SMSService } from "@blikka/aws";
 
 export const smsRouter = createTRPCRouter({
   sendTest: authProcedure.input(SendTestSMSInputSchema).mutation(

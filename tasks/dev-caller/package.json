@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-eventbridge": "^3.888.0",
-    "@blikka/bus": "workspace:*",
     "@effect-aws/lambda": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "@blikka/aws": "workspace:*"
   }
 }

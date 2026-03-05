@@ -1,6 +1,6 @@
 import { Array, Config, Effect, Layer, Option, Order, pipe, ServiceMap } from "effect"
 import { type NewParticipant, type Participant, type Submission, type Topic, Database } from "@blikka/db"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { PubSubChannel, PubSubService, RunStateService } from "@blikka/pubsub"
 import { UploadFlowApiError } from "./schemas"

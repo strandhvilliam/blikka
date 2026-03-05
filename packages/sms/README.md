@@ -1,15 +1,9 @@
-# sms
+# @blikka/sms (deprecated)
 
-To install dependencies:
+This package has been consolidated into `@blikka/aws`.
 
-```bash
-bun install
+Use:
+
+```ts
+import { SMSService } from "@blikka/aws"
 ```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.3.5. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.

@@ -1,6 +1,6 @@
 import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { type RuleConfig, type Submission, Database } from "@blikka/db"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import {
   ValidationEngine,
   ValidationInputSchema,

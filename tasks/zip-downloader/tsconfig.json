@@ -29,7 +29,7 @@
       "@/*": ["./src/*"],
       "@blikka/redis": ["../../packages/redis/src"],
       "@blikka/db": ["../../packages/db/src"],
-      "@blikka/s3": ["../../packages/s3/src"],
+      "@blikka/aws": ["../../packages/aws/src"],
       "@blikka/telemetry": ["../../packages/telemetry/src"],
       "@blikka/kv-store": ["../../packages/kv-store/src"]
     }

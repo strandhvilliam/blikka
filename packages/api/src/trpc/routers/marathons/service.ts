@@ -2,7 +2,7 @@ import "server-only"
 
 import { Effect, Result, Option, Config, ServiceMap, Layer } from "effect"
 import { Database, type NewMarathon } from "@blikka/db"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import { MarathonApiError } from "./schemas"
 import { RULE_KEYS } from "@blikka/validation"
 

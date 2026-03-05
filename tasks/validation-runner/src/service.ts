@@ -2,7 +2,7 @@ import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { Database, RuleConfig } from "@blikka/db"
 import { SubmissionState, ExifState } from "@blikka/kv-store"
 import { InvalidDataFoundError, InvalidValidationRuleError } from "./utils"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import {
   RuleKeySchema,
   ValidationEngine,

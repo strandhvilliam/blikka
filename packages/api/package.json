@@ -12,8 +12,6 @@
     "@blikka/kv-store": "workspace:*",
     "@blikka/pubsub": "workspace:*",
     "@blikka/runtime": "workspace:*",
-    "@blikka/s3": "workspace:*",
-    "@blikka/sms": "workspace:*",
     "@blikka/validation": "workspace:*",
     "@hono/trpc-server": "^0.4.0",
     "@trpc/server": "^11.7.1",
@@ -22,7 +20,8 @@
     "hono": "^4.10.6",
     "jose": "^6.1.3",
     "libphonenumber-js": "^1.12.36",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "@blikka/aws": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest"

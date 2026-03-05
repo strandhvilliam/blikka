@@ -17,6 +17,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@blikka/aws": "workspace:*",
     "effect": "catalog:",
     "exifr": "^7.1.3",
     "sharp": "^0.34.3"

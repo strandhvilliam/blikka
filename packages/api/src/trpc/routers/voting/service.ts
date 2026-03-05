@@ -7,7 +7,7 @@ import {
   type NewVotingSession,
 } from "@blikka/db"
 import { VotingApiError } from "./schemas"
-import { SMSService } from "@blikka/sms"
+import { SMSService } from "@blikka/aws"
 import {
   PhoneNumberEncryptionService,
   type EncryptedPhoneNumber,

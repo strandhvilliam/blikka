@@ -3,7 +3,7 @@ import { DownloadStateRepository } from "@blikka/kv-store"
 import { Database } from "@blikka/db"
 import { RedisClient } from "@blikka/redis"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import archiver from "archiver"
 import JSZip from "jszip"
 

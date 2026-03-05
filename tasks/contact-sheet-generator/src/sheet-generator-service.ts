@@ -1,7 +1,7 @@
 import { Config, Effect, Layer, Option, ServiceMap } from "effect"
 import { Database } from "@blikka/db"
 import { UploadSessionRepository } from "@blikka/kv-store"
-import { S3Service } from "@blikka/s3"
+import { S3Service } from "@blikka/aws"
 import {
   ensureReadyForSheetGeneration,
   generateContactSheetKey,
