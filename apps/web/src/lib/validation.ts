@@ -2,17 +2,17 @@ import type { RuleConfig } from "@blikka/db"
 import {
   RULE_KEYS,
   VALIDATION_OUTCOME,
+  ValidationEngine,
+  ValidationInput,
   type RuleKey,
   type RuleParams,
   type SeverityLevel,
   type ValidationResult,
   type ValidationRule,
 } from "@blikka/validation"
+import { clientRuntime } from "./client-runtime"
+import { Effect } from "effect"
 
-/**
- * Maps database rule configs to validation rules for the engine.
- * Filters to enabled rules and valid rule keys only.
- */
 export function mapRuleConfigsToValidationRules(
   dbRuleConfigs: RuleConfig[],
 ): ValidationRule[] {
@@ -36,9 +36,6 @@ export interface PrepareValidationRulesOptions {
   end?: string | Date | null
 }
 
-/**
- * Prepares validation rules with timerange params for WITHIN_TIMERANGE rule.
- */
 export function prepareValidationRules(
   rules: ValidationRule[],
   options: PrepareValidationRulesOptions,
@@ -73,9 +70,6 @@ export function prepareValidationRules(
   })
 }
 
-/**
- * Returns true if any validation result is a failed error (blocking).
- */
 export function hasBlockingValidationErrors(
   results: ValidationResult[],
 ): boolean {
@@ -85,3 +79,13 @@ export function hasBlockingValidationErrors(
       result.severity === "error",
   )
 }
+
+
+export async function runClientValidation(rules: ValidationRule[], inputs: ValidationInput[]) {
+  return await clientRuntime.runPromise(
+    Effect.gen(function* () {
+      const engine = yield* ValidationEngine
+      return yield* engine.runValidations(rules, inputs)
+    }),
+  )
+} 

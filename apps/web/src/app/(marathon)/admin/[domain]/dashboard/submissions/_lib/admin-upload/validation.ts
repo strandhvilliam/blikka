@@ -1,11 +1,11 @@
-import { Effect } from "effect"
 import type { RuleConfig } from "@blikka/db"
-import { ValidationEngine, type ValidationInput, type ValidationResult } from "@blikka/validation"
+import { type ValidationInput, type ValidationResult } from "@blikka/validation"
 import {
   hasBlockingValidationErrors,
   mapRuleConfigsToValidationRules,
   prepareValidationRules,
-} from "~/lib/validation"
+  runClientValidation,
+} from "@/lib/validation"
 import type { AdminSelectedPhoto } from "./types"
 
 export { hasBlockingValidationErrors }
@@ -44,9 +44,12 @@ export async function runAdminPhotoValidation({
     mimeType: photo.file.type,
   }))
 
-  const program = Effect.gen(function* () {
-    const engine = yield* ValidationEngine
-    return yield* engine.runValidations(rules, validationInputs)
-  })
-  return Effect.runPromise(program)
+  try {
+    const results = await runClientValidation(rules, validationInputs)
+    return results
+  } catch (error) {
+    throw new Error(`Failed to validate selected images: ${error instanceof Error ? error.message : "Unknown error"}`)
+  }
 }
+
+

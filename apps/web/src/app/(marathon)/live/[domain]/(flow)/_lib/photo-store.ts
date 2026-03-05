@@ -9,7 +9,7 @@ import {
   type ValidationInput,
 } from "@blikka/validation"
 import type { SelectedPhoto } from "./types"
-import { prepareValidationRules } from "~/lib/validation"
+import { prepareValidationRules, runClientValidation } from "@/lib/validation"
 import { getExifDate } from "./utils"
 import { clientRuntime } from "@/lib/client-runtime"
 
@@ -150,12 +150,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     }))
 
     try {
-      const results = await clientRuntime.runPromise(
-        Effect.gen(function* () {
-          const engine = yield* ValidationEngine
-          return yield* engine.runValidations(preparedValidationRules, validationInputs)
-        }),
-      )
+      const results = await runClientValidation(preparedValidationRules, validationInputs)
       set({ validationResults: results })
     } catch (error) {
       console.error("Validation error:", error)
@@ -163,7 +158,6 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     }
   },
 
-  // Cleanup on unmount
   cleanup: () => {
     const state = get()
     state.objectUrls.forEach((url) => {
