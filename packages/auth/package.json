@@ -10,8 +10,9 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.5.3",
+    "@blikka/email": "workspace:*",
     "better-auth": "^1.4.1",
-    "effect": "catalog:",
-    "@blikka/email": "workspace:*"
+    "effect": "catalog:"
   }
 }

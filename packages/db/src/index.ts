@@ -1,4 +1,5 @@
 export * from "./database"
+export * as schema from "./schema"
 export * from "./types"
 export { DbError } from "./utils"
 export * from "./drizzle-client"

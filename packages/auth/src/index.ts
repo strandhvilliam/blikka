@@ -1,6 +1,6 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth"
 import { ServiceMap, Effect, Layer } from "effect"
-import { DrizzleClient } from "@blikka/db"
+import { DrizzleClient, schema } from "@blikka/db"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { EmailService, OTPEmail } from "@blikka/email"
 import { nextCookies } from "better-auth/next-js"
@@ -31,6 +31,7 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
       const config = {
         database: drizzleAdapter(client, {
           provider: "pg",
+          schema
         }),
         secret: authConfig.secret,
         baseURL: authConfig.baseUrl,
