@@ -16,7 +16,7 @@
     "@blikka/validation": "workspace:*",
     "@blikka/image-manipulation": "workspace:*",
     "@blikka/exif-parser": "workspace:*",
-    "@effect/platform-node": "^0.103.0",
+    "@effect/platform-node": "catalog:",
     "effect": "catalog:"
   }
 }

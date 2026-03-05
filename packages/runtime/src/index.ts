@@ -3,7 +3,7 @@ import { Layer, ManagedRuntime } from "effect"
 import { DrizzleClient, Database } from "@blikka/db"
 import { EmailService } from "@blikka/email"
 import { RedisClient } from "@blikka/redis"
-import { NodeContext } from "@effect/platform-node"
+import { NodeServices } from "@effect/platform-node"
 import { PubSubService, RunStateService } from "@blikka/pubsub"
 import { S3Service } from "@blikka/s3"
 import { UploadSessionRepository } from "@blikka/kv-store"
@@ -49,7 +49,7 @@ export function createRuntime<TAdditional = never>(
     CoreLayer,
     ...(config.additionalLayers ? [config.additionalLayers] : [])
   ).pipe(
-    Layer.provide(NodeContext.layer),
+    Layer.provide(NodeServices.layer),
     Layer.orDie
   ) as Layer.Layer<CoreServices | TAdditional, never, never>
 

@@ -16,8 +16,7 @@
   },
   "dependencies": {
     "@blikka/redis": "workspace:*",
-    "@effect/platform": "^0.90.7",
-    "@effect/platform-node": "^0.96.1",
+    "@effect/platform-node": "catalog:",
     "@upstash/redis": "^1.35.3",
     "effect": "catalog:",
     "upstash-lua": "^0.3.1"

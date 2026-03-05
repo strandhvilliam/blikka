@@ -1,7 +1,6 @@
 import { Effect, Schema, Option, Schedule, Duration, ServiceMap, Layer } from "effect"
 import { KeyFactory } from "../key-factory"
 import { RedisClient } from "@blikka/redis"
-import { NodeFileSystem } from "@effect/platform-node"
 import { ExifStateSchema, type ExifState } from "../schema"
 
 export class ExifKVRepository extends ServiceMap.Service<ExifKVRepository>()(

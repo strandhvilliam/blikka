@@ -2,13 +2,8 @@
 
 import { Action, toActionResponse } from "@/lib/next-utils"
 import { EmailService } from "@blikka/email"
-import { Data, Effect } from "effect"
+import { Effect } from "effect"
 import { createElement } from "react"
-
-class GetStartedError extends Data.TaggedError("GetStartedError")<{
-  message?: string
-  cause?: unknown
-}> {}
 
 interface GetStartedInput {
   name: string
@@ -78,19 +73,19 @@ const _getStartedAction = Effect.fn("@blikka/web/getStartedAction")(
         ),
         input.message
           ? createElement(
-              "div",
-              { style: { marginTop: 8 } },
-              createElement(
-                "strong",
-                { style: { display: "block", marginBottom: 8 } },
-                "Message"
-              ),
-              createElement(
-                "p",
-                { style: { whiteSpace: "pre-wrap" as const, margin: 0 } },
-                input.message
-              )
+            "div",
+            { style: { marginTop: 8 } },
+            createElement(
+              "strong",
+              { style: { display: "block", marginBottom: 8 } },
+              "Message"
+            ),
+            createElement(
+              "p",
+              { style: { whiteSpace: "pre-wrap" as const, margin: 0 } },
+              input.message
             )
+          )
           : null
       ),
       tags: [{ name: "type", value: "get-started" }],

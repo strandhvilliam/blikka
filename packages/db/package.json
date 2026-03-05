@@ -14,7 +14,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@effect/sql-pg": "^0.50.3",
+    "@effect/sql-pg": "catalog:",
     "drizzle-kit": "^1.0.0-beta.15-859cf75",
     "drizzle-orm": "^1.0.0-beta.15-859cf75",
     "effect": "catalog:",

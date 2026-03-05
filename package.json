@@ -47,7 +47,9 @@
   "packageManager": "bun@1.1.35",
   "workspaces": {
     "catalog": {
-      "effect": "4.0.0-beta.25"
+      "effect": "4.0.0-beta.25",
+      "@effect/platform-node": "4.0.0-beta.25",
+      "@effect/sql-pg": "4.0.0-beta.25"
     },
     "packages": [
       "apps/*",
@@ -60,5 +62,8 @@
   },
   "dependencies": {
     "sst": "^3.17.19"
+  },
+  "overrides": {
+    "@effect/sql-pg": "4.0.0-beta.25"
   }
 }

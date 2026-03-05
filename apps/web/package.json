@@ -27,7 +27,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@effect/platform-node": "^0.103.0",
+    "@effect/platform-node": "catalog:",
     "@hookform/resolvers": "^5.2.2",
     "@iconify/react": "^6.0.2",
     "@number-flow/react": "^0.5.10",
