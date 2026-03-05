@@ -48,6 +48,8 @@
   "workspaces": {
     "catalog": {
       "effect": "4.0.0-beta.25",
+      "@effect-aws/lambda": "2.0.0-beta.2",
+      "@effect/platform-bun": "4.0.0-beta.25",
       "@effect/platform-node": "4.0.0-beta.25"
     },
     "packages": [

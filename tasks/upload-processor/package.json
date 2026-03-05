@@ -18,7 +18,7 @@
     "@blikka/pubsub": "workspace:*",
     "@blikka/s3": "workspace:*",
     "@blikka/telemetry": "workspace:*",
-    "@effect-aws/lambda": "2.0.0-beta.2",
+    "@effect-aws/lambda": "catalog:",
     "effect": "catalog:",
     "sharp": "^0.34.3"
   }

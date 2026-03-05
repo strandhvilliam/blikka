@@ -62,7 +62,7 @@ export class PubSubMessage extends Schema.Class<PubSubMessage>("PubSubMessage")(
   static create = Effect.fnUntraced(function* <T>(
     channel: PubSubChannel,
     payload: T,
-    schema?: Schema.Schema<T>
+    schema?: Schema.Codec<T, any, any, never>
   ) {
     const channelString = yield* PubSubChannel.toString(channel)
     const encodedPayload = schema ? yield* Schema.encodeEffect(schema)(payload) : payload

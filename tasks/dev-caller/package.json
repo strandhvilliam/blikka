@@ -12,7 +12,7 @@
   "dependencies": {
     "@aws-sdk/client-eventbridge": "^3.888.0",
     "@blikka/bus": "workspace:*",
-    "@effect-aws/lambda": "^1.5.1",
-    "effect": "^3.18.4"
+    "@effect-aws/lambda": "catalog:",
+    "effect": "catalog:"
   }
 }

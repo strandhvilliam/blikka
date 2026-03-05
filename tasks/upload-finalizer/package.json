@@ -13,7 +13,7 @@
     "@blikka/telemetry": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@blikka/s3": "workspace:*",
-    "@effect-aws/lambda": "^1.5.1",
+    "@effect-aws/lambda": "catalog:",
     "effect": "catalog:"
   },
   "peerDependencies": {

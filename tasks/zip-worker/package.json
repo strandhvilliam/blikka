@@ -11,8 +11,7 @@
   },
   "dependencies": {
     "@blikka/bus": "workspace:*",
-    "@effect-aws/lambda": "^1.5.1",
-    "@effect/platform-bun": "^0.83.0",
+    "@effect-aws/lambda": "catalog:",
     "effect": "catalog:",
     "jszip": "^3.10.1"
   }

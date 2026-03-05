@@ -35,14 +35,12 @@ export class ZipWorker extends ServiceMap.Service<ZipWorker>()(
             })
           },
           catch: (error) =>
-            Effect.fail(
-              new FailedToGenerateZipError({
-                message: "Failed to build zip buffer",
-                cause: error,
-                domain,
-                reference,
-              }),
-            ),
+            new FailedToGenerateZipError({
+              message: "Failed to build zip buffer",
+              cause: error,
+              domain,
+              reference,
+            }),
         })
       })
 

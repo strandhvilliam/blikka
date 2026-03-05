@@ -22,6 +22,7 @@ const effectHandler = (event: SQSEvent) =>
         return yield* Effect.gen(function* () {
           const participantStateOpt = yield* kvStore.getParticipantState(domain, reference)
 
+
           if (Option.isNone(participantStateOpt)) {
             yield* Effect.logWarning("Participant state not found, skipping")
             return
