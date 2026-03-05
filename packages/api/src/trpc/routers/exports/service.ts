@@ -1,13 +1,11 @@
-import { Effect } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 import { Database } from "@blikka/db"
 import { ExportsApiError } from "./schemas"
 
-export class ExportsApiService extends Effect.Service<ExportsApiService>()(
+export class ExportsApiService extends ServiceMap.Service<ExportsApiService>()(
   "@blikka/api/ExportsApiService",
   {
-    accessors: true,
-    dependencies: [Database.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
 
       const getParticipantsExportData = Effect.fn("ExportsApiService.getParticipantsExportData")(
@@ -80,4 +78,8 @@ export class ExportsApiService extends Effect.Service<ExportsApiService>()(
       } as const
     }),
   }
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Database.layer)
+  )
+}

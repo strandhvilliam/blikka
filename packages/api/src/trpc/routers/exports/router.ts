@@ -15,9 +15,11 @@ export const exportsRouter = createTRPCRouter({
   getParticipantsExportData: domainProcedure.input(GetParticipantsExportDataInputSchema).query(
     trpcEffect(
       Effect.fn("ExportsRouter.getParticipantsExportData")(function* ({ input }) {
-        return yield* ExportsApiService.getParticipantsExportData({
-          domain: input.domain,
-        })
+        return yield* ExportsApiService.use((s) =>
+          s.getParticipantsExportData({
+            domain: input.domain,
+          })
+        )
       })
     )
   ),
@@ -25,9 +27,11 @@ export const exportsRouter = createTRPCRouter({
   getSubmissionsExportData: domainProcedure.input(GetSubmissionsExportDataInputSchema).query(
     trpcEffect(
       Effect.fn("ExportsRouter.getSubmissionsExportData")(function* ({ input }) {
-        return yield* ExportsApiService.getSubmissionsExportData({
-          domain: input.domain,
-        })
+        return yield* ExportsApiService.use((s) =>
+          s.getSubmissionsExportData({
+            domain: input.domain,
+          })
+        )
       })
     )
   ),
@@ -35,9 +39,11 @@ export const exportsRouter = createTRPCRouter({
   getExifExportData: domainProcedure.input(GetExifExportDataInputSchema).query(
     trpcEffect(
       Effect.fn("ExportsRouter.getExifExportData")(function* ({ input }) {
-        return yield* ExportsApiService.getExifExportData({
-          domain: input.domain,
-        })
+        return yield* ExportsApiService.use((s) =>
+          s.getExifExportData({
+            domain: input.domain,
+          })
+        )
       })
     )
   ),
@@ -47,10 +53,12 @@ export const exportsRouter = createTRPCRouter({
     .query(
       trpcEffect(
         Effect.fn("ExportsRouter.getValidationResultsExportData")(function* ({ input }) {
-          return yield* ExportsApiService.getValidationResultsExportData({
-            domain: input.domain,
-            onlyFailed: input.onlyFailed ?? undefined,
-          })
+          return yield* ExportsApiService.use((s) =>
+            s.getValidationResultsExportData({
+              domain: input.domain,
+              onlyFailed: input.onlyFailed ?? undefined,
+            })
+          )
         })
       )
     ),

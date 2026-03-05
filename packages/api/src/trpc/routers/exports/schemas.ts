@@ -1,6 +1,6 @@
 import { Schema } from "effect"
 
-export class ExportsApiError extends Schema.TaggedError<ExportsApiError>()(
+export class ExportsApiError extends Schema.TaggedErrorClass<ExportsApiError>()(
   "@blikka/api/ExportsApiError",
   {
     message: Schema.String,
@@ -8,25 +8,25 @@ export class ExportsApiError extends Schema.TaggedError<ExportsApiError>()(
   }
 ) {}
 
-export const GetParticipantsExportDataInputSchema = Schema.standardSchemaV1(
+export const GetParticipantsExportDataInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
   })
 )
 
-export const GetSubmissionsExportDataInputSchema = Schema.standardSchemaV1(
+export const GetSubmissionsExportDataInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
   })
 )
 
-export const GetExifExportDataInputSchema = Schema.standardSchemaV1(
+export const GetExifExportDataInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
   })
 )
 
-export const GetValidationResultsExportDataInputSchema = Schema.standardSchemaV1(
+export const GetValidationResultsExportDataInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     onlyFailed: Schema.optional(Schema.Boolean),
