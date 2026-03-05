@@ -101,6 +101,10 @@ export function SubmissionsTable() {
     }),
   )
 
+  const reTriggerMutation = useMutation(
+    trpc.uploadFlow.reTriggerUploadFlow.mutationOptions(),
+  )
+
   const handleBatchDelete = () => {
     if (selectedCount === 0) return
     batchDeleteMutation.mutate({
@@ -115,6 +119,31 @@ export function SubmissionsTable() {
       ids: Array.from(selectedIds),
       domain,
     })
+  }
+
+  const handleReTriggerUploadFlow = async () => {
+    if (selectedCount === 0 || !participants.length) return
+    const selectedReferences = participants
+      .filter((p) => selectedIds.has(p.id))
+      .map((p) => p.reference)
+    try {
+      await Promise.all(
+        selectedReferences.map((reference) =>
+          reTriggerMutation.mutateAsync({ domain, reference }),
+        ),
+      )
+      toast.success(
+        `Re-triggered upload flow for ${selectedReferences.length} participant${selectedReferences.length === 1 ? "" : "s"}`,
+      )
+      queryClient.invalidateQueries({
+        queryKey: trpc.participants.getByDomainInfinite.pathKey(),
+      })
+      clearSelection()
+    } catch (error) {
+      toast.error(
+        `Failed to re-trigger: ${error instanceof Error ? error.message : "Unknown error"}`,
+      )
+    }
   }
 
   const columns = useMemo(
@@ -156,9 +185,11 @@ export function SubmissionsTable() {
             canVerify={canVerifySelected}
             isDeleting={batchDeleteMutation.isPending}
             isVerifying={batchVerifyMutation.isPending}
+            isReTriggering={reTriggerMutation.isPending}
             onClearSelection={clearSelection}
             onDelete={handleBatchDelete}
             onVerify={handleBatchVerify}
+            onReTriggerUploadFlow={handleReTriggerUploadFlow}
           />
         ) : (
           <SubmissionsFilters

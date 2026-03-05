@@ -1,6 +1,6 @@
 import { Array, Config, Effect, Layer, Option, Order, pipe, ServiceMap } from "effect"
 import { type NewParticipant, type Participant, type Submission, type Topic, Database } from "@blikka/db"
-import { S3Service } from "@blikka/aws"
+import { S3Service, SQSService } from "@blikka/aws"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { PubSubChannel, PubSubService, RunStateService } from "@blikka/pubsub"
 import { UploadFlowApiError } from "./schemas"
@@ -12,10 +12,12 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
     make: Effect.gen(function* () {
       const db = yield* Database
       const s3 = yield* S3Service
+      const sqs = yield* SQSService
       const kv = yield* UploadSessionRepository
       const phoneEncryption = yield* PhoneNumberEncryptionService
       const runStateService = yield* RunStateService
       const bucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
+      const queueUrl = yield* Config.string("UPLOAD_PROCESSOR_QUEUE_URL")
       const environment = yield* Config.string("NODE_ENV").pipe(
         Config.map((env) => (env === "production" ? "prod" : "dev")),
       )
@@ -444,8 +446,15 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         if (Option.isNone(participantState)) {
           return Effect.fail(new UploadFlowApiError({ message: `[${domain}|${reference}] Participant not initialized` }))
         }
+        const submissionStates = yield* kv.getAllSubmissionStates(domain, reference, [...participantState.value.orderIndexes])
+
+        const submissionKeys = submissionStates.map((state) => state.key)
 
 
+
+        yield* sqs.sendMessage(queueUrl, JSON.stringify({
+          submissionKeys: submissionKeys,
+        }))
 
       })
 
@@ -455,6 +464,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         getPublicMarathon,
         checkParticipantExists,
         getUploadStatus,
+        reTriggerUploadFlow,
       } as const
     }),
 
@@ -465,6 +475,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
     Layer.provide(Layer.mergeAll(
       Database.layer,
       S3Service.layer,
+      SQSService.layer,
       UploadSessionRepository.layer,
       PubSubService.layer,
       RunStateService.layer,

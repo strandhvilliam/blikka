@@ -1,19 +1,15 @@
 "use client"
 
-import { Plus, Vote } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useQueryStates } from "nuqs"
 import { submissionSearchParams } from "../_lib/search-params"
-import Link from "next/link"
-import { formatDomainPathname } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { AdminParticipantUploadDialog } from "./admin-participant-upload-dialog"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import { PrimaryButton } from "@/components/ui/primary-button"
-
 
 function getActiveTopicDisplayText({
   activeTopicName,

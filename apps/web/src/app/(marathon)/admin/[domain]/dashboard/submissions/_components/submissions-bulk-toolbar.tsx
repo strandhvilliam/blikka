@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Trash2, CheckCircle, X, Loader2 } from "lucide-react";
+import { Trash2, CheckCircle, X, Loader2, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
 interface SubmissionsBulkToolbarProps {
@@ -17,9 +17,11 @@ interface SubmissionsBulkToolbarProps {
   canVerify: boolean;
   isDeleting: boolean;
   isVerifying: boolean;
+  isReTriggering: boolean;
   onClearSelection: () => void;
   onDelete: () => void;
   onVerify: () => void;
+  onReTriggerUploadFlow: () => void;
 }
 
 export function SubmissionsBulkToolbar({
@@ -27,9 +29,11 @@ export function SubmissionsBulkToolbar({
   canVerify,
   isDeleting,
   isVerifying,
+  isReTriggering,
   onClearSelection,
   onDelete,
   onVerify,
+  onReTriggerUploadFlow,
 }: SubmissionsBulkToolbarProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -72,6 +76,20 @@ export function SubmissionsBulkToolbar({
             <CheckCircle className="h-4 w-4 mr-1" />
           )}
           Verify
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onReTriggerUploadFlow}
+          disabled={isReTriggering}
+          className="h-9"
+        >
+          {isReTriggering ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-1" />
+          )}
+          Re-trigger Upload Flow
         </Button>
         <Button
           variant="destructive"
