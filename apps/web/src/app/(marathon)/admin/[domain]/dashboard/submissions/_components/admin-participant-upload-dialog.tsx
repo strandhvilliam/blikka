@@ -338,11 +338,19 @@ export function AdminParticipantUploadDialog({
           className="gap-0 overflow-hidden border-[#deded5] bg-[#f7f7f3] p-0"
         >
           <DialogHeader className="shrink-0 border-b border-[#e2e2d8] bg-[#fbfbf7] px-6 py-4 text-left">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-start gap-4">
               <div>
-                <DialogTitle className="font-gothic text-2xl font-normal tracking-tight text-[#242424]">
-                  Add Participant Upload
-                </DialogTitle>
+                <div className="flex items-center gap-2">
+                  <DialogTitle className="font-gothic text-2xl font-normal tracking-tight text-[#242424]">
+                    Add Participant Upload
+                  </DialogTitle>
+                  <Badge
+                    variant="outline"
+                    className="border-[#d8d8cf] bg-white text-[#5f5f58]"
+                  >
+                    {marathon.mode === "by-camera" ? "By Camera" : "Marathon"}
+                  </Badge>
+                </div>
                 <DialogDescription className="mt-1 text-sm text-[#66665f]">
                   Create participant details and upload{" "}
                   {pluralizePhotos(expectedPhotoCount || 0)}
@@ -352,12 +360,6 @@ export function AdminParticipantUploadDialog({
                   .
                 </DialogDescription>
               </div>
-              <Badge
-                variant="outline"
-                className="border-[#d8d8cf] bg-white text-[#5f5f58]"
-              >
-                {marathon.mode === "by-camera" ? "By Camera" : "Marathon"}
-              </Badge>
             </div>
           </DialogHeader>
 

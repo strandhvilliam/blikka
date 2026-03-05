@@ -89,6 +89,7 @@ export function useSubmissionsTable() {
         statusFilter: tabQueryParams.statusFilter,
         excludeStatuses: tabQueryParams.excludeStatuses,
         hasValidationErrors: tabQueryParams.hasValidationErrors,
+        votedFilter: tabQueryParams.votedFilter ?? null,
         limit: 50,
       },
       {

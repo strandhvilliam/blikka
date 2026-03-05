@@ -1,7 +1,22 @@
 import { Effect, Layer, Option, ServiceMap } from "effect";
 import { DrizzleClient } from "../drizzle-client";
-import { participants, submissions, validationResults } from "../schema";
-import { eq, and, or, inArray, gt, lt, ilike, notInArray } from "drizzle-orm";
+import {
+  participants,
+  submissions,
+  validationResults,
+  votingSession,
+} from "../schema";
+import {
+  eq,
+  and,
+  or,
+  inArray,
+  gt,
+  lt,
+  ilike,
+  notInArray,
+  isNotNull,
+} from "drizzle-orm";
 import type { NewParticipant } from "../types";
 import { DbError } from "../utils";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
@@ -73,6 +88,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         statusFilter,
         excludeStatuses,
         hasValidationErrors,
+        votedFilter,
       }: {
         domain: string;
         cursor?: string;
@@ -85,6 +101,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         statusFilter?: "completed" | "verified";
         excludeStatuses?: string[];
         hasValidationErrors?: boolean;
+        votedFilter?: "voted" | "not-voted";
       }) {
         const cursorId = cursor ? parseInt(cursor, 10) : undefined;
         const isValidCursor = cursorId !== undefined && !isNaN(cursorId);
@@ -197,6 +214,49 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           baseConditions.push(
             inArray(participants.id, participantIdsWithTopicSubmissions),
           );
+        }
+        if (
+          (votedFilter === "voted" || votedFilter === "not-voted") &&
+          topicId !== undefined
+        ) {
+          const participantsWhoVoted = yield* use((db) =>
+            db
+              .selectDistinct({
+                participantId: votingSession.connectedParticipantId,
+              })
+              .from(votingSession)
+              .innerJoin(
+                participants,
+                eq(participants.id, votingSession.connectedParticipantId),
+              )
+              .where(
+                and(
+                  eq(participants.domain, domain),
+                  eq(votingSession.topicId, topicId),
+                  isNotNull(votingSession.votedAt),
+                ),
+              ),
+          );
+          const participantIdsWhoVoted = participantsWhoVoted
+            .map((p) => p.participantId)
+            .filter((id): id is number => id !== null);
+          if (votedFilter === "voted") {
+            if (participantIdsWhoVoted.length === 0) {
+              return {
+                participants: [],
+                nextCursor: null,
+              };
+            }
+            baseConditions.push(
+              inArray(participants.id, participantIdsWhoVoted),
+            );
+          } else {
+            if (participantIdsWhoVoted.length > 0) {
+              baseConditions.push(
+                notInArray(participants.id, participantIdsWhoVoted),
+              );
+            }
+          }
         }
         const whereCondition =
           baseConditions.length === 1

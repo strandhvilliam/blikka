@@ -7,7 +7,7 @@ import { useQueryStates } from "nuqs"
 import { submissionSearchParams } from "../_lib/search-params"
 import Link from "next/link"
 import { formatDomainPathname } from "@/lib/utils"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AdminParticipantUploadDialog } from "./admin-participant-upload-dialog"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useDomain } from "@/lib/domain-provider"
@@ -32,6 +32,8 @@ const TAB = {
   INITIALIZED: "initialized",
   NOT_VERIFIED: "not-verified",
   VERIFIED: "verified",
+  NOT_VOTED: "not-voted",
+  VOTED: "voted",
   VALIDATION_ERRORS: "validation-errors",
 } as const
 
@@ -67,13 +69,47 @@ export function SubmissionsHeader() {
     setQueryState({ tab })
   }
 
-  const tabs: { value: Tab; label: string }[] = [
+  const marathonTabs: { value: Tab; label: string }[] = [
     { value: TAB.ALL, label: "All Submissions" },
     { value: TAB.INITIALIZED, label: "Initialized" },
     { value: TAB.NOT_VERIFIED, label: "Not Verified" },
     { value: TAB.VERIFIED, label: "Verified" },
     { value: TAB.VALIDATION_ERRORS, label: "Validation Errors" },
   ]
+
+  const byCameraTabs: { value: Tab; label: string }[] = [
+    { value: TAB.ALL, label: "All Submissions" },
+    { value: TAB.INITIALIZED, label: "Initialized" },
+    { value: TAB.NOT_VOTED, label: "Not Voted" },
+    { value: TAB.VOTED, label: "Voted" },
+    { value: TAB.VALIDATION_ERRORS, label: "Validation Errors" },
+  ]
+
+  const tabs =
+    marathon.mode === "by-camera" ? byCameraTabs : marathonTabs
+
+  const effectiveTab =
+    marathon.mode === "by-camera" &&
+    (activeTab === TAB.NOT_VERIFIED || activeTab === TAB.VERIFIED)
+      ? TAB.ALL
+      : marathon.mode !== "by-camera" &&
+          (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
+        ? TAB.ALL
+        : activeTab
+
+  useEffect(() => {
+    if (
+      marathon.mode === "by-camera" &&
+      (activeTab === TAB.NOT_VERIFIED || activeTab === TAB.VERIFIED)
+    ) {
+      setQueryState({ tab: TAB.ALL })
+    } else if (
+      marathon.mode !== "by-camera" &&
+      (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
+    ) {
+      setQueryState({ tab: TAB.ALL })
+    }
+  }, [marathon.mode, activeTab, setQueryState])
 
   return (
     <div className="space-y-4">
@@ -118,7 +154,7 @@ export function SubmissionsHeader() {
       </div>
 
       <Tabs
-        value={activeTab}
+        value={effectiveTab}
         onValueChange={(value) => onTabChange(value as Tab)}
         className="space-y-0"
       >

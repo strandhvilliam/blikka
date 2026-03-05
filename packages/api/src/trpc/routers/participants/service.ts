@@ -70,6 +70,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
         statusFilter,
         excludeStatuses,
         hasValidationErrors,
+        votedFilter,
       }) {
         return yield* db.participantsQueries.getInfiniteParticipantsByDomain({
           domain,
@@ -83,6 +84,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
           statusFilter,
           excludeStatuses,
           hasValidationErrors,
+          votedFilter,
         });
       });
 

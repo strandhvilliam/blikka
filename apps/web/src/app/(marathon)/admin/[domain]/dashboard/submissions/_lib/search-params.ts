@@ -14,6 +14,8 @@ export const submissionSearchParams = {
     "initialized",
     "not-verified",
     "verified",
+    "not-voted",
+    "voted",
     "validation-errors",
   ]).withDefault("all"),
   search: parseAsString,
