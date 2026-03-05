@@ -19,7 +19,7 @@ const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
     const votingSession = yield* fetchEffectQuery(
       trpc.voting.getVotingSession.queryOptions({ domain, token }),
     ).pipe(
-      Effect.catchAll((error) => {
+      Effect.catch((error) => {
         console.error("Failed to fetch voting session:", error);
         return Effect.fail(notFound());
       }),
@@ -44,7 +44,7 @@ const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
       </HydrateClient>
     );
   },
-  Effect.catchAll((error) =>
+  Effect.catch((error) =>
     Effect.succeed(
       <div>
         Error: {error instanceof Error ? error.message : String(error)}

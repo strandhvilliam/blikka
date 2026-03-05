@@ -79,7 +79,7 @@ const _JuryCompletedPage = Effect.fn("@blikka/web/JuryCompletedPage")(
       </div>
     )
   },
-  Effect.catchAll((error) =>
+  Effect.catch((error) =>
     Effect.succeed(
       <div>
         Error: {error instanceof Error ? error.message : String(error)}

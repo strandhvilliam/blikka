@@ -27,7 +27,7 @@ const _JuryInvitationDetailsPage = Effect.fn("@blikka/web/JuryInvitationDetailsP
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Page(_JuryInvitationDetailsPage)

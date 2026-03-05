@@ -30,7 +30,7 @@ const _RulesPage = Effect.fn("@blikka/web/RulesPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Page(_RulesPage)

@@ -25,7 +25,7 @@ const _MarathonLayout = Effect.fn("@blikka/web/MarathonLayout")(
       </Document>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Layout(_MarathonLayout)

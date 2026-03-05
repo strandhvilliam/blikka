@@ -7,7 +7,7 @@ const _DomainAdminLayout = Effect.fn("@blikka/web/DomainAdminLayout")(
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
     return <DomainProvider domain={domain}>{children}</DomainProvider>
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Layout(_DomainAdminLayout)

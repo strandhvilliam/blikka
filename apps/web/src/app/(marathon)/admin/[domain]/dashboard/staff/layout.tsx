@@ -37,7 +37,7 @@ const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Layout(_StaffLayout)

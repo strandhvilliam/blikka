@@ -11,7 +11,7 @@ const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
       Schema.Struct({
         next: Schema.optional(Schema.String),
       })
-    )(searchParams).pipe(Effect.catchAll(() => Effect.succeed({ next: undefined })))
+    )(searchParams).pipe(Effect.catch(() => Effect.succeed({ next: undefined })))
 
     if (Option.isSome(session)) {
       redirect(params.next ?? "/admin")
@@ -25,7 +25,7 @@ const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
       </div>
     )
   },
-  Effect.catchAll(() => Effect.succeed(<div />))
+  Effect.catch(() => Effect.succeed(<div />))
 )
 
 export default Page(_LoginPage)

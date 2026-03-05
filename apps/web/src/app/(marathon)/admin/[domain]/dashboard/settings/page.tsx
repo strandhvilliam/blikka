@@ -30,7 +30,7 @@ const _SettingsPage = Effect.fn("@blikka/web/SettingsPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Page(_SettingsPage)

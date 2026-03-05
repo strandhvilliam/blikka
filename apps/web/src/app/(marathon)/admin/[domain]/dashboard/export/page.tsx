@@ -21,7 +21,7 @@ const _ExportPage = Effect.fn("@blikka/web/ExportPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Page(_ExportPage)

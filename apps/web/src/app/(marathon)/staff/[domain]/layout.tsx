@@ -25,7 +25,7 @@ const _StaffDomainLayout = Effect.fn("@blikka/web/StaffDomainLayout")(
 
     return <DomainProvider domain={domain}>{children}</DomainProvider>
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Layout(_StaffDomainLayout)

@@ -37,7 +37,7 @@ const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Page(_ParticipantsPage)

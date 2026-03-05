@@ -13,7 +13,7 @@ const _VerifyPage = Effect.fn("@blikka/web/VerifyPage")(
         next: Schema.optional(Schema.String),
       })
     )(searchParams).pipe(
-      Effect.catchAll(() =>
+      Effect.catch(() =>
         Effect.succeed({
           email: null as string | null,
           next: undefined as string | undefined,
@@ -37,7 +37,7 @@ const _VerifyPage = Effect.fn("@blikka/web/VerifyPage")(
       </div>
     )
   },
-  Effect.catchAll(() => {
+  Effect.catch(() => {
     redirect("/auth/login?error=verification_failed")
     return Effect.succeed(<div />)
   })

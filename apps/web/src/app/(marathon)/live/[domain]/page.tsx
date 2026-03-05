@@ -24,7 +24,7 @@ const _LivePage = Effect.fn("@blikka/web/LivePage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) =>
+  Effect.catch((error) =>
     Effect.succeed(<div>Error: {error instanceof Error ? error.message : String(error)}</div>)
   )
 )

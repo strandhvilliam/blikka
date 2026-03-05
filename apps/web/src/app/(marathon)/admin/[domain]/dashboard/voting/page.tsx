@@ -60,7 +60,7 @@ const _VotingPage = Effect.fn("@blikka/web/VotingPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>)),
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Page(_VotingPage)

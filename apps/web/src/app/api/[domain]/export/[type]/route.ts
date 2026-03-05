@@ -256,6 +256,7 @@ async function handleValidationResultsExport(
 
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" })
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new NextResponse(zipBuffer as any, {
       headers: {
         "Content-Type": "application/zip",

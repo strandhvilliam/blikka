@@ -36,7 +36,7 @@ const _JuryPage = Effect.fn("@blikka/web/JuryPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) =>
+  Effect.catch((error) =>
     Effect.succeed(
       <div>
         Error: {error instanceof Error ? error.message : String(error)}

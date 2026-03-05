@@ -29,7 +29,7 @@ const _JuryLayout = Effect.fn("@blikka/web/JuryLayout")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Layout(_JuryLayout)

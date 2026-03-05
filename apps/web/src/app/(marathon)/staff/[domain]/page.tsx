@@ -40,7 +40,7 @@ const _StaffDomainPage = Effect.fn("@blikka/web/StaffDomainPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Page(_StaffDomainPage)

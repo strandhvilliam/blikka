@@ -8,7 +8,7 @@ const _DomainLiveLayout = Effect.fn("@blikka/web/DomainLiveLayout")(
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
     return <DomainProvider domain={domain}>{children}</DomainProvider>
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Layout(_DomainLiveLayout)

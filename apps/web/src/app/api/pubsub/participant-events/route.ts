@@ -1,5 +1,5 @@
 import { Route } from "@/lib/next-utils"
-import { Data, Effect, Either, Schema, Stream } from "effect"
+import { Effect, Option, Schema, Stream } from "effect"
 import { PubSubChannel, PubSubService, RunStateEventSchema } from "@blikka/pubsub"
 import { NextRequest } from "next/server"
 
@@ -29,12 +29,12 @@ const _route = Effect.fn("@blikka/web/pubsub/participantEvents")(
     const subscription = pubsub.subscribe(channel).pipe(
       Stream.filterEffect((data) =>
         Effect.gen(function* () {
-          const payload = Schema.decodeUnknownEither(RunStateEventSchema)(data.payload)
+          const payload = Schema.decodeUnknownOption(RunStateEventSchema)(data.payload)
 
-          if (Either.isLeft(payload)) {
+          if (Option.isNone(payload)) {
             return false
           }
-          return allowedTaskNames.includes(payload.right.taskName)
+          return allowedTaskNames.includes(payload.value.taskName)
         })
       ),
       Stream.map((data) => new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`)),

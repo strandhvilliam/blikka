@@ -22,7 +22,7 @@ const _ByCameraPage = Effect.fn("@blikka/web/ByCameraPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) =>
+  Effect.catch((error) =>
     Effect.succeed(<div>Error: {error instanceof Error ? error.message : String(error)}</div>)
   )
 )

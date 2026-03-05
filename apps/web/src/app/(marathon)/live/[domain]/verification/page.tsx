@@ -57,7 +57,7 @@ const _VerificationPage = Effect.fn("@blikka/web/VerificationPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) =>
+  Effect.catch((error) =>
     Effect.succeed(<div>Error: {error instanceof Error ? error.message : String(error)}</div>)
   )
 )

@@ -1,20 +1,23 @@
 import { Route } from "@/lib/next-utils"
-import { Data, Effect, Schema, Stream } from "effect"
+import { Effect, Schema, Stream } from "effect"
 import { PubSubChannel, PubSubService } from "@blikka/pubsub"
 import { NextRequest } from "next/server"
 
-class ValidateParticipantReferenceError extends Data.TaggedError(
-  "ValidateParticipantReferenceError"
-)<{
-  message?: string
-  cause?: unknown
-}> {}
+class ValidateParticipantReferenceError extends Schema.TaggedErrorClass<ValidateParticipantReferenceError>()(
+  "ValidateParticipantReferenceError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  }
+) {
+}
 
 const environment = process.env.NODE_ENV === "production" ? "prod" : "dev"
 
-const ParticipantReferenceSchema = Schema.String.pipe(
-  Schema.length(4),
-  Schema.pattern(/^[0-9a-zA-Z]+$/)
+const ParticipantReferenceSchema = Schema.String.check(
+  Schema.isMinLength(4),
+  Schema.isMaxLength(4),
+  Schema.isPattern(/^[0-9a-zA-Z]+$/)
 )
 
 const validateParticipantReference = Effect.fnUntraced(function* (
@@ -25,7 +28,7 @@ const validateParticipantReference = Effect.fnUntraced(function* (
       new ValidateParticipantReferenceError({ message: "Participant reference is required" })
     )
   }
-  return yield* Schema.decode(ParticipantReferenceSchema)(participantReference).pipe(
+  return yield* Schema.decodeEffect(ParticipantReferenceSchema)(participantReference).pipe(
     Effect.mapError((error) => new ValidateParticipantReferenceError({ message: error.message }))
   )
 })

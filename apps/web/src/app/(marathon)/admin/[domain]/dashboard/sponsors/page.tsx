@@ -23,7 +23,7 @@ const _SponsorsPage = Effect.fn("@blikka/web/SponsorsPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Page(_SponsorsPage)

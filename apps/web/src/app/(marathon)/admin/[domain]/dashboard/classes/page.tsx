@@ -32,7 +32,7 @@ const _ClassesPage = Effect.fn("@blikka/web/ClassesPage")(
       </HydrateClient>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Page(_ClassesPage)

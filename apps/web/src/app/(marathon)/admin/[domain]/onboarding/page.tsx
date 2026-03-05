@@ -31,7 +31,7 @@ const _OnboardingPage = Effect.fn("@blikka/web/OnboardingPage")(
       </div>
     )
   },
-  Effect.catchAll((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
 )
 
 export default Page(_OnboardingPage)
