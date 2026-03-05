@@ -10,7 +10,7 @@ export const rulesRouter = createTRPCRouter({
   getByDomain: domainProcedure.input(GetByDomainInputSchema).query(
     trpcEffect(
       Effect.fn("RulesRouter.getByDomain")(function* ({ input }) {
-        return yield* RulesApiService.getRulesByDomain({ domain: input.domain })
+        return yield* RulesApiService.use((s) => s.getRulesByDomain({ domain: input.domain }))
       })
     )
   ),
@@ -18,10 +18,10 @@ export const rulesRouter = createTRPCRouter({
   updateMultiple: domainProcedure.input(UpdateMultipleInputSchema).mutation(
     trpcEffect(
       Effect.fn("RulesRouter.updateMultiple")(function* ({ input }) {
-        return yield* RulesApiService.updateMultipleRules({
+        return yield* RulesApiService.use((s) => s.updateMultipleRules({
           domain: input.domain,
           data: [...input.data],
-        })
+        }))
       })
     )
   ),

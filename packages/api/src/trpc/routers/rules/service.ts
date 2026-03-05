@@ -1,17 +1,15 @@
 import "server-only"
 
-import { Effect, Option } from "effect"
+import { Effect, Layer, Option, ServiceMap } from "effect"
 import {
   type NewRuleConfig,
   type RuleConfig, Database } from "@blikka/db"
 import { RulesApiError } from "./schemas"
 
-export class RulesApiService extends Effect.Service<RulesApiService>()(
+export class RulesApiService extends ServiceMap.Service<RulesApiService>()(
   "@blikka/api/RulesApiService",
   {
-    accessors: true,
-    dependencies: [Database.Default],
-    effect: Effect.gen(function*() {
+    make: Effect.gen(function*() {
       const db = yield* Database
 
       const getRulesByDomain = Effect.fn("RulesService.getRulesByDomain")(function*({
@@ -97,4 +95,7 @@ export class RulesApiService extends Effect.Service<RulesApiService>()(
     }),
   }
 ) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Database.layer)
+  )
 }

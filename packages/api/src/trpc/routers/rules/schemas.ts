@@ -1,6 +1,6 @@
 import { Schema } from "effect"
 
-export class RulesApiError extends Schema.TaggedError<RulesApiError>()(
+export class RulesApiError extends Schema.TaggedErrorClass<RulesApiError>()(
   "@blikka/api/RulesApiError",
   {
     message: Schema.String,
@@ -9,17 +9,17 @@ export class RulesApiError extends Schema.TaggedError<RulesApiError>()(
 ) {
 }
 
-export const GetByDomainInputSchema = Schema.standardSchemaV1(
+export const GetByDomainInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({ domain: Schema.String })
 )
 
-export const UpdateMultipleInputSchema = Schema.standardSchemaV1(
+export const UpdateMultipleInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     data: Schema.Array(
       Schema.Struct({
         ruleKey: Schema.String,
-        params: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+        params: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
         severity: Schema.optional(Schema.String),
         enabled: Schema.optional(Schema.Boolean),
       })
