@@ -1,14 +1,14 @@
-"use client";
+"use client"
 
-import { useMemo } from "react";
+import { useMemo } from "react"
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   flexRender,
   type SortingState,
-} from "@tanstack/react-table";
-import { useRouter } from "next/navigation";
+} from "@tanstack/react-table"
+import { useRouter } from "next/navigation"
 import {
   Table,
   TableBody,
@@ -16,21 +16,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Loader2, AlertCircle, FileText } from "lucide-react";
-import { formatDomainPathname } from "@/lib/utils";
-import { useSubmissionsTable } from "../_lib/use-submissions-table";
-import { SubmissionsFilters } from "./submissions-filters";
-import { getSubmissionsColumns } from "../_lib/submissions-columns";
-import { SubmissionsBulkToolbar } from "./submissions-bulk-toolbar";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc/client";
-import { toast } from "sonner";
+} from "@/components/ui/table"
+import { Loader2, AlertCircle, FileText } from "lucide-react"
+import { formatDomainPathname } from "@/lib/utils"
+import { useSubmissionsTable } from "../_lib/use-submissions-table"
+import { SubmissionsFilters } from "./submissions-filters"
+import { getSubmissionsColumns } from "../_lib/submissions-columns"
+import { SubmissionsBulkToolbar } from "./submissions-bulk-toolbar"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useTRPC } from "@/lib/trpc/client"
+import { toast } from "sonner"
 
 export function SubmissionsTable() {
-  const router = useRouter();
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const router = useRouter()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
   const {
     domain,
     marathon,
@@ -56,67 +56,66 @@ export function SubmissionsTable() {
     isSelected,
     clearSelection,
     canVerifySelected,
-    queryParams,
-  } = useSubmissionsTable();
+  } = useSubmissionsTable()
 
   const batchDeleteMutation = useMutation(
     trpc.participants.batchDelete.mutationOptions({
       onSuccess: async (data, variables) => {
         toast.success(
           `Deleted ${data.deletedCount} participant${data.deletedCount === 1 ? "" : "s"}`,
-        );
+        )
         if (data.failedIds.length > 0) {
           toast.error(
             `Failed to delete ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"}`,
-          );
+          )
         }
 
         await queryClient.invalidateQueries({
           queryKey: trpc.participants.getByDomainInfinite.pathKey(),
-        });
+        })
 
-        clearSelection();
+        clearSelection()
       },
       onError: (error) => {
-        toast.error(`Failed to delete participants: ${error.message}`);
+        toast.error(`Failed to delete participants: ${error.message}`)
       },
     }),
-  );
+  )
 
   const batchVerifyMutation = useMutation(
     trpc.participants.batchVerify.mutationOptions({
       onSuccess: async (data, variables) => {
         toast.success(
           `Verified ${data.updatedCount} participant${data.updatedCount === 1 ? "" : "s"}`,
-        );
+        )
         if (data.failedIds.length > 0) {
           toast.error(
             `Failed to verify ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"} (not in completed status)`,
-          );
+          )
         }
-        clearSelection();
+        clearSelection()
       },
       onError: (error) => {
-        toast.error(`Failed to verify participants: ${error.message}`);
+        toast.error(`Failed to verify participants: ${error.message}`)
       },
     }),
-  );
+  )
 
   const handleBatchDelete = () => {
-    if (selectedCount === 0) return;
+    if (selectedCount === 0) return
     batchDeleteMutation.mutate({
       ids: Array.from(selectedIds),
       domain,
-    });
-  };
+    })
+  }
 
   const handleBatchVerify = () => {
-    if (selectedCount === 0 || !canVerifySelected) return;
+    if (selectedCount === 0 || !canVerifySelected) return
     batchVerifyMutation.mutate({
       ids: Array.from(selectedIds),
       domain,
-    });
-  };
+    })
+  }
 
   const columns = useMemo(
     () =>
@@ -134,7 +133,7 @@ export function SubmissionsTable() {
       toggleSelection,
       toggleAllVisible,
     ],
-  );
+  )
 
   const table = useReactTable({
     data: participants,
@@ -146,7 +145,7 @@ export function SubmissionsTable() {
     },
     onSortingChange: setSorting,
     manualSorting: true,
-  });
+  })
 
   return (
     <div className="flex flex-col h-full space-y-4">
@@ -254,18 +253,18 @@ export function SubmissionsTable() {
                 ) : (
                   <>
                     {table.getRowModel().rows.map((row) => {
-                      const participant = row.original;
+                      const participant = row.original
                       const byCameraSubmissionHref =
                         participant.activeTopicSubmissionId !== null
                           ? `/admin/dashboard/submissions/${participant.reference}/${participant.activeTopicSubmissionId}`
-                          : `/admin/dashboard/submissions/${participant.reference}`;
+                          : `/admin/dashboard/submissions/${participant.reference}`
                       const href = formatDomainPathname(
                         marathon?.mode === "by-camera"
                           ? byCameraSubmissionHref
                           : `/admin/dashboard/submissions/${participant.reference}`,
                         domain,
-                      );
-                      const isRowSelected = isSelected(participant.id);
+                      )
+                      const isRowSelected = isSelected(participant.id)
                       return (
                         <TableRow
                           key={row.id}
@@ -275,11 +274,11 @@ export function SubmissionsTable() {
                             }`}
                           onClick={(e) => {
                             // Don't navigate if clicking the checkbox
-                            const target = e.target as HTMLElement;
+                            const target = e.target as HTMLElement
                             const isCheckboxClick =
-                              target.closest('[data-slot="checkbox"]') !== null;
+                              target.closest('[data-slot="checkbox"]') !== null
                             if (!isCheckboxClick) {
-                              router.push(href);
+                              router.push(href)
                             }
                           }}
                         >
@@ -292,7 +291,7 @@ export function SubmissionsTable() {
                             </TableCell>
                           ))}
                         </TableRow>
-                      );
+                      )
                     })}
                     <TableRow>
                       <TableCell colSpan={columns.length} className="py-2">
@@ -324,5 +323,5 @@ export function SubmissionsTable() {
         </div>
       </div>
     </div>
-  );
+  )
 }

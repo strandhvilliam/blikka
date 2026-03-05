@@ -2,8 +2,7 @@ import type { NextRequest } from "next/server"
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch"
 
 import { appRouter, createTRPCContext } from "@blikka/api/trpc"
-import { serverRuntime } from "@/lib/runtime"
-import { redirect } from "next/navigation"
+import { serverRuntime } from "@/lib/server-runtime"
 
 const setCorsHeaders = (res: Response) => {
   res.headers.set("Access-Control-Allow-Origin", "*")

@@ -1,5 +1,6 @@
 import { Effect } from "effect"
-import { ExifParser } from "@blikka/image-manipulation/exif-parser"
+import { ExifParser } from "@blikka/image-manipulation"
+import { clientRuntime } from "@/lib/client-runtime"
 
 export function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = []
@@ -12,13 +13,17 @@ export function chunk<T>(array: T[], size: number): T[][] {
 export async function parseExifData(file: File): Promise<Record<string, unknown> | null> {
   try {
     const buff = await file.arrayBuffer()
-    const tags = await Effect.runPromise(ExifParser.parse(new Uint8Array(buff)).pipe(Effect.provide(ExifParser.Default)))
+    const tags = await clientRuntime.runPromise(
+      Effect.gen(function* () {
+        const parser = yield* ExifParser
+        return yield* parser.parse(new Uint8Array(buff))
+      }),
+    )
     return tags as Record<string, unknown>
   } catch {
     return null
   }
 }
-
 
 export function isHeicFile(file: File): boolean {
   return (
@@ -27,7 +32,7 @@ export function isHeicFile(file: File): boolean {
     /\.heic$/i.test(file.name) ||
     /\.heif$/i.test(file.name)
   )
-};
+}
 
 export async function convertHeicToJpeg(file: File): Promise<File | null> {
   try {
@@ -40,17 +45,14 @@ export async function convertHeicToJpeg(file: File): Promise<File | null> {
     const blob = Array.isArray(result) ? result[0] : result
     if (!blob) return null
 
-    return new File(
-      [blob],
-      file.name.replace(/\.heic$/i, ".jpg").replace(/\.heif$/i, ".jpg"),
-      { type: "image/jpeg" },
-    )
+    return new File([blob], file.name.replace(/\.heic$/i, ".jpg").replace(/\.heif$/i, ".jpg"), {
+      type: "image/jpeg",
+    })
   } catch (error) {
     console.error(`Failed to convert HEIC file ${file.name}:`, error)
     return null
   }
-};
-
+}
 
 export function getExifDate(exif: Record<string, unknown>): Date | null {
   if (!exif) return null

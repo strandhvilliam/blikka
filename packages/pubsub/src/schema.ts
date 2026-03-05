@@ -16,6 +16,7 @@ type PubSubChannelEnvironment = Schema.Schema.Type<typeof PubSubChannelEnvironme
 type PubSubChannelType = Schema.Schema.Type<typeof PubSubChannelType>
 type PubSubChannelString = Schema.Schema.Type<typeof PubSubChannelString>
 
+
 export class PubSubChannel extends Schema.Class<PubSubChannel>("PubSubChannel")({
   environment: PubSubChannelEnvironment,
   type: PubSubChannelType,
@@ -46,6 +47,11 @@ export class PubSubChannel extends Schema.Class<PubSubChannel>("PubSubChannel")(
   })
 }
 
+export class PubSubMessageError extends Schema.TaggedErrorClass<PubSubMessageError>()("PubSubMessageError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {
+}
 export class PubSubMessage extends Schema.Class<PubSubMessage>("PubSubMessage")({
   channel: PubSubChannelString,
   payload: Schema.Unknown,
@@ -56,13 +62,16 @@ export class PubSubMessage extends Schema.Class<PubSubMessage>("PubSubMessage")(
   static create = Effect.fnUntraced(function* <T>(
     channel: PubSubChannel,
     payload: T,
-    schema?: Schema.Codec<T, any, any, never>
+    schema?: Schema.Schema<T>
   ) {
-    return yield* Schema.encodeUnknownEffect(PubSubMessage)({
-      channel: yield* PubSubChannel.toString(channel),
-      payload: schema ? yield* Schema.encodeEffect(schema)(payload) : payload,
+    const channelString = yield* PubSubChannel.toString(channel)
+    const encodedPayload = schema ? yield* Schema.encodeEffect(schema)(payload) : payload
+    return yield* Schema.decodeUnknownEffect(PubSubMessage)({
+      channel: channelString,
+      payload: encodedPayload,
       timestamp: Date.now(),
       messageId: crypto.randomUUID(),
     })
+      .pipe(Effect.mapError((error) => new PubSubMessageError({ message: error.message, cause: error })))
   })
 }

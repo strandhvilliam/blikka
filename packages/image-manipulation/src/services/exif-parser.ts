@@ -1,17 +1,13 @@
 import exifr from "exifr"
 import { ServiceMap, Effect, Schema, Layer } from "effect"
-import { SharpImageService } from "./sharp-image-service"
 
 export class ExifParseError extends Schema.TaggedErrorClass<ExifParseError>()("ExifParserError", {
   message: Schema.String,
-  cause: Schema.optional(Schema.Unknown)
+  cause: Schema.optional(Schema.Unknown),
 }) {
 }
 
-export const ExifSchema = Schema.Record(
-  Schema.String,
-  Schema.Unknown,
-)
+export const ExifSchema = Schema.Record(Schema.String, Schema.Unknown)
 
 export type ExifData = typeof ExifSchema.Type
 
@@ -22,12 +18,13 @@ export class ExifParser extends ServiceMap.Service<ExifParser>()(
       const parse = Effect.fn("ExifParser.parse")(
         function* (
           file: Uint8Array<ArrayBufferLike>,
-          options: { keepBinaryData: boolean } = { keepBinaryData: false }
+          options: { keepBinaryData: boolean } = { keepBinaryData: false },
         ) {
           const exif = yield* Effect.tryPromise(() => exifr.parse(file))
           const sanitizedExif = yield* Effect.try({
             try: () => sanitizeExifData(exif, options?.keepBinaryData),
-            catch: (error) => new ExifParseError({ message: 'Failed to sanitize EXIF data', cause: error })
+            catch: (error) =>
+              new ExifParseError({ message: "Failed to sanitize EXIF data", cause: error }),
           })
 
           const decoded = Schema.decodeUnknownSync(ExifSchema)(sanitizedExif)
@@ -38,12 +35,12 @@ export class ExifParser extends ServiceMap.Service<ExifParser>()(
             new ExifParseError({
               cause: error,
               message: "Failed to parse EXIF data",
-            })
-        )
+            }),
+        ),
       )
-      const parseExcludeLocationData = Effect.fn(
-        "ExifParser.parseExcludeLocationData"
-      )(function* (file: Buffer) {
+      const parseExcludeLocationData = Effect.fn("ExifParser.parseExcludeLocationData")(function* (
+        file: Buffer,
+      ) {
         const exif = yield* parse(file)
         const withoutLocationData = yield* removeGpsData(exif)
         return withoutLocationData
@@ -54,11 +51,10 @@ export class ExifParser extends ServiceMap.Service<ExifParser>()(
         parseExcludeLocationData,
       } as const
     }),
-  }
+  },
 ) {
   static readonly layer = Layer.effect(this, this.make)
 }
-
 
 /**
  * Sanitizes EXIF data for safe serialization and storage.
@@ -72,7 +68,7 @@ export class ExifParser extends ServiceMap.Service<ExifParser>()(
 export const sanitizeExifData = (
   input: unknown,
   keepBinaryData: boolean = false,
-  visited: WeakSet<object> = new WeakSet()
+  visited: WeakSet<object> = new WeakSet(),
 ): unknown => {
   // simple primitives
   if (
@@ -96,9 +92,7 @@ export const sanitizeExifData = (
 
   if (
     !keepBinaryData &&
-    (input instanceof Uint8Array ||
-      input instanceof ArrayBuffer ||
-      Buffer.isBuffer(input))
+    (input instanceof Uint8Array || input instanceof ArrayBuffer || Buffer.isBuffer(input))
   ) {
     const bytes =
       input instanceof ArrayBuffer
@@ -108,8 +102,6 @@ export const sanitizeExifData = (
           : 0
     return `[Binary Data: ${bytes} bytes]`
   }
-
-
 
   // Date → ISO
   if (input instanceof Date) {
@@ -123,9 +115,7 @@ export const sanitizeExifData = (
 
   // Arrays
   if (Array.isArray(input)) {
-    const result = input.map((item) =>
-      sanitizeExifData(item, keepBinaryData, visited)
-    )
+    const result = input.map((item) => sanitizeExifData(item, keepBinaryData, visited))
     visited.delete(input)
     return result
   }
@@ -135,9 +125,7 @@ export const sanitizeExifData = (
     const result: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(input)) {
       const sanitizedKey =
-        typeof key === "string"
-          ? key.replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-          : key
+        typeof key === "string" ? key.replace(/[\u0000-\u001F\u007F-\u009F]/g, "") : key
       if (sanitizedKey) {
         result[sanitizedKey] = sanitizeExifData(value, keepBinaryData, visited)
       }

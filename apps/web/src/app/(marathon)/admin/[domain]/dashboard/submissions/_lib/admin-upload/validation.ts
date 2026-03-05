@@ -45,8 +45,7 @@ export async function runAdminPhotoValidation({
   }))
 
   try {
-    const results = await runClientValidation(rules, validationInputs)
-    return results
+    return await runClientValidation(rules, validationInputs)
   } catch (error) {
     throw new Error(`Failed to validate selected images: ${error instanceof Error ? error.message : "Unknown error"}`)
   }
