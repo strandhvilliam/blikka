@@ -1,16 +1,14 @@
 import "server-only"
 
-import { Effect, Option, Config } from "effect"
+import { Config, Effect, Layer, Option, ServiceMap } from "effect"
 import { Database, type NewSponsor } from "@blikka/db"
 import { S3Service } from "@blikka/s3"
 import { SponsorsApiError } from "./schemas"
 
-export class SponsorsApiService extends Effect.Service<SponsorsApiService>()(
+export class SponsorsApiService extends ServiceMap.Service<SponsorsApiService>()(
   "@blikka/api/sponsors-api-service",
   {
-    accessors: true,
-    dependencies: [Database.Default, S3Service.Default],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
       const s3 = yield* S3Service
 
@@ -92,4 +90,11 @@ export class SponsorsApiService extends Effect.Service<SponsorsApiService>()(
       } as const
     }),
   }
-) { }
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      Database.layer,
+      S3Service.layer,
+    ))
+  )
+}

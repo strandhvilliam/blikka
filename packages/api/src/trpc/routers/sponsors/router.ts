@@ -14,9 +14,11 @@ export const sponsorsRouter = createTRPCRouter({
   getByMarathon: domainProcedure.input(GetSponsorsByMarathonInputSchema).query(
     trpcEffect(
       Effect.fn("SponsorsRouter.getByMarathon")(function* ({ input, ctx }) {
-        return yield* SponsorsApiService.getSponsorsByMarathon({
-          domain: input.domain,
-        })
+        return yield* SponsorsApiService.use((s) =>
+          s.getSponsorsByMarathon({
+            domain: input.domain,
+          })
+        )
       })
     )
   ),
@@ -24,12 +26,14 @@ export const sponsorsRouter = createTRPCRouter({
   create: domainProcedure.input(CreateSponsorInputSchema).mutation(
     trpcEffect(
       Effect.fn("SponsorsRouter.create")(function* ({ input }) {
-        return yield* SponsorsApiService.createSponsor({
-          domain: input.domain,
-          type: input.type,
-          position: input.position,
-          key: input.key,
-        })
+        return yield* SponsorsApiService.use((s) =>
+          s.createSponsor({
+            domain: input.domain,
+            type: input.type,
+            position: input.position,
+            key: input.key,
+          })
+        )
       })
     )
   ),
@@ -37,11 +41,13 @@ export const sponsorsRouter = createTRPCRouter({
   generateUploadUrl: domainProcedure.input(GenerateSponsorUploadUrlInputSchema).mutation(
     trpcEffect(
       Effect.fn("SponsorsRouter.generateUploadUrl")(function* ({ input }) {
-        return yield* SponsorsApiService.generateUploadUrl({
-          domain: input.domain,
-          type: input.type,
-          position: input.position,
-        })
+        return yield* SponsorsApiService.use((s) =>
+          s.generateUploadUrl({
+            domain: input.domain,
+            type: input.type,
+            position: input.position,
+          })
+        )
       })
     )
   ),
