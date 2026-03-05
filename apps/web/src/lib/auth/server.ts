@@ -5,7 +5,9 @@ import { Effect, Layer, Option } from "effect"
 import { headers } from "next/headers"
 import { protocol } from "@/config"
 
-const baseUrl = `${protocol}://${process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL || "localhost:3002"}`
+const baseUrl =
+  process.env.BETTER_AUTH_URL ??
+  `${protocol}://${process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL || "localhost:3002"}`
 
 export const AuthConfigLayer = Layer.succeed(AuthConfig, {
   baseUrl,

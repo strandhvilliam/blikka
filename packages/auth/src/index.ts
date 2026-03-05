@@ -20,6 +20,7 @@ export class AuthConfig extends ServiceMap.Service<AuthConfig, {
 
 const isProduction = process.env.NODE_ENV === "production"
 const rootDomain = isProduction ? process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL : "localhost:3002"
+
 export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
   "@blikka/auth/better-auth-service",
   {
@@ -31,11 +32,24 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
       const config = {
         database: drizzleAdapter(client, {
           provider: "pg",
-          schema
+          schema: {
+            user: schema.user,
+            account: schema.account,
+            session: schema.session,
+            verification: schema.verification,
+          },
         }),
         secret: authConfig.secret,
         baseURL: authConfig.baseUrl,
         trustedOrigins: [`http://${rootDomain}`, `https://*.${rootDomain}`, `*.${rootDomain}`],
+
+        socialProviders: {
+          google: {
+            clientId: process.env.GOOGLE_CLIENT_ID as string,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+            prompt: "select_account",
+          },
+        },
 
         advanced: {
           crossSubDomainCookies: {
