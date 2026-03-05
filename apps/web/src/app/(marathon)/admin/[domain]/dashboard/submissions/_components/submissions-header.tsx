@@ -12,6 +12,7 @@ import { AdminParticipantUploadDialog } from "./admin-participant-upload-dialog"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
+import { PrimaryButton } from "@/components/ui/primary-button"
 
 
 function getActiveTopicDisplayText({
@@ -30,6 +31,7 @@ function getActiveTopicDisplayText({
 const TAB = {
   ALL: "all",
   INITIALIZED: "initialized",
+  UPLOADED: "uploaded",
   NOT_VERIFIED: "not-verified",
   VERIFIED: "verified",
   NOT_VOTED: "not-voted",
@@ -72,6 +74,7 @@ export function SubmissionsHeader() {
   const marathonTabs: { value: Tab; label: string }[] = [
     { value: TAB.ALL, label: "All Submissions" },
     { value: TAB.INITIALIZED, label: "Initialized" },
+    { value: TAB.UPLOADED, label: "Uploaded" },
     { value: TAB.NOT_VERIFIED, label: "Not Verified" },
     { value: TAB.VERIFIED, label: "Verified" },
     { value: TAB.VALIDATION_ERRORS, label: "Validation Errors" },
@@ -80,6 +83,7 @@ export function SubmissionsHeader() {
   const byCameraTabs: { value: Tab; label: string }[] = [
     { value: TAB.ALL, label: "All Submissions" },
     { value: TAB.INITIALIZED, label: "Initialized" },
+    { value: TAB.UPLOADED, label: "Uploaded" },
     { value: TAB.NOT_VOTED, label: "Not Voted" },
     { value: TAB.VOTED, label: "Voted" },
     { value: TAB.VALIDATION_ERRORS, label: "Validation Errors" },
@@ -90,10 +94,10 @@ export function SubmissionsHeader() {
 
   const effectiveTab =
     marathon.mode === "by-camera" &&
-    (activeTab === TAB.NOT_VERIFIED || activeTab === TAB.VERIFIED)
+      (activeTab === TAB.NOT_VERIFIED || activeTab === TAB.VERIFIED)
       ? TAB.ALL
       : marathon.mode !== "by-camera" &&
-          (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
+        (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
         ? TAB.ALL
         : activeTab
 
@@ -135,21 +139,13 @@ export function SubmissionsHeader() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <Button
+          <PrimaryButton
             onClick={() => setIsCreateUploadDialogOpen(true)}
             className="bg-[#20201c] hover:bg-[#313129]"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4" />
             Add Participant Upload
-          </Button>
-          <Button asChild variant="outline">
-            <Link
-              href={formatDomainPathname("/admin/dashboard/voting", domain)}
-            >
-              <Vote className="h-4 w-4 mr-2" />
-              Open Voting
-            </Link>
-          </Button>
+          </PrimaryButton>
         </div>
       </div>
 

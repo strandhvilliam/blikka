@@ -7,9 +7,10 @@ import {
   InitializeByCameraUploadSchema,
   CheckParticipantExistsSchema,
   GetUploadStatusSchema,
+  ReTriggerUploadFlowSchema,
 } from "./schemas"
 import { trpcEffect } from "../../utils"
-import { createTRPCRouter, publicProcedure } from "../../root"
+import { createTRPCRouter, domainProcedure, publicProcedure } from "../../root"
 import { UploadFlowApiService } from "./service"
 
 export const uploadFlowRouter = createTRPCRouter({
@@ -64,4 +65,14 @@ export const uploadFlowRouter = createTRPCRouter({
       }),
     ),
   ),
+
+  reTriggerUploadFlow: domainProcedure
+    .input(ReTriggerUploadFlowSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("UploadFlowRouter.reTriggerUploadFlow")(function* ({ input }) {
+          return yield* UploadFlowApiService.use((s) => s.reTriggerUploadFlow(input))
+        }),
+      ),
+    ),
 })

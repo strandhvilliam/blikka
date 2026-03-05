@@ -3,7 +3,7 @@
 import { ArrowLeft, User } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import type { Submission, Participant, Topic, ValidationResult } from "@blikka/db"
+import type { Participant } from "@blikka/db"
 import { Badge } from "@/components/ui/badge"
 import { formatDomainPathname } from "@/lib/utils"
 import { useDomain } from "@/lib/domain-provider"

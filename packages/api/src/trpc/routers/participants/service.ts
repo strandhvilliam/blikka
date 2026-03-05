@@ -69,6 +69,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
         topicId,
         statusFilter,
         excludeStatuses,
+        includeStatuses,
         hasValidationErrors,
         votedFilter,
       }) {
@@ -83,6 +84,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
           topicId,
           statusFilter,
           excludeStatuses,
+          includeStatuses,
           hasValidationErrors,
           votedFilter,
         });

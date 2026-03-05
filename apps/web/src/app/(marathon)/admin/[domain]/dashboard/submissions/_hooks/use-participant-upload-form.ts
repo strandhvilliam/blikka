@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import type { ValidationResult } from "@blikka/validation";
 import { hasBlockingValidationErrors } from "../_lib/validation";
 import {
@@ -107,9 +107,11 @@ export function useParticipantUploadForm(
     form.reset();
   }
 
+  const formValues = useStore(form.store, (state) => state.values);
+
   return {
     form,
-    formValues: form.state.values,
+    formValues,
     validateFiles,
     resetForm,
   };

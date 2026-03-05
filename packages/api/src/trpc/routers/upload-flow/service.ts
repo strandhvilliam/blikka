@@ -30,16 +30,16 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           })
           .pipe(
             Effect.andThen(
-                Option.match({
-                  onSome: (marathon) => Effect.succeed(marathon),
-                  onNone: () =>
-                    Effect.fail(
-                      new UploadFlowApiError({
-                        message: `[${domain}] Marathon not found`,
-                      }),
-                    ),
-                }),
-              ),
+              Option.match({
+                onSome: (marathon) => Effect.succeed(marathon),
+                onNone: () =>
+                  Effect.fail(
+                    new UploadFlowApiError({
+                      message: `[${domain}] Marathon not found`,
+                    }),
+                  ),
+              }),
+            ),
           )
 
         const processedTopics = marathon.topics.reduce((acc, topic) => {
@@ -439,6 +439,16 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         })
       })
 
+      const reTriggerUploadFlow = Effect.fn("UploadFlowApiService.reTriggerUploadFlow")(function* ({ domain, reference }) {
+        const participantState = yield* kv.getParticipantState(domain, reference)
+        if (Option.isNone(participantState)) {
+          return Effect.fail(new UploadFlowApiError({ message: `[${domain}|${reference}] Participant not initialized` }))
+        }
+
+
+
+      })
+
       return {
         initializeUploadFlow,
         initializeByCameraUpload,
@@ -447,6 +457,8 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         getUploadStatus,
       } as const
     }),
+
+
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(

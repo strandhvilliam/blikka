@@ -36,6 +36,7 @@ export const GetByDomainInfiniteInputSchema = Schema.toStandardSchemaV1(
       Schema.Literals(["completed", "verified"]),
     ),
     excludeStatuses: Schema.NullishOr(Schema.Array(Schema.String)),
+    includeStatuses: Schema.NullishOr(Schema.Array(Schema.String)),
     hasValidationErrors: Schema.NullishOr(Schema.Boolean),
     votedFilter: Schema.NullishOr(
       Schema.Literals(["voted", "not-voted"]),

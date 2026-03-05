@@ -1,6 +1,7 @@
 export type SubmissionTab =
   | "all"
   | "initialized"
+  | "uploaded"
   | "not-verified"
   | "verified"
   | "not-voted"
@@ -10,6 +11,7 @@ export type SubmissionTab =
 export interface TabQueryParams {
   statusFilter: "completed" | "verified" | null
   excludeStatuses: string[] | null
+  includeStatuses: string[] | null
   hasValidationErrors: boolean | null
   votedFilter: "voted" | "not-voted" | null
 }
@@ -20,6 +22,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
       return {
         statusFilter: null,
         excludeStatuses: null,
+        includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: null,
       }
@@ -27,6 +30,15 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
       return {
         statusFilter: null,
         excludeStatuses: ["completed", "verified"],
+        includeStatuses: null,
+        hasValidationErrors: null,
+        votedFilter: null,
+      }
+    case "uploaded":
+      return {
+        statusFilter: null,
+        excludeStatuses: null,
+        includeStatuses: ["completed", "verified"],
         hasValidationErrors: null,
         votedFilter: null,
       }
@@ -34,6 +46,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
       return {
         statusFilter: "completed",
         excludeStatuses: null,
+        includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: null,
       }
@@ -41,6 +54,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
       return {
         statusFilter: "verified",
         excludeStatuses: null,
+        includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: null,
       }
@@ -48,6 +62,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
       return {
         statusFilter: null,
         excludeStatuses: null,
+        includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: "not-voted",
       }
@@ -55,6 +70,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
       return {
         statusFilter: null,
         excludeStatuses: null,
+        includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: "voted",
       }
@@ -62,6 +78,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
       return {
         statusFilter: null,
         excludeStatuses: null,
+        includeStatuses: null,
         hasValidationErrors: true,
         votedFilter: null,
       }
@@ -69,6 +86,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
       return {
         statusFilter: null,
         excludeStatuses: null,
+        includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: null,
       }

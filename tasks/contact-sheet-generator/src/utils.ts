@@ -28,6 +28,11 @@ export const ensureReadyForSheetGeneration = Effect.fn(
     yield* Effect.logInfo("Contact sheet already generated, skipping")
     return yield* Effect.succeed({ shouldSkip: true })
   }
+
+  if (kvData.expectedCount === 1) {
+    yield* Effect.logInfo("Participant has only one photo, skipping")
+  }
+
   return yield* Effect.succeed({ shouldSkip: false })
 })
 

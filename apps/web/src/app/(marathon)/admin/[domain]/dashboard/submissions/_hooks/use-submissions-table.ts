@@ -88,6 +88,7 @@ export function useSubmissionsTable() {
         topicId: activeByCameraTopicId ?? null,
         statusFilter: tabQueryParams.statusFilter,
         excludeStatuses: tabQueryParams.excludeStatuses,
+        includeStatuses: tabQueryParams.includeStatuses ?? null,
         hasValidationErrors: tabQueryParams.hasValidationErrors,
         votedFilter: tabQueryParams.votedFilter ?? null,
         limit: 50,

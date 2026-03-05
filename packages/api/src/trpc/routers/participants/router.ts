@@ -50,6 +50,9 @@ export const participantRouter = createTRPCRouter({
             excludeStatuses: input.excludeStatuses
               ? [...input.excludeStatuses]
               : undefined,
+            includeStatuses: input.includeStatuses
+              ? [...input.includeStatuses]
+              : undefined,
             hasValidationErrors: input.hasValidationErrors ?? undefined,
             votedFilter: input.votedFilter ?? undefined,
           }));

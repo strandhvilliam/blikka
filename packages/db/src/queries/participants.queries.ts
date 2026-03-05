@@ -87,6 +87,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         topicId,
         statusFilter,
         excludeStatuses,
+        includeStatuses,
         hasValidationErrors,
         votedFilter,
       }: {
@@ -100,6 +101,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         topicId?: number;
         statusFilter?: "completed" | "verified";
         excludeStatuses?: string[];
+        includeStatuses?: string[];
         hasValidationErrors?: boolean;
         votedFilter?: "voted" | "not-voted";
       }) {
@@ -151,6 +153,11 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         }
         if (excludeStatuses && excludeStatuses.length > 0) {
           baseConditions.push(notInArray(participants.status, excludeStatuses));
+        }
+        if (includeStatuses && includeStatuses.length > 0) {
+          baseConditions.push(
+            inArray(participants.status, [...includeStatuses]),
+          );
         }
         if (hasValidationErrors) {
           const participantsWithErrors = yield* use((db) =>

@@ -12,6 +12,7 @@ export const submissionSearchParams = {
   tab: parseAsStringLiteral([
     "all",
     "initialized",
+    "uploaded",
     "not-verified",
     "verified",
     "not-voted",
