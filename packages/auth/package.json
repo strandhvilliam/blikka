@@ -13,6 +13,7 @@
     "@better-auth/drizzle-adapter": "^1.5.3",
     "@blikka/db": "workspace:*",
     "@blikka/email": "workspace:*",
+    "@blikka/redis": "workspace:*",
     "better-auth": "^1.4.1",
     "effect": "catalog:"
   }

@@ -28,7 +28,8 @@
     "baseUrl": ".",
     "paths": {
       "@blikka/db": ["../../packages/db/src"],
-      "@blikka/email": ["../../packages/email/src"]
+      "@blikka/email": ["../../packages/email/src"],
+      "@blikka/redis": ["../../packages/redis/src"]
     }
   }
 }

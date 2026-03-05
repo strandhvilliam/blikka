@@ -4,19 +4,22 @@ import { DrizzleClient, schema } from "@blikka/db"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { EmailService, OTPEmail } from "@blikka/email"
 import { nextCookies } from "better-auth/next-js"
+import { RedisClient } from "@blikka/redis"
 import { bearer, emailOTP } from "better-auth/plugins"
+import { createAuthMiddleware } from "better-auth/api"
 
-export class AuthConfig extends ServiceMap.Service<AuthConfig, {
-  readonly baseUrl: string
-  readonly secret: string
-  readonly emailConfig: {
-    companyName: string
-    companyLogoUrl: string
+export class AuthConfig extends ServiceMap.Service<
+  AuthConfig,
+  {
+    readonly baseUrl: string
+    readonly secret: string
+    readonly emailConfig: {
+      companyName: string
+      companyLogoUrl: string
+    }
   }
-}>()("@blikka/auth/auth-config") {
+>()("@blikka/auth/auth-config") {
 }
-
-
 
 const isProduction = process.env.NODE_ENV === "production"
 const rootDomain = isProduction ? process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL : "localhost:3002"
@@ -28,6 +31,7 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
       const authConfig = yield* AuthConfig
       const { client } = yield* DrizzleClient
       const emailService = yield* EmailService
+      const redis = yield* RedisClient
 
       const config = {
         database: drizzleAdapter(client, {
@@ -42,6 +46,17 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
         secret: authConfig.secret,
         baseURL: authConfig.baseUrl,
         trustedOrigins: [`http://${rootDomain}`, `https://*.${rootDomain}`, `*.${rootDomain}`],
+
+        hooks: {
+          after: createAuthMiddleware(async (ctx) => {
+            if (ctx.path.startsWith("/sign-in")) {
+              const userId = ctx.context.session?.user.id
+              if (userId) {
+                await Effect.runPromise(redis.use((client) => client.del(`permissions:${userId}`)))
+              }
+            }
+          }),
+        },
 
         socialProviders: {
           google: {
@@ -83,7 +98,7 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
                         companyName: authConfig.emailConfig.companyName,
                         companyLogoUrl: authConfig.emailConfig.companyLogoUrl,
                       }),
-                    })
+                    }),
                   )
                   break
                 }
@@ -105,10 +120,10 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
 
       return betterAuth(config)
     }),
-  }
+  },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(DrizzleClient.layer, EmailService.layer))
+    Layer.provide(Layer.mergeAll(DrizzleClient.layer, EmailService.layer, RedisClient.layer)),
   )
 }
 
