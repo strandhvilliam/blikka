@@ -10,19 +10,19 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
   "@blikka/db/submissions-queries",
   {
     make: Effect.gen(function* () {
-      const db = yield* DrizzleClient
+      const { use } = yield* DrizzleClient
 
       const getAllSubmissionKeysForMarathon = Effect.fn(
         "SubmissionsQueries.getAllSubmissionKeysForMarathon"
       )(function* ({ marathonId }: { marathonId: number }) {
-        const result = yield* db.query.submissions.findMany({
+        const result = yield* use(db => db.query.submissions.findMany({
           where: { marathonId },
           columns: {
             key: true,
             thumbnailKey: true,
             previewKey: true,
           },
-        })
+        }))
 
         return result
       })
@@ -32,9 +32,9 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       }: {
         id: number
       }) {
-        const result = yield* db.query.submissions.findFirst({
+        const result = yield* use(db => db.query.submissions.findFirst({
           where: { id },
-        })
+        }))
 
         return Option.fromNullishOr(result)
       })
@@ -44,9 +44,9 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       }: {
         key: string
       }) {
-        const result = yield* db.query.submissions.findFirst({
+        const result = yield* use(db => db.query.submissions.findFirst({
           where: { key },
-        })
+        }))
 
         return Option.fromNullishOr(result)
       })
@@ -54,12 +54,12 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       const getZippedSubmissionsByDomain = Effect.fn(
         "SubmissionsQueries.getZippedSubmissionsByDomain"
       )(function* ({ domain }: { domain: string }) {
-        const result = yield* db.query.marathons.findFirst({
+        const result = yield* use(db => db.query.marathons.findFirst({
           where: { domain },
           with: {
             zippedSubmissions: true,
           },
-        })
+        }))
 
         if (!result?.zippedSubmissions) return []
 
@@ -85,18 +85,18 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       const getZippedSubmissionsByMarathonId = Effect.fn(
         "SubmissionsQueries.getZippedSubmissionsByMarathonId"
       )(function* ({ marathonId }: { marathonId: number }) {
-        const result = yield* db.query.zippedSubmissions.findMany({
+        const result = yield* use(db => db.query.zippedSubmissions.findMany({
           where: { marathonId },
-        })
+        }))
 
         return result
       })
 
       const getManySubmissionsByKeys = Effect.fn("SubmissionsQueries.getManySubmissionsByKeys")(
         function* ({ keys }: { keys: string[] }) {
-          const result = yield* db.query.submissions.findMany({
+          const result = yield* use(db => db.query.submissions.findMany({
             where: { key: { in: keys } },
-          })
+          }))
 
           return result
         }
@@ -105,9 +105,9 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       const getSubmissionsByParticipantId = Effect.fn(
         "SubmissionsQueries.getSubmissionsByParticipantId"
       )(function* ({ participantId }: { participantId: number }) {
-        const result = yield* db.query.submissions.findMany({
+        const result = yield* use(db => db.query.submissions.findMany({
           where: { participantId },
-        })
+        }))
 
         return result
       })
@@ -123,15 +123,15 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
             topicId?: number | null
           }
         }) {
-          const marathon = yield* db.query.marathons.findFirst({
+          const marathon = yield* use(db => db.query.marathons.findFirst({
             where: { domain: filters.domain },
-          })
+          }))
 
           if (!marathon) {
             return []
           }
 
-          const result = yield* db.query.submissions.findMany({
+          const result = yield* use(db => db.query.submissions.findMany({
             where: {
               marathonId: marathon.id,
               status: "uploaded",
@@ -145,7 +145,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
               },
               topic: true,
             },
-          })
+          }))
 
           let filteredResult = result
 
@@ -174,7 +174,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       }: {
         data: NewSubmission
       }) {
-        const [result] = yield* db.insert(submissions).values(data).returning()
+        const [result] = yield* use(db => db.insert(submissions).values(data).returning())
 
         if (!result) {
           return yield* Effect.fail(
@@ -189,7 +189,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
 
       const createMultipleSubmissions = Effect.fn("SubmissionsQueries.createMultipleSubmissions")(
         function* ({ data }: { data: NewSubmission[] }) {
-          const [result] = yield* db.insert(submissions).values(data).returning()
+          const [result] = yield* use(db => db.insert(submissions).values(data).returning())
           if (!result) {
             return yield* Effect.fail(new DbError({
               message: "Failed to create multiple submissions",
@@ -213,7 +213,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
           >
         }[]
       }) {
-        const participant = yield* db.query.participants.findFirst({
+        const participant = yield* use(db => db.query.participants.findFirst({
           where: { reference, domain },
           with: {
             submissions: {
@@ -222,7 +222,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
               },
             },
           },
-        })
+        }))
 
         if (!participant) {
           return yield* Effect.fail(new DbError({
@@ -240,25 +240,25 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
           return acc
         }, [])
 
-        const result = yield* db
+        const result = yield* use(db => db
           .insert(submissions)
           .values(data)
           .onConflictDoUpdate({
             target: submissions.id,
             set: conflictUpdateSetAllColumns(submissions, ["id"]),
           })
-          .returning()
+          .returning())
 
         return result
       })
 
       const updateSubmissionByKey = Effect.fn("SubmissionsQueries.updateSubmissionByKeyMutation")(
         function* ({ key, data }: { key: string; data: Partial<NewSubmission> }) {
-          const [result] = yield* db
+          const [result] = yield* use(db => db
             .update(submissions)
             .set(data)
             .where(eq(submissions.key, key))
-            .returning()
+            .returning())
           if (!result) {
             return yield* Effect.fail(
               new DbError({
@@ -277,11 +277,11 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         id: number
         data: Partial<NewSubmission>
       }) {
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .update(submissions)
           .set(data)
           .where(eq(submissions.id, id))
-          .returning()
+          .returning())
         if (!result) {
           return yield* Effect.fail(
             new DbError({
@@ -294,7 +294,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
 
       const createZippedSubmission = Effect.fn("SubmissionsQueries.createZippedSubmission")(
         function* ({ data }: { data: NewZippedSubmission }) {
-          const [result] = yield* db.insert(zippedSubmissions).values(data).returning()
+          const [result] = yield* use(db => db.insert(zippedSubmissions).values(data).returning())
           if (!result) {
             return yield* Effect.fail(
               new DbError({
@@ -308,11 +308,11 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
 
       const updateZippedSubmission = Effect.fn("SubmissionsQueries.updateZippedSubmission")(
         function* ({ id, data }: { id: number; data: Partial<NewZippedSubmission> }) {
-          const [result] = yield* db
+          const [result] = yield* use(db => db
             .update(zippedSubmissions)
             .set(data)
             .where(eq(zippedSubmissions.id, id))
-            .returning()
+            .returning())
           if (!result) {
             return yield* Effect.fail(
               new DbError({
@@ -327,12 +327,12 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       const getZippedSubmissionByParticipantRefQuery = Effect.fn(
         "SubmissionsQueries.getZippedSubmissionByParticipantRefQuery"
       )(function* ({ domain, participantRef }: { domain: string; participantRef: string }) {
-        const participant = yield* db.query.participants.findFirst({
+        const participant = yield* use(db => db.query.participants.findFirst({
           where: { domain, reference: participantRef },
           with: {
             zippedSubmissions: true,
           },
-        })
+        }))
 
         if (!participant || !participant.zippedSubmissions) {
           return null
@@ -346,7 +346,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       }: {
         id: number
       }) {
-        const [result] = yield* db.delete(submissions).where(eq(submissions.id, id)).returning()
+        const [result] = yield* use(db => db.delete(submissions).where(eq(submissions.id, id)).returning())
         return result
       })
 
@@ -355,7 +355,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       }: {
         ids: number[]
       }) {
-        const [result] = yield* db.delete(submissions).where(inArray(submissions.id, ids)).returning()
+        const [result] = yield* use(db => db.delete(submissions).where(inArray(submissions.id, ids)).returning())
         return result
       })
 

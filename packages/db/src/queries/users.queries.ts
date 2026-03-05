@@ -7,19 +7,19 @@ import { DbError } from "../utils"
 
 export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db/users-queries", {
   make: Effect.gen(function* () {
-    const db = yield* DrizzleClient
+    const { use } = yield* DrizzleClient
 
     const getUserPermissions = Effect.fn("UsersQueries.getUserPermissions")(function* ({
       userId,
     }: {
       userId: string
     }) {
-      const rel = yield* db.query.userMarathons.findMany({
+      const rel = yield* use(db => db.query.userMarathons.findMany({
         where: { userId },
         with: {
           marathon: true,
         },
-      })
+      }))
 
       const result = rel.map((rel) => ({
         userId: rel.userId,
@@ -31,9 +31,9 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
     })
 
     const getUserById = Effect.fn("UsersQueries.getUserById")(function* ({ id }: { id: string }) {
-      const result = yield* db.query.user.findFirst({
+      const result = yield* use(db => db.query.user.findFirst({
         where: { id },
-      })
+      }))
       return Option.fromNullishOr(result)
     })
 
@@ -42,7 +42,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
     }: {
       userId: string
     }) {
-      const result = yield* db.query.user.findFirst({
+      const result = yield* use(db => db.query.user.findFirst({
         where: { id: userId },
         with: {
           userMarathons: {
@@ -51,7 +51,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
             },
           },
         },
-      })
+      }))
       return Option.fromNullishOr(result)
     })
 
@@ -60,24 +60,24 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
     }: {
       userId: string
     }) {
-      const result = yield* db.query.userMarathons.findMany({
+      const result = yield* use(db => db.query.userMarathons.findMany({
         where: { userId },
         with: {
           marathon: true,
         },
-      })
+      }))
 
       return result.map((userMarathon) => userMarathon.marathon)
     })
 
     const getUserByEmailWithMarathons = Effect.fn("UsersQueries.getUserByEmailWithMarathons")(
       function* ({ email }: { email: string }) {
-        const result = yield* db.query.user.findFirst({
+        const result = yield* use(db => db.query.user.findFirst({
           where: { email },
           with: {
             userMarathons: true,
           },
-        })
+        }))
         return Option.fromNullishOr(result)
       }
     )
@@ -87,7 +87,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
     }: {
       domain: string
     }) {
-      const result = yield* db.query.marathons.findFirst({
+      const result = yield* use(db => db.query.marathons.findFirst({
         where: { domain },
         with: {
           userMarathons: {
@@ -96,7 +96,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
             },
           },
         },
-      })
+      }))
       return result?.userMarathons ?? []
     })
 
@@ -107,16 +107,16 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
       staffId: string
       domain: string
     }) {
-      const marathon = yield* db.query.marathons.findFirst({
+      const marathon = yield* use(db => db.query.marathons.findFirst({
         where: { domain },
         columns: { id: true },
-      })
+      }))
 
       if (!marathon) {
         return yield* Option.none()
       }
 
-      const result = yield* db.query.user.findFirst({
+      const result = yield* use(db => db.query.user.findFirst({
         where: { id: staffId },
         with: {
           userMarathons: {
@@ -128,7 +128,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
             },
           },
         },
-      })
+      }))
 
       if (!result?.userMarathons[0]) {
         return yield* Option.none()
@@ -153,7 +153,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
     }: {
       data: NewUser
     }) {
-      const [result] = yield* db.insert(user).values(data).returning()
+      const [result] = yield* use(db => db.insert(user).values(data).returning())
 
       if (!result) {
         return yield* Effect.fail(
@@ -172,7 +172,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
       id: string
       data: Partial<NewUser>
     }) {
-      const [result] = yield* db.update(user).set(data).where(eq(user.id, id)).returning()
+      const [result] = yield* use(db => db.update(user).set(data).where(eq(user.id, id)).returning())
 
       if (!result) {
         return yield* Effect.fail(
@@ -185,7 +185,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
     })
 
     const deleteUser = Effect.fn("UsersQueries.deleteUser")(function* ({ id }: { id: string }) {
-      const [result] = yield* db.delete(user).where(eq(user.id, id)).returning()
+      const [result] = yield* use(db => db.delete(user).where(eq(user.id, id)).returning())
 
       if (!result) {
         return yield* Effect.fail(
@@ -199,7 +199,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
 
     const createUserMarathonRelation = Effect.fn("UsersQueries.createUserMarathonRelation")(
       function* ({ data }: { data: NewUserMarathonRelation }) {
-        const [result] = yield* db.insert(userMarathons).values(data).returning()
+        const [result] = yield* use(db => db.insert(userMarathons).values(data).returning())
 
         if (!result) {
           return yield* Effect.fail(
@@ -222,11 +222,11 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
         marathonId: number
         data: Partial<Pick<NewUserMarathonRelation, "role">>
       }) {
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .update(userMarathons)
           .set(data)
           .where(and(eq(userMarathons.userId, userId), eq(userMarathons.marathonId, marathonId)))
-          .returning()
+          .returning())
 
         if (!result) {
           return yield* Effect.fail(
@@ -241,10 +241,10 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()("@blikka/db
 
     const deleteUserMarathonRelation = Effect.fn("UsersQueries.deleteUserMarathonRelation")(
       function* ({ userId, marathonId }: { userId: string; marathonId: number }) {
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .delete(userMarathons)
           .where(and(eq(userMarathons.userId, userId), eq(userMarathons.marathonId, marathonId)))
-          .returning()
+          .returning())
 
         if (!result) {
           return yield* Effect.fail(

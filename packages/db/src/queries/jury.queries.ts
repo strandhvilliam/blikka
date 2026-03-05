@@ -7,14 +7,14 @@ import { DbError } from "../utils"
 
 export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/jury-queries", {
   make: Effect.gen(function* () {
-    const db = yield* DrizzleClient
+    const { use } = yield* DrizzleClient
 
     const getJuryInvitationsByMarathonId = Effect.fn("JuryQueries.getJuryInvitatinosByMarathonId")(
       function* ({ id }: { id: number }) {
-        const result = yield* db.query.juryInvitations.findMany({
+        const result = yield* use(db => db.query.juryInvitations.findMany({
           where: { marathonId: id },
           orderBy: { createdAt: "desc" },
-        })
+        }))
         return result
       }
     )
@@ -24,24 +24,24 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
     }: {
       id: number
     }) {
-      const result = yield* db.query.juryInvitations.findFirst({
+      const result = yield* use(db => db.query.juryInvitations.findFirst({
         where: { id },
         with: {
           topic: true,
           competitionClass: true,
           deviceGroup: true,
         },
-      })
+      }))
       return Option.fromNullishOr(result)
     })
 
     const getJuryInvitationsByDomain = Effect.fn("JuryQueries.getJuryInvitationsByDomain")(
       function* ({ domain }: { domain: string }) {
-        const marathon = yield* db
+        const marathon = yield* use(db => db
           .select({ id: marathons.id })
           .from(marathons)
           .where(eq(marathons.domain, domain))
-          .limit(1)
+          .limit(1))
 
         if (!marathon.length) {
           return []
@@ -49,7 +49,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
         const marathonId = marathon[0]!.id
 
-        const result = yield* db.query.juryInvitations.findMany({
+        const result = yield* use(db => db.query.juryInvitations.findMany({
           where: { marathonId },
           orderBy: { createdAt: "desc" },
           with: {
@@ -57,7 +57,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             deviceGroup: true,
             topic: true,
           },
-        })
+        }))
 
         return result
       }
@@ -68,10 +68,10 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
     }: {
       data: NewJuryInvitation
     }) {
-      const [result] = yield* db
+      const [result] = yield* use(db => db
         .insert(juryInvitations)
         .values(data)
-        .returning({ id: juryInvitations.id })
+        .returning({ id: juryInvitations.id }))
 
       if (!result) {
         return yield* Effect.fail(
@@ -91,11 +91,11 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       id: number
       data: Partial<NewJuryInvitation>
     }) {
-      const [result] = yield* db
+      const [result] = yield* use(db => db
         .update(juryInvitations)
         .set(data)
         .where(eq(juryInvitations.id, id))
-        .returning()
+        .returning())
 
       if (!result) {
         return yield* Effect.fail(
@@ -112,10 +112,10 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
     }: {
       id: number
     }) {
-      const [result] = yield* db
+      const [result] = yield* use(db => db
         .delete(juryInvitations)
         .where(eq(juryInvitations.id, id))
-        .returning()
+        .returning())
 
       if (!result) {
         return yield* Effect.fail(
@@ -134,7 +134,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       domain: string
       invitationId: number
     }) {
-      const invitation = yield* db.query.juryInvitations.findFirst({
+      const invitation = yield* use(db => db.query.juryInvitations.findFirst({
         where: { id: invitationId },
         with: {
           competitionClass: true,
@@ -142,7 +142,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
           topic: true,
           marathon: true,
         },
-      })
+      }))
 
       if (!invitation) {
         return yield* Effect.fail(
@@ -152,9 +152,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         )
       }
 
-      const marathon = yield* db.query.marathons.findFirst({
+      const marathon = yield* use(db => db.query.marathons.findFirst({
         where: { domain },
-      })
+      }))
 
       if (!marathon || invitation.marathonId !== marathon.id) {
         return yield* Effect.fail(
@@ -176,14 +176,14 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         invitationId: number
         participantId: number
       }) {
-        const invitation = yield* db.query.juryInvitations.findFirst({
+        const invitation = yield* use(db => db.query.juryInvitations.findFirst({
           where: { id: invitationId },
           with: {
             competitionClass: true,
             deviceGroup: true,
             topic: true,
           },
-        })
+        }))
 
         if (!invitation) {
           return yield* Effect.fail(
@@ -193,9 +193,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
           )
         }
 
-        const marathon = yield* db.query.marathons.findFirst({
+        const marathon = yield* use(db => db.query.marathons.findFirst({
           where: { domain },
-        })
+        }))
 
         if (!marathon || invitation.marathonId !== marathon.id) {
           return yield* Effect.fail(
@@ -231,7 +231,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
           where.topicId = invitation.topicId
         }
 
-        const result = yield* db.query.submissions.findMany({
+        const result = yield* use(db => db.query.submissions.findMany({
           where,
           with: {
             participant: {
@@ -243,7 +243,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             topic: true,
           },
           orderBy: { id: "desc" },
-        })
+        }))
 
         const validSubmissions = result.filter((submission) => submission.previewKey)
 
@@ -265,9 +265,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       rating: number
       notes?: string
     }) {
-      const invitation = yield* db.query.juryInvitations.findFirst({
+      const invitation = yield* use(db => db.query.juryInvitations.findFirst({
         where: { id: invitationId },
-      })
+      }))
 
       if (!invitation) {
         return yield* Effect.fail(
@@ -277,7 +277,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         )
       }
 
-      const [result] = yield* db
+      const [result] = yield* use(db => db
         .insert(juryRatings)
         .values({
           invitationId,
@@ -286,7 +286,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
           notes: notes || "",
           marathonId: invitation.marathonId,
         })
-        .returning()
+        .returning())
 
       if (!result) {
         return yield* Effect.fail(
@@ -312,7 +312,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       notes?: string
       finalRanking?: number
     }) {
-      const result = yield* db
+      const result = yield* use(db => db
         .update(juryRatings)
         .set({
           rating,
@@ -325,7 +325,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             eq(juryRatings.participantId, participantId)
           )
         )
-        .returning()
+        .returning())
 
       return result
     })
@@ -337,9 +337,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       invitationId: number
       participantId: number
     }) {
-      const invitation = yield* db.query.juryInvitations.findFirst({
+      const invitation = yield* use(db => db.query.juryInvitations.findFirst({
         where: { id: invitationId },
-      })
+      }))
 
       if (!invitation) {
         return yield* Effect.fail(
@@ -349,9 +349,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         )
       }
 
-      const result = yield* db.query.juryRatings.findFirst({
+      const result = yield* use(db => db.query.juryRatings.findFirst({
         where: { invitationId, participantId },
-      })
+      }))
 
       return Option.fromNullishOr(result)
     })
@@ -363,9 +363,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       invitationId: number
       participantId: number
     }) {
-      const invitation = yield* db.query.juryInvitations.findFirst({
+      const invitation = yield* use(db => db.query.juryInvitations.findFirst({
         where: { id: invitationId },
-      })
+      }))
 
       if (!invitation) {
         return yield* Effect.fail(
@@ -375,7 +375,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         )
       }
 
-      const result = yield* db
+      const result = yield* use(db => db
         .delete(juryRatings)
         .where(
           and(
@@ -383,7 +383,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             eq(juryRatings.participantId, participantId)
           )
         )
-        .returning()
+        .returning())
 
       return Option.fromNullishOr(result)
     })
@@ -405,18 +405,18 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         let cursorSubmission: Submission | null = null
 
         if (cursor) {
-          const [sub] = yield* db
+          const [sub] = yield* use(db => db
             .select()
             .from(submissions)
             .where(eq(submissions.id, cursor))
-            .limit(1)
+            .limit(1))
 
           if (sub) {
             cursorSubmission = sub
           }
         }
 
-        const topicSubmissions = yield* db.query.submissions.findMany({
+        const topicSubmissions = yield* use(db => db.query.submissions.findMany({
           where: {
             marathonId: invitation.marathonId,
             topicId: invitation.topicId,
@@ -439,7 +439,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
           },
           limit: limit + 1,
           orderBy: { createdAt: "desc" },
-        })
+        }))
 
         let nextCursor: number | null = null
         if (topicSubmissions.length > limit) {
@@ -472,18 +472,18 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         let cursorParticipant: Participant | null = null
 
         if (cursor) {
-          const [participant] = yield* db
+          const [participant] = yield* use(db => db
             .select()
             .from(participants)
             .where(eq(participants.id, cursor))
-            .limit(1)
+            .limit(1))
 
           if (participant) {
             cursorParticipant = participant
           }
         }
 
-        const participantsInCompetitionClass = yield* db.query.participants.findMany({
+        const participantsInCompetitionClass = yield* use(db => db.query.participants.findMany({
           columns: {
             id: true,
             createdAt: true,
@@ -501,7 +501,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
           },
           limit: limit + 1,
           orderBy: { createdAt: "desc" },
-        })
+        }))
 
         let nextCursor: number | null = null
         if (participantsInCompetitionClass.length > limit) {
@@ -545,9 +545,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
     }) {
       const limit = 50
 
-      const allRatings = yield* db.query.juryRatings.findMany({
+      const allRatings = yield* use(db => db.query.juryRatings.findMany({
         where: { invitationId: invitation.id },
-      })
+      }))
 
       const ratingMap = new Map<number, number>()
       allRatings.forEach((rating) => {
@@ -560,7 +560,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
       if (ratingFilter.includes(0)) {
         if (invitation.inviteType === "topic") {
-          const allTopicParticipants = yield* db
+          const allTopicParticipants = yield* use(db => db
             .selectDistinct({ participantId: submissions.participantId })
             .from(submissions)
             .where(
@@ -568,7 +568,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
                 eq(submissions.marathonId, invitation.marathonId),
                 eq(submissions.topicId, invitation.topicId)
               )
-            )
+            ))
 
           allTopicParticipants.forEach((p) => {
             if (!ratingMap.has(p.participantId)) {
@@ -576,7 +576,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             }
           })
         } else if (invitation.inviteType === "class") {
-          const allClassParticipants = yield* db
+          const allClassParticipants = yield* use(db => db
             .select({ id: participants.id })
             .from(participants)
             .where(
@@ -584,7 +584,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
                 eq(participants.marathonId, invitation.marathonId),
                 eq(participants.competitionClassId, invitation.competitionClassId)
               )
-            )
+            ))
 
           allClassParticipants.forEach((p) => {
             if (!ratingMap.has(p.id)) {
@@ -604,7 +604,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       const offset = cursor || 0
 
       if (invitation.inviteType === "topic") {
-        const topicSubmissions = yield* db.query.submissions.findMany({
+        const topicSubmissions = yield* use(db => db.query.submissions.findMany({
           where: {
             marathonId: invitation.marathonId,
             topicId: invitation.topicId,
@@ -625,7 +625,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             },
           },
           orderBy: { createdAt: "desc" },
-        })
+        }))
 
         const filteredSubmissions = topicSubmissions.filter(
           (submission) =>
@@ -653,7 +653,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
           nextCursor,
         }
       } else if (invitation.inviteType === "class") {
-        const participantsInCompetitionClass = yield* db.query.participants.findMany({
+        const participantsInCompetitionClass = yield* use(db => db.query.participants.findMany({
           columns: {
             id: true,
             createdAt: true,
@@ -669,7 +669,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             deviceGroup: true,
           },
           orderBy: { createdAt: "desc" },
-        })
+        }))
 
         const filteredParticipants = participantsInCompetitionClass.filter((participant) =>
           filteredParticipantIds.includes(participant.id)
@@ -715,9 +715,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
         cursor?: number
         ratingFilter?: number[]
       }) {
-        const invitation = yield* db.query.juryInvitations.findFirst({
+        const invitation = yield* use(db => db.query.juryInvitations.findFirst({
           where: { id: invitationId },
-        })
+        }))
 
         if (!invitation) {
           return yield* Effect.fail(
@@ -744,9 +744,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
     const getJuryRatingsByInvitation = Effect.fn("JuryQueries.getJuryRatingsByInvitation")(
       function* ({ invitationId }: { invitationId: number }) {
-        const invitation = yield* db.query.juryInvitations.findFirst({
+        const invitation = yield* use(db => db.query.juryInvitations.findFirst({
           where: { id: invitationId },
-        })
+        }))
 
         if (!invitation) {
           return yield* Effect.fail(
@@ -756,7 +756,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
           )
         }
 
-        const ratings = yield* db.query.juryRatings.findMany({
+        const ratings = yield* use(db => db.query.juryRatings.findMany({
           where: {
             invitationId: invitation.id,
             marathonId: invitation.marathonId,
@@ -766,7 +766,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             rating: true,
             notes: true,
           },
-        })
+        }))
 
         return ratings
       }
@@ -779,9 +779,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       invitationId: number
       ratingFilter?: number[]
     }) {
-      const invitation = yield* db.query.juryInvitations.findFirst({
+      const invitation = yield* use(db => db.query.juryInvitations.findFirst({
         where: { id: invitationId },
-      })
+      }))
 
       if (!invitation) {
         return yield* Effect.fail(
@@ -795,7 +795,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
       if (invitation.topicId) {
         conditions.push(eq(submissions.topicId, invitation.topicId))
       }
-      let participantIds = yield* db
+      let participantIds = yield* use(db => db
         .selectDistinct({ participantId: submissions.participantId })
         .from(submissions)
         .where(
@@ -804,12 +804,12 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             invitation.topicId ? eq(submissions.topicId, invitation.topicId) : undefined,
             ...conditions
           )
-        )
+        ))
 
       if (ratingFilter && ratingFilter.length > 0) {
-        const allRatings = yield* db.query.juryRatings.findMany({
+        const allRatings = yield* use(db => db.query.juryRatings.findMany({
           where: { invitationId: invitation.id },
-        })
+        }))
 
         const ratingMap = new Map()
         allRatings.forEach((rating) => {
@@ -827,9 +827,9 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
 
     const getJuryInvitationStatistics = Effect.fn("JuryQueries.getJuryInvitationStatistics")(
       function* ({ invitationId }: { invitationId: number }) {
-        const invitation = yield* db.query.juryInvitations.findFirst({
+        const invitation = yield* use(db => db.query.juryInvitations.findFirst({
           where: { id: invitationId },
-        })
+        }))
 
         if (!invitation) {
           return yield* Effect.fail(
@@ -867,15 +867,15 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
           submissionConditions.push(eq(submissions.topicId, invitation.topicId))
         }
 
-        const participantIds = yield* db
+        const participantIds = yield* use(db => db
           .selectDistinct({ participantId: submissions.participantId })
           .from(submissions)
           .innerJoin(participants, eq(participants.id, submissions.participantId))
-          .where(and(...submissionConditions))
+          .where(and(...submissionConditions)))
 
         const totalParticipants = participantIds.length
 
-        const ratings = yield* db.query.juryRatings.findMany({
+        const ratings = yield* use(db => db.query.juryRatings.findMany({
           where: {
             invitationId: invitation.id,
             marathonId: invitation.marathonId,
@@ -891,7 +891,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()("@blikka/db/j
             },
           },
           orderBy: { createdAt: "desc" },
-        })
+        }))
 
         const ratedParticipants = ratings.length
         const progressPercentage =

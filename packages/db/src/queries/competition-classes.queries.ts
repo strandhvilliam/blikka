@@ -9,25 +9,25 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
   "@blikka/db/competition-classes-queries",
   {
     make: Effect.gen(function* () {
-      const db = yield* DrizzleClient
+      const { use } = yield* DrizzleClient
 
       const getCompetitionClassById = Effect.fn(
         "CompetitionClassesQueries.getCompetitionClassById"
       )(function* ({ id }: { id: number }) {
-        const result = yield* db.query.competitionClasses.findFirst({
+        const result = yield* use(db => db.query.competitionClasses.findFirst({
           where: { id },
-        })
+        }))
         return Option.fromNullishOr(result)
       })
 
       const getCompetitionClassesByDomain = Effect.fn(
         "CompetitionClassesQueries.getCompetitionClassesByDomain"
       )(function* ({ domain }: { domain: string }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .select()
           .from(competitionClasses)
           .innerJoin(marathons, eq(competitionClasses.marathonId, marathons.id))
-          .where(eq(marathons.domain, domain))
+          .where(eq(marathons.domain, domain)))
 
         return result.map((row) => row.competition_classes)
       })
@@ -35,10 +35,10 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
       const createCompetitionClass = Effect.fn(
         "CompetitionClassesQueries.createCompetitionClass"
       )(function* ({ data }: { data: NewCompetitionClass }) {
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .insert(competitionClasses)
           .values(data)
-          .returning()
+          .returning())
         if (!result) {
           return yield* Effect.fail(
             new DbError({
@@ -52,10 +52,10 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
       const createMultipleCompetitionClasses = Effect.fn(
         "CompetitionClassesQueries.createMultipleCompetitionClasses"
       )(function* ({ data }: { data: NewCompetitionClass[] }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .insert(competitionClasses)
           .values(data)
-          .returning()
+          .returning())
         if (!result) {
           return yield* Effect.fail(
             new DbError({
@@ -75,11 +75,11 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
         id: number
         data: Partial<NewCompetitionClass>
       }) {
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .update(competitionClasses)
           .set(data)
           .where(eq(competitionClasses.id, id))
-          .returning()
+          .returning())
 
         if (!result) {
           return yield* Effect.fail(
@@ -94,10 +94,10 @@ export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionCla
       const deleteCompetitionClass = Effect.fn(
         "CompetitionClassesQueries.deleteCompetitionClass"
       )(function* ({ id }: { id: number }) {
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .delete(competitionClasses)
           .where(eq(competitionClasses.id, id))
-          .returning()
+          .returning())
         if (!result) {
           return yield* Effect.fail(
             new DbError({

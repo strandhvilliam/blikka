@@ -25,11 +25,11 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
   {
     make: Effect.gen(function* () {
       const authConfig = yield* AuthConfig
-      const db = yield* DrizzleClient
+      const { client } = yield* DrizzleClient
       const emailService = yield* EmailService
 
       const config = {
-        database: drizzleAdapter(db, {
+        database: drizzleAdapter(client, {
           provider: "pg",
         }),
         secret: authConfig.secret,

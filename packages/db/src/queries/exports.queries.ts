@@ -5,11 +5,11 @@ import { eq } from "drizzle-orm"
 
 export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikka/db/exports-queries", {
   make: Effect.gen(function* () {
-    const db = yield* DrizzleClient
+    const { use } = yield* DrizzleClient
 
     const getParticipantsForExport = Effect.fn("ExportsQueries.getParticipantsForExport")(
       function* ({ domain }: { domain: string }) {
-        const result = yield* db.query.participants.findMany({
+        const result = yield* use(db => db.query.participants.findMany({
           where: { domain },
           with: {
             competitionClass: true,
@@ -21,7 +21,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
             },
           },
           orderBy: (participants, { asc }) => [asc(participants.reference)],
-        })
+        }))
 
         return result.map((p) => ({
           reference: p.reference,
@@ -42,20 +42,20 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
     }: {
       domain: string
     }) {
-      const marathon = yield* db.query.marathons.findFirst({
+      const marathon = yield* use(db => db.query.marathons.findFirst({
         where: { domain },
-      })
+      }))
 
       if (!marathon) {
         return []
       }
 
-      const participantsWithValidations = yield* db.query.participants.findMany({
+      const participantsWithValidations = yield* use(db => db.query.participants.findMany({
         where: { domain },
         with: {
           validationResults: true,
         },
-      })
+      }))
 
       const validationsByParticipantFile = new Map<string, { passed: number; failed: number }>()
 
@@ -74,7 +74,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
         }
       }
 
-      const result = yield* db.query.submissions.findMany({
+      const result = yield* use(db => db.query.submissions.findMany({
         where: { marathonId: marathon.id },
         with: {
           participant: {
@@ -86,7 +86,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
           topic: true,
         },
         orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
-      })
+      }))
 
       return result.map((s) => {
         const validationKey = `${s.participantId}-${s.key}`
@@ -129,22 +129,22 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
     }: {
       domain: string
     }) {
-      const marathon = yield* db.query.marathons.findFirst({
+      const marathon = yield* use(db => db.query.marathons.findFirst({
         where: { domain },
-      })
+      }))
 
       if (!marathon) {
         return []
       }
 
-      const result = yield* db.query.submissions.findMany({
+      const result = yield* use(db => db.query.submissions.findMany({
         where: { marathonId: marathon.id },
         with: {
           participant: true,
           topic: true,
         },
         orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
-      })
+      }))
 
       return result
         .filter((s) => s.exif && s.key)
@@ -160,7 +160,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
 
     const getValidationResultsForExport = Effect.fn("ExportsQueries.getValidationResultsForExport")(
       function* ({ domain, onlyFailed }: { domain: string; onlyFailed?: boolean }) {
-        const marathon = yield* db.query.marathons.findFirst({
+        const marathon = yield* use(db => db.query.marathons.findFirst({
           where: { domain },
           with: {
             participants: {
@@ -174,7 +174,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()("@blikk
               },
             },
           },
-        })
+        }))
 
         if (!marathon) {
           return []

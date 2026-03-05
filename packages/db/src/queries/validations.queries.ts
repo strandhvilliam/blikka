@@ -9,14 +9,14 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
   "@blikka/db/validations-queries",
   {
     make: Effect.gen(function* () {
-      const db = yield* DrizzleClient
+      const { use } = yield* DrizzleClient
 
       const getValidationResultsByParticipantId = Effect.fn(
         "ValidationsQueries.getValidationResultsByParticipantId"
       )(function* ({ participantId }: { participantId: number }) {
-        const result = yield* db.query.validationResults.findMany({
+        const result = yield* use(db => db.query.validationResults.findMany({
           where: { participantId },
-        })
+        }))
 
         return result
       })
@@ -24,14 +24,14 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
       const getValidationResultsByDomain = Effect.fn(
         "ValidationsQueries.getValidationResultsByDomain"
       )(function* ({ domain }: { domain: string }) {
-        const result = yield* db.query.marathons.findFirst({
+        const result = yield* use(db => db.query.marathons.findFirst({
           where: { domain },
           with: {
             participants: {
               with: { submissions: true, validationResults: true },
             },
           },
-        })
+        }))
 
         return (
           result?.participants.flatMap((p) => {
@@ -61,7 +61,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
         cursor?: number
         limit?: number
       }) {
-        const result = yield* db.query.participantVerifications.findMany({
+        const result = yield* use(db => db.query.participantVerifications.findMany({
           where: cursor
             ? { staffId, id: { lt: cursor } }
             : { staffId },
@@ -80,7 +80,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
             desc(participantVerifications.createdAt),
           ],
           limit: limit + 1,
-        })
+        }))
 
         const filteredResults = result
           .filter((v) => v.participant.marathon.domain === domain)
@@ -101,7 +101,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
 
       const createValidationResult = Effect.fn("ValidationsQueries.createValidationResult")(
         function* ({ data }: { data: NewValidationResult }) {
-          const [result] = yield* db.insert(validationResults).values(data).returning()
+          const [result] = yield* use(db => db.insert(validationResults).values(data).returning())
 
           if (!result) {
             return yield* Effect.fail(
@@ -126,9 +126,9 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
         reference: string
         data: Omit<NewValidationResult, "participantId">[]
       }) {
-        const participant = yield* db.query.participants.findFirst({
+        const participant = yield* use(db => db.query.participants.findFirst({
           where: { domain, reference },
-        })
+        }))
 
         if (!participant) {
           return yield* Effect.fail(new DbError({
@@ -136,9 +136,9 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
           }))
         }
 
-        const existingValidationResults = yield* db.query.validationResults.findMany({
+        const existingValidationResults = yield* use(db => db.query.validationResults.findMany({
           where: { participantId: participant.id },
-        })
+        }))
 
         const existingValidationResultsMap = new Map(
           existingValidationResults.map((r) => [
@@ -176,7 +176,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
 
         const result: ValidationResult[] = []
         if (toCreate.length > 0) {
-          const created = yield* db.insert(validationResults).values(toCreate).returning()
+          const created = yield* use(db => db.insert(validationResults).values(toCreate).returning())
           result.push(...created)
         }
 
@@ -196,11 +196,11 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
 
       const updateValidationResult = Effect.fn("ValidationsQueries.updateValidationResult")(
         function* ({ id, data }: { id: number; data: Partial<NewValidationResult> }) {
-          const [result] = yield* db
+          const [result] = yield* use(db => db
             .update(validationResults)
             .set(data)
             .where(eq(validationResults.id, id))
-            .returning()
+            .returning())
 
           if (!result) {
             return yield* Effect.fail(
@@ -216,7 +216,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
       const createParticipantVerification = Effect.fn(
         "ValidationsQueries.createParticipantVerification"
       )(function* ({ data }: { data: NewParticipantVerification }) {
-        const [result] = yield* db.insert(participantVerifications).values(data).returning()
+        const [result] = yield* use(db => db.insert(participantVerifications).values(data).returning())
 
         if (!result) {
           return yield* Effect.fail(
@@ -231,14 +231,14 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
 
       const clearNonEnabledRuleResults = Effect.fn("ValidationsQueries.clearNonEnabledRuleResults")(
         function* ({ participantId, ruleKeys }: { participantId: number; ruleKeys: string[] }) {
-          yield* db
+          yield* use(db => db
             .delete(validationResults)
             .where(
               and(
                 eq(validationResults.participantId, participantId),
                 notInArray(validationResults.ruleKey, ruleKeys)
               )
-            )
+            ))
         }
       )
 
@@ -257,7 +257,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
       }) {
         const offset = (page - 1) * pageSize
 
-        const allVerifications = yield* db.query.participantVerifications.findMany({
+        const allVerifications = yield* use(db => db.query.participantVerifications.findMany({
           with: {
             participant: {
               with: {
@@ -272,7 +272,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
           orderBy: (participantVerifications, { desc }) => [
             desc(participantVerifications.createdAt),
           ],
-        })
+        }))
 
         let filteredVerifications = allVerifications.filter(
           (v) => v.participant.marathon.domain === domain
@@ -312,7 +312,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
         domain: string
         reference: string
       }) {
-        const allVerifications = yield* db.query.participantVerifications.findMany({
+        const allVerifications = yield* use(db => db.query.participantVerifications.findMany({
           with: {
             participant: {
               with: {
@@ -331,7 +331,7 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
           orderBy: (participantVerifications, { desc }) => [
             desc(participantVerifications.createdAt),
           ],
-        })
+        }))
 
         const match = allVerifications.find(
           (verification) =>
@@ -352,9 +352,9 @@ export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()
 
       const clearAllValidationResults = Effect.fn("ValidationsQueries.clearAllValidationResults")(
         function* ({ participantId }: { participantId: number }) {
-          yield* db
+          yield* use(db => db
             .delete(validationResults)
-            .where(eq(validationResults.participantId, participantId))
+            .where(eq(validationResults.participantId, participantId)))
         }
       )
 

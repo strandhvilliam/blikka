@@ -23,25 +23,25 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
   "@blikka/db/voting-queries",
   {
     make: Effect.gen(function* () {
-      const db = yield* DrizzleClient
+      const { client: db, use } = yield* DrizzleClient
 
       const getVotingSessionByToken = Effect.fn(
         "VotingQueries.getVotingSessionByToken",
       )(function* ({ token }: { token: string }) {
-        const result = yield* db.query.votingSession.findFirst({
+        const result = yield* use(db => db.query.votingSession.findFirst({
           where: { token },
           with: {
             marathon: true,
             topic: true,
           },
-        })
+        }))
         return Option.fromNullishOr(result)
       })
 
       const getPublicMarathonByDomain = Effect.fn(
         "VotingQueries.getPublicMarathonByDomain",
       )(function* ({ domain }: { domain: string }) {
-        const result = yield* db.query.marathons.findFirst({
+        const result = yield* use(db => db.query.marathons.findFirst({
           where: { domain },
           columns: {
             id: true,
@@ -52,7 +52,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             startDate: true,
             endDate: true,
           },
-        })
+        }))
         return Option.fromNullishOr(result)
       })
 
@@ -65,12 +65,12 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        const result = yield* db.query.participants.findMany({
+        const result = yield* use(db => db.query.participants.findMany({
           where: { marathonId },
           with: {
             submissions: true,
           },
-        })
+        }))
 
         return result
           .filter((p) => p.submissions.some((s) => s.topicId === topicId))
@@ -89,7 +89,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .selectDistinct({
             id: participants.id,
             firstname: participants.firstname,
@@ -113,7 +113,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               eq(votingSession.topicId, topicId),
             ),
           )
-          .where(isNull(votingSession.id))
+          .where(isNull(votingSession.id)))
 
         return result
       })
@@ -125,10 +125,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
           return []
         }
 
-        const result = yield* db
+        const result = yield* use(db => db
           .insert(votingSession)
           .values(sessions)
-          .returning()
+          .returning())
         return result
       })
 
@@ -141,10 +141,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         ids: number[]
         notificationLastSentAt: string | null
       }) {
-        yield* db
+        yield* use(db => db
           .update(votingSession)
           .set({ notificationLastSentAt })
-          .where(inArray(votingSession.id, ids))
+          .where(inArray(votingSession.id, ids)))
       })
 
       const countVotingSessionsForTopic = Effect.fn(
@@ -156,7 +156,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .select({ value: count() })
           .from(votingSession)
           .where(
@@ -164,7 +164,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               eq(votingSession.marathonId, marathonId),
               eq(votingSession.topicId, topicId),
             ),
-          )
+          ))
 
         return result[0]?.value ?? 0
       })
@@ -178,7 +178,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        return yield* db.query.votingSession.findMany({
+        return yield* use(db => db.query.votingSession.findMany({
           where: { marathonId, topicId },
           with: {
             participant: {
@@ -208,7 +208,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             },
           },
           orderBy: { createdAt: "desc" },
-        })
+        }))
       })
 
       const getSubmissionVoteLeaderboardForTopic = Effect.fn(
@@ -220,7 +220,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        return yield* db
+        return yield* use(db => db
           .select({
             submissionId: submissions.id,
             submissionCreatedAt: submissions.createdAt,
@@ -265,7 +265,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             desc(sql<number>`count(${votingSession.id})`),
             asc(submissions.createdAt),
             asc(submissions.id),
-          )
+          ))
       })
 
       const getVotingSessionStatsForTopic = Effect.fn(
@@ -277,7 +277,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .select({
             total: sql<number>`count(*)`.as("total"),
             completed: sql<number>`count(${votingSession.votedAt})`.as(
@@ -296,7 +296,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               eq(votingSession.marathonId, marathonId),
               eq(votingSession.topicId, topicId),
             ),
-          )
+          ))
 
         return (
           result[0] ?? {
@@ -317,13 +317,13 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        const result = yield* db.query.topics.findFirst({
+        const result = yield* use(db => db.query.topics.findFirst({
           where: { marathonId, id: topicId },
           columns: {
             votingStartsAt: true,
             votingEndsAt: true,
           },
-        })
+        }))
 
         if (!result) {
           return undefined
@@ -348,7 +348,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         startsAt: string
         endsAt: string
       }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .update(topics)
           .set({
             votingStartsAt: startsAt,
@@ -359,7 +359,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
           .returning({
             startsAt: topics.votingStartsAt,
             endsAt: topics.votingEndsAt,
-          })
+          }))
 
         return result[0]
       })
@@ -375,7 +375,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number
         nowIso: string
       }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .update(topics)
           .set({
             votingStartsAt: sql`case
@@ -394,7 +394,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
           .returning({
             startsAt: topics.votingStartsAt,
             endsAt: topics.votingEndsAt,
-          })
+          }))
 
         return result[0]
       })
@@ -414,7 +414,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
           return []
         }
 
-        return yield* db
+        return yield* use(db => db
           .update(topics)
           .set({
             votingStartsAt: sql`case
@@ -437,7 +437,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             topicId: topics.id,
             startsAt: topics.votingStartsAt,
             endsAt: topics.votingEndsAt,
-          })
+          }))
       })
 
       const countSubmissionsForTopic = Effect.fn(
@@ -449,7 +449,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .select({ value: count() })
           .from(submissions)
           .where(
@@ -457,7 +457,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               eq(submissions.marathonId, marathonId),
               eq(submissions.topicId, topicId),
             ),
-          )
+          ))
 
         return result[0]?.value ?? 0
       })
@@ -471,7 +471,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .select({
             value: sql<number>`count(distinct ${submissions.participantId})`.as(
               "value",
@@ -483,7 +483,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               eq(submissions.marathonId, marathonId),
               eq(submissions.topicId, topicId),
             ),
-          )
+          ))
 
         return result[0]?.value ?? 0
       })
@@ -567,7 +567,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
           .from(leaderboardBase)
           .as("ranked_leaderboard")
 
-        return yield* db
+        return yield* use(db => db
           .select({
             submissionId: rankedLeaderboard.submissionId,
             submissionCreatedAt: rankedLeaderboard.submissionCreatedAt,
@@ -588,7 +588,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             asc(rankedLeaderboard.submissionKey),
           )
           .limit(limit)
-          .offset(offset)
+          .offset(offset))
       })
 
       const getTopRanksPreviewForTopic = Effect.fn(
@@ -685,7 +685,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
           .from(rankedLeaderboard)
           .as("ranked_preview")
 
-        return yield* db
+        return yield* use(db => db
           .select({
             submissionId: rankedPreview.submissionId,
             submissionCreatedAt: rankedPreview.submissionCreatedAt,
@@ -707,7 +707,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               sql`${rankedPreview.rankEntryOrder} <= 3`,
             ),
           )
-          .orderBy(asc(rankedPreview.rank), asc(rankedPreview.rankEntryOrder))
+          .orderBy(asc(rankedPreview.rank), asc(rankedPreview.rankEntryOrder)))
       })
 
       const getVotersPageForTopic = Effect.fn(
@@ -724,7 +724,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         limit: number
       }) {
         const offset = (page - 1) * limit
-        return yield* db.query.votingSession.findMany({
+        return yield* use(db => db.query.votingSession.findMany({
           where: { marathonId, topicId },
           columns: {
             id: true,
@@ -761,7 +761,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
           orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
           limit,
           offset,
-        })
+        }))
       })
 
       const getVotingSessionByIdForTopic = Effect.fn(
@@ -775,12 +775,12 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number
         sessionId: number
       }) {
-        const result = yield* db.query.votingSession.findFirst({
+        const result = yield* use(db => db.query.votingSession.findFirst({
           where: { id: sessionId, marathonId, topicId },
           with: {
             marathon: true,
           },
-        })
+        }))
 
         return Option.fromNullishOr(result)
       })
@@ -794,12 +794,12 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         submissionId: number
         domain: string
       }) {
-        const marathonResult = yield* db.query.marathons.findFirst({
+        const marathonResult = yield* use(db => db.query.marathons.findFirst({
           where: { domain },
           columns: {
             id: true,
           },
-        })
+        }))
 
         if (!marathonResult) {
           return Option.none()
@@ -807,14 +807,14 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
 
         const marathonId = marathonResult.id
 
-        const voteCountResult = yield* db
+        const voteCountResult = yield* use(db => db
           .select({ count: count() })
           .from(votingSession)
-          .where(eq(votingSession.voteSubmissionId, submissionId))
+          .where(eq(votingSession.voteSubmissionId, submissionId)))
 
         const voteCount = voteCountResult[0]?.count ?? 0
 
-        const allSubmissionsWithVotes = yield* db
+        const allSubmissionsWithVotes = yield* use(db => db
           .select({
             submissionId: submissions.id,
             voteCount: sql<number>`count(${votingSession.id})`.as("vote_count"),
@@ -825,7 +825,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             eq(submissions.id, votingSession.voteSubmissionId),
           )
           .where(eq(submissions.marathonId, marathonId))
-          .groupBy(submissions.id)
+          .groupBy(submissions.id))
 
         const position =
           allSubmissionsWithVotes.filter((s) => s.voteCount > voteCount)
@@ -848,7 +848,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         participantId: number
         topicId: number
       }) {
-        const votingSessionResult = yield* db.query.votingSession.findFirst({
+        const votingSessionResult = yield* use(db => db.query.votingSession.findFirst({
           where: { connectedParticipantId: participantId, topicId },
           with: {
             submissions: {
@@ -857,7 +857,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               },
             },
           },
-        })
+        }))
 
         if (!votingSessionResult) {
           return Option.none()
@@ -874,10 +874,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
       const getVotingSessionByParticipantId = Effect.fn(
         "VotingQueries.getVotingSessionByParticipantId",
       )(function* ({ participantId }: { participantId: number }) {
-        const result = yield* db.query.votingSession.findFirst({
+        const result = yield* use(db => db.query.votingSession.findFirst({
           where: { connectedParticipantId: participantId },
           orderBy: { createdAt: "desc" },
-        })
+        }))
 
         return Option.fromNullishOr(result)
       })
@@ -891,10 +891,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         participantId: number
         topicId: number
       }) {
-        const result = yield* db.query.votingSession.findFirst({
+        const result = yield* use(db => db.query.votingSession.findFirst({
           where: { connectedParticipantId: participantId, topicId },
           orderBy: { createdAt: "desc" },
-        })
+        }))
 
         return Option.fromNullishOr(result)
       })
@@ -902,7 +902,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
       const upsertVotingSession = Effect.fn(
         "VotingQueries.upsertVotingSession",
       )(function* (sessionData: NewVotingSession) {
-        const result = yield* db
+        const result = yield* use(db => db
           .insert(votingSession)
           .values(sessionData)
           .onConflictDoUpdate({
@@ -922,7 +922,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               updatedAt: new Date().toISOString(),
             },
           })
-          .returning()
+          .returning())
 
         return result[0] as VotingSession
       })
@@ -936,7 +936,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number
         topicId: number
       }) {
-        const result = yield* db.query.submissions.findMany({
+        const result = yield* use(db => db.query.submissions.findMany({
           where: { marathonId, topicId },
           orderBy: { id: "asc" },
           with: {
@@ -954,7 +954,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               },
             },
           },
-        })
+        }))
 
         return result
       })
@@ -967,7 +967,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         submissionId: number
       }) {
         const now = new Date().toISOString()
-        const result = yield* db
+        const result = yield* use(db => db
           .update(votingSession)
           .set({
             voteSubmissionId: submissionId,
@@ -975,7 +975,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             updatedAt: now,
           })
           .where(eq(votingSession.token, token))
-          .returning()
+          .returning())
 
         return result[0] as VotingSession | undefined
       })
@@ -986,7 +986,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         sessionId: number
       }) {
         const now = new Date().toISOString()
-        const result = yield* db
+        const result = yield* use(db => db
           .update(votingSession)
           .set({
             voteSubmissionId: null,
@@ -994,7 +994,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             updatedAt: now,
           })
           .where(eq(votingSession.id, sessionId))
-          .returning()
+          .returning())
 
         return result[0] as VotingSession | undefined
       })
@@ -1002,10 +1002,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
       const deleteVotingSession = Effect.fn(
         "VotingQueries.deleteVotingSession",
       )(function* ({ sessionId }: { sessionId: number }) {
-        const result = yield* db
+        const result = yield* use(db => db
           .delete(votingSession)
           .where(eq(votingSession.id, sessionId))
-          .returning()
+          .returning())
 
         return result[0] as VotingSession | undefined
       })

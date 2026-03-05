@@ -15,12 +15,12 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
   "@blikka/db/participants-queries",
   {
     make: Effect.gen(function* () {
-      const db = yield* DrizzleClient
+      const { use } = yield* DrizzleClient
 
       const getParticipantById = Effect.fn(
         "ParticipantsQueries.getParticipantByIdQuery",
       )(function* ({ id }: { id: number }) {
-        const result = yield* db.query.participants.findFirst({
+        const result = yield* use(db => db.query.participants.findFirst({
           where: { id },
           with: {
             submissions: true,
@@ -29,7 +29,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
             validationResults: true,
             zippedSubmissions: true,
           },
-        })
+        }))
 
         return Option.fromNullishOr(result)
       })
@@ -43,7 +43,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         reference: string
         domain: string
       }) {
-        const result = yield* db.query.participants.findFirst({
+        const result = yield* use(db => db.query.participants.findFirst({
           where: { reference, domain },
           with: {
             submissions: {
@@ -57,7 +57,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
             zippedSubmissions: true,
             contactSheets: true,
           },
-        })
+        }))
 
         return Option.fromNullishOr(result)
       })
@@ -139,7 +139,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         }
 
         if (hasValidationErrors) {
-          const participantsWithErrors = yield* db
+          const participantsWithErrors = yield* use(db => db
             .selectDistinct({ participantId: validationResults.participantId })
             .from(validationResults)
             .innerJoin(
@@ -155,7 +155,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
                   eq(validationResults.severity, "warning"),
                 ),
               ),
-            )
+            ))
 
           const participantIdsWithErrors = participantsWithErrors.map(
             (p) => p.participantId,
@@ -172,7 +172,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         }
 
         if (topicId !== undefined) {
-          const participantsWithTopicSubmissions = yield* db
+          const participantsWithTopicSubmissions = yield* use(db => db
             .selectDistinct({ participantId: submissions.participantId })
             .from(submissions)
             .innerJoin(participants, eq(participants.id, submissions.participantId))
@@ -181,7 +181,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
                 eq(participants.domain, domain),
                 eq(submissions.topicId, topicId),
               ),
-            )
+            ))
 
           const participantIdsWithTopicSubmissions =
             participantsWithTopicSubmissions.map((p) => p.participantId)
@@ -200,7 +200,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           ? baseConditions[0]
           : { AND: baseConditions }
 
-        const participant = yield* db.query.participants.findMany({
+        const participant = yield* use(db => db.query.participants.findMany({
           where: whereCondition,
           columns: {
             phoneHash: false,
@@ -244,7 +244,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           },
           limit: limit + 1,
           orderBy: sortOrder === "desc" ? { id: "desc" } : { id: "asc" },
-        })
+        }))
 
         function countValidationResults(
           validations: { outcome: string; severity: string }[],
@@ -339,10 +339,10 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           )
         }
 
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .insert(participants)
           .values(data)
-          .returning()
+          .returning())
 
         if (!result) {
           return yield* Effect.fail(
@@ -364,11 +364,11 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         id: number
         data: Partial<NewParticipant>
       }) {
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .update(participants)
           .set(data)
           .where(eq(participants.id, id))
-          .returning()
+          .returning())
 
         if (!result) {
           return yield* Effect.fail(
@@ -392,7 +392,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         domain: string
         data: Partial<NewParticipant>
       }) {
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .update(participants)
           .set(data)
           .where(
@@ -401,7 +401,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
               eq(participants.domain, domain),
             ),
           )
-          .returning({ id: participants.id })
+          .returning({ id: participants.id }))
         if (!result) {
           return yield* Effect.fail(
             new DbError({
@@ -415,10 +415,10 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
       const deleteParticipant = Effect.fn(
         "ParticipantsQueries.deleteParticipantMutation",
       )(function* ({ id }: { id: number }) {
-        const [result] = yield* db
+        const [result] = yield* use(db => db
           .delete(participants)
           .where(eq(participants.id, id))
-          .returning()
+          .returning())
         if (!result) {
           return yield* Effect.fail(
             new DbError({
@@ -436,12 +436,12 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           return { deletedCount: 0, failedIds: [] }
         }
 
-        const results = yield* db
+        const results = yield* use(db => db
           .delete(participants)
           .where(
             and(eq(participants.domain, domain), inArray(participants.id, ids)),
           )
-          .returning({ id: participants.id })
+          .returning({ id: participants.id }))
 
         const deletedIds = results.map((r) => r.id)
         const failedIds = ids.filter((id) => !deletedIds.includes(id))
@@ -459,7 +459,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           return { updatedCount: 0, failedIds: [] }
         }
 
-        const results = yield* db
+        const results = yield* use(db => db
           .update(participants)
           .set({ status: "verified" })
           .where(
@@ -469,7 +469,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
               eq(participants.status, "completed"),
             ),
           )
-          .returning({ id: participants.id })
+          .returning({ id: participants.id }))
 
         const updatedIds = results.map((r) => r.id)
         const failedIds = ids.filter((id) => !updatedIds.includes(id))

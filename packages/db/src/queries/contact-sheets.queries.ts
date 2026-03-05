@@ -8,14 +8,14 @@ export class ContactSheetsQueries extends ServiceMap.Service<ContactSheetsQuerie
   "@blikka/db/contact-sheets-queries",
   {
     make: Effect.gen(function* () {
-      const db = yield* DrizzleClient
+      const { use } = yield* DrizzleClient
 
       const save = Effect.fn("ContactSheetsQueries.save")(function* ({
         data,
       }: {
         data: NewContactSheet
       }) {
-        const [result] = yield* db.insert(contactSheets).values(data).returning()
+        const [result] = yield* use(db => db.insert(contactSheets).values(data).returning())
         if (!result) {
           return yield* Effect.fail(
             new DbError({

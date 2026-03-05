@@ -7,20 +7,20 @@ export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissio
   "@blikka/db/zipped-submissions-queries",
   {
     make: Effect.gen(function* () {
-      const db = yield* DrizzleClient
+      const { use } = yield* DrizzleClient
 
       const getZippedSubmissionsByDomain = Effect.fn(
         "ZippedSubmissionsQueries.getZippedSubmissionsByDomain",
       )(function* ({ domain }: { domain: string }) {
-        const marathon = yield* db.query.marathons.findFirst({
+        const marathon = yield* use(db => db.query.marathons.findFirst({
           where: {
             domain
           }
-        })
+        }))
         if (!marathon) {
           return []
         }
-        const result = yield* db.query.zippedSubmissions.findMany({
+        const result = yield* use(db => db.query.zippedSubmissions.findMany({
           where: {
             marathonId: marathon.id
           },
@@ -31,7 +31,7 @@ export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissio
               },
             },
           },
-        })
+        }))
         return result
       })
 
@@ -48,16 +48,16 @@ export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissio
         minReference: number
         maxReference: number
       }) {
-        const marathon = yield* db.query.marathons.findFirst({
+        const marathon = yield* use(db => db.query.marathons.findFirst({
           where: {
             domain
           }
-        })
+        }))
         if (!marathon) {
           return []
         }
 
-        const matchingParticipants = yield* db
+        const matchingParticipants = yield* use(db => db
           .select({ id: participants.id })
           .from(participants)
           .where(
@@ -67,7 +67,7 @@ export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissio
               gte(sql`CAST(${participants.reference} AS INTEGER)`, minReference),
               lte(sql`CAST(${participants.reference} AS INTEGER)`, maxReference)
             )
-          )
+          ))
 
         if (matchingParticipants.length === 0) {
           return []
@@ -75,7 +75,7 @@ export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissio
 
         const participantIds = matchingParticipants.map((p) => p.id)
 
-        const result = yield* db.query.zippedSubmissions.findMany({
+        const result = yield* use(db => db.query.zippedSubmissions.findMany({
           where: {
             marathonId: marathon.id,
             participantId: { in: participantIds },
@@ -87,7 +87,7 @@ export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissio
               },
             },
           },
-        })
+        }))
 
         return result.sort(
           (a, b) =>
@@ -98,9 +98,9 @@ export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissio
       const getZipSubmissionStatsByDomain = Effect.fn(
         "ZippedSubmissionsQueries.getZipSubmissionStatsByDomain",
       )(function* ({ domain }: { domain: string }) {
-        const marathon = yield* db.query.marathons.findFirst({
+        const marathon = yield* use(db => db.query.marathons.findFirst({
           where: { domain },
-        })
+        }))
         if (!marathon) {
           return {
             totalParticipants: 0,
@@ -109,13 +109,13 @@ export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissio
           }
         }
 
-        const allParticipants = yield* db.query.participants.findMany({
+        const allParticipants = yield* use(db => db.query.participants.findMany({
           where: { marathonId: marathon.id },
           columns: {
             id: true,
             reference: true,
           },
-        })
+        }))
 
         if (allParticipants.length === 0) {
           return {
@@ -128,12 +128,12 @@ export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissio
         const participantIds = allParticipants.map((p) => p.id)
 
         const zippedSubmissionsData =
-          yield* db.query.zippedSubmissions.findMany({
+          yield* use(db => db.query.zippedSubmissions.findMany({
             where: { participantId: { in: participantIds } },
             columns: {
               participantId: true,
             },
-          })
+          }))
 
         const zippedParticipantIds = new Set(
           zippedSubmissionsData.map((zs) => zs.participantId),
