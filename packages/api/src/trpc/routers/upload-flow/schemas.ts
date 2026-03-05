@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-export class UploadFlowApiError extends Schema.TaggedError<UploadFlowApiError>()(
+export class UploadFlowApiError extends Schema.TaggedErrorClass<UploadFlowApiError>()(
   "@blikka/api/UploadFlowApiError",
   {
     message: Schema.String,
@@ -9,13 +9,13 @@ export class UploadFlowApiError extends Schema.TaggedError<UploadFlowApiError>()
 ) {
 }
 
-export const GetPublicMarathonSchema = Schema.standardSchemaV1(
+export const GetPublicMarathonSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
   }),
 );
 
-export const InitializeUploadFlowSchema = Schema.standardSchemaV1(
+export const InitializeUploadFlowSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     reference: Schema.String,
@@ -28,7 +28,7 @@ export const InitializeUploadFlowSchema = Schema.standardSchemaV1(
   }),
 );
 
-export const InitializeByCameraUploadSchema = Schema.standardSchemaV1(
+export const InitializeByCameraUploadSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     reference: Schema.String,
@@ -40,14 +40,14 @@ export const InitializeByCameraUploadSchema = Schema.standardSchemaV1(
   }),
 );
 
-export const CheckParticipantExistsSchema = Schema.standardSchemaV1(
+export const CheckParticipantExistsSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     reference: Schema.String,
   }),
 );
 
-export const GetUploadStatusSchema = Schema.standardSchemaV1(
+export const GetUploadStatusSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     reference: Schema.String,

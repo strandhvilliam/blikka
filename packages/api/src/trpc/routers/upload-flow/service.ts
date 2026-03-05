@@ -1,4 +1,4 @@
-import { Config, Effect, Option, Array, Order, pipe } from "effect"
+import { Array, Config, Effect, Layer, Option, Order, pipe, ServiceMap } from "effect"
 import { type NewParticipant, type Participant, type Submission, type Topic, Database } from "@blikka/db"
 import { S3Service } from "@blikka/s3"
 import { UploadSessionRepository } from "@blikka/kv-store"
@@ -6,19 +6,10 @@ import { PubSubChannel, PubSubService, RunStateService } from "@blikka/pubsub"
 import { UploadFlowApiError } from "./schemas"
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption"
 
-export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()(
+export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiService>()(
   "@blikka/api/UploadFlowApiService",
   {
-    accessors: true,
-    dependencies: [
-      Database.Default,
-      S3Service.Default,
-      UploadSessionRepository.Default,
-      PubSubService.Default,
-      RunStateService.Default,
-      PhoneNumberEncryptionService.layer,
-    ],
-    effect: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const db = yield* Database
       const s3 = yield* S3Service
       const kv = yield* UploadSessionRepository
@@ -39,14 +30,16 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
           })
           .pipe(
             Effect.andThen(
-              Option.match({
-                onSome: (marathon) => Effect.succeed(marathon),
-                onNone: () =>
-                  new UploadFlowApiError({
-                    message: `[${domain}] Marathon not found`,
-                  }),
-              }),
-            ),
+                Option.match({
+                  onSome: (marathon) => Effect.succeed(marathon),
+                  onNone: () =>
+                    Effect.fail(
+                      new UploadFlowApiError({
+                        message: `[${domain}] Marathon not found`,
+                      }),
+                    ),
+                }),
+              ),
           )
 
         const processedTopics = marathon.topics.reduce((acc, topic) => {
@@ -162,7 +155,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             onNone: () => [] as number[],
           })
 
-          const { encrypted, hash } = yield* Option.match(Option.fromNullable(phoneNumber), {
+          const { encrypted, hash } = yield* Option.match(Option.fromNullishOr(phoneNumber), {
             onSome: (phoneNumber) => phoneEncryption.encrypt({ phoneNumber }),
             onNone: () => Effect.succeed<{ encrypted: null, hash: null }>({ encrypted: null, hash: null }),
           })
@@ -206,7 +199,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
           const topics = pipe(
             marathon.topics,
             Array.sort(
-              Order.mapInput(Order.number, (topic: Topic) => topic.orderIndex),
+              Order.mapInput(Order.Number, (topic: Topic) => topic.orderIndex),
             ),
             Array.drop(competitionClass.topicStartIndex),
             Array.take(competitionClass.numberOfPhotos),
@@ -358,7 +351,7 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
             }),
           )
 
-          const { encrypted, hash } = yield* Option.match(Option.fromNullable(phoneNumber), {
+          const { encrypted, hash } = yield* Option.match(Option.fromNullishOr(phoneNumber), {
             onSome: (phoneNumber) => phoneEncryption.encrypt({ phoneNumber }),
             onNone: () => Effect.succeed<{ encrypted: null, hash: null }>({ encrypted: null, hash: null }),
           })
@@ -467,4 +460,14 @@ export class UploadFlowApiService extends Effect.Service<UploadFlowApiService>()
     }),
   },
 ) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(Layer.mergeAll(
+      Database.layer,
+      S3Service.layer,
+      UploadSessionRepository.layer,
+      PubSubService.layer,
+      RunStateService.layer,
+      PhoneNumberEncryptionService.layer,
+    ))
+  )
 }
