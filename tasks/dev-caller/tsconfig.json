@@ -10,7 +10,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@blikka/aws": ["../../packages/aws/src"],
-      "@blikka/pubsub": ["../../packages/pubsub/src"]
+      "@blikka/pubsub": ["../../packages/pubsub/src"],
+      "@blikka/realtime": ["../../packages/realtime/src"]
     },
     "strict": true
   },

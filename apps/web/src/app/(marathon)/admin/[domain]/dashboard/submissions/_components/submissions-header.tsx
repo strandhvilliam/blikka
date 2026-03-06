@@ -11,6 +11,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { Button } from "@/components/ui/button"
+import { useRealtime } from "@/lib/realtime-client"
 
 function getActiveTopicDisplayText({
   activeTopicName,
@@ -124,6 +125,14 @@ export function SubmissionsHeader() {
       setIsRefreshing(false)
     }
   }
+  useRealtime({
+    events: ["*"],
+    channels: ["*"],
+    onData({ event, data, channel }) {
+      console.log(`Received ${event}:`, data)
+    },
+  })
+
 
   return (
     <div className="space-y-4">
@@ -132,6 +141,9 @@ export function SubmissionsHeader() {
           <h1 className="font-gothic text-3xl font-normal tracking-tight">
             Submissions
           </h1>
+          <button onClick={async () => {
+            await fetch("/api/notify", { method: "POST" })
+          }}>Notify</button>
           {marathon.mode === "by-camera" ? (
             <p className="text-muted-foreground text-sm">
               Viewing active topic:{" "}

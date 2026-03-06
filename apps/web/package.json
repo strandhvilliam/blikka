@@ -13,6 +13,7 @@
     "@aws-sdk/s3-request-presigner": "^3.962.0",
     "@blikka/api": "workspace:*",
     "@blikka/auth": "workspace:*",
+    "@blikka/aws": "workspace:*",
     "@blikka/db": "workspace:*",
     "@blikka/email": "workspace:*",
     "@blikka/exif-parser": "workspace:*",
@@ -64,6 +65,8 @@
     "@trpc/server": "^11.7.2",
     "@trpc/tanstack-react-query": "^11.7.1",
     "@uidotdev/usehooks": "^2.4.1",
+    "@upstash/realtime": "^1.0.3",
+    "@upstash/redis": "^1.36.3",
     "@yudiel/react-qr-scanner": "^2.3.1",
     "better-auth": "^1.4.6",
     "class-variance-authority": "^0.7.1",
@@ -105,8 +108,7 @@
     "vaul": "^1.1.2",
     "xlsx": "^0.18.5",
     "zod": "^4.1.12",
-    "zustand": "^5.0.10",
-    "@blikka/aws": "workspace:*"
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

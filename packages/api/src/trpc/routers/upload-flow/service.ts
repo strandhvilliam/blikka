@@ -1,8 +1,8 @@
 import { Array, Config, Effect, Layer, Option, Order, pipe, ServiceMap } from "effect"
-import { type NewParticipant, type Participant, type Submission, type Topic, Database } from "@blikka/db"
+import { type NewParticipant, type Participant, type Topic, Database } from "@blikka/db"
 import { S3Service, SQSService } from "@blikka/aws"
 import { UploadSessionRepository } from "@blikka/kv-store"
-import { PubSubChannel, PubSubService, RunStateService } from "@blikka/pubsub"
+import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
 import { UploadFlowApiError } from "./schemas"
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption"
 
@@ -15,7 +15,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
       const sqs = yield* SQSService
       const kv = yield* UploadSessionRepository
       const phoneEncryption = yield* PhoneNumberEncryptionService
-      const runStateService = yield* RunStateService
+      const realtimeStateEvents = yield* RealtimeStateEventsService
       const bucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
       const queueUrl = yield* Config.string("UPLOAD_PROCESSOR_QUEUE_URL")
       const environment = yield* Config.string("NODE_ENV").pipe(
@@ -245,11 +245,11 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           }))
         })
 
-        const channel = yield* PubSubChannel.fromString(
+        const channel = yield* RealtimeChannel.fromString(
           `${environment}:upload-flow:${domain}-${reference}`,
         )
 
-        return yield* runStateService.withRunStateEvents({
+        return yield* realtimeStateEvents.withRealtimeStateEvents({
           taskName: "upload-initializer",
           channel,
           effect: executeEffect,
@@ -426,11 +426,11 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           }]
         })
 
-        const channel = yield* PubSubChannel.fromString(
+        const channel = yield* RealtimeChannel.fromString(
           `${environment}:upload-flow:${domain}-${reference}`,
         )
 
-        return yield* runStateService.withRunStateEvents({
+        return yield* realtimeStateEvents.withRealtimeStateEvents({
           taskName: "by-camera-upload-initializer",
           channel,
           effect: executeEffect,
@@ -477,8 +477,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
       S3Service.layer,
       SQSService.layer,
       UploadSessionRepository.layer,
-      PubSubService.layer,
-      RunStateService.layer,
+      RealtimeStateEventsService.layer,
       PhoneNumberEncryptionService.layer,
     ))
   )

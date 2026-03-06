@@ -4,8 +4,9 @@ import { parseAndNormalizeMessage, parseKey } from "./utils"
 import { type SQSRecord } from "aws-lambda"
 import { UploadProcessorService } from "./processor-service"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { PubSubChannel, RunStateService, PubSubLoggerService } from "@blikka/pubsub"
+import { PubSubLoggerService } from "@blikka/pubsub"
 import { Resource as SSTResource } from "sst"
+import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
 
 const getEnvironment = (): "prod" | "dev" | "staging" => {
   const stage = SSTResource.App.stage
@@ -19,7 +20,7 @@ const TASK_NAME = "upload-processor"
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
     const uploadProcessor = yield* UploadProcessorService
-    const runStateService = yield* RunStateService
+    const realtimeStateService = yield* RealtimeStateEventsService
     const environment = getEnvironment()
 
     const processSQSRecord = Effect.fn("upload-processor.processSQSRecord")(function* (
@@ -44,11 +45,11 @@ const effectHandler = (event: SQSEvent) =>
                 Effect.tapError((error) => Effect.logError("Error processing photo", error)),
               )
 
-            const channel = yield* PubSubChannel.fromString(
+            const channel = yield* RealtimeChannel.fromString(
               `${environment}:upload-flow:${domain}-${reference}`,
             )
 
-            return yield* runStateService.withRunStateEvents({
+            return yield* realtimeStateService.withRealtimeStateEvents({
               taskName: TASK_NAME,
               channel,
               effect: processPhotoEffect,
@@ -71,7 +72,7 @@ const effectHandler = (event: SQSEvent) =>
 
 const serviceLayer = Layer.mergeAll(
   UploadProcessorService.layer,
-  RunStateService.layer,
+  RealtimeStateEventsService.layer,
   PubSubLoggerService.withTaskName(TASK_NAME),
   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),
 )

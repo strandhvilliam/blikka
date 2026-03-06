@@ -77,6 +77,8 @@
         "@trpc/server": "^11.7.2",
         "@trpc/tanstack-react-query": "^11.7.1",
         "@uidotdev/usehooks": "^2.4.1",
+        "@upstash/realtime": "^1.0.3",
+        "@upstash/redis": "^1.36.3",
         "@yudiel/react-qr-scanner": "^2.3.1",
         "better-auth": "^1.4.6",
         "class-variance-authority": "^0.7.1",
@@ -329,6 +331,7 @@
       "dependencies": {
         "@blikka/redis": "workspace:*",
         "@upstash/realtime": "^1.0.3",
+        "@upstash/redis": "^1.36.3",
         "effect": "catalog:",
       },
       "devDependencies": {
@@ -1739,7 +1742,7 @@
 
     "@upstash/realtime": ["@upstash/realtime@1.0.3", "", { "peerDependencies": { "@upstash/redis": ">=1.35.4", "react": ">=16.8.0", "react-dom": ">=16.8.0", "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["react", "react-dom"] }, "sha512-cF5O0GqTW+yfb1PUzAQTvC0LZccLg8kgFHMc4MxTpQxSV5SKSHr3jl5xogLd772CCO0of9awZdWnbtyH2FHhQg=="],
 
-    "@upstash/redis": ["@upstash/redis@1.36.0", "", { "dependencies": { "uncrypto": "^0.1.3" } }, "sha512-9zN2UV9QJGPnXfWU3yZBLVQaqqENDh7g+Y4J2vJuSxBCi9FQ0aUOtaXlzuFhnsiZvCqM+eS27ic+tgmkWUsfOg=="],
+    "@upstash/redis": ["@upstash/redis@1.36.3", "", { "dependencies": { "uncrypto": "^0.1.3" } }, "sha512-wxo1ei4OHDHm4UGMgrNVz9QUEela9N/Iwi4p1JlHNSowQiPi+eljlGnfbZVkV0V4PIrjGtGFJt5GjWM5k28enA=="],
 
     "@vimmer/eslint-config": ["@vimmer/eslint-config@workspace:packages/eslint-config"],
 

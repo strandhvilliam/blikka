@@ -4,12 +4,13 @@ import { DrizzleClient, Database } from "@blikka/db"
 import { EmailService } from "@blikka/email"
 import { RedisClient } from "@blikka/redis"
 import { NodeServices } from "@effect/platform-node"
-import { PubSubService, RunStateService } from "@blikka/pubsub"
+import { PubSubService } from "@blikka/pubsub"
 import { S3Service, SQSService } from "@blikka/aws"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { ValidationEngine } from "@blikka/validation"
 import { SharpImageService, ContactSheetBuilder, ExifParser } from "@blikka/image-manipulation"
 import { SMSService } from "@blikka/aws"
+import { RealtimeStateEventsService } from "@blikka/realtime"
 
 // Core layer with all common services
 export const CoreLayer = Layer.mergeAll(
@@ -25,7 +26,7 @@ export const CoreLayer = Layer.mergeAll(
   SharpImageService.layer,
   ContactSheetBuilder.layer,
   ExifParser.layer,
-  RunStateService.layer,
+  RealtimeStateEventsService.layer,
   SMSService.layer,
 )
 

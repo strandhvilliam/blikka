@@ -2,13 +2,14 @@ import { Config, Effect, Layer } from "effect"
 import { ZipWorker } from "./zip-worker"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { PubSubChannel, PubSubLoggerService, RunStateService } from "@blikka/pubsub"
+import { PubSubLoggerService } from "@blikka/pubsub"
+import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
 import { InvalidArgumentsError } from "./utils"
 
 const mainLayer = Layer.mergeAll(
   ZipWorker.layer,
   UploadSessionRepository.layer,
-  RunStateService.layer,
+  RealtimeStateEventsService.layer,
   PubSubLoggerService.withTaskName("zip-worker"),
   TelemetryLayer("blikka-dev-zip-worker")
 )
@@ -32,13 +33,13 @@ const parseArguments = Effect.fn("ZipWorker.parseArguments")(
 
 const runnable = Effect.gen(function* () {
   const handler = yield* ZipWorker
-  const runStateService = yield* RunStateService
+  const realtimeStateEvents = yield* RealtimeStateEventsService
   const environment = getEnvironment("development")
 
   const { domain, reference } = yield* parseArguments()
 
   return yield* Effect.gen(function* () {
-    const channel = yield* PubSubChannel.fromString(
+    const channel = yield* RealtimeChannel.fromString(
       `${environment}:upload-flow:${domain}-${reference}`
     )
 
@@ -49,8 +50,8 @@ const runnable = Effect.gen(function* () {
       Effect.tapError((error) => Effect.logError("Error running zip task", error))
     )
 
-    yield* runStateService
-      .withRunStateEvents({
+    yield* realtimeStateEvents
+      .withRealtimeStateEvents({
         taskName: "zip-worker",
         channel,
         effect: runZipTaskEffect,

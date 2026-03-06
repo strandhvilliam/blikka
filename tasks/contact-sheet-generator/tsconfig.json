@@ -13,7 +13,8 @@
       "@blikka/image-manipulation": ["../../packages/image-manipulation/src"],
       "@blikka/db": ["../../packages/db/src"],
       "@blikka/telemetry": ["../../packages/telemetry/src"],
-      "@blikka/pubsub": ["../../packages/pubsub/src"]
+      "@blikka/pubsub": ["../../packages/pubsub/src"],
+      "@blikka/realtime": ["../../packages/realtime/src"]
     },
     "strict": true
   },

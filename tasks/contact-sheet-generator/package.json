@@ -15,6 +15,7 @@
     "@blikka/kv-store": "workspace:*",
     "@blikka/telemetry": "workspace:*",
     "@blikka/pubsub": "workspace:*",
+    "@blikka/realtime": "workspace:*",
     "@effect-aws/lambda": "catalog:",
     "effect": "catalog:",
     "sharp": "^0.34.3",

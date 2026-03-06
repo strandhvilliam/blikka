@@ -3,7 +3,8 @@ import { type SQSEvent, LambdaHandler } from "@effect-aws/lambda"
 import { SheetGeneratorService } from "./sheet-generator-service"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
-import { PubSubChannel, RunStateService, PubSubLoggerService } from "@blikka/pubsub"
+import { PubSubLoggerService } from "@blikka/pubsub"
+import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
 import { Resource as SSTResource } from "sst"
 import { type SQSRecord } from "aws-lambda"
 
@@ -19,7 +20,7 @@ const TASK_NAME = "contact-sheet-generator"
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
     const sheetGeneratorService = yield* SheetGeneratorService
-    const runStateService = yield* RunStateService
+    const realtimeStateEvents = yield* RealtimeStateEventsService
     const environment = getEnvironment()
 
     const processSQSRecord = Effect.fn("contact-sheet-generator.processSQSRecord")(function* (
@@ -37,11 +38,11 @@ const effectHandler = (event: SQSEvent) =>
             Effect.tapError((error) => Effect.logError("Error generating contact sheet", error))
           )
 
-        const channel = yield* PubSubChannel.fromString(
+        const channel = yield* RealtimeChannel.fromString(
           `${environment}:upload-flow:${domain}-${reference}`
         )
 
-        return yield* runStateService.withRunStateEvents({
+        return yield* realtimeStateEvents.withRealtimeStateEvents({
           taskName: TASK_NAME,
           channel,
           effect: generateContactSheetEffect,
@@ -55,7 +56,7 @@ const effectHandler = (event: SQSEvent) =>
 
 const serviceLayer = Layer.mergeAll(
   SheetGeneratorService.layer,
-  RunStateService.layer,
+  RealtimeStateEventsService.layer,
   PubSubLoggerService.withTaskName(TASK_NAME),
   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`)
 )

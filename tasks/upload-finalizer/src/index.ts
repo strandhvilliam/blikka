@@ -1,7 +1,8 @@
 import { type SQSEvent, type SQSRecord } from "aws-lambda"
 import { Effect, Layer } from "effect"
 import { LambdaHandler } from "@effect-aws/lambda"
-import { PubSubChannel, PubSubLoggerService, RunStateService } from "@blikka/pubsub"
+import { PubSubLoggerService } from "@blikka/pubsub"
+import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 import { getEnvironment } from "./utils"
@@ -12,7 +13,7 @@ const TASK_NAME = "upload-finalizer"
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
     const environment = getEnvironment()
-    const runStateService = yield* RunStateService
+    const realtimeStateEvents = yield* RealtimeStateEventsService
     const uploadFinalizerService = yield* UploadFinalizerService
 
     const processSQSRecord = Effect.fn("upload-finalizer.processSQSRecord")(function* (
@@ -27,11 +28,11 @@ const effectHandler = (event: SQSEvent) =>
           Effect.tap(() => Effect.logInfo("Participant finalized")),
           Effect.tapError((error) => Effect.logError("Error finalizing participant", error))
         )
-        const channel = yield* PubSubChannel.fromString(
+        const channel = yield* RealtimeChannel.fromString(
           `${environment}:upload-flow:${domain}-${reference}`
         )
 
-        return yield* runStateService.withRunStateEvents({
+        return yield* realtimeStateEvents.withRealtimeStateEvents({
           taskName: TASK_NAME,
           channel,
           effect: finalizeEffect,
@@ -49,7 +50,7 @@ const effectHandler = (event: SQSEvent) =>
   }).pipe(Effect.withSpan("UploadFinalizer.handler"), Effect.catch((error) => Effect.logError("Error running upload finalizer", error)))
 
 const serviceLayer = Layer.mergeAll(
-  RunStateService.layer,
+  RealtimeStateEventsService.layer,
   UploadFinalizerService.layer,
   PubSubLoggerService.withTaskName(TASK_NAME),
   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`)

@@ -15,6 +15,7 @@
     "@blikka/image-manipulation": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@blikka/pubsub": "workspace:*",
+    "@blikka/realtime": "workspace:*",
     "@blikka/telemetry": "workspace:*",
     "@effect-aws/lambda": "catalog:",
     "effect": "catalog:",

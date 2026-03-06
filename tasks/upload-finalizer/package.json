@@ -9,6 +9,7 @@
   "dependencies": {
     "@blikka/db": "workspace:*",
     "@blikka/pubsub": "workspace:*",
+    "@blikka/realtime": "workspace:*",
     "@blikka/telemetry": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@effect-aws/lambda": "catalog:",

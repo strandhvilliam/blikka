@@ -1,6 +1,4 @@
-import { RedisClient } from "@blikka/redis"
-import { Realtime } from "@upstash/realtime"
-import { ServiceMap, Effect, Layer, Schema, Duration, Schedule } from "effect"
+import { Effect, Schema } from "effect"
 
 
 const RealtimeChannelEnv = Schema.Literals(["prod", "dev", "staging"])
@@ -87,40 +85,3 @@ export class RealtimeMessage extends Schema.Class<RealtimeMessage>("RealtimeMess
     }).pipe(Effect.mapError((error) => new RealtimeError({ message: 'Failed to stringify realtime message', cause: error })))
   })
 }
-
-
-
-export class RealtimeService extends ServiceMap.Service<RealtimeService>()(
-  "@blikka/realtime/realtime-service",
-  {
-    make: Effect.gen(function* () {
-      const redis = yield* RedisClient
-      const client = yield* redis.use((redis) => new Realtime({ redis }))
-
-
-      const emit = Effect.fn("RealtimeService.send")(function* (channel: RealtimeChannel, message: RealtimeMessage) {
-        const validChannel = yield* Schema.decodeUnknownEffect(RealtimeChannel)(channel)
-          .pipe(Effect.mapError((e) => new RealtimeError({ message: `Invalid realtime channel: ${String(e.message)}`, cause: e })))
-        const validMessage = yield* Schema.decodeUnknownEffect(RealtimeMessage)(message)
-          .pipe(Effect.mapError((e) => new RealtimeError({ message: `Invalid realtime message: ${String(e.message)}`, cause: e })))
-
-        const channelString = yield* RealtimeChannel.stringify(validChannel)
-        const jsonString = yield* RealtimeMessage.jsonStringify(validMessage)
-
-        return yield* Effect.tryPromise({
-          try: () => (client.channel(channelString) as any).emit("event", jsonString),
-          catch: (error) => new RealtimeError({ message: "Failed to emit realtime event", cause: error }),
-        }).pipe(
-          Effect.retry(Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)))
-        )
-      })
-      return { emit } as const
-    })
-  }
-) {
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(RedisClient.layer)
-  )
-}
-
-

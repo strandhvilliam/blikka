@@ -11,6 +11,7 @@
     "@blikka/image-manipulation": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@blikka/pubsub": "workspace:*",
+    "@blikka/realtime": "workspace:*",
     "@blikka/runtime": "workspace:*",
     "@blikka/validation": "workspace:*",
     "@hono/trpc-server": "^0.4.0",

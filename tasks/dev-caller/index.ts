@@ -3,7 +3,8 @@ import { Resource as SSTResource } from "sst"
 import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge"
 import { Console, Effect, Layer } from "effect"
 import { BusService } from "@blikka/aws"
-import { PubSubChannel, PubSubLoggerService, RunStateService } from "@blikka/pubsub"
+import { PubSubLoggerService } from "@blikka/pubsub"
+import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
 
 const getEnvironment = (stage: string): "prod" | "dev" | "staging" => {
   if (stage === "production") return "prod"
@@ -13,16 +14,16 @@ const getEnvironment = (stage: string): "prod" | "dev" | "staging" => {
 
 export const effectHandler = () =>
   Effect.gen(function* () {
-    const runStateService = yield* RunStateService
+    const realtimeStateEvents = yield* RealtimeStateEventsService
     const environment = getEnvironment(SSTResource.App.stage)
     const domain = "uppis"
     const reference = "6750"
 
-    const channel = yield* PubSubChannel.fromString(
+    const channel = yield* RealtimeChannel.fromString(
       `${environment}:upload-flow:${domain}-${reference}`
     )
 
-    yield* runStateService.withRunStateEvents({
+    yield* realtimeStateEvents.withRealtimeStateEvents({
       taskName: "dev-caller",
       channel,
       effect: Console.log("Hello, world!"),
@@ -35,7 +36,7 @@ export const handler = LambdaHandler.make({
   handler: effectHandler,
   layer: Layer.mergeAll(
     BusService.Default,
-    RunStateService.Default,
+    RealtimeStateEventsService.layer,
     PubSubLoggerService.withTaskName("dev-caller")
   ),
 })
