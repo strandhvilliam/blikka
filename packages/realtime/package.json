@@ -1,0 +1,17 @@
+{
+  "name": "realtime",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@upstash/realtime": "^1.0.3",
+    "@blikka/redis": "workspace:*",
+    "effect": "catalog:"
+  }
+}
