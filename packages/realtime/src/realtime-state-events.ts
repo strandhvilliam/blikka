@@ -1,4 +1,4 @@
-import { Effect, Schema, ServiceMap, Layer } from "effect"
+import { Cause, Effect, Exit, Schema, ServiceMap, Layer } from "effect"
 import { RealtimeService } from "./realtime-service"
 import { RealtimeChannel, RealtimeMessage } from "./schemas"
 
@@ -73,33 +73,27 @@ export class RealtimeStateEventsService extends ServiceMap.Service<RealtimeState
       }: RealtimeStateEventOptions<A, E, R>) =>
         Effect.gen(function* () {
           const startTime = Date.now()
-          // Runs before
           yield* sendRealtimeStateEvent(taskName, channel, "start", metadata)
 
           return yield* effect.pipe(
-            // Runs after error
-            Effect.tapError((error) =>
-              Effect.gen(function* () {
-                const duration = Date.now() - startTime
-                yield* sendRealtimeStateEvent(taskName, channel, "end", {
-                  ...metadata,
-                  error: error instanceof Error ? error.message : String(error),
-                  duration,
-                }).pipe(Effect.catch((error) => Effect.logError(`[${taskName}:${channel.identifier}] Failed to publish end event`, error)))
-                return yield* Effect.fail(error)
-              })
-            ),
-            // Runs after success
-            Effect.tap((result) =>
-              Effect.gen(function* () {
-                const duration = Date.now() - startTime
-                yield* sendRealtimeStateEvent(taskName, channel, "end", {
+            Effect.onExit((exit) => {
+              const duration = Date.now() - startTime
+
+              return Exit.match(exit, {
+                onSuccess: () => sendRealtimeStateEvent(taskName, channel, "end", {
                   ...metadata,
                   duration,
-                }).pipe(Effect.catch((error) => Effect.logError(`[${taskName}:${channel.identifier}] Failed to publish end event`, error)))
-                return yield* Effect.succeed(result)
+                }),
+                onFailure: (cause) => {
+                  const error = Cause.squash(cause)
+                  return sendRealtimeStateEvent(taskName, channel, "end", {
+                    ...metadata,
+                    error: error instanceof Error ? error.message : String(error),
+                    duration,
+                  })
+                },
               })
-            )
+            })
           )
         })
 

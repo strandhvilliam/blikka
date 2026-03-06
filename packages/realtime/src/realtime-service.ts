@@ -19,6 +19,12 @@ export class RealtimeService extends ServiceMap.Service<RealtimeService>()(
           .pipe(Effect.mapError((e) => new RealtimeError({ message: `Invalid realtime message: ${String(e.message)}`, cause: e })))
 
         const channelString = yield* RealtimeChannel.stringify(validChannel)
+        if (validMessage.channel !== channelString) {
+          return yield* Effect.fail(new RealtimeError({
+            message: `Realtime message channel mismatch: expected ${channelString}, got ${validMessage.channel}`,
+            cause: { expectedChannel: channelString, actualChannel: validMessage.channel },
+          }))
+        }
         const jsonString = yield* RealtimeMessage.jsonStringify(validMessage)
 
         return yield* Effect.tryPromise({
@@ -36,5 +42,4 @@ export class RealtimeService extends ServiceMap.Service<RealtimeService>()(
     Layer.provide(RedisClient.layer)
   )
 }
-
 
