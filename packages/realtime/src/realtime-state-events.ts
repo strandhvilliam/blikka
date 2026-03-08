@@ -1,34 +1,25 @@
-import { Cause, Effect, Exit, Schema, ServiceMap, Layer } from "effect"
+import { Cause, Effect, Exit, ServiceMap, Layer } from "effect"
 import { RealtimeService } from "./realtime-service"
-import { RealtimeChannel, RealtimeMessage } from "./schemas"
+import { RealtimeChannel } from "./schemas"
+import type {
+  RealtimeChannelEnv,
+  RealtimeEventName,
+  TaskStartPayload,
+  TaskEndPayload,
+  TaskErrorPayload,
+} from "./schemas"
 
 interface RealtimeStateEventMetadata {
-  domain?: string
-  reference?: string
   orderIndex?: number
-  error?: string
-  duration?: number
 }
 
-interface RealtimeStateEventOptions<A, E, R> {
+interface RealtimeStateEventOptions {
   taskName: string
-  channel: RealtimeChannel
-  effect: Effect.Effect<A, E, R>
+  environment: RealtimeChannelEnv
+  domain: string
+  reference: string
   metadata?: RealtimeStateEventMetadata
 }
-
-export const RealtimeStateEventSchema = Schema.Struct({
-  domain: Schema.NullOr(Schema.String),
-  reference: Schema.NullOr(Schema.String),
-  orderIndex: Schema.NullOr(Schema.Number),
-  state: Schema.Literals(["start", "end", "once"]),
-  taskName: Schema.String,
-  timestamp: Schema.Number,
-  error: Schema.NullOr(Schema.String),
-  duration: Schema.NullOr(Schema.Number),
-})
-
-export type RealtimeStateEvent = Schema.Schema.Type<typeof RealtimeStateEventSchema>
 
 export class RealtimeStateEventsService extends ServiceMap.Service<RealtimeStateEventsService>()(
   "@blikka/realtime/realtime-state-events-service",
@@ -36,61 +27,76 @@ export class RealtimeStateEventsService extends ServiceMap.Service<RealtimeState
     make: Effect.gen(function* () {
       const realtime = yield* RealtimeService
 
-      const sendRealtimeStateEvent = Effect.fn("RealtimeStateEventsService.sendRealtimeStateEvent")(function* (
-        taskName: string,
-        channel: RealtimeChannel,
-        state: "start" | "end" | "once",
-        metadata?: RealtimeStateEventMetadata
+      const fanOutEmit = Effect.fn("RealtimeStateEventsService.fanOutEmit")(function* (
+        environment: RealtimeChannelEnv,
+        domain: string,
+        reference: string,
+        eventName: RealtimeEventName,
+        payload: unknown,
       ) {
-        const message = yield* RealtimeMessage.create(
-          channel,
-          {
-            state,
-            taskName,
-            domain: metadata?.domain ?? null,
-            reference: metadata?.reference ?? null,
-            orderIndex: metadata?.orderIndex ?? null,
-            timestamp: Date.now(),
-            error: metadata?.error ?? null,
-            duration: metadata?.duration ?? null,
-          },
-          RealtimeStateEventSchema
-        )
+        const domainChannel = yield* RealtimeChannel.domainChannel(environment, domain)
+        const participantChannel = yield* RealtimeChannel.participantChannel(environment, domain, reference)
 
-        return yield* realtime
-          .emit(channel, message)
-          .pipe(
-            Effect.tap(() => Effect.log(`[${taskName}:${channel.identifier}] Published ${state} event`)),
-            Effect.catch((error) => Effect.logError(`[${taskName}:${channel.identifier}] Failed to publish ${state} event`, error))
-          )
+        yield* Effect.all([
+          realtime.emit(domainChannel, eventName, payload),
+          realtime.emit(participantChannel, eventName, payload),
+        ], { concurrency: 2 })
       })
 
-      const withRealtimeStateEvents = <E, A, R>({
-        taskName,
-        channel,
-        effect,
-        metadata,
-      }: RealtimeStateEventOptions<A, E, R>) =>
+      const withRealtimeStateEvents = <A, E, R>(
+        effect: Effect.Effect<A, E, R>,
+        { taskName, environment, domain, reference, metadata }: RealtimeStateEventOptions,
+      ) =>
         Effect.gen(function* () {
           const startTime = Date.now()
-          yield* sendRealtimeStateEvent(taskName, channel, "start", metadata)
+
+          const startPayload: TaskStartPayload = {
+            taskName,
+            domain,
+            reference,
+            orderIndex: metadata?.orderIndex ?? null,
+            timestamp: startTime,
+          }
+
+          yield* fanOutEmit(environment, domain, reference, "task.start", startPayload).pipe(
+            Effect.tap(() => Effect.log(`[${taskName}:${domain}:${reference}] Published task.start event`)),
+            Effect.catch(() => Effect.logWarning(`[${taskName}:${domain}:${reference}] Failed to publish task.start event`))
+          )
 
           return yield* effect.pipe(
             Effect.onExit((exit) => {
               const duration = Date.now() - startTime
 
               return Exit.match(exit, {
-                onSuccess: () => sendRealtimeStateEvent(taskName, channel, "end", {
-                  ...metadata,
-                  duration,
-                }),
-                onFailure: (cause) => {
-                  const error = Cause.squash(cause)
-                  return sendRealtimeStateEvent(taskName, channel, "end", {
-                    ...metadata,
-                    error: error instanceof Error ? error.message : String(error),
+                onSuccess: () => {
+                  const endPayload: TaskEndPayload = {
+                    taskName,
+                    domain,
+                    reference,
+                    orderIndex: metadata?.orderIndex ?? null,
+                    timestamp: Date.now(),
                     duration,
-                  })
+                  }
+                  return fanOutEmit(environment, domain, reference, "task.end", endPayload).pipe(
+                    Effect.tap(() => Effect.log(`[${taskName}:${domain}:${reference}] Published task.end event`)),
+                    Effect.catch(() => Effect.logWarning(`[${taskName}:${domain}:${reference}] Failed to publish task.end event`))
+                  )
+                },
+                onFailure: (cause) => {
+                  const err = Cause.squash(cause)
+                  const errorPayload: TaskErrorPayload = {
+                    taskName,
+                    domain,
+                    reference,
+                    orderIndex: metadata?.orderIndex ?? null,
+                    timestamp: Date.now(),
+                    duration,
+                    error: err instanceof Error ? err.message : String(err),
+                  }
+                  return fanOutEmit(environment, domain, reference, "task.error", errorPayload).pipe(
+                    Effect.tap(() => Effect.log(`[${taskName}:${domain}:${reference}] Published task.error event`)),
+                    Effect.catch(() => Effect.logWarning(`[${taskName}:${domain}:${reference}] Failed to publish task.error event`))
+                  )
                 },
               })
             })
@@ -98,7 +104,7 @@ export class RealtimeStateEventsService extends ServiceMap.Service<RealtimeState
         })
 
       return {
-        sendRealtimeStateEvent,
+        fanOutEmit,
         withRealtimeStateEvents,
       } as const
     }),

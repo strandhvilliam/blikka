@@ -2,7 +2,7 @@ import { Array, Config, Effect, Layer, Option, Order, pipe, ServiceMap } from "e
 import { type NewParticipant, type Participant, type Topic, Database } from "@blikka/db"
 import { S3Service, SQSService } from "@blikka/aws"
 import { UploadSessionRepository } from "@blikka/kv-store"
-import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
+import { RealtimeStateEventsService } from "@blikka/realtime"
 import { UploadFlowApiError } from "./schemas"
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption"
 
@@ -245,18 +245,11 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           }))
         })
 
-        const channel = yield* RealtimeChannel.fromString(
-          `${environment}:upload-flow:${domain}-${reference}`,
-        )
-
-        return yield* realtimeStateEvents.withRealtimeStateEvents({
+        return yield* realtimeStateEvents.withRealtimeStateEvents(executeEffect, {
           taskName: "upload-initializer",
-          channel,
-          effect: executeEffect,
-          metadata: {
-            domain,
-            reference,
-          },
+          environment,
+          domain,
+          reference,
         })
       })
 
@@ -426,18 +419,11 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           }]
         })
 
-        const channel = yield* RealtimeChannel.fromString(
-          `${environment}:upload-flow:${domain}-${reference}`,
-        )
-
-        return yield* realtimeStateEvents.withRealtimeStateEvents({
+        return yield* realtimeStateEvents.withRealtimeStateEvents(executeEffect, {
           taskName: "by-camera-upload-initializer",
-          channel,
-          effect: executeEffect,
-          metadata: {
-            domain,
-            reference,
-          },
+          environment,
+          domain,
+          reference,
         })
       })
 

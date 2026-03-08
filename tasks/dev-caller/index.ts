@@ -4,7 +4,7 @@ import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge
 import { Console, Effect, Layer } from "effect"
 import { BusService } from "@blikka/aws"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
+import { RealtimeStateEventsService } from "@blikka/realtime"
 
 const getEnvironment = (stage: string): "prod" | "dev" | "staging" => {
   if (stage === "production") return "prod"
@@ -19,23 +19,19 @@ export const effectHandler = () =>
     const domain = "uppis"
     const reference = "6750"
 
-    const channel = yield* RealtimeChannel.fromString(
-      `${environment}:upload-flow:${domain}-${reference}`
-    )
-
-    yield* realtimeStateEvents.withRealtimeStateEvents({
+    yield* realtimeStateEvents.withRealtimeStateEvents(Console.log("Hello, world!"), {
       taskName: "dev-caller",
-      channel,
-      effect: Console.log("Hello, world!"),
-      metadata: {},
+      environment,
+      domain,
+      reference,
     })
     return yield* Effect.succeed(undefined)
-  }).pipe(Effect.withSpan("DevCaller.handler"), Effect.catchAll(Effect.logError))
+  }).pipe(Effect.withSpan("DevCaller.handler"), Effect.catch((error) => Effect.logError("DevCaller.handler", error)))
 
 export const handler = LambdaHandler.make({
   handler: effectHandler,
   layer: Layer.mergeAll(
-    BusService.Default,
+    BusService.layer,
     RealtimeStateEventsService.layer,
     PubSubLoggerService.withTaskName("dev-caller")
   ),

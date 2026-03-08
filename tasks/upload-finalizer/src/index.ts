@@ -2,7 +2,7 @@ import { type SQSEvent, type SQSRecord } from "aws-lambda"
 import { Effect, Layer } from "effect"
 import { LambdaHandler } from "@effect-aws/lambda"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
+import { RealtimeStateEventsService } from "@blikka/realtime"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 import { getEnvironment } from "./utils"
@@ -28,18 +28,12 @@ const effectHandler = (event: SQSEvent) =>
           Effect.tap(() => Effect.logInfo("Participant finalized")),
           Effect.tapError((error) => Effect.logError("Error finalizing participant", error))
         )
-        const channel = yield* RealtimeChannel.fromString(
-          `${environment}:upload-flow:${domain}-${reference}`
-        )
 
-        return yield* realtimeStateEvents.withRealtimeStateEvents({
+        return yield* realtimeStateEvents.withRealtimeStateEvents(finalizeEffect, {
           taskName: TASK_NAME,
-          channel,
-          effect: finalizeEffect,
-          metadata: {
-            domain,
-            reference,
-          },
+          environment,
+          domain,
+          reference,
         })
       }).pipe(Effect.annotateLogs({ domain, reference }))
     })

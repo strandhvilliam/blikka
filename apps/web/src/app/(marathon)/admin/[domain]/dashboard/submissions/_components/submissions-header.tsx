@@ -125,11 +125,16 @@ export function SubmissionsHeader() {
       setIsRefreshing(false)
     }
   }
+  const realtimeEnv = process.env.NODE_ENV === "production" ? "prod" : "dev"
+  const domainChannel = `${realtimeEnv}:${domain}`
+
   useRealtime({
-    events: ["*"],
-    channels: ["*"],
-    onData({ event, data, channel }) {
-      console.log(`Received ${event}:`, data)
+    events: ["task.end", "task.error"],
+    channels: [domainChannel],
+    onData() {
+      queryClient.invalidateQueries({
+        queryKey: trpc.participants.getByDomainInfinite.pathKey(),
+      })
     },
   })
 
@@ -141,9 +146,6 @@ export function SubmissionsHeader() {
           <h1 className="font-gothic text-3xl font-normal tracking-tight">
             Submissions
           </h1>
-          <button onClick={async () => {
-            await fetch("/api/notify", { method: "POST" })
-          }}>Notify</button>
           {marathon.mode === "by-camera" ? (
             <p className="text-muted-foreground text-sm">
               Viewing active topic:{" "}

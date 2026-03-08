@@ -10,9 +10,31 @@ const redis = new Redis({
 })
 
 const schema = {
-  '*': z.any(),
+  "task.start": z.object({
+    taskName: z.string(),
+    domain: z.string(),
+    reference: z.string(),
+    orderIndex: z.number().nullable(),
+    timestamp: z.number(),
+  }),
+  "task.end": z.object({
+    taskName: z.string(),
+    domain: z.string(),
+    reference: z.string(),
+    orderIndex: z.number().nullable(),
+    timestamp: z.number(),
+    duration: z.number(),
+  }),
+  "task.error": z.object({
+    taskName: z.string(),
+    domain: z.string(),
+    reference: z.string(),
+    orderIndex: z.number().nullable(),
+    timestamp: z.number(),
+    duration: z.number(),
+    error: z.string(),
+  }),
 }
-
 
 export const realtime = new Realtime({ redis, schema })
 export type RealtimeEvents = InferRealtimeEvents<typeof realtime>

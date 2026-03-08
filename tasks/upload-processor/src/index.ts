@@ -6,7 +6,7 @@ import { UploadProcessorService } from "./processor-service"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubLoggerService } from "@blikka/pubsub"
 import { Resource as SSTResource } from "sst"
-import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
+import { RealtimeStateEventsService } from "@blikka/realtime"
 
 const getEnvironment = (): "prod" | "dev" | "staging" => {
   const stage = SSTResource.App.stage
@@ -45,19 +45,12 @@ const effectHandler = (event: SQSEvent) =>
                 Effect.tapError((error) => Effect.logError("Error processing photo", error)),
               )
 
-            const channel = yield* RealtimeChannel.fromString(
-              `${environment}:upload-flow:${domain}-${reference}`,
-            )
-
-            return yield* realtimeStateService.withRealtimeStateEvents({
+            return yield* realtimeStateService.withRealtimeStateEvents(processPhotoEffect, {
               taskName: TASK_NAME,
-              channel,
-              effect: processPhotoEffect,
-              metadata: {
-                domain,
-                reference,
-                orderIndex,
-              },
+              environment,
+              domain,
+              reference,
+              metadata: { orderIndex },
             })
           }).pipe(Effect.annotateLogs({ key: item.key })),
         { concurrency: 2 },

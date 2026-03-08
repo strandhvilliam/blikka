@@ -5,7 +5,7 @@ import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 import { ValidationRunner } from "./service"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import { RealtimeChannel, RealtimeStateEventsService } from "@blikka/realtime"
+import { RealtimeStateEventsService } from "@blikka/realtime"
 import { Resource as SSTResource } from "sst"
 import { type SQSRecord } from "aws-lambda"
 
@@ -37,18 +37,11 @@ const effectHandler = (event: SQSEvent) =>
           Effect.tapError((error) => Effect.logError("Error executing validation", error))
         )
 
-        const channel = yield* RealtimeChannel.fromString(
-          `${environment}:upload-flow:${domain}-${reference}`
-        )
-
-        return yield* realtimeStateEvents.withRealtimeStateEvents({
+        return yield* realtimeStateEvents.withRealtimeStateEvents(validateEffect, {
           taskName: TASK_NAME,
-          channel,
-          effect: validateEffect,
-          metadata: {
-            domain,
-            reference,
-          },
+          environment,
+          domain,
+          reference,
         })
       }).pipe(Effect.annotateLogs({ domain, reference }))
     })
