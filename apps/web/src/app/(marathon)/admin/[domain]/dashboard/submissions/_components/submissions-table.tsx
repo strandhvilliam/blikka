@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useMemo } from "react"
+import { useMemo } from "react";
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   flexRender,
-} from "@tanstack/react-table"
-import { useRouter } from "next/navigation"
+} from "@tanstack/react-table";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -15,24 +15,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Loader2, AlertCircle, FileText } from "lucide-react"
-import { formatDomainPathname } from "@/lib/utils"
-import { useSubmissionsTable } from "../_hooks/use-submissions-table"
-import { SubmissionsFilters } from "./submissions-filters"
-import { getSubmissionsColumns } from "../_lib/submissions-columns"
-import { SubmissionsBulkToolbar } from "./submissions-bulk-toolbar"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { toast } from "sonner"
-import { useDomain } from "@/lib/domain-provider"
-import { useSubmissionsTableRealtime } from "../_hooks/use-submissions-table-realtime"
+} from "@/components/ui/table";
+import { Loader2, AlertCircle, FileText } from "lucide-react";
+import { formatDomainPathname } from "@/lib/utils";
+import { useSubmissionsTable } from "../_hooks/use-submissions-table";
+import { SubmissionsFilters } from "./submissions-filters";
+import { getSubmissionsColumns } from "../_lib/submissions-columns";
+import { SubmissionsBulkToolbar } from "./submissions-bulk-toolbar";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTRPC } from "@/lib/trpc/client";
+import { toast } from "sonner";
+import { useDomain } from "@/lib/domain-provider";
+import { useSubmissionsTableRealtime } from "../_hooks/use-submissions-table-realtime";
 
 export function SubmissionsTable() {
-  const router = useRouter()
-  const trpc = useTRPC()
-  const domain = useDomain()
-  const queryClient = useQueryClient()
+  const router = useRouter();
+  const trpc = useTRPC();
+  const domain = useDomain();
+  const queryClient = useQueryClient();
   const {
     marathon,
     sorting,
@@ -56,100 +56,101 @@ export function SubmissionsTable() {
     clearSelection,
     canVerifySelected,
     participantsQueryPathKey,
-  } = useSubmissionsTable()
-  const { uploadProcessorOrderIndexesByReference } = useSubmissionsTableRealtime({
-    domain,
-    queryClient,
-    participantsQueryPathKey,
-  })
+  } = useSubmissionsTable();
+  const { uploadProcessorOrderIndexesByReference, finalizedReferences } =
+    useSubmissionsTableRealtime({
+      domain,
+      queryClient,
+      participantsQueryPathKey,
+    });
 
   const batchDeleteMutation = useMutation(
     trpc.participants.batchDelete.mutationOptions({
-      onSuccess: async (data,) => {
+      onSuccess: async (data) => {
         toast.success(
           `Deleted ${data.deletedCount} participant${data.deletedCount === 1 ? "" : "s"}`,
-        )
+        );
         if (data.failedIds.length > 0) {
           toast.error(
             `Failed to delete ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"}`,
-          )
+          );
         }
 
         await queryClient.invalidateQueries({
           queryKey: trpc.participants.getByDomainInfinite.pathKey(),
-        })
+        });
 
-        clearSelection()
+        clearSelection();
       },
       onError: (error) => {
-        toast.error(`Failed to delete participants: ${error.message}`)
+        toast.error(`Failed to delete participants: ${error.message}`);
       },
     }),
-  )
+  );
 
   const batchVerifyMutation = useMutation(
     trpc.participants.batchVerify.mutationOptions({
       onSuccess: async (data) => {
         toast.success(
           `Verified ${data.updatedCount} participant${data.updatedCount === 1 ? "" : "s"}`,
-        )
+        );
         if (data.failedIds.length > 0) {
           toast.error(
             `Failed to verify ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"} (not in completed status)`,
-          )
+          );
         }
-        clearSelection()
+        clearSelection();
       },
       onError: (error) => {
-        toast.error(`Failed to verify participants: ${error.message}`)
+        toast.error(`Failed to verify participants: ${error.message}`);
       },
     }),
-  )
+  );
 
   const reTriggerMutation = useMutation(
     trpc.uploadFlow.reTriggerUploadFlow.mutationOptions(),
-  )
+  );
 
   const handleBatchDelete = () => {
-    if (selectedCount === 0) return
+    if (selectedCount === 0) return;
     batchDeleteMutation.mutate({
       ids: Array.from(selectedIds),
       domain,
-    })
-  }
+    });
+  };
 
   const handleBatchVerify = () => {
-    if (selectedCount === 0 || !canVerifySelected) return
+    if (selectedCount === 0 || !canVerifySelected) return;
     batchVerifyMutation.mutate({
       ids: Array.from(selectedIds),
       domain,
-    })
-  }
+    });
+  };
 
   const handleReTriggerUploadFlow = async () => {
-    if (selectedCount === 0 || !participants.length) return
+    if (selectedCount === 0 || !participants.length) return;
     const selectedReferences = participants
       .filter((p) => selectedIds.has(p.id))
-      .map((p) => p.reference)
+      .map((p) => p.reference);
     try {
       await Promise.all(
         selectedReferences.map((reference) =>
           reTriggerMutation.mutateAsync({ domain, reference }),
         ),
-      )
+      );
       toast.success(
         `Re-triggered upload flow for ${selectedReferences.length} participant${selectedReferences.length === 1 ? "" : "s"}`,
-      )
+      );
       queryClient.invalidateQueries({
         queryKey: trpc.participants.getByDomainInfinite.pathKey(),
-      })
-      clearSelection()
+      });
+      clearSelection();
     } catch (error) {
       toast.error(
         `Failed to re-trigger: ${error instanceof Error ? error.message : "Unknown error"}`,
-      )
+      );
     }
-  }
+  };
 
   const columns = useMemo(
     () =>
@@ -160,6 +161,7 @@ export function SubmissionsTable() {
         onToggleSelection: toggleSelection,
         onToggleAll: toggleAllVisible,
         uploadProcessorOrderIndexesByReference,
+        finalizedReferences,
       }),
     [
       marathon?.mode,
@@ -168,8 +170,9 @@ export function SubmissionsTable() {
       toggleSelection,
       toggleAllVisible,
       uploadProcessorOrderIndexesByReference,
+      finalizedReferences,
     ],
-  )
+  );
 
   const table = useReactTable({
     data: participants,
@@ -181,7 +184,7 @@ export function SubmissionsTable() {
     },
     onSortingChange: setSorting,
     manualSorting: true,
-  })
+  });
 
   return (
     <div className="flex flex-col h-full space-y-4">
@@ -232,9 +235,9 @@ export function SubmissionsTable() {
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -291,32 +294,33 @@ export function SubmissionsTable() {
                 ) : (
                   <>
                     {table.getRowModel().rows.map((row) => {
-                      const participant = row.original
+                      const participant = row.original;
                       const byCameraSubmissionHref =
                         participant.activeTopicSubmissionId !== null
                           ? `/admin/dashboard/submissions/${participant.reference}/${participant.activeTopicSubmissionId}`
-                          : `/admin/dashboard/submissions/${participant.reference}`
+                          : `/admin/dashboard/submissions/${participant.reference}`;
                       const href = formatDomainPathname(
                         marathon?.mode === "by-camera"
                           ? byCameraSubmissionHref
                           : `/admin/dashboard/submissions/${participant.reference}`,
                         domain,
-                      )
-                      const isRowSelected = isSelected(participant.id)
+                      );
+                      const isRowSelected = isSelected(participant.id);
                       return (
                         <TableRow
                           key={row.id}
-                          className={`cursor-pointer transition-colors border-b ${isRowSelected
-                            ? "bg-muted/80 hover:bg-muted/80"
-                            : "hover:bg-muted/60"
-                            }`}
+                          className={`cursor-pointer transition-colors border-b ${
+                            isRowSelected
+                              ? "bg-muted/80 hover:bg-muted/80"
+                              : "hover:bg-muted/60"
+                          }`}
                           onClick={(e) => {
                             // Don't navigate if clicking the checkbox
-                            const target = e.target as HTMLElement
+                            const target = e.target as HTMLElement;
                             const isCheckboxClick =
-                              target.closest('[data-slot="checkbox"]') !== null
+                              target.closest('[data-slot="checkbox"]') !== null;
                             if (!isCheckboxClick) {
-                              router.push(href)
+                              router.push(href);
                             }
                           }}
                         >
@@ -329,7 +333,7 @@ export function SubmissionsTable() {
                             </TableCell>
                           ))}
                         </TableRow>
-                      )
+                      );
                     })}
                     <TableRow>
                       <TableCell colSpan={columns.length} className="py-2">
@@ -361,5 +365,5 @@ export function SubmissionsTable() {
         </div>
       </div>
     </div>
-  )
+  );
 }

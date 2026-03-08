@@ -1,42 +1,49 @@
-"use client"
+"use client";
 
-import { useCallback, useState } from "react"
-import type { InfiniteData, QueryClient, QueryKey } from "@tanstack/react-query"
-import { useDebouncedInvalidate } from "@/hooks/use-debounced-invalidate"
+import { useCallback, useMemo, useState } from "react";
+import type {
+  InfiniteData,
+  QueryClient,
+  QueryKey,
+} from "@tanstack/react-query";
+import { useDebouncedInvalidate } from "@/hooks/use-debounced-invalidate";
 import {
   getDomainRealtimeChannel,
-  getRealtimeChannelEnvironmentFromNodeEnv,
   getRealtimeResultEventName,
-} from "@blikka/realtime/contract"
-import { useRealtime } from "@/lib/realtime-client"
-import type { TableData } from "./use-submissions-table"
+} from "@blikka/realtime/contract";
+import { useRealtime } from "@/lib/realtime-client";
+import type { TableData } from "./use-submissions-table";
 
 const RESULT_EVENT = {
   uploadFlowInitializer: getRealtimeResultEventName("upload-flow-initialized"),
   submissionProcessed: getRealtimeResultEventName("submission-processed"),
   participantFinalized: getRealtimeResultEventName("participant-finalized"),
-} as const
+} as const;
 
-const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750
-const TASK_ERROR_INVALIDATE_DEBOUNCE_MS = 750
-const FINALIZER_SAFETY_INVALIDATE_DEBOUNCE_MS = 10_000
-const MAX_TRACKED_REFERENCES = 1000
+const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750;
+const TASK_ERROR_INVALIDATE_DEBOUNCE_MS = 750;
+const FINALIZER_SAFETY_INVALIDATE_DEBOUNCE_MS = 10_000;
+const MAX_TRACKED_REFERENCES = 1000;
 
-const realtimeEnv = getRealtimeChannelEnvironmentFromNodeEnv(process.env.NODE_ENV)
+type UploadProcessorOrderIndexesByReference = Map<string, Set<number>>;
+type LatestSubmissionProcessedTimestampByReference = Map<string, number>;
+type FinalizedReferences = Set<string>;
 
-type UploadProcessorOrderIndexesByReference = Map<string, Set<number>>
-
-interface ParticipantsPage {
-  participants: TableData[]
-  nextCursor?: number | null
+function normalizeReference(reference: string): string {
+  return reference.trim().toLowerCase();
 }
 
-type InfiniteParticipantsData = InfiniteData<ParticipantsPage>
+interface ParticipantsPage {
+  participants: TableData[];
+  nextCursor?: number | null;
+}
+
+type InfiniteParticipantsData = InfiniteData<ParticipantsPage>;
 
 interface UseSubmissionsTableRealtimeInput {
-  domain: string
-  queryClient: QueryClient
-  participantsQueryPathKey: QueryKey
+  domain: string;
+  queryClient: QueryClient;
+  participantsQueryPathKey: QueryKey;
 }
 
 function upsertOrderIndexWithPruning({
@@ -44,61 +51,68 @@ function upsertOrderIndexWithPruning({
   reference,
   orderIndex,
 }: {
-  current: UploadProcessorOrderIndexesByReference
-  reference: string
-  orderIndex: number
+  current: UploadProcessorOrderIndexesByReference;
+  reference: string;
+  orderIndex: number;
 }): UploadProcessorOrderIndexesByReference {
-  const next = new Map(current)
-  const currentSet = next.get(reference)
+  const next = new Map(current);
+  const currentSet = next.get(reference);
 
   if (currentSet?.has(orderIndex)) {
-    return current
+    return current;
   }
 
-  const updatedSet = currentSet ? new Set(currentSet) : new Set<number>()
-  updatedSet.add(orderIndex)
+  const updatedSet = currentSet ? new Set(currentSet) : new Set<number>();
+  updatedSet.add(orderIndex);
 
   // Move updated key to the end so pruning removes the oldest untouched entries.
   if (next.has(reference)) {
-    next.delete(reference)
+    next.delete(reference);
   }
-  next.set(reference, updatedSet)
+  next.set(reference, updatedSet);
 
   while (next.size > MAX_TRACKED_REFERENCES) {
-    const oldestReference = next.keys().next().value
+    const oldestReference = next.keys().next().value;
     if (oldestReference === undefined) {
-      break
+      break;
     }
-    next.delete(oldestReference)
+    next.delete(oldestReference);
   }
 
-  return next
+  return next;
 }
 
 function patchParticipantStatusToCompleted(
   data: InfiniteParticipantsData | undefined,
   reference: string,
 ): InfiniteParticipantsData | undefined {
-  if (!data) return data
+  if (!data) return data;
 
-  let hasChanges = false
+  const normalizedReference = normalizeReference(reference);
+
+  let hasChanges = false;
   const nextPages = data.pages.map((page) => {
-    let pageChanged = false
+    let pageChanged = false;
     const nextParticipants = page.participants.map((participant) => {
-      if (participant.reference !== reference) return participant
-      if (participant.status === "completed" || participant.status === "verified") {
-        return participant
+      if (normalizeReference(participant.reference) !== normalizedReference) {
+        return participant;
+      }
+      if (
+        participant.status === "completed" ||
+        participant.status === "verified"
+      ) {
+        return participant;
       }
 
-      pageChanged = true
-      hasChanges = true
-      return { ...participant, status: "completed" as const }
-    })
+      pageChanged = true;
+      hasChanges = true;
+      return { ...participant, status: "completed" as const };
+    });
 
-    return pageChanged ? { ...page, participants: nextParticipants } : page
-  })
+    return pageChanged ? { ...page, participants: nextParticipants } : page;
+  });
 
-  return hasChanges ? { ...data, pages: nextPages } : data
+  return hasChanges ? { ...data, pages: nextPages } : data;
 }
 
 export function useSubmissionsTableRealtime({
@@ -106,41 +120,105 @@ export function useSubmissionsTableRealtime({
   queryClient,
   participantsQueryPathKey,
 }: UseSubmissionsTableRealtimeInput) {
-  const [uploadProcessorOrderIndexesByReference, setUploadProcessorOrderIndexesByReference] =
-    useState<UploadProcessorOrderIndexesByReference>(new Map())
+  const [
+    uploadProcessorOrderIndexesByReference,
+    setUploadProcessorOrderIndexesByReference,
+  ] = useState<UploadProcessorOrderIndexesByReference>(new Map());
+  const [
+    latestSubmissionProcessedTimestampByReference,
+    setLatestSubmissionProcessedTimestampByReference,
+  ] = useState<LatestSubmissionProcessedTimestampByReference>(new Map());
+  const [finalizedReferences, setFinalizedReferences] =
+    useState<FinalizedReferences>(new Set());
 
   const scheduleInitializerInvalidate = useDebouncedInvalidate(
-    queryClient, participantsQueryPathKey, INITIALIZER_INVALIDATE_DEBOUNCE_MS,
-  )
+    queryClient,
+    participantsQueryPathKey,
+    INITIALIZER_INVALIDATE_DEBOUNCE_MS,
+  );
   const scheduleTaskErrorInvalidate = useDebouncedInvalidate(
-    queryClient, participantsQueryPathKey, TASK_ERROR_INVALIDATE_DEBOUNCE_MS,
-  )
+    queryClient,
+    participantsQueryPathKey,
+    TASK_ERROR_INVALIDATE_DEBOUNCE_MS,
+  );
   const scheduleFinalizerSafetyInvalidate = useDebouncedInvalidate(
-    queryClient, participantsQueryPathKey, FINALIZER_SAFETY_INVALIDATE_DEBOUNCE_MS,
-  )
+    queryClient,
+    participantsQueryPathKey,
+    FINALIZER_SAFETY_INVALIDATE_DEBOUNCE_MS,
+  );
 
   const clearTrackedReference = useCallback((reference: string) => {
     setUploadProcessorOrderIndexesByReference((current) => {
       if (!current.has(reference)) {
-        return current
+        return current;
       }
-      const next = new Map(current)
-      next.delete(reference)
-      return next
-    })
-  }, [])
+      const next = new Map(current);
+      next.delete(reference);
+      return next;
+    });
+    setLatestSubmissionProcessedTimestampByReference((current) => {
+      if (!current.has(reference)) {
+        return current;
+      }
+      const next = new Map(current);
+      next.delete(reference);
+      return next;
+    });
+    setFinalizedReferences((current) => {
+      if (!current.has(reference)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(reference);
+      return next;
+    });
+  }, []);
+
+  const markReferenceFinalized = useCallback((reference: string) => {
+    setFinalizedReferences((current) => {
+      if (current.has(reference)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.add(reference);
+      return next;
+    });
+  }, []);
+
+  const markSubmissionProcessedTimestamp = useCallback(
+    (reference: string, timestamp: number) => {
+      setLatestSubmissionProcessedTimestampByReference((current) => {
+        const existing = current.get(reference);
+        if (existing !== undefined && existing >= timestamp) {
+          return current;
+        }
+        const next = new Map(current);
+        next.set(reference, timestamp);
+        return next;
+      });
+    },
+    [],
+  );
 
   const patchParticipantAsCompleted = useCallback(
     (reference: string) => {
       queryClient.setQueriesData<InfiniteParticipantsData>(
         { queryKey: participantsQueryPathKey },
-        (currentData) => patchParticipantStatusToCompleted(currentData, reference),
-      )
+        (currentData) =>
+          patchParticipantStatusToCompleted(currentData, reference),
+      );
     },
     [participantsQueryPathKey, queryClient],
-  )
+  );
 
-  const domainChannel = getDomainRealtimeChannel(realtimeEnv, domain)
+  const domainChannels = useMemo(
+    () => [
+      getDomainRealtimeChannel("dev", domain),
+      getDomainRealtimeChannel("staging", domain),
+      getDomainRealtimeChannel("prod", domain),
+    ],
+    [domain],
+  );
 
   useRealtime({
     events: [
@@ -148,48 +226,69 @@ export function useSubmissionsTableRealtime({
       RESULT_EVENT.submissionProcessed,
       RESULT_EVENT.participantFinalized,
     ],
-    channels: [domainChannel],
+    channels: domainChannels,
     enabled: domain.length > 0,
     onData: ({ event, data }) => {
+      console.log("onData", event, data);
       switch (event) {
         case RESULT_EVENT.uploadFlowInitializer:
           if (data.reference) {
-            clearTrackedReference(data.reference)
+            const normalizedReference = normalizeReference(data.reference);
+            const latestProcessedTimestamp =
+              latestSubmissionProcessedTimestampByReference.get(
+                normalizedReference,
+              );
+
+            if (
+              latestProcessedTimestamp === undefined ||
+              data.timestamp >= latestProcessedTimestamp
+            ) {
+              clearTrackedReference(normalizedReference);
+            }
           }
-          scheduleInitializerInvalidate()
-          break
+          scheduleInitializerInvalidate();
+          break;
 
         case RESULT_EVENT.submissionProcessed:
           if (data.outcome === "error") {
-            scheduleTaskErrorInvalidate()
-            break
+            scheduleTaskErrorInvalidate();
+            break;
           }
-          const { reference, orderIndex } = data
+          const { reference, orderIndex } = data;
           if (reference && orderIndex !== null) {
+            const normalizedReference = normalizeReference(reference);
             setUploadProcessorOrderIndexesByReference((current) =>
-              upsertOrderIndexWithPruning({ current, reference, orderIndex }),
-            )
+              upsertOrderIndexWithPruning({
+                current,
+                reference: normalizedReference,
+                orderIndex,
+              }),
+            );
+            markSubmissionProcessedTimestamp(
+              normalizedReference,
+              data.timestamp,
+            );
           }
-          break
+          break;
 
         case RESULT_EVENT.participantFinalized:
-          if (data.reference) {
-            clearTrackedReference(data.reference)
-          }
           if (data.outcome === "error") {
-            scheduleTaskErrorInvalidate()
-            break
+            scheduleTaskErrorInvalidate();
+            break;
           }
           if (data.reference) {
-            patchParticipantAsCompleted(data.reference)
-            scheduleFinalizerSafetyInvalidate()
+            const normalizedReference = normalizeReference(data.reference);
+            markReferenceFinalized(normalizedReference);
+            patchParticipantAsCompleted(normalizedReference);
+            scheduleFinalizerSafetyInvalidate();
           }
-          break
+          break;
       }
     },
-  })
+  });
 
   return {
     uploadProcessorOrderIndexesByReference,
-  }
+    finalizedReferences,
+  };
 }

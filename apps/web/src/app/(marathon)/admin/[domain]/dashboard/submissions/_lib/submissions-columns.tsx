@@ -5,13 +5,21 @@ import { CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TableData } from "../_hooks/use-submissions-table";
 
+function normalizeReference(reference: string): string {
+  return reference.trim().toLowerCase();
+}
+
 interface SubmissionsColumnsOptions {
   marathonMode?: string;
   participants: TableData[];
   selectedIds: Set<number>;
   onToggleSelection: (id: number, event: React.MouseEvent) => void;
   onToggleAll: () => void;
-  uploadProcessorOrderIndexesByReference: ReadonlyMap<string, ReadonlySet<number>>;
+  uploadProcessorOrderIndexesByReference: ReadonlyMap<
+    string,
+    ReadonlySet<number>
+  >;
+  finalizedReferences: ReadonlySet<string>;
 }
 
 export const getSubmissionsColumns = ({
@@ -21,6 +29,7 @@ export const getSubmissionsColumns = ({
   onToggleSelection,
   onToggleAll,
   uploadProcessorOrderIndexesByReference,
+  finalizedReferences,
 }: SubmissionsColumnsOptions): ColumnDef<TableData>[] => {
   // Calculate select all state based on visible participants
   const visibleIds = participants.map((p) => p.id);
@@ -127,7 +136,10 @@ export const getSubmissionsColumns = ({
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const status = row.getValue("status") as string;
+        const rowReference = normalizeReference(row.original.reference);
+        const status = finalizedReferences.has(rowReference)
+          ? "completed"
+          : (row.getValue("status") as string);
         const statusConfig = {
           completed: {
             variant: "default" as const,
@@ -171,7 +183,8 @@ export const getSubmissionsColumns = ({
       header: "Upload",
       cell: ({ row }) => {
         const participant = row.original;
-        const expectedFromClass = participant.competitionClass?.numberOfPhotos ?? null;
+        const expectedFromClass =
+          participant.competitionClass?.numberOfPhotos ?? null;
         const expectedCount =
           expectedFromClass !== null && expectedFromClass > 0
             ? expectedFromClass
@@ -183,12 +196,27 @@ export const getSubmissionsColumns = ({
           return <span className="text-xs text-muted-foreground">-</span>;
         }
 
+        console.log(
+          "uploadProcessorOrderIndexesByReference",
+          uploadProcessorOrderIndexesByReference,
+        );
+
         const uploadedCount = Math.min(
-          uploadProcessorOrderIndexesByReference.get(participant.reference)?.size ?? 0,
+          uploadProcessorOrderIndexesByReference.get(participant.reference)
+            ?.size ??
+            uploadProcessorOrderIndexesByReference.get(
+              normalizeReference(participant.reference),
+            )?.size ??
+            0,
           expectedCount,
         );
+        const isFinalized = finalizedReferences.has(
+          normalizeReference(participant.reference),
+        );
         const isCompleted =
-          participant.status === "completed" || participant.status === "verified";
+          isFinalized ||
+          participant.status === "completed" ||
+          participant.status === "verified";
         const processedCount = isCompleted ? expectedCount : uploadedCount;
 
         return (
