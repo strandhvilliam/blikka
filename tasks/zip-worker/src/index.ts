@@ -3,7 +3,7 @@ import { ZipWorker } from "./zip-worker"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
+import { RealtimeEventsService } from "@blikka/realtime"
 import { InvalidArgumentsError } from "./utils"
 
 const mainLayer = Layer.mergeAll(
@@ -48,7 +48,7 @@ const runnable = Effect.gen(function* () {
 
     yield* realtimeEvents
       .withEventResult(runZipTaskEffect, {
-        eventKey: REALTIME_EVENT_KEY.ZIP_GENERATED,
+        eventKey: "zip-generated",
         environment,
         domain,
         reference,

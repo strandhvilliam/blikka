@@ -6,7 +6,7 @@ import { UploadProcessorService } from "./processor-service"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubLoggerService } from "@blikka/pubsub"
 import { Resource as SSTResource } from "sst"
-import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
+import { RealtimeEventsService } from "@blikka/realtime"
 
 const getEnvironment = (): "prod" | "dev" | "staging" => {
   const stage = SSTResource.App.stage
@@ -16,7 +16,7 @@ const getEnvironment = (): "prod" | "dev" | "staging" => {
 }
 
 const TASK_NAME = "upload-processor"
-const REALTIME_EVENT = REALTIME_EVENT_KEY.SUBMISSION_PROCESSED
+const REALTIME_EVENT = "submission-processed"
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {

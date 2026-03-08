@@ -2,7 +2,7 @@ import { Array, Config, Effect, Layer, Option, Order, pipe, ServiceMap } from "e
 import { type NewParticipant, type Participant, type Topic, Database } from "@blikka/db"
 import { S3Service, SQSService } from "@blikka/aws"
 import { UploadSessionRepository } from "@blikka/kv-store"
-import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
+import { RealtimeEventsService } from "@blikka/realtime"
 import { UploadFlowApiError } from "./schemas"
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption"
 
@@ -246,7 +246,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         })
 
         return yield* realtimeEvents.withEventResult(executeEffect, {
-          eventKey: REALTIME_EVENT_KEY.UPLOAD_FLOW_INITIALIZED,
+          eventKey: "upload-flow-initialized",
           environment,
           domain,
           reference,
@@ -420,7 +420,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         })
 
         return yield* realtimeEvents.withEventResult(executeEffect, {
-          eventKey: REALTIME_EVENT_KEY.UPLOAD_FLOW_INITIALIZED,
+          eventKey: "upload-flow-initialized",
           environment,
           domain,
           reference,

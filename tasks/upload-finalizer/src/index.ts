@@ -2,14 +2,14 @@ import { type SQSEvent, type SQSRecord } from "aws-lambda"
 import { Effect, Layer } from "effect"
 import { LambdaHandler } from "@effect-aws/lambda"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
+import { RealtimeEventsService } from "@blikka/realtime"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 import { getEnvironment } from "./utils"
 import { UploadFinalizerService } from "./service"
 
 const TASK_NAME = "upload-finalizer"
-const REALTIME_EVENT = REALTIME_EVENT_KEY.PARTICIPANT_FINALIZED
+const REALTIME_EVENT = "participant-finalized"
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {

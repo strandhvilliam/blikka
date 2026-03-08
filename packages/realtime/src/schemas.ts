@@ -1,6 +1,5 @@
 import { Effect, Schema } from "effect"
 import {
-  REALTIME_CHANNEL_ENV,
   RealtimeChannelEnvSchema,
   getDomainRealtimeChannel,
   getParticipantRealtimeChannel,
@@ -8,15 +7,16 @@ import {
 import type { RealtimeChannelEnv } from "./contract"
 
 export {
-  REALTIME_CHANNEL_ENV,
-  REALTIME_EVENT_CHANNELS,
   REALTIME_EVENT_NAME,
-  REALTIME_EVENT_KEY,
-  REALTIME_RESULT_OUTCOME,
+  realtimeChannelEnvironments,
+  realtimeEventChannels,
+  realtimeEventKeys,
+  realtimeResultOutcomes,
   getRealtimeResultEventName,
 } from "./contract"
 export type {
   RealtimeChannelEnv,
+  RealtimeEventChannels,
   RealtimeEventKey,
   RealtimeResultOutcome,
   RealtimeResultEventName,

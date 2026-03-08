@@ -1,10 +1,6 @@
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import {
-  REALTIME_CHANNEL_ENV,
-  REALTIME_EVENT_CHANNELS,
-  REALTIME_EVENT_KEY,
-  REALTIME_RESULT_OUTCOME,
   getRealtimeResultEventName,
 } from "./contract"
 import { RealtimeEventsService } from "./realtime-events-service"
@@ -47,8 +43,8 @@ describe("RealtimeEventsService", () => {
       const realtimeEvents = yield* RealtimeEventsService
 
       const result = yield* realtimeEvents.withEventResult(Effect.succeed("ok"), {
-        eventKey: REALTIME_EVENT_KEY.SUBMISSION_PROCESSED,
-        environment: REALTIME_CHANNEL_ENV.DEV,
+        eventKey: "submission-processed",
+        environment: "dev",
         domain: "demo",
         reference: "1234",
         metadata: { orderIndex: 2 },
@@ -60,14 +56,14 @@ describe("RealtimeEventsService", () => {
         emittedEvents.every(
           ({ eventName }) =>
             eventName ===
-            getRealtimeResultEventName(REALTIME_EVENT_KEY.SUBMISSION_PROCESSED),
+            getRealtimeResultEventName("submission-processed"),
         ),
       ).toBe(true)
 
       const payload = emittedEvents[0]?.payload as RealtimeEventResultPayload
-      expect(payload.outcome).toBe(REALTIME_RESULT_OUTCOME.SUCCESS)
+      expect(payload.outcome).toBe("success")
       expect(payload.orderIndex).toBe(2)
-      expect(payload.eventKey).toBe(REALTIME_EVENT_KEY.SUBMISSION_PROCESSED)
+      expect(payload.eventKey).toBe("submission-processed")
       expect(emittedEvents.map(({ channel }) => channel)).toEqual([
         "dev:demo",
         "dev:demo:1234",
@@ -83,8 +79,8 @@ describe("RealtimeEventsService", () => {
 
       const exit = yield* Effect.exit(
         realtimeEvents.withEventResult(Effect.fail(new Error("boom")), {
-          eventKey: REALTIME_EVENT_KEY.PARTICIPANT_FINALIZED,
-          environment: REALTIME_CHANNEL_ENV.PROD,
+          eventKey: "participant-finalized",
+          environment: "prod",
           domain: "demo",
           reference: "1234",
         }),
@@ -94,10 +90,10 @@ describe("RealtimeEventsService", () => {
       expect(emittedEvents).toHaveLength(2)
 
       const payload = emittedEvents[0]?.payload as RealtimeEventResultPayload
-      expect(payload.outcome).toBe(REALTIME_RESULT_OUTCOME.ERROR)
-      expect(payload.eventKey).toBe(REALTIME_EVENT_KEY.PARTICIPANT_FINALIZED)
+      expect(payload.outcome).toBe("error")
+      expect(payload.eventKey).toBe("participant-finalized")
       expect(
-        payload.outcome === REALTIME_RESULT_OUTCOME.ERROR
+        payload.outcome === "error"
           ? payload.error
           : undefined,
       ).toBe("boom")
@@ -111,11 +107,11 @@ describe("RealtimeEventsService", () => {
       const realtimeEvents = yield* RealtimeEventsService
 
       yield* realtimeEvents.emitEventResult({
-        eventKey: REALTIME_EVENT_KEY.PARTICIPANT_VERIFIED,
-        environment: REALTIME_CHANNEL_ENV.DEV,
+        eventKey: "participant-verified",
+        environment: "dev",
         domain: "demo",
-        channels: REALTIME_EVENT_CHANNELS.DOMAIN,
-        outcome: REALTIME_RESULT_OUTCOME.SUCCESS,
+        channels: "domain",
+        outcome: "success",
         timestamp: 100,
         duration: null,
       })

@@ -3,23 +3,19 @@ import { RealtimeService } from "./realtime-service"
 import { RealtimeChannel, RealtimeError } from "./schemas"
 import type {
   RealtimeChannelEnv,
+  RealtimeEventChannels,
   RealtimeEventKey,
   RealtimeEventName,
   RealtimeEventResultPayload,
   RealtimeResultOutcome,
 } from "./schemas"
 import {
-  REALTIME_EVENT_CHANNELS,
-  REALTIME_RESULT_OUTCOME,
   getRealtimeResultEventName,
 } from "./contract"
 
 interface RealtimeEventMetadata {
   orderIndex?: number
 }
-
-type RealtimeEventChannels =
-  (typeof REALTIME_EVENT_CHANNELS)[keyof typeof REALTIME_EVENT_CHANNELS]
 
 interface RealtimeEventTargetOptions {
   environment: RealtimeChannelEnv
@@ -56,8 +52,8 @@ function resolveRealtimeEventChannels(
   }
 
   return reference
-    ? REALTIME_EVENT_CHANNELS.BOTH
-    : REALTIME_EVENT_CHANNELS.DOMAIN
+    ? "both"
+    : "domain"
 }
 
 export class RealtimeEventsService extends ServiceMap.Service<RealtimeEventsService>()(
@@ -80,16 +76,16 @@ export class RealtimeEventsService extends ServiceMap.Service<RealtimeEventsServ
         const effects: Effect.Effect<unknown, RealtimeError, never>[] = []
 
         if (
-          resolvedChannels === REALTIME_EVENT_CHANNELS.DOMAIN ||
-          resolvedChannels === REALTIME_EVENT_CHANNELS.BOTH
+          resolvedChannels === "domain" ||
+          resolvedChannels === "both"
         ) {
           const domainChannel = yield* RealtimeChannel.domainChannel(environment, domain)
           effects.push(realtime.emit(domainChannel, eventName, payload))
         }
 
         if (
-          resolvedChannels === REALTIME_EVENT_CHANNELS.PARTICIPANT ||
-          resolvedChannels === REALTIME_EVENT_CHANNELS.BOTH
+          resolvedChannels === "participant" ||
+          resolvedChannels === "both"
         ) {
           if (!reference) {
             return yield* Effect.fail(
@@ -125,7 +121,7 @@ export class RealtimeEventsService extends ServiceMap.Service<RealtimeEventsServ
         }: EmitEventResultOptions,
       ) {
         const payload: RealtimeEventResultPayload =
-          outcome === REALTIME_RESULT_OUTCOME.SUCCESS
+          outcome === "success"
             ? {
                 eventKey,
                 outcome,
@@ -177,7 +173,7 @@ export class RealtimeEventsService extends ServiceMap.Service<RealtimeEventsServ
                     reference,
                     channels,
                     metadata,
-                    outcome: REALTIME_RESULT_OUTCOME.SUCCESS,
+                    outcome: "success",
                     timestamp,
                     duration,
                   }).pipe(
@@ -201,7 +197,7 @@ export class RealtimeEventsService extends ServiceMap.Service<RealtimeEventsServ
                     reference,
                     channels,
                     metadata,
-                    outcome: REALTIME_RESULT_OUTCOME.ERROR,
+                    outcome: "error",
                     timestamp,
                     duration,
                     error: err instanceof Error ? err.message : String(err),

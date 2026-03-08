@@ -5,7 +5,7 @@ import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 import { ValidationRunner } from "./service"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
+import { RealtimeEventsService } from "@blikka/realtime"
 import { Resource as SSTResource } from "sst"
 import { type SQSRecord } from "aws-lambda"
 
@@ -17,7 +17,7 @@ const getEnvironment = (): "prod" | "dev" | "staging" => {
 }
 
 const TASK_NAME = "validation-runner"
-const REALTIME_EVENT = REALTIME_EVENT_KEY.PARTICIPANT_VALIDATED
+const REALTIME_EVENT = "participant-validated"
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {

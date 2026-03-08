@@ -4,7 +4,7 @@ import { EventBridgeClient, PutEventsCommand } from "@aws-sdk/client-eventbridge
 import { Console, Effect, Layer } from "effect"
 import { BusService } from "@blikka/aws"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
+import { RealtimeEventsService } from "@blikka/realtime"
 
 const getEnvironment = (stage: string): "prod" | "dev" | "staging" => {
   if (stage === "production") return "prod"
@@ -20,7 +20,7 @@ export const effectHandler = () =>
     const reference = "6750"
 
     yield* realtimeEvents.withEventResult(Console.log("Hello, world!"), {
-      eventKey: REALTIME_EVENT_KEY.DEV_CALLER_COMPLETED,
+      eventKey: "dev-caller-completed",
       environment,
       domain,
       reference,

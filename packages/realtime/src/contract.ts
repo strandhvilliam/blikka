@@ -1,31 +1,14 @@
 import { Schema } from "effect"
 
-export const REALTIME_CHANNEL_ENV = {
-  PROD: "prod",
-  DEV: "dev",
-  STAGING: "staging",
-} as const
+export const realtimeChannelEnvironments = ["prod", "dev", "staging"] as const
 
-export type RealtimeChannelEnv =
-  (typeof REALTIME_CHANNEL_ENV)[keyof typeof REALTIME_CHANNEL_ENV]
-
-export const realtimeChannelEnvironments = Object.values(
-  REALTIME_CHANNEL_ENV,
-) as [RealtimeChannelEnv, ...RealtimeChannelEnv[]]
+export type RealtimeChannelEnv = (typeof realtimeChannelEnvironments)[number]
 
 export const RealtimeChannelEnvSchema = Schema.Literals(realtimeChannelEnvironments)
 
-export const REALTIME_RESULT_OUTCOME = {
-  SUCCESS: "success",
-  ERROR: "error",
-} as const
+export const realtimeResultOutcomes = ["success", "error"] as const
 
-export type RealtimeResultOutcome =
-  (typeof REALTIME_RESULT_OUTCOME)[keyof typeof REALTIME_RESULT_OUTCOME]
-
-export const realtimeResultOutcomes = Object.values(
-  REALTIME_RESULT_OUTCOME,
-) as [RealtimeResultOutcome, ...RealtimeResultOutcome[]]
+export type RealtimeResultOutcome = (typeof realtimeResultOutcomes)[number]
 
 export const RealtimeResultOutcomeSchema = Schema.Literals(realtimeResultOutcomes)
 
@@ -33,8 +16,8 @@ export function getRealtimeChannelEnvironmentFromNodeEnv(
   nodeEnv: string | undefined,
 ): Extract<RealtimeChannelEnv, "prod" | "dev"> {
   return nodeEnv === "production"
-    ? REALTIME_CHANNEL_ENV.PROD
-    : REALTIME_CHANNEL_ENV.DEV
+    ? "prod"
+    : "dev"
 }
 
 export function getDomainRealtimeChannel(
@@ -52,30 +35,22 @@ export function getParticipantRealtimeChannel(
   return `${environment}:${domain}:${reference}`
 }
 
-export const REALTIME_EVENT_CHANNELS = {
-  DOMAIN: "domain",
-  PARTICIPANT: "participant",
-  BOTH: "both",
-} as const
+export const realtimeEventChannels = ["domain", "participant", "both"] as const
 
-export const REALTIME_EVENT_KEY = {
-  UPLOAD_FLOW_INITIALIZED: "upload-flow-initialized",
-  SUBMISSION_PROCESSED: "submission-processed",
-  PARTICIPANT_FINALIZED: "participant-finalized",
-  CONTACT_SHEET_GENERATED: "contact-sheet-generated",
-  ZIP_GENERATED: "zip-generated",
-  PARTICIPANT_VALIDATED: "participant-validated",
-  PARTICIPANT_VERIFIED: "participant-verified",
-  DEV_CALLER_COMPLETED: "dev-caller-completed",
-} as const
+export type RealtimeEventChannels = (typeof realtimeEventChannels)[number]
 
-export type RealtimeEventKey =
-  (typeof REALTIME_EVENT_KEY)[keyof typeof REALTIME_EVENT_KEY]
+export const realtimeEventKeys = [
+  "upload-flow-initialized",
+  "submission-processed",
+  "participant-finalized",
+  "contact-sheet-generated",
+  "zip-generated",
+  "participant-validated",
+  "participant-verified",
+  "dev-caller-completed",
+] as const
 
-export const realtimeEventKeys = Object.values(REALTIME_EVENT_KEY) as [
-  RealtimeEventKey,
-  ...RealtimeEventKey[],
-]
+export type RealtimeEventKey = (typeof realtimeEventKeys)[number]
 
 export const RealtimeEventKeySchema = Schema.Literals(realtimeEventKeys)
 
@@ -105,12 +80,12 @@ const realtimeEventResultPayloadFields = {
 
 export const RealtimeEventSuccessPayloadSchema = Schema.Struct({
   ...realtimeEventResultPayloadFields,
-  outcome: Schema.Literal(REALTIME_RESULT_OUTCOME.SUCCESS),
+  outcome: Schema.Literal("success"),
 })
 
 export const RealtimeEventErrorPayloadSchema = Schema.Struct({
   ...realtimeEventResultPayloadFields,
-  outcome: Schema.Literal(REALTIME_RESULT_OUTCOME.ERROR),
+  outcome: Schema.Literal("error"),
   error: Schema.String,
 })
 

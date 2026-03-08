@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { QueryClient, QueryKey } from "@tanstack/react-query"
 import {
-  REALTIME_EVENT_KEY,
-  REALTIME_RESULT_OUTCOME,
   getDomainRealtimeChannel,
   getRealtimeChannelEnvironmentFromNodeEnv,
   getRealtimeResultEventName,
@@ -12,15 +10,9 @@ import {
 import { useRealtime } from "@/lib/realtime-client"
 
 const RESULT_EVENT = {
-  UPLOAD_FLOW_INITIALIZED: getRealtimeResultEventName(
-    REALTIME_EVENT_KEY.UPLOAD_FLOW_INITIALIZED,
-  ),
-  SUBMISSION_PROCESSED: getRealtimeResultEventName(
-    REALTIME_EVENT_KEY.SUBMISSION_PROCESSED,
-  ),
-  PARTICIPANT_FINALIZED: getRealtimeResultEventName(
-    REALTIME_EVENT_KEY.PARTICIPANT_FINALIZED,
-  ),
+  UPLOAD_FLOW_INITIALIZED: getRealtimeResultEventName("upload-flow-initialized"),
+  SUBMISSION_PROCESSED: getRealtimeResultEventName("submission-processed"),
+  PARTICIPANT_FINALIZED: getRealtimeResultEventName("participant-finalized"),
 } as const
 
 const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750
@@ -243,7 +235,7 @@ export function useSubmissionsTableRealtime({
       }
 
       if (event === RESULT_EVENT.SUBMISSION_PROCESSED) {
-        if (data.outcome === REALTIME_RESULT_OUTCOME.ERROR) {
+        if (data.outcome === "error") {
           scheduleTaskErrorInvalidate()
           return
         }
@@ -272,7 +264,7 @@ export function useSubmissionsTableRealtime({
           clearTrackedReference(data.reference)
         }
 
-        if (data.outcome === REALTIME_RESULT_OUTCOME.ERROR) {
+        if (data.outcome === "error") {
           scheduleTaskErrorInvalidate()
           return
         }
