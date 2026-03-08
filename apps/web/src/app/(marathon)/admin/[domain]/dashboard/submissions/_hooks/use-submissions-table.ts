@@ -30,6 +30,10 @@ export type TableData = Omit<Participant, "phoneEncrypted" | "phoneHash"> & {
 export function useSubmissionsTable() {
   const domain = useDomain()
   const trpc = useTRPC()
+  const participantsQueryPathKey = useMemo(
+    () => trpc.participants.getByDomainInfinite.pathKey(),
+    [trpc],
+  )
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({ domain }),
   )
@@ -105,8 +109,6 @@ export function useSubmissionsTable() {
     [data],
   )
 
-  const competitionClasses = marathon?.competitionClasses ?? []
-  const deviceGroups = marathon?.deviceGroups ?? []
 
   const observerTarget = useInfiniteScroll({
     hasNextPage: hasNextPage ?? false,
@@ -210,8 +212,6 @@ export function useSubmissionsTable() {
     queryState,
     setQueryState,
     participants,
-    competitionClasses,
-    deviceGroups,
     isLoading,
     isError,
     isFetchingNextPage,
@@ -227,5 +227,6 @@ export function useSubmissionsTable() {
     isSelected,
     clearSelection,
     canVerifySelected,
+    participantsQueryPathKey,
   }
 }

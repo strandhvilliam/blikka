@@ -11,7 +11,6 @@ import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { Button } from "@/components/ui/button"
-import { useRealtime } from "@/lib/realtime-client"
 
 function getActiveTopicDisplayText({
   activeTopicName,
@@ -125,20 +124,6 @@ export function SubmissionsHeader() {
       setIsRefreshing(false)
     }
   }
-  const realtimeEnv = process.env.NODE_ENV === "production" ? "prod" : "dev"
-  const domainChannel = `${realtimeEnv}:${domain}`
-
-  useRealtime({
-    events: ["task.end", "task.error"],
-    channels: [domainChannel],
-    onData() {
-      queryClient.invalidateQueries({
-        queryKey: trpc.participants.getByDomainInfinite.pathKey(),
-      })
-    },
-  })
-
-
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between">

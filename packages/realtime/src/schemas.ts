@@ -1,21 +1,30 @@
 import { Effect, Schema } from "effect"
 
+
+export class RealtimeError extends Schema.TaggedErrorClass<RealtimeError>()("RealtimeError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown),
+}) {
+}
+
 export const REALTIME_CHANNEL_ENV = {
   PROD: "prod",
   DEV: "dev",
   STAGING: "staging",
 } as const
 
-const RealtimeChannelEnv = Schema.Literals(Object.values(REALTIME_CHANNEL_ENV))
 
+const RealtimeChannelEnv = Schema.Literals(Object.values(REALTIME_CHANNEL_ENV))
 export type RealtimeChannelEnv = Schema.Schema.Type<typeof RealtimeChannelEnv>
 
-export class RealtimeError extends Schema.TaggedErrorClass<RealtimeError>()("RealtimeError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {}
 
-export const RealtimeEventName = Schema.Literals(["task.start", "task.end", "task.error"])
+
+export const REALTIME_EVENT_NAME = {
+  TASK_START: "task.start",
+  TASK_END: "task.end",
+  TASK_ERROR: "task.error",
+} as const
+export const RealtimeEventName = Schema.Literals(Object.values(REALTIME_EVENT_NAME))
 export type RealtimeEventName = Schema.Schema.Type<typeof RealtimeEventName>
 
 export const TaskStartPayload = Schema.Struct({

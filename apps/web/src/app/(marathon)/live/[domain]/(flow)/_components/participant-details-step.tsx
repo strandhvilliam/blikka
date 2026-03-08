@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Schema } from "effect";
+import { z } from "zod";
 import { useStepState } from "../_lib/step-state-context";
 import { type FlowMode } from "../_lib/constants";
 import { useState, useEffect } from "react";
@@ -41,44 +41,52 @@ function getCountryFromLocale(): string {
 const createParticipantDetailsSchema = (
   t: ReturnType<typeof useTranslations>,
   mode: FlowMode,
-) => {
-  return Schema.standardSchemaV1(
-    Schema.Struct({
-      firstname: Schema.String.pipe(
-        Schema.filter((value) => value.length > 0, {
-          message: () => t("participantDetails.firstNameRequired"),
-        }),
-      ).annotations({
-        description: t("participantDetails.firstNameRequired"),
-      }),
-      lastname: Schema.String.pipe(
-        Schema.filter((value) => value.length > 0, {
-          message: () => t("participantDetails.lastNameRequired"),
-        }),
-      ).annotations({
-        description: t("participantDetails.lastNameRequired"),
-      }),
-      email: Schema.String.pipe(
-        Schema.filter((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
-          message: () => t("participantDetails.invalidEmail"),
-        }),
-      ).annotations({ description: t("participantDetails.invalidEmail") }),
-      phone:
-        mode === "by-camera"
-          ? Schema.String.pipe(
-              Schema.filter((value) => value.length > 0, {
-                message: () => t("participantDetails.phoneRequired"),
-              }),
-              Schema.filter((value) => isPossiblePhoneNumber(value), {
-                message: () => t("participantDetails.invalidPhone"),
-              }),
-            ).annotations({
-              description: t("participantDetails.phoneRequired"),
-            })
-          : Schema.String,
-    }),
-  );
-};
+) =>
+  z.object({
+    firstname: z
+      .string()
+      .min(1, t("participantDetails.firstNameRequired")),
+    lastname: z
+      .string()
+      .min(1, t("participantDetails.lastNameRequired")),
+    email: z
+      .string()
+      .email(t("participantDetails.invalidEmail")),
+    phone:
+      mode === "by-camera"
+        ? z
+            .string()
+            .min(1, t("participantDetails.phoneRequired"))
+            .refine(isPossiblePhoneNumber, t("participantDetails.invalidPhone"))
+        : z.string(),
+  });
+
+const createParticipantDetailsValidator = (
+  t: ReturnType<typeof useTranslations>,
+  mode: FlowMode,
+) =>
+  ({
+    value,
+  }: {
+    value: {
+      firstname: string;
+      lastname: string;
+      email: string;
+      phone: string;
+    };
+  }) => {
+    const result = createParticipantDetailsSchema(t, mode).safeParse(value);
+    if (result.success) return undefined;
+    const fieldErrors = result.error.flatten().fieldErrors;
+    return {
+      fields: {
+        firstname: fieldErrors.firstname?.[0],
+        lastname: fieldErrors.lastname?.[0],
+        email: fieldErrors.email?.[0],
+        phone: fieldErrors.phone?.[0],
+      },
+    };
+  };
 
 interface ParticipantDetailsStepProps {
   mode: FlowMode;
@@ -116,8 +124,8 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       handleNextStep();
     },
     validators: {
-      onChange: createParticipantDetailsSchema(t, mode),
-      onBlur: createParticipantDetailsSchema(t, mode),
+      onChange: createParticipantDetailsValidator(t, mode),
+      onBlur: createParticipantDetailsValidator(t, mode),
     },
   });
 
@@ -191,7 +199,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                             id={`${field.name}-error`}
                             className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
                           >
-                            {field.state.meta.errors[0]?.message}
+                            {field.state.meta.errors[0]}
                           </span>
                         )}
                       </div>
@@ -254,7 +262,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                             id={`${field.name}-error`}
                             className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
                           >
-                            {field.state.meta.errors[0]?.message}
+                            {field.state.meta.errors[0]}
                           </span>
                         )}
                       </div>
@@ -321,7 +329,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                             id={`${field.name}-error`}
                             className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
                           >
-                            {field.state.meta.errors[0]?.message}
+                            {field.state.meta.errors[0]}
                           </span>
                         )}
                       </div>
@@ -395,7 +403,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                               id={`${field.name}-error`}
                               className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
                             >
-                              {field.state.meta.errors[0]?.message}
+                              {field.state.meta.errors[0]}
                             </span>
                           )}
                         </div>

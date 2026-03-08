@@ -11,6 +11,7 @@ interface SubmissionsColumnsOptions {
   selectedIds: Set<number>;
   onToggleSelection: (id: number, event: React.MouseEvent) => void;
   onToggleAll: () => void;
+  uploadProcessorOrderIndexesByReference: ReadonlyMap<string, ReadonlySet<number>>;
 }
 
 export const getSubmissionsColumns = ({
@@ -19,6 +20,7 @@ export const getSubmissionsColumns = ({
   selectedIds,
   onToggleSelection,
   onToggleAll,
+  uploadProcessorOrderIndexesByReference,
 }: SubmissionsColumnsOptions): ColumnDef<TableData>[] => {
   // Calculate select all state based on visible participants
   const visibleIds = participants.map((p) => p.id);
@@ -160,6 +162,46 @@ export const getSubmissionsColumns = ({
           >
             <Icon className="size-2.5" />
             {status}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "uploadProgress",
+      header: "Upload",
+      cell: ({ row }) => {
+        const participant = row.original;
+        const expectedFromClass = participant.competitionClass?.numberOfPhotos ?? null;
+        const expectedCount =
+          expectedFromClass !== null && expectedFromClass > 0
+            ? expectedFromClass
+            : marathonMode === "by-camera"
+              ? 1
+              : null;
+
+        if (expectedCount === null) {
+          return <span className="text-xs text-muted-foreground">-</span>;
+        }
+
+        const uploadedCount = Math.min(
+          uploadProcessorOrderIndexesByReference.get(participant.reference)?.size ?? 0,
+          expectedCount,
+        );
+        const isCompleted =
+          participant.status === "completed" || participant.status === "verified";
+        const processedCount = isCompleted ? expectedCount : uploadedCount;
+
+        return (
+          <Badge
+            variant={processedCount === expectedCount ? "default" : "outline"}
+            className={cn(
+              "h-5 px-1.5 text-xs font-medium tabular-nums",
+              processedCount === expectedCount
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
+                : "text-muted-foreground",
+            )}
+          >
+            {processedCount}/{expectedCount}
           </Badge>
         );
       },

@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { ExifParser } from "@blikka/image-manipulation"
+import { ExifParser } from "@blikka/image-manipulation/exif-parser"
 import { clientRuntime } from "@/lib/client-runtime"
 
 export function chunk<T>(array: T[], size: number): T[][] {

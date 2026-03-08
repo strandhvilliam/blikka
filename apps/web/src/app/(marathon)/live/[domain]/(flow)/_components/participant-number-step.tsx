@@ -1,24 +1,24 @@
-"use client";
+"use client"
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { ArrowRight, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { useForm } from "@tanstack/react-form";
-import { useMutation } from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc/client";
-import { useDomain } from "@/lib/domain-provider";
-import { useTranslations } from "next-intl";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
-import { Schema } from "effect";
-import { useState } from "react";
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { ArrowRight, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { useForm } from "@tanstack/react-form"
+import { useMutation } from "@tanstack/react-query"
+import { useTRPC } from "@/lib/trpc/client"
+import { useDomain } from "@/lib/domain-provider"
+import { useTranslations } from "next-intl"
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
+import { z } from "zod"
+import { useState } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,38 +28,47 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useStepState } from "../_lib/step-state-context";
+} from "@/components/ui/alert-dialog"
+import { useStepState } from "../_lib/step-state-context"
 
 const createInitializeParticipantSchema = (
   t: ReturnType<typeof useTranslations>,
 ) =>
-  Schema.standardSchemaV1(
-    Schema.Struct({
-      participantRef: Schema.String.pipe(
-        Schema.filter((value) => /^\d{1,4}$/.test(value), {
-          message: () => t("participantNumber.required"),
-        }),
-      ).annotations({ description: t("participantNumber.required") }),
-      domain: Schema.String.pipe(Schema.minLength(1)).annotations({
-        description: "Invalid domain",
-      }),
-    }),
-  );
+  z.object({
+    participantRef: z
+      .string()
+      .refine((val) => /^\d{1,4}$/.test(val), t("participantNumber.required")),
+    domain: z.string().min(1, "Invalid domain"),
+  })
+
+const createParticipantValidator = (
+  t: ReturnType<typeof useTranslations>,
+) =>
+  ({ value }: { value: { participantRef: string; domain: string } }) => {
+    const result = createInitializeParticipantSchema(t).safeParse(value)
+    if (result.success) return undefined
+    const fieldErrors = result.error.flatten().fieldErrors
+    return {
+      fields: {
+        participantRef: fieldErrors.participantRef?.[0],
+        domain: fieldErrors.domain?.[0],
+      },
+    }
+  }
 
 export function ParticipantNumberStep() {
-  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
-  const { handleNextStep } = useStepState();
-  const domain = useDomain();
-  const t = useTranslations("FlowPage");
-  const trpc = useTRPC();
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState()
+  const { handleNextStep } = useStepState()
+  const domain = useDomain()
+  const t = useTranslations("FlowPage")
+  const trpc = useTRPC()
 
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [pendingRef, setPendingRef] = useState("");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [pendingRef, setPendingRef] = useState("")
 
   const checkParticipantExists = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
-  );
+  )
 
   const form = useForm({
     defaultValues: {
@@ -67,43 +76,43 @@ export function ParticipantNumberStep() {
       domain,
     },
     onSubmit: async ({ value }) => {
-      const paddedRef = value.participantRef.padStart(4, "0");
-      setPendingRef(paddedRef);
+      const paddedRef = value.participantRef.padStart(4, "0")
+      setPendingRef(paddedRef)
 
       try {
         const exists = await checkParticipantExists.mutateAsync({
           domain,
           reference: paddedRef,
-        });
+        })
 
         if (exists) {
-          setConfirmDialogOpen(true);
+          setConfirmDialogOpen(true)
         } else {
           setUploadFlowState((prev) => ({
             ...prev,
             participantRef: paddedRef,
-          }));
-          handleNextStep();
+          }))
+          handleNextStep()
         }
       } catch (error) {
-        console.error(error);
-        toast.error(t("participantNumber.error"));
+        console.error(error)
+        toast.error(t("participantNumber.error"))
       }
     },
     validators: {
-      onChange: createInitializeParticipantSchema(t),
-      onBlur: createInitializeParticipantSchema(t),
+      onChange: createParticipantValidator(t),
+      onBlur: createParticipantValidator(t),
     },
-  });
+  })
 
   const handleConfirm = () => {
     setUploadFlowState((prev) => ({
       ...prev,
       participantRef: pendingRef,
-    }));
-    setConfirmDialogOpen(false);
-    handleNextStep();
-  };
+    }))
+    setConfirmDialogOpen(false)
+    handleNextStep()
+  }
 
   return (
     <div className="max-w-md mx-auto min-h-[70dvh] space-y-10 flex flex-col justify-center">
@@ -120,21 +129,20 @@ export function ParticipantNumberStep() {
 
       <form
         onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          form.handleSubmit();
+          e.preventDefault()
+          e.stopPropagation()
+          form.handleSubmit()
         }}
         noValidate
         className="space-y-8"
       >
         <CardContent className="space-y-6">
           <div>
-            <form.Field
-              name="participantRef"
-              children={(field) => {
+            <form.Field name="participantRef">
+              {(field) => {
                 const hasError =
                   field.state.meta.isTouched &&
-                  field.state.meta.errors.length > 0;
+                  field.state.meta.errors.length > 0
 
                 return (
                   <>
@@ -148,11 +156,10 @@ export function ParticipantNumberStep() {
                       autoComplete="off"
                       enterKeyHint="done"
                       pattern="[0-9]*"
-                      className={`text-center text-3xl sm:text-4xl h-14 sm:h-16 bg-background tracking-widest leading-none ${
-                        hasError
-                          ? "border-destructive focus-visible:ring-destructive"
-                          : ""
-                      }`}
+                      className={`text-center text-3xl sm:text-4xl h-14 sm:h-16 bg-background tracking-widest leading-none ${hasError
+                        ? "border-destructive focus-visible:ring-destructive"
+                        : ""
+                        }`}
                       aria-invalid={hasError}
                       aria-describedby={
                         hasError ? `${field.name}-error` : undefined
@@ -162,21 +169,21 @@ export function ParticipantNumberStep() {
                       maxLength={4}
                       value={field.state.value}
                       onChange={(e) => {
-                        const value = e.target.value;
+                        const value = e.target.value
                         const numericValue = value
                           .replace(/\D/g, "")
-                          .slice(0, 4);
-                        field.handleChange(numericValue);
+                          .slice(0, 4)
+                        field.handleChange(numericValue)
                       }}
                       onBlur={() => {
                         if (field.state.value && field.state.value.length > 0) {
                           const paddedValue = field.state.value.padStart(
                             4,
                             "0",
-                          );
-                          field.handleChange(paddedValue);
+                          )
+                          field.handleChange(paddedValue)
                         }
-                        field.handleBlur();
+                        field.handleBlur()
                       }}
                     />
                     {hasError && (
@@ -184,13 +191,13 @@ export function ParticipantNumberStep() {
                         id={`${field.name}-error`}
                         className="flex flex-1 w-full justify-center text-center text-base pt-4 text-destructive font-medium"
                       >
-                        {field.state.meta.errors[0]?.message}
+                        {field.state.meta.errors[0]}
                       </span>
                     )}
                   </>
-                );
+                )
               }}
-            />
+            </form.Field>
           </div>
         </CardContent>
 
@@ -204,9 +211,8 @@ export function ParticipantNumberStep() {
               {t("participantNumber.continue")}
             </Button>
           ) : (
-            <form.Subscribe
-              selector={(state) => [state.isSubmitting]}
-              children={([isSubmitting]) => (
+            <form.Subscribe selector={(state: { isSubmitting: boolean }) => ({ isSubmitting: state.isSubmitting })}>
+              {({ isSubmitting }) => (
                 <PrimaryButton
                   type="submit"
                   className="w-full py-3.5 text-base sm:text-lg rounded-full"
@@ -222,7 +228,7 @@ export function ParticipantNumberStep() {
                   )}
                 </PrimaryButton>
               )}
-            />
+            </form.Subscribe>
           )}
         </CardFooter>
       </form>
@@ -250,5 +256,5 @@ export function ParticipantNumberStep() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

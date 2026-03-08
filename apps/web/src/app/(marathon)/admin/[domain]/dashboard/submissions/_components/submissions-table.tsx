@@ -26,6 +26,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { useDomain } from "@/lib/domain-provider"
+import { useSubmissionsTableRealtime } from "../_hooks/use-submissions-table-realtime"
 
 export function SubmissionsTable() {
   const router = useRouter()
@@ -39,8 +40,6 @@ export function SubmissionsTable() {
     queryState,
     setQueryState,
     participants,
-    competitionClasses,
-    deviceGroups,
     isLoading,
     isError,
     isFetchingNextPage,
@@ -56,7 +55,13 @@ export function SubmissionsTable() {
     isSelected,
     clearSelection,
     canVerifySelected,
+    participantsQueryPathKey,
   } = useSubmissionsTable()
+  const { uploadProcessorOrderIndexesByReference } = useSubmissionsTableRealtime({
+    domain,
+    queryClient,
+    participantsQueryPathKey,
+  })
 
   const batchDeleteMutation = useMutation(
     trpc.participants.batchDelete.mutationOptions({
@@ -154,6 +159,7 @@ export function SubmissionsTable() {
         selectedIds,
         onToggleSelection: toggleSelection,
         onToggleAll: toggleAllVisible,
+        uploadProcessorOrderIndexesByReference,
       }),
     [
       marathon?.mode,
@@ -161,6 +167,7 @@ export function SubmissionsTable() {
       selectedIds,
       toggleSelection,
       toggleAllVisible,
+      uploadProcessorOrderIndexesByReference,
     ],
   )
 
@@ -199,10 +206,10 @@ export function SubmissionsTable() {
             onSortOrderChange={(sortOrder) => setQueryState({ sortOrder })}
             competitionClassId={queryState.competitionClassId}
             onCompetitionClassChange={handleCompetitionClassChange}
-            competitionClasses={competitionClasses}
+            competitionClasses={marathon.competitionClasses}
             deviceGroupId={queryState.deviceGroupId}
             onDeviceGroupChange={handleDeviceGroupChange}
-            deviceGroups={deviceGroups}
+            deviceGroups={marathon.deviceGroups}
           />
         )}
       </div>

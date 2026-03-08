@@ -9,31 +9,23 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 })
 
+export const TASK_NAME = {
+  UPLOAD_INITIALIZER: "upload-initializer",
+  UPLOAD_PROCESSOR: "upload-processor",
+  UPLOAD_FINALIZER: "upload-finalizer",
+  CONTACT_SHEET_GENERATOR: "contact-sheet-generator",
+  ZIP_WORKER: "zip-worker",
+  VALIDATION_RUNNER: "validation-runner",
+} as const
+
+export type TaskName = (typeof TASK_NAME)[keyof typeof TASK_NAME]
+
 const schema = {
-  "task.start": z.object({
-    taskName: z.string(),
-    domain: z.string(),
-    reference: z.string(),
-    orderIndex: z.number().nullable(),
-    timestamp: z.number(),
-  }),
-  "task.end": z.object({
-    taskName: z.string(),
-    domain: z.string(),
-    reference: z.string(),
-    orderIndex: z.number().nullable(),
-    timestamp: z.number(),
-    duration: z.number(),
-  }),
-  "task.error": z.object({
-    taskName: z.string(),
-    domain: z.string(),
-    reference: z.string(),
-    orderIndex: z.number().nullable(),
-    timestamp: z.number(),
-    duration: z.number(),
+  task: {
+    start: z.string(),
+    end: z.string(),
     error: z.string(),
-  }),
+  }
 }
 
 export const realtime = new Realtime({ redis, schema })

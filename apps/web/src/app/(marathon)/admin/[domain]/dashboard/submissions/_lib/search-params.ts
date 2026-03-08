@@ -1,6 +1,4 @@
-import { Schema } from "effect"
 import {
-  parseAsFloat,
   createLoader,
   parseAsInteger,
   parseAsStringLiteral,

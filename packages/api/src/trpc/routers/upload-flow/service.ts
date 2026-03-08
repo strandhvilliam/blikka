@@ -6,6 +6,8 @@ import { RealtimeStateEventsService } from "@blikka/realtime"
 import { UploadFlowApiError } from "./schemas"
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption"
 
+const TASK_NAME = "upload-initializer"
+
 export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiService>()(
   "@blikka/api/UploadFlowApiService",
   {
@@ -246,7 +248,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         })
 
         return yield* realtimeStateEvents.withRealtimeStateEvents(executeEffect, {
-          taskName: "upload-initializer",
+          taskName: TASK_NAME,
           environment,
           domain,
           reference,
@@ -420,7 +422,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         })
 
         return yield* realtimeStateEvents.withRealtimeStateEvents(executeEffect, {
-          taskName: "by-camera-upload-initializer",
+          taskName: TASK_NAME,
           environment,
           domain,
           reference,
