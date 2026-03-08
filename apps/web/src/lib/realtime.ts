@@ -20,12 +20,48 @@ export const TASK_NAME = {
 
 export type TaskName = (typeof TASK_NAME)[keyof typeof TASK_NAME]
 
+const taskNames = Object.values(TASK_NAME) as [TaskName, ...TaskName[]]
+const TaskNameSchema = z.enum(taskNames)
+
+const TaskStartPayloadSchema = z.object({
+  taskName: TaskNameSchema,
+  domain: z.string(),
+  reference: z.string(),
+  orderIndex: z.number().nullable(),
+  timestamp: z.number(),
+})
+
+const TaskEndPayloadSchema = z.object({
+  taskName: TaskNameSchema,
+  domain: z.string(),
+  reference: z.string(),
+  orderIndex: z.number().nullable(),
+  timestamp: z.number(),
+  duration: z.number(),
+})
+
+const TaskErrorPayloadSchema = z.object({
+  taskName: TaskNameSchema,
+  domain: z.string(),
+  reference: z.string(),
+  orderIndex: z.number().nullable(),
+  timestamp: z.number(),
+  duration: z.number(),
+  error: z.string(),
+})
+
+function createTaskScopedSchema<TSchema extends z.ZodTypeAny>(schema: TSchema) {
+  return Object.fromEntries(
+    taskNames.map((taskName) => [taskName, schema]),
+  ) as Record<TaskName, TSchema>
+}
+
 const schema = {
   task: {
-    start: z.string(),
-    end: z.string(),
-    error: z.string(),
-  }
+    start: createTaskScopedSchema(TaskStartPayloadSchema),
+    end: createTaskScopedSchema(TaskEndPayloadSchema),
+    error: createTaskScopedSchema(TaskErrorPayloadSchema),
+  },
 }
 
 export const realtime = new Realtime({ redis, schema })

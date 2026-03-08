@@ -9,6 +9,11 @@ const TASK_NAME = {
   UPLOAD_PROCESSOR: "upload-processor",
   UPLOAD_FINALIZER: "upload-finalizer",
 } as const
+const TASK_END_EVENT = {
+  UPLOAD_INITIALIZER: `task.end.${TASK_NAME.UPLOAD_INITIALIZER}`,
+  UPLOAD_PROCESSOR: `task.end.${TASK_NAME.UPLOAD_PROCESSOR}`,
+  UPLOAD_FINALIZER: `task.end.${TASK_NAME.UPLOAD_FINALIZER}`,
+} as const
 
 const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750
 const FINALIZER_SAFETY_INVALIDATE_DEBOUNCE_MS = 10_000
@@ -193,41 +198,41 @@ export function useSubmissionsTableRealtime({
   const domainChannel = `${realtimeEnv}:${domain}`
 
   useRealtime({
-    events: ["task.end"],
+    events: [
+      TASK_END_EVENT.UPLOAD_INITIALIZER,
+      TASK_END_EVENT.UPLOAD_PROCESSOR,
+      TASK_END_EVENT.UPLOAD_FINALIZER,
+    ],
     channels: [domainChannel],
     enabled: domain.length > 0,
     onData: ({ event, data }) => {
-      console.log({ event, data })
-      // if (event !== "task.end") {
-      //   return
-      // }
+      if (event === TASK_END_EVENT.UPLOAD_INITIALIZER) {
+        clearTrackedReference(data.reference)
+        scheduleInitializerInvalidate()
+        return
+      }
 
-      // if (data.taskName === TASK_NAME.UPLOAD_INITIALIZER) {
-      //   clearTrackedReference(data.reference)
-      //   scheduleInitializerInvalidate()
-      //   return
-      // }
+      if (event === TASK_END_EVENT.UPLOAD_PROCESSOR) {
+        const orderIndex = data.orderIndex
+        if (orderIndex === null) {
+          return
+        }
 
-      // if (data.taskName === TASK_NAME.UPLOAD_PROCESSOR) {
-      //   if (data.orderIndex === null) {
-      //     return
-      //   }
+        setUploadProcessorOrderIndexesByReference((current) =>
+          upsertOrderIndexWithPruning({
+            current,
+            reference: data.reference,
+            orderIndex,
+          }),
+        )
+        return
+      }
 
-      //   setUploadProcessorOrderIndexesByReference((current) =>
-      //     upsertOrderIndexWithPruning({
-      //       current,
-      //       reference: data.reference,
-      //       orderIndex: data.orderIndex,
-      //     }),
-      //   )
-      //   return
-      // }
-
-      // if (data.taskName === TASK_NAME.UPLOAD_FINALIZER) {
-      //   clearTrackedReference(data.reference)
-      //   patchParticipantAsCompleted(data.reference)
-      //   scheduleFinalizerSafetyInvalidate()
-      // }
+      if (event === TASK_END_EVENT.UPLOAD_FINALIZER) {
+        clearTrackedReference(data.reference)
+        patchParticipantAsCompleted(data.reference)
+        scheduleFinalizerSafetyInvalidate()
+      }
     },
   })
 

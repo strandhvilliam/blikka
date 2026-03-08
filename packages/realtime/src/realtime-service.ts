@@ -1,7 +1,8 @@
 import { Effect, Schema, ServiceMap, Layer, Schedule, Duration } from "effect"
 import { RedisClient } from "@blikka/redis"
 import { Realtime } from "@upstash/realtime"
-import { RealtimeChannel, RealtimeError, RealtimeEventName } from "./schemas"
+import { RealtimeChannel, RealtimeError } from "./schemas"
+import type { RealtimeEventName } from "./schemas"
 
 export class RealtimeService extends ServiceMap.Service<RealtimeService>()(
   "@blikka/realtime/realtime-service",

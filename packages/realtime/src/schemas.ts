@@ -24,8 +24,22 @@ export const REALTIME_EVENT_NAME = {
   TASK_END: "task.end",
   TASK_ERROR: "task.error",
 } as const
-export const RealtimeEventName = Schema.Literals(Object.values(REALTIME_EVENT_NAME))
-export type RealtimeEventName = Schema.Schema.Type<typeof RealtimeEventName>
+export const RealtimeEventName = Schema.String
+export type RealtimeBaseEventName =
+  (typeof REALTIME_EVENT_NAME)[keyof typeof REALTIME_EVENT_NAME]
+export type RealtimeTaskScopedEventName =
+  | `task.start.${string}`
+  | `task.end.${string}`
+  | `task.error.${string}`
+export type RealtimeEventName = RealtimeTaskScopedEventName
+
+export function getTaskScopedRealtimeEventNames<const TTaskName extends string>(taskName: TTaskName) {
+  return {
+    taskStart: `task.start.${taskName}` as `task.start.${TTaskName}`,
+    taskEnd: `task.end.${taskName}` as `task.end.${TTaskName}`,
+    taskError: `task.error.${taskName}` as `task.error.${TTaskName}`,
+  }
+}
 
 export const TaskStartPayload = Schema.Struct({
   taskName: Schema.String,

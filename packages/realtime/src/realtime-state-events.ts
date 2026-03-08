@@ -1,7 +1,12 @@
 import { Cause, Effect, Exit, ServiceMap, Layer } from "effect"
 import { RealtimeService } from "./realtime-service"
-import { RealtimeChannel } from "./schemas"
+import {
+  RealtimeChannel,
+  REALTIME_EVENT_NAME,
+  getTaskScopedRealtimeEventNames,
+} from "./schemas"
 import type {
+  RealtimeBaseEventName,
   RealtimeChannelEnv,
   RealtimeEventName,
   TaskStartPayload,
@@ -43,6 +48,26 @@ export class RealtimeStateEventsService extends ServiceMap.Service<RealtimeState
         ], { concurrency: 2 })
       })
 
+      const fanOutEmitForTask = Effect.fn("RealtimeStateEventsService.fanOutEmitForTask")(function* (
+        environment: RealtimeChannelEnv,
+        domain: string,
+        reference: string,
+        taskName: string,
+        eventName: RealtimeBaseEventName,
+        payload: unknown,
+      ) {
+        const taskScopedEventNames = getTaskScopedRealtimeEventNames(taskName)
+
+        const scopedEventName =
+          eventName === REALTIME_EVENT_NAME.TASK_START
+            ? taskScopedEventNames.taskStart
+            : eventName === REALTIME_EVENT_NAME.TASK_END
+              ? taskScopedEventNames.taskEnd
+              : taskScopedEventNames.taskError
+
+        yield* fanOutEmit(environment, domain, reference, scopedEventName, payload)
+      })
+
       const withRealtimeStateEvents = <A, E, R>(
         effect: Effect.Effect<A, E, R>,
         { taskName, environment, domain, reference, metadata }: RealtimeStateEventOptions,
@@ -58,9 +83,16 @@ export class RealtimeStateEventsService extends ServiceMap.Service<RealtimeState
             timestamp: startTime,
           }
 
-          yield* fanOutEmit(environment, domain, reference, "task.start", startPayload).pipe(
-            Effect.tap(() => Effect.log(`[${taskName}:${domain}:${reference}] Published task.start event`)),
-            Effect.catch(() => Effect.logWarning(`[${taskName}:${domain}:${reference}] Failed to publish task.start event`))
+          yield* fanOutEmitForTask(
+            environment,
+            domain,
+            reference,
+            taskName,
+            REALTIME_EVENT_NAME.TASK_START,
+            startPayload,
+          ).pipe(
+            Effect.tap(() => Effect.log(`[${taskName}:${domain}:${reference}] Published task.start events`)),
+            Effect.catch(() => Effect.logWarning(`[${taskName}:${domain}:${reference}] Failed to publish task.start events`))
           )
 
           return yield* effect.pipe(
@@ -77,9 +109,16 @@ export class RealtimeStateEventsService extends ServiceMap.Service<RealtimeState
                     timestamp: Date.now(),
                     duration,
                   }
-                  return fanOutEmit(environment, domain, reference, "task.end", endPayload).pipe(
-                    Effect.tap(() => Effect.log(`[${taskName}:${domain}:${reference}] Published task.end event`)),
-                    Effect.catch(() => Effect.logWarning(`[${taskName}:${domain}:${reference}] Failed to publish task.end event`))
+                  return fanOutEmitForTask(
+                    environment,
+                    domain,
+                    reference,
+                    taskName,
+                    REALTIME_EVENT_NAME.TASK_END,
+                    endPayload,
+                  ).pipe(
+                    Effect.tap(() => Effect.log(`[${taskName}:${domain}:${reference}] Published task.end events`)),
+                    Effect.catch(() => Effect.logWarning(`[${taskName}:${domain}:${reference}] Failed to publish task.end events`))
                   )
                 },
                 onFailure: (cause) => {
@@ -93,9 +132,16 @@ export class RealtimeStateEventsService extends ServiceMap.Service<RealtimeState
                     duration,
                     error: err instanceof Error ? err.message : String(err),
                   }
-                  return fanOutEmit(environment, domain, reference, "task.error", errorPayload).pipe(
-                    Effect.tap(() => Effect.log(`[${taskName}:${domain}:${reference}] Published task.error event`)),
-                    Effect.catch(() => Effect.logWarning(`[${taskName}:${domain}:${reference}] Failed to publish task.error event`))
+                  return fanOutEmitForTask(
+                    environment,
+                    domain,
+                    reference,
+                    taskName,
+                    REALTIME_EVENT_NAME.TASK_ERROR,
+                    errorPayload,
+                  ).pipe(
+                    Effect.tap(() => Effect.log(`[${taskName}:${domain}:${reference}] Published task.error events`)),
+                    Effect.catch(() => Effect.logWarning(`[${taskName}:${domain}:${reference}] Failed to publish task.error events`))
                   )
                 },
               })
@@ -105,6 +151,7 @@ export class RealtimeStateEventsService extends ServiceMap.Service<RealtimeState
 
       return {
         fanOutEmit,
+        fanOutEmitForTask,
         withRealtimeStateEvents,
       } as const
     }),
