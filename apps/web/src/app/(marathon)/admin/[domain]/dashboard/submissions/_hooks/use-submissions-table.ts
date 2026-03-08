@@ -15,6 +15,56 @@ import {
 } from "../_lib/submissions-table-utils";
 import type { Participant, CompetitionClass, DeviceGroup } from "@blikka/db";
 
+const SEARCH_DEBOUNCE_MS = 300;
+const PARTICIPANTS_PAGE_SIZE = 50;
+
+function parseMultiSelectValue(value: string): number[] | null {
+  return value === "all" ? null : value.split(",").map(Number);
+}
+
+function useSubmissionTableQueryState() {
+  const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
+    history: "push",
+  });
+
+  const {
+    tab: activeTab,
+    search,
+    competitionClassId,
+    deviceGroupId,
+  } = queryState;
+  const [debouncedSearch] = useDebounce(search ?? "", SEARCH_DEBOUNCE_MS);
+
+  const tabQueryParams = getTabQueryParams(activeTab);
+  const normalizedCompetitionClassId = normalizeIdArray(competitionClassId);
+  const normalizedDeviceGroupId = normalizeIdArray(deviceGroupId);
+
+  const handleCompetitionClassChange = useCallback(
+    (value: string) => {
+      setQueryState({ competitionClassId: parseMultiSelectValue(value) });
+    },
+    [setQueryState],
+  );
+
+  const handleDeviceGroupChange = useCallback(
+    (value: string) => {
+      setQueryState({ deviceGroupId: parseMultiSelectValue(value) });
+    },
+    [setQueryState],
+  );
+
+  return {
+    queryState,
+    setQueryState,
+    debouncedSearch,
+    tabQueryParams,
+    normalizedCompetitionClassId,
+    normalizedDeviceGroupId,
+    handleCompetitionClassChange,
+    handleDeviceGroupChange,
+  };
+}
+
 export type TableData = Omit<Participant, "phoneEncrypted" | "phoneHash"> & {
   competitionClass: CompetitionClass | null;
   deviceGroup: DeviceGroup | null;
@@ -26,6 +76,133 @@ export type TableData = Omit<Participant, "phoneEncrypted" | "phoneHash"> & {
   contactSheetKeys: string[];
   votingSession: { votedAt: string | null } | null;
 };
+
+function useParticipantCollections(participants: TableData[]) {
+  return useMemo(() => {
+    const participantIds: number[] = [];
+    const participantIndexById = new Map<number, number>();
+    const participantsById = new Map<number, TableData>();
+
+    for (let index = 0; index < participants.length; index++) {
+      const participant = participants[index];
+      participantIds.push(participant.id);
+      participantIndexById.set(participant.id, index);
+      participantsById.set(participant.id, participant);
+    }
+
+    return { participantIds, participantIndexById, participantsById };
+  }, [participants]);
+}
+
+interface UseParticipantSelectionInput {
+  participantIds: number[];
+  participantIndexById: Map<number, number>;
+  participantsById: Map<number, TableData>;
+}
+
+function useParticipantSelection({
+  participantIds,
+  participantIndexById,
+  participantsById,
+}: UseParticipantSelectionInput) {
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
+
+  const selectedCount = selectedIds.size;
+  const hasSelection = selectedCount > 0;
+
+  const toggleSelection = useCallback(
+    (id: number, event: React.MouseEvent) => {
+      setSelectedIds((previousSelection) => {
+        const nextSelection = new Set(previousSelection);
+
+        if (event.shiftKey && lastSelectedId !== null) {
+          const lastIndex = participantIndexById.get(lastSelectedId);
+          const currentIndex = participantIndexById.get(id);
+
+          if (lastIndex !== undefined && currentIndex !== undefined) {
+            const start = Math.min(lastIndex, currentIndex);
+            const end = Math.max(lastIndex, currentIndex);
+
+            for (let index = start; index <= end; index++) {
+              const participantId = participantIds[index];
+              if (participantId !== undefined) {
+                nextSelection.add(participantId);
+              }
+            }
+          }
+
+          return nextSelection;
+        }
+
+        if (nextSelection.has(id)) {
+          nextSelection.delete(id);
+        } else {
+          nextSelection.add(id);
+        }
+
+        return nextSelection;
+      });
+
+      if (!event.shiftKey) {
+        setLastSelectedId(id);
+      }
+    },
+    [lastSelectedId, participantIds, participantIndexById],
+  );
+
+  const isSelected = useCallback(
+    (id: number) => selectedIds.has(id),
+    [selectedIds],
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setLastSelectedId(null);
+  }, []);
+
+  const toggleAllVisible = useCallback(() => {
+    setSelectedIds((previousSelection) => {
+      const allVisibleSelected = participantIds.every((id) =>
+        previousSelection.has(id),
+      );
+      const nextSelection = new Set(previousSelection);
+
+      for (const id of participantIds) {
+        if (allVisibleSelected) {
+          nextSelection.delete(id);
+        } else {
+          nextSelection.add(id);
+        }
+      }
+
+      return nextSelection;
+    });
+  }, [participantIds]);
+
+  const canVerifySelected = useMemo(() => {
+    if (selectedIds.size === 0) return false;
+
+    for (const id of selectedIds) {
+      if (participantsById.get(id)?.status !== "completed") {
+        return false;
+      }
+    }
+
+    return true;
+  }, [participantsById, selectedIds]);
+
+  return {
+    selectedIds,
+    selectedCount,
+    hasSelection,
+    toggleSelection,
+    toggleAllVisible,
+    isSelected,
+    clearSelection,
+    canVerifySelected,
+  };
+}
 
 export function useSubmissionsTable() {
   const domain = useDomain();
@@ -39,39 +216,22 @@ export function useSubmissionsTable() {
   );
 
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [lastSelectedId, setLastSelectedId] = useState<number | null>(null);
-  const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
-    history: "push",
-  });
-
   const {
-    tab: activeTab,
-    search,
-    sortOrder,
-    competitionClassId,
-    deviceGroupId,
-  } = queryState;
-  const [debouncedSearch] = useDebounce(search || "", 300);
+    queryState,
+    setQueryState,
+    debouncedSearch,
+    tabQueryParams,
+    normalizedCompetitionClassId,
+    normalizedDeviceGroupId,
+    handleCompetitionClassChange,
+    handleDeviceGroupChange,
+  } = useSubmissionTableQueryState();
 
   const activeByCameraTopicId =
     marathon?.mode === "by-camera"
       ? (marathon.topics.find((topic) => topic.visibility === "active")?.id ??
         -1)
-      : undefined;
-
-  const tabQueryParams = useMemo(
-    () => getTabQueryParams(activeTab),
-    [activeTab],
-  );
-  const normalizedCompetitionClassId = useMemo(
-    () => normalizeIdArray(competitionClassId),
-    [competitionClassId],
-  );
-  const normalizedDeviceGroupId = useMemo(
-    () => normalizeIdArray(deviceGroupId),
-    [deviceGroupId],
-  );
+      : null;
 
   const {
     data,
@@ -86,16 +246,16 @@ export function useSubmissionsTable() {
         domain,
         cursor: null,
         search: debouncedSearch || null,
-        sortOrder: sortOrder || null,
+        sortOrder: queryState.sortOrder || null,
         competitionClassId: normalizedCompetitionClassId ?? null,
         deviceGroupId: normalizedDeviceGroupId ?? null,
-        topicId: activeByCameraTopicId ?? null,
+        topicId: activeByCameraTopicId,
         statusFilter: tabQueryParams.statusFilter,
         excludeStatuses: tabQueryParams.excludeStatuses,
         includeStatuses: tabQueryParams.includeStatuses ?? null,
         hasValidationErrors: tabQueryParams.hasValidationErrors,
         votedFilter: tabQueryParams.votedFilter ?? null,
-        limit: 50,
+        limit: PARTICIPANTS_PAGE_SIZE,
       },
       {
         getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
@@ -108,102 +268,28 @@ export function useSubmissionsTable() {
       (data?.pages.flatMap((page) => page.participants) ?? []) as TableData[],
     [data],
   );
+  const { participantIds, participantIndexById, participantsById } =
+    useParticipantCollections(participants);
+  const {
+    selectedIds,
+    selectedCount,
+    hasSelection,
+    toggleSelection,
+    toggleAllVisible,
+    isSelected,
+    clearSelection,
+    canVerifySelected,
+  } = useParticipantSelection({
+    participantIds,
+    participantIndexById,
+    participantsById,
+  });
 
   const observerTarget = useInfiniteScroll({
     hasNextPage: hasNextPage ?? false,
     isFetchingNextPage,
     fetchNextPage,
   });
-
-  const handleCompetitionClassChange = useCallback(
-    (value: string) => {
-      setQueryState({
-        competitionClassId:
-          value === "all" ? null : value.split(",").map(Number),
-      });
-    },
-    [setQueryState],
-  );
-  const handleDeviceGroupChange = useCallback(
-    (value: string) => {
-      setQueryState({
-        deviceGroupId: value === "all" ? null : value.split(",").map(Number),
-      });
-    },
-    [setQueryState],
-  );
-
-  const selectedCount = selectedIds.size;
-  const hasSelection = selectedCount > 0;
-
-  const toggleSelection = useCallback(
-    (id: number, event: React.MouseEvent) => {
-      setSelectedIds((prev) => {
-        const newSet = new Set(prev);
-
-        if (event.shiftKey && lastSelectedId !== null) {
-          const participantIds = participants.map((p) => p.id);
-          const lastIndex = participantIds.indexOf(lastSelectedId);
-          const currentIndex = participantIds.indexOf(id);
-
-          if (lastIndex !== -1 && currentIndex !== -1) {
-            const start = Math.min(lastIndex, currentIndex);
-            const end = Math.max(lastIndex, currentIndex);
-            for (let i = start; i <= end; i++) {
-              const participantId = participantIds[i];
-              if (participantId !== undefined) newSet.add(participantId);
-            }
-          }
-        } else {
-          if (newSet.has(id)) {
-            newSet.delete(id);
-          } else {
-            newSet.add(id);
-          }
-        }
-
-        return newSet;
-      });
-
-      if (!event.shiftKey) {
-        setLastSelectedId(id);
-      }
-    },
-    [lastSelectedId, participants],
-  );
-
-  const isSelected = useCallback(
-    (id: number) => selectedIds.has(id),
-    [selectedIds],
-  );
-
-  const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
-    setLastSelectedId(null);
-  }, []);
-
-  const toggleAllVisible = useCallback(() => {
-    setSelectedIds((prev) => {
-      const visibleIds = participants.map((p) => p.id);
-      const allVisibleSelected = visibleIds.every((id) => prev.has(id));
-      const newSet = new Set(prev);
-
-      if (allVisibleSelected) {
-        visibleIds.forEach((id) => newSet.delete(id));
-      } else {
-        visibleIds.forEach((id) => newSet.add(id));
-      }
-      return newSet;
-    });
-  }, [participants]);
-
-  const canVerifySelected = useMemo(() => {
-    if (selectedCount === 0) return false;
-    return Array.from(selectedIds).every((id) => {
-      const participant = participants.find((p) => p.id === id);
-      return participant?.status === "completed";
-    });
-  }, [selectedIds, participants, selectedCount]);
 
   return {
     marathon,
