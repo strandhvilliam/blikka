@@ -20,6 +20,7 @@
     "@blikka/image-manipulation": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@blikka/pubsub": "workspace:*",
+    "@blikka/realtime": "workspace:*",
     "@blikka/runtime": "workspace:*",
     "@blikka/telemetry": "workspace:*",
     "@blikka/validation": "workspace:*",

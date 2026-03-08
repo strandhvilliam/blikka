@@ -5,7 +5,7 @@ import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 import { ValidationRunner } from "./service"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import { RealtimeStateEventsService } from "@blikka/realtime"
+import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
 import { Resource as SSTResource } from "sst"
 import { type SQSRecord } from "aws-lambda"
 
@@ -17,11 +17,12 @@ const getEnvironment = (): "prod" | "dev" | "staging" => {
 }
 
 const TASK_NAME = "validation-runner"
+const REALTIME_EVENT = REALTIME_EVENT_KEY.PARTICIPANT_VALIDATED
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
     const validationRunner = yield* ValidationRunner
-    const realtimeStateEvents = yield* RealtimeStateEventsService
+    const realtimeEvents = yield* RealtimeEventsService
     const environment = getEnvironment()
 
     const processSQSRecord = Effect.fn("validation-runner.processSQSRecord")(function* (
@@ -37,8 +38,8 @@ const effectHandler = (event: SQSEvent) =>
           Effect.tapError((error) => Effect.logError("Error executing validation", error))
         )
 
-        return yield* realtimeStateEvents.withRealtimeStateEvents(validateEffect, {
-          taskName: TASK_NAME,
+        return yield* realtimeEvents.withEventResult(validateEffect, {
+          eventKey: REALTIME_EVENT,
           environment,
           domain,
           reference,
@@ -51,7 +52,7 @@ const effectHandler = (event: SQSEvent) =>
 
 const serviceLayer = Layer.mergeAll(
   ValidationRunner.layer,
-  RealtimeStateEventsService.layer,
+  RealtimeEventsService.layer,
   PubSubLoggerService.withTaskName(TASK_NAME),
   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`)
 )

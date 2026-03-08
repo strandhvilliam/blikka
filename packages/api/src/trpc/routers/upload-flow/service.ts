@@ -2,11 +2,9 @@ import { Array, Config, Effect, Layer, Option, Order, pipe, ServiceMap } from "e
 import { type NewParticipant, type Participant, type Topic, Database } from "@blikka/db"
 import { S3Service, SQSService } from "@blikka/aws"
 import { UploadSessionRepository } from "@blikka/kv-store"
-import { RealtimeStateEventsService } from "@blikka/realtime"
+import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
 import { UploadFlowApiError } from "./schemas"
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption"
-
-const TASK_NAME = "upload-initializer"
 
 export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiService>()(
   "@blikka/api/UploadFlowApiService",
@@ -17,7 +15,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
       const sqs = yield* SQSService
       const kv = yield* UploadSessionRepository
       const phoneEncryption = yield* PhoneNumberEncryptionService
-      const realtimeStateEvents = yield* RealtimeStateEventsService
+      const realtimeEvents = yield* RealtimeEventsService
       const bucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
       const queueUrl = yield* Config.string("UPLOAD_PROCESSOR_QUEUE_URL")
       const environment = yield* Config.string("NODE_ENV").pipe(
@@ -247,8 +245,8 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           }))
         })
 
-        return yield* realtimeStateEvents.withRealtimeStateEvents(executeEffect, {
-          taskName: TASK_NAME,
+        return yield* realtimeEvents.withEventResult(executeEffect, {
+          eventKey: REALTIME_EVENT_KEY.UPLOAD_FLOW_INITIALIZED,
           environment,
           domain,
           reference,
@@ -421,8 +419,8 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           }]
         })
 
-        return yield* realtimeStateEvents.withRealtimeStateEvents(executeEffect, {
-          taskName: TASK_NAME,
+        return yield* realtimeEvents.withEventResult(executeEffect, {
+          eventKey: REALTIME_EVENT_KEY.UPLOAD_FLOW_INITIALIZED,
           environment,
           domain,
           reference,
@@ -465,7 +463,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
       S3Service.layer,
       SQSService.layer,
       UploadSessionRepository.layer,
-      RealtimeStateEventsService.layer,
+      RealtimeEventsService.layer,
       PhoneNumberEncryptionService.layer,
     ))
   )

@@ -6,7 +6,7 @@ import { UploadProcessorService } from "./processor-service"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubLoggerService } from "@blikka/pubsub"
 import { Resource as SSTResource } from "sst"
-import { RealtimeStateEventsService } from "@blikka/realtime"
+import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
 
 const getEnvironment = (): "prod" | "dev" | "staging" => {
   const stage = SSTResource.App.stage
@@ -16,11 +16,12 @@ const getEnvironment = (): "prod" | "dev" | "staging" => {
 }
 
 const TASK_NAME = "upload-processor"
+const REALTIME_EVENT = REALTIME_EVENT_KEY.SUBMISSION_PROCESSED
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
     const uploadProcessor = yield* UploadProcessorService
-    const realtimeStateService = yield* RealtimeStateEventsService
+    const realtimeEvents = yield* RealtimeEventsService
     const environment = getEnvironment()
 
     const processSQSRecord = Effect.fn("upload-processor.processSQSRecord")(function* (
@@ -45,8 +46,8 @@ const effectHandler = (event: SQSEvent) =>
                 Effect.tapError((error) => Effect.logError("Error processing photo", error)),
               )
 
-            return yield* realtimeStateService.withRealtimeStateEvents(processPhotoEffect, {
-              taskName: TASK_NAME,
+            return yield* realtimeEvents.withEventResult(processPhotoEffect, {
+              eventKey: REALTIME_EVENT,
               environment,
               domain,
               reference,
@@ -65,7 +66,7 @@ const effectHandler = (event: SQSEvent) =>
 
 const serviceLayer = Layer.mergeAll(
   UploadProcessorService.layer,
-  RealtimeStateEventsService.layer,
+  RealtimeEventsService.layer,
   PubSubLoggerService.withTaskName(TASK_NAME),
   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),
 )

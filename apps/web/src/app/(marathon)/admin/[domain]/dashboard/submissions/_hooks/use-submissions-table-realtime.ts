@@ -2,20 +2,29 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { QueryClient, QueryKey } from "@tanstack/react-query"
+import {
+  REALTIME_EVENT_KEY,
+  REALTIME_RESULT_OUTCOME,
+  getDomainRealtimeChannel,
+  getRealtimeChannelEnvironmentFromNodeEnv,
+  getRealtimeResultEventName,
+} from "@blikka/realtime/contract"
 import { useRealtime } from "@/lib/realtime-client"
 
-const TASK_NAME = {
-  UPLOAD_INITIALIZER: "upload-initializer",
-  UPLOAD_PROCESSOR: "upload-processor",
-  UPLOAD_FINALIZER: "upload-finalizer",
-} as const
-const TASK_END_EVENT = {
-  UPLOAD_INITIALIZER: `task.end.${TASK_NAME.UPLOAD_INITIALIZER}`,
-  UPLOAD_PROCESSOR: `task.end.${TASK_NAME.UPLOAD_PROCESSOR}`,
-  UPLOAD_FINALIZER: `task.end.${TASK_NAME.UPLOAD_FINALIZER}`,
+const RESULT_EVENT = {
+  UPLOAD_FLOW_INITIALIZED: getRealtimeResultEventName(
+    REALTIME_EVENT_KEY.UPLOAD_FLOW_INITIALIZED,
+  ),
+  SUBMISSION_PROCESSED: getRealtimeResultEventName(
+    REALTIME_EVENT_KEY.SUBMISSION_PROCESSED,
+  ),
+  PARTICIPANT_FINALIZED: getRealtimeResultEventName(
+    REALTIME_EVENT_KEY.PARTICIPANT_FINALIZED,
+  ),
 } as const
 
 const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750
+const TASK_ERROR_INVALIDATE_DEBOUNCE_MS = 750
 const FINALIZER_SAFETY_INVALIDATE_DEBOUNCE_MS = 10_000
 const MAX_TRACKED_REFERENCES = 1000
 
@@ -135,6 +144,8 @@ export function useSubmissionsTableRealtime({
 
   const initializerInvalidateTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null)
+  const taskErrorInvalidateTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null)
   const finalizerSafetyInvalidateTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -159,6 +170,18 @@ export function useSubmissionsTableRealtime({
         queryKey: participantsQueryPathKey,
       })
     }, INITIALIZER_INVALIDATE_DEBOUNCE_MS)
+  }, [participantsQueryPathKey, queryClient])
+
+  const scheduleTaskErrorInvalidate = useCallback(() => {
+    if (taskErrorInvalidateTimeoutRef.current) {
+      clearTimeout(taskErrorInvalidateTimeoutRef.current)
+    }
+
+    taskErrorInvalidateTimeoutRef.current = setTimeout(() => {
+      queryClient.invalidateQueries({
+        queryKey: participantsQueryPathKey,
+      })
+    }, TASK_ERROR_INVALIDATE_DEBOUNCE_MS)
   }, [participantsQueryPathKey, queryClient])
 
   const scheduleFinalizerSafetyInvalidate = useCallback(() => {
@@ -188,31 +211,47 @@ export function useSubmissionsTableRealtime({
       if (initializerInvalidateTimeoutRef.current) {
         clearTimeout(initializerInvalidateTimeoutRef.current)
       }
+      if (taskErrorInvalidateTimeoutRef.current) {
+        clearTimeout(taskErrorInvalidateTimeoutRef.current)
+      }
       if (finalizerSafetyInvalidateTimeoutRef.current) {
         clearTimeout(finalizerSafetyInvalidateTimeoutRef.current)
       }
     }
   }, [])
 
-  const realtimeEnv = process.env.NODE_ENV === "production" ? "prod" : "dev"
-  const domainChannel = `${realtimeEnv}:${domain}`
+  const realtimeEnv = getRealtimeChannelEnvironmentFromNodeEnv(
+    process.env.NODE_ENV,
+  )
+  const domainChannel = getDomainRealtimeChannel(realtimeEnv, domain)
 
   useRealtime({
     events: [
-      TASK_END_EVENT.UPLOAD_INITIALIZER,
-      TASK_END_EVENT.UPLOAD_PROCESSOR,
-      TASK_END_EVENT.UPLOAD_FINALIZER,
+      RESULT_EVENT.UPLOAD_FLOW_INITIALIZED,
+      RESULT_EVENT.SUBMISSION_PROCESSED,
+      RESULT_EVENT.PARTICIPANT_FINALIZED,
     ],
     channels: [domainChannel],
     enabled: domain.length > 0,
     onData: ({ event, data }) => {
-      if (event === TASK_END_EVENT.UPLOAD_INITIALIZER) {
-        clearTrackedReference(data.reference)
+      if (event === RESULT_EVENT.UPLOAD_FLOW_INITIALIZED) {
+        if (data.reference) {
+          clearTrackedReference(data.reference)
+        }
         scheduleInitializerInvalidate()
         return
       }
 
-      if (event === TASK_END_EVENT.UPLOAD_PROCESSOR) {
+      if (event === RESULT_EVENT.SUBMISSION_PROCESSED) {
+        if (data.outcome === REALTIME_RESULT_OUTCOME.ERROR) {
+          scheduleTaskErrorInvalidate()
+          return
+        }
+
+        if (!data.reference) {
+          return
+        }
+
         const orderIndex = data.orderIndex
         if (orderIndex === null) {
           return
@@ -228,8 +267,20 @@ export function useSubmissionsTableRealtime({
         return
       }
 
-      if (event === TASK_END_EVENT.UPLOAD_FINALIZER) {
-        clearTrackedReference(data.reference)
+      if (event === RESULT_EVENT.PARTICIPANT_FINALIZED) {
+        if (data.reference) {
+          clearTrackedReference(data.reference)
+        }
+
+        if (data.outcome === REALTIME_RESULT_OUTCOME.ERROR) {
+          scheduleTaskErrorInvalidate()
+          return
+        }
+
+        if (!data.reference) {
+          return
+        }
+
         patchParticipantAsCompleted(data.reference)
         scheduleFinalizerSafetyInvalidate()
       }

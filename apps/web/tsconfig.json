@@ -31,6 +31,8 @@
       "@blikka/kv-store": ["../../packages/kv-store/src"],
       "@blikka/validation": ["../../packages/validation/src"],
       "@blikka/pubsub": ["../../packages/pubsub/src"],
+      "@blikka/realtime": ["../../packages/realtime/src"],
+      "@blikka/realtime/*": ["../../packages/realtime/src/*"],
       "@blikka/exif-parser": ["../../packages/exif-parser/src"],
       "@blikka/image-manipulation": ["../../packages/image-manipulation/src"]
     }

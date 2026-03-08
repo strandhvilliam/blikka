@@ -10,7 +10,7 @@ import { UploadSessionRepository } from "@blikka/kv-store"
 import { ValidationEngine } from "@blikka/validation"
 import { SharpImageService, ContactSheetBuilder, ExifParser } from "@blikka/image-manipulation"
 import { SMSService } from "@blikka/aws"
-import { RealtimeStateEventsService } from "@blikka/realtime"
+import { RealtimeEventsService } from "@blikka/realtime"
 
 // Core layer with all common services
 export const CoreLayer = Layer.mergeAll(
@@ -26,7 +26,7 @@ export const CoreLayer = Layer.mergeAll(
   SharpImageService.layer,
   ContactSheetBuilder.layer,
   ExifParser.layer,
-  RealtimeStateEventsService.layer,
+  RealtimeEventsService.layer,
   SMSService.layer,
 )
 

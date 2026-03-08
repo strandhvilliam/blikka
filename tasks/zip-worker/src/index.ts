@@ -3,13 +3,13 @@ import { ZipWorker } from "./zip-worker"
 import { UploadSessionRepository } from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import { RealtimeStateEventsService } from "@blikka/realtime"
+import { REALTIME_EVENT_KEY, RealtimeEventsService } from "@blikka/realtime"
 import { InvalidArgumentsError } from "./utils"
 
 const mainLayer = Layer.mergeAll(
   ZipWorker.layer,
   UploadSessionRepository.layer,
-  RealtimeStateEventsService.layer,
+  RealtimeEventsService.layer,
   PubSubLoggerService.withTaskName("zip-worker"),
   TelemetryLayer("blikka-dev-zip-worker")
 )
@@ -33,7 +33,7 @@ const parseArguments = Effect.fn("ZipWorker.parseArguments")(
 
 const runnable = Effect.gen(function* () {
   const handler = yield* ZipWorker
-  const realtimeStateEvents = yield* RealtimeStateEventsService
+  const realtimeEvents = yield* RealtimeEventsService
   const environment = getEnvironment("development")
 
   const { domain, reference } = yield* parseArguments()
@@ -46,9 +46,9 @@ const runnable = Effect.gen(function* () {
       Effect.tapError((error) => Effect.logError("Error running zip task", error))
     )
 
-    yield* realtimeStateEvents
-      .withRealtimeStateEvents(runZipTaskEffect, {
-        taskName: "zip-worker",
+    yield* realtimeEvents
+      .withEventResult(runZipTaskEffect, {
+        eventKey: REALTIME_EVENT_KEY.ZIP_GENERATED,
         environment,
         domain,
         reference,
