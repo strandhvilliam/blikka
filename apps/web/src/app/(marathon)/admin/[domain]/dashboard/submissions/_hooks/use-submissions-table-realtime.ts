@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type {
   InfiniteData,
   QueryClient,
@@ -9,10 +16,42 @@ import type {
 import { useDebouncedInvalidate } from "@/hooks/use-debounced-invalidate";
 import {
   getDomainRealtimeChannel,
+  getRealtimeChannelEnvironmentFromNodeEnv,
   getRealtimeResultEventName,
 } from "@blikka/realtime/contract";
+import { z } from "zod";
+
 import { useRealtime } from "@/lib/realtime-client";
 import type { TableData } from "./use-submissions-table";
+
+const realtimeEventDataSchema = z
+  .object({
+    reference: z.string().optional(),
+    orderIndex: z.number().finite().optional(),
+    outcome: z.enum(["success", "error"]).optional(),
+  })
+  .passthrough();
+
+type ParsedRealtimeEventData = z.infer<typeof realtimeEventDataSchema>;
+
+function parseRealtimeEventData(raw: unknown): ParsedRealtimeEventData {
+  const asRecord =
+    typeof raw === "string"
+      ? (() => {
+          try {
+            return JSON.parse(raw) as unknown;
+          } catch {
+            return {};
+          }
+        })()
+      : raw;
+  const parsed = realtimeEventDataSchema.safeParse(asRecord);
+  return parsed.success ? parsed.data : {};
+}
+
+const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(
+  typeof process !== "undefined" ? process.env.NODE_ENV : undefined,
+);
 
 const RESULT_EVENT = {
   uploadFlowInitializer: getRealtimeResultEventName("upload-flow-initialized"),
@@ -30,14 +69,11 @@ const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750;
 const TASK_ERROR_INVALIDATE_DEBOUNCE_MS = 750;
 const FINALIZE_SAFETY_INVALIDATE_DEBOUNCE_MS = 10_000;
 const MAX_TRACKED_REFERENCES = 1000;
+const REALTIME_BATCH_WINDOW_MS = 80;
+const MAX_PENDING_REALTIME_EVENTS = 200;
 
 function normalizeReference(reference: string): string {
   return reference.trim().toLowerCase();
-}
-
-function parseRealtimeData(raw: unknown): Record<string, unknown> {
-  if (typeof raw === "string") return JSON.parse(raw);
-  return raw as Record<string, unknown>;
 }
 
 interface ParticipantsPage {
@@ -46,6 +82,12 @@ interface ParticipantsPage {
 }
 
 type InfiniteParticipantsData = InfiniteData<ParticipantsPage>;
+type RealtimeEventName = (typeof SUBSCRIBED_EVENTS)[number];
+
+interface QueuedRealtimeEvent {
+  event: RealtimeEventName;
+  data: ParsedRealtimeEventData;
+}
 
 interface UseSubmissionsTableRealtimeInput {
   domain: string;
@@ -62,6 +104,174 @@ function createEmptyTracking(): TrackingState {
   return { processed: new Map(), finalized: new Set() };
 }
 
+interface BatchedRealtimeEffects {
+  invalidateInitializer: boolean;
+  invalidateTaskError: boolean;
+  invalidateFinalizeSafety: boolean;
+  finalizedReferences: Set<string>;
+}
+
+function collectBatchedEffects(
+  queuedEvents: QueuedRealtimeEvent[],
+): BatchedRealtimeEffects {
+  const effects: BatchedRealtimeEffects = {
+    invalidateInitializer: false,
+    invalidateTaskError: false,
+    invalidateFinalizeSafety: false,
+    finalizedReferences: new Set(),
+  };
+
+  for (const queuedEvent of queuedEvents) {
+    const { event, data } = queuedEvent;
+
+    switch (event) {
+      case RESULT_EVENT.uploadFlowInitializer: {
+        effects.invalidateInitializer = true;
+        break;
+      }
+      case RESULT_EVENT.submissionProcessed: {
+        if (data.outcome === "error") {
+          effects.invalidateTaskError = true;
+        }
+        break;
+      }
+      case RESULT_EVENT.participantFinalized: {
+        if (data.outcome === "error") {
+          effects.invalidateTaskError = true;
+          break;
+        }
+
+        if (data.reference) {
+          effects.invalidateFinalizeSafety = true;
+          effects.finalizedReferences.add(normalizeReference(data.reference));
+        }
+        break;
+      }
+    }
+  }
+
+  return effects;
+}
+
+function reduceTrackingState(
+  previous: TrackingState,
+  queuedEvents: QueuedRealtimeEvent[],
+): TrackingState {
+  let nextProcessed:
+    | ReadonlyMap<string, ReadonlySet<number>>
+    | Map<string, ReadonlySet<number>> = previous.processed;
+  let nextFinalized: ReadonlySet<string> | Set<string> = previous.finalized;
+
+  const ensureProcessedMutable = (): Map<string, ReadonlySet<number>> => {
+    if (nextProcessed === previous.processed) {
+      nextProcessed = new Map(previous.processed);
+    }
+    return nextProcessed as Map<string, ReadonlySet<number>>;
+  };
+
+  const ensureFinalizedMutable = (): Set<string> => {
+    if (nextFinalized === previous.finalized) {
+      nextFinalized = new Set(previous.finalized);
+    }
+    return nextFinalized as Set<string>;
+  };
+
+  for (const queuedEvent of queuedEvents) {
+    const { event, data } = queuedEvent;
+
+    switch (event) {
+      case RESULT_EVENT.uploadFlowInitializer: {
+        if (!data.reference) {
+          break;
+        }
+
+        const reference = normalizeReference(data.reference);
+        if (!nextProcessed.has(reference) && !nextFinalized.has(reference)) {
+          break;
+        }
+
+        if (nextProcessed.has(reference)) {
+          const processed = ensureProcessedMutable();
+          processed.delete(reference);
+        }
+
+        if (nextFinalized.has(reference)) {
+          const finalized = ensureFinalizedMutable();
+          finalized.delete(reference);
+        }
+        break;
+      }
+      case RESULT_EVENT.submissionProcessed: {
+        if (data.outcome === "error") {
+          break;
+        }
+
+        if (!data.reference) {
+          break;
+        }
+
+        const reference = normalizeReference(data.reference);
+        const processed = ensureProcessedMutable();
+        const previousIndices = processed.get(reference);
+        const orderIndex = data.orderIndex;
+
+        if (orderIndex !== undefined) {
+          if (previousIndices?.has(orderIndex)) {
+            break;
+          }
+
+          const nextIndices = new Set(previousIndices);
+          nextIndices.add(orderIndex);
+          processed.set(reference, nextIndices);
+        } else {
+          const syntheticIndex = previousIndices?.size ?? 0;
+          const nextIndices = new Set(previousIndices);
+          nextIndices.add(syntheticIndex);
+          processed.set(reference, nextIndices);
+        }
+
+        if (processed.size > MAX_TRACKED_REFERENCES) {
+          const oldestReference = processed.keys().next().value;
+          if (oldestReference !== undefined) {
+            processed.delete(oldestReference);
+          }
+        }
+        break;
+      }
+      case RESULT_EVENT.participantFinalized: {
+        if (data.outcome === "error") {
+          break;
+        }
+
+        if (!data.reference) {
+          break;
+        }
+
+        const reference = normalizeReference(data.reference);
+        if (nextFinalized.has(reference)) {
+          break;
+        }
+
+        const finalized = ensureFinalizedMutable();
+        finalized.add(reference);
+        break;
+      }
+    }
+  }
+
+  if (
+    nextProcessed === previous.processed &&
+    nextFinalized === previous.finalized
+  ) {
+    return previous;
+  }
+
+  return {
+    processed: nextProcessed,
+    finalized: nextFinalized,
+  };
+}
+
 export type RealtimeEnrichedTableData = TableData & {
   realtimeProcessedCount: number;
   realtimeIsFinalized: boolean;
@@ -73,6 +283,8 @@ export function useSubmissionsTableRealtime({
   participantsQueryPathKey,
 }: UseSubmissionsTableRealtimeInput) {
   const [tracking, setTracking] = useState<TrackingState>(createEmptyTracking);
+  const pendingEventsRef = useRef<QueuedRealtimeEvent[]>([]);
+  const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleInitializerInvalidate = useDebouncedInvalidate(
     queryClient,
@@ -92,25 +304,46 @@ export function useSubmissionsTableRealtime({
 
   const patchParticipantAsCompleted = useCallback(
     (reference: string) => {
-      const normalizedRef = normalizeReference(reference);
+      const normalizedReference = normalizeReference(reference);
+
       queryClient.setQueriesData<InfiniteParticipantsData>(
         { queryKey: participantsQueryPathKey },
         (currentData) => {
           if (!currentData) return currentData;
+          if (!Array.isArray(currentData.pages)) return currentData;
+
           let hasChanges = false;
           const nextPages = currentData.pages.map((page) => {
+            if (!Array.isArray(page?.participants)) {
+              return page;
+            }
+
             let pageChanged = false;
-            const nextParticipants = page.participants.map((p) => {
-              if (normalizeReference(p.reference) !== normalizedRef) return p;
-              if (p.status === "completed" || p.status === "verified") return p;
+            const nextParticipants = page.participants.map((participant) => {
+              if (
+                normalizeReference(participant.reference) !==
+                normalizedReference
+              ) {
+                return participant;
+              }
+
+              if (
+                participant.status === "completed" ||
+                participant.status === "verified"
+              ) {
+                return participant;
+              }
+
               pageChanged = true;
               hasChanges = true;
-              return { ...p, status: "completed" as const };
+              return { ...participant, status: "completed" as const };
             });
+
             return pageChanged
               ? { ...page, participants: nextParticipants }
               : page;
           });
+
           return hasChanges
             ? { ...currentData, pages: nextPages }
             : currentData;
@@ -120,125 +353,89 @@ export function useSubmissionsTableRealtime({
     [queryClient, participantsQueryPathKey],
   );
 
-  const domainChannels = useMemo(
-    () => [
-      getDomainRealtimeChannel("dev", domain),
-      getDomainRealtimeChannel("staging", domain),
-      getDomainRealtimeChannel("prod", domain),
-    ],
-    [domain],
-  );
+  const flushQueuedEvents = useCallback(() => {
+    flushTimeoutRef.current = null;
 
-  const handleInitialized = useCallback(
-    (data: Record<string, unknown>) => {
-      if (data.reference) {
-        const ref = normalizeReference(data.reference as string);
-        setTracking((prev) => {
-          if (!prev.processed.has(ref) && !prev.finalized.has(ref)) {
-            return prev;
-          }
-          const nextProcessed = new Map(prev.processed);
-          nextProcessed.delete(ref);
-          const nextFinalized = new Set(prev.finalized);
-          nextFinalized.delete(ref);
-          return { processed: nextProcessed, finalized: nextFinalized };
-        });
-      }
+    const queuedEvents = pendingEventsRef.current;
+    if (queuedEvents.length === 0) {
+      return;
+    }
+
+    pendingEventsRef.current = [];
+
+    const effects = collectBatchedEffects(queuedEvents);
+
+    if (effects.invalidateInitializer) {
       scheduleInitializerInvalidate();
-    },
-    [scheduleInitializerInvalidate],
-  );
+    }
 
-  const handleSubmissionProcessed = useCallback(
-    (data: Record<string, unknown>) => {
-      if (data.outcome === "error") {
-        scheduleTaskErrorInvalidate();
-        return;
-      }
+    if (effects.invalidateTaskError) {
+      scheduleTaskErrorInvalidate();
+    }
 
-      const reference = data.reference as string | null;
-      const orderIndex = data.orderIndex as number | null | undefined;
-      if (!reference) return;
-
-      const ref = normalizeReference(reference);
-
-      setTracking((prev) => {
-        const prevIndices = prev.processed.get(ref);
-
-        if (orderIndex !== null && orderIndex !== undefined) {
-          if (prevIndices?.has(orderIndex)) return prev;
-
-          const nextIndices = new Set(prevIndices);
-          nextIndices.add(orderIndex);
-          const nextProcessed = new Map(prev.processed);
-          nextProcessed.set(ref, nextIndices);
-
-          if (nextProcessed.size > MAX_TRACKED_REFERENCES) {
-            const oldest = nextProcessed.keys().next().value;
-            if (oldest !== undefined) nextProcessed.delete(oldest);
-          }
-
-          return { ...prev, processed: nextProcessed };
-        }
-
-        const syntheticIndex = prevIndices?.size ?? 0;
-        const nextIndices = new Set(prevIndices);
-        nextIndices.add(syntheticIndex);
-        const nextProcessed = new Map(prev.processed);
-        nextProcessed.set(ref, nextIndices);
-        return { ...prev, processed: nextProcessed };
-      });
-    },
-    [scheduleTaskErrorInvalidate],
-  );
-
-  const handleParticipantFinalized = useCallback(
-    (data: Record<string, unknown>) => {
-      if (data.outcome === "error") {
-        scheduleTaskErrorInvalidate();
-        return;
-      }
-
-      const reference = data.reference as string | null;
-      if (!reference) return;
-
-      const ref = normalizeReference(reference);
-
-      setTracking((prev) => {
-        if (prev.finalized.has(ref)) return prev;
-        const nextFinalized = new Set(prev.finalized);
-        nextFinalized.add(ref);
-        return { ...prev, finalized: nextFinalized };
-      });
-
-      patchParticipantAsCompleted(reference);
+    if (effects.invalidateFinalizeSafety) {
       scheduleFinalizeSafetyInvalidate();
-    },
-    [
-      scheduleTaskErrorInvalidate,
-      patchParticipantAsCompleted,
-      scheduleFinalizeSafetyInvalidate,
-    ],
+    }
+
+    for (const reference of effects.finalizedReferences) {
+      patchParticipantAsCompleted(reference);
+    }
+
+    startTransition(() => {
+      setTracking((previous) => reduceTrackingState(previous, queuedEvents));
+    });
+  }, [
+    patchParticipantAsCompleted,
+    scheduleFinalizeSafetyInvalidate,
+    scheduleInitializerInvalidate,
+    scheduleTaskErrorInvalidate,
+  ]);
+
+  const scheduleFlush = useCallback(() => {
+    if (flushTimeoutRef.current !== null) {
+      return;
+    }
+
+    flushTimeoutRef.current = setTimeout(
+      flushQueuedEvents,
+      REALTIME_BATCH_WINDOW_MS,
+    );
+  }, [flushQueuedEvents]);
+
+  useEffect(() => {
+    return () => {
+      if (flushTimeoutRef.current !== null) {
+        clearTimeout(flushTimeoutRef.current);
+      }
+
+      flushTimeoutRef.current = null;
+      pendingEventsRef.current = [];
+    };
+  }, []);
+
+  const domainChannel = useMemo(
+    () => getDomainRealtimeChannel(REALTIME_CHANNEL_ENV, domain),
+    [domain],
   );
 
   useRealtime({
     events: [...SUBSCRIBED_EVENTS],
-    channels: domainChannels,
+    channels: [domainChannel],
     enabled: domain.length > 0,
     onData: ({ event, data: rawData }) => {
-      const data = parseRealtimeData(rawData);
+      const data = parseRealtimeEventData(rawData);
+      pendingEventsRef.current.push({ event, data });
 
-      switch (event) {
-        case RESULT_EVENT.uploadFlowInitializer:
-          handleInitialized(data);
-          break;
-        case RESULT_EVENT.submissionProcessed:
-          handleSubmissionProcessed(data);
-          break;
-        case RESULT_EVENT.participantFinalized:
-          handleParticipantFinalized(data);
-          break;
+      if (pendingEventsRef.current.length >= MAX_PENDING_REALTIME_EVENTS) {
+        if (flushTimeoutRef.current !== null) {
+          clearTimeout(flushTimeoutRef.current);
+          flushTimeoutRef.current = null;
+        }
+        flushQueuedEvents();
+        return;
       }
+
+      scheduleFlush();
     },
   });
 
@@ -251,12 +448,13 @@ export function useEnrichedParticipants(
 ): RealtimeEnrichedTableData[] {
   return useMemo(
     () =>
-      participants.map((p) => {
-        const ref = normalizeReference(p.reference);
+      participants.map((participant) => {
+        const reference = normalizeReference(participant.reference);
+
         return {
-          ...p,
-          realtimeProcessedCount: tracking.processed.get(ref)?.size ?? 0,
-          realtimeIsFinalized: tracking.finalized.has(ref),
+          ...participant,
+          realtimeProcessedCount: tracking.processed.get(reference)?.size ?? 0,
+          realtimeIsFinalized: tracking.finalized.has(reference),
         };
       }),
     [participants, tracking],
