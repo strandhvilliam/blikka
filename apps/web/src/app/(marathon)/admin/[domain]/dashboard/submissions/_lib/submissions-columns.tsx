@@ -3,23 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TableData } from "../_hooks/use-submissions-table";
-
-function normalizeReference(reference: string): string {
-  return reference.trim().toLowerCase();
-}
+import type { RealtimeEnrichedTableData } from "../_hooks/use-submissions-table-realtime";
 
 interface SubmissionsColumnsOptions {
   marathonMode?: string;
-  participants: TableData[];
+  participants: RealtimeEnrichedTableData[];
   selectedIds: Set<number>;
   onToggleSelection: (id: number, event: React.MouseEvent) => void;
   onToggleAll: () => void;
-  uploadProcessorOrderIndexesByReference: ReadonlyMap<
-    string,
-    ReadonlySet<number>
-  >;
-  finalizedReferences: ReadonlySet<string>;
 }
 
 export const getSubmissionsColumns = ({
@@ -28,10 +19,7 @@ export const getSubmissionsColumns = ({
   selectedIds,
   onToggleSelection,
   onToggleAll,
-  uploadProcessorOrderIndexesByReference,
-  finalizedReferences,
-}: SubmissionsColumnsOptions): ColumnDef<TableData>[] => {
-  // Calculate select all state based on visible participants
+}: SubmissionsColumnsOptions): ColumnDef<RealtimeEnrichedTableData>[] => {
   const visibleIds = participants.map((p) => p.id);
   const selectedVisibleCount = visibleIds.filter((id) =>
     selectedIds.has(id),
@@ -41,7 +29,7 @@ export const getSubmissionsColumns = ({
   const someVisibleSelected =
     selectedVisibleCount > 0 && selectedVisibleCount < visibleIds.length;
 
-  const baseColumns: ColumnDef<TableData>[] = [
+  const baseColumns: ColumnDef<RealtimeEnrichedTableData>[] = [
     {
       id: "select",
       header: () => (
@@ -136,8 +124,7 @@ export const getSubmissionsColumns = ({
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const rowReference = normalizeReference(row.original.reference);
-        const status = finalizedReferences.has(rowReference)
+        const status = row.original.realtimeIsFinalized
           ? "completed"
           : (row.getValue("status") as string);
         const statusConfig = {
@@ -196,28 +183,13 @@ export const getSubmissionsColumns = ({
           return <span className="text-xs text-muted-foreground">-</span>;
         }
 
-        console.log(
-          "uploadProcessorOrderIndexesByReference",
-          uploadProcessorOrderIndexesByReference,
-        );
-
-        const uploadedCount = Math.min(
-          uploadProcessorOrderIndexesByReference.get(participant.reference)
-            ?.size ??
-            uploadProcessorOrderIndexesByReference.get(
-              normalizeReference(participant.reference),
-            )?.size ??
-            0,
-          expectedCount,
-        );
-        const isFinalized = finalizedReferences.has(
-          normalizeReference(participant.reference),
-        );
         const isCompleted =
-          isFinalized ||
+          participant.realtimeIsFinalized ||
           participant.status === "completed" ||
           participant.status === "verified";
-        const processedCount = isCompleted ? expectedCount : uploadedCount;
+        const processedCount = isCompleted
+          ? expectedCount
+          : Math.min(participant.realtimeProcessedCount, expectedCount);
 
         return (
           <Badge

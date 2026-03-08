@@ -26,7 +26,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
 import { toast } from "sonner";
 import { useDomain } from "@/lib/domain-provider";
-import { useSubmissionsTableRealtime } from "../_hooks/use-submissions-table-realtime";
+import {
+  useSubmissionsTableRealtime,
+  useEnrichedParticipants,
+} from "../_hooks/use-submissions-table-realtime";
 
 export function SubmissionsTable() {
   const router = useRouter();
@@ -57,12 +60,12 @@ export function SubmissionsTable() {
     canVerifySelected,
     participantsQueryPathKey,
   } = useSubmissionsTable();
-  const { uploadProcessorOrderIndexesByReference, finalizedReferences } =
-    useSubmissionsTableRealtime({
-      domain,
-      queryClient,
-      participantsQueryPathKey,
-    });
+  const tracking = useSubmissionsTableRealtime({
+    domain,
+    queryClient,
+    participantsQueryPathKey,
+  });
+  const enrichedParticipants = useEnrichedParticipants(participants, tracking);
 
   const batchDeleteMutation = useMutation(
     trpc.participants.batchDelete.mutationOptions({
@@ -156,26 +159,22 @@ export function SubmissionsTable() {
     () =>
       getSubmissionsColumns({
         marathonMode: marathon?.mode,
-        participants,
+        participants: enrichedParticipants,
         selectedIds,
         onToggleSelection: toggleSelection,
         onToggleAll: toggleAllVisible,
-        uploadProcessorOrderIndexesByReference,
-        finalizedReferences,
       }),
     [
       marathon?.mode,
-      participants,
+      enrichedParticipants,
       selectedIds,
       toggleSelection,
       toggleAllVisible,
-      uploadProcessorOrderIndexesByReference,
-      finalizedReferences,
     ],
   );
 
   const table = useReactTable({
-    data: participants,
+    data: enrichedParticipants,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
