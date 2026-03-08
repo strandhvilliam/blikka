@@ -1,4 +1,4 @@
 export * from "./contract"
-export * from "./realtime-events-service"
+export * from "./channel"
 export * from "./realtime-service"
-export * from "./schemas"
+export * from "./realtime-events-service"

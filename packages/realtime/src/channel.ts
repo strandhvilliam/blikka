@@ -6,31 +6,10 @@ import {
 } from "./contract"
 import type { RealtimeChannelEnv } from "./contract"
 
-export {
-  REALTIME_EVENT_NAME,
-  realtimeChannelEnvironments,
-  realtimeEventChannels,
-  realtimeEventKeys,
-  realtimeResultOutcomes,
-  getRealtimeResultEventName,
-} from "./contract"
-export type {
-  RealtimeChannelEnv,
-  RealtimeEventChannels,
-  RealtimeEventKey,
-  RealtimeResultOutcome,
-  RealtimeResultEventName,
-  RealtimeEventResultPayload,
-} from "./contract"
-
 export class RealtimeError extends Schema.TaggedErrorClass<RealtimeError>()("RealtimeError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
-}) {
-}
-
-export const RealtimeEventName = Schema.String
-export type RealtimeEventName = string
+}) {}
 
 /**
  * Two-tier channel model:
@@ -48,7 +27,7 @@ export class RealtimeChannel extends Schema.Class<RealtimeChannel>("RealtimeChan
       : getDomainRealtimeChannel(this.environment, this.domain)
   }
 
-  static domainChannel = Effect.fnUntraced(function* (
+  static domain = Effect.fn("RealtimeChannel.domain")(function* (
     environment: RealtimeChannelEnv,
     domain: string,
   ) {
@@ -58,7 +37,7 @@ export class RealtimeChannel extends Schema.Class<RealtimeChannel>("RealtimeChan
     }).pipe(Effect.mapError((error) => new RealtimeError({ message: error.message, cause: error })))
   })
 
-  static participantChannel = Effect.fnUntraced(function* (
+  static participant = Effect.fn("RealtimeChannel.participant")(function* (
     environment: RealtimeChannelEnv,
     domain: string,
     reference: string,

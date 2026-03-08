@@ -1,12 +1,10 @@
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
-import {
-  getRealtimeResultEventName,
-} from "./contract"
+import { getRealtimeResultEventName } from "./contract"
+import type { RealtimeEventResultPayload } from "./contract"
 import { RealtimeEventsService } from "./realtime-events-service"
 import { RealtimeService } from "./realtime-service"
-import type { RealtimeChannel } from "./schemas"
-import type { RealtimeEventResultPayload } from "./contract"
+import type { RealtimeChannel } from "./channel"
 
 interface EmittedRealtimeEvent {
   channel: string
@@ -15,23 +13,21 @@ interface EmittedRealtimeEvent {
 }
 
 function makeTestLayer(emittedEvents: EmittedRealtimeEvent[]) {
+  const mockRealtimeService = Layer.succeed(
+    RealtimeService,
+    RealtimeService.of({
+      emit: (channel: RealtimeChannel, eventName: string, payload: unknown) =>
+        Effect.sync(() => {
+          emittedEvents.push({
+            channel: channel.channelString,
+            eventName,
+            payload,
+          })
+        }),
+    }),
+  )
   return Layer.effect(RealtimeEventsService, RealtimeEventsService.make).pipe(
-    Layer.provide(
-      Layer.succeed(RealtimeService, {
-        emit: (
-          channel: RealtimeChannel,
-          eventName: string,
-          payload: unknown,
-        ) =>
-          Effect.sync(() => {
-            emittedEvents.push({
-              channel: channel.channelString,
-              eventName,
-              payload,
-            })
-          }),
-      } as never),
-    ),
+    Layer.provide(mockRealtimeService),
   )
 }
 

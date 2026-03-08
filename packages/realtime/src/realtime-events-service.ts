@@ -1,229 +1,151 @@
 import { Cause, Effect, Exit, Layer, ServiceMap } from "effect"
 import { RealtimeService } from "./realtime-service"
-import { RealtimeChannel, RealtimeError } from "./schemas"
+import { RealtimeChannel, RealtimeError } from "./channel"
+import { getRealtimeResultEventName } from "./contract"
 import type {
   RealtimeChannelEnv,
   RealtimeEventChannels,
   RealtimeEventKey,
-  RealtimeEventName,
   RealtimeEventResultPayload,
   RealtimeResultOutcome,
-} from "./schemas"
-import {
-  getRealtimeResultEventName,
 } from "./contract"
 
-interface RealtimeEventMetadata {
-  orderIndex?: number
-}
-
-interface RealtimeEventTargetOptions {
+interface RealtimeTarget {
   environment: RealtimeChannelEnv
   domain: string
   reference?: string
   channels?: RealtimeEventChannels
 }
 
-interface EmitRealtimeEventOptions extends RealtimeEventTargetOptions {
-  eventName: RealtimeEventName
-  payload: unknown
-}
-
-interface EmitEventResultOptions extends RealtimeEventTargetOptions {
+export interface EmitEventResultOptions extends RealtimeTarget {
   eventKey: RealtimeEventKey
   outcome: RealtimeResultOutcome
   timestamp: number
   duration?: number | null
   error?: string
-  metadata?: RealtimeEventMetadata
+  metadata?: { orderIndex?: number }
 }
 
-interface WithEventResultOptions extends RealtimeEventTargetOptions {
+export interface WithEventResultOptions extends RealtimeTarget {
   eventKey: RealtimeEventKey
-  metadata?: RealtimeEventMetadata
+  metadata?: { orderIndex?: number }
 }
 
-function resolveRealtimeEventChannels(
+function resolveChannels(
   channels: RealtimeEventChannels | undefined,
   reference: string | undefined,
 ): RealtimeEventChannels {
-  if (channels) {
-    return channels
-  }
-
-  return reference
-    ? "both"
-    : "domain"
+  return channels ?? (reference ? "both" : "domain")
 }
 
 export class RealtimeEventsService extends ServiceMap.Service<RealtimeEventsService>()(
-  "@blikka/realtime/realtime-events-service",
+  "@blikka/realtime/RealtimeEventsService",
   {
     make: Effect.gen(function* () {
       const realtime = yield* RealtimeService
 
-      const emitRealtimeEvent = Effect.fn("RealtimeEventsService.emitRealtimeEvent")(function* (
-        {
-          environment,
-          domain,
-          reference,
-          channels,
-          eventName,
-          payload,
-        }: EmitRealtimeEventOptions,
+      const emitToChannels = Effect.fn("RealtimeEventsService.emitToChannels")(function* (
+        { environment, domain, reference, channels }: RealtimeTarget,
+        eventName: string,
+        payload: unknown,
       ) {
-        const resolvedChannels = resolveRealtimeEventChannels(channels, reference)
-        const effects: Effect.Effect<unknown, RealtimeError, never>[] = []
+        const resolved = resolveChannels(channels, reference)
+        const effects: Effect.Effect<void, RealtimeError>[] = []
 
-        if (
-          resolvedChannels === "domain" ||
-          resolvedChannels === "both"
-        ) {
-          const domainChannel = yield* RealtimeChannel.domainChannel(environment, domain)
-          effects.push(realtime.emit(domainChannel, eventName, payload))
+        if (resolved === "domain" || resolved === "both") {
+          const channel = yield* RealtimeChannel.domain(environment, domain)
+          effects.push(realtime.emit(channel, eventName, payload))
         }
 
-        if (
-          resolvedChannels === "participant" ||
-          resolvedChannels === "both"
-        ) {
+        if (resolved === "participant" || resolved === "both") {
           if (!reference) {
-            return yield* Effect.fail(
-              new RealtimeError({
-                message: "Participant channel emission requires a reference",
-              }),
-            )
+            return yield* new RealtimeError({
+              message: "Participant channel emission requires a reference",
+            })
           }
-
-          const participantChannel = yield* RealtimeChannel.participantChannel(
-            environment,
-            domain,
-            reference,
-          )
-          effects.push(realtime.emit(participantChannel, eventName, payload))
+          const channel = yield* RealtimeChannel.participant(environment, domain, reference)
+          effects.push(realtime.emit(channel, eventName, payload))
         }
 
         yield* Effect.all(effects, { concurrency: 2 })
       })
 
       const emitEventResult = Effect.fn("RealtimeEventsService.emitEventResult")(function* (
-        {
-          eventKey,
-          environment,
-          domain,
-          reference,
-          channels,
-          metadata,
-          outcome,
-          timestamp,
-          duration,
-          error,
-        }: EmitEventResultOptions,
+        options: EmitEventResultOptions,
       ) {
+        const { eventKey, domain, reference, metadata, outcome, timestamp, duration, error } = options
+
         const payload: RealtimeEventResultPayload =
           outcome === "success"
             ? {
-                eventKey,
-                outcome,
-                domain,
-                reference: reference ?? null,
-                orderIndex: metadata?.orderIndex ?? null,
-                timestamp,
-                duration: duration ?? null,
-              }
+              eventKey,
+              outcome,
+              domain,
+              reference: reference ?? null,
+              orderIndex: metadata?.orderIndex ?? null,
+              timestamp,
+              duration: duration ?? null,
+            }
             : {
-                eventKey,
-                outcome,
-                domain,
-                reference: reference ?? null,
-                orderIndex: metadata?.orderIndex ?? null,
-                timestamp,
-                duration: duration ?? null,
-                error: error ?? "Unknown error",
-              }
+              eventKey,
+              outcome,
+              domain,
+              reference: reference ?? null,
+              orderIndex: metadata?.orderIndex ?? null,
+              timestamp,
+              duration: duration ?? null,
+              error: error ?? "Unknown error",
+            }
 
-        yield* emitRealtimeEvent({
-          environment,
-          domain,
-          reference,
-          channels,
-          eventName: getRealtimeResultEventName(eventKey),
-          payload,
-        })
+        yield* emitToChannels(options, getRealtimeResultEventName(eventKey), payload)
       })
 
       const withEventResult = <A, E, R>(
         effect: Effect.Effect<A, E, R>,
-        { eventKey, environment, domain, reference, channels, metadata }: WithEventResultOptions,
+        options: WithEventResultOptions,
       ) =>
         Effect.gen(function* () {
           const startTime = Date.now()
+          const logTag = `[${options.eventKey}:${options.domain}:${options.reference ?? "domain"}]`
 
           return yield* effect.pipe(
             Effect.onExit((exit) => {
               const timestamp = Date.now()
               const duration = timestamp - startTime
 
-              return Exit.match(exit, {
-                onSuccess: () =>
-                  emitEventResult({
-                    eventKey,
-                    environment,
-                    domain,
-                    reference,
-                    channels,
-                    metadata,
-                    outcome: "success",
-                    timestamp,
-                    duration,
-                  }).pipe(
-                    Effect.tap(() =>
-                      Effect.log(
-                        `[${eventKey}:${domain}:${reference ?? "domain"}] Published event.result event (success)`,
-                      ),
-                    ),
-                    Effect.catch(() =>
-                      Effect.logWarning(
-                        `[${eventKey}:${domain}:${reference ?? "domain"}] Failed to publish event.result event (success)`,
-                      ),
-                    ),
-                  ),
+              const { outcome, error } = Exit.match(exit, {
+                onSuccess: () => ({
+                  outcome: "success" as const,
+                  error: undefined,
+                }),
                 onFailure: (cause) => {
                   const err = Cause.squash(cause)
-                  return emitEventResult({
-                    eventKey,
-                    environment,
-                    domain,
-                    reference,
-                    channels,
-                    metadata,
-                    outcome: "error",
-                    timestamp,
-                    duration,
+                  return {
+                    outcome: "error" as const,
                     error: err instanceof Error ? err.message : String(err),
-                  }).pipe(
-                    Effect.tap(() =>
-                      Effect.log(
-                        `[${eventKey}:${domain}:${reference ?? "domain"}] Published event.result event (error)`,
-                      ),
-                    ),
-                    Effect.catch(() =>
-                      Effect.logWarning(
-                        `[${eventKey}:${domain}:${reference ?? "domain"}] Failed to publish event.result event (error)`,
-                      ),
-                    ),
-                  )
+                  }
                 },
               })
+
+              return emitEventResult({
+                ...options,
+                outcome,
+                timestamp,
+                duration,
+                error,
+              }).pipe(
+                Effect.tap(() =>
+                  Effect.log(`${logTag} Published event.result (${outcome})`),
+                ),
+                Effect.catch(() =>
+                  Effect.logWarning(`${logTag} Failed to publish event.result (${outcome})`),
+                ),
+              )
             }),
           )
         })
 
-      return {
-        emitRealtimeEvent,
-        emitEventResult,
-        withEventResult,
-      } as const
+      return { emitEventResult, withEventResult } as const
     }),
   },
 ) {

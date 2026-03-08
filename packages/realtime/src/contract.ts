@@ -1,6 +1,6 @@
 import { Schema } from "effect"
 
-export const realtimeChannelEnvironments = ["prod", "dev", "staging"] as const
+const realtimeChannelEnvironments = ["prod", "dev", "staging"] as const
 
 export type RealtimeChannelEnv = (typeof realtimeChannelEnvironments)[number]
 
@@ -9,8 +9,6 @@ export const RealtimeChannelEnvSchema = Schema.Literals(realtimeChannelEnvironme
 export const realtimeResultOutcomes = ["success", "error"] as const
 
 export type RealtimeResultOutcome = (typeof realtimeResultOutcomes)[number]
-
-export const RealtimeResultOutcomeSchema = Schema.Literals(realtimeResultOutcomes)
 
 export function getRealtimeChannelEnvironmentFromNodeEnv(
   nodeEnv: string | undefined,
@@ -35,9 +33,7 @@ export function getParticipantRealtimeChannel(
   return `${environment}:${domain}:${reference}`
 }
 
-export const realtimeEventChannels = ["domain", "participant", "both"] as const
-
-export type RealtimeEventChannels = (typeof realtimeEventChannels)[number]
+export type RealtimeEventChannels = "domain" | "participant" | "both"
 
 export const realtimeEventKeys = [
   "upload-flow-initialized",
@@ -52,16 +48,7 @@ export const realtimeEventKeys = [
 
 export type RealtimeEventKey = (typeof realtimeEventKeys)[number]
 
-export const RealtimeEventKeySchema = Schema.Literals(realtimeEventKeys)
-
-export const REALTIME_EVENT_NAME = {
-  EVENT_RESULT: "event.result",
-} as const
-
-export type RealtimeBaseEventName =
-  (typeof REALTIME_EVENT_NAME)[keyof typeof REALTIME_EVENT_NAME]
-
-export type RealtimeResultEventName = `event.result.${RealtimeEventKey}`
+const RealtimeEventKeySchema = Schema.Literals(realtimeEventKeys)
 
 export function getRealtimeResultEventName<const TEventKey extends RealtimeEventKey>(
   eventKey: TEventKey,

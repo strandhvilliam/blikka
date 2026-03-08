@@ -1,18 +1,20 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import type { QueryClient, QueryKey } from "@tanstack/react-query"
+import { useCallback, useState } from "react"
+import type { InfiniteData, QueryClient, QueryKey } from "@tanstack/react-query"
+import { useDebouncedInvalidate } from "@/hooks/use-debounced-invalidate"
 import {
   getDomainRealtimeChannel,
   getRealtimeChannelEnvironmentFromNodeEnv,
   getRealtimeResultEventName,
 } from "@blikka/realtime/contract"
 import { useRealtime } from "@/lib/realtime-client"
+import type { TableData } from "./use-submissions-table"
 
 const RESULT_EVENT = {
-  UPLOAD_FLOW_INITIALIZED: getRealtimeResultEventName("upload-flow-initialized"),
-  SUBMISSION_PROCESSED: getRealtimeResultEventName("submission-processed"),
-  PARTICIPANT_FINALIZED: getRealtimeResultEventName("participant-finalized"),
+  uploadFlowInitializer: getRealtimeResultEventName("upload-flow-initialized"),
+  submissionProcessed: getRealtimeResultEventName("submission-processed"),
+  participantFinalized: getRealtimeResultEventName("participant-finalized"),
 } as const
 
 const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750
@@ -20,7 +22,16 @@ const TASK_ERROR_INVALIDATE_DEBOUNCE_MS = 750
 const FINALIZER_SAFETY_INVALIDATE_DEBOUNCE_MS = 10_000
 const MAX_TRACKED_REFERENCES = 1000
 
+const realtimeEnv = getRealtimeChannelEnvironmentFromNodeEnv(process.env.NODE_ENV)
+
 type UploadProcessorOrderIndexesByReference = Map<string, Set<number>>
+
+interface ParticipantsPage {
+  participants: TableData[]
+  nextCursor?: number | null
+}
+
+type InfiniteParticipantsData = InfiniteData<ParticipantsPage>
 
 interface UseSubmissionsTableRealtimeInput {
   domain: string
@@ -64,66 +75,30 @@ function upsertOrderIndexWithPruning({
   return next
 }
 
-function patchParticipantStatusToCompleted(data: unknown, reference: string): unknown {
-  if (!data || typeof data !== "object") {
-    return data
-  }
-
-  const infiniteData = data as { pages?: unknown[] }
-  if (!Array.isArray(infiniteData.pages)) {
-    return data
-  }
+function patchParticipantStatusToCompleted(
+  data: InfiniteParticipantsData | undefined,
+  reference: string,
+): InfiniteParticipantsData | undefined {
+  if (!data) return data
 
   let hasChanges = false
-  const nextPages = infiniteData.pages.map((page) => {
-    if (!page || typeof page !== "object") {
-      return page
-    }
-
-    const pageData = page as { participants?: unknown[] }
-    if (!Array.isArray(pageData.participants)) {
-      return page
-    }
-
+  const nextPages = data.pages.map((page) => {
     let pageChanged = false
-    const nextParticipants = pageData.participants.map((participant) => {
-      if (!participant || typeof participant !== "object") {
-        return participant
-      }
-
-      const participantData = participant as {
-        reference?: unknown
-        status?: unknown
-      }
-
-      if (participantData.reference !== reference) {
-        return participant
-      }
-
-      if (
-        participantData.status === "completed" ||
-        participantData.status === "verified"
-      ) {
+    const nextParticipants = page.participants.map((participant) => {
+      if (participant.reference !== reference) return participant
+      if (participant.status === "completed" || participant.status === "verified") {
         return participant
       }
 
       pageChanged = true
       hasChanges = true
-      return { ...participantData, status: "completed" }
+      return { ...participant, status: "completed" as const }
     })
 
-    if (!pageChanged) {
-      return page
-    }
-
-    return { ...pageData, participants: nextParticipants }
+    return pageChanged ? { ...page, participants: nextParticipants } : page
   })
 
-  if (!hasChanges) {
-    return data
-  }
-
-  return { ...infiniteData, pages: nextPages }
+  return hasChanges ? { ...data, pages: nextPages } : data
 }
 
 export function useSubmissionsTableRealtime({
@@ -134,12 +109,15 @@ export function useSubmissionsTableRealtime({
   const [uploadProcessorOrderIndexesByReference, setUploadProcessorOrderIndexesByReference] =
     useState<UploadProcessorOrderIndexesByReference>(new Map())
 
-  const initializerInvalidateTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null)
-  const taskErrorInvalidateTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null)
-  const finalizerSafetyInvalidateTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scheduleInitializerInvalidate = useDebouncedInvalidate(
+    queryClient, participantsQueryPathKey, INITIALIZER_INVALIDATE_DEBOUNCE_MS,
+  )
+  const scheduleTaskErrorInvalidate = useDebouncedInvalidate(
+    queryClient, participantsQueryPathKey, TASK_ERROR_INVALIDATE_DEBOUNCE_MS,
+  )
+  const scheduleFinalizerSafetyInvalidate = useDebouncedInvalidate(
+    queryClient, participantsQueryPathKey, FINALIZER_SAFETY_INVALIDATE_DEBOUNCE_MS,
+  )
 
   const clearTrackedReference = useCallback((reference: string) => {
     setUploadProcessorOrderIndexesByReference((current) => {
@@ -152,45 +130,9 @@ export function useSubmissionsTableRealtime({
     })
   }, [])
 
-  const scheduleInitializerInvalidate = useCallback(() => {
-    if (initializerInvalidateTimeoutRef.current) {
-      clearTimeout(initializerInvalidateTimeoutRef.current)
-    }
-
-    initializerInvalidateTimeoutRef.current = setTimeout(() => {
-      queryClient.invalidateQueries({
-        queryKey: participantsQueryPathKey,
-      })
-    }, INITIALIZER_INVALIDATE_DEBOUNCE_MS)
-  }, [participantsQueryPathKey, queryClient])
-
-  const scheduleTaskErrorInvalidate = useCallback(() => {
-    if (taskErrorInvalidateTimeoutRef.current) {
-      clearTimeout(taskErrorInvalidateTimeoutRef.current)
-    }
-
-    taskErrorInvalidateTimeoutRef.current = setTimeout(() => {
-      queryClient.invalidateQueries({
-        queryKey: participantsQueryPathKey,
-      })
-    }, TASK_ERROR_INVALIDATE_DEBOUNCE_MS)
-  }, [participantsQueryPathKey, queryClient])
-
-  const scheduleFinalizerSafetyInvalidate = useCallback(() => {
-    if (finalizerSafetyInvalidateTimeoutRef.current) {
-      clearTimeout(finalizerSafetyInvalidateTimeoutRef.current)
-    }
-
-    finalizerSafetyInvalidateTimeoutRef.current = setTimeout(() => {
-      queryClient.invalidateQueries({
-        queryKey: participantsQueryPathKey,
-      })
-    }, FINALIZER_SAFETY_INVALIDATE_DEBOUNCE_MS)
-  }, [participantsQueryPathKey, queryClient])
-
   const patchParticipantAsCompleted = useCallback(
     (reference: string) => {
-      queryClient.setQueriesData(
+      queryClient.setQueriesData<InfiniteParticipantsData>(
         { queryKey: participantsQueryPathKey },
         (currentData) => patchParticipantStatusToCompleted(currentData, reference),
       )
@@ -198,83 +140,51 @@ export function useSubmissionsTableRealtime({
     [participantsQueryPathKey, queryClient],
   )
 
-  useEffect(() => {
-    return () => {
-      if (initializerInvalidateTimeoutRef.current) {
-        clearTimeout(initializerInvalidateTimeoutRef.current)
-      }
-      if (taskErrorInvalidateTimeoutRef.current) {
-        clearTimeout(taskErrorInvalidateTimeoutRef.current)
-      }
-      if (finalizerSafetyInvalidateTimeoutRef.current) {
-        clearTimeout(finalizerSafetyInvalidateTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  const realtimeEnv = getRealtimeChannelEnvironmentFromNodeEnv(
-    process.env.NODE_ENV,
-  )
   const domainChannel = getDomainRealtimeChannel(realtimeEnv, domain)
 
   useRealtime({
     events: [
-      RESULT_EVENT.UPLOAD_FLOW_INITIALIZED,
-      RESULT_EVENT.SUBMISSION_PROCESSED,
-      RESULT_EVENT.PARTICIPANT_FINALIZED,
+      RESULT_EVENT.uploadFlowInitializer,
+      RESULT_EVENT.submissionProcessed,
+      RESULT_EVENT.participantFinalized,
     ],
     channels: [domainChannel],
     enabled: domain.length > 0,
     onData: ({ event, data }) => {
-      if (event === RESULT_EVENT.UPLOAD_FLOW_INITIALIZED) {
-        if (data.reference) {
-          clearTrackedReference(data.reference)
-        }
-        scheduleInitializerInvalidate()
-        return
-      }
+      switch (event) {
+        case RESULT_EVENT.uploadFlowInitializer:
+          if (data.reference) {
+            clearTrackedReference(data.reference)
+          }
+          scheduleInitializerInvalidate()
+          break
 
-      if (event === RESULT_EVENT.SUBMISSION_PROCESSED) {
-        if (data.outcome === "error") {
-          scheduleTaskErrorInvalidate()
-          return
-        }
+        case RESULT_EVENT.submissionProcessed:
+          if (data.outcome === "error") {
+            scheduleTaskErrorInvalidate()
+            break
+          }
+          const { reference, orderIndex } = data
+          if (reference && orderIndex !== null) {
+            setUploadProcessorOrderIndexesByReference((current) =>
+              upsertOrderIndexWithPruning({ current, reference, orderIndex }),
+            )
+          }
+          break
 
-        if (!data.reference) {
-          return
-        }
-
-        const orderIndex = data.orderIndex
-        if (orderIndex === null) {
-          return
-        }
-
-        setUploadProcessorOrderIndexesByReference((current) =>
-          upsertOrderIndexWithPruning({
-            current,
-            reference: data.reference,
-            orderIndex,
-          }),
-        )
-        return
-      }
-
-      if (event === RESULT_EVENT.PARTICIPANT_FINALIZED) {
-        if (data.reference) {
-          clearTrackedReference(data.reference)
-        }
-
-        if (data.outcome === "error") {
-          scheduleTaskErrorInvalidate()
-          return
-        }
-
-        if (!data.reference) {
-          return
-        }
-
-        patchParticipantAsCompleted(data.reference)
-        scheduleFinalizerSafetyInvalidate()
+        case RESULT_EVENT.participantFinalized:
+          if (data.reference) {
+            clearTrackedReference(data.reference)
+          }
+          if (data.outcome === "error") {
+            scheduleTaskErrorInvalidate()
+            break
+          }
+          if (data.reference) {
+            patchParticipantAsCompleted(data.reference)
+            scheduleFinalizerSafetyInvalidate()
+          }
+          break
       }
     },
   })
