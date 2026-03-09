@@ -1,3 +1,8 @@
+import type {
+  ClientUploadError,
+  ClientUploadErrorCode,
+} from "@/lib/upload-client";
+
 // Upload Phase constants
 export const UPLOAD_PHASE = {
   PRESIGNED: "presigned",
@@ -43,22 +48,8 @@ export interface UploadFileState {
 }
 
 // File upload error
-export type FileUploadErrorCode =
-  | "NETWORK_ERROR"
-  | "TIMEOUT"
-  | "FILE_TOO_LARGE"
-  | "UNAUTHORIZED"
-  | "SERVER_ERROR"
-  | "RATE_LIMITED"
-  | "INVALID_FILE_TYPE"
-  | "UNKNOWN";
-
-export interface FileUploadError {
-  message: string;
-  code: FileUploadErrorCode;
-  timestamp: Date;
-  httpStatus?: number;
-}
+export type FileUploadErrorCode = ClientUploadErrorCode;
+export type FileUploadError = ClientUploadError;
 
 // Upload status from server (polling response)
 export interface UploadStatusResponse {
@@ -96,34 +87,4 @@ export function phaseToDisplayStatus(
     default:
       return "pending";
   }
-}
-
-// Error classification helper
-export function classifyUploadError(
-  error: Error,
-  httpStatus?: number,
-): FileUploadErrorCode {
-  const message = error.message.toLowerCase();
-
-  // HTTP status code based classification
-  if (httpStatus) {
-    if (httpStatus === 413) return "FILE_TOO_LARGE";
-    if (httpStatus === 403) return "UNAUTHORIZED";
-    if (httpStatus === 429) return "RATE_LIMITED";
-    if (httpStatus >= 500) return "SERVER_ERROR";
-  }
-
-  // Error name/message based classification
-  if (error.name === "AbortError") return "TIMEOUT";
-  if (message.includes("network") || message.includes("fetch"))
-    return "NETWORK_ERROR";
-  if (message.includes("timeout")) return "TIMEOUT";
-  if (message.includes("too large") || message.includes("413"))
-    return "FILE_TOO_LARGE";
-  if (message.includes("forbidden") || message.includes("403"))
-    return "UNAUTHORIZED";
-  if (message.includes("rate limit") || message.includes("429"))
-    return "RATE_LIMITED";
-
-  return "UNKNOWN";
 }

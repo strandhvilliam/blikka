@@ -1,20 +1,21 @@
-import type { RuleConfig } from "@blikka/db"
-import { type ValidationInput, type ValidationResult } from "@blikka/validation"
+import type { RuleConfig } from "@blikka/db";
+import { type ValidationResult } from "@blikka/validation";
 import {
+  buildValidationInputs,
   hasBlockingValidationErrors,
   mapRuleConfigsToValidationRules,
   prepareValidationRules,
   runClientValidation,
-} from "@/lib/validation"
-import type { AdminSelectedPhoto } from "./types"
+} from "@/lib/validation";
+import type { AdminSelectedPhoto } from "./types";
 
-export { hasBlockingValidationErrors }
+export { hasBlockingValidationErrors };
 
 interface RunAdminPhotoValidationInput {
-  photos: AdminSelectedPhoto[]
-  ruleConfigs: RuleConfig[]
-  marathonStartDate?: string | Date | null
-  marathonEndDate?: string | Date | null
+  photos: AdminSelectedPhoto[];
+  ruleConfigs: RuleConfig[];
+  marathonStartDate?: string | Date | null;
+  marathonEndDate?: string | Date | null;
 }
 
 export async function runAdminPhotoValidation({
@@ -24,31 +25,23 @@ export async function runAdminPhotoValidation({
   marathonEndDate,
 }: RunAdminPhotoValidationInput): Promise<ValidationResult[]> {
   if (photos.length === 0) {
-    return []
+    return [];
   }
 
   const rules = prepareValidationRules(
     mapRuleConfigsToValidationRules(ruleConfigs),
     { start: marathonStartDate, end: marathonEndDate },
-  )
+  );
 
   if (rules.length === 0) {
-    return []
+    return [];
   }
-
-  const validationInputs: ValidationInput[] = photos.map((photo) => ({
-    exif: photo.exif,
-    fileName: photo.file.name,
-    fileSize: photo.file.size,
-    orderIndex: photo.orderIndex,
-    mimeType: photo.file.type,
-  }))
 
   try {
-    return await runClientValidation(rules, validationInputs)
+    return await runClientValidation(rules, buildValidationInputs(photos));
   } catch (error) {
-    throw new Error(`Failed to validate selected images: ${error instanceof Error ? error.message : "Unknown error"}`)
+    throw new Error(
+      `Failed to validate selected images: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
-
-

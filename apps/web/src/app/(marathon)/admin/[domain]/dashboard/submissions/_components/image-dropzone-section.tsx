@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ADMIN_COMMON_IMAGE_EXTENSIONS } from "../_lib/types";
+import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing";
 import { pluralizePhotos } from "../_hooks/use-participant-upload-form";
 import { DropzoneStatusBadge } from "./dropzone-status-badge";
 
@@ -51,9 +51,7 @@ export function ImageDropzoneSection({
   } = dropzoneState;
   return (
     <section>
-      <h3 className="mb-3 font-gothic text-lg text-[#1f1f1f]">
-        Image Upload
-      </h3>
+      <h3 className="mb-3 font-gothic text-lg text-[#1f1f1f]">Image Upload</h3>
       <div
         {...getRootProps()}
         className={cn(
@@ -93,9 +91,11 @@ export function ImageDropzoneSection({
         </div>
 
         <p className="mt-3 text-xs text-[#6a6a63]">
-          Accepted types: {ADMIN_COMMON_IMAGE_EXTENSIONS.join(", ")}
+          Accepted types: {COMMON_IMAGE_EXTENSIONS.join(", ")}
         </p>
-        {isDropzoneDisabled && variant !== "complete" && dropzoneDisabledReason ? (
+        {isDropzoneDisabled &&
+        variant !== "complete" &&
+        dropzoneDisabledReason ? (
           <p className="mt-2 text-xs text-[#7a7a72]">
             {dropzoneDisabledReason}
           </p>

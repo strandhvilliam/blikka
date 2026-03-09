@@ -2,9 +2,13 @@
 
 import { useCallback } from "react";
 import { toast } from "sonner";
+import {
+  filterDuplicateImageCandidates,
+  limitImageCandidates,
+} from "@/lib/file-processing";
+import { parseExifData } from "@/lib/exif-parsing";
 import { usePhotoStore } from "../_lib/photo-store";
 import { useHeicStore } from "../_lib/heic-store";
-import { parseExifData } from "../_lib/utils";
 import type { SelectedPhoto } from "../_lib/types";
 
 interface UseSelectFileOptions {
@@ -58,25 +62,33 @@ export function useSelectFile({
         clearPhotos();
       }
 
-      const existingNames = new Set(photos.map((p) => p.file.name));
-      const duplicates = allFiles.filter((f) => existingNames.has(f.name));
-      if (duplicates.length > 0) {
+      const { uniqueCandidates, duplicateFileNames } =
+        filterDuplicateImageCandidates(
+          allFiles.map((file) => ({ file, preconvertedExif: null })),
+          photos.map((photo) => photo.file.name),
+        );
+
+      if (duplicateFileNames.length > 0) {
         toast.warning(
           t("duplicatesSkipped", {
-            names: duplicates.map((f) => f.name).join(", "),
+            names: duplicateFileNames.join(", "),
           }),
         );
       }
 
-      const uniqueFiles = allFiles.filter((f) => !existingNames.has(f.name));
       const remainingSlots = replace ? maxPhotos : maxPhotos - photos.length;
 
-      if (uniqueFiles.length > remainingSlots) {
+      const { acceptedCandidates, truncatedCount } = limitImageCandidates(
+        uniqueCandidates,
+        remainingSlots,
+      );
+
+      if (truncatedCount > 0) {
         toast.warning(t("tooManyFiles", { max: remainingSlots }));
       }
 
       const newPhotos: SelectedPhoto[] = await Promise.all(
-        uniqueFiles.slice(0, remainingSlots).map(async (file, index) => {
+        acceptedCandidates.map(async ({ file }, index) => {
           const convertedInfo = converted.find(
             (c) => c.file.name === file.name,
           );

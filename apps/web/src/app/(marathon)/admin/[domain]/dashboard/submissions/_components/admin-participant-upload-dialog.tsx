@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useDropzone, type Accept } from "react-dropzone";
 import { CheckCircle2, Loader2, Upload } from "lucide-react";
@@ -31,14 +35,16 @@ import {
 
 import { formatDomainPathname } from "@/lib/utils";
 import { useTRPC } from "@/lib/trpc/client";
+import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping";
 import { revokePhotoPreviewUrls } from "../_lib/file-processing";
 import {
   getDropzoneDisabledReason,
   getDropzoneVariant,
-  getExpectedPhotoCount,
-  getSelectedTopics,
 } from "../_lib/upload-utils";
-import { pluralizePhotos, useParticipantUploadForm } from "../_hooks/use-participant-upload-form";
+import {
+  pluralizePhotos,
+  useParticipantUploadForm,
+} from "../_hooks/use-participant-upload-form";
 import { usePhotoSelection } from "../_hooks/use-photo-selection";
 import { useUploadFlow } from "../_hooks/use-upload-flow";
 import { ParticipantDetailsForm } from "./participant-details-form";
@@ -56,7 +62,6 @@ const DROPZONE_ACCEPT: Accept = {
   "image/heic": [".heic"],
   "image/heif": [".heif"],
 };
-
 
 interface AdminParticipantUploadDialogProps {
   open: boolean;
@@ -80,26 +85,25 @@ export function AdminParticipantUploadDialog({
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
   const [pendingReference, setPendingReference] = useState<string | null>(null);
   const [filesError, setFilesError] = useState<string | null>(null);
-  const submitLogicRef = useRef<
-    (value: { reference: string } & Record<string, string>) => Promise<void>
-  >(null);
+  const submitLogicRef =
+    useRef<
+      (value: { reference: string } & Record<string, string>) => Promise<void>
+    >(null);
 
   const checkParticipantExistsMutation = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
   );
 
-  const {
-    form,
-    formValues,
-    validateFiles,
-    resetForm,
-  } = useParticipantUploadForm(marathon.mode, {
-    onSubmit: async (value) => {
-      await submitLogicRef.current?.(value);
-    },
-  });
+  const { form, formValues, validateFiles, resetForm } =
+    useParticipantUploadForm(marathon.mode, {
+      onSubmit: async (value) => {
+        await submitLogicRef.current?.(value);
+      },
+    });
 
-  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex);
+  const sortedTopics = marathon.topics.toSorted(
+    (a, b) => a.orderIndex - b.orderIndex,
+  );
   const activeByCameraTopic =
     sortedTopics.find((topic) => topic.visibility === "active") ?? null;
   const selectedCompetitionClass =
@@ -125,7 +129,9 @@ export function AdminParticipantUploadDialog({
 
   const isMappingReady =
     !!formValues.deviceGroupId &&
-    (marathon.mode === "marathon" ? !!formValues.competitionClassId : !!activeByCameraTopic);
+    (marathon.mode === "marathon"
+      ? !!formValues.competitionClassId
+      : !!activeByCameraTopic);
 
   const dropzoneDisabledReason = getDropzoneDisabledReason({
     deviceGroupId: formValues.deviceGroupId,
@@ -163,7 +169,6 @@ export function AdminParticipantUploadDialog({
     onResetUploadState: () => uploadFlow.resetUploadFlow(),
   });
 
-
   const isBusy =
     photoSelection.isProcessingFiles ||
     uploadFlow.isUploadingFiles ||
@@ -180,9 +185,13 @@ export function AdminParticipantUploadDialog({
     uploadFlow.initializeByCameraUploadMutation.isPending;
 
   const isMaxImagesReached =
-    photoSelection.selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0;
+    photoSelection.selectedPhotos.length >= expectedPhotoCount &&
+    expectedPhotoCount > 0;
   const isDropzoneDisabled =
-    !canSelectFiles || isBusy || uploadFlow.uploadComplete || isMaxImagesReached;
+    !canSelectFiles ||
+    isBusy ||
+    uploadFlow.uploadComplete ||
+    isMaxImagesReached;
 
   const dropzoneVariant = getDropzoneVariant({
     canSelectFiles,
@@ -214,7 +223,10 @@ export function AdminParticipantUploadDialog({
           setShowOverwriteDialog(true);
           return;
         }
-        await uploadFlow.runUpload(formValue.reference, photoSelection.selectedPhotos);
+        await uploadFlow.runUpload(
+          formValue.reference,
+          photoSelection.selectedPhotos,
+        );
       } catch (error) {
         const message =
           error instanceof Error
@@ -242,14 +254,14 @@ export function AdminParticipantUploadDialog({
     setPendingReference(null);
     setShowOverwriteDialog(false);
     signatureRef.current = null;
-  }
+  };
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       resetDialogState();
     }
     onOpenChange(nextOpen);
-  }
+  };
 
   useEffect(() => {
     if (!open) {
@@ -263,7 +275,10 @@ export function AdminParticipantUploadDialog({
       return;
     }
 
-    if (signatureRef.current !== signature && photoSelection.selectedPhotos.length > 0) {
+    if (
+      signatureRef.current !== signature &&
+      photoSelection.selectedPhotos.length > 0
+    ) {
       revokePhotoPreviewUrls(photoSelection.selectedPhotos);
       photoSelection.setSelectedPhotos([]);
       uploadFlow.resetUploadFlow();
@@ -273,20 +288,14 @@ export function AdminParticipantUploadDialog({
     }
 
     signatureRef.current = signature;
-  }, [
-    open,
-    expectedPhotoCount,
-    topicOrderIndexes,
-    photoSelection,
-    uploadFlow,
-  ]);
+  }, [open, expectedPhotoCount, topicOrderIndexes, photoSelection, uploadFlow]);
 
   const handleSubmit = () => {
     if (isBusy || uploadFlow.uploadComplete) {
       return;
     }
     void form.handleSubmit();
-  }
+  };
 
   const handleConfirmOverwrite = async () => {
     if (!pendingReference) {
@@ -296,17 +305,17 @@ export function AdminParticipantUploadDialog({
     setShowOverwriteDialog(false);
     await uploadFlow.runUpload(pendingReference, photoSelection.selectedPhotos);
     setPendingReference(null);
-  }
+  };
 
   const onDropAccepted = (files: File[]) => {
     void photoSelection.handleFileSelect(files);
-  }
+  };
 
   const onDropRejected = () => {
     toast.error(
       "Some files were rejected. Please use supported image formats.",
     );
-  }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: DROPZONE_ACCEPT,
@@ -328,7 +337,7 @@ export function AdminParticipantUploadDialog({
 
     handleDialogOpenChange(false);
     router.push(targetHref);
-  }
+  };
 
   return (
     <>
@@ -404,10 +413,7 @@ export function AdminParticipantUploadDialog({
                   isBusy={isBusy}
                 />
 
-                <UploadStatusSection
-                  uploadFlow={uploadFlow}
-                  isBusy={isBusy}
-                />
+                <UploadStatusSection uploadFlow={uploadFlow} isBusy={isBusy} />
               </div>
             </div>
           </div>

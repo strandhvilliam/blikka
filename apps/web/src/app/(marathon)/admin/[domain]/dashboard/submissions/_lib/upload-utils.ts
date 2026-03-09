@@ -46,18 +46,6 @@ export function getValidationRowClass(result: ValidationResult) {
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
-export function createValidationResultKey(result: ValidationResult) {
-  return [
-    result.ruleKey,
-    result.message,
-    result.outcome,
-    result.severity,
-    result.orderIndex ?? "none",
-    result.fileName ?? "none",
-    result.isGeneral ? "general" : "file",
-  ].join("|");
-}
-
 type Topic = { orderIndex: number };
 
 export function getDropzoneDisabledReason(params: {
@@ -83,40 +71,6 @@ export function getDropzoneDisabledReason(params: {
     return "No active topic is available for by-camera upload.";
   }
   return null;
-}
-
-type CompetitionClass = {
-  topicStartIndex: number
-  numberOfPhotos: number
-}
-
-export function getSelectedTopics<T extends { orderIndex: number }>(
-  marathonMode: MarathonMode,
-  activeByCameraTopic: T | null,
-  selectedCompetitionClass: CompetitionClass | null,
-  sortedTopics: T[],
-): T[] {
-  if (marathonMode === "by-camera") {
-    return activeByCameraTopic ? [activeByCameraTopic] : []
-  }
-  if (selectedCompetitionClass) {
-    return sortedTopics.slice(
-      selectedCompetitionClass.topicStartIndex,
-      selectedCompetitionClass.topicStartIndex + selectedCompetitionClass.numberOfPhotos,
-    )
-  }
-  return []
-}
-
-export function getExpectedPhotoCount(
-  marathonMode: MarathonMode,
-  activeByCameraTopic: { orderIndex: number } | null,
-  selectedCompetitionClass: { numberOfPhotos: number } | null,
-): number {
-  if (marathonMode === "by-camera") {
-    return activeByCameraTopic ? 1 : 0
-  }
-  return selectedCompetitionClass?.numberOfPhotos ?? 0
 }
 
 export function getDropzoneVariant(params: {

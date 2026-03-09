@@ -1,11 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import {
-  isHeicFile,
-  parseExifData,
-  convertHeicToJpeg,
-} from "./utils";
+import { convertHeicToJpeg, isHeicFile } from "@/lib/file-processing";
+import { parseExifData } from "@/lib/exif-parsing";
 
 export interface ConvertedFile {
   file: File;

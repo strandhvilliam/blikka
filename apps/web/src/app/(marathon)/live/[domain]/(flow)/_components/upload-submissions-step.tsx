@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { useDomain } from "@/lib/domain-provider"
+import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
 import { useTRPC } from "@/lib/trpc/client"
 import type {
   CompetitionClass,
@@ -37,7 +38,6 @@ import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog
 import { VALIDATION_OUTCOME } from "@blikka/validation"
 import { useEffect } from "react"
 import { mapRuleConfigsToValidationRules } from "@/lib/validation"
-import { COMMON_IMAGE_EXTENSIONS } from "../_lib/constants"
 
 export function UploadSubmissionsStep({
   ruleConfigs,

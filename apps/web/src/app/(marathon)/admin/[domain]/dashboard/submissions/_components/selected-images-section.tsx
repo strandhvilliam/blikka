@@ -12,11 +12,8 @@ import { VALIDATION_OUTCOME } from "@blikka/validation";
 import type { ValidationResult } from "@blikka/validation";
 import type { AdminSelectedPhoto } from "../_lib/types";
 import { cn } from "@/lib/utils";
-import {
-  createValidationResultKey,
-  formatRuleKey,
-  getValidationRowClass,
-} from "../_lib/upload-utils";
+import { createValidationResultKey } from "@/lib/validation";
+import { formatRuleKey, getValidationRowClass } from "../_lib/upload-utils";
 
 export interface SelectedImagesSectionPhotoSelection {
   selectedPhotos: AdminSelectedPhoto[];
@@ -64,13 +61,8 @@ export function SelectedImagesSection({
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-gothic text-lg text-[#1f1f1f]">
-          Selected Images
-        </h3>
-        <Badge
-          variant="outline"
-          className="border-[#deded4] text-[#66665f]"
-        >
+        <h3 className="font-gothic text-lg text-[#1f1f1f]">Selected Images</h3>
+        <Badge variant="outline" className="border-[#deded4] text-[#66665f]">
           {selectedPhotos.length}/{expectedPhotoCount}
         </Badge>
       </div>

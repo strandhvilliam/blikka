@@ -1,4 +1,8 @@
 import type { ValidationResult } from "@blikka/validation";
+import type {
+  ClientUploadError,
+  ClientUploadErrorCode,
+} from "@/lib/upload-client";
 
 export const ADMIN_UPLOAD_PHASE = {
   PRESIGNED: "presigned",
@@ -25,21 +29,9 @@ export interface AdminPreparedUpload extends AdminSelectedPhoto {
   presignedUrl: string;
 }
 
-export type AdminUploadErrorCode =
-  | "NETWORK_ERROR"
-  | "TIMEOUT"
-  | "FILE_TOO_LARGE"
-  | "UNAUTHORIZED"
-  | "SERVER_ERROR"
-  | "RATE_LIMITED"
-  | "UNKNOWN";
+export type AdminUploadErrorCode = ClientUploadErrorCode;
 
-export interface AdminUploadError {
-  message: string;
-  code: AdminUploadErrorCode;
-  timestamp: Date;
-  httpStatus?: number;
-}
+export type AdminUploadError = ClientUploadError;
 
 export interface AdminUploadFileState extends AdminPreparedUpload {
   phase: AdminUploadPhase;
@@ -57,13 +49,3 @@ export interface AdminValidationState {
   results: ValidationResult[];
   hasBlockingErrors: boolean;
 }
-
-export const ADMIN_COMMON_IMAGE_EXTENSIONS = [
-  "jpg",
-  "jpeg",
-  "heic",
-  "heif",
-  "png",
-  "gif",
-  "webp",
-];
