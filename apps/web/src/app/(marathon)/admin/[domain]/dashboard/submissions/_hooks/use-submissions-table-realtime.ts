@@ -26,11 +26,11 @@ import type { TableData } from "./use-submissions-table";
 
 const realtimeEventDataSchema = z
   .object({
-    reference: z.string().optional(),
-    orderIndex: z.number().finite().optional(),
+    reference: z.string().nullish(),
+    orderIndex: z.number().nullish(),
     outcome: z.enum(["success", "error"]).optional(),
   })
-  .passthrough();
+  .loose();
 
 type ParsedRealtimeEventData = z.infer<typeof realtimeEventDataSchema>;
 
@@ -38,12 +38,12 @@ function parseRealtimeEventData(raw: unknown): ParsedRealtimeEventData {
   const asRecord =
     typeof raw === "string"
       ? (() => {
-          try {
-            return JSON.parse(raw) as unknown;
-          } catch {
-            return {};
-          }
-        })()
+        try {
+          return JSON.parse(raw) as unknown;
+        } catch {
+          return {};
+        }
+      })()
       : raw;
   const parsed = realtimeEventDataSchema.safeParse(asRecord);
   return parsed.success ? parsed.data : {};
