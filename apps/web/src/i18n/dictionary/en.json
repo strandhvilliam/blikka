@@ -64,7 +64,9 @@
       "lastNameRequired": "Last name is required",
       "invalidEmail": "Please enter a valid email address",
       "phoneRequired": "Phone number is required",
-      "invalidPhone": "Please enter a valid phone number"
+      "invalidPhone": "Please enter a valid phone number",
+      "activeTopicAlreadyUploaded": "You have already uploaded a photo for the current topic.",
+      "resolveError": "We could not check your existing by-camera participant. Please try again."
     },
     "classSelection": {
       "title": "Select Your Class",
@@ -135,6 +137,7 @@
       "cancel": "Cancel",
       "confirmUpload": "Confirm Upload",
       "confirmUploadDescription": "You are about to upload {count} photos for participant {ref}. This action cannot be undone.",
+      "confirmUploadDescriptionGeneric": "You are about to upload {count} photos. This action cannot be undone.",
       "initializing": "Initializing...",
       "confirmAndUpload": "Confirm & Upload",
       "noExifData": "No photo metadata found",

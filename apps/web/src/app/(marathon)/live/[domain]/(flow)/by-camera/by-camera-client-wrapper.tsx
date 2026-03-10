@@ -4,12 +4,10 @@ import { useTRPC } from "@/lib/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useHandleBeforeUnload } from "../_hooks/use-handle-before-unload";
 import { BY_CAMERA_STEPS } from "../_lib/constants";
 import { ByCameraStepNavigator } from "../_components/by-camera-step-navigator";
 import { AnimatedStepWrapper } from "../_components/animated-step-wrapper";
-import { ParticipantNumberStep } from "../_components/participant-number-step";
 import { ParticipantDetailsStep } from "../_components/participant-details-step";
 import { DeviceSelectionStep } from "../_components/device-selection-step";
 import { ByCameraUploadStep } from "../_components/by-camera-upload-step";
@@ -47,14 +45,6 @@ export function ByCameraClientWrapper() {
         <ByCameraStepNavigator />
       </div>
       <AnimatePresence initial={false} custom={direction} mode="wait">
-        {step === BY_CAMERA_STEPS.ParticipantNumberStep && (
-          <AnimatedStepWrapper
-            key={BY_CAMERA_STEPS.ParticipantNumberStep}
-            direction={direction}
-          >
-            <ParticipantNumberStep />
-          </AnimatedStepWrapper>
-        )}
         {step === BY_CAMERA_STEPS.ParticipantDetailsStep && (
           <AnimatedStepWrapper
             key={BY_CAMERA_STEPS.ParticipantDetailsStep}

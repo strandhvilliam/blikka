@@ -61,7 +61,9 @@
       "lastNameRequired": "Efternamn krävs",
       "invalidEmail": "Vänligen ange en giltig e-postadress",
       "phoneRequired": "Telefonnummer krävs",
-      "invalidPhone": "Vänligen ange ett giltigt telefonnummer"
+      "invalidPhone": "Vänligen ange ett giltigt telefonnummer",
+      "activeTopicAlreadyUploaded": "Du har redan laddat upp ett foto för det aktuella temat.",
+      "resolveError": "Vi kunde inte kontrollera din befintliga deltagare för by-camera. Försök igen."
     },
     "classSelection": {
       "title": "Välj din klass",
@@ -132,6 +134,7 @@
       "cancel": "Avbryt",
       "confirmUpload": "Bekräfta uppladdning",
       "confirmUploadDescription": "Du håller på att ladda upp {count} foton för delagare {ref}. Denna åtgärd kan inte ångras.",
+      "confirmUploadDescriptionGeneric": "Du håller på att ladda upp {count} foton. Denna åtgärd kan inte ångras.",
       "initializing": "Initierar...",
       "confirmAndUpload": "Bekräfta & Ladda upp",
       "noExifData": "Ingen bildmetadata hittades",

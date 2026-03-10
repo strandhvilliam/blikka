@@ -31,7 +31,7 @@ import { useUploadStore } from "../_lib/upload-store"
 import { UploadProgress } from "./upload-progress"
 import { ByCameraUploadInput } from "./by-camera-upload-input"
 import { HeicConversionDialog } from "./heic-conversion-dialog"
-import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog"
+import { UploadConfirmationDialog } from "./upload-confirmation-dialog"
 import { VALIDATION_OUTCOME } from "@blikka/validation"
 import { mapRuleConfigsToValidationRules } from "@/lib/validation"
 import { ArrowRight } from "lucide-react"
@@ -54,7 +54,7 @@ export function ByCameraUploadStep({
   const domain = useDomain()
   const { handlePrevStep } = useStepState()
   const router = useRouter()
-  const { uploadFlowState } = useUploadFlowState()
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState()
 
   const initializeStore = usePhotoStore((state) => state.initialize)
   const cleanup = usePhotoStore((state) => state.cleanup)
@@ -166,10 +166,10 @@ export function ByCameraUploadStep({
 
     if (
       !domain ||
-      !uploadFlowState.participantRef ||
       !uploadFlowState.participantFirstName ||
       !uploadFlowState.participantLastName ||
       !uploadFlowState.participantEmail ||
+      !uploadFlowState.participantPhone ||
       !uploadFlowState.deviceGroupId
     ) {
       toast.error(t("missingRequiredInfo"))
@@ -177,11 +177,8 @@ export function ByCameraUploadStep({
     }
 
     try {
-      setIsUploading(true)
-
-      const presignedUrls = await initializeByCameraUpload({
+      const initialization = await initializeByCameraUpload({
         domain,
-        reference: uploadFlowState.participantRef,
         firstname: uploadFlowState.participantFirstName,
         lastname: uploadFlowState.participantLastName,
         email: uploadFlowState.participantEmail,
@@ -189,15 +186,21 @@ export function ByCameraUploadStep({
         phoneNumber: uploadFlowState.participantPhone,
       })
 
-      if (!presignedUrls || presignedUrls.length === 0) {
-        setIsUploading(false)
+      if (!initialization || initialization.uploads.length === 0) {
         toast.error(t("failedToGetPresignedUrls"))
         return
       }
 
+      await setUploadFlowState((prev) => ({
+        ...prev,
+        participantId: initialization.participantId,
+        participantRef: initialization.reference,
+      }))
+      setIsUploading(true)
+
       const photosWithUrls: PhotoWithPresignedUrl[] = photos.map(
         (photo, index) => {
-          const urlInfo = presignedUrls[index]
+          const urlInfo = initialization.uploads[index]
           if (!urlInfo) {
             throw new Error("Missing presigned URL for photo " + index)
           }
@@ -213,7 +216,11 @@ export function ByCameraUploadStep({
     } catch (error) {
       console.error("Upload failed:", error)
       setIsUploading(false)
-      toast.error(t("uploadFailed"))
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t("uploadFailed"),
+      )
     }
   }
 
@@ -248,11 +255,13 @@ export function ByCameraUploadStep({
         onCancel={cancelHeicConversion}
       />
 
-      <ParticipantConfirmationDialog
+      <UploadConfirmationDialog
         open={showConfirmationDialog}
-        onClose={() => setShowConfirmationDialog(false)}
+        onOpenChange={setShowConfirmationDialog}
         onConfirm={handleConfirmedUpload}
-        expectedParticipantRef={uploadFlowState.participantRef || ""}
+        isInitializing={isInitializing}
+        participantRef={uploadFlowState.participantRef || undefined}
+        numberOfPhotos={BY_CAMERA_MAX_PHOTOS}
       />
 
       <AnimatePresence mode="wait">

@@ -7,10 +7,9 @@ export const PARTICIPANT_SUBMISSION_STEPS = {
 } as const;
 
 export const BY_CAMERA_STEPS = {
-  ParticipantNumberStep: 1,
-  ParticipantDetailsStep: 2,
-  DeviceSelectionStep: 3,
-  UploadSubmissionStep: 4,
+  ParticipantDetailsStep: 1,
+  DeviceSelectionStep: 2,
+  UploadSubmissionStep: 3,
 } as const;
 
 export type FlowMode = "marathon" | "by-camera";

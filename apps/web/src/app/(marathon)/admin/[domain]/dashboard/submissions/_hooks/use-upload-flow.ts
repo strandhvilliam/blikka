@@ -11,7 +11,7 @@ import {
   type AdminUploadFileState,
 } from "../_lib/types";
 import { uploadPreparedFiles } from "../_lib/upload-runner";
-import { pluralizePhotos } from "./use-participant-upload-form";
+import { pluralizePhotos, type FormState } from "./use-participant-upload-form";
 import { useTRPC } from "@/lib/trpc/client";
 
 const POLLING_INTERVAL_MS = 3000;
@@ -20,7 +20,7 @@ const POLLING_INTERVAL_MS = 3000;
 interface UseUploadFlowInput {
   domain: string;
   marathonMode: string;
-  formValues: FormValues;
+  formValues: FormState;
   queryClient: QueryClient;
 }
 
@@ -156,23 +156,32 @@ export function useUploadFlow({
     try {
       const commonPayload = {
         domain,
-        reference,
         firstname: formValues.firstName.trim(),
         lastname: formValues.lastName.trim(),
         email: formValues.email.trim(),
         deviceGroupId: Number(formValues.deviceGroupId),
-        phoneNumber: formValues.phone.trim()
-          ? formValues.phone.trim()
-          : null,
+        phoneNumber: formValues.phone.trim(),
       };
 
-      const presignedUrls =
+      const initialization =
         marathonMode === "marathon"
           ? await initializeUploadFlowMutation.mutateAsync({
             ...commonPayload,
+            reference,
+            phoneNumber: formValues.phone.trim()
+              ? formValues.phone.trim()
+              : null,
             competitionClassId: Number(formValues.competitionClassId),
           })
           : await initializeByCameraUploadMutation.mutateAsync(commonPayload);
+
+      const resolvedReference =
+        marathonMode === "marathon" || Array.isArray(initialization)
+          ? reference
+          : initialization.reference;
+      const presignedUrls = Array.isArray(initialization)
+        ? initialization
+        : initialization.uploads;
 
       if (!presignedUrls.length) {
         throw new Error("Failed to initialize upload URLs");
@@ -203,7 +212,7 @@ export function useUploadFlow({
       );
 
       setUploadFiles(initialUploadState);
-      setSubmittedReference(reference);
+      setSubmittedReference(resolvedReference);
 
       const { successKeys, failedKeys } = await uploadPreparedFiles({
         files: preparedUploads,

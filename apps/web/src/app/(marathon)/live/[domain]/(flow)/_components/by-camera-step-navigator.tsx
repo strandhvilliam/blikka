@@ -14,8 +14,6 @@ export function ByCameraStepNavigator() {
 
   const getStepLabel = (step: number) => {
     switch (step) {
-      case BY_CAMERA_STEPS.ParticipantNumberStep:
-        return t("steps.number");
       case BY_CAMERA_STEPS.ParticipantDetailsStep:
         return t("steps.details");
       case BY_CAMERA_STEPS.DeviceSelectionStep:

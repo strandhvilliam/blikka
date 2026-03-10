@@ -16,7 +16,7 @@ import { useTranslations } from "next-intl";
 interface UploadConfirmationDialogProps {
   open: boolean;
   isInitializing: boolean;
-  participantRef: string;
+  participantRef?: string;
   numberOfPhotos: number;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
@@ -25,7 +25,7 @@ interface UploadConfirmationDialogProps {
 export function UploadConfirmationDialog({
   open,
   isInitializing,
-  participantRef,
+  participantRef = "",
   numberOfPhotos,
   onOpenChange,
   onConfirm,
@@ -38,10 +38,14 @@ export function UploadConfirmationDialog({
         <DialogHeader>
           <DialogTitle>{t("confirmUpload")}</DialogTitle>
           <DialogDescription>
-            {t("confirmUploadDescription", {
-              ref: participantRef,
-              count: numberOfPhotos,
-            })}
+            {participantRef
+              ? t("confirmUploadDescription", {
+                  ref: participantRef,
+                  count: numberOfPhotos,
+                })
+              : t("confirmUploadDescriptionGeneric", {
+                  count: numberOfPhotos,
+                })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

@@ -1,6 +1,7 @@
 "use client";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useForm } from "@tanstack/react-form";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   CardContent,
@@ -22,6 +23,9 @@ import {
   parsePhoneNumber,
 } from "react-phone-number-input";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { useTRPC } from "@/lib/trpc/client";
+import { useDomain } from "@/lib/domain-provider";
+import { toast } from "sonner";
 
 function getCountryFromLocale(): string {
   if (typeof navigator === "undefined") return "SE";
@@ -98,10 +102,15 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
   const t = useTranslations("FlowPage");
   const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
   const { handleNextStep, handlePrevStep } = useStepState();
+  const domain = useDomain();
+  const trpc = useTRPC();
   const [focusedField, setFocusedField] =
     useState<ParticipantDetailsFieldName | null>(null);
 
   const defaultCountry = getCountryFromLocale();
+  const resolveByCameraParticipantByPhone = useMutation(
+    trpc.uploadFlow.resolveByCameraParticipantByPhone.mutationOptions(),
+  );
 
   const form = useForm({
     defaultValues: {
@@ -111,6 +120,40 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       phone: uploadFlowState.participantPhone ?? "",
     },
     onSubmit: async ({ value }) => {
+      if (mode === "by-camera") {
+        try {
+          const resolution =
+            await resolveByCameraParticipantByPhone.mutateAsync({
+              domain,
+              phoneNumber: value.phone,
+            });
+
+          if (
+            resolution.match &&
+            resolution.activeTopicUploadState === "already-uploaded"
+          ) {
+            toast.error(t("participantDetails.activeTopicAlreadyUploaded"));
+            return;
+          }
+
+          await setUploadFlowState((prev) => ({
+            ...prev,
+            participantId: resolution.match ? resolution.participantId : null,
+            participantRef: resolution.match ? resolution.reference : null,
+            participantFirstName: value.firstname,
+            participantLastName: value.lastname,
+            participantEmail: value.email,
+            participantPhone: value.phone,
+          }));
+          handleNextStep();
+          return;
+        } catch (error) {
+          console.error(error);
+          toast.error(t("participantDetails.resolveError"));
+          return;
+        }
+      }
+
       await setUploadFlowState((prev) => ({
         ...prev,
         participantFirstName: value.firstname,
@@ -411,7 +454,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
               <PrimaryButton
                 type="button"
                 className="w-full py-3.5 text-base sm:text-lg rounded-full"
-                disabled={isSubmitting}
+                disabled={isSubmitting || resolveByCameraParticipantByPhone.isPending}
                 // submit mannually to avoid specific bug when navigating back between steps
                 onClick={() => form.handleSubmit()}
               >
