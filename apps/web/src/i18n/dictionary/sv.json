@@ -63,7 +63,11 @@
       "phoneRequired": "Telefonnummer krävs",
       "invalidPhone": "Vänligen ange ett giltigt telefonnummer",
       "activeTopicAlreadyUploaded": "Du har redan laddat upp ett foto för det aktuella temat.",
-      "resolveError": "Vi kunde inte kontrollera din befintliga deltagare för by-camera. Försök igen."
+      "resolveError": "Vi kunde inte kontrollera din befintliga deltagare för by-camera. Försök igen.",
+      "replaceExistingTitle": "Ersätt befintlig uppladdning?",
+      "replaceExistingDescription": "Ett bidrag har redan laddats upp för det aktuella temat med detta telefonnummer. Om du fortsätter kommer den befintliga uppladdningen för det aktiva temat att ersättas.",
+      "replaceExistingCancel": "Avbryt",
+      "replaceExistingConfirm": "Ersätt & fortsätt"
     },
     "classSelection": {
       "title": "Välj din klass",

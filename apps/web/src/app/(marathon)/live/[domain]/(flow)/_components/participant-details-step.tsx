@@ -26,6 +26,16 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function getCountryFromLocale(): string {
   if (typeof navigator === "undefined") return "SE";
@@ -97,6 +107,12 @@ interface ParticipantDetailsStepProps {
 }
 
 type ParticipantDetailsFieldName = "firstname" | "lastname" | "email" | "phone";
+type ParticipantDetailsValues = {
+  firstname: string;
+  lastname: string;
+  email: string;
+  phone: string;
+};
 
 export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
   const t = useTranslations("FlowPage");
@@ -106,11 +122,54 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
   const trpc = useTRPC();
   const [focusedField, setFocusedField] =
     useState<ParticipantDetailsFieldName | null>(null);
+  const [replaceDialogOpen, setReplaceDialogOpen] = useState(false);
+  const [pendingReplacement, setPendingReplacement] = useState<{
+    values: ParticipantDetailsValues;
+    participantId: number;
+    reference: string;
+  } | null>(null);
 
   const defaultCountry = getCountryFromLocale();
   const resolveByCameraParticipantByPhone = useMutation(
     trpc.uploadFlow.resolveByCameraParticipantByPhone.mutationOptions(),
   );
+
+  const persistByCameraParticipant = async ({
+    values,
+    participantId,
+    reference,
+    replaceExistingActiveTopicUpload,
+  }: {
+    values: ParticipantDetailsValues;
+    participantId: number | null;
+    reference: string | null;
+    replaceExistingActiveTopicUpload: boolean | null;
+  }) => {
+    await setUploadFlowState((prev) => ({
+      ...prev,
+      participantId,
+      participantRef: reference,
+      participantFirstName: values.firstname,
+      participantLastName: values.lastname,
+      participantEmail: values.email,
+      participantPhone: values.phone,
+      replaceExistingActiveTopicUpload,
+    }));
+  };
+
+  const handleConfirmReplacement = async () => {
+    if (!pendingReplacement) return;
+
+    await persistByCameraParticipant({
+      values: pendingReplacement.values,
+      participantId: pendingReplacement.participantId,
+      reference: pendingReplacement.reference,
+      replaceExistingActiveTopicUpload: true,
+    });
+    setReplaceDialogOpen(false);
+    setPendingReplacement(null);
+    handleNextStep();
+  };
 
   const form = useForm({
     defaultValues: {
@@ -132,19 +191,21 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
             resolution.match &&
             resolution.activeTopicUploadState === "already-uploaded"
           ) {
-            toast.error(t("participantDetails.activeTopicAlreadyUploaded"));
+            setPendingReplacement({
+              values: value,
+              participantId: resolution.participantId,
+              reference: resolution.reference,
+            });
+            setReplaceDialogOpen(true);
             return;
           }
 
-          await setUploadFlowState((prev) => ({
-            ...prev,
+          await persistByCameraParticipant({
+            values: value,
             participantId: resolution.match ? resolution.participantId : null,
-            participantRef: resolution.match ? resolution.reference : null,
-            participantFirstName: value.firstname,
-            participantLastName: value.lastname,
-            participantEmail: value.email,
-            participantPhone: value.phone,
-          }));
+            reference: resolution.match ? resolution.reference : null,
+            replaceExistingActiveTopicUpload: null,
+          });
           handleNextStep();
           return;
         } catch (error) {
@@ -171,6 +232,35 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
 
   return (
     <div className="max-w-md mx-auto min-h-[70dvh] space-y-10 flex flex-col justify-center">
+      <AlertDialog
+        open={replaceDialogOpen}
+        onOpenChange={(open) => {
+          setReplaceDialogOpen(open);
+          if (!open) {
+            setPendingReplacement(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("participantDetails.replaceExistingTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("participantDetails.replaceExistingDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {t("participantDetails.replaceExistingCancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleConfirmReplacement()}>
+              {t("participantDetails.replaceExistingConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <CardHeader className="">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("participantDetails.title")}

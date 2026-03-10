@@ -36,6 +36,7 @@ export const InitializeByCameraUploadSchema = Schema.toStandardSchemaV1(
     email: Schema.String,
     deviceGroupId: Schema.Number,
     phoneNumber: Schema.String,
+    replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
   }),
 )
 

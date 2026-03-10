@@ -553,6 +553,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         deviceGroupId,
         email,
         phoneNumber,
+        replaceExistingActiveTopicUpload,
       }) {
         const executeEffect = Effect.gen(function* () {
           const resolved = yield* resolveExistingByCameraParticipant({
@@ -563,7 +564,10 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           const { marathon, activeTopic } = resolved
           yield* ensureDeviceGroupExists({ domain, marathon, deviceGroupId } as any)
 
-          if (resolved.activeTopicUploadState === "already-uploaded") {
+          if (
+            resolved.activeTopicUploadState === "already-uploaded" &&
+            !replaceExistingActiveTopicUpload
+          ) {
             return yield* Effect.fail(
               new UploadFlowApiError({
                 message: ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE,

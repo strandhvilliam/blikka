@@ -184,6 +184,8 @@ export function ByCameraUploadStep({
         email: uploadFlowState.participantEmail,
         deviceGroupId: uploadFlowState.deviceGroupId,
         phoneNumber: uploadFlowState.participantPhone,
+        replaceExistingActiveTopicUpload:
+          uploadFlowState.replaceExistingActiveTopicUpload ?? undefined,
       })
 
       if (!initialization || initialization.uploads.length === 0) {
@@ -195,6 +197,7 @@ export function ByCameraUploadStep({
         ...prev,
         participantId: initialization.participantId,
         participantRef: initialization.reference,
+        replaceExistingActiveTopicUpload: null,
       }))
       setIsUploading(true)
 

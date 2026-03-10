@@ -66,7 +66,11 @@
       "phoneRequired": "Phone number is required",
       "invalidPhone": "Please enter a valid phone number",
       "activeTopicAlreadyUploaded": "You have already uploaded a photo for the current topic.",
-      "resolveError": "We could not check your existing by-camera participant. Please try again."
+      "resolveError": "We could not check your existing by-camera participant. Please try again.",
+      "replaceExistingTitle": "Replace existing upload?",
+      "replaceExistingDescription": "A submission has already been uploaded for the current topic with this phone number. If you continue, the existing upload for the active topic will be replaced.",
+      "replaceExistingCancel": "Cancel",
+      "replaceExistingConfirm": "Replace & Continue"
     },
     "classSelection": {
       "title": "Select Your Class",

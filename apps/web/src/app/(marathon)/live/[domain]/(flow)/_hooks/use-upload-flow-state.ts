@@ -19,6 +19,7 @@ export function useUploadFlowState() {
       participantFirstName: parseAsString,
       participantLastName: parseAsString,
       participantPhone: parseAsString,
+      replaceExistingActiveTopicUpload: parseAsBoolean,
       uploadInstructionsShown: parseAsBoolean.withDefault(false),
     },
     {
@@ -31,6 +32,7 @@ export function useUploadFlowState() {
         participantFirstName: "pf",
         participantLastName: "pl",
         participantPhone: "pp",
+        replaceExistingActiveTopicUpload: "ra",
         uploadInstructionsShown: "uis",
       },
     },
