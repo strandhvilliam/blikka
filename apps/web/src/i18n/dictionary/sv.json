@@ -21,6 +21,8 @@
     "termsAccept": "Jag godkänner",
     "termsAndConditions": "villkoren",
     "begin": "Börja",
+    "beginUpload": "Ladda upp nu",
+    "prepareForLater": "Förbered för senare",
     "sponsors": "Sponsorer",
     "poweredBy": "drivs av",
     "datesToBeAnnounced": "Datum meddelas senare"
@@ -30,13 +32,21 @@
       "title": "Ange ditt delagarnummer",
       "description": "Ange ditt 4-siffriga delagarnummer för att fortsätta",
       "descriptionAlreadyExists": "Vi hittade ditt delagarnummer. Klicka fortsätt för att fortsätta.",
+      "descriptionPrepared": "Vi hittade en förberedd deltagare med det här numret. Fortsätt för att starta den riktiga uppladdningen.",
       "required": "Ange ett nummer med 1 till 4 siffror.",
       "continue": "Fortsätt",
+      "error": "Ett fel uppstod. Försök igen.",
+      "blocked": "Det här deltagarnumret har redan skickats in helt och kan inte användas igen.",
+      "prepareBlocked": "Det här deltagarnumret har redan påbörjat uppladdningsflödet och kan inte förberedas igen.",
       "confirmDialog": {
+        "title": "Bekräfta deltagare",
         "titleExists": "Välkommen tillbaka!",
         "titleNew": "Ny delagare",
+        "titlePrepared": "Förberedd deltagare hittad",
+        "description": "Vi hittade en session för delagarnummer {ref}. Är det du?",
         "descriptionExists": "Vi hittade en session för delagarnummer {ref}. Är det du?",
         "descriptionNew": "Detta kommer att skapa en ny uppladdningssession för detta delagarnummer. Fortsätt?",
+        "descriptionPrepared": "Delagarnummer {ref} är redan förberett. Fortsätt för att starta den riktiga uppladdningen nu?",
         "cancel": "Avbryt",
         "confirm": "Fortsätt"
       }
@@ -46,7 +56,8 @@
       "details": "Detaljer",
       "class": "Klass",
       "device": "Enhet",
-      "upload": "Ladda upp"
+      "upload": "Ladda upp",
+      "next": "Nästa steg"
     },
     "participantDetails": {
       "title": "Dina uppgifter",
@@ -166,6 +177,24 @@
       "checkConnection": "Kontrollera din anslutning och försök igen",
       "retryFailed": "Försök igen ({count})",
       "continue": "Fortsätt"
+    },
+    "prepareStep": {
+      "reviewTitle": "Förbered för senare uppladdning",
+      "reviewDescription": "Spara deltagaruppgifterna nu så att en funktionär kan ladda upp bilderna senare på en laptop.",
+      "readyTitle": "Du är redo för nästa steg",
+      "readyDescription": "Dina deltagaruppgifter är sparade. Följ arrangörens instruktioner när det är dags att ladda upp dina bilder senare.",
+      "participantNumberLabel": "Deltagarnummer",
+      "participantLabel": "Deltagare",
+      "emailLabel": "E-post",
+      "classLabel": "Klass",
+      "deviceLabel": "Enhet",
+      "nextBadge": "Senare uppladdning",
+      "nextTitle": "Vad händer nu",
+      "nextBody": "Ha ditt deltagarnummer nära till hands. När arrangörerna är redo kommer en funktionär att använda numret för att koppla dina bilder till ditt deltagande.",
+      "confirm": "Spara och fortsätt",
+      "back": "Tillbaka",
+      "startOver": "Börja om",
+      "saveFailed": "Kunde inte spara deltagaruppgifterna"
     }
   },
   "VerificationPage": {

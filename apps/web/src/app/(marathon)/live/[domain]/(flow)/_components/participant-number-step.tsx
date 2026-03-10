@@ -1,24 +1,23 @@
-"use client"
+"use client";
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { ArrowRight, Loader2 } from "lucide-react"
-import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { useForm } from "@tanstack/react-form"
-import { useMutation } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useTranslations } from "next-intl"
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
-import { z } from "zod"
-import { useState } from "react"
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { PrimaryButton } from "@/components/ui/primary-button";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useForm } from "@tanstack/react-form";
+import { useMutation } from "@tanstack/react-query";
+import { useTRPC } from "@/lib/trpc/client";
+import { useDomain } from "@/lib/domain-provider";
+import { useTranslations } from "next-intl";
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import { z } from "zod";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,8 +27,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { useStepState } from "../_lib/step-state-context"
+} from "@/components/ui/alert-dialog";
+import { useStepState } from "../_lib/step-state-context";
 
 const createInitializeParticipantSchema = (
   t: ReturnType<typeof useTranslations>,
@@ -39,36 +38,38 @@ const createInitializeParticipantSchema = (
       .string()
       .refine((val) => /^\d{1,4}$/.test(val), t("participantNumber.required")),
     domain: z.string().min(1, "Invalid domain"),
-  })
+  });
 
-const createParticipantValidator = (
-  t: ReturnType<typeof useTranslations>,
-) =>
+const createParticipantValidator =
+  (t: ReturnType<typeof useTranslations>) =>
   ({ value }: { value: { participantRef: string; domain: string } }) => {
-    const result = createInitializeParticipantSchema(t).safeParse(value)
-    if (result.success) return undefined
-    const fieldErrors = result.error.flatten().fieldErrors
+    const result = createInitializeParticipantSchema(t).safeParse(value);
+    if (result.success) return undefined;
+    const fieldErrors = result.error.flatten().fieldErrors;
     return {
       fields: {
         participantRef: fieldErrors.participantRef?.[0],
         domain: fieldErrors.domain?.[0],
       },
-    }
-  }
+    };
+  };
 
 export function ParticipantNumberStep() {
-  const { uploadFlowState, setUploadFlowState } = useUploadFlowState()
-  const { handleNextStep } = useStepState()
-  const domain = useDomain()
-  const t = useTranslations("FlowPage")
-  const trpc = useTRPC()
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
+  const { handleNextStep, flowVariant } = useStepState();
+  const domain = useDomain();
+  const t = useTranslations("FlowPage");
+  const trpc = useTRPC();
 
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
-  const [pendingRef, setPendingRef] = useState("")
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingRef, setPendingRef] = useState("");
+  const [existingParticipantStatus, setExistingParticipantStatus] = useState<
+    string | null
+  >(null);
 
   const checkParticipantExists = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
-  )
+  );
 
   const form = useForm({
     defaultValues: {
@@ -76,43 +77,61 @@ export function ParticipantNumberStep() {
       domain,
     },
     onSubmit: async ({ value }) => {
-      const paddedRef = value.participantRef.padStart(4, "0")
-      setPendingRef(paddedRef)
+      const paddedRef = value.participantRef.padStart(4, "0");
+      setPendingRef(paddedRef);
 
       try {
-        const exists = await checkParticipantExists.mutateAsync({
+        const participantCheck = await checkParticipantExists.mutateAsync({
           domain,
           reference: paddedRef,
-        })
+        });
 
-        if (exists) {
-          setConfirmDialogOpen(true)
+        if (
+          participantCheck.status === "completed" ||
+          participantCheck.status === "verified"
+        ) {
+          toast.error(t("participantNumber.blocked"));
+          return;
+        }
+
+        if (
+          flowVariant === "prepare" &&
+          participantCheck.status === "initialized"
+        ) {
+          toast.error(t("participantNumber.prepareBlocked"));
+          return;
+        }
+
+        if (participantCheck.exists) {
+          setExistingParticipantStatus(participantCheck.status);
+          setConfirmDialogOpen(true);
         } else {
+          setExistingParticipantStatus(null);
           setUploadFlowState((prev) => ({
             ...prev,
             participantRef: paddedRef,
-          }))
-          handleNextStep()
+          }));
+          handleNextStep();
         }
       } catch (error) {
-        console.error(error)
-        toast.error(t("participantNumber.error"))
+        console.error(error);
+        toast.error(t("participantNumber.error"));
       }
     },
     validators: {
       onChange: createParticipantValidator(t),
       onBlur: createParticipantValidator(t),
     },
-  })
+  });
 
   const handleConfirm = () => {
     setUploadFlowState((prev) => ({
       ...prev,
       participantRef: pendingRef,
-    }))
-    setConfirmDialogOpen(false)
-    handleNextStep()
-  }
+    }));
+    setConfirmDialogOpen(false);
+    handleNextStep();
+  };
 
   return (
     <div className="max-w-md mx-auto min-h-[70dvh] space-y-10 flex flex-col justify-center">
@@ -121,17 +140,19 @@ export function ParticipantNumberStep() {
           {t("participantNumber.title")}
         </CardTitle>
         <CardDescription className="text-center">
-          {!!uploadFlowState.participantId
-            ? t("participantNumber.descriptionAlreadyExists")
-            : t("participantNumber.description")}
+          {existingParticipantStatus === "prepared" && flowVariant === "upload"
+            ? t("participantNumber.descriptionPrepared")
+            : existingParticipantStatus
+              ? t("participantNumber.descriptionAlreadyExists")
+              : t("participantNumber.description")}
         </CardDescription>
       </CardHeader>
 
       <form
         onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
         noValidate
         className="space-y-8"
@@ -142,7 +163,7 @@ export function ParticipantNumberStep() {
               {(field) => {
                 const hasError =
                   field.state.meta.isTouched &&
-                  field.state.meta.errors.length > 0
+                  field.state.meta.errors.length > 0;
 
                 return (
                   <>
@@ -156,34 +177,34 @@ export function ParticipantNumberStep() {
                       autoComplete="off"
                       enterKeyHint="done"
                       pattern="[0-9]*"
-                      className={`text-center text-3xl sm:text-4xl h-14 sm:h-16 bg-background tracking-widest leading-none ${hasError
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : ""
-                        }`}
+                      className={`text-center text-3xl sm:text-4xl h-14 sm:h-16 bg-background tracking-widest leading-none ${
+                        hasError
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : ""
+                      }`}
                       aria-invalid={hasError}
                       aria-describedby={
                         hasError ? `${field.name}-error` : undefined
                       }
                       autoFocus
-                      disabled={!!uploadFlowState.participantId}
                       maxLength={4}
                       value={field.state.value}
                       onChange={(e) => {
-                        const value = e.target.value
+                        const value = e.target.value;
                         const numericValue = value
                           .replace(/\D/g, "")
-                          .slice(0, 4)
-                        field.handleChange(numericValue)
+                          .slice(0, 4);
+                        field.handleChange(numericValue);
                       }}
                       onBlur={() => {
                         if (field.state.value && field.state.value.length > 0) {
                           const paddedValue = field.state.value.padStart(
                             4,
                             "0",
-                          )
-                          field.handleChange(paddedValue)
+                          );
+                          field.handleChange(paddedValue);
                         }
-                        field.handleBlur()
+                        field.handleBlur();
                       }}
                     />
                     {hasError && (
@@ -195,41 +216,35 @@ export function ParticipantNumberStep() {
                       </span>
                     )}
                   </>
-                )
+                );
               }}
             </form.Field>
           </div>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3">
-          {uploadFlowState.participantId ? (
-            <Button
-              type="button"
-              className="w-full rounded-full py-3.5 text-base sm:text-lg"
-              onClick={handleNextStep}
-            >
-              {t("participantNumber.continue")}
-            </Button>
-          ) : (
-            <form.Subscribe selector={(state: { isSubmitting: boolean }) => ({ isSubmitting: state.isSubmitting })}>
-              {({ isSubmitting }) => (
-                <PrimaryButton
-                  type="submit"
-                  className="w-full py-3.5 text-base sm:text-lg rounded-full"
-                  disabled={isSubmitting || checkParticipantExists.isPending}
-                >
-                  {isSubmitting || checkParticipantExists.isPending ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <>
-                      <span>{t("participantNumber.continue")}</span>
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </>
-                  )}
-                </PrimaryButton>
-              )}
-            </form.Subscribe>
-          )}
+          <form.Subscribe
+            selector={(state: { isSubmitting: boolean }) => ({
+              isSubmitting: state.isSubmitting,
+            })}
+          >
+            {({ isSubmitting }) => (
+              <PrimaryButton
+                type="submit"
+                className="w-full py-3.5 text-base sm:text-lg rounded-full"
+                disabled={isSubmitting || checkParticipantExists.isPending}
+              >
+                {isSubmitting || checkParticipantExists.isPending ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <>
+                    <span>{t("participantNumber.continue")}</span>
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
+                )}
+              </PrimaryButton>
+            )}
+          </form.Subscribe>
         </CardFooter>
       </form>
 
@@ -237,12 +252,20 @@ export function ParticipantNumberStep() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("participantNumber.confirmDialog.title")}
+              {existingParticipantStatus === "prepared" &&
+              flowVariant === "upload"
+                ? t("participantNumber.confirmDialog.titlePrepared")
+                : t("participantNumber.confirmDialog.title")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("participantNumber.confirmDialog.description", {
-                ref: pendingRef,
-              })}
+              {existingParticipantStatus === "prepared" &&
+              flowVariant === "upload"
+                ? t("participantNumber.confirmDialog.descriptionPrepared", {
+                    ref: pendingRef,
+                  })
+                : t("participantNumber.confirmDialog.description", {
+                    ref: pendingRef,
+                  })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -256,5 +279,5 @@ export function ParticipantNumberStep() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

@@ -1,16 +1,20 @@
-"use client"
+"use client";
 import { createContext, useContext, useState } from "react";
+import { parseAsInteger, useQueryState } from "nuqs";
 import {
-  parseAsInteger,
-  useQueryState } from "nuqs";
-import { PARTICIPANT_SUBMISSION_STEPS, BY_CAMERA_STEPS, type FlowMode } from "./constants";
-
+  PARTICIPANT_SUBMISSION_STEPS,
+  PREPARE_PARTICIPANT_STEPS,
+  BY_CAMERA_STEPS,
+  type FlowMode,
+  type FlowVariant,
+} from "./constants";
 
 interface StepStateContextValue {
   step: number;
   direction: number;
   maxSteps: number;
   flowMode: FlowMode;
+  flowVariant: FlowVariant;
   handleNextStep: () => void;
   handlePrevStep: () => void;
   handleSetStep: (step: number) => void;
@@ -21,9 +25,12 @@ const StepStateContext = createContext<StepStateContextValue>({
   direction: 0,
   maxSteps: Object.keys(PARTICIPANT_SUBMISSION_STEPS).length,
   flowMode: "marathon",
-  handleNextStep: () => { },
-  handlePrevStep: () => { },
-  handleSetStep: (step: number) => { },
+  flowVariant: "upload",
+  handleNextStep: () => {},
+  handlePrevStep: () => {},
+  handleSetStep: (_step: number) => {
+    void _step;
+  },
 });
 
 export function useStepState() {
@@ -37,10 +44,20 @@ export function useStepState() {
 interface StepStateProviderProps {
   children: React.ReactNode;
   flowMode?: FlowMode;
+  flowVariant?: FlowVariant;
 }
 
-export function StepStateProvider({ children, flowMode = "marathon" }: StepStateProviderProps) {
-  const steps = flowMode === "by-camera" ? BY_CAMERA_STEPS : PARTICIPANT_SUBMISSION_STEPS;
+export function StepStateProvider({
+  children,
+  flowMode = "marathon",
+  flowVariant = "upload",
+}: StepStateProviderProps) {
+  const steps =
+    flowMode === "by-camera"
+      ? BY_CAMERA_STEPS
+      : flowVariant === "prepare"
+        ? PREPARE_PARTICIPANT_STEPS
+        : PARTICIPANT_SUBMISSION_STEPS;
   const maxSteps = Object.keys(steps).length;
 
   const [step, setStep] = useQueryState(
@@ -66,9 +83,19 @@ export function StepStateProvider({ children, flowMode = "marathon" }: StepState
   };
 
   return (
-    <StepStateContext.Provider value={{ step, direction, maxSteps, flowMode, handleNextStep, handlePrevStep, handleSetStep }
-    }>
+    <StepStateContext.Provider
+      value={{
+        step,
+        direction,
+        maxSteps,
+        flowMode,
+        flowVariant,
+        handleNextStep,
+        handlePrevStep,
+        handleSetStep,
+      }}
+    >
       {children}
     </StepStateContext.Provider>
   );
-} 
+}

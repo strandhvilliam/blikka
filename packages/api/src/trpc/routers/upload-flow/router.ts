@@ -1,25 +1,28 @@
-import "server-only"
+import "server-only";
 
-import { Effect } from "effect"
+import { Effect } from "effect";
 import {
   GetPublicMarathonSchema,
   InitializeUploadFlowSchema,
+  PrepareUploadFlowSchema,
   InitializeByCameraUploadSchema,
   ResolveByCameraParticipantByPhoneSchema,
   CheckParticipantExistsSchema,
   GetUploadStatusSchema,
   ReTriggerUploadFlowSchema,
-} from "./schemas"
-import { trpcEffect } from "../../utils"
-import { createTRPCRouter, domainProcedure, publicProcedure } from "../../root"
-import { UploadFlowApiService } from "./service"
+} from "./schemas";
+import { trpcEffect } from "../../utils";
+import { createTRPCRouter, domainProcedure, publicProcedure } from "../../root";
+import { UploadFlowApiService } from "./service";
 
 export const uploadFlowRouter = createTRPCRouter({
   getPublicMarathon: publicProcedure.input(GetPublicMarathonSchema).query(
     trpcEffect(
       Effect.fn("UploadFlowRouter.getPublicMarathon")(function* ({ input }) {
         // TODO: add cache. the cache should be invalidated when the marathon is updated.
-        return yield* UploadFlowApiService.use((s) => s.getPublicMarathon(input))
+        return yield* UploadFlowApiService.use((s) =>
+          s.getPublicMarathon(input),
+        );
       }),
     ),
   ),
@@ -30,10 +33,21 @@ export const uploadFlowRouter = createTRPCRouter({
         Effect.fn("UploadFlowRouter.initializeUploadFlow")(function* ({
           input,
         }) {
-          return yield* UploadFlowApiService.use((s) => s.initializeUploadFlow(input))
+          return yield* UploadFlowApiService.use((s) =>
+            s.initializeUploadFlow(input),
+          );
         }),
       ),
     ),
+  prepareUploadFlow: publicProcedure.input(PrepareUploadFlowSchema).mutation(
+    trpcEffect(
+      Effect.fn("UploadFlowRouter.prepareUploadFlow")(function* ({ input }) {
+        return yield* UploadFlowApiService.use((s) =>
+          s.prepareUploadFlow(input),
+        );
+      }),
+    ),
+  ),
 
   initializeByCameraUpload: publicProcedure
     .input(InitializeByCameraUploadSchema)
@@ -42,7 +56,9 @@ export const uploadFlowRouter = createTRPCRouter({
         Effect.fn("UploadFlowRouter.initializeByCameraUpload")(function* ({
           input,
         }) {
-          return yield* UploadFlowApiService.use((s) => s.initializeByCameraUpload(input))
+          return yield* UploadFlowApiService.use((s) =>
+            s.initializeByCameraUpload(input),
+          );
         }),
       ),
     ),
@@ -51,13 +67,13 @@ export const uploadFlowRouter = createTRPCRouter({
     .input(ResolveByCameraParticipantByPhoneSchema)
     .mutation(
       trpcEffect(
-        Effect.fn("UploadFlowRouter.resolveByCameraParticipantByPhone")(function* ({
-          input,
-        }) {
-          return yield* UploadFlowApiService.use((s) =>
-            s.resolveByCameraParticipantByPhone(input),
-          )
-        }),
+        Effect.fn("UploadFlowRouter.resolveByCameraParticipantByPhone")(
+          function* ({ input }) {
+            return yield* UploadFlowApiService.use((s) =>
+              s.resolveByCameraParticipantByPhone(input),
+            );
+          },
+        ),
       ),
     ),
 
@@ -68,7 +84,9 @@ export const uploadFlowRouter = createTRPCRouter({
         Effect.fn("UploadFlowRouter.checkParticipantExists")(function* ({
           input,
         }) {
-          return yield* UploadFlowApiService.use((s) => s.checkParticipantExists(input))
+          return yield* UploadFlowApiService.use((s) =>
+            s.checkParticipantExists(input),
+          );
         }),
       ),
     ),
@@ -76,7 +94,7 @@ export const uploadFlowRouter = createTRPCRouter({
   getUploadStatus: publicProcedure.input(GetUploadStatusSchema).query(
     trpcEffect(
       Effect.fn("UploadFlowRouter.getUploadStatus")(function* ({ input }) {
-        return yield* UploadFlowApiService.use((s) => s.getUploadStatus(input))
+        return yield* UploadFlowApiService.use((s) => s.getUploadStatus(input));
       }),
     ),
   ),
@@ -85,9 +103,13 @@ export const uploadFlowRouter = createTRPCRouter({
     .input(ReTriggerUploadFlowSchema)
     .mutation(
       trpcEffect(
-        Effect.fn("UploadFlowRouter.reTriggerUploadFlow")(function* ({ input }) {
-          return yield* UploadFlowApiService.use((s) => s.reTriggerUploadFlow(input))
+        Effect.fn("UploadFlowRouter.reTriggerUploadFlow")(function* ({
+          input,
+        }) {
+          return yield* UploadFlowApiService.use((s) =>
+            s.reTriggerUploadFlow(input),
+          );
         }),
       ),
     ),
-})
+});

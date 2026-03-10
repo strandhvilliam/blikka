@@ -4,11 +4,12 @@ import {
   parseAsStringLiteral,
   parseAsString,
   parseAsArrayOf,
-} from "nuqs/server"
+} from "nuqs/server";
 
 export const submissionSearchParams = {
   tab: parseAsStringLiteral([
     "all",
+    "prepared",
     "initialized",
     "uploaded",
     "not-verified",
@@ -21,6 +22,6 @@ export const submissionSearchParams = {
   sortOrder: parseAsStringLiteral(["asc", "desc"]).withDefault("desc"),
   competitionClassId: parseAsArrayOf(parseAsInteger),
   deviceGroupId: parseAsArrayOf(parseAsInteger),
-}
+};
 
-export const loadSubmissionSearchParams = createLoader(submissionSearchParams)
+export const loadSubmissionSearchParams = createLoader(submissionSearchParams);

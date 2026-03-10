@@ -1,19 +1,20 @@
 export type SubmissionTab =
   | "all"
+  | "prepared"
   | "initialized"
   | "uploaded"
   | "not-verified"
   | "verified"
   | "not-voted"
   | "voted"
-  | "validation-errors"
+  | "validation-errors";
 
 export interface TabQueryParams {
-  statusFilter: "completed" | "verified" | null
-  excludeStatuses: string[] | null
-  includeStatuses: string[] | null
-  hasValidationErrors: boolean | null
-  votedFilter: "voted" | "not-voted" | null
+  statusFilter: "completed" | "verified" | null;
+  excludeStatuses: string[] | null;
+  includeStatuses: string[] | null;
+  hasValidationErrors: boolean | null;
+  votedFilter: "voted" | "not-voted" | null;
 }
 
 export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
@@ -25,15 +26,23 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
         includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: null,
-      }
+      };
+    case "prepared":
+      return {
+        statusFilter: null,
+        excludeStatuses: null,
+        includeStatuses: ["prepared"],
+        hasValidationErrors: null,
+        votedFilter: null,
+      };
     case "initialized":
       return {
         statusFilter: null,
-        excludeStatuses: ["completed", "verified"],
-        includeStatuses: null,
+        excludeStatuses: null,
+        includeStatuses: ["initialized"],
         hasValidationErrors: null,
         votedFilter: null,
-      }
+      };
     case "uploaded":
       return {
         statusFilter: null,
@@ -41,7 +50,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
         includeStatuses: ["completed", "verified"],
         hasValidationErrors: null,
         votedFilter: null,
-      }
+      };
     case "not-verified":
       return {
         statusFilter: "completed",
@@ -49,7 +58,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
         includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: null,
-      }
+      };
     case "verified":
       return {
         statusFilter: "verified",
@@ -57,7 +66,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
         includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: null,
-      }
+      };
     case "not-voted":
       return {
         statusFilter: null,
@@ -65,7 +74,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
         includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: "not-voted",
-      }
+      };
     case "voted":
       return {
         statusFilter: null,
@@ -73,7 +82,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
         includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: "voted",
-      }
+      };
     case "validation-errors":
       return {
         statusFilter: null,
@@ -81,7 +90,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
         includeStatuses: null,
         hasValidationErrors: true,
         votedFilter: null,
-      }
+      };
     default:
       return {
         statusFilter: null,
@@ -89,7 +98,7 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
         includeStatuses: null,
         hasValidationErrors: null,
         votedFilter: null,
-      }
+      };
   }
 }
 
@@ -97,6 +106,6 @@ export function getTabQueryParams(activeTab: SubmissionTab): TabQueryParams {
 export function normalizeIdArray(
   ids: number[] | null | undefined,
 ): number[] | undefined {
-  if (!ids || ids.length === 0) return undefined
-  return ids
+  if (!ids || ids.length === 0) return undefined;
+  return ids;
 }

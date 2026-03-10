@@ -1,77 +1,84 @@
-"use client"
+"use client";
 
-import { useState, useTransition } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useTranslations, useLocale, Locale } from "next-intl"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { PrimaryButton } from "@/components/ui/primary-button"
+import { useState, useTransition } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useTRPC } from "@/lib/trpc/client";
+import { useTranslations, useLocale, Locale } from "next-intl";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { cn, formatDomainPathname, formatPublicPathname } from "@/lib/utils"
-import { format } from "date-fns"
-import { Info, ImageIcon, Play } from "lucide-react"
-import ReactCountryFlag from "react-country-flag"
-import Image from "next/image"
-import { changeLocaleAction } from "@/lib/actions/change-locale-action"
-import { useRouter } from "next/navigation"
-import { useDomain } from "@/lib/domain-provider"
+} from "@/components/ui/dialog";
+import { cn, formatDomainPathname, formatPublicPathname } from "@/lib/utils";
+import { format } from "date-fns";
+import { Info, ImageIcon, Play } from "lucide-react";
+import ReactCountryFlag from "react-country-flag";
+import Image from "next/image";
+import { changeLocaleAction } from "@/lib/actions/change-locale-action";
+import { useRouter } from "next/navigation";
+import { useDomain } from "@/lib/domain-provider";
 
-const BUCKET_NAME =
-  process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
+const BUCKET_NAME = process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME;
 
 export function LiveClientPage() {
-  const domain = useDomain()
-  const trpc = useTRPC()
-  const t = useTranslations("LivePage")
-  const locale = useLocale()
-  const router = useRouter()
-  const [isPending, startTransition] = useTransition()
+  const domain = useDomain();
+  const trpc = useTRPC();
+  const t = useTranslations("LivePage");
+  const locale = useLocale();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   const setLocale = (locale: Locale) => {
     startTransition(async () => {
-      const response = await changeLocaleAction(locale)
+      const response = await changeLocaleAction(locale);
 
       if (response.error) {
-        console.error("Failed to change locale:", response.error)
-        return
+        console.error("Failed to change locale:", response.error);
+        return;
       }
 
-      router.refresh()
-    })
-  }
+      router.refresh();
+    });
+  };
 
   const { data: marathon } = useSuspenseQuery(
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
-  )
+  );
 
-  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const handleStart = () => {
+  const handleStartUpload = () => {
     if (termsAccepted) {
       switch (marathon.mode) {
         case "marathon":
-          router.push(formatDomainPathname(`/live/marathon`, domain, "live"))
-          break
+          router.push(formatDomainPathname(`/live/marathon`, domain, "live"));
+          break;
         case "by-camera":
-          router.push(formatDomainPathname(`/live/by-camera`, domain, "live"))
-          break
+          router.push(formatDomainPathname(`/live/by-camera`, domain, "live"));
+          break;
       }
     }
-  }
+  };
+
+  const handleStartPrepare = () => {
+    if (!termsAccepted || marathon.mode !== "marathon") {
+      return;
+    }
+
+    router.push(formatDomainPathname(`/live/marathon/prepare`, domain, "live"));
+  };
 
   const sponsorImages = marathon.sponsors
     ?.filter((s) => s.type.startsWith("live-initial"))
     .sort(
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    )
+    );
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
@@ -87,10 +94,7 @@ export function LiveClientPage() {
               t={t}
             />
 
-            <RulesAndInformation
-              description={marathon.description}
-              t={t}
-            />
+            <RulesAndInformation description={marathon.description} t={t} />
 
             <TermsCheckbox
               termsAccepted={termsAccepted}
@@ -100,8 +104,10 @@ export function LiveClientPage() {
               t={t}
             />
 
-            <StartButton
-              onClick={handleStart}
+            <StartButtons
+              marathonMode={marathon.mode}
+              onUploadClick={handleStartUpload}
+              onPrepareClick={handleStartPrepare}
               disabled={!termsAccepted}
               t={t}
             />
@@ -113,21 +119,20 @@ export function LiveClientPage() {
         </main>
       </div>
     </div>
-  )
+  );
 }
-
 
 function LogoAndEventInfo({
   marathon,
   t,
 }: {
   marathon: {
-    logoUrl: string | null
-    name: string
-    startDate: string | null
-    endDate: string | null
-  }
-  t: (key: string) => string
+    logoUrl: string | null;
+    name: string;
+    startDate: string | null;
+    endDate: string | null;
+  };
+  t: (key: string) => string;
 }) {
   return (
     <div className="flex flex-col items-center pb-12">
@@ -154,7 +159,7 @@ function LogoAndEventInfo({
         )}
       </p>
     </div>
-  )
+  );
 }
 
 function LanguageSelection({
@@ -163,10 +168,10 @@ function LanguageSelection({
   isPending,
   t,
 }: {
-  locale: string
-  setLocale: (locale: Locale) => void
-  isPending: boolean
-  t: (key: string) => string
+  locale: string;
+  setLocale: (locale: Locale) => void;
+  isPending: boolean;
+  t: (key: string) => string;
 }) {
   return (
     <section className="mb-5">
@@ -200,17 +205,17 @@ function LanguageSelection({
         </Button>
       </div>
     </section>
-  )
+  );
 }
 
 function RulesAndInformation({
   description,
   t,
 }: {
-  description: string | null
-  t: (key: string) => string
+  description: string | null;
+  t: (key: string) => string;
 }) {
-  if (!description) return null
+  if (!description) return null;
 
   return (
     <section className="mb-5">
@@ -235,28 +240,55 @@ function RulesAndInformation({
         </DialogContent>
       </Dialog>
     </section>
-  )
+  );
 }
 
-function StartButton({
-  onClick,
+function StartButtons({
+  marathonMode,
+  onUploadClick,
+  onPrepareClick,
   disabled,
   t,
 }: {
-  onClick: () => void
-  disabled: boolean
-  t: (key: string) => string
+  marathonMode: "marathon" | "by-camera";
+  onUploadClick: () => void;
+  onPrepareClick: () => void;
+  disabled: boolean;
+  t: (key: string) => string;
 }) {
+  if (marathonMode === "marathon") {
+    return (
+      <div className="flex flex-col gap-3">
+        <PrimaryButton
+          onClick={onUploadClick}
+          disabled={disabled}
+          className="w-full py-3 text-base text-white rounded-full"
+        >
+          {t("beginUpload")}
+          <Play className="h-4 w-4" />
+        </PrimaryButton>
+        <Button
+          variant="outline"
+          onClick={onPrepareClick}
+          disabled={disabled}
+          className="w-full py-3 text-base rounded-full"
+        >
+          {t("prepareForLater")}
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <PrimaryButton
-      onClick={onClick}
+      onClick={onUploadClick}
       disabled={disabled}
       className="w-full py-3 text-base text-white rounded-full"
     >
       {t("begin")}
       <Play className="h-4 w-4" />
     </PrimaryButton>
-  )
+  );
 }
 
 function TermsCheckbox({
@@ -266,11 +298,11 @@ function TermsCheckbox({
   locale,
   t,
 }: {
-  termsAccepted: boolean
-  setTermsAccepted: (value: boolean) => void
-  domain: string
-  locale: string
-  t: (key: string) => string
+  termsAccepted: boolean;
+  setTermsAccepted: (value: boolean) => void;
+  domain: string;
+  locale: string;
+  t: (key: string) => string;
 }) {
   return (
     <section className="mb-6 space-y-4">
@@ -279,9 +311,7 @@ function TermsCheckbox({
           <Checkbox
             id="platform-terms"
             checked={termsAccepted}
-            onCheckedChange={(checked) =>
-              setTermsAccepted(checked as boolean)
-            }
+            onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
           />
           {t("termsAccept")}{" "}
           <a
@@ -294,7 +324,7 @@ function TermsCheckbox({
         </div>
       </label>
     </section>
-  )
+  );
 }
 
 function SponsorsSection({
@@ -302,11 +332,11 @@ function SponsorsSection({
   t,
 }: {
   sponsorImages:
-  | { id: number; key: string; type: string; createdAt: string }[]
-  | undefined
-  t: (key: string) => string
+    | { id: number; key: string; type: string; createdAt: string }[]
+    | undefined;
+  t: (key: string) => string;
 }) {
-  if (!sponsorImages || sponsorImages.length === 0) return null
+  if (!sponsorImages || sponsorImages.length === 0) return null;
 
   return (
     <div className="mt-4 pt-6 border-t border-gray-200">
@@ -328,7 +358,7 @@ function SponsorsSection({
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 function PoweredByBlikka({ t }: { t: (key: string) => string }) {
@@ -338,16 +368,11 @@ function PoweredByBlikka({ t }: { t: (key: string) => string }) {
         {t("poweredBy")}
       </p>
       <div className="flex items-center gap-1.5">
-        <Image
-          src="/blikka-logo.svg"
-          alt="Blikka"
-          width={20}
-          height={17}
-        />
+        <Image src="/blikka-logo.svg" alt="Blikka" width={20} height={17} />
         <span className="font-rocgrotesk font-bold text-base tracking-tight">
           blikka
         </span>
       </div>
     </div>
-  )
+  );
 }

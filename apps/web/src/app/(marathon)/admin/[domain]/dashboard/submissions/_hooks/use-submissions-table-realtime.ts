@@ -24,10 +24,7 @@ import { z } from "zod";
 import { useRealtime } from "@/lib/realtime-client";
 import type { TableData } from "./use-submissions-table";
 
-
 type ParsedRealtimeEventData = z.infer<typeof realtimeEventDataSchema>;
-
-
 
 interface ParticipantsPage {
   participants: TableData[];
@@ -53,7 +50,6 @@ interface TrackingState {
   finalized: ReadonlySet<string>;
 }
 
-
 interface BatchedRealtimeEffects {
   invalidateInitializer: boolean;
   invalidateTaskError: boolean;
@@ -69,19 +65,20 @@ const realtimeEventDataSchema = z
   })
   .loose();
 
-
 const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(
   typeof process !== "undefined" ? process.env.NODE_ENV : undefined,
 );
 
 const RESULT_EVENT = {
   uploadFlowInitializer: getRealtimeResultEventName("upload-flow-initialized"),
+  participantPrepared: getRealtimeResultEventName("participant-prepared"),
   submissionProcessed: getRealtimeResultEventName("submission-processed"),
   participantFinalized: getRealtimeResultEventName("participant-finalized"),
 } as const;
 
 const SUBSCRIBED_EVENTS = [
   RESULT_EVENT.uploadFlowInitializer,
+  RESULT_EVENT.participantPrepared,
   RESULT_EVENT.submissionProcessed,
   RESULT_EVENT.participantFinalized,
 ] as const;
@@ -93,7 +90,6 @@ const MAX_TRACKED_REFERENCES = 1000;
 const REALTIME_BATCH_WINDOW_MS = 80;
 const MAX_PENDING_REALTIME_EVENTS = 200;
 
-
 /**
  * Normalizes realtime payloads into the validated shape this hook expects.
  * The transport may deliver either parsed objects or JSON strings.
@@ -102,12 +98,12 @@ function parseRealtimeEventData(raw: unknown): ParsedRealtimeEventData {
   const asRecord =
     typeof raw === "string"
       ? (() => {
-        try {
-          return JSON.parse(raw) as unknown;
-        } catch {
-          return {};
-        }
-      })()
+          try {
+            return JSON.parse(raw) as unknown;
+          } catch {
+            return {};
+          }
+        })()
       : raw;
   const parsed = realtimeEventDataSchema.safeParse(asRecord);
   return parsed.success ? parsed.data : {};
@@ -131,7 +127,8 @@ function collectBatchedEffects(
     const { event, data } = queuedEvent;
 
     switch (event) {
-      case RESULT_EVENT.uploadFlowInitializer: {
+      case RESULT_EVENT.uploadFlowInitializer:
+      case RESULT_EVENT.participantPrepared: {
         effects.invalidateInitializer = true;
         break;
       }
@@ -190,7 +187,8 @@ function reduceTrackingState(
     const { event, data } = queuedEvent;
 
     switch (event) {
-      case RESULT_EVENT.uploadFlowInitializer: {
+      case RESULT_EVENT.uploadFlowInitializer:
+      case RESULT_EVENT.participantPrepared: {
         if (!data.reference) {
           break;
         }
@@ -221,7 +219,6 @@ function reduceTrackingState(
 
         if (orderIndex !== undefined && orderIndex !== null) {
           if (previousIndices?.has(orderIndex)) break;
-
 
           const nextIndices = new Set(previousIndices);
           nextIndices.add(orderIndex);
@@ -276,7 +273,10 @@ export function useSubmissionsTableRealtime({
   queryClient,
   participantsQueryPathKey,
 }: UseSubmissionsTableRealtimeInput) {
-  const [tracking, setTracking] = useState<TrackingState>(() => ({ processed: new Map(), finalized: new Set() }));
+  const [tracking, setTracking] = useState<TrackingState>(() => ({
+    processed: new Map(),
+    finalized: new Set(),
+  }));
   const pendingEventsRef = useRef<QueuedRealtimeEvent[]>([]);
   const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

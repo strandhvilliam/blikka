@@ -21,6 +21,8 @@
     "termsAccept": "I agree to the",
     "termsAndConditions": "terms and conditions",
     "begin": "Begin",
+    "beginUpload": "Upload now",
+    "prepareForLater": "Prepare for later",
     "sponsors": "Sponsors",
     "poweredBy": "powered by",
     "datesToBeAnnounced": "Dates to be announced"
@@ -30,16 +32,21 @@
       "title": "Enter your participant number",
       "description": "Enter your 4-digit participant number to continue",
       "descriptionAlreadyExists": "We found your participant number. Click continue to proceed.",
+      "descriptionPrepared": "We found a prepared participant with this number. Continue to start the actual upload flow.",
       "required": "A number with 1 to 4 digits is required.",
       "continue": "Continue",
       "error": "An error occurred. Please try again.",
+      "blocked": "This participant number has already been fully submitted and cannot be used again.",
+      "prepareBlocked": "This participant number has already started the upload flow and cannot be prepared again.",
       "confirmDialog": {
         "title": "Confirm Participant",
         "titleExists": "Welcome back!",
         "titleNew": "New participant",
+        "titlePrepared": "Prepared participant found",
         "description": "We found a session for participant number {ref}. Is this you?",
         "descriptionExists": "We found a session for participant number {ref}. Is this you?",
         "descriptionNew": "This will create a new upload session for this participant number. Continue?",
+        "descriptionPrepared": "Participant number {ref} is already prepared. Continue to start the actual upload flow now?",
         "cancel": "Cancel",
         "confirm": "Continue"
       }
@@ -49,7 +56,8 @@
       "details": "Details",
       "class": "Class",
       "device": "Device",
-      "upload": "Upload"
+      "upload": "Upload",
+      "next": "Next step"
     },
     "participantDetails": {
       "title": "Your Details",
@@ -169,6 +177,24 @@
       "checkConnection": "Please check your connection and try again",
       "retryFailed": "Retry Failed ({count})",
       "continue": "Continue"
+    },
+    "prepareStep": {
+      "reviewTitle": "Prepare for later upload",
+      "reviewDescription": "Save these participant details now so a staff member can upload the photos later on a laptop.",
+      "readyTitle": "You're ready for the next step",
+      "readyDescription": "Your participant details are saved. Follow the organizer's instructions when it's time to upload your photos later.",
+      "participantNumberLabel": "Participant number",
+      "participantLabel": "Participant",
+      "emailLabel": "Email",
+      "classLabel": "Class",
+      "deviceLabel": "Device",
+      "nextBadge": "Later upload",
+      "nextTitle": "What happens next",
+      "nextBody": "Keep your participant number handy. When the organizers are ready, a staff member will use this number to connect your photos to your participant entry.",
+      "confirm": "Save and continue",
+      "back": "Back",
+      "startOver": "Start over",
+      "saveFailed": "Failed to save participant details"
     }
   },
   "VerificationPage": {

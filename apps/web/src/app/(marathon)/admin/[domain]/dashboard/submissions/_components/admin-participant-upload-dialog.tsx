@@ -214,11 +214,12 @@ export function AdminParticipantUploadDialog({
         return;
       }
       try {
-        const exists = await checkParticipantExistsMutation.mutateAsync({
-          domain,
-          reference: formValue.reference,
-        });
-        if (exists) {
+        const participantCheck =
+          await checkParticipantExistsMutation.mutateAsync({
+            domain,
+            reference: formValue.reference,
+          });
+        if (participantCheck.exists) {
           setPendingReference(formValue.reference);
           setShowOverwriteDialog(true);
           return;

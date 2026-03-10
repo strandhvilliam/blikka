@@ -128,6 +128,12 @@ export const getSubmissionsColumns = ({
           ? "completed"
           : (row.getValue("status") as string);
         const statusConfig = {
+          prepared: {
+            variant: "outline" as const,
+            className:
+              "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+            icon: Clock,
+          },
           completed: {
             variant: "default" as const,
             className:

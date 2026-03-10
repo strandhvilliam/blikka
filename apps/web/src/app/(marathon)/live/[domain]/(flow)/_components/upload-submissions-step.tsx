@@ -1,46 +1,46 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useDomain } from "@/lib/domain-provider"
-import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
-import { useTRPC } from "@/lib/trpc/client"
-import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
-import { formatDomainPathname } from "@/lib/utils"
+} from "@/components/ui/card";
+import { PrimaryButton } from "@/components/ui/primary-button";
+import { useDomain } from "@/lib/domain-provider";
+import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing";
+import { useTRPC } from "@/lib/trpc/client";
+import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client";
+import { formatDomainPathname } from "@/lib/utils";
 import type {
   CompetitionClass,
   RuleConfig as DbRuleConfig,
   Topic,
-} from "@blikka/db"
-import { useMutation } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
-import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "motion/react"
-import { useRef, useState, useMemo } from "react"
-import { toast } from "sonner"
-import { useFileUpload } from "../_hooks/use-file-upload"
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
-import { useSelectFile } from "../_hooks/use-select-file"
-import { usePhotoStore } from "../_lib/photo-store"
-import { useHeicStore } from "../_lib/heic-store"
-import { useStepState } from "../_lib/step-state-context"
-import type { PhotoWithPresignedUrl } from "../_lib/types"
-import { useUploadStore } from "../_lib/upload-store"
-import { SubmissionList } from "./submission-list"
-import { UploadProgress } from "./upload-progress"
-import { UploadSection } from "./upload-section"
-import { HeicConversionDialog } from "./heic-conversion-dialog"
-import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog"
-import { VALIDATION_OUTCOME } from "@blikka/validation"
-import { useEffect } from "react"
-import { mapRuleConfigsToValidationRules } from "@/lib/validation"
+} from "@blikka/db";
+import { useMutation } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
+import { useRef, useState, useMemo } from "react";
+import { toast } from "sonner";
+import { useFileUpload } from "../_hooks/use-file-upload";
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import { useSelectFile } from "../_hooks/use-select-file";
+import { usePhotoStore } from "../_lib/photo-store";
+import { useHeicStore } from "../_lib/heic-store";
+import { useStepState } from "../_lib/step-state-context";
+import type { PhotoWithPresignedUrl } from "../_lib/types";
+import { useUploadStore } from "../_lib/upload-store";
+import { SubmissionList } from "./submission-list";
+import { UploadProgress } from "./upload-progress";
+import { UploadSection } from "./upload-section";
+import { HeicConversionDialog } from "./heic-conversion-dialog";
+import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
+import { VALIDATION_OUTCOME } from "@blikka/validation";
+import { useEffect } from "react";
+import { mapRuleConfigsToValidationRules } from "@/lib/validation";
 
 export function UploadSubmissionsStep({
   ruleConfigs,
@@ -49,43 +49,43 @@ export function UploadSubmissionsStep({
   marathonStartDate,
   marathonEndDate,
 }: {
-  ruleConfigs: DbRuleConfig[]
-  topics: Topic[]
-  competitionClass: CompetitionClass
-  marathonStartDate: string
-  marathonEndDate: string
+  ruleConfigs: DbRuleConfig[];
+  topics: Topic[];
+  competitionClass: CompetitionClass;
+  marathonStartDate: string;
+  marathonEndDate: string;
 }) {
-  const t = useTranslations("FlowPage.uploadStep")
-  const trpc = useTRPC()
-  const domain = useDomain()
-  const { handlePrevStep } = useStepState()
-  const router = useRouter()
-  const { uploadFlowState } = useUploadFlowState()
+  const t = useTranslations("FlowPage.uploadStep");
+  const trpc = useTRPC();
+  const domain = useDomain();
+  const { handlePrevStep } = useStepState();
+  const router = useRouter();
+  const { uploadFlowState } = useUploadFlowState();
 
-  const initializeStore = usePhotoStore((state) => state.initialize)
-  const cleanup = usePhotoStore((state) => state.cleanup)
-  const clearPhotos = usePhotoStore((state) => state.clearPhotos)
-  const photos = usePhotoStore((state) => state.photos)
-  const removePhoto = usePhotoStore((state) => state.removePhoto)
-  const validationResults = usePhotoStore((state) => state.validationResults)
+  const initializeStore = usePhotoStore((state) => state.initialize);
+  const cleanup = usePhotoStore((state) => state.cleanup);
+  const clearPhotos = usePhotoStore((state) => state.clearPhotos);
+  const photos = usePhotoStore((state) => state.photos);
+  const removePhoto = usePhotoStore((state) => state.removePhoto);
+  const validationResults = usePhotoStore((state) => state.validationResults);
 
-  const isUploading = useUploadStore((state) => state.isUploading)
-  const setIsUploading = useUploadStore((state) => state.setIsUploading)
+  const isUploading = useUploadStore((state) => state.isUploading);
+  const setIsUploading = useUploadStore((state) => state.setIsUploading);
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
-  const [isNavigating, setIsNavigating] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  const heicIsConverting = useHeicStore((state) => state.isConverting)
-  const heicIsCancelling = useHeicStore((state) => state.isCancelling)
-  const heicProgress = useHeicStore((state) => state.progress)
-  const heicCurrentFileName = useHeicStore((state) => state.currentFileName)
-  const cancelHeicConversion = useHeicStore((state) => state.cancel)
+  const heicIsConverting = useHeicStore((state) => state.isConverting);
+  const heicIsCancelling = useHeicStore((state) => state.isCancelling);
+  const heicProgress = useHeicStore((state) => state.progress);
+  const heicCurrentFileName = useHeicStore((state) => state.currentFileName);
+  const cancelHeicConversion = useHeicStore((state) => state.cancel);
 
   const { handleFileSelect } = useSelectFile({
     maxPhotos: competitionClass.numberOfPhotos,
     t,
-  })
+  });
 
   const {
     files: uploadFiles,
@@ -98,42 +98,41 @@ export function UploadSubmissionsStep({
     onAllCompleted: () => {
       setTimeout(() => {
         // TODO: Navigate to verification page
-        toast.success(t("uploadComplete"))
-      }, 500)
+        toast.success(t("uploadComplete"));
+      }, 500);
     },
-  })
+  });
 
   const handleResetAndGoBack = () => {
-    const confirmed = window.confirm(t("confirmGoBack"))
+    const confirmed = window.confirm(t("confirmGoBack"));
 
     if (!confirmed) {
-      return
+      return;
     }
 
-    clearPhotos()
-    clearFiles()
-    setIsUploading(false)
-    setShowConfirmationDialog(false)
-    handlePrevStep()
-  }
+    clearPhotos();
+    clearFiles();
+    setIsUploading(false);
+    setShowConfirmationDialog(false);
+    handlePrevStep();
+  };
 
-  const { mutateAsync: initializeUploadFlow, isPending: isInitializing } =
-    useMutation(
-      trpc.uploadFlow.initializeUploadFlow.mutationOptions({
-        onError: (error) => {
-          toast.error(error.message || t("initializationFailed"))
-        },
-      }),
-    )
+  const { mutateAsync: initializeUploadFlow } = useMutation(
+    trpc.uploadFlow.initializeUploadFlow.mutationOptions({
+      onError: (error) => {
+        toast.error(error.message || t("initializationFailed"));
+      },
+    }),
+  );
 
   const validationRules = useMemo(
     () => mapRuleConfigsToValidationRules(ruleConfigs),
     [ruleConfigs],
-  )
+  );
   const topicOrderIndexes = useMemo(
     () => topics.map((topic) => topic.orderIndex),
     [topics],
-  )
+  );
 
   useEffect(() => {
     initializeStore({
@@ -142,11 +141,11 @@ export function UploadSubmissionsStep({
       marathonStartDate: marathonStartDate,
       marathonEndDate: marathonEndDate,
       topicOrderIndexes,
-    })
+    });
 
     return () => {
-      cleanup()
-    }
+      cleanup();
+    };
   }, [
     initializeStore,
     cleanup,
@@ -155,28 +154,28 @@ export function UploadSubmissionsStep({
     marathonStartDate,
     marathonEndDate,
     topicOrderIndexes,
-  ])
+  ]);
 
   const handleUploadClick = () => {
     if (photos.length >= competitionClass.numberOfPhotos) {
-      toast.error(t("maxPhotosReached"))
-      return
+      toast.error(t("maxPhotosReached"));
+      return;
     }
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const handleSubmit = () => {
     if (photos.length !== competitionClass.numberOfPhotos) {
       toast.error(
         t("selectAllPhotos", { count: competitionClass.numberOfPhotos }),
-      )
-      return
+      );
+      return;
     }
-    setShowConfirmationDialog(true)
-  }
+    setShowConfirmationDialog(true);
+  };
 
   const handleConfirmedUpload = async () => {
-    setShowConfirmationDialog(false)
+    setShowConfirmationDialog(false);
 
     if (
       !domain ||
@@ -187,12 +186,12 @@ export function UploadSubmissionsStep({
       !uploadFlowState.participantLastName ||
       !uploadFlowState.participantEmail
     ) {
-      toast.error(t("missingRequiredInfo"))
-      return
+      toast.error(t("missingRequiredInfo"));
+      return;
     }
 
     try {
-      setIsUploading(true)
+      setIsUploading(true);
 
       const presignedUrls = await initializeUploadFlow({
         domain,
@@ -202,54 +201,55 @@ export function UploadSubmissionsStep({
         email: uploadFlowState.participantEmail,
         competitionClassId: uploadFlowState.competitionClassId,
         deviceGroupId: uploadFlowState.deviceGroupId,
-      })
+        phoneNumber: uploadFlowState.participantPhone,
+      });
 
       if (!presignedUrls || presignedUrls.length === 0) {
-        setIsUploading(false)
-        toast.error(t("failedToGetPresignedUrls"))
-        return
+        setIsUploading(false);
+        toast.error(t("failedToGetPresignedUrls"));
+        return;
       }
 
       const photosWithUrls: PhotoWithPresignedUrl[] = photos.map(
         (photo, index) => {
-          const urlInfo = presignedUrls[index]
+          const urlInfo = presignedUrls[index];
           if (!urlInfo) {
-            throw new Error(`Missing presigned URL for photo ${index}`)
+            throw new Error(`Missing presigned URL for photo ${index}`);
           }
           return {
             ...photo,
             presignedUrl: urlInfo.url,
             key: urlInfo.key,
-          }
+          };
         },
-      )
+      );
 
-      await executeUpload(photosWithUrls)
+      await executeUpload(photosWithUrls);
     } catch (error) {
-      console.error("Upload failed:", error)
-      setIsUploading(false)
-      toast.error(t("uploadFailed"))
+      console.error("Upload failed:", error);
+      setIsUploading(false);
+      toast.error(t("uploadFailed"));
     }
-  }
+  };
 
   const handleCloseUploadProgress = () => {
-    setIsNavigating(true)
-    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
+    setIsNavigating(true);
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState);
     router.push(
       formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
-    )
-  }
+    );
+  };
 
   const allPhotosSelected =
-    photos.length === competitionClass.numberOfPhotos && photos.length > 0
+    photos.length === competitionClass.numberOfPhotos && photos.length > 0;
 
   const hasValidationErrors = validationResults.some(
     (result) =>
       result.outcome === VALIDATION_OUTCOME.FAILED &&
       result.severity === "error",
-  )
+  );
 
-  const canSubmit = allPhotosSelected && !hasValidationErrors
+  const canSubmit = allPhotosSelected && !hasValidationErrors;
 
   return (
     <>
@@ -359,5 +359,5 @@ export function UploadSubmissionsStep({
         </motion.div>
       )}
     </>
-  )
+  );
 }

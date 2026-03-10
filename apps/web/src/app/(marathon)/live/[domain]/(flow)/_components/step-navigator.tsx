@@ -1,14 +1,22 @@
 import { CheckIcon } from "lucide-react";
 import { motion } from "motion/react";
-import { PARTICIPANT_SUBMISSION_STEPS } from "../_lib/constants";
+import {
+  PARTICIPANT_SUBMISSION_STEPS,
+  PREPARE_PARTICIPANT_STEPS,
+} from "../_lib/constants";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { useStepState } from "../_lib/step-state-context";
 
-
 export function StepNavigator() {
-  const { step: currentStep, handleSetStep } = useStepState();
+  const { step: currentStep, handleSetStep, flowVariant } = useStepState();
   const t = useTranslations("FlowPage");
+  const steps =
+    flowVariant === "prepare"
+      ? PREPARE_PARTICIPANT_STEPS
+      : PARTICIPANT_SUBMISSION_STEPS;
+  const stepNumbers = Object.values(steps);
+  const lastStep = stepNumbers[stepNumbers.length - 1];
 
   const getStepLabel = (step: number) => {
     switch (step) {
@@ -21,7 +29,7 @@ export function StepNavigator() {
       case PARTICIPANT_SUBMISSION_STEPS.DeviceSelectionStep:
         return t("steps.device");
       case PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep:
-        return t("steps.upload");
+        return flowVariant === "prepare" ? t("steps.next") : t("steps.upload");
       default:
         return "";
     }
@@ -30,13 +38,12 @@ export function StepNavigator() {
   return (
     <nav className="mb-0">
       <ol className="flex items-center mx-auto max-w-3xl">
-        {Object.values(PARTICIPANT_SUBMISSION_STEPS).map((step) => (
+        {stepNumbers.map((step) => (
           <li
             key={step}
             className={cn(
               "flex flex-col items-center",
-              step !== PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep &&
-              "flex-1",
+              step !== lastStep && "flex-1",
             )}
           >
             <div className="flex items-center w-full">
@@ -73,7 +80,7 @@ export function StepNavigator() {
                   </span>
                 )}
               </motion.button>
-              {step !== PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep && (
+              {step !== lastStep && (
                 <div className="flex-1 relative">
                   <motion.div
                     initial={false}

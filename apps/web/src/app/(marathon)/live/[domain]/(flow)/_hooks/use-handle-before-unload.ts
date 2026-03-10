@@ -1,7 +1,11 @@
 import { useEffect } from "react";
 
-export function useHandleBeforeUnload() {
+export function useHandleBeforeUnload(enabled = true) {
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       return "Are you sure you want to leave? All progress will be lost.";
@@ -24,5 +28,5 @@ export function useHandleBeforeUnload() {
         window.removeEventListener("beforeunload", handleBeforeUnload);
       }
     };
-  }, []);
+  }, [enabled]);
 }

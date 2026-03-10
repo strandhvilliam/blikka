@@ -1,4 +1,3 @@
-import type { ReactNode } from "react"
 import {
   AlertTriangle,
   CheckCircle,
@@ -11,7 +10,7 @@ import {
   Zap,
   Camera,
   XCircle,
-} from "lucide-react"
+} from "lucide-react";
 
 import type {
   Participant,
@@ -19,32 +18,43 @@ import type {
   CompetitionClass,
   DeviceGroup,
   Submission,
-} from "@blikka/db"
+  ContactSheet,
+  ZippedSubmission,
+} from "@blikka/db";
 
 export type ParticipantWithRelations = Participant & {
-  validationResults: ValidationResult[]
-  competitionClass: CompetitionClass | null
-  deviceGroup: DeviceGroup | null
-  submissions?: Submission[]
-  contactSheets?: any[]
-  zippedSubmissions?: any[]
-}
+  validationResults: ValidationResult[];
+  competitionClass: CompetitionClass | null;
+  deviceGroup: DeviceGroup | null;
+  submissions?: Submission[];
+  contactSheets?: ContactSheet[];
+  zippedSubmissions?: ZippedSubmission[];
+};
 
 const statusConfigMap: Record<
   string,
   {
-    icon: LucideIcon
-    label: string
-    description: string
-    color: string
-    bgColor: string
-    borderColor: string
+    icon: LucideIcon;
+    label: string;
+    description: string;
+    color: string;
+    bgColor: string;
+    borderColor: string;
   }
 > = {
+  prepared: {
+    icon: Clock,
+    label: "Prepared",
+    description:
+      "Participant details are saved and waiting for organizer-assisted upload",
+    color: "text-amber-700",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-200",
+  },
   initialized: {
     icon: Clock,
     label: "Initialized",
-    description: "Participant has been created but not started",
+    description: "Upload session started and waiting for images",
     color: "text-gray-600",
     bgColor: "bg-gray-100",
     borderColor: "border-gray-200",
@@ -81,7 +91,7 @@ const statusConfigMap: Record<
     bgColor: "bg-green-50",
     borderColor: "border-green-200",
   },
-} as const
+} as const;
 
 export const getStatusConfig = (status: string) => {
   return (
@@ -93,50 +103,60 @@ export const getStatusConfig = (status: string) => {
       bgColor: "bg-gray-100",
       borderColor: "border-gray-200",
     }
-  )
-}
+  );
+};
 
 export const getDeviceIcon = (icon?: string): LucideIcon => {
   switch (icon) {
     case "smartphone":
-      return Smartphone
+      return Smartphone;
     case "action-camera":
-      return Zap
+      return Zap;
     default:
-      return Camera
+      return Camera;
   }
-}
+};
 
 function getValidationBadgeColor(allPassed: boolean, hasErrors: boolean) {
-  if (allPassed) return "bg-green-500/15 text-green-600 hover:bg-green-500/20"
-  if (hasErrors) return "bg-destructive/15 text-destructive hover:bg-destructive/20"
-  return "bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20"
+  if (allPassed) return "bg-green-500/15 text-green-600 hover:bg-green-500/20";
+  if (hasErrors)
+    return "bg-destructive/15 text-destructive hover:bg-destructive/20";
+  return "bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20";
 }
 
-function getValidationBadgeIcon(allPassed: boolean, hasErrors: boolean): LucideIcon {
-  if (allPassed) return CheckCircle
-  if (hasErrors) return XCircle
-  return AlertTriangle
+function getValidationBadgeIcon(
+  allPassed: boolean,
+  hasErrors: boolean,
+): LucideIcon {
+  if (allPassed) return CheckCircle;
+  if (hasErrors) return XCircle;
+  return AlertTriangle;
 }
 
 function getValidationBadgeLabel(allPassed: boolean, hasErrors: boolean) {
-  if (allPassed) return "Valid"
-  if (hasErrors) return "Error"
-  return "Warning"
+  if (allPassed) return "Valid";
+  if (hasErrors) return "Error";
+  return "Warning";
 }
 
-export const getValidationBadgeConfig = (validationResults: ValidationResult[]) => {
-  const globalValidations = validationResults.filter((result) => !result.fileName)
-  const hasFailedValidations = globalValidations.some((result) => result.outcome === "failed")
+export const getValidationBadgeConfig = (
+  validationResults: ValidationResult[],
+) => {
+  const globalValidations = validationResults.filter(
+    (result) => !result.fileName,
+  );
+  const hasFailedValidations = globalValidations.some(
+    (result) => result.outcome === "failed",
+  );
   const hasErrors = globalValidations.some(
-    (result) => result.severity === "error" && result.outcome === "failed"
-  )
-  const allPassed = globalValidations.length > 0 && !hasFailedValidations
+    (result) => result.severity === "error" && result.outcome === "failed",
+  );
+  const allPassed = globalValidations.length > 0 && !hasFailedValidations;
 
   return {
     badgeColor: getValidationBadgeColor(allPassed, hasErrors),
     icon: getValidationBadgeIcon(allPassed, hasErrors),
     label: getValidationBadgeLabel(allPassed, hasErrors),
     hasValidations: globalValidations.length > 0,
-  }
-}
+  };
+};
