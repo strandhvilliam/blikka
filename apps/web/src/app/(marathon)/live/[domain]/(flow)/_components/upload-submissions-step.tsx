@@ -12,6 +12,8 @@ import { PrimaryButton } from "@/components/ui/primary-button"
 import { useDomain } from "@/lib/domain-provider"
 import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
 import { useTRPC } from "@/lib/trpc/client"
+import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
+import { formatDomainPathname } from "@/lib/utils"
 import type {
   CompetitionClass,
   RuleConfig as DbRuleConfig,
@@ -19,6 +21,7 @@ import type {
 } from "@blikka/db"
 import { useMutation } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
 import { useRef, useState, useMemo } from "react"
 import { toast } from "sonner"
@@ -56,6 +59,7 @@ export function UploadSubmissionsStep({
   const trpc = useTRPC()
   const domain = useDomain()
   const { handlePrevStep } = useStepState()
+  const router = useRouter()
   const { uploadFlowState } = useUploadFlowState()
 
   const initializeStore = usePhotoStore((state) => state.initialize)
@@ -70,6 +74,7 @@ export function UploadSubmissionsStep({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
 
   const heicIsConverting = useHeicStore((state) => state.isConverting)
   const heicIsCancelling = useHeicStore((state) => state.isCancelling)
@@ -228,8 +233,11 @@ export function UploadSubmissionsStep({
   }
 
   const handleCloseUploadProgress = () => {
-    setIsUploading(false)
-    clearFiles()
+    setIsNavigating(true)
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
+    router.push(
+      formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
+    )
   }
 
   const allPhotosSelected =
@@ -276,6 +284,7 @@ export function UploadSubmissionsStep({
               expectedCount={competitionClass.numberOfPhotos}
               onComplete={handleCloseUploadProgress}
               onRetry={retryFailedFiles}
+              isNavigating={isNavigating}
             />
           </motion.div>
         ) : (
