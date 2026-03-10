@@ -19,4 +19,4 @@ export const PARTICIPANT_REF_LENGTH = 4;
 
 export const UPLOAD_TIMEOUT_MS = 1000 * 60 * 3; // 3 minutes
 export const UPLOAD_CONCURRENCY_LIMIT = 1;
-export const POLLING_INTERVAL_MS = 3000; // 3 seconds
+export const UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS = 15000; // 15 seconds
