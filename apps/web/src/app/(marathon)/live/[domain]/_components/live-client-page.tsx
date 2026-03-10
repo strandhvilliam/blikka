@@ -7,7 +7,6 @@ import { useTranslations, useLocale, Locale } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { PrimaryButton } from "@/components/ui/primary-button"
-import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -17,26 +16,23 @@ import {
 } from "@/components/ui/dialog"
 import { cn, formatDomainPathname, formatPublicPathname } from "@/lib/utils"
 import { format } from "date-fns"
-import { Info, ImageIcon, Play, ExternalLink } from "lucide-react"
+import { Info, ImageIcon, Play } from "lucide-react"
 import ReactCountryFlag from "react-country-flag"
 import Image from "next/image"
 import { changeLocaleAction } from "@/lib/actions/change-locale-action"
 import { useRouter } from "next/navigation"
 import { useDomain } from "@/lib/domain-provider"
 
-
 const BUCKET_NAME =
   process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
 
-export function LiveClientPage({ envs }: any) {
+export function LiveClientPage() {
   const domain = useDomain()
   const trpc = useTRPC()
   const t = useTranslations("LivePage")
   const locale = useLocale()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-
-  console.log("envs", envs)
 
   const setLocale = (locale: Locale) => {
     startTransition(async () => {
@@ -61,10 +57,10 @@ export function LiveClientPage({ envs }: any) {
     if (termsAccepted) {
       switch (marathon.mode) {
         case "marathon":
-          router.push(formatDomainPathname(`/live/marathon`, domain, 'live'))
+          router.push(formatDomainPathname(`/live/marathon`, domain, "live"))
           break
         case "by-camera":
-          router.push(formatDomainPathname(`/live/by-camera`, domain, 'live'))
+          router.push(formatDomainPathname(`/live/by-camera`, domain, "live"))
           break
       }
     }
@@ -77,179 +73,280 @@ export function LiveClientPage({ envs }: any) {
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     )
 
-
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
       <div className="z-20 flex flex-col flex-1 h-full">
-
         <main className="flex-1 px-6 pb-6 max-w-md mx-auto w-full flex flex-col justify-end">
-          {/* Logo and event info */}
-          <div className="flex flex-col items-center pb-12">
-            {marathon.logoUrl ? (
-              <div className="w-24 h-24 rounded-full flex items-center justify-center mb-3 overflow-hidden shadow border">
-                <img src={marathon.logoUrl} alt="Logo" width={96} height={96} />
-              </div>
-            ) : (
-              <div className="w-24 h-24 rounded-full flex items-center justify-center bg-gray-200">
-                <ImageIcon className="w-12 h-12" />
-              </div>
-            )}
-            <h1 className="text-2xl font-rocgrotesk font-extrabold text-gray-900 text-center mt-2">
-              {marathon.name}
-            </h1>
-            <p className="text-center text-lg mt-1 font-medium tracking-wide">
-              {marathon.startDate && marathon.endDate ? (
-                <>
-                  {format(new Date(marathon.startDate), "dd MMMM yyyy")} -{" "}
-                  {format(new Date(marathon.endDate), "dd MMMM yyyy")}
-                </>
-              ) : (
-                t("datesToBeAnnounced")
-              )}
-            </p>
-          </div>
+          <LogoAndEventInfo marathon={marathon} t={t} />
 
-          {/* Main card */}
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-border shadow-xl">
+            <LanguageSelection
+              locale={locale}
+              setLocale={setLocale}
+              isPending={isPending}
+              t={t}
+            />
 
-            {/* Language selection */}
-            <section className="mb-5">
-              <label className="block text-sm font-medium mb-2">
-                {t("selectLanguage")}
-              </label>
-              <div className="flex flex-col gap-3">
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 py-4 border-2",
-                    locale === "en" && "border-foreground",
-                  )}
-                  onClick={() => setLocale("en")}
-                  disabled={isPending}
-                >
-                  <ReactCountryFlag countryCode="GB" svg />
-                  English
-                </Button>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-2 py-4 border-2",
-                    locale === "sv" && "border-foreground",
-                  )}
-                  onClick={() => setLocale("sv")}
-                  disabled={isPending}
-                >
-                  <ReactCountryFlag countryCode="SE" svg />
-                  Svenska
-                </Button>
-              </div>
-            </section>
+            <RulesAndInformation
+              description={marathon.description}
+              t={t}
+            />
 
-            {/* Rules and Information */}
-            {marathon.description && (
-              <section className="mb-5">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full flex gap-2 py-4 justify-start underline underline-offset-1"
-                    >
-                      <Info size={16} />
-                      {t("rulesAndInformation")}
-                      {/* <ExternalLink size={16} className="ml-auto" /> */}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Info size={20} />
-                        {t("rulesAndInformation")}
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="prose prose-sm max-w-none">
-                      {marathon.description}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </section>
-            )}
+            <TermsCheckbox
+              termsAccepted={termsAccepted}
+              setTermsAccepted={setTermsAccepted}
+              domain={domain}
+              locale={locale}
+              t={t}
+            />
 
-            {/* Terms checkbox */}
-            <section className="mb-6 space-y-4">
-              <label htmlFor="platform-terms" className="text-sm font-medium">
-                <div className="flex items-center space-x-2 px-2.5 border rounded-lg py-2 bg-background">
-                  <Checkbox
-                    id="platform-terms"
-                    checked={termsAccepted}
-                    onCheckedChange={(checked) =>
-                      setTermsAccepted(checked as boolean)
-                    }
-                    className=""
-                  />
-                  {t("termsAccept")}{" "}
-                  <a
-                    target="_blank"
-                    href={formatPublicPathname(`/terms`, domain, locale)}
-                    className="underline font-semibold ml-1"
-                  >
-                    {t("termsAndConditions")}
-                  </a>
-                </div>
-              </label>
-            </section>
-
-            {/* Start button */}
-            <PrimaryButton
+            <StartButton
               onClick={handleStart}
               disabled={!termsAccepted}
-              className="w-full py-3 text-base text-white rounded-full"
-            >
-              {t("begin")}
-              <Play className="h-4 w-4" />
-            </PrimaryButton>
+              t={t}
+            />
 
-            {/* Sponsors section */}
-            {sponsorImages && sponsorImages.length > 0 && (
-              <div className="mt-4 pt-6 border-t border-gray-200">
-                <p className="text-center text-sm text-muted-foreground mb-2">
-                  {t("sponsors")}
-                </p>
-                <div className="flex justify-center items-center gap-4 flex-wrap">
-                  {sponsorImages.map((sponsor) => (
-                    <div
-                      key={sponsor.id}
-                      className="h-10 flex items-center justify-center"
-                    >
-                      <img
-                        src={`https://s3.eu-north-1.amazonaws.com/${BUCKET_NAME}/${sponsor.key}`}
-                        alt="Sponsor"
-                        className="max-h-10 max-w-[120px] object-contain"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <SponsorsSection sponsorImages={sponsorImages} t={t} />
           </div>
 
-          {/* Powered by Blikka */}
-          <div className="mt-6 flex flex-col items-center">
-            <p className="text-xs text-muted-foreground mb-1 italic">
-              {t("poweredBy")}
-            </p>
-            <div className="flex items-center gap-1.5">
-              <Image
-                src="/blikka-logo.svg"
-                alt="Blikka"
-                width={20}
-                height={17}
-              />
-              <span className="font-rocgrotesk font-bold text-base tracking-tight">
-                blikka
-              </span>
-            </div>
-          </div>
+          <PoweredByBlikka t={t} />
         </main>
+      </div>
+    </div>
+  )
+}
+
+
+function LogoAndEventInfo({
+  marathon,
+  t,
+}: {
+  marathon: {
+    logoUrl: string | null
+    name: string
+    startDate: string | null
+    endDate: string | null
+  }
+  t: (key: string) => string
+}) {
+  return (
+    <div className="flex flex-col items-center pb-12">
+      {marathon.logoUrl ? (
+        <div className="w-24 h-24 rounded-full flex items-center justify-center mb-3 overflow-hidden shadow border">
+          <img src={marathon.logoUrl} alt="Logo" width={96} height={96} />
+        </div>
+      ) : (
+        <div className="w-24 h-24 rounded-full flex items-center justify-center bg-gray-200">
+          <ImageIcon className="w-12 h-12" />
+        </div>
+      )}
+      <h1 className="text-2xl font-rocgrotesk font-extrabold text-gray-900 text-center mt-2">
+        {marathon.name}
+      </h1>
+      <p className="text-center text-lg mt-1 font-medium tracking-wide">
+        {marathon.startDate && marathon.endDate ? (
+          <>
+            {format(new Date(marathon.startDate), "dd MMMM yyyy")} -{" "}
+            {format(new Date(marathon.endDate), "dd MMMM yyyy")}
+          </>
+        ) : (
+          t("datesToBeAnnounced")
+        )}
+      </p>
+    </div>
+  )
+}
+
+function LanguageSelection({
+  locale,
+  setLocale,
+  isPending,
+  t,
+}: {
+  locale: string
+  setLocale: (locale: Locale) => void
+  isPending: boolean
+  t: (key: string) => string
+}) {
+  return (
+    <section className="mb-5">
+      <label className="block text-sm font-medium mb-2">
+        {t("selectLanguage")}
+      </label>
+      <div className="flex flex-col gap-3">
+        <Button
+          variant="outline"
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-4 border-2",
+            locale === "en" && "border-foreground",
+          )}
+          onClick={() => setLocale("en")}
+          disabled={isPending}
+        >
+          <ReactCountryFlag countryCode="GB" svg />
+          English
+        </Button>
+        <Button
+          variant="outline"
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-4 border-2",
+            locale === "sv" && "border-foreground",
+          )}
+          onClick={() => setLocale("sv")}
+          disabled={isPending}
+        >
+          <ReactCountryFlag countryCode="SE" svg />
+          Svenska
+        </Button>
+      </div>
+    </section>
+  )
+}
+
+function RulesAndInformation({
+  description,
+  t,
+}: {
+  description: string | null
+  t: (key: string) => string
+}) {
+  if (!description) return null
+
+  return (
+    <section className="mb-5">
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            className="w-full flex gap-2 py-4 justify-start underline underline-offset-1"
+          >
+            <Info size={16} />
+            {t("rulesAndInformation")}
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info size={20} />
+              {t("rulesAndInformation")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="prose prose-sm max-w-none">{description}</div>
+        </DialogContent>
+      </Dialog>
+    </section>
+  )
+}
+
+function StartButton({
+  onClick,
+  disabled,
+  t,
+}: {
+  onClick: () => void
+  disabled: boolean
+  t: (key: string) => string
+}) {
+  return (
+    <PrimaryButton
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full py-3 text-base text-white rounded-full"
+    >
+      {t("begin")}
+      <Play className="h-4 w-4" />
+    </PrimaryButton>
+  )
+}
+
+function TermsCheckbox({
+  termsAccepted,
+  setTermsAccepted,
+  domain,
+  locale,
+  t,
+}: {
+  termsAccepted: boolean
+  setTermsAccepted: (value: boolean) => void
+  domain: string
+  locale: string
+  t: (key: string) => string
+}) {
+  return (
+    <section className="mb-6 space-y-4">
+      <label htmlFor="platform-terms" className="text-sm font-medium">
+        <div className="flex items-center space-x-2 px-2.5 border rounded-lg py-2 bg-background">
+          <Checkbox
+            id="platform-terms"
+            checked={termsAccepted}
+            onCheckedChange={(checked) =>
+              setTermsAccepted(checked as boolean)
+            }
+          />
+          {t("termsAccept")}{" "}
+          <a
+            target="_blank"
+            href={formatPublicPathname(`/terms`, domain, locale)}
+            className="underline font-semibold ml-1"
+          >
+            {t("termsAndConditions")}
+          </a>
+        </div>
+      </label>
+    </section>
+  )
+}
+
+function SponsorsSection({
+  sponsorImages,
+  t,
+}: {
+  sponsorImages:
+  | { id: number; key: string; type: string; createdAt: string }[]
+  | undefined
+  t: (key: string) => string
+}) {
+  if (!sponsorImages || sponsorImages.length === 0) return null
+
+  return (
+    <div className="mt-4 pt-6 border-t border-gray-200">
+      <p className="text-center text-sm text-muted-foreground mb-2">
+        {t("sponsors")}
+      </p>
+      <div className="flex justify-center items-center gap-4 flex-wrap">
+        {sponsorImages.map((sponsor) => (
+          <div
+            key={sponsor.id}
+            className="h-10 flex items-center justify-center"
+          >
+            <img
+              src={`https://s3.eu-north-1.amazonaws.com/${BUCKET_NAME}/${sponsor.key}`}
+              alt="Sponsor"
+              className="max-h-10 max-w-[120px] object-contain"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PoweredByBlikka({ t }: { t: (key: string) => string }) {
+  return (
+    <div className="mt-6 flex flex-col items-center">
+      <p className="text-xs text-muted-foreground mb-1 italic">
+        {t("poweredBy")}
+      </p>
+      <div className="flex items-center gap-1.5">
+        <Image
+          src="/blikka-logo.svg"
+          alt="Blikka"
+          width={20}
+          height={17}
+        />
+        <span className="font-rocgrotesk font-bold text-base tracking-tight">
+          blikka
+        </span>
       </div>
     </div>
   )

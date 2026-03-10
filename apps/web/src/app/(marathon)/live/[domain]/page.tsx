@@ -10,16 +10,10 @@ const _LivePage = Effect.fn("@blikka/web/LivePage")(
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
     prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }))
 
-    const envs = {
-      NODE_ENV: process.env.NODE_ENV,
-      VERCEL_ENV: process.env.VERCEL_ENV,
-      AUTH_URL: process.env.BETTER_AUTH_URL,
-      NEXT_PUBLIC_BLIKKA_PRODUCTION_URL: process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL,
-    }
     return (
       <HydrateClient>
         <Suspense fallback={<Splash />}>
-          <LiveClientPage envs={envs} />
+          <LiveClientPage />
         </Suspense>
       </HydrateClient>
     )

@@ -33,7 +33,7 @@ import { ByCameraUploadInput } from "./by-camera-upload-input"
 import { HeicConversionDialog } from "./heic-conversion-dialog"
 import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog"
 import { VALIDATION_OUTCOME } from "@blikka/validation"
-import { mapRuleConfigsToValidationRules } from "~/lib/validation"
+import { mapRuleConfigsToValidationRules } from "@/lib/validation"
 import { ArrowRight } from "lucide-react"
 
 const BY_CAMERA_MAX_PHOTOS = 1

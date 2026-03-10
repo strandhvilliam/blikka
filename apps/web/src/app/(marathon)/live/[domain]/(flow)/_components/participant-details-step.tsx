@@ -16,7 +16,7 @@ import { useTranslations } from "next-intl";
 import { z } from "zod";
 import { useStepState } from "../_lib/step-state-context";
 import { type FlowMode } from "../_lib/constants";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   isPossiblePhoneNumber,
   parsePhoneNumber,
@@ -55,9 +55,9 @@ const createParticipantDetailsSchema = (
     phone:
       mode === "by-camera"
         ? z
-            .string()
-            .min(1, t("participantDetails.phoneRequired"))
-            .refine(isPossiblePhoneNumber, t("participantDetails.invalidPhone"))
+          .string()
+          .min(1, t("participantDetails.phoneRequired"))
+          .refine(isPossiblePhoneNumber, t("participantDetails.invalidPhone"))
         : z.string(),
   });
 
@@ -98,13 +98,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
   const t = useTranslations("FlowPage");
   const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
   const { handleNextStep, handlePrevStep } = useStepState();
-  const [defaultCountry, setDefaultCountry] = useState<string>("SE");
   const [focusedField, setFocusedField] =
     useState<ParticipantDetailsFieldName | null>(null);
 
-  useEffect(() => {
-    setDefaultCountry(getCountryFromLocale());
-  }, []);
+  const defaultCountry = getCountryFromLocale();
 
   const form = useForm({
     defaultValues: {
@@ -141,12 +138,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       </CardHeader>
       <form noValidate onSubmit={(e) => e.preventDefault()}>
         <CardContent className="space-y-6">
-          <form.Subscribe selector={(state) => state.submissionAttempts}>
+          <form.Subscribe selector={(state: { submissionAttempts: number }) => state.submissionAttempts}>
             {(submissionAttempts) => (
               <>
-                <form.Field
-                  name="firstname"
-                  children={(field) => {
+                <form.Field name="firstname">
+                  {(field) => {
                     const hasValidationError =
                       field.state.meta.errors.length > 0;
                     const showError =
@@ -154,7 +150,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                       (field.state.meta.isBlurred ||
                         (submissionAttempts > 0 &&
                           focusedField !==
-                            (field.name as ParticipantDetailsFieldName)));
+                          (field.name as ParticipantDetailsFieldName)));
 
                     return (
                       <div className="space-y-2">
@@ -183,11 +179,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoComplete="given-name"
                           autoCapitalize="words"
                           enterKeyHint="next"
-                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                            showError
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                          }`}
+                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${showError
+                            ? "border-destructive focus-visible:ring-destructive"
+                            : ""
+                            }`}
                           aria-invalid={showError}
                           aria-describedby={
                             showError ? `${field.name}-error` : undefined
@@ -205,11 +200,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                       </div>
                     );
                   }}
-                />
+                </form.Field>
 
-                <form.Field
-                  name="lastname"
-                  children={(field) => {
+                <form.Field name="lastname">
+                  {(field) => {
                     const hasValidationError =
                       field.state.meta.errors.length > 0;
                     const showError =
@@ -217,7 +211,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                       (field.state.meta.isBlurred ||
                         (submissionAttempts > 0 &&
                           focusedField !==
-                            (field.name as ParticipantDetailsFieldName)));
+                          (field.name as ParticipantDetailsFieldName)));
 
                     return (
                       <div className="space-y-2">
@@ -246,11 +240,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoComplete="family-name"
                           autoCapitalize="words"
                           enterKeyHint="next"
-                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                            showError
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                          }`}
+                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${showError
+                            ? "border-destructive focus-visible:ring-destructive"
+                            : ""
+                            }`}
                           aria-invalid={showError}
                           aria-describedby={
                             showError ? `${field.name}-error` : undefined
@@ -268,11 +261,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                       </div>
                     );
                   }}
-                />
+                </form.Field>
 
-                <form.Field
-                  name="email"
-                  children={(field) => {
+                <form.Field name="email">
+                  {(field) => {
                     const hasValidationError =
                       field.state.meta.errors.length > 0;
                     const showError =
@@ -280,7 +272,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                       (field.state.meta.isBlurred ||
                         (submissionAttempts > 0 &&
                           focusedField !==
-                            (field.name as ParticipantDetailsFieldName)));
+                          (field.name as ParticipantDetailsFieldName)));
 
                     return (
                       <div className="space-y-2">
@@ -310,11 +302,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoCapitalize="none"
                           autoCorrect="off"
                           spellCheck={false}
-                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                            showError
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                          }`}
+                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${showError
+                            ? "border-destructive focus-visible:ring-destructive"
+                            : ""
+                            }`}
                           aria-invalid={showError}
                           aria-describedby={
                             showError ? `${field.name}-error` : undefined
@@ -335,12 +326,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                       </div>
                     );
                   }}
-                />
+                </form.Field>
 
                 {mode === "by-camera" && (
-                  <form.Field
-                    name="phone"
-                    children={(field) => {
+                  <form.Field name="phone">
+                    {(field) => {
                       const hasValidationError =
                         field.state.meta.errors.length > 0;
                       const isPhoneFieldFocused =
@@ -388,11 +378,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                             enterKeyHint="done"
                             international
                             countryCallingCodeEditable={false}
-                            className={`rounded-xl text-base sm:text-lg bg-background ${
-                              showError
-                                ? "border-destructive focus-visible:ring-destructive"
-                                : ""
-                            }`}
+                            className={`rounded-xl text-base sm:text-lg bg-background ${showError
+                              ? "border-destructive focus-visible:ring-destructive"
+                              : ""
+                              }`}
                             aria-invalid={showError}
                             aria-describedby={
                               showError ? `${field.name}-error` : undefined
@@ -409,7 +398,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                         </div>
                       );
                     }}
-                  />
+                  </form.Field>
                 )}
               </>
             )}
@@ -417,9 +406,8 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 pt-8">
-          <form.Subscribe
-            selector={(state) => [state.isSubmitting]}
-            children={([isSubmitting]) => (
+          <form.Subscribe selector={(state: { isSubmitting: boolean }) => [state.isSubmitting]}>
+            {([isSubmitting]) => (
               <PrimaryButton
                 type="button"
                 className="w-full py-3.5 text-base sm:text-lg rounded-full"
@@ -431,7 +419,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </PrimaryButton>
             )}
-          />
+          </form.Subscribe>
           <Button
             variant="ghost"
             type="button"

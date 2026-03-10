@@ -14,7 +14,6 @@ import {
   ChevronUp,
   ImageIcon,
   Info,
-  Loader2,
   X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -94,11 +93,10 @@ export function SubmissionItem({
     // Empty slot
     return (
       <div
-        className={`flex flex-row gap-4 p-4 border rounded-lg bg-background ${
-          onUploadClick
+        className={`flex flex-row gap-4 p-4 border rounded-lg bg-background ${onUploadClick
             ? "cursor-pointer hover:bg-muted/50 transition-colors"
             : ""
-        }`}
+          }`}
         onClick={onUploadClick}
       >
         <div className="flex-1 space-y-2">
@@ -151,13 +149,12 @@ export function SubmissionItem({
               {displayValidation.message &&
                 displayValidation.outcome !== VALIDATION_OUTCOME.PASSED && (
                   <p
-                    className={`text-xs ${
-                      displayValidation.severity === "error"
+                    className={`text-xs ${displayValidation.severity === "error"
                         ? "text-destructive"
                         : displayValidation.outcome === VALIDATION_OUTCOME.FAILED
                           ? "text-amber-700 dark:text-amber-400"
                           : "text-muted-foreground"
-                    }`}
+                      }`}
                   >
                     {displayValidation.message}
                   </p>

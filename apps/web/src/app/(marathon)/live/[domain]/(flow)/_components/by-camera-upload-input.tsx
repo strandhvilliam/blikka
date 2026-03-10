@@ -7,10 +7,7 @@ import { motion } from "motion/react";
 import { useRef, useState, useMemo } from "react";
 import {
   FileImage,
-  Image as ImageIcon,
   Info,
-  Trash2,
-  UploadIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing";
@@ -149,11 +146,10 @@ export function ByCameraUploadInput({
       >
         {!photo ? (
           <div
-            className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 cursor-pointer ${
-              isDragOver
+            className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 cursor-pointer ${isDragOver
                 ? "border-primary bg-primary/5 scale-[1.02]"
                 : "border-muted-foreground/25 bg-background hover:border-muted-foreground/50 hover:bg-muted/50"
-            }`}
+              }`}
             onClick={handleChooseClick}
             onDragEnter={(e) => {
               e.preventDefault();
@@ -290,9 +286,9 @@ export function ByCameraUploadInput({
                   className={[
                     "rounded-2xl border p-3 text-sm",
                     validationSummary.status === "error" &&
-                      "border-destructive/30 bg-destructive/5 text-destructive",
+                    "border-destructive/30 bg-destructive/5 text-destructive",
                     validationSummary.status === "warning" &&
-                      "border-amber-300/50 bg-amber-50 text-amber-900",
+                    "border-amber-300/50 bg-amber-50 text-amber-900",
                   ]
                     .filter(Boolean)
                     .join(" ")}
