@@ -5,6 +5,7 @@ import {
   GetPublicMarathonSchema,
   InitializeUploadFlowSchema,
   InitializeByCameraUploadSchema,
+  ResolveByCameraParticipantByPhoneSchema,
   CheckParticipantExistsSchema,
   GetUploadStatusSchema,
   ReTriggerUploadFlowSchema,
@@ -42,6 +43,20 @@ export const uploadFlowRouter = createTRPCRouter({
           input,
         }) {
           return yield* UploadFlowApiService.use((s) => s.initializeByCameraUpload(input))
+        }),
+      ),
+    ),
+
+  resolveByCameraParticipantByPhone: publicProcedure
+    .input(ResolveByCameraParticipantByPhoneSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("UploadFlowRouter.resolveByCameraParticipantByPhone")(function* ({
+          input,
+        }) {
+          return yield* UploadFlowApiService.use((s) =>
+            s.resolveByCameraParticipantByPhone(input),
+          )
         }),
       ),
     ),
