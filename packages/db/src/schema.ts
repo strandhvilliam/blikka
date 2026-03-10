@@ -143,6 +143,7 @@ export const participants = pgTable(
     competitionClassId: bigint("competition_class_id", { mode: "number" }),
     deviceGroupId: bigint("device_group_id", { mode: "number" }),
     domain: text().notNull(),
+    participantMode: text("participant_mode").default("marathon").notNull(),
     firstname: text().notNull(),
     lastname: text().notNull(),
     phoneHash: text("phone_hash"),
@@ -161,6 +162,15 @@ export const participants = pgTable(
     index("participants_reference_idx").using(
       "btree",
       table.reference.asc().nullsLast().op("text_ops"),
+    ),
+    index("participants_marathon_phone_hash_idx").using(
+      "btree",
+      table.marathonId.asc().nullsLast().op("int8_ops"),
+      table.phoneHash.asc().nullsLast().op("text_ops"),
+    ),
+    unique("participants_domain_reference_key").on(
+      table.domain,
+      table.reference,
     ),
     foreignKey({
       columns: [table.competitionClassId],

@@ -74,6 +74,43 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         );
         return Option.fromNullishOr(result);
       });
+      const getByPhoneHashForByCamera = Effect.fn(
+        "ParticipantsQueries.getByPhoneHashForByCameraQuery",
+      )(function* ({
+        marathonId,
+        phoneHash,
+      }: {
+        marathonId: number;
+        phoneHash: string;
+      }) {
+        const result = yield* use((db) =>
+          db.query.participants.findFirst({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.marathonId, marathonId),
+                operators.eq(table.participantMode, "by-camera"),
+                operators.eq(table.phoneHash, phoneHash),
+              ),
+            orderBy: (table, operators) => [
+              operators.desc(table.updatedAt),
+              operators.desc(table.id),
+            ],
+            with: {
+              submissions: {
+                with: {
+                  topic: true,
+                },
+              },
+              competitionClass: true,
+              deviceGroup: true,
+              validationResults: true,
+              zippedSubmissions: true,
+              contactSheets: true,
+            },
+          }),
+        );
+        return Option.fromNullishOr(result);
+      });
       const getInfiniteParticipantsByDomain = Effect.fn(
         "ParticipantsQueries.getInfiniteParticipantsByDomainQuery",
       )(function* ({
@@ -545,6 +582,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
       return {
         getParticipantById,
         getParticipantByReference,
+        getByPhoneHashForByCamera,
         getInfiniteParticipantsByDomain,
         createParticipant,
         updateParticipantById,

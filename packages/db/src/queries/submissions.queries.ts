@@ -110,6 +110,26 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         );
         return result;
       });
+      const getSubmissionByParticipantIdAndTopicId = Effect.fn(
+        "SubmissionsQueries.getSubmissionByParticipantIdAndTopicId",
+      )(function* ({
+        participantId,
+        topicId,
+      }: {
+        participantId: number;
+        topicId: number;
+      }) {
+        const result = yield* use((db) =>
+          db.query.submissions.findFirst({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.participantId, participantId),
+                operators.eq(table.topicId, topicId),
+              ),
+          }),
+        );
+        return Option.fromNullishOr(result);
+      });
       const getSubmissionsForJuryQuery = Effect.fn(
         "SubmissionsQueries.getSubmissionsForJury",
       )(function* ({
@@ -406,6 +426,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
         getZippedSubmissionsByMarathonId,
         getManySubmissionsByKeys,
         getSubmissionsByParticipantId,
+        getSubmissionByParticipantIdAndTopicId,
         getSubmissionsForJuryQuery,
         createSubmission,
         createMultipleSubmissions,
