@@ -24,57 +24,10 @@ import { z } from "zod";
 import { useRealtime } from "@/lib/realtime-client";
 import type { TableData } from "./use-submissions-table";
 
-const realtimeEventDataSchema = z
-  .object({
-    reference: z.string().nullish(),
-    orderIndex: z.number().nullish(),
-    outcome: z.enum(["success", "error"]).optional(),
-  })
-  .loose();
 
 type ParsedRealtimeEventData = z.infer<typeof realtimeEventDataSchema>;
 
-function parseRealtimeEventData(raw: unknown): ParsedRealtimeEventData {
-  const asRecord =
-    typeof raw === "string"
-      ? (() => {
-        try {
-          return JSON.parse(raw) as unknown;
-        } catch {
-          return {};
-        }
-      })()
-      : raw;
-  const parsed = realtimeEventDataSchema.safeParse(asRecord);
-  return parsed.success ? parsed.data : {};
-}
 
-const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(
-  typeof process !== "undefined" ? process.env.NODE_ENV : undefined,
-);
-
-const RESULT_EVENT = {
-  uploadFlowInitializer: getRealtimeResultEventName("upload-flow-initialized"),
-  submissionProcessed: getRealtimeResultEventName("submission-processed"),
-  participantFinalized: getRealtimeResultEventName("participant-finalized"),
-} as const;
-
-const SUBSCRIBED_EVENTS = [
-  RESULT_EVENT.uploadFlowInitializer,
-  RESULT_EVENT.submissionProcessed,
-  RESULT_EVENT.participantFinalized,
-] as const;
-
-const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750;
-const TASK_ERROR_INVALIDATE_DEBOUNCE_MS = 750;
-const FINALIZE_SAFETY_INVALIDATE_DEBOUNCE_MS = 10_000;
-const MAX_TRACKED_REFERENCES = 1000;
-const REALTIME_BATCH_WINDOW_MS = 80;
-const MAX_PENDING_REALTIME_EVENTS = 200;
-
-function normalizeReference(reference: string): string {
-  return reference.trim().toLowerCase();
-}
 
 interface ParticipantsPage {
   participants: TableData[];
@@ -100,9 +53,6 @@ interface TrackingState {
   finalized: ReadonlySet<string>;
 }
 
-function createEmptyTracking(): TrackingState {
-  return { processed: new Map(), finalized: new Set() };
-}
 
 interface BatchedRealtimeEffects {
   invalidateInitializer: boolean;
@@ -111,6 +61,62 @@ interface BatchedRealtimeEffects {
   finalizedReferences: Set<string>;
 }
 
+const realtimeEventDataSchema = z
+  .object({
+    reference: z.string().nullish(),
+    orderIndex: z.number().nullish(),
+    outcome: z.enum(["success", "error"]).optional(),
+  })
+  .loose();
+
+
+const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(
+  typeof process !== "undefined" ? process.env.NODE_ENV : undefined,
+);
+
+const RESULT_EVENT = {
+  uploadFlowInitializer: getRealtimeResultEventName("upload-flow-initialized"),
+  submissionProcessed: getRealtimeResultEventName("submission-processed"),
+  participantFinalized: getRealtimeResultEventName("participant-finalized"),
+} as const;
+
+const SUBSCRIBED_EVENTS = [
+  RESULT_EVENT.uploadFlowInitializer,
+  RESULT_EVENT.submissionProcessed,
+  RESULT_EVENT.participantFinalized,
+] as const;
+
+const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750;
+const TASK_ERROR_INVALIDATE_DEBOUNCE_MS = 750;
+const FINALIZE_SAFETY_INVALIDATE_DEBOUNCE_MS = 10_000;
+const MAX_TRACKED_REFERENCES = 1000;
+const REALTIME_BATCH_WINDOW_MS = 80;
+const MAX_PENDING_REALTIME_EVENTS = 200;
+
+
+/**
+ * Normalizes realtime payloads into the validated shape this hook expects.
+ * The transport may deliver either parsed objects or JSON strings.
+ */
+function parseRealtimeEventData(raw: unknown): ParsedRealtimeEventData {
+  const asRecord =
+    typeof raw === "string"
+      ? (() => {
+        try {
+          return JSON.parse(raw) as unknown;
+        } catch {
+          return {};
+        }
+      })()
+      : raw;
+  const parsed = realtimeEventDataSchema.safeParse(asRecord);
+  return parsed.success ? parsed.data : {};
+}
+
+/**
+ * Collapses a burst of realtime events into the smallest set of invalidations
+ * and optimistic cache updates needed to keep the table in sync.
+ */
 function collectBatchedEffects(
   queuedEvents: QueuedRealtimeEvent[],
 ): BatchedRealtimeEffects {
@@ -143,7 +149,7 @@ function collectBatchedEffects(
 
         if (data.reference) {
           effects.invalidateFinalizeSafety = true;
-          effects.finalizedReferences.add(normalizeReference(data.reference));
+          effects.finalizedReferences.add(data.reference);
         }
         break;
       }
@@ -153,6 +159,10 @@ function collectBatchedEffects(
   return effects;
 }
 
+/**
+ * Applies queued realtime events to the local tracking state while preserving
+ * structural sharing when the batch results in no actual changes.
+ */
 function reduceTrackingState(
   previous: TrackingState,
   queuedEvents: QueuedRealtimeEvent[],
@@ -185,7 +195,7 @@ function reduceTrackingState(
           break;
         }
 
-        const reference = normalizeReference(data.reference);
+        const reference = data.reference;
         if (!nextProcessed.has(reference) && !nextFinalized.has(reference)) {
           break;
         }
@@ -202,32 +212,25 @@ function reduceTrackingState(
         break;
       }
       case RESULT_EVENT.submissionProcessed: {
-        if (data.outcome === "error") {
-          break;
-        }
+        if (data.outcome === "error") break;
+        if (!data.reference) break;
 
-        if (!data.reference) {
-          break;
-        }
-
-        const reference = normalizeReference(data.reference);
         const processed = ensureProcessedMutable();
-        const previousIndices = processed.get(reference);
+        const previousIndices = processed.get(data.reference);
         const orderIndex = data.orderIndex;
 
-        if (orderIndex !== undefined) {
-          if (previousIndices?.has(orderIndex)) {
-            break;
-          }
+        if (orderIndex !== undefined && orderIndex !== null) {
+          if (previousIndices?.has(orderIndex)) break;
+
 
           const nextIndices = new Set(previousIndices);
           nextIndices.add(orderIndex);
-          processed.set(reference, nextIndices);
+          processed.set(data.reference, nextIndices);
         } else {
           const syntheticIndex = previousIndices?.size ?? 0;
           const nextIndices = new Set(previousIndices);
           nextIndices.add(syntheticIndex);
-          processed.set(reference, nextIndices);
+          processed.set(data.reference, nextIndices);
         }
 
         if (processed.size > MAX_TRACKED_REFERENCES) {
@@ -239,21 +242,12 @@ function reduceTrackingState(
         break;
       }
       case RESULT_EVENT.participantFinalized: {
-        if (data.outcome === "error") {
-          break;
-        }
-
-        if (!data.reference) {
-          break;
-        }
-
-        const reference = normalizeReference(data.reference);
-        if (nextFinalized.has(reference)) {
-          break;
-        }
+        if (data.outcome === "error") break;
+        if (!data.reference) break;
+        if (nextFinalized.has(data.reference)) break;
 
         const finalized = ensureFinalizedMutable();
-        finalized.add(reference);
+        finalized.add(data.reference);
         break;
       }
     }
@@ -282,7 +276,7 @@ export function useSubmissionsTableRealtime({
   queryClient,
   participantsQueryPathKey,
 }: UseSubmissionsTableRealtimeInput) {
-  const [tracking, setTracking] = useState<TrackingState>(createEmptyTracking);
+  const [tracking, setTracking] = useState<TrackingState>(() => ({ processed: new Map(), finalized: new Set() }));
   const pendingEventsRef = useRef<QueuedRealtimeEvent[]>([]);
   const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -302,10 +296,13 @@ export function useSubmissionsTableRealtime({
     FINALIZE_SAFETY_INVALIDATE_DEBOUNCE_MS,
   );
 
+  /**
+   * Marks a participant as completed in the cached pages as soon as a finalize
+   * event arrives. A delayed invalidate still runs afterwards to reconcile any
+   * fields that are not patched locally.
+   */
   const patchParticipantAsCompleted = useCallback(
     (reference: string) => {
-      const normalizedReference = normalizeReference(reference);
-
       queryClient.setQueriesData<InfiniteParticipantsData>(
         { queryKey: participantsQueryPathKey },
         (currentData) => {
@@ -320,10 +317,7 @@ export function useSubmissionsTableRealtime({
 
             let pageChanged = false;
             const nextParticipants = page.participants.map((participant) => {
-              if (
-                normalizeReference(participant.reference) !==
-                normalizedReference
-              ) {
+              if (participant.reference !== reference) {
                 return participant;
               }
 
@@ -353,6 +347,10 @@ export function useSubmissionsTableRealtime({
     [queryClient, participantsQueryPathKey],
   );
 
+  /**
+   * Flushes the queued realtime window so side effects, optimistic cache
+   * updates, and local tracking state are all derived from the same event batch.
+   */
   const flushQueuedEvents = useCallback(() => {
     flushTimeoutRef.current = null;
 
@@ -391,6 +389,10 @@ export function useSubmissionsTableRealtime({
     scheduleTaskErrorInvalidate,
   ]);
 
+  /**
+   * Starts a single timer for the current realtime burst so nearby events are
+   * processed together instead of triggering per-event work.
+   */
   const scheduleFlush = useCallback(() => {
     if (flushTimeoutRef.current !== null) {
       return;
@@ -449,7 +451,7 @@ export function useEnrichedParticipants(
   return useMemo(
     () =>
       participants.map((participant) => {
-        const reference = normalizeReference(participant.reference);
+        const reference = participant.reference;
 
         return {
           ...participant,
