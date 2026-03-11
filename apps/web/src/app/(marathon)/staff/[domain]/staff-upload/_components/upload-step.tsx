@@ -1,62 +1,102 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
-
-import type { Topic } from "@blikka/db";
-import type { ValidationResult } from "@blikka/validation";
-import type { ParticipantSelectedPhoto } from "@/lib/participant-upload/types";
+import { toast } from "sonner";
+import { buildPhotoValidationMap, splitValidationResultsBySeverity } from "@/lib/validation";
+import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping";
+import { processSelectedFiles } from "@/lib/participant-upload/file-processing";
 import { StaffParticipantCard } from "./staff-participant-card";
 import { StaffDropzone } from "./staff-dropzone";
 import { StaffPhotoList } from "./staff-photo-grid";
+import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary";
+import { useStaffUploadMarathon } from "../_hooks/use-staff-upload-marathon";
+import {
+  useStaffUploadStore,
+  selectRequiresOverwriteWarning,
+} from "../_lib/staff-upload-store";
 
 interface UploadStepProps {
-  participantSummary: {
-    reference: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    competitionClassName: string;
-    deviceGroupName: string;
-    statusLabel: string;
-    statusTone?: "default" | "warning" | "success";
-  };
-  selectedTopics: Topic[];
-  requiresOverwriteWarning: boolean;
-  expectedPhotoCount: number;
   isBusy: boolean;
-  photos: ParticipantSelectedPhoto[];
-  photoValidationMap: Map<string, ValidationResult[]>;
-  blockingErrorCount: number;
-  warningCount: number;
-  onRemovePhoto: (photoId: string) => void;
-  dropzone: {
-    getRootProps: () => Record<string, unknown>;
-    getInputProps: () => Record<string, unknown>;
-    isDragActive: boolean;
-  };
   dropzoneDisabled: boolean;
-  isProcessingFiles: boolean;
-  filesError?: string | null;
 }
 
-export function UploadStep({
-  participantSummary,
-  selectedTopics,
-  requiresOverwriteWarning,
-  expectedPhotoCount,
-  isBusy,
-  photos,
-  photoValidationMap,
-  blockingErrorCount,
-  warningCount,
-  onRemovePhoto,
-  dropzone,
-  dropzoneDisabled,
-  isProcessingFiles,
-  filesError,
-}: UploadStepProps) {
-  const selectedCount = photos.length;
+export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
+  const marathon = useStaffUploadMarathon();
+  const participantSummary = useStaffUploadParticipantSummary();
+  const requiresOverwriteWarning = useStaffUploadStore(selectRequiresOverwriteWarning);
+
+  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
+  const validationResults = useStaffUploadStore((s) => s.validationResults);
+  const isProcessingFiles = useStaffUploadStore((s) => s.isProcessingFiles);
+  const filesError = useStaffUploadStore((s) => s.filesError);
+  const existingParticipant = useStaffUploadStore((s) => s.existingParticipant);
+  const formValues = useStaffUploadStore((s) => s.formValues);
+  const uploadComplete = useStaffUploadStore((s) => s.uploadComplete);
+
+  const removeSelectedPhoto = useStaffUploadStore((s) => s.removeSelectedPhoto);
+  const setSelectedPhotos = useStaffUploadStore((s) => s.setSelectedPhotos);
+  const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow);
+  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos);
+
+  const marathonMode = marathon.mode as "marathon" | "by-camera";
+  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex);
+  const activeCompetitionClassId = existingParticipant
+    ? String(existingParticipant.competitionClassId)
+    : formValues.competitionClassId;
+  const selectedCompetitionClass =
+    marathon.competitionClasses.find(
+      (cc) => cc.id === Number(activeCompetitionClassId),
+    ) ?? null;
+  const selectedTopics = getSelectedTopics(marathonMode, null, selectedCompetitionClass, sortedTopics);
+  const expectedPhotoCount = getExpectedPhotoCount(marathonMode, null, selectedCompetitionClass);
+  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex);
+
+  const {
+    blocking: blockingValidationErrors,
+    warnings: warningValidationResults,
+  } = splitValidationResultsBySeverity(validationResults);
+  const photoValidationMap = buildPhotoValidationMap(selectedPhotos, validationResults);
+  const selectedCount = selectedPhotos.length;
+  const blockingErrorCount = blockingValidationErrors.length;
+  const warningCount = warningValidationResults.length;
   const isComplete = selectedCount >= expectedPhotoCount && expectedPhotoCount > 0;
+
+  const handleFilesSelected = async (files: File[]) => {
+    if (isBusy || uploadComplete || !selectedCompetitionClass) {
+      return;
+    }
+
+    patchPhotos({ isProcessingFiles: true });
+    resetUploadFlow();
+
+    try {
+      const result = await processSelectedFiles({
+        fileList: files,
+        existingPhotos: selectedPhotos,
+        maxPhotos: expectedPhotoCount,
+        topicOrderIndexes,
+      });
+
+      if (result.errors.length > 0) {
+        result.errors.forEach((message) => toast.error(message));
+      }
+
+      if (result.warnings.length > 0) {
+        result.warnings.forEach((message) => toast.message(message));
+      }
+
+      if (result.photos !== selectedPhotos) {
+        setSelectedPhotos(result.photos);
+        patchPhotos({ filesError: null });
+      }
+    } finally {
+      patchPhotos({ isProcessingFiles: false });
+    }
+  };
+
+  if (!participantSummary) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -73,10 +113,8 @@ export function UploadStep({
       ) : null}
 
       <StaffDropzone
-        getRootProps={dropzone.getRootProps}
-        getInputProps={dropzone.getInputProps}
-        isDragActive={dropzone.isDragActive}
-        isDisabled={dropzoneDisabled}
+        disabled={dropzoneDisabled}
+        onFilesSelected={handleFilesSelected}
         isProcessing={isProcessingFiles}
         selectedCount={selectedCount}
         expectedCount={expectedPhotoCount}
@@ -84,15 +122,18 @@ export function UploadStep({
       />
 
       <StaffPhotoList
-        photos={photos}
+        photos={selectedPhotos}
         expectedCount={expectedPhotoCount}
         topics={selectedTopics}
         photoValidationMap={photoValidationMap}
         isBusy={isBusy}
-        onRemove={onRemovePhoto}
+        onRemove={(photoId) => {
+          resetUploadFlow();
+          removeSelectedPhoto(photoId, topicOrderIndexes);
+        }}
       />
 
-      {(blockingErrorCount > 0 || warningCount > 0) && photos.length > 0 ? (
+      {(blockingErrorCount > 0 || warningCount > 0) && selectedPhotos.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {blockingErrorCount > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700">
@@ -114,7 +155,6 @@ export function UploadStep({
           Ready to upload &mdash; review the photos above, then press Start upload
         </div>
       ) : null}
-
     </div>
   );
 }

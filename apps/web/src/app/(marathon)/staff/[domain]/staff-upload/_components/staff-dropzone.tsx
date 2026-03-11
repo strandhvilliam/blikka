@@ -1,13 +1,22 @@
 "use client";
 
 import { ImagePlus, Loader2 } from "lucide-react";
+import { useDropzone, type Accept } from "react-dropzone";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+const DROPZONE_ACCEPT: Accept = {
+  "image/jpeg": [".jpg", ".jpeg"],
+  "image/png": [".png"],
+  "image/gif": [".gif"],
+  "image/webp": [".webp"],
+  "image/heic": [".heic"],
+  "image/heif": [".heif"],
+};
+
 interface StaffDropzoneProps {
-  getRootProps: () => Record<string, unknown>;
-  getInputProps: () => Record<string, unknown>;
-  isDragActive: boolean;
-  isDisabled: boolean;
+  disabled: boolean;
+  onFilesSelected: (files: File[]) => void | Promise<void>;
   isProcessing: boolean;
   selectedCount: number;
   expectedCount: number;
@@ -15,15 +24,25 @@ interface StaffDropzoneProps {
 }
 
 export function StaffDropzone({
-  getRootProps,
-  getInputProps,
-  isDragActive,
-  isDisabled,
+  disabled,
+  onFilesSelected,
   isProcessing,
   selectedCount,
   expectedCount,
   errorMessage,
 }: StaffDropzoneProps) {
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: DROPZONE_ACCEPT,
+    disabled,
+    multiple: true,
+    onDropAccepted: (files) => {
+      void onFilesSelected(files);
+    },
+    onDropRejected: () => {
+      toast.error("Some files were rejected. Please use supported image formats.");
+    },
+  });
+
   const isComplete = selectedCount >= expectedCount && expectedCount > 0;
   const remaining = expectedCount - selectedCount;
 
@@ -33,7 +52,7 @@ export function StaffDropzone({
         {...getRootProps()}
         className={cn(
           "relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all duration-200",
-          isDisabled && !isComplete
+          disabled && !isComplete
             ? "cursor-not-allowed border-border bg-muted/40 opacity-60"
             : isComplete
               ? "cursor-default border-emerald-300 bg-emerald-50/60"

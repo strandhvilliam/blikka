@@ -3,19 +3,16 @@
 import { CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
 import { Icon } from "@iconify/react";
-import type { CompetitionClass, DeviceGroup, Topic } from "@blikka/db";
+import type { CompetitionClass, DeviceGroup } from "@blikka/db";
 
 import { Input } from "@/components/ui/input";
 import { Card, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { ParticipantUploadFormApi } from "@/hooks/use-participant-upload-form";
+import { getSelectedTopics } from "@/lib/upload-mapping";
+import { useStaffUploadStore } from "../_lib/staff-upload-store";
+import { useStaffUploadMarathon } from "../_hooks/use-staff-upload-marathon";
 
 interface ParticipantDetailsStepProps {
-  reference: string;
-  form: ParticipantUploadFormApi;
-  competitionClasses: CompetitionClass[];
-  deviceGroups: DeviceGroup[];
-  selectedTopics: Topic[];
   isBusy: boolean;
 }
 
@@ -167,14 +164,21 @@ function DeviceGroupCard({
   );
 }
 
-export function ParticipantDetailsStep({
-  reference,
-  form,
-  competitionClasses,
-  deviceGroups,
-  selectedTopics,
-  isBusy,
-}: ParticipantDetailsStepProps) {
+export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) {
+  const marathon = useStaffUploadMarathon();
+  const reference = useStaffUploadStore((state) => state.formValues.reference);
+  const values = useStaffUploadStore((state) => state.formValues);
+  const errors = useStaffUploadStore((state) => state.formErrors);
+  const setFormField = useStaffUploadStore((state) => state.setFormField);
+
+  const marathonMode = marathon.mode as "marathon" | "by-camera";
+  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex);
+  const selectedCompetitionClass =
+    marathon.competitionClasses.find(
+      (cc) => cc.id === Number(values.competitionClassId),
+    ) ?? null;
+  const selectedTopics = getSelectedTopics(marathonMode, null, selectedCompetitionClass, sortedTopics);
+
   return (
     <div className="space-y-8">
       <div>
@@ -192,106 +196,68 @@ export function ParticipantDetailsStep({
 
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <form.Field name="firstName">
-            {(field) => {
-              const hasError =
-                !field.state.meta.isValid && field.state.meta.isTouched;
-              return (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    First name
-                  </label>
-                  <Input
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    placeholder="James"
-                    autoCapitalize="words"
-                    enterKeyHint="next"
-                    className={cn(
-                      "h-12 rounded-xl text-base",
-                      hasError &&
-                        "border-rose-400 focus-visible:ring-rose-400",
-                    )}
-                  />
-                  {hasError && field.state.meta.errors.length > 0 ? (
-                    <p className="text-sm text-rose-600">
-                      {field.state.meta.errors[0]}
-                    </p>
-                  ) : null}
-                </div>
-              );
-            }}
-          </form.Field>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              First name
+            </label>
+            <Input
+              value={values.firstName}
+              onChange={(event) => setFormField("firstName", event.target.value)}
+              placeholder="James"
+              autoCapitalize="words"
+              enterKeyHint="next"
+              className={cn(
+                "h-12 rounded-xl text-base",
+                errors.firstName && "border-rose-400 focus-visible:ring-rose-400",
+              )}
+            />
+            {errors.firstName ? (
+              <p className="text-sm text-rose-600">{errors.firstName}</p>
+            ) : null}
+          </div>
 
-          <form.Field name="lastName">
-            {(field) => {
-              const hasError =
-                !field.state.meta.isValid && field.state.meta.isTouched;
-              return (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Last name
-                  </label>
-                  <Input
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    placeholder="Bond"
-                    autoCapitalize="words"
-                    enterKeyHint="next"
-                    className={cn(
-                      "h-12 rounded-xl text-base",
-                      hasError &&
-                        "border-rose-400 focus-visible:ring-rose-400",
-                    )}
-                  />
-                  {hasError && field.state.meta.errors.length > 0 ? (
-                    <p className="text-sm text-rose-600">
-                      {field.state.meta.errors[0]}
-                    </p>
-                  ) : null}
-                </div>
-              );
-            }}
-          </form.Field>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Last name
+            </label>
+            <Input
+              value={values.lastName}
+              onChange={(event) => setFormField("lastName", event.target.value)}
+              placeholder="Bond"
+              autoCapitalize="words"
+              enterKeyHint="next"
+              className={cn(
+                "h-12 rounded-xl text-base",
+                errors.lastName && "border-rose-400 focus-visible:ring-rose-400",
+              )}
+            />
+            {errors.lastName ? (
+              <p className="text-sm text-rose-600">{errors.lastName}</p>
+            ) : null}
+          </div>
         </div>
 
-        <form.Field name="email">
-          {(field) => {
-            const hasError =
-              !field.state.meta.isValid && field.state.meta.isTouched;
-            return (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Email
-                </label>
-                <Input
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  placeholder="participant@example.com"
-                  type="email"
-                  inputMode="email"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  enterKeyHint="done"
-                  className={cn(
-                    "h-12 rounded-xl text-base",
-                    hasError &&
-                      "border-rose-400 focus-visible:ring-rose-400",
-                  )}
-                />
-                {hasError && field.state.meta.errors.length > 0 ? (
-                  <p className="text-sm text-rose-600">
-                    {field.state.meta.errors[0]}
-                  </p>
-                ) : null}
-              </div>
-            );
-          }}
-        </form.Field>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">Email</label>
+          <Input
+            value={values.email}
+            onChange={(event) => setFormField("email", event.target.value)}
+            placeholder="participant@example.com"
+            type="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="done"
+            className={cn(
+              "h-12 rounded-xl text-base",
+              errors.email && "border-rose-400 focus-visible:ring-rose-400",
+            )}
+          />
+          {errors.email ? (
+            <p className="text-sm text-rose-600">{errors.email}</p>
+          ) : null}
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -303,30 +269,22 @@ export function ParticipantDetailsStep({
             How many photos is this participant submitting?
           </p>
         </div>
-        <form.Field name="competitionClassId">
-          {(field) => (
-            <div className="space-y-2">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {competitionClasses.map((cc) => (
-                  <CompetitionClassCard
-                    key={cc.id}
-                    competitionClass={cc}
-                    isSelected={field.state.value === String(cc.id)}
-                    disabled={isBusy}
-                    onSelect={() => field.handleChange(String(cc.id))}
-                  />
-                ))}
-              </div>
-              {!field.state.meta.isValid &&
-              field.state.meta.isTouched &&
-              field.state.meta.errors.length > 0 ? (
-                <p className="text-sm text-rose-600">
-                  {field.state.meta.errors[0]}
-                </p>
-              ) : null}
-            </div>
-          )}
-        </form.Field>
+        <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {marathon.competitionClasses.map((competitionClass) => (
+              <CompetitionClassCard
+                key={competitionClass.id}
+                competitionClass={competitionClass}
+                isSelected={values.competitionClassId === String(competitionClass.id)}
+                disabled={isBusy}
+                onSelect={() => setFormField("competitionClassId", String(competitionClass.id))}
+              />
+            ))}
+          </div>
+          {errors.competitionClassId ? (
+            <p className="text-sm text-rose-600">{errors.competitionClassId}</p>
+          ) : null}
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -336,30 +294,22 @@ export function ParticipantDetailsStep({
             What did they shoot with?
           </p>
         </div>
-        <form.Field name="deviceGroupId">
-          {(field) => (
-            <div className="space-y-2">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {deviceGroups.map((dg) => (
-                  <DeviceGroupCard
-                    key={dg.id}
-                    deviceGroup={dg}
-                    isSelected={field.state.value === String(dg.id)}
-                    disabled={isBusy}
-                    onSelect={() => field.handleChange(String(dg.id))}
-                  />
-                ))}
-              </div>
-              {!field.state.meta.isValid &&
-              field.state.meta.isTouched &&
-              field.state.meta.errors.length > 0 ? (
-                <p className="text-sm text-rose-600">
-                  {field.state.meta.errors[0]}
-                </p>
-              ) : null}
-            </div>
-          )}
-        </form.Field>
+        <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {marathon.deviceGroups.map((deviceGroup) => (
+              <DeviceGroupCard
+                key={deviceGroup.id}
+                deviceGroup={deviceGroup}
+                isSelected={values.deviceGroupId === String(deviceGroup.id)}
+                disabled={isBusy}
+                onSelect={() => setFormField("deviceGroupId", String(deviceGroup.id))}
+              />
+            ))}
+          </div>
+          {errors.deviceGroupId ? (
+            <p className="text-sm text-rose-600">{errors.deviceGroupId}</p>
+          ) : null}
+        </div>
       </div>
 
       {selectedTopics.length > 0 ? (

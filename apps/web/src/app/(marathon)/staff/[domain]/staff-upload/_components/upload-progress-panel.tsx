@@ -1,57 +1,107 @@
 "use client";
 
 import { DownloadIcon, Loader2, RefreshCw } from "lucide-react";
-
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import type { ParticipantUploadFileState } from "@/lib/participant-upload/types";
+import { useDomain } from "@/lib/domain-provider";
 import {
   getUploadPhaseClassName,
   getUploadPhaseLabel,
 } from "@/lib/participant-upload/upload-utils";
+import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload/types";
+import { uploadPreparedFiles } from "@/lib/participant-upload/upload-runner";
+import { saveParticipantPhotosLocally } from "@/lib/participant-upload/local-save";
 import { cn } from "@/lib/utils";
 import { StaffParticipantCard } from "./staff-participant-card";
+import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary";
+import { useStaffUploadStep } from "../_hooks/use-staff-upload-step";
+import { useStaffUploadStore } from "../_lib/staff-upload-store";
 
-interface UploadProgressPanelProps {
-  participantSummary: {
-    reference: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    competitionClassName: string;
-    deviceGroupName: string;
-    statusLabel: string;
-    statusTone?: "default" | "warning" | "success";
-  };
-  files: ParticipantUploadFileState[];
-  completed: number;
-  total: number;
-  isWorking: boolean;
-  uploadErrorMessage?: string | null;
-  canRetryFailedUploads: boolean;
-  isRetrying: boolean;
-  canSaveLocally: boolean;
-  onRetryAction: () => void;
-  onSaveLocallyAction: () => void;
-  onBackAction: () => void;
-}
+export function UploadProgressPanel() {
+  const domain = useDomain();
+  const [, setStep] = useStaffUploadStep();
+  const participantSummary = useStaffUploadParticipantSummary();
 
-export function UploadProgressPanel({
-  participantSummary,
-  files,
-  completed,
-  total,
-  isWorking,
-  uploadErrorMessage,
-  canRetryFailedUploads,
-  isRetrying,
-  canSaveLocally,
-  onRetryAction,
-  onSaveLocallyAction,
-  onBackAction,
-}: UploadProgressPanelProps) {
+  const files = useStaffUploadStore((s) => s.uploadFiles);
+  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles);
+  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus);
+  const uploadErrorMessage = useStaffUploadStore((s) => s.uploadErrorMessage);
+  const isSavingLocally = useStaffUploadStore((s) => s.isSavingLocally);
+  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
+
+  const updateUploadFileState = useStaffUploadStore((s) => s.updateUploadFileState);
+  const patchUpload = useStaffUploadStore((s) => s.patchUpload);
+
+  const completed = files.filter((file) => file.phase === "completed").length;
+  const total = files.length;
+  const isWorking = isUploadingFiles || isPollingStatus;
+  const canRetryFailedUploads = files.some((file) => file.phase === "error");
+  const canSaveLocally =
+    (Boolean(uploadErrorMessage) || canRetryFailedUploads) &&
+    !isSavingLocally &&
+    selectedPhotos.length > 0;
   const progressPercent = total > 0 ? (completed / total) * 100 : 0;
+
+  const handleRetryFailed = async () => {
+    const failedUploads = files.filter(
+      (file) => file.phase === PARTICIPANT_UPLOAD_PHASE.ERROR,
+    );
+
+    if (failedUploads.length === 0) return;
+
+    patchUpload({ uploadErrorMessage: null, isUploadingFiles: true });
+
+    try {
+      const { successKeys, failedKeys } = await uploadPreparedFiles({
+        files: failedUploads,
+        onFileStateChange: updateUploadFileState,
+      });
+
+      if (successKeys.length > 0) {
+        patchUpload({ isPollingStatus: true });
+      }
+
+      if (failedKeys.length === 0) return;
+
+      const message = `${failedKeys.length} photo${failedKeys.length === 1 ? "" : "s"} still failing`;
+      patchUpload({ uploadErrorMessage: message });
+      toast.error(message);
+    } finally {
+      patchUpload({ isUploadingFiles: false });
+    }
+  };
+
+  const handleSaveLocally = async () => {
+    if (!participantSummary || selectedPhotos.length === 0) return;
+
+    try {
+      patchUpload({ isSavingLocally: true });
+      const result = await saveParticipantPhotosLocally({
+        domain,
+        participantReference: participantSummary.reference,
+        photos: selectedPhotos,
+      });
+
+      toast.success(
+        result.mode === "directory"
+          ? "Files saved to the selected folder."
+          : "Backup zip downloaded.",
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save files locally.",
+      );
+    } finally {
+      patchUpload({ isSavingLocally: false });
+    }
+  };
+
+  if (!participantSummary) {
+    return null;
+  }
 
   return (
     <div className="space-y-5">
@@ -80,10 +130,10 @@ export function UploadProgressPanel({
               <PrimaryButton
                 type="button"
                 className="rounded-full text-sm"
-                onClick={onRetryAction}
-                disabled={isRetrying}
+                onClick={() => void handleRetryFailed()}
+                disabled={isUploadingFiles}
               >
-                {isRetrying ? (
+                {isUploadingFiles ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
@@ -96,7 +146,7 @@ export function UploadProgressPanel({
                 type="button"
                 variant="outline"
                 className="rounded-full text-sm"
-                onClick={onSaveLocallyAction}
+                onClick={() => void handleSaveLocally()}
               >
                 <DownloadIcon className="mr-1.5 h-3.5 w-3.5" />
                 Save locally
@@ -107,7 +157,7 @@ export function UploadProgressPanel({
                 type="button"
                 variant="outline"
                 className="rounded-full text-sm"
-                onClick={onBackAction}
+                onClick={() => void setStep("upload")}
               >
                 Back to photos
               </Button>

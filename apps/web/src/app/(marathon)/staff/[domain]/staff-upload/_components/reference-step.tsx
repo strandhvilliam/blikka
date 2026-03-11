@@ -1,33 +1,21 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
 import { Loader2, SearchIcon } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { normalizeParticipantReference } from "../../_lib/staff-utils";
+import { useStaffUploadStore } from "../_lib/staff-upload-store";
 
 interface ReferenceStepProps {
-  defaultReference?: string;
   isSubmitting: boolean;
-  errorMessage?: string | null;
   onSubmitAction: (reference: string) => Promise<void> | void;
 }
 
-export function ReferenceStep({
-  defaultReference = "",
-  isSubmitting,
-  errorMessage,
-  onSubmitAction,
-}: ReferenceStepProps) {
-  const form = useForm({
-    defaultValues: {
-      reference: defaultReference,
-    },
-    onSubmit: async ({ value }) => {
-      await onSubmitAction(normalizeParticipantReference(value.reference));
-    },
-  });
+export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepProps) {
+  const reference = useStaffUploadStore((state) => state.formValues.reference);
+  const errorMessage = useStaffUploadStore((state) => state.lookupErrorMessage);
+  const setFormField = useStaffUploadStore((state) => state.setFormField);
 
   return (
     <div className="flex flex-col items-center py-16 text-center">
@@ -48,54 +36,30 @@ export function ReferenceStep({
         onSubmit={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          void form.handleSubmit();
+          void onSubmitAction(normalizeParticipantReference(reference));
         }}
       >
-        <form.Field
-          name="reference"
-          validators={{
-            onChange: ({ value }) =>
-              /^\d{0,4}$/.test(value)
-                ? undefined
-                : "Participant reference must be 1-4 digits",
-          }}
-        >
-          {(field) => {
-            const hasError =
-              field.state.meta.isTouched && field.state.meta.errors.length > 0;
-
-            return (
-              <div className="space-y-2">
-                <Input
-                  autoFocus
-                  value={field.state.value}
-                  onChange={(event) =>
-                    field.handleChange(
-                      event.target.value.replace(/\D/g, "").slice(0, 4),
-                    )
-                  }
-                  onBlur={() => {
-                    if (field.state.value.length > 0) {
-                      field.handleChange(
-                        normalizeParticipantReference(field.state.value),
-                      );
-                    }
-                    field.handleBlur();
-                  }}
-                  placeholder="0000"
-                  inputMode="numeric"
-                  maxLength={4}
-                  className="h-16 rounded-2xl border-input bg-card px-6 text-center font-mono text-4xl! tracking-[0.32em] text-foreground shadow-sm"
-                />
-                {hasError ? (
-                  <p className="text-sm font-medium text-rose-600">
-                    {field.state.meta.errors[0]}
-                  </p>
-                ) : null}
-              </div>
-            );
-          }}
-        </form.Field>
+        <div className="space-y-2">
+          <Input
+            autoFocus
+            value={reference}
+            onChange={(event) =>
+              setFormField(
+                "reference",
+                event.target.value.replace(/\D/g, "").slice(0, 4),
+              )
+            }
+            onBlur={() => {
+              if (reference.length > 0) {
+                setFormField("reference", normalizeParticipantReference(reference));
+              }
+            }}
+            placeholder="0000"
+            inputMode="numeric"
+            maxLength={4}
+            className="h-16 rounded-2xl border-input bg-card px-6 text-center font-mono text-4xl! tracking-[0.32em] text-foreground shadow-sm"
+          />
+        </div>
 
         {errorMessage ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-left text-sm text-rose-700">

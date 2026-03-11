@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useStaffUploadStep } from "../_hooks/use-staff-upload-step";
 
 const STEPS = [
   { key: "find", label: "Find" },
@@ -18,11 +19,8 @@ const FLOW_STEP_TO_INDEX: Record<string, number> = {
   complete: 3,
 };
 
-interface StepIndicatorProps {
-  currentFlowStep: string;
-}
-
-export function StepIndicator({ currentFlowStep }: StepIndicatorProps) {
+export function StepIndicator() {
+  const [currentFlowStep] = useStaffUploadStep();
   const currentIndex = FLOW_STEP_TO_INDEX[currentFlowStep] ?? 0;
 
   return (
