@@ -36,22 +36,22 @@ import {
 import { formatDomainPathname } from "@/lib/utils";
 import { useTRPC } from "@/lib/trpc/client";
 import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping";
-import { revokePhotoPreviewUrls } from "../_lib/file-processing";
+import { revokePhotoPreviewUrls } from "@/lib/participant-upload/file-processing";
 import {
   getDropzoneDisabledReason,
   getDropzoneVariant,
-} from "../_lib/upload-utils";
+} from "@/lib/participant-upload/upload-utils";
 import {
   pluralizePhotos,
   useParticipantUploadForm,
-} from "../_hooks/use-participant-upload-form";
-import { usePhotoSelection } from "../_hooks/use-photo-selection";
-import { useUploadFlow } from "../_hooks/use-upload-flow";
-import { ParticipantDetailsForm } from "./participant-details-form";
-import { UploadMappingSection } from "./upload-mapping-section";
-import { ImageDropzoneSection } from "./image-dropzone-section";
-import { SelectedImagesSection } from "./selected-images-section";
-import { UploadStatusSection } from "./upload-status-section";
+} from "@/hooks/use-participant-upload-form";
+import { useParticipantPhotoSelection } from "@/hooks/use-participant-photo-selection";
+import { useParticipantUploadFlow } from "@/hooks/use-participant-upload-flow";
+import { ParticipantDetailsForm } from "@/components/participant-upload/participant-details-form";
+import { UploadMappingSection } from "@/components/participant-upload/upload-mapping-section";
+import { ImageDropzoneSection } from "@/components/participant-upload/image-dropzone-section";
+import { SelectedImagesSection } from "@/components/participant-upload/selected-images-section";
+import { UploadStatusSection } from "@/components/participant-upload/upload-status-section";
 import { useDomain } from "@/lib/domain-provider";
 
 const DROPZONE_ACCEPT: Accept = {
@@ -79,6 +79,7 @@ export function AdminParticipantUploadDialog({
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({ domain }),
   );
+  const marathonMode = marathon.mode as "marathon" | "by-camera";
 
   const signatureRef = useRef<string | null>(null);
 
@@ -95,7 +96,7 @@ export function AdminParticipantUploadDialog({
   );
 
   const { form, formValues, validateFiles, resetForm } =
-    useParticipantUploadForm(marathon.mode, {
+    useParticipantUploadForm(marathonMode, {
       onSubmit: async (value) => {
         await submitLogicRef.current?.(value);
       },
@@ -113,14 +114,14 @@ export function AdminParticipantUploadDialog({
     ) ?? null;
 
   const selectedTopics = getSelectedTopics(
-    marathon.mode,
+    marathonMode,
     activeByCameraTopic,
     selectedCompetitionClass,
     sortedTopics,
   );
 
   const expectedPhotoCount = getExpectedPhotoCount(
-    marathon.mode,
+    marathonMode,
     activeByCameraTopic,
     selectedCompetitionClass,
   );
@@ -135,16 +136,16 @@ export function AdminParticipantUploadDialog({
 
   const dropzoneDisabledReason = getDropzoneDisabledReason({
     deviceGroupId: formValues.deviceGroupId,
-    marathonMode: marathon.mode,
+    marathonMode,
     competitionClassId: formValues.competitionClassId,
     activeByCameraTopic,
   });
 
   const canSelectFiles = isMappingReady && expectedPhotoCount > 0;
 
-  const uploadFlow = useUploadFlow({
+  const uploadFlow = useParticipantUploadFlow({
     domain,
-    marathonMode: marathon.mode,
+    marathonMode,
     formValues,
     queryClient,
   });
@@ -155,7 +156,7 @@ export function AdminParticipantUploadDialog({
     uploadFlow.initializeUploadFlowMutation.isPending ||
     uploadFlow.initializeByCameraUploadMutation.isPending;
 
-  const photoSelection = usePhotoSelection({
+  const photoSelection = useParticipantPhotoSelection({
     open,
     topicOrderIndexes,
     expectedPhotoCount,
@@ -378,11 +379,11 @@ export function AdminParticipantUploadDialog({
               <div className="space-y-6">
                 <ParticipantDetailsForm
                   form={form}
-                  marathonMode={marathon.mode}
+                  marathonMode={marathonMode}
                 />
                 <UploadMappingSection
                   form={form}
-                  marathonMode={marathon.mode}
+                  marathonMode={marathonMode}
                   competitionClasses={marathon.competitionClasses}
                   deviceGroups={marathon.deviceGroups}
                   selectedTopics={selectedTopics}

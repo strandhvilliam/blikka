@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useInfiniteQuery, useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { LogOutIcon, PenIcon, QrCodeIcon, UsersIcon } from "lucide-react"
+import { LogOutIcon, PenIcon, QrCodeIcon, UploadIcon, UsersIcon } from "lucide-react"
 import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs"
 import { useDebounce } from "use-debounce"
 import { toast } from "sonner"
@@ -188,8 +188,21 @@ export function StaffHomeClient({ staffId, staffName }: StaffHomeClientProps) {
           </button>
           <button
             type="button"
-            onClick={() => void openSheetSafely("verified-list")}
+            onClick={() => router.push(formatDomainPathname("/staff/laptop-upload", domain, "staff"))}
             className="flex flex-col items-center gap-3 rounded-[2rem] border bg-white/80 px-4 py-5 shadow-sm backdrop-blur-sm transition hover:border-primary/30 hover:shadow-md"
+          >
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <UploadIcon className="h-7 w-7" />
+            </div>
+            <div className="text-center">
+              <p className="font-medium">Laptop upload</p>
+              <p className="text-xs text-muted-foreground">Upload SD card files for a participant</p>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => void openSheetSafely("verified-list")}
+            className="col-span-2 flex flex-col items-center gap-3 rounded-[2rem] border bg-white/80 px-4 py-5 shadow-sm backdrop-blur-sm transition hover:border-primary/30 hover:shadow-md"
           >
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
               <UsersIcon className="h-7 w-7" />
