@@ -179,22 +179,22 @@
       "continue": "Fortsätt"
     },
     "prepareStep": {
-      "reviewTitle": "Förbered för senare uppladdning",
-      "reviewDescription": "Spara deltagaruppgifterna nu så att en funktionär kan ladda upp bilderna senare på en laptop.",
-      "readyTitle": "Du är redo för nästa steg",
-      "readyDescription": "Dina deltagaruppgifter är sparade. Följ arrangörens instruktioner när det är dags att ladda upp dina bilder senare.",
-      "participantNumberLabel": "Deltagarnummer",
-      "participantLabel": "Deltagare",
+      "reviewTitle": "Bekräfta dina uppgifter",
+      "reviewDescription": "Kontrollera att allt stämmer innan du sparar. En funktionär kopplar dina bilder till denna registrering senare.",
+      "readyTitle": "Klart!",
+      "readyDescription": "Dina uppgifter är sparade. Kom ihåg ditt deltagarnummer — funktionären frågar efter det när det är dags att ladda upp bilder.",
+      "participantNumberLabel": "Ditt nummer",
+      "participantLabel": "Namn",
       "emailLabel": "E-post",
       "classLabel": "Klass",
       "deviceLabel": "Enhet",
       "nextBadge": "Senare uppladdning",
-      "nextTitle": "Vad händer nu",
-      "nextBody": "Ha ditt deltagarnummer nära till hands. När arrangörerna är redo kommer en funktionär att använda numret för att koppla dina bilder till ditt deltagande.",
+      "nextTitle": "Uppgifterna är sparade",
+      "nextBody": "Kom ihåg ditt deltagarnummer. Funktionären använder det för att koppla dina bilder senare.",
       "confirm": "Spara och fortsätt",
       "back": "Tillbaka",
-      "startOver": "Börja om",
-      "saveFailed": "Kunde inte spara deltagaruppgifterna"
+      "startOver": "Registrera nästa deltagare",
+      "saveFailed": "Kunde inte spara — försök igen"
     }
   },
   "VerificationPage": {

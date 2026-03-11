@@ -179,22 +179,22 @@
       "continue": "Continue"
     },
     "prepareStep": {
-      "reviewTitle": "Prepare for later upload",
-      "reviewDescription": "Save these participant details now so a staff member can upload the photos later on a laptop.",
-      "readyTitle": "You're ready for the next step",
-      "readyDescription": "Your participant details are saved. Follow the organizer's instructions when it's time to upload your photos later.",
-      "participantNumberLabel": "Participant number",
-      "participantLabel": "Participant",
+      "reviewTitle": "Confirm your details",
+      "reviewDescription": "Double-check everything below before saving. A staff member will match your photos to this entry later.",
+      "readyTitle": "All set!",
+      "readyDescription": "Your details have been saved. Remember your participant number — staff will ask for it when it's time to upload photos.",
+      "participantNumberLabel": "Your number",
+      "participantLabel": "Name",
       "emailLabel": "Email",
       "classLabel": "Class",
       "deviceLabel": "Device",
       "nextBadge": "Later upload",
-      "nextTitle": "What happens next",
-      "nextBody": "Keep your participant number handy. When the organizers are ready, a staff member will use this number to connect your photos to your participant entry.",
+      "nextTitle": "Details saved",
+      "nextBody": "Remember your participant number. Staff will use it to link your photos later.",
       "confirm": "Save and continue",
       "back": "Back",
-      "startOver": "Start over",
-      "saveFailed": "Failed to save participant details"
+      "startOver": "Register another participant",
+      "saveFailed": "Failed to save — please try again"
     }
   },
   "VerificationPage": {

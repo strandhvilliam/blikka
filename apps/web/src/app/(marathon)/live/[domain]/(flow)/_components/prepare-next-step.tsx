@@ -3,18 +3,16 @@
 import { useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { Loader2, NotebookPen, UserRoundCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
@@ -87,104 +85,97 @@ export function PrepareNextStep({
   };
 
   return (
-    <div className="max-w-3xl mx-auto min-h-[70dvh] flex flex-col justify-center">
-      <Card className="border-border/80 shadow-xl">
-        <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-slate-100 text-slate-700">
-            {isPrepared ? (
-              <UserRoundCheck className="size-7" />
-            ) : (
-              <NotebookPen className="size-7" />
-            )}
-          </div>
-          <div className="space-y-2">
-            <CardTitle className="text-3xl font-rocgrotesk font-bold">
-              {isPrepared ? t("readyTitle") : t("reviewTitle")}
-            </CardTitle>
-            <CardDescription className="text-base">
-              {isPrepared ? t("readyDescription") : t("reviewDescription")}
-            </CardDescription>
-          </div>
-        </CardHeader>
+    <div className="max-w-md mx-auto min-h-[70dvh] space-y-10 flex flex-col justify-center">
+      <CardHeader className="text-center">
+        <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
+          {isPrepared ? t("readyTitle") : t("reviewTitle")}
+        </CardTitle>
+        <CardDescription className="text-center">
+          {isPrepared ? t("readyDescription") : t("reviewDescription")}
+        </CardDescription>
+      </CardHeader>
 
-        <CardContent className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center">
-            <p className="text-sm font-medium uppercase tracking-[0.24em] text-slate-500">
-              {t("participantNumberLabel")}
-            </p>
-            <p className="mt-3 font-mono text-5xl font-bold tracking-[0.3em] text-slate-950">
-              {uploadFlowState.participantRef}
-            </p>
-          </div>
+      <CardContent className="space-y-4">
+        <div className="rounded-xl border border-border bg-muted/50 px-5 py-4 text-center">
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            {t("participantNumberLabel")}
+          </p>
+          <p className="mt-2 font-mono text-4xl font-bold tracking-[0.3em] text-foreground">
+            {Number(uploadFlowState.participantRef)}
+          </p>
+        </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <InfoCard label={t("participantLabel")}>
-              {uploadFlowState.participantFirstName}{" "}
-              {uploadFlowState.participantLastName}
-            </InfoCard>
-            <InfoCard label={t("emailLabel")}>
-              {uploadFlowState.participantEmail}
-            </InfoCard>
-            <InfoCard label={t("classLabel")}>{competitionClass.name}</InfoCard>
-            <InfoCard label={t("deviceLabel")}>{deviceGroup.name}</InfoCard>
-          </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <InfoRow label={t("participantLabel")}>
+            {uploadFlowState.participantFirstName}{" "}
+            {uploadFlowState.participantLastName}
+          </InfoRow>
+          <InfoRow label={t("emailLabel")}>
+            {uploadFlowState.participantEmail}
+          </InfoRow>
+          <InfoRow label={t("classLabel")}>{competitionClass.name}</InfoRow>
+          <InfoRow label={t("deviceLabel")}>{deviceGroup.name}</InfoRow>
+        </div>
 
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
-            <div className="mb-3 flex items-center gap-2 font-semibold">
-              <Badge className="border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-100">
-                {t("nextBadge")}
-              </Badge>
-              <span>{t("nextTitle")}</span>
-            </div>
-            <p>{t("nextBody")}</p>
-          </div>
-        </CardContent>
+        {!isPrepared && (
+          <p className="text-sm text-muted-foreground text-center pt-2">
+            {t("nextBody")}
+          </p>
+        )}
 
-        <CardFooter className="flex flex-col gap-3">
-          {isPrepared ? (
+        {isPrepared && (
+          <div className="flex items-center justify-center gap-2 pt-2 text-sm font-medium text-green-700">
+            <CheckCircle2 className="size-4" />
+            <span>{t("nextTitle")}</span>
+          </div>
+        )}
+      </CardContent>
+
+      <CardFooter className="flex flex-col gap-3">
+        {isPrepared ? (
+          <PrimaryButton
+            onClick={handleStartOver}
+            className="w-full py-3.5 text-base sm:text-lg rounded-full"
+          >
+            <span>{t("startOver")}</span>
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </PrimaryButton>
+        ) : (
+          <>
             <PrimaryButton
-              onClick={handleStartOver}
-              className="w-full py-3.5 text-base rounded-full"
+              onClick={() => void handlePrepare()}
+              disabled={isPending}
+              className="w-full py-3.5 text-base sm:text-lg rounded-full"
             >
-              {t("startOver")}
+              {isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                t("confirm")
+              )}
             </PrimaryButton>
-          ) : (
-            <>
-              <PrimaryButton
-                onClick={() => void handlePrepare()}
-                disabled={isPending}
-                className="w-full py-3.5 text-base rounded-full"
-              >
-                {isPending ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  t("confirm")
-                )}
-              </PrimaryButton>
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={handlePrevStep}
-                disabled={isPending}
-                className="w-full sm:w-[220px]"
-              >
-                {t("back")}
-              </Button>
-            </>
-          )}
-        </CardFooter>
-      </Card>
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={handlePrevStep}
+              disabled={isPending}
+              className="w-full sm:w-[220px]"
+            >
+              {t("back")}
+            </Button>
+          </>
+        )}
+      </CardFooter>
     </div>
   );
 }
 
-function InfoCard({ label, children }: { label: string; children: ReactNode }) {
+function InfoRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border bg-background px-4 py-4 text-left">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="rounded-xl border border-border bg-background px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
         {label}
       </p>
-      <p className="mt-2 text-base font-semibold text-foreground">{children}</p>
+      <p className="mt-1 text-base font-semibold text-foreground">{children}</p>
     </div>
   );
 }
