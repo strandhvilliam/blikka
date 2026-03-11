@@ -31,6 +31,12 @@ function createRandomReference() {
     .padStart(4, "0");
 }
 
+function normalizeOptionalPhoneNumber(phoneNumber?: string | null) {
+  const normalizedPhoneNumber = phoneNumber?.trim();
+
+  return normalizedPhoneNumber ? normalizedPhoneNumber : null;
+}
+
 export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiService>()(
   "@blikka/api/UploadFlowApiService",
   {
@@ -163,15 +169,18 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
       const encryptPhoneNumber = Effect.fn(
         "UploadFlowApiService.encryptPhoneNumber",
       )(function* (phoneNumber?: string | null) {
-        return yield* Option.match(Option.fromNullishOr(phoneNumber), {
-          onSome: (resolvedPhoneNumber) =>
-            phoneEncryption.encrypt({ phoneNumber: resolvedPhoneNumber }),
-          onNone: () =>
-            Effect.succeed<{ encrypted: null; hash: null }>({
-              encrypted: null,
-              hash: null,
-            }),
-        });
+        return yield* Option.match(
+          Option.fromNullishOr(normalizeOptionalPhoneNumber(phoneNumber)),
+          {
+            onSome: (resolvedPhoneNumber) =>
+              phoneEncryption.encrypt({ phoneNumber: resolvedPhoneNumber }),
+            onNone: () =>
+              Effect.succeed<{ encrypted: null; hash: null }>({
+                encrypted: null,
+                hash: null,
+              }),
+          },
+        );
       });
 
       const hasSuccessfulActiveTopicUpload = Effect.fn(

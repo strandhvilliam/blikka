@@ -195,6 +195,28 @@
       "back": "Back",
       "startOver": "Register another participant",
       "saveFailed": "Failed to save — please try again"
+    },
+    "prepareCompleted": {
+      "eyebrow": "Later upload",
+      "title": "Participant saved",
+      "description": "This registration is ready for the later upload station. Keep the participant number nearby so staff can attach the photos to the correct entry.",
+      "participantNumberLabel": "Participant number",
+      "participantNumberHelp": "This number is what staff will ask for when the participant returns to upload photos.",
+      "participantLabel": "Participant",
+      "emailLabel": "Email",
+      "statusLabel": "Status",
+      "statusValue": "Ready for later upload",
+      "nextStepsTitle": "What happens next",
+      "nextStepsDescription": "Nothing else needs to be done here right now.",
+      "stepOneTitle": "Keep the number",
+      "stepOneBody": "Save or note the participant number so it is easy to find again later.",
+      "stepTwoTitle": "Meet a staff member",
+      "stepTwoBody": "When it is time to upload, staff will use the number to open the saved registration.",
+      "stepThreeTitle": "Upload later",
+      "stepThreeBody": "The participant can close this page now and return when the upload station is ready.",
+      "registerAnother": "Register another participant",
+      "backToLive": "Back to live page",
+      "fallbackParticipant": "Participant"
     }
   },
   "VerificationPage": {

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
 import { formatDomainPathname } from "@/lib/utils";
+import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useStepState } from "../_lib/step-state-context";
 import type { CompetitionClass, DeviceGroup } from "@blikka/db";
@@ -39,7 +40,6 @@ export function PrepareNextStep({
   const router = useRouter();
   const { handlePrevStep } = useStepState();
   const { uploadFlowState } = useUploadFlowState();
-  const [isPrepared, setIsPrepared] = useState(false);
 
   const { mutateAsync: prepareUploadFlow, isPending } = useMutation(
     trpc.uploadFlow.prepareUploadFlow.mutationOptions({
@@ -74,24 +74,36 @@ export function PrepareNextStep({
         phoneNumber: uploadFlowState.participantPhone,
       });
 
-      setIsPrepared(true);
+      const serializedParams = flowStateClientParamSerializer({
+        competitionClassId: uploadFlowState.competitionClassId,
+        deviceGroupId: uploadFlowState.deviceGroupId,
+        participantId: uploadFlowState.participantId,
+        participantRef: uploadFlowState.participantRef,
+        participantEmail: uploadFlowState.participantEmail,
+        participantFirstName: uploadFlowState.participantFirstName,
+        participantLastName: uploadFlowState.participantLastName,
+      });
+
+      router.replace(
+        formatDomainPathname(
+          `/live/marathon/prepare/completed${serializedParams}`,
+          domain,
+          "live",
+        ),
+      );
     } catch {
       return;
     }
-  };
-
-  const handleStartOver = () => {
-    router.replace(formatDomainPathname("/live", domain, "live"));
   };
 
   return (
     <div className="max-w-md mx-auto min-h-[70dvh] space-y-10 flex flex-col justify-center">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
-          {isPrepared ? t("readyTitle") : t("reviewTitle")}
+          {t("reviewTitle")}
         </CardTitle>
         <CardDescription className="text-center">
-          {isPrepared ? t("readyDescription") : t("reviewDescription")}
+          {t("reviewDescription")}
         </CardDescription>
       </CardHeader>
 
@@ -101,7 +113,7 @@ export function PrepareNextStep({
             {t("participantNumberLabel")}
           </p>
           <p className="mt-2 font-mono text-4xl font-bold tracking-[0.3em] text-foreground">
-            {Number(uploadFlowState.participantRef)}
+            {uploadFlowState.participantRef}
           </p>
         </div>
 
@@ -117,53 +129,28 @@ export function PrepareNextStep({
           <InfoRow label={t("deviceLabel")}>{deviceGroup.name}</InfoRow>
         </div>
 
-        {!isPrepared && (
-          <p className="text-sm text-muted-foreground text-center pt-2">
-            {t("nextBody")}
-          </p>
-        )}
-
-        {isPrepared && (
-          <div className="flex items-center justify-center gap-2 pt-2 text-sm font-medium text-green-700">
-            <CheckCircle2 className="size-4" />
-            <span>{t("nextTitle")}</span>
-          </div>
-        )}
+        <p className="text-sm text-muted-foreground text-center pt-2">
+          {t("nextBody")}
+        </p>
       </CardContent>
 
       <CardFooter className="flex flex-col gap-3">
-        {isPrepared ? (
-          <PrimaryButton
-            onClick={handleStartOver}
-            className="w-full py-3.5 text-base sm:text-lg rounded-full"
-          >
-            <span>{t("startOver")}</span>
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </PrimaryButton>
-        ) : (
-          <>
-            <PrimaryButton
-              onClick={() => void handlePrepare()}
-              disabled={isPending}
-              className="w-full py-3.5 text-base sm:text-lg rounded-full"
-            >
-              {isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                t("confirm")
-              )}
-            </PrimaryButton>
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={handlePrevStep}
-              disabled={isPending}
-              className="w-full sm:w-[220px]"
-            >
-              {t("back")}
-            </Button>
-          </>
-        )}
+        <PrimaryButton
+          onClick={() => void handlePrepare()}
+          disabled={isPending}
+          className="w-full py-3.5 text-base sm:text-lg rounded-full"
+        >
+          {isPending ? <Loader2 className="animate-spin" /> : t("confirm")}
+        </PrimaryButton>
+        <Button
+          variant="ghost"
+          size="lg"
+          onClick={handlePrevStep}
+          disabled={isPending}
+          className="w-full sm:w-[220px]"
+        >
+          {t("back")}
+        </Button>
       </CardFooter>
     </div>
   );

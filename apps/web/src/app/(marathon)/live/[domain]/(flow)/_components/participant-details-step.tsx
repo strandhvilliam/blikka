@@ -57,28 +57,20 @@ const createParticipantDetailsSchema = (
   mode: FlowMode,
 ) =>
   z.object({
-    firstname: z
-      .string()
-      .min(1, t("participantDetails.firstNameRequired")),
-    lastname: z
-      .string()
-      .min(1, t("participantDetails.lastNameRequired")),
-    email: z
-      .string()
-      .email(t("participantDetails.invalidEmail")),
+    firstname: z.string().min(1, t("participantDetails.firstNameRequired")),
+    lastname: z.string().min(1, t("participantDetails.lastNameRequired")),
+    email: z.string().email(t("participantDetails.invalidEmail")),
     phone:
       mode === "by-camera"
         ? z
-          .string()
-          .min(1, t("participantDetails.phoneRequired"))
-          .refine(isPossiblePhoneNumber, t("participantDetails.invalidPhone"))
+            .string()
+            .min(1, t("participantDetails.phoneRequired"))
+            .refine(isPossiblePhoneNumber, t("participantDetails.invalidPhone"))
         : z.string(),
   });
 
-const createParticipantDetailsValidator = (
-  t: ReturnType<typeof useTranslations>,
-  mode: FlowMode,
-) =>
+const createParticipantDetailsValidator =
+  (t: ReturnType<typeof useTranslations>, mode: FlowMode) =>
   ({
     value,
   }: {
@@ -220,7 +212,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
         participantFirstName: value.firstname,
         participantLastName: value.lastname,
         participantEmail: value.email,
-        participantPhone: value.phone,
+        participantPhone: value.phone.trim() || null,
       }));
       handleNextStep();
     },
@@ -271,7 +263,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       </CardHeader>
       <form noValidate onSubmit={(e) => e.preventDefault()}>
         <CardContent className="space-y-6">
-          <form.Subscribe selector={(state: { submissionAttempts: number }) => state.submissionAttempts}>
+          <form.Subscribe
+            selector={(state: { submissionAttempts: number }) =>
+              state.submissionAttempts
+            }
+          >
             {(submissionAttempts) => (
               <>
                 <form.Field name="firstname">
@@ -283,7 +279,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                       (field.state.meta.isBlurred ||
                         (submissionAttempts > 0 &&
                           focusedField !==
-                          (field.name as ParticipantDetailsFieldName)));
+                            (field.name as ParticipantDetailsFieldName)));
 
                     return (
                       <div className="space-y-2">
@@ -312,10 +308,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoComplete="given-name"
                           autoCapitalize="words"
                           enterKeyHint="next"
-                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${showError
-                            ? "border-destructive focus-visible:ring-destructive"
-                            : ""
-                            }`}
+                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                            showError
+                              ? "border-destructive focus-visible:ring-destructive"
+                              : ""
+                          }`}
                           aria-invalid={showError}
                           aria-describedby={
                             showError ? `${field.name}-error` : undefined
@@ -344,7 +341,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                       (field.state.meta.isBlurred ||
                         (submissionAttempts > 0 &&
                           focusedField !==
-                          (field.name as ParticipantDetailsFieldName)));
+                            (field.name as ParticipantDetailsFieldName)));
 
                     return (
                       <div className="space-y-2">
@@ -373,10 +370,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoComplete="family-name"
                           autoCapitalize="words"
                           enterKeyHint="next"
-                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${showError
-                            ? "border-destructive focus-visible:ring-destructive"
-                            : ""
-                            }`}
+                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                            showError
+                              ? "border-destructive focus-visible:ring-destructive"
+                              : ""
+                          }`}
                           aria-invalid={showError}
                           aria-describedby={
                             showError ? `${field.name}-error` : undefined
@@ -405,7 +403,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                       (field.state.meta.isBlurred ||
                         (submissionAttempts > 0 &&
                           focusedField !==
-                          (field.name as ParticipantDetailsFieldName)));
+                            (field.name as ParticipantDetailsFieldName)));
 
                     return (
                       <div className="space-y-2">
@@ -435,10 +433,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoCapitalize="none"
                           autoCorrect="off"
                           spellCheck={false}
-                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${showError
-                            ? "border-destructive focus-visible:ring-destructive"
-                            : ""
-                            }`}
+                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
+                            showError
+                              ? "border-destructive focus-visible:ring-destructive"
+                              : ""
+                          }`}
                           aria-invalid={showError}
                           aria-describedby={
                             showError ? `${field.name}-error` : undefined
@@ -511,10 +510,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                             enterKeyHint="done"
                             international
                             countryCallingCodeEditable={false}
-                            className={`rounded-xl text-base sm:text-lg bg-background ${showError
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                              }`}
+                            className={`rounded-xl text-base sm:text-lg bg-background ${
+                              showError
+                                ? "border-destructive focus-visible:ring-destructive"
+                                : ""
+                            }`}
                             aria-invalid={showError}
                             aria-describedby={
                               showError ? `${field.name}-error` : undefined
@@ -539,12 +539,18 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 pt-8">
-          <form.Subscribe selector={(state: { isSubmitting: boolean }) => [state.isSubmitting]}>
+          <form.Subscribe
+            selector={(state: { isSubmitting: boolean }) => [
+              state.isSubmitting,
+            ]}
+          >
             {([isSubmitting]) => (
               <PrimaryButton
                 type="button"
                 className="w-full py-3.5 text-base sm:text-lg rounded-full"
-                disabled={isSubmitting || resolveByCameraParticipantByPhone.isPending}
+                disabled={
+                  isSubmitting || resolveByCameraParticipantByPhone.isPending
+                }
                 // submit mannually to avoid specific bug when navigating back between steps
                 onClick={() => form.handleSubmit()}
               >

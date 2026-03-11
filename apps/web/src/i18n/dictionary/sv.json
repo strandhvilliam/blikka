@@ -195,6 +195,28 @@
       "back": "Tillbaka",
       "startOver": "Registrera nästa deltagare",
       "saveFailed": "Kunde inte spara — försök igen"
+    },
+    "prepareCompleted": {
+      "eyebrow": "Senare uppladdning",
+      "title": "Deltagaren är sparad",
+      "description": "Den här registreringen är klar för uppladdningsstationen senare. Ha deltagarnumret nära till hands så att funktionären kan koppla bilderna till rätt registrering.",
+      "participantNumberLabel": "Deltagarnummer",
+      "participantNumberHelp": "Det här numret är vad funktionären frågar efter när deltagaren kommer tillbaka för att ladda upp bilder.",
+      "participantLabel": "Deltagare",
+      "emailLabel": "E-post",
+      "statusLabel": "Status",
+      "statusValue": "Redo för senare uppladdning",
+      "nextStepsTitle": "Detta händer nu",
+      "nextStepsDescription": "Inget mer behöver göras här just nu.",
+      "stepOneTitle": "Spara numret",
+      "stepOneBody": "Spara eller skriv ner deltagarnumret så att det är lätt att hitta senare.",
+      "stepTwoTitle": "Träffa en funktionär",
+      "stepTwoBody": "När det är dags att ladda upp använder funktionären numret för att öppna den sparade registreringen.",
+      "stepThreeTitle": "Ladda upp senare",
+      "stepThreeBody": "Deltagaren kan stänga sidan nu och återkomma när uppladdningsstationen är redo.",
+      "registerAnother": "Registrera nästa deltagare",
+      "backToLive": "Till live-sidan",
+      "fallbackParticipant": "Deltagare"
     }
   },
   "VerificationPage": {
