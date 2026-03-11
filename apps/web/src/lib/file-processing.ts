@@ -199,3 +199,42 @@ export function revokePreviewUrls<T>(
     }
   });
 }
+
+const THUMBNAIL_MAX_DIMENSION = 400;
+
+/**
+ * Generates a small thumbnail blob URL from a full-size image file.
+ * Uses createImageBitmap with resize for efficient sub-sampled decoding
+ * so the browser never needs to fully decode the original resolution.
+ * Falls back to a direct object URL if thumbnail generation fails.
+ */
+export async function generateThumbnailUrl(
+  file: File | Blob,
+  maxDimension = THUMBNAIL_MAX_DIMENSION,
+): Promise<string> {
+  try {
+    const bitmap = await createImageBitmap(file, {
+      resizeWidth: maxDimension,
+      resizeQuality: "medium",
+    });
+
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      bitmap.close();
+      return URL.createObjectURL(file);
+    }
+
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    const blob = await canvas.convertToBlob({
+      type: "image/jpeg",
+      quality: 0.7,
+    });
+    return URL.createObjectURL(blob);
+  } catch {
+    return URL.createObjectURL(file);
+  }
+}

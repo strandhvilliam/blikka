@@ -3,7 +3,7 @@
 import { CheckCircle2, RotateCcw } from "lucide-react";
 
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { ParticipantSummaryCard } from "./participant-summary-card";
+import { StaffParticipantCard } from "./staff-participant-card";
 
 interface UploadCompletePanelProps {
   participantSummary: {
@@ -11,7 +11,6 @@ interface UploadCompletePanelProps {
     firstName: string;
     lastName: string;
     email: string;
-    phone?: string | null;
     competitionClassName: string;
     deviceGroupName: string;
     statusLabel: string;
@@ -26,7 +25,7 @@ export function UploadCompletePanel({
 }: UploadCompletePanelProps) {
   return (
     <div className="space-y-5">
-      <ParticipantSummaryCard {...participantSummary} statusTone="success" />
+      <StaffParticipantCard {...participantSummary} statusTone="success" />
 
       <div className="flex flex-col items-center rounded-2xl border border-emerald-200 bg-emerald-50/50 px-8 py-14 text-center shadow-sm">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md">
@@ -37,7 +36,7 @@ export function UploadCompletePanel({
         </h2>
         <p className="mt-3 max-w-sm text-sm text-emerald-800">
           All files uploaded for participant #{participantSummary.reference}.
-          Ready for the next SD card.
+          Ready for the next participant.
         </p>
         <PrimaryButton
           type="button"

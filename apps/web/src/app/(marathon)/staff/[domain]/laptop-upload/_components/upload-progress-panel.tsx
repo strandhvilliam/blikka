@@ -11,7 +11,7 @@ import {
   getUploadPhaseLabel,
 } from "@/lib/participant-upload/upload-utils";
 import { cn } from "@/lib/utils";
-import { ParticipantSummaryCard } from "./participant-summary-card";
+import { StaffParticipantCard } from "./staff-participant-card";
 
 interface UploadProgressPanelProps {
   participantSummary: {
@@ -19,7 +19,6 @@ interface UploadProgressPanelProps {
     firstName: string;
     lastName: string;
     email: string;
-    phone?: string | null;
     competitionClassName: string;
     deviceGroupName: string;
     statusLabel: string;
@@ -56,7 +55,7 @@ export function UploadProgressPanel({
 
   return (
     <div className="space-y-5">
-      <ParticipantSummaryCard {...participantSummary} />
+      <StaffParticipantCard {...participantSummary} />
 
       <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -116,7 +115,7 @@ export function UploadProgressPanel({
           </div>
         </div>
 
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-muted">
           <div
             className={cn(
               "h-full rounded-full transition-all duration-500",

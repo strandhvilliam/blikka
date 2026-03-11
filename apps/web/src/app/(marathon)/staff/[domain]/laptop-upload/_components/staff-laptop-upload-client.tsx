@@ -17,14 +17,22 @@ import {
   resolveStaffLaptopUploadLookupOutcome,
   type ParticipantExistenceStatus,
 } from "@/lib/participant-upload/flow-helpers";
-import { getDropzoneDisabledReason, getDropzoneVariant } from "@/lib/participant-upload/upload-utils";
 import { revokePhotoPreviewUrls } from "@/lib/participant-upload/file-processing";
 import { useParticipantUploadForm } from "@/hooks/use-participant-upload-form";
 import { useParticipantPhotoSelection } from "@/hooks/use-participant-photo-selection";
 import { useParticipantUploadFlow } from "@/hooks/use-participant-upload-flow";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { StaffParticipant } from "../../_lib/staff-types";
 import { StepIndicator } from "./step-indicator";
 import { ReferenceStep } from "./reference-step";
@@ -183,18 +191,6 @@ export function StaffLaptopUploadClient() {
     isBusy ||
     uploadFlow.uploadComplete ||
     isMaxImagesReached;
-  const dropzoneDisabledReason = getDropzoneDisabledReason({
-    deviceGroupId: activeDeviceGroupId,
-    marathonMode,
-    competitionClassId: activeCompetitionClassId,
-    activeByCameraTopic: null,
-  });
-  const dropzoneVariant = getDropzoneVariant({
-    canSelectFiles,
-    isMaxImagesReached,
-    uploadComplete: uploadFlow.uploadComplete,
-    isBusy,
-  });
 
   useEffect(() => {
     if (uploadFlow.uploadComplete) {
@@ -209,7 +205,6 @@ export function StaffLaptopUploadClient() {
         firstName: existingParticipant.firstname,
         lastName: existingParticipant.lastname,
         email: existingParticipant.email ?? "",
-        phone: "",
         competitionClassName: selectedCompetitionClass.name,
         deviceGroupName: selectedDeviceGroup.name,
         statusLabel:
@@ -227,7 +222,6 @@ export function StaffLaptopUploadClient() {
         firstName: participantDraft.firstName,
         lastName: participantDraft.lastName,
         email: participantDraft.email,
-        phone: participantDraft.phone,
         competitionClassName: selectedCompetitionClass.name,
         deviceGroupName: selectedDeviceGroup.name,
         statusLabel: "Manual entry",
@@ -541,20 +535,17 @@ export function StaffLaptopUploadClient() {
                 participantSummary={participantSummary}
                 selectedTopics={selectedTopics}
                 requiresOverwriteWarning={requiresOverwriteWarning}
-                photoSelection={photoSelection}
                 expectedPhotoCount={expectedPhotoCount}
-                dropzoneProps={{ getRootProps, getInputProps, isDragActive }}
-                dropzoneState={{
-                  isDropzoneDisabled,
-                  variant: dropzoneVariant,
-                  isProcessingFiles: photoSelection.isProcessingFiles,
-                  expectedPhotoCount,
-                  selectedPhotosCount: photoSelection.selectedPhotos.length,
-                  isMaxImagesReached,
-                  dropzoneDisabledReason,
-                  formErrorsFiles: filesError ?? undefined,
-                }}
                 isBusy={isBusy}
+                photos={photoSelection.selectedPhotos}
+                photoValidationMap={photoSelection.photoValidationMap}
+                blockingErrorCount={photoSelection.blockingValidationErrors.length}
+                warningCount={photoSelection.warningValidationResults.length}
+                onRemovePhoto={photoSelection.handleRemovePhoto}
+                dropzone={{ getRootProps, getInputProps, isDragActive }}
+                dropzoneDisabled={isDropzoneDisabled}
+                isProcessingFiles={photoSelection.isProcessingFiles}
+                filesError={filesError}
               />
             ) : null}
 

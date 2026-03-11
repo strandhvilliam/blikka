@@ -2,15 +2,12 @@
 
 import { AlertTriangle } from "lucide-react";
 
-import { ImageDropzoneSection } from "@/components/participant-upload/image-dropzone-section";
-import { SelectedImagesSection } from "@/components/participant-upload/selected-images-section";
-import { ParticipantSummaryCard } from "./participant-summary-card";
-import type {
-  ImageDropzoneSectionDropzoneProps,
-  ImageDropzoneSectionDropzoneState,
-} from "@/components/participant-upload/image-dropzone-section";
-import type { SelectedImagesSectionPhotoSelection } from "@/components/participant-upload/selected-images-section";
 import type { Topic } from "@blikka/db";
+import type { ValidationResult } from "@blikka/validation";
+import type { ParticipantSelectedPhoto } from "@/lib/participant-upload/types";
+import { StaffParticipantCard } from "./staff-participant-card";
+import { StaffDropzone } from "./staff-dropzone";
+import { StaffPhotoList } from "./staff-photo-grid";
 
 interface UploadStepProps {
   participantSummary: {
@@ -18,7 +15,6 @@ interface UploadStepProps {
     firstName: string;
     lastName: string;
     email: string;
-    phone?: string | null;
     competitionClassName: string;
     deviceGroupName: string;
     statusLabel: string;
@@ -26,80 +22,99 @@ interface UploadStepProps {
   };
   selectedTopics: Topic[];
   requiresOverwriteWarning: boolean;
-  photoSelection: SelectedImagesSectionPhotoSelection;
   expectedPhotoCount: number;
-  dropzoneProps: ImageDropzoneSectionDropzoneProps;
-  dropzoneState: ImageDropzoneSectionDropzoneState;
   isBusy: boolean;
+  photos: ParticipantSelectedPhoto[];
+  photoValidationMap: Map<string, ValidationResult[]>;
+  blockingErrorCount: number;
+  warningCount: number;
+  onRemovePhoto: (photoId: string) => void;
+  dropzone: {
+    getRootProps: () => Record<string, unknown>;
+    getInputProps: () => Record<string, unknown>;
+    isDragActive: boolean;
+  };
+  dropzoneDisabled: boolean;
+  isProcessingFiles: boolean;
+  filesError?: string | null;
 }
 
 export function UploadStep({
   participantSummary,
   selectedTopics,
   requiresOverwriteWarning,
-  photoSelection,
   expectedPhotoCount,
-  dropzoneProps,
-  dropzoneState,
   isBusy,
+  photos,
+  photoValidationMap,
+  blockingErrorCount,
+  warningCount,
+  onRemovePhoto,
+  dropzone,
+  dropzoneDisabled,
+  isProcessingFiles,
+  filesError,
 }: UploadStepProps) {
+  const selectedCount = photos.length;
+  const isComplete = selectedCount >= expectedPhotoCount && expectedPhotoCount > 0;
+
   return (
-    <div className="space-y-5">
-      <ParticipantSummaryCard {...participantSummary} />
+    <div className="space-y-6">
+      <StaffParticipantCard {...participantSummary} />
 
       {requiresOverwriteWarning ? (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            This participant already has an initialized upload. Starting again
-            will replace the current in-progress submission set.
+            This participant already has an upload in progress. Starting again
+            will replace it.
           </p>
         </div>
       ) : null}
 
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-          Photo selection
-        </p>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Drop or select files from the SD card. Photos are matched to topics by
-          the order they were taken.
-        </p>
-      </div>
-
-      <ImageDropzoneSection
-        dropzoneProps={dropzoneProps}
-        dropzoneState={dropzoneState}
+      <StaffDropzone
+        getRootProps={dropzone.getRootProps}
+        getInputProps={dropzone.getInputProps}
+        isDragActive={dropzone.isDragActive}
+        isDisabled={dropzoneDisabled}
+        isProcessing={isProcessingFiles}
+        selectedCount={selectedCount}
+        expectedCount={expectedPhotoCount}
+        errorMessage={filesError}
       />
 
-      <SelectedImagesSection
-        photoSelection={photoSelection}
-        uploadFlow={{ uploadComplete: false }}
-        expectedPhotoCount={expectedPhotoCount}
+      <StaffPhotoList
+        photos={photos}
+        expectedCount={expectedPhotoCount}
+        topics={selectedTopics}
+        photoValidationMap={photoValidationMap}
         isBusy={isBusy}
+        onRemove={onRemovePhoto}
       />
 
-      {selectedTopics.length > 0 ? (
-        <details className="group rounded-xl border border-border bg-card">
-          <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Topic order ({selectedTopics.length}{" "}
-            {selectedTopics.length === 1 ? "topic" : "topics"})
-            <span className="text-muted-foreground/50 transition-transform group-open:rotate-180">
-              &#9662;
+      {(blockingErrorCount > 0 || warningCount > 0) && photos.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {blockingErrorCount > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+              {blockingErrorCount} issue{blockingErrorCount !== 1 ? "s" : ""} to fix
             </span>
-          </summary>
-          <div className="flex flex-wrap gap-2 px-4 pb-4">
-            {selectedTopics.map((topic) => (
-              <div
-                key={topic.id}
-                className="rounded-lg border border-border bg-muted px-3 py-1.5 text-sm text-foreground"
-              >
-                #{topic.orderIndex + 1} {topic.name}
-              </div>
-            ))}
-          </div>
-        </details>
+          ) : null}
+          {warningCount > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              {warningCount} warning{warningCount !== 1 ? "s" : ""}
+            </span>
+          ) : null}
+        </div>
       ) : null}
+
+      {isComplete && blockingErrorCount === 0 ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-center text-sm font-medium text-emerald-700">
+          Ready to upload &mdash; review the photos above, then press Start upload
+        </div>
+      ) : null}
+
     </div>
   );
 }

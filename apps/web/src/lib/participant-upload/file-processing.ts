@@ -6,6 +6,7 @@ import {
   COMMON_IMAGE_EXTENSIONS,
   createClientPhotoId,
   filterDuplicateImageCandidates,
+  generateThumbnailUrl,
   limitImageCandidates,
   normalizeSelectedImageFiles,
   reassignOrderIndexes,
@@ -101,13 +102,16 @@ export async function processSelectedFiles({
 
   const newPhotos = await Promise.all(
     candidatesToUse.map(async (candidate) => {
-      const parsedExif = await parseExifData(candidate.file);
+      const [parsedExif, previewUrl] = await Promise.all([
+        parseExifData(candidate.file),
+        generateThumbnailUrl(candidate.file),
+      ]);
       return {
         id: createClientPhotoId(),
         file: candidate.file,
         exif: candidate.preconvertedExif || parsedExif || {},
         preconvertedExif: candidate.preconvertedExif,
-        previewUrl: URL.createObjectURL(candidate.file),
+        previewUrl,
         orderIndex: 0,
       } satisfies ParticipantSelectedPhoto;
     }),
