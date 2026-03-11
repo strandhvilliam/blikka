@@ -1,28 +1,28 @@
-"use client";
+"use client"
 
-import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { useDropzone, type Accept } from "react-dropzone";
-import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, UploadIcon } from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { motion } from "motion/react";
+import { useEffect, useMemo, useState } from "react"
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { useDropzone, type Accept } from "react-dropzone"
+import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, UploadIcon } from "lucide-react"
+import Link from "next/link"
+import { toast } from "sonner"
+import { motion } from "motion/react"
 
-import { useDomain } from "@/lib/domain-provider";
-import { useTRPC } from "@/lib/trpc/client";
-import { cn, formatDomainPathname } from "@/lib/utils";
-import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping";
-import { saveParticipantPhotosLocally } from "@/lib/participant-upload/local-save";
+import { useDomain } from "@/lib/domain-provider"
+import { useTRPC } from "@/lib/trpc/client"
+import { cn, formatDomainPathname } from "@/lib/utils"
+import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping"
+import { saveParticipantPhotosLocally } from "@/lib/participant-upload/local-save"
 import {
   resolveStaffLaptopUploadLookupOutcome,
   type ParticipantExistenceStatus,
-} from "@/lib/participant-upload/flow-helpers";
-import { revokePhotoPreviewUrls } from "@/lib/participant-upload/file-processing";
-import { useParticipantUploadForm } from "@/hooks/use-participant-upload-form";
-import { useParticipantPhotoSelection } from "@/hooks/use-participant-photo-selection";
-import { useParticipantUploadFlow } from "@/hooks/use-participant-upload-flow";
-import { Button } from "@/components/ui/button";
-import { PrimaryButton } from "@/components/ui/primary-button";
+} from "@/lib/participant-upload/flow-helpers"
+import { revokePhotoPreviewUrls } from "@/lib/participant-upload/file-processing"
+import { useParticipantUploadForm } from "@/hooks/use-participant-upload-form"
+import { useParticipantPhotoSelection } from "@/hooks/use-participant-photo-selection"
+import { useParticipantUploadFlow } from "@/hooks/use-participant-upload-flow"
+import { Button } from "@/components/ui/button"
+import { PrimaryButton } from "@/components/ui/primary-button"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,25 +32,25 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import type { StaffParticipant } from "../../_lib/staff-types";
-import { StepIndicator } from "./step-indicator";
-import { ReferenceStep } from "./reference-step";
-import { ParticipantDetailsStep } from "./participant-details-step";
-import { UploadStep } from "./upload-step";
-import { UploadProgressPanel } from "./upload-progress-panel";
-import { UploadCompletePanel } from "./upload-complete-panel";
+} from "@/components/ui/alert-dialog"
+import type { StaffParticipant } from "../../_lib/staff-types"
+import { StepIndicator } from "./step-indicator"
+import { ReferenceStep } from "./reference-step"
+import { ParticipantDetailsStep } from "./participant-details-step"
+import { UploadStep } from "./upload-step"
+import { UploadProgressPanel } from "./upload-progress-panel"
+import { UploadCompletePanel } from "./upload-complete-panel"
 
-type FlowStep = "reference" | "details" | "upload" | "progress" | "complete";
+type FlowStep = "reference" | "details" | "upload" | "progress" | "complete"
 
 interface ParticipantDraft {
-  reference: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  competitionClassId: string;
-  deviceGroupId: string;
+  reference: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  competitionClassId: string
+  deviceGroupId: string
 }
 
 const DROPZONE_ACCEPT: Accept = {
@@ -60,65 +60,65 @@ const DROPZONE_ACCEPT: Accept = {
   "image/webp": [".webp"],
   "image/heic": [".heic"],
   "image/heif": [".heif"],
-};
+}
 
 function getBlockedMessage(status: ParticipantExistenceStatus) {
   if (status === "verified") {
-    return "This participant has already been verified and cannot be uploaded again from the staff laptop flow.";
+    return "This participant has already been verified and cannot be uploaded again from the staff laptop flow."
   }
 
-  return "This participant has already completed the upload flow and cannot be uploaded again from the staff laptop flow.";
+  return "This participant has already completed the upload flow and cannot be uploaded again from the staff laptop flow."
 }
 
 export function StaffLaptopUploadClient() {
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
 
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({ domain }),
-  );
-  const marathonMode = marathon.mode as "marathon" | "by-camera";
+  )
+  const marathonMode = marathon.mode as "marathon" | "by-camera"
 
-  const [step, setStep] = useState<FlowStep>("reference");
-  const [lookupErrorMessage, setLookupErrorMessage] = useState<string | null>(null);
-  const [resolvedReference, setResolvedReference] = useState("");
-  const [existingParticipant, setExistingParticipant] = useState<StaffParticipant | null>(null);
-  const [participantDraft, setParticipantDraft] = useState<ParticipantDraft | null>(null);
+  const [step, setStep] = useState<FlowStep>("reference")
+  const [lookupErrorMessage, setLookupErrorMessage] = useState<string | null>(null)
+  const [resolvedReference, setResolvedReference] = useState("")
+  const [existingParticipant, setExistingParticipant] = useState<StaffParticipant | null>(null)
+  const [participantDraft, setParticipantDraft] = useState<ParticipantDraft | null>(null)
   const [participantStatus, setParticipantStatus] =
-    useState<ParticipantExistenceStatus>(null);
-  const [requiresOverwriteWarning, setRequiresOverwriteWarning] = useState(false);
-  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
-  const [filesError, setFilesError] = useState<string | null>(null);
-  const [isSavingLocally, setIsSavingLocally] = useState(false);
+    useState<ParticipantExistenceStatus>(null)
+  const [requiresOverwriteWarning, setRequiresOverwriteWarning] = useState(false)
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false)
+  const [filesError, setFilesError] = useState<string | null>(null)
+  const [isSavingLocally, setIsSavingLocally] = useState(false)
 
   const lookupParticipantMutation = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
-  );
+  )
 
   const { form, formValues, validateFiles, resetForm } = useParticipantUploadForm(
     marathonMode,
     {
       onSubmit: async (value) => {
-        setParticipantDraft(value);
-        setResolvedReference(value.reference);
-        setLookupErrorMessage(null);
-        setStep("upload");
+        setParticipantDraft(value)
+        setResolvedReference(value.reference)
+        setLookupErrorMessage(null)
+        setStep("upload")
       },
     },
-  );
+  )
 
   const sortedTopics = useMemo(
     () => marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex),
     [marathon.topics],
-  );
+  )
 
   const activeCompetitionClassId = existingParticipant
     ? String(existingParticipant.competitionClassId)
-    : participantDraft?.competitionClassId ?? formValues.competitionClassId;
+    : participantDraft?.competitionClassId ?? formValues.competitionClassId
   const activeDeviceGroupId = existingParticipant
     ? String(existingParticipant.deviceGroupId)
-    : participantDraft?.deviceGroupId ?? formValues.deviceGroupId;
+    : participantDraft?.deviceGroupId ?? formValues.deviceGroupId
 
   const selectedCompetitionClass = useMemo(
     () =>
@@ -126,7 +126,7 @@ export function StaffLaptopUploadClient() {
         (competitionClass) => competitionClass.id === Number(activeCompetitionClassId),
       ) ?? null,
     [activeCompetitionClassId, marathon.competitionClasses],
-  );
+  )
 
   const selectedDeviceGroup = useMemo(
     () =>
@@ -134,7 +134,7 @@ export function StaffLaptopUploadClient() {
         (deviceGroup) => deviceGroup.id === Number(activeDeviceGroupId),
       ) ?? null,
     [activeDeviceGroupId, marathon.deviceGroups],
-  );
+  )
 
   const selectedTopics = useMemo(
     () =>
@@ -145,27 +145,27 @@ export function StaffLaptopUploadClient() {
         sortedTopics,
       ),
     [marathonMode, selectedCompetitionClass, sortedTopics],
-  );
+  )
 
   const expectedPhotoCount = getExpectedPhotoCount(
     marathonMode,
     null,
     selectedCompetitionClass,
-  );
-  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex);
+  )
+  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex)
 
   const uploadFlow = useParticipantUploadFlow({
     domain,
     marathonMode,
     formValues,
     queryClient,
-  });
+  })
 
   const isUploadBusy =
     uploadFlow.isUploadingFiles ||
     uploadFlow.isPollingStatus ||
     uploadFlow.initializeUploadFlowMutation.isPending ||
-    uploadFlow.initializeByCameraUploadMutation.isPending;
+    uploadFlow.initializeByCameraUploadMutation.isPending
 
   const photoSelection = useParticipantPhotoSelection({
     open: step === "upload",
@@ -179,29 +179,29 @@ export function StaffLaptopUploadClient() {
     canSelectFiles: Boolean(selectedCompetitionClass && selectedDeviceGroup),
     onClearFormFilesError: () => setFilesError(null),
     onResetUploadState: () => uploadFlow.resetUploadFlow(),
-  });
+  })
 
-  const isBusy = lookupParticipantMutation.isPending || isUploadBusy;
-  const canSelectFiles = Boolean(selectedCompetitionClass && selectedDeviceGroup);
+  const isBusy = lookupParticipantMutation.isPending || isUploadBusy
+  const canSelectFiles = Boolean(selectedCompetitionClass && selectedDeviceGroup)
   const isMaxImagesReached =
     photoSelection.selectedPhotos.length >= expectedPhotoCount &&
-    expectedPhotoCount > 0;
+    expectedPhotoCount > 0
   const isDropzoneDisabled =
     !canSelectFiles ||
     isBusy ||
     uploadFlow.uploadComplete ||
-    isMaxImagesReached;
+    isMaxImagesReached
 
   useEffect(() => {
     if (uploadFlow.uploadComplete) {
-      setStep("complete");
+      setStep("complete")
     }
-  }, [uploadFlow.uploadComplete]);
+  }, [uploadFlow.uploadComplete])
 
   const participantSummary = useMemo(() => {
     if (existingParticipant && selectedCompetitionClass && selectedDeviceGroup) {
       return {
-        reference: existingParticipant.reference,
+        reference: Number(existingParticipant.reference).toString(),
         firstName: existingParticipant.firstname,
         lastName: existingParticipant.lastname,
         email: existingParticipant.email ?? "",
@@ -213,7 +213,7 @@ export function StaffLaptopUploadClient() {
             : "Prepared participant",
         statusTone:
           participantStatus === "initialized" ? ("warning" as const) : ("default" as const),
-      };
+      }
     }
 
     if (participantDraft && selectedCompetitionClass && selectedDeviceGroup) {
@@ -226,64 +226,64 @@ export function StaffLaptopUploadClient() {
         deviceGroupName: selectedDeviceGroup.name,
         statusLabel: "Manual entry",
         statusTone: "default" as const,
-      };
+      }
     }
 
-    return null;
+    return null
   }, [
     existingParticipant,
     participantDraft,
     participantStatus,
     selectedCompetitionClass,
     selectedDeviceGroup,
-  ]);
+  ])
 
   const manualStepTopics = useMemo(() => {
     const competitionClass = marathon.competitionClasses.find(
       (candidate) => candidate.id === Number(formValues.competitionClassId),
-    );
+    )
 
     if (!competitionClass) {
-      return [];
+      return []
     }
 
-    return getSelectedTopics(marathonMode, null, competitionClass, sortedTopics);
-  }, [formValues.competitionClassId, marathonMode, marathon.competitionClasses, sortedTopics]);
+    return getSelectedTopics(marathonMode, null, competitionClass, sortedTopics)
+  }, [formValues.competitionClassId, marathonMode, marathon.competitionClasses, sortedTopics])
 
   const handleLookup = async (reference: string) => {
-    setLookupErrorMessage(null);
+    setLookupErrorMessage(null)
 
     try {
       const result = await lookupParticipantMutation.mutateAsync({
         domain,
         reference,
-      });
+      })
 
       const outcome = resolveStaffLaptopUploadLookupOutcome({
         exists: result.exists,
         status: result.status as ParticipantExistenceStatus,
-      });
+      })
 
-      setResolvedReference(reference);
-      setParticipantStatus(result.status as ParticipantExistenceStatus);
+      setResolvedReference(reference)
+      setParticipantStatus(result.status as ParticipantExistenceStatus)
 
       if (outcome.kind === "blocked") {
-        setExistingParticipant(null);
-        setParticipantDraft(null);
-        setRequiresOverwriteWarning(false);
-        setLookupErrorMessage(getBlockedMessage(result.status as ParticipantExistenceStatus));
-        setStep("reference");
-        return;
+        setExistingParticipant(null)
+        setParticipantDraft(null)
+        setRequiresOverwriteWarning(false)
+        setLookupErrorMessage(getBlockedMessage(result.status as ParticipantExistenceStatus))
+        setStep("reference")
+        return
       }
 
       if (outcome.kind === "manual-entry") {
-        setExistingParticipant(null);
-        setParticipantDraft(null);
-        setRequiresOverwriteWarning(false);
-        resetForm();
-        form.setFieldValue("reference", reference);
-        setStep("details");
-        return;
+        setExistingParticipant(null)
+        setParticipantDraft(null)
+        setRequiresOverwriteWarning(false)
+        resetForm()
+        form.setFieldValue("reference", reference)
+        setStep("details")
+        return
       }
 
       const participant = await queryClient.fetchQuery(
@@ -291,26 +291,26 @@ export function StaffLaptopUploadClient() {
           domain,
           reference,
         }),
-      );
+      )
 
-      setExistingParticipant(participant as StaffParticipant);
-      setParticipantDraft(null);
-      setRequiresOverwriteWarning(outcome.requiresOverwriteWarning);
-      setStep("upload");
+      setExistingParticipant(participant as StaffParticipant)
+      setParticipantDraft(null)
+      setRequiresOverwriteWarning(outcome.requiresOverwriteWarning)
+      setStep("upload")
     } catch (error) {
-      console.error(error);
+      console.error(error)
       setLookupErrorMessage(
         error instanceof Error
           ? error.message
           : "Failed to find participant for this reference.",
-      );
+      )
     }
-  };
+  }
 
   const handleSubmitUpload = async () => {
     if (!participantSummary) {
-      toast.error("Participant details are missing.");
-      return;
+      toast.error("Participant details are missing.")
+      return
     }
 
     const filesValidationError = validateFiles({
@@ -318,49 +318,49 @@ export function StaffLaptopUploadClient() {
       selectedPhotosCount: photoSelection.selectedPhotos.length,
       validationResults: photoSelection.validationResults,
       validationRunError: photoSelection.validationRunError,
-    });
+    })
 
     if (filesValidationError) {
-      setFilesError(filesValidationError);
-      return;
+      setFilesError(filesValidationError)
+      return
     }
 
     const participantPayload = existingParticipant
       ? {
-          firstName: existingParticipant.firstname,
-          lastName: existingParticipant.lastname,
-          email: existingParticipant.email ?? "",
-          phone: "",
-          competitionClassId: String(existingParticipant.competitionClassId),
-          deviceGroupId: String(existingParticipant.deviceGroupId),
-        }
-      : participantDraft;
+        firstName: existingParticipant.firstname,
+        lastName: existingParticipant.lastname,
+        email: existingParticipant.email ?? "",
+        phone: "",
+        competitionClassId: String(existingParticipant.competitionClassId),
+        deviceGroupId: String(existingParticipant.deviceGroupId),
+      }
+      : participantDraft
 
     if (!participantPayload) {
-      toast.error("Participant details are missing.");
-      return;
+      toast.error("Participant details are missing.")
+      return
     }
 
     if (requiresOverwriteWarning) {
-      setShowOverwriteDialog(true);
-      return;
+      setShowOverwriteDialog(true)
+      return
     }
 
-    setStep("progress");
+    setStep("progress")
     await uploadFlow.runUpload(
       participantSummary.reference,
       photoSelection.selectedPhotos,
       participantPayload,
-    );
-  };
+    )
+  }
 
   const handleConfirmOverwrite = async () => {
     if (!participantSummary || !existingParticipant) {
-      return;
+      return
     }
 
-    setShowOverwriteDialog(false);
-    setStep("progress");
+    setShowOverwriteDialog(false)
+    setStep("progress")
     await uploadFlow.runUpload(
       participantSummary.reference,
       photoSelection.selectedPhotos,
@@ -372,60 +372,60 @@ export function StaffLaptopUploadClient() {
         competitionClassId: String(existingParticipant.competitionClassId),
         deviceGroupId: String(existingParticipant.deviceGroupId),
       },
-    );
-  };
+    )
+  }
 
   const handleSaveLocally = async () => {
     if (!participantSummary || photoSelection.selectedPhotos.length === 0) {
-      return;
+      return
     }
 
     try {
-      setIsSavingLocally(true);
+      setIsSavingLocally(true)
       const result = await saveParticipantPhotosLocally({
         domain,
         participantReference: participantSummary.reference,
         photos: photoSelection.selectedPhotos,
-      });
+      })
       toast.success(
         result.mode === "directory"
           ? "Files saved to the selected folder."
           : "Backup zip downloaded.",
-      );
+      )
     } catch (error) {
-      console.error(error);
+      console.error(error)
       toast.error(
         error instanceof Error ? error.message : "Failed to save files locally.",
-      );
+      )
     } finally {
-      setIsSavingLocally(false);
+      setIsSavingLocally(false)
     }
-  };
+  }
 
   const resetAllState = () => {
-    revokePhotoPreviewUrls(photoSelection.selectedPhotos);
-    photoSelection.setSelectedPhotos([]);
-    photoSelection.resetPhotoSelection();
-    uploadFlow.resetUploadFlow();
-    resetForm();
-    setLookupErrorMessage(null);
-    setResolvedReference("");
-    setExistingParticipant(null);
-    setParticipantDraft(null);
-    setParticipantStatus(null);
-    setRequiresOverwriteWarning(false);
-    setShowOverwriteDialog(false);
-    setFilesError(null);
-    setStep("reference");
-  };
+    revokePhotoPreviewUrls(photoSelection.selectedPhotos)
+    photoSelection.setSelectedPhotos([])
+    photoSelection.resetPhotoSelection()
+    uploadFlow.resetUploadFlow()
+    resetForm()
+    setLookupErrorMessage(null)
+    setResolvedReference("")
+    setExistingParticipant(null)
+    setParticipantDraft(null)
+    setParticipantStatus(null)
+    setRequiresOverwriteWarning(false)
+    setShowOverwriteDialog(false)
+    setFilesError(null)
+    setStep("reference")
+  }
 
   const onDropAccepted = (files: File[]) => {
-    void photoSelection.handleFileSelect(files);
-  };
+    void photoSelection.handleFileSelect(files)
+  }
 
   const onDropRejected = () => {
-    toast.error("Some files were rejected. Please use supported image formats.");
-  };
+    toast.error("Some files were rejected. Please use supported image formats.")
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: DROPZONE_ACCEPT,
@@ -433,14 +433,14 @@ export function StaffLaptopUploadClient() {
     multiple: true,
     onDropAccepted,
     onDropRejected,
-  });
+  })
 
-  const backUrl = formatDomainPathname("/staff", domain, "staff");
-  const showFloatingBar = step === "details" || step === "upload";
+  const backUrl = formatDomainPathname("/staff", domain, "staff")
+  const showFloatingBar = step === "details" || step === "upload"
   const submitDisabled =
     isBusy ||
     photoSelection.selectedPhotos.length !== expectedPhotoCount ||
-    Boolean(photoSelection.blockingValidationErrors.length);
+    Boolean(photoSelection.blockingValidationErrors.length)
 
   if (marathon.mode !== "marathon") {
     return (
@@ -477,11 +477,11 @@ export function StaffLaptopUploadClient() {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   const hasRecoverableUploadFailure =
-    Boolean(uploadFlow.uploadErrorMessage) || uploadFlow.canRetryFailedUploads;
+    Boolean(uploadFlow.uploadErrorMessage) || uploadFlow.canRetryFailedUploads
 
   return (
     <>
@@ -590,8 +590,8 @@ export function StaffLaptopUploadClient() {
                   variant="outline"
                   className="rounded-full"
                   onClick={() => {
-                    setParticipantDraft(null);
-                    setStep("reference");
+                    setParticipantDraft(null)
+                    setStep("reference")
                   }}
                   disabled={isBusy}
                 >
@@ -617,8 +617,8 @@ export function StaffLaptopUploadClient() {
                   variant="outline"
                   className="rounded-full"
                   onClick={() => {
-                    setFilesError(null);
-                    setStep(existingParticipant ? "reference" : "details");
+                    setFilesError(null)
+                    setStep(existingParticipant ? "reference" : "details")
                   }}
                   disabled={isBusy}
                 >
@@ -662,5 +662,5 @@ export function StaffLaptopUploadClient() {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }

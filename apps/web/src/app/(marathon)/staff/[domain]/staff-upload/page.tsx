@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StaffLaptopUploadClient } from "./_components/staff-laptop-upload-client";
 
 const _StaffLaptopUploadPage = Effect.fn("@blikka/web/StaffLaptopUploadPage")(
-  function* ({ params }: PageProps<"/staff/[domain]/laptop-upload">) {
+  function* ({ params }: PageProps<"/staff/[domain]/staff-upload">) {
     const { domain } = yield* decodeParams(
       Schema.Struct({ domain: Schema.String }),
     )(params);
@@ -45,4 +45,3 @@ const _StaffLaptopUploadPage = Effect.fn("@blikka/web/StaffLaptopUploadPage")(
 );
 
 export default Page(_StaffLaptopUploadPage);
-

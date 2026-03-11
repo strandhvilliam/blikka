@@ -188,7 +188,7 @@ export function StaffHomeClient({ staffId, staffName }: StaffHomeClientProps) {
           </button>
           <button
             type="button"
-            onClick={() => router.push(formatDomainPathname("/staff/laptop-upload", domain, "staff"))}
+            onClick={() => router.push(formatDomainPathname("/staff/staff-upload", domain, "staff"))}
             className="flex flex-col items-center gap-3 rounded-[2rem] border bg-white/80 px-4 py-5 shadow-sm backdrop-blur-sm transition hover:border-primary/30 hover:shadow-md"
           >
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
