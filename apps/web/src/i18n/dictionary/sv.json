@@ -193,7 +193,7 @@
       "nextBody": "Kom ihåg ditt deltagarnummer. Funktionären använder det för att koppla dina bilder senare.",
       "confirm": "Spara och fortsätt",
       "back": "Tillbaka",
-      "startOver": "Registrera nästa deltagare",
+      "startOver": "Förbered nästa deltagare",
       "saveFailed": "Kunde inte spara — försök igen"
     },
     "prepareCompleted": {
@@ -214,8 +214,7 @@
       "stepTwoBody": "När det är dags att ladda upp använder funktionären numret för att öppna den sparade registreringen.",
       "stepThreeTitle": "Ladda upp senare",
       "stepThreeBody": "Deltagaren kan stänga sidan nu och återkomma när uppladdningsstationen är redo.",
-      "registerAnother": "Registrera nästa deltagare",
-      "backToLive": "Till live-sidan",
+      "prepareAnother": "Förbered nästa deltagare",
       "fallbackParticipant": "Deltagare"
     }
   },

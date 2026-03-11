@@ -193,7 +193,7 @@
       "nextBody": "Remember your participant number. Staff will use it to link your photos later.",
       "confirm": "Save and continue",
       "back": "Back",
-      "startOver": "Register another participant",
+      "startOver": "Prepare another participant",
       "saveFailed": "Failed to save — please try again"
     },
     "prepareCompleted": {
@@ -214,8 +214,7 @@
       "stepTwoBody": "When it is time to upload, staff will use the number to open the saved registration.",
       "stepThreeTitle": "Upload later",
       "stepThreeBody": "The participant can close this page now and return when the upload station is ready.",
-      "registerAnother": "Register another participant",
-      "backToLive": "Back to live page",
+      "prepareAnother": "Prepare another participant",
       "fallbackParticipant": "Participant"
     }
   },

@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface ParticipantSummaryCardProps {
   reference: string;
@@ -30,48 +31,39 @@ export function ParticipantSummaryCard({
       ? "border-amber-200 bg-amber-50 text-amber-700"
       : statusTone === "success"
         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-        : "border-[#d9d4c7] bg-[#f8f4ea] text-[#605a4f]";
+        : "border-border bg-muted text-muted-foreground";
 
   return (
-    <section className="rounded-[1.75rem] border border-[#ddd8ca] bg-white/92 p-6 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-3">
-          <div className="inline-flex rounded-full border border-[#ddd8ca] bg-[#faf7ef] px-4 py-1.5 font-mono text-2xl font-semibold tracking-[0.2em] text-[#1a1713]">
+    <div className="rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="shrink-0 font-mono text-lg font-semibold tracking-[0.15em] text-foreground">
             #{reference}
-          </div>
-          <div>
-            <h3 className="font-rocgrotesk text-3xl leading-none text-[#1c1915]">
-              {firstName} {lastName}
-            </h3>
-            <p className="mt-2 text-sm text-[#666152]">{email}</p>
-            {phone ? <p className="mt-1 text-sm text-[#666152]">{phone}</p> : null}
-          </div>
+          </span>
+          <span className="truncate font-rocgrotesk text-lg text-foreground">
+            {firstName} {lastName}
+          </span>
         </div>
-
-        <Badge variant="outline" className={badgeClassName}>
+        <Badge variant="outline" className={cn("shrink-0", badgeClassName)}>
           {statusLabel}
         </Badge>
       </div>
-
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-[#ece7da] bg-[#fcfbf7] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7b7668]">
-            Competition class
-          </p>
-          <p className="mt-2 text-sm font-medium text-[#26231e]">
-            {competitionClassName}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-[#ece7da] bg-[#fcfbf7] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7b7668]">
-            Device group
-          </p>
-          <p className="mt-2 text-sm font-medium text-[#26231e]">
-            {deviceGroupName}
-          </p>
-        </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="text-xs text-muted-foreground">{email}</span>
+        {phone ? (
+          <>
+            <span className="text-border">&middot;</span>
+            <span className="text-xs text-muted-foreground">{phone}</span>
+          </>
+        ) : null}
+        <span className="text-border">&middot;</span>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+          {competitionClassName}
+        </span>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+          {deviceGroupName}
+        </span>
       </div>
-    </section>
+    </div>
   );
 }
-

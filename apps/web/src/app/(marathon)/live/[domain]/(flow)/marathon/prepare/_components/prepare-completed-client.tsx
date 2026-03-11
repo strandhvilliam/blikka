@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { motion } from "motion/react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -12,7 +13,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { formatDomainPathname } from "@/lib/utils";
 
@@ -38,131 +39,139 @@ export function PrepareCompletedClient({
     t("fallbackParticipant");
 
   return (
-    <div className="min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(187,247,208,0.35),_transparent_34%),linear-gradient(180deg,_rgba(255,255,255,0.96)_0%,_rgba(248,250,252,1)_100%)] px-4 py-6 sm:px-6 sm:py-10">
-      <div className="mx-auto flex min-h-[calc(100dvh-3rem)] max-w-3xl flex-col justify-center">
-        <div className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-white/90 shadow-[0_32px_120px_-36px_rgba(22,163,74,0.35)] backdrop-blur">
-          <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300 to-transparent" />
-          <div className="absolute -right-20 top-8 h-48 w-48 rounded-full bg-emerald-100/70 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-40 w-40 rounded-full bg-lime-100/80 blur-3xl" />
-
-          <div className="relative space-y-8 p-6 sm:p-10">
-            <div className="space-y-5 text-center">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 shadow-sm">
-                <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-emerald-700">
-                  {t("eyebrow")}
-                </p>
-                <h1 className="font-rocgrotesk text-3xl font-bold text-slate-950 sm:text-4xl">
-                  {t("title")}
-                </h1>
-                <p className="mx-auto max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
-                  {t("description")}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[1.75rem] border border-slate-200/80 bg-slate-950 px-6 py-6 text-white shadow-[0_24px_80px_-40px_rgba(15,23,42,0.8)]">
-                <p className="text-xs font-medium uppercase tracking-[0.28em] text-emerald-300/90">
-                  {t("participantNumberLabel")}
-                </p>
-                <p className="mt-4 font-mono text-5xl font-bold tracking-[0.34em] text-white sm:text-6xl">
-                  {params.participantRef}
-                </p>
-                <p className="mt-4 text-sm leading-6 text-slate-300">
-                  {t("participantNumberHelp")}
-                </p>
-              </div>
-
-              <div className="grid gap-3">
-                <InfoCard
-                  icon={<Users className="h-4 w-4 text-emerald-700" />}
-                  label={t("participantLabel")}
-                  value={participantName}
-                />
-                <InfoCard
-                  icon={<Mail className="h-4 w-4 text-emerald-700" />}
-                  label={t("emailLabel")}
-                  value={params.participantEmail}
-                />
-                <InfoCard
-                  icon={<Hash className="h-4 w-4 text-emerald-700" />}
-                  label={t("statusLabel")}
-                  value={t("statusValue")}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-[1.75rem] border border-emerald-200/80 bg-emerald-50/70 p-5 sm:p-6">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="font-rocgrotesk text-xl font-bold text-slate-950">
-                    {t("nextStepsTitle")}
-                  </h2>
-                  <p className="text-sm text-slate-600">
-                    {t("nextStepsDescription")}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3 md:grid-cols-3">
-                <StepCard
-                  index="01"
-                  title={t("stepOneTitle")}
-                  body={t("stepOneBody")}
-                />
-                <StepCard
-                  index="02"
-                  title={t("stepTwoTitle")}
-                  body={t("stepTwoBody")}
-                />
-                <StepCard
-                  index="03"
-                  title={t("stepThreeTitle")}
-                  body={t("stepThreeBody")}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <PrimaryButton
-                onClick={() =>
-                  router.replace(
-                    formatDomainPathname(
-                      "/live/marathon/prepare",
-                      domain,
-                      "live",
-                    ),
-                  )
-                }
-                className="w-full rounded-full py-3.5 text-base sm:w-auto sm:min-w-[260px]"
-              >
-                <span>{t("registerAnother")}</span>
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </PrimaryButton>
-              <Button
-                variant="ghost"
-                onClick={() =>
-                  router.replace(formatDomainPathname("/live", domain, "live"))
-                }
-                className="w-full rounded-full py-3.5 text-base sm:w-auto sm:min-w-[220px]"
-              >
-                {t("backToLive")}
-              </Button>
-            </div>
-          </div>
+    <div className="min-h-dvh px-4 py-6 sm:px-6 sm:py-10 max-w-md mx-auto flex flex-col">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05, duration: 0.5 }}
+        className="text-center pt-8"
+      >
+        <div className="relative inline-block">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 150 }}
+            className="w-28 h-28 bg-green-500 rounded-full flex items-center justify-center shadow-xl shadow-green-500/30"
+          >
+            <CheckCircle2 className="h-16 w-16 text-white" />
+          </motion.div>
         </div>
-      </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-4 space-y-2"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            {t("eyebrow")}
+          </p>
+          <h1 className="text-3xl font-rocgrotesk font-bold text-foreground">
+            {t("title")}
+          </h1>
+          <p className="text-muted-foreground">{t("description")}</p>
+        </motion.div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="mt-6"
+      >
+        <Card className="bg-green-50/60 border-green-200 dark:bg-green-950/20 dark:border-green-800 overflow-hidden">
+          <CardContent className="p-4 space-y-4">
+            <div className="text-center">
+              <p className="text-xs font-medium uppercase tracking-widest text-green-700 dark:text-green-300">
+                {t("participantNumberLabel")}
+              </p>
+              <p className="mt-2 font-mono text-4xl font-bold tracking-[0.3em] text-green-700 dark:text-green-300">
+                {params.participantRef}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t("participantNumberHelp")}
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              <InfoRow
+                icon={<Users className="h-4 w-4" />}
+                label={t("participantLabel")}
+                value={participantName}
+              />
+              <InfoRow
+                icon={<Mail className="h-4 w-4" />}
+                label={t("emailLabel")}
+                value={params.participantEmail}
+              />
+              <InfoRow
+                icon={<Hash className="h-4 w-4" />}
+                label={t("statusLabel")}
+                value={t("statusValue")}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="mt-4"
+      >
+        <Card className="bg-slate-50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="shrink-0 w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+                <ShieldCheck className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+              </div>
+              <div>
+                <h2 className="font-rocgrotesk font-bold text-foreground">
+                  {t("nextStepsTitle")}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {t("nextStepsDescription")}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <StepRow index={1} title={t("stepOneTitle")} body={t("stepOneBody")} />
+              <StepRow index={2} title={t("stepTwoTitle")} body={t("stepTwoBody")} />
+              <StepRow
+                index={3}
+                title={t("stepThreeTitle")}
+                body={t("stepThreeBody")}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="flex flex-col gap-3 mt-8"
+      >
+        <PrimaryButton
+          onClick={() =>
+            router.replace(
+              formatDomainPathname("/live/marathon/prepare", domain, "live"),
+            )
+          }
+          className="w-full py-3.5 text-base rounded-full"
+        >
+          <span>{t("prepareAnother")}</span>
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </PrimaryButton>
+      </motion.div>
     </div>
   );
 }
 
-function InfoCard({
+function InfoRow({
   icon,
   label,
   value,
@@ -172,34 +181,36 @@ function InfoCard({
   value: string;
 }) {
   return (
-    <div className="rounded-[1.35rem] border border-slate-200/80 bg-white/85 px-4 py-4 shadow-sm">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-slate-500">
+    <div className="rounded-xl border border-border bg-background px-4 py-3">
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
         {icon}
         <span>{label}</span>
       </div>
-      <p className="mt-3 text-base font-semibold text-slate-950">{value}</p>
+      <p className="mt-1 text-base font-semibold text-foreground">{value}</p>
     </div>
   );
 }
 
-function StepCard({
+function StepRow({
   index,
   title,
   body,
 }: {
-  index: string;
+  index: number;
   title: string;
   body: string;
 }) {
   return (
-    <div className="rounded-[1.35rem] border border-white/80 bg-white/90 px-4 py-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-700">
-        {index}
-      </p>
-      <h3 className="mt-3 font-rocgrotesk text-lg font-bold text-slate-950">
-        {title}
-      </h3>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{body}</p>
+    <div className="flex gap-3 items-start">
+      <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+          {index}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-foreground text-sm">{title}</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+      </div>
     </div>
   );
 }

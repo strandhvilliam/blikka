@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useDropzone, type Accept } from "react-dropzone";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, UploadIcon } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { motion } from "motion/react";
 
 import { useDomain } from "@/lib/domain-provider";
 import { useTRPC } from "@/lib/trpc/client";
-import { formatDomainPathname } from "@/lib/utils";
+import { cn, formatDomainPathname } from "@/lib/utils";
 import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping";
 import { saveParticipantPhotosLocally } from "@/lib/participant-upload/local-save";
 import {
@@ -22,8 +23,10 @@ import { useParticipantUploadForm } from "@/hooks/use-participant-upload-form";
 import { useParticipantPhotoSelection } from "@/hooks/use-participant-photo-selection";
 import { useParticipantUploadFlow } from "@/hooks/use-participant-upload-flow";
 import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { StaffParticipant } from "../../_lib/staff-types";
+import { StepIndicator } from "./step-indicator";
 import { ReferenceStep } from "./reference-step";
 import { ParticipantDetailsStep } from "./participant-details-step";
 import { UploadStep } from "./upload-step";
@@ -438,32 +441,42 @@ export function StaffLaptopUploadClient() {
     onDropRejected,
   });
 
+  const backUrl = formatDomainPathname("/staff", domain, "staff");
+  const showFloatingBar = step === "details" || step === "upload";
+  const submitDisabled =
+    isBusy ||
+    photoSelection.selectedPhotos.length !== expectedPhotoCount ||
+    Boolean(photoSelection.blockingValidationErrors.length);
+
   if (marathon.mode !== "marathon") {
     return (
-      <div className="min-h-screen bg-[#f6f3eb] px-6 py-8">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <Button asChild variant="ghost" className="rounded-full">
-            <Link href={formatDomainPathname("/staff", domain, "staff")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to staff desk
-            </Link>
-          </Button>
-
-          <div className="rounded-[2rem] border border-[#ddd8ca] bg-white/92 p-10 shadow-sm">
+      <div className="relative min-h-screen">
+        <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-lg">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
+            <Button asChild variant="ghost" size="sm" className="rounded-full">
+              <Link href={backUrl}>
+                <ArrowLeft className="mr-1.5 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
+            <div className="rounded-full border border-border bg-background/60 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground shadow-sm backdrop-blur-sm">
+              {domain}
+            </div>
+          </div>
+        </header>
+        <div className="mx-auto max-w-3xl px-6 py-10">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
             <div className="flex items-start gap-4">
-              <div className="rounded-full border border-amber-200 bg-amber-50 p-3 text-amber-700">
+              <div className="mt-0.5 shrink-0 text-amber-600">
                 <AlertTriangle className="h-5 w-5" />
               </div>
-              <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#7a7566]">
-                  Unsupported mode
-                </p>
-                <h1 className="font-rocgrotesk text-4xl leading-none text-[#1d1b17]">
-                  Laptop upload is only available for marathon mode
+              <div>
+                <h1 className="font-rocgrotesk text-2xl text-amber-900">
+                  Laptop upload unavailable
                 </h1>
-                <p className="text-sm text-[#666152]">
-                  This staff tool expects competition classes and topic ranges,
-                  so it is intentionally disabled for by-camera events.
+                <p className="mt-2 text-sm text-amber-800">
+                  This staff tool is only available for marathon mode events.
+                  By-camera events are not supported.
                 </p>
               </div>
             </div>
@@ -478,120 +491,166 @@ export function StaffLaptopUploadClient() {
 
   return (
     <>
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(250,246,236,0.96),rgba(247,244,237,0.92)_26%,rgba(242,239,231,0.92)_60%,rgba(239,235,226,0.95)_100%)] px-6 py-8">
-        <div className="mx-auto max-w-7xl space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Button asChild variant="ghost" className="rounded-full">
-              <Link href={formatDomainPathname("/staff", domain, "staff")}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to staff desk
+      <div className="relative min-h-screen">
+        <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-lg">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
+            <Button asChild variant="ghost" size="sm" className="rounded-full">
+              <Link href={backUrl}>
+                <ArrowLeft className="mr-1.5 h-4 w-4" />
+                <span className="hidden sm:inline">Back</span>
               </Link>
             </Button>
-            <div className="rounded-full border border-white/70 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#6f695b] shadow-sm backdrop-blur-sm">
-              {domain} laptop upload
+
+            <StepIndicator currentFlowStep={step} />
+
+            <div className="rounded-full border border-border bg-background/60 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground shadow-sm backdrop-blur-sm">
+              {domain}
             </div>
           </div>
+        </header>
 
-          <header className="rounded-[2rem] border border-[#ddd8ca] bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(247,241,228,0.92))] px-8 py-9 shadow-[0_30px_90px_rgba(28,24,18,0.08)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#7a7566]">
-              Staff laptop uploader
-            </p>
-            <h1 className="mt-4 max-w-3xl font-rocgrotesk text-6xl leading-[0.92] text-[#171511]">
-              Help participants upload from SD cards on a laptop
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm text-[#666152]">
-              Look up a participant by number, reuse prepared details when
-              available, or enter the participant manually and upload the exact
-              class-mapped image set.
-            </p>
-          </header>
+        <div className={cn("mx-auto max-w-3xl px-6 py-6", showFloatingBar && "pb-28")}>
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+          >
+            {step === "reference" ? (
+              <ReferenceStep
+                defaultReference={resolvedReference}
+                isSubmitting={lookupParticipantMutation.isPending}
+                errorMessage={lookupErrorMessage}
+                onSubmitAction={handleLookup}
+              />
+            ) : null}
 
-          {step === "reference" ? (
-            <ReferenceStep
-              defaultReference={resolvedReference}
-              isSubmitting={lookupParticipantMutation.isPending}
-              errorMessage={lookupErrorMessage}
-              onSubmitAction={handleLookup}
-            />
-          ) : null}
+            {step === "details" ? (
+              <ParticipantDetailsStep
+                form={form}
+                competitionClasses={marathon.competitionClasses}
+                deviceGroups={marathon.deviceGroups}
+                selectedTopics={manualStepTopics}
+                isBusy={isBusy}
+              />
+            ) : null}
 
-          {step === "details" ? (
-            <ParticipantDetailsStep
-              form={form}
-              competitionClasses={marathon.competitionClasses}
-              deviceGroups={marathon.deviceGroups}
-              selectedTopics={manualStepTopics}
-              isBusy={isBusy}
-              onBackAction={() => {
-                setParticipantDraft(null);
-                setStep("reference");
-              }}
-              onContinueAction={() => void form.handleSubmit()}
-            />
-          ) : null}
+            {step === "upload" && participantSummary ? (
+              <UploadStep
+                participantSummary={participantSummary}
+                selectedTopics={selectedTopics}
+                requiresOverwriteWarning={requiresOverwriteWarning}
+                photoSelection={photoSelection}
+                expectedPhotoCount={expectedPhotoCount}
+                dropzoneProps={{ getRootProps, getInputProps, isDragActive }}
+                dropzoneState={{
+                  isDropzoneDisabled,
+                  variant: dropzoneVariant,
+                  isProcessingFiles: photoSelection.isProcessingFiles,
+                  expectedPhotoCount,
+                  selectedPhotosCount: photoSelection.selectedPhotos.length,
+                  isMaxImagesReached,
+                  dropzoneDisabledReason,
+                  formErrorsFiles: filesError ?? undefined,
+                }}
+                isBusy={isBusy}
+              />
+            ) : null}
 
-          {step === "upload" && participantSummary ? (
-            <UploadStep
-              participantSummary={participantSummary}
-              selectedTopics={selectedTopics}
-              requiresOverwriteWarning={requiresOverwriteWarning}
-              photoSelection={photoSelection}
-              expectedPhotoCount={expectedPhotoCount}
-              dropzoneProps={{ getRootProps, getInputProps, isDragActive }}
-              dropzoneState={{
-                isDropzoneDisabled,
-                variant: dropzoneVariant,
-                isProcessingFiles: photoSelection.isProcessingFiles,
-                expectedPhotoCount,
-                selectedPhotosCount: photoSelection.selectedPhotos.length,
-                isMaxImagesReached,
-                dropzoneDisabledReason,
-                formErrorsFiles: filesError ?? undefined,
-              }}
-              isBusy={isBusy}
-              isSubmitting={isUploadBusy}
-              submitDisabled={
-                isBusy ||
-                photoSelection.selectedPhotos.length !== expectedPhotoCount ||
-                Boolean(photoSelection.blockingValidationErrors.length)
-              }
-              onBackAction={() => {
-                setFilesError(null);
-                setStep(existingParticipant ? "reference" : "details");
-              }}
-              onSubmitAction={() => void handleSubmitUpload()}
-            />
-          ) : null}
+            {step === "progress" && participantSummary ? (
+              <UploadProgressPanel
+                participantSummary={participantSummary}
+                files={uploadFlow.uploadFiles}
+                completed={uploadFlow.uploadProgress.completed}
+                total={uploadFlow.uploadProgress.total}
+                isWorking={uploadFlow.isUploadingFiles || uploadFlow.isPollingStatus}
+                uploadErrorMessage={uploadFlow.uploadErrorMessage}
+                canRetryFailedUploads={uploadFlow.canRetryFailedUploads}
+                isRetrying={uploadFlow.isUploadingFiles}
+                canSaveLocally={hasRecoverableUploadFailure && !isSavingLocally}
+                onRetryAction={() => void uploadFlow.handleRetryFailed()}
+                onSaveLocallyAction={() => void handleSaveLocally()}
+                onBackAction={() => setStep("upload")}
+              />
+            ) : null}
 
-          {step === "progress" && participantSummary ? (
-            <UploadProgressPanel
-              participantSummary={participantSummary}
-              files={uploadFlow.uploadFiles}
-              completed={uploadFlow.uploadProgress.completed}
-              total={uploadFlow.uploadProgress.total}
-              isWorking={uploadFlow.isUploadingFiles || uploadFlow.isPollingStatus}
-              uploadErrorMessage={uploadFlow.uploadErrorMessage}
-              canRetryFailedUploads={uploadFlow.canRetryFailedUploads}
-              isRetrying={uploadFlow.isUploadingFiles}
-              canSaveLocally={hasRecoverableUploadFailure && !isSavingLocally}
-              onRetryAction={() => void uploadFlow.handleRetryFailed()}
-              onSaveLocallyAction={() => void handleSaveLocally()}
-              onBackAction={() => setStep("upload")}
-            />
-          ) : null}
-
-          {step === "complete" && participantSummary ? (
-            <UploadCompletePanel
-              participantSummary={{
-                ...participantSummary,
-                statusLabel: "Uploaded",
-                statusTone: "success",
-              }}
-              onResetAction={resetAllState}
-            />
-          ) : null}
+            {step === "complete" && participantSummary ? (
+              <UploadCompletePanel
+                participantSummary={{
+                  ...participantSummary,
+                  statusLabel: "Uploaded",
+                  statusTone: "success",
+                }}
+                onResetAction={resetAllState}
+              />
+            ) : null}
+          </motion.div>
         </div>
       </div>
+
+      {showFloatingBar ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center p-4">
+          <div className="pointer-events-auto flex w-full max-w-3xl items-center justify-between rounded-2xl border border-border bg-background/90 px-5 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur-lg">
+            {step === "details" ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => {
+                    setParticipantDraft(null);
+                    setStep("reference");
+                  }}
+                  disabled={isBusy}
+                >
+                  <ArrowLeft className="mr-1.5 h-4 w-4" />
+                  Back
+                </Button>
+                <PrimaryButton
+                  type="button"
+                  className="rounded-full px-6"
+                  onClick={() => void form.handleSubmit()}
+                  disabled={isBusy}
+                >
+                  Continue to photos
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </PrimaryButton>
+              </>
+            ) : null}
+
+            {step === "upload" ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => {
+                    setFilesError(null);
+                    setStep(existingParticipant ? "reference" : "details");
+                  }}
+                  disabled={isBusy}
+                >
+                  <ArrowLeft className="mr-1.5 h-4 w-4" />
+                  Back
+                </Button>
+                <PrimaryButton
+                  type="button"
+                  className="min-w-[180px] rounded-full px-6"
+                  onClick={() => void handleSubmitUpload()}
+                  disabled={submitDisabled}
+                >
+                  {isUploadBusy ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <UploadIcon className="mr-2 h-4 w-4" />
+                  )}
+                  Start upload
+                </PrimaryButton>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <AlertDialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
         <AlertDialogContent>
