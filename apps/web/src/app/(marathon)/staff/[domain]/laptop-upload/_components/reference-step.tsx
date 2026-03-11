@@ -38,7 +38,7 @@ export function ReferenceStep({
         Enter participant number
       </h2>
       <p className="mt-3 max-w-sm text-sm text-muted-foreground">
-        Type the number from the desk card. Prepared participants skip straight
+        Type the participant number. Prepared participants skip straight
         to photo selection.
       </p>
 
@@ -85,7 +85,7 @@ export function ReferenceStep({
                   placeholder="0000"
                   inputMode="numeric"
                   maxLength={4}
-                  className="h-16 rounded-2xl border-input bg-card px-6 text-center font-mono text-4xl tracking-[0.32em] text-foreground shadow-sm"
+                  className="h-16 rounded-2xl border-input bg-card px-6 text-center font-mono text-4xl! tracking-[0.32em] text-foreground shadow-sm"
                 />
                 {hasError ? (
                   <p className="text-sm font-medium text-rose-600">
@@ -105,7 +105,7 @@ export function ReferenceStep({
 
         <PrimaryButton
           type="submit"
-          className="w-full rounded-full px-6 py-5 text-base"
+          className="w-full rounded-full px-6 py-5 mt-6 text-lg"
           disabled={isSubmitting}
         >
           {isSubmitting ? (

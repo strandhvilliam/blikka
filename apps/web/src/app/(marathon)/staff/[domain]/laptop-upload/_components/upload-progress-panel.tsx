@@ -149,7 +149,7 @@ export function UploadProgressPanel({
                     {file.file.name}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Topic #{file.orderIndex + 1}
+                    Photo #{file.orderIndex + 1}
                   </p>
                 </div>
                 <Badge
@@ -175,7 +175,7 @@ export function UploadProgressPanel({
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-border bg-muted px-5 py-10 text-center text-sm text-muted-foreground">
-          Waiting for upload to initialize.
+          Preparing upload&hellip;
         </div>
       )}
     </div>

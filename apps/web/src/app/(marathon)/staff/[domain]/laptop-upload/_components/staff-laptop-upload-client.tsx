@@ -527,6 +527,7 @@ export function StaffLaptopUploadClient() {
 
             {step === "details" ? (
               <ParticipantDetailsStep
+                reference={resolvedReference}
                 form={form}
                 competitionClasses={marathon.competitionClasses}
                 deviceGroups={marathon.deviceGroups}

@@ -62,8 +62,8 @@ export function UploadStep({
           Photo selection
         </p>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Drop files from the SD card. Images are sorted by EXIF timestamp and
-          mapped to topics in order.
+          Drop or select files from the SD card. Photos are matched to topics by
+          the order they were taken.
         </p>
       </div>
 
@@ -82,23 +82,19 @@ export function UploadStep({
       {selectedTopics.length > 0 ? (
         <details className="group rounded-xl border border-border bg-card">
           <summary className="flex cursor-pointer select-none items-center justify-between px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Topic mapping ({selectedTopics.length})
+            Topic order ({selectedTopics.length}{" "}
+            {selectedTopics.length === 1 ? "topic" : "topics"})
             <span className="text-muted-foreground/50 transition-transform group-open:rotate-180">
               &#9662;
             </span>
           </summary>
-          <div className="space-y-1.5 px-4 pb-4">
+          <div className="flex flex-wrap gap-2 px-4 pb-4">
             {selectedTopics.map((topic) => (
               <div
                 key={topic.id}
-                className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2"
+                className="rounded-lg border border-border bg-muted px-3 py-1.5 text-sm text-foreground"
               >
-                <span className="text-sm font-medium text-foreground">
-                  #{topic.orderIndex + 1} {topic.name}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  idx {topic.orderIndex}
-                </span>
+                #{topic.orderIndex + 1} {topic.name}
               </div>
             ))}
           </div>
