@@ -1,5 +1,4 @@
 import { cacheLife, cacheTag } from "next/cache"
-import { notFound } from "next/navigation"
 import { Config, Effect, Exit, Option } from "effect"
 import { format } from "date-fns"
 import ReactMarkdown from "react-markdown"
@@ -50,7 +49,7 @@ const getPublicMarathon = async function getPublicMarathon(domain: string) {
       onSome: (m) => Effect.succeed(m),
       onNone: () => Effect.fail(new Error("Marathon not found")),
     })
-  }).pipe(Effect.provide(Database.Default)))
+  }).pipe(Effect.provide(Database.layer)))
 
   if (Exit.isFailure(result)) {
     console.error("Error fetching public marathon", result.cause)

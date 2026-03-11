@@ -2,14 +2,15 @@
 
 import { Auth } from "@/lib/auth/server"
 import { Action, toActionResponse } from "@/lib/next-utils"
-import { Data, Effect } from "effect"
+import { Schema, Effect } from "effect"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
-class VerifyError extends Data.TaggedError("VerifyError")<{
-  message?: string
-  cause?: unknown
-}> {}
+class VerifyError extends Schema.TaggedErrorClass<VerifyError>()("VerifyError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown)
+}) {
+}
 
 const _verifyAction = Effect.fn("@blikka/web/verifyAction")(function* ({
   email,

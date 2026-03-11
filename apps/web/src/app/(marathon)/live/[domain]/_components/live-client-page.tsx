@@ -105,7 +105,7 @@ export function LiveClientPage() {
             />
 
             <StartButtons
-              marathonMode={marathon.mode}
+              marathonMode={marathon.mode as "marathon" | "by-camera"}
               onUploadClick={handleStartUpload}
               onPrepareClick={handleStartPrepare}
               disabled={!termsAccepted}
@@ -332,8 +332,8 @@ function SponsorsSection({
   t,
 }: {
   sponsorImages:
-    | { id: number; key: string; type: string; createdAt: string }[]
-    | undefined;
+  | { id: number; key: string; type: string; createdAt: string }[]
+  | undefined;
   t: (key: string) => string;
 }) {
   if (!sponsorImages || sponsorImages.length === 0) return null;

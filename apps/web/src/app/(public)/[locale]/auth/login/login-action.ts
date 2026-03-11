@@ -2,13 +2,14 @@
 
 import { Auth } from "@/lib/auth/server"
 import { Action, toActionResponse } from "@/lib/next-utils"
-import { Data, Effect } from "effect"
+import { Schema, Effect } from "effect"
 import { headers } from "next/headers"
 
-class LoginError extends Data.TaggedError("LoginError")<{
-  message?: string
-  cause?: unknown
-}> {}
+class LoginError extends Schema.TaggedErrorClass<LoginError>()("LoginError", {
+  message: Schema.String,
+  cause: Schema.optional(Schema.Unknown)
+}) {
+}
 
 const _loginAction = Effect.fn("@blikka/web/loginAction")(function* ({ email }: { email: string }) {
   const auth = yield* Auth
