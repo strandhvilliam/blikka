@@ -25,7 +25,7 @@ export function NoiseOverlay() {
   return (
     <div
       ref={ref}
-      className="pointer-events-none absolute opacity-10 will-change-transform"
+      className="pointer-events-none absolute opacity-20 will-change-transform"
       style={{
         backgroundImage: "url('/noise.png')",
         backgroundRepeat: "repeat",

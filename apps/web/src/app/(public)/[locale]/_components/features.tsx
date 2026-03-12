@@ -7,21 +7,21 @@ import { eventImages } from "./landing-images"
 const services = [
   {
     image: eventImages.photoEvent7,
-    label: "UPLOADS",
+    label: "UPLOADING",
     description:
-      "Participants upload directly through a branded link. No accounts required, no friction, no lost entries.",
+      "No more cluttered Google Drive folders, messy email submissions, lost USB sticks, or long queues. Participants simply scan a QR code and upload their photos in seconds."
   },
   {
     image: eventImages.photoEvent3,
-    label: "GALLERIES",
-    description:
-      "Every entry is automatically organized into beautiful, shareable galleries by category or custom tags.",
+    label: "OVERVIEW",
+    description: "Follow your photo event in real-time. See photos as they're uploaded, get notifications for invalid submissions, and generate contact sheets."
   },
+
   {
     image: eventImages.photoEvent5,
     label: "JUDGING",
     description:
-      "Invite judges, set scoring criteria, and let the platform handle the rest. Fair, transparent, effortless.",
+      "Invite judges with a link. They can score entries while everything stays organized, and you can view the results in the dashboard."
   },
 ]
 
@@ -37,7 +37,7 @@ export function Features() {
                 Features
               </p>
               <h2 className="font-gothic max-w-xl text-balance text-3xl leading-snug font-normal tracking-tight text-foreground lg:text-[2.75rem] lg:leading-[1.2]">
-                Collecting entries, organizing galleries, and celebrating great photography.
+                We take care of the tech behind the scenes, <span className="bg-brand-primary/20 px-1 text-foreground">from photo uploads to judging</span>, so you can focus on running the event.
               </h2>
             </div>
           </FadeIn>
