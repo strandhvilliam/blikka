@@ -18,6 +18,7 @@ interface UploadStore {
   // Actions
   initializeFiles: (photos: PhotoWithPresignedUrl[]) => void;
   updateFilePhase: (key: string, phase: UploadPhase, progress?: number) => void;
+  setFileProcessingComplete: (key: string) => void;
   setFileError: (key: string, error: FileUploadError) => void;
   setFileProgress: (key: string, progress: number) => void;
   clearFiles: () => void;
@@ -46,6 +47,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         preview: photo.preview,
         phase: UPLOAD_PHASE.PRESIGNED,
         progress: 0,
+        isProcessingComplete: false,
         startedAt: new Date(),
       });
     });
@@ -63,17 +65,33 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         ...file,
         phase,
         progress: progress ?? file.progress,
+        isProcessingComplete:
+          phase === UPLOAD_PHASE.UPLOADED ? file.isProcessingComplete : false,
         error: phase === UPLOAD_PHASE.ERROR ? file.error : undefined,
       };
 
       if (phase === UPLOAD_PHASE.UPLOADING && !file.startedAt) {
         updatedFile.startedAt = new Date();
-      } else if (phase === UPLOAD_PHASE.COMPLETED && !file.completedAt) {
+      } else if (phase === UPLOAD_PHASE.UPLOADED && !file.completedAt) {
         updatedFile.completedAt = new Date();
         updatedFile.progress = 100;
       }
 
       newFiles.set(key, updatedFile);
+      set({ files: newFiles });
+    }
+  },
+
+  setFileProcessingComplete: (key) => {
+    const state = get();
+    const file = state.files.get(key);
+
+    if (file && file.phase === UPLOAD_PHASE.UPLOADED && !file.isProcessingComplete) {
+      const newFiles = new Map(state.files);
+      newFiles.set(key, {
+        ...file,
+        isProcessingComplete: true,
+      });
       set({ files: newFiles });
     }
   },
@@ -149,5 +167,5 @@ export const selectAllFiles = (state: ReturnType<typeof useUploadStore.getState>
 
 export const selectCompletedCount = (state: ReturnType<typeof useUploadStore.getState>) =>
   Array.from(state.files.values()).filter(
-    (file) => file.phase === UPLOAD_PHASE.COMPLETED || file.phase === UPLOAD_PHASE.PROCESSING,
+    (file) => file.phase === UPLOAD_PHASE.UPLOADED,
   ).length;

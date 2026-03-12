@@ -23,7 +23,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { useRef, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useFileUpload } from "../_hooks/use-file-upload";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
@@ -39,8 +39,8 @@ import { UploadSection } from "./upload-section";
 import { HeicConversionDialog } from "./heic-conversion-dialog";
 import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
-import { useEffect } from "react";
 import { mapRuleConfigsToValidationRules } from "@/lib/validation";
+import { FINALIZATION_STATE } from "../_lib/types";
 
 export function UploadSubmissionsStep({
   ruleConfigs,
@@ -73,8 +73,8 @@ export function UploadSubmissionsStep({
   const setIsUploading = useUploadStore((state) => state.setIsUploading);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasRedirectedRef = useRef(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
 
   const heicIsConverting = useHeicStore((state) => state.isConverting);
   const heicIsCancelling = useHeicStore((state) => state.isCancelling);
@@ -89,19 +89,47 @@ export function UploadSubmissionsStep({
 
   const {
     files: uploadFiles,
+    minimumProgressDisplayReached,
+    finalizationState,
+    participantReference,
     executeUpload,
     retryFailedFiles,
     clearFiles,
   } = useFileUpload({
     domain,
     reference: uploadFlowState.participantRef || "",
-    onAllCompleted: () => {
-      setTimeout(() => {
-        // TODO: Navigate to verification page
-        toast.success(t("uploadComplete"));
-      }, 500);
-    },
   });
+
+  useEffect(() => {
+    return () => {
+      if (hasRedirectedRef.current) {
+        clearFiles();
+      }
+    };
+  }, [clearFiles]);
+
+  useEffect(() => {
+    if (
+      finalizationState !== FINALIZATION_STATE.READY ||
+      !minimumProgressDisplayReached ||
+      hasRedirectedRef.current ||
+      !domain
+    ) {
+      return;
+    }
+
+    hasRedirectedRef.current = true;
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState);
+    router.push(
+      formatDomainPathname(`/live/verification${serializedParams}`, domain),
+    );
+  }, [
+    domain,
+    finalizationState,
+    minimumProgressDisplayReached,
+    router,
+    uploadFlowState,
+  ]);
 
   const handleResetAndGoBack = () => {
     const confirmed = window.confirm(t("confirmGoBack"));
@@ -232,14 +260,6 @@ export function UploadSubmissionsStep({
     }
   };
 
-  const handleCloseUploadProgress = () => {
-    setIsNavigating(true);
-    const serializedParams = flowStateClientParamSerializer(uploadFlowState);
-    router.push(
-      formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
-    );
-  };
-
   const allPhotosSelected =
     photos.length === competitionClass.numberOfPhotos && photos.length > 0;
 
@@ -282,9 +302,9 @@ export function UploadSubmissionsStep({
               files={uploadFiles}
               topics={topics}
               expectedCount={competitionClass.numberOfPhotos}
-              onComplete={handleCloseUploadProgress}
               onRetry={retryFailedFiles}
-              isNavigating={isNavigating}
+              finalizationState={finalizationState}
+              participantReference={participantReference}
             />
           </motion.div>
         ) : (

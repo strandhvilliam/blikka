@@ -7,12 +7,22 @@ import type {
 export const UPLOAD_PHASE = {
   PRESIGNED: "presigned",
   UPLOADING: "uploading",
-  PROCESSING: "processing",
-  COMPLETED: "completed",
+  UPLOADED: "uploaded",
   ERROR: "error",
 } as const;
 
 export type UploadPhase = (typeof UPLOAD_PHASE)[keyof typeof UPLOAD_PHASE];
+
+export const FINALIZATION_STATE = {
+  IDLE: "idle",
+  UPLOADING: "uploading",
+  FINALIZING: "finalizing",
+  TIMEOUT_BLOCKED: "timeout_blocked",
+  READY: "ready",
+} as const;
+
+export type FinalizationState =
+  (typeof FINALIZATION_STATE)[keyof typeof FINALIZATION_STATE];
 
 // Selected photo before upload
 export interface SelectedPhoto {
@@ -40,6 +50,7 @@ export interface UploadFileState {
   // Upload state
   phase: UploadPhase;
   progress: number; // 0-100
+  isProcessingComplete?: boolean;
   error?: FileUploadError;
 
   // Timestamps
@@ -72,16 +83,14 @@ export interface UploadStatusResponse {
 // Utility function to convert phase to display status
 export function phaseToDisplayStatus(
   phase: UploadPhase,
-): "pending" | "uploading" | "processing" | "completed" | "error" {
+): "pending" | "uploading" | "uploaded" | "error" {
   switch (phase) {
     case UPLOAD_PHASE.PRESIGNED:
       return "pending";
     case UPLOAD_PHASE.UPLOADING:
       return "uploading";
-    case UPLOAD_PHASE.PROCESSING:
-      return "processing";
-    case UPLOAD_PHASE.COMPLETED:
-      return "completed";
+    case UPLOAD_PHASE.UPLOADED:
+      return "uploaded";
     case UPLOAD_PHASE.ERROR:
       return "error";
     default:

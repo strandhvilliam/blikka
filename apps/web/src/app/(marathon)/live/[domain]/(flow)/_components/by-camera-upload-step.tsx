@@ -15,7 +15,7 @@ import type { RuleConfig as DbRuleConfig, Topic } from "@blikka/db"
 import { useMutation } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { motion, AnimatePresence } from "motion/react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useFileUpload } from "../_hooks/use-file-upload"
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
@@ -35,6 +35,7 @@ import { UploadConfirmationDialog } from "./upload-confirmation-dialog"
 import { VALIDATION_OUTCOME } from "@blikka/validation"
 import { mapRuleConfigsToValidationRules } from "@/lib/validation"
 import { ArrowRight } from "lucide-react"
+import { FINALIZATION_STATE } from "../_lib/types"
 
 const BY_CAMERA_MAX_PHOTOS = 1
 
@@ -68,7 +69,7 @@ export function ByCameraUploadStep({
   const setIsUploading = useUploadStore((state) => state.setIsUploading)
 
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
-  const [isNavigating, setIsNavigating] = useState(false)
+  const hasRedirectedRef = useRef(false)
 
   const heicIsConverting = useHeicStore((state) => state.isConverting)
   const heicIsCancelling = useHeicStore((state) => state.isCancelling)
@@ -83,24 +84,47 @@ export function ByCameraUploadStep({
 
   const {
     files: uploadFiles,
+    minimumProgressDisplayReached,
+    finalizationState,
+    participantReference,
     executeUpload,
     retryFailedFiles,
     clearFiles,
   } = useFileUpload({
     domain,
     reference: uploadFlowState.participantRef || "",
-    onAllCompleted: () => {
-      // setTimeout(() => {
-      //   toast.success(t("uploadComplete"));
-      // const serializedParams =
-      //   flowStateClientParamSerializer(uploadFlowState);
-      // router.push(
-      //   formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
-      // );
-      // }, 500);
-    },
-    activeByCameraOrderIndex: topic?.orderIndex,
   })
+
+  useEffect(() => {
+    return () => {
+      if (hasRedirectedRef.current) {
+        clearFiles()
+      }
+    }
+  }, [clearFiles])
+
+  useEffect(() => {
+    if (
+      finalizationState !== FINALIZATION_STATE.READY ||
+      !minimumProgressDisplayReached ||
+      hasRedirectedRef.current ||
+      !domain
+    ) {
+      return
+    }
+
+    hasRedirectedRef.current = true
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
+    router.push(
+      formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
+    )
+  }, [
+    domain,
+    finalizationState,
+    minimumProgressDisplayReached,
+    router,
+    uploadFlowState,
+  ])
 
   const handleResetAndGoBack = () => {
     const confirmed = window.confirm(t("confirmGoBack"))
@@ -227,14 +251,6 @@ export function ByCameraUploadStep({
     }
   }
 
-  const handleCloseUploadProgress = () => {
-    setIsNavigating(true)
-    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
-    router.push(
-      formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
-    )
-  }
-
   const photoSelected = photos.length === BY_CAMERA_MAX_PHOTOS
   const photo = photos[0]
 
@@ -280,9 +296,9 @@ export function ByCameraUploadStep({
               files={uploadFiles}
               topics={[]}
               expectedCount={BY_CAMERA_MAX_PHOTOS}
-              onComplete={handleCloseUploadProgress}
               onRetry={retryFailedFiles}
-              isNavigating={isNavigating}
+              finalizationState={finalizationState}
+              participantReference={participantReference}
             />
           </motion.div>
         ) : (

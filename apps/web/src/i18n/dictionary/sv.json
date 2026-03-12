@@ -164,9 +164,11 @@
     "uploadProgress": {
       "titleUploading": "Laddar upp foton",
       "titleComplete": "Uppladdning klar!",
+      "titleUploaded": "Foton uppladdade",
       "titleIssues": "Uppladdningsproblem",
       "clickToContinue": "Klicka fortsätt för att gå vidare",
       "clickToRetry": "Några filer misslyckades. Klicka försök igen.",
+      "finishingSubmission": "Dina foton är uppladdade. Vi slutför din inlämning nu.",
       "thisMayTakeSeveralMinutes": "Detta kan ta flera minuter",
       "close": "Stäng",
       "overallProgress": "Övergripande framsteg",
@@ -176,7 +178,26 @@
       "multipleFilesFailed": "{count} filer misslyckades att ladda upp",
       "checkConnection": "Kontrollera din anslutning och försök igen",
       "retryFailed": "Försök igen ({count})",
-      "continue": "Fortsätt"
+      "continue": "Fortsätt",
+      "statusUploaded": "Uppladdad",
+      "statusUploadedComplete": "Uppladdad!",
+      "statusUploadedProcessing": "Uppladdad! Bearbetar...",
+      "statusUploading": "Laddar upp",
+      "statusWaiting": "Väntar...",
+      "statusError": "Uppladdning misslyckades"
+    },
+    "uploadFinalizing": {
+      "title": "Slutför din inlämning",
+      "description": "Dina foton har laddats upp! Vi bearbetar dem i bakgrunden nu.",
+      "timeoutTitle": "Dina foton har tagits emot",
+      "timeoutDescription": "Vi kunde inte slutföra registreringen ännu, men dina foton är tryggt sparade.",
+      "participantNumber": "Deltagarnummer",
+      "receivedTitle": "Foton mottagna",
+      "receivedDescription": "Du behöver inte ladda upp dina foton igen.",
+      "waitNote": "Behåll gärna sidan öppen en liten stund medan vi slutför allt i bakgrunden.",
+      "doNotUploadAgain": "Ladda inte upp igen.",
+      "staffHelp": "Visa deltagarnumret för funktionären så kan de hjälpa till att slutföra registreringen.",
+      "autoContinue": "Om registreringen blir klar automatiskt fortsätter sidan av sig själv."
     },
     "prepareStep": {
       "reviewTitle": "Bekräfta dina uppgifter",

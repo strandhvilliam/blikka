@@ -4,41 +4,39 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { PrimaryButton } from "@/components/ui/primary-button";
 import { Progress } from "@/components/ui/progress";
-import { Spinner } from "@/components/ui/spinner";
 import type { Topic } from "@blikka/db";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { FileProgressItem } from "./file-progress-item";
-import type { UploadFileState } from "../_lib/types";
-import { UPLOAD_PHASE } from "../_lib/types";
+import type { FinalizationState, UploadFileState } from "../_lib/types";
+import { FINALIZATION_STATE, UPLOAD_PHASE } from "../_lib/types";
 
 interface UploadProgressProps {
   files: UploadFileState[];
   topics: Topic[];
   expectedCount: number;
-  onComplete?: () => void;
   onRetry?: () => void;
-  isNavigating?: boolean;
+  finalizationState: FinalizationState;
+  participantReference?: string;
 }
 
 export function UploadProgress({
   files,
   topics,
   expectedCount,
-  onComplete,
   onRetry,
-  isNavigating = false,
+  finalizationState,
+  participantReference,
 }: UploadProgressProps) {
   const t = useTranslations("FlowPage.uploadProgress");
+  const finalizingT = useTranslations("FlowPage.uploadFinalizing");
   const [elapsedTime, setElapsedTime] = useState(0);
 
   // Timer
@@ -59,33 +57,40 @@ export function UploadProgress({
   const progress = useMemo(() => {
     const total = files.length || expectedCount;
     const completed = files.filter(
-      (f) => f.phase === UPLOAD_PHASE.COMPLETED,
+      (f) => f.phase === UPLOAD_PHASE.UPLOADED,
     ).length;
     const failed = files.filter((f) => f.phase === UPLOAD_PHASE.ERROR).length;
-    const processing = files.filter(
-      (f) => f.phase === UPLOAD_PHASE.PROCESSING,
-    ).length;
 
     return {
       total,
       completed,
       failed,
-      processing,
       percentage: total > 0 ? (completed / total) * 100 : 0,
     };
   }, [files, expectedCount]);
 
   const allUploadsComplete = progress.completed === expectedCount;
   const hasFailures = progress.failed > 0;
+  const isFinalizing =
+    allUploadsComplete &&
+    (finalizationState === FINALIZATION_STATE.FINALIZING ||
+      finalizationState === FINALIZATION_STATE.READY);
+  const isTimedOut =
+    allUploadsComplete &&
+    finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED;
 
   const getTitle = () => {
-    if (allUploadsComplete) return t("titleComplete");
+    if (isTimedOut) return finalizingT("timeoutTitle");
+    if (isFinalizing) return finalizingT("title");
+    if (allUploadsComplete) return t("titleUploaded");
     if (hasFailures) return t("titleIssues");
     return t("titleUploading");
   };
 
   const getDescription = () => {
-    if (allUploadsComplete) return t("clickToContinue");
+    if (isTimedOut) return finalizingT("timeoutDescription");
+    if (isFinalizing) return finalizingT("description");
+    if (allUploadsComplete) return t("finishingSubmission");
     if (hasFailures) return t("clickToRetry");
     return t("thisMayTakeSeveralMinutes");
   };
@@ -94,18 +99,20 @@ export function UploadProgress({
     <div className="w-full flex items-center justify-center min-h-[60dvh]">
       <Card className="w-full max-w-lg">
         <CardHeader className="pt-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm w-8 text-muted-foreground font-mono">
-              {!hasFailures && formatTime(elapsedTime)}
+            <div className="flex items-center justify-between">
+              <div className="text-sm w-8 text-muted-foreground font-mono">
+                {!hasFailures && formatTime(elapsedTime)}
+              </div>
+              <div className="flex flex-col items-center">
+                <CardTitle className="text-xl font-semibold">
+                  {getTitle()}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {getDescription()}
+                </p>
+              </div>
+              <div className="w-8" />
             </div>
-            <div className="flex flex-col items-center">
-              <CardTitle className="text-xl font-semibold">
-                {getTitle()}
-              </CardTitle>
-              <CardDescription>{getDescription()}</CardDescription>
-            </div>
-            <div className="w-8" />
-          </div>
         </CardHeader>
 
         <CardContent className="space-y-6">
@@ -147,6 +154,52 @@ export function UploadProgress({
             </motion.div>
           )}
 
+          {isFinalizing && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-start gap-3 rounded-lg border border-primary/15 bg-primary/5 p-4"
+            >
+              <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-primary" />
+              <div className="space-y-1 text-sm">
+                <p className="font-medium text-foreground">
+                  {finalizingT("receivedTitle")}
+                </p>
+                <p className="text-muted-foreground">
+                  {finalizingT("waitNote")}
+                </p>
+                {participantReference ? (
+                  <p className="font-mono text-foreground">
+                    {finalizingT("participantNumber")}: {participantReference}
+                  </p>
+                ) : null}
+              </div>
+            </motion.div>
+          )}
+
+          {isTimedOut && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm"
+            >
+              <p className="font-medium text-amber-950">
+                {finalizingT("doNotUploadAgain")}
+              </p>
+              <p className="mt-1 text-amber-900">
+                {finalizingT("staffHelp")}
+              </p>
+              {participantReference ? (
+                <p className="mt-3 font-mono text-amber-950">
+                  {finalizingT("participantNumber")}: {participantReference}
+                </p>
+              ) : null}
+              <p className="mt-3 text-xs text-amber-800">
+                {finalizingT("autoContinue")}
+              </p>
+            </motion.div>
+          )}
+
           {/* File list */}
           <div className="space-y-2 max-h-64 overflow-y-auto">
             <AnimatePresence mode="popLayout">
@@ -178,7 +231,7 @@ export function UploadProgress({
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 pb-6">
-          {hasFailures && onRetry && (
+          {hasFailures && onRetry && !allUploadsComplete && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -191,28 +244,6 @@ export function UploadProgress({
             </motion.div>
           )}
 
-          {allUploadsComplete && onComplete && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="w-[80%]"
-            >
-              <PrimaryButton
-                onClick={onComplete}
-                className="w-full text-lg rounded-full"
-                disabled={isNavigating}
-              >
-                {isNavigating ? (
-                  <>
-                    <Spinner className="mr-2" />
-                    {t("continue")}
-                  </>
-                ) : (
-                  t("continue")
-                )}
-              </PrimaryButton>
-            </motion.div>
-          )}
         </CardFooter>
       </Card>
     </div>

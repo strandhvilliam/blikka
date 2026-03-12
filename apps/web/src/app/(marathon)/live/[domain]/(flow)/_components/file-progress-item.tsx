@@ -10,6 +10,7 @@ import {
   Upload,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 import type { UploadFileState } from "../_lib/types";
 import { UPLOAD_PHASE } from "../_lib/types";
 
@@ -19,16 +20,20 @@ interface FileProgressItemProps {
 }
 
 export function FileProgressItem({ file, topic }: FileProgressItemProps) {
+  const t = useTranslations("FlowPage.uploadProgress");
+
   const getStatusIcon = () => {
     switch (file.phase) {
-      case UPLOAD_PHASE.COMPLETED:
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case UPLOAD_PHASE.UPLOADED:
+        return file.isProcessingComplete ? (
+          <CheckCircle className="w-5 h-5 text-green-600" />
+        ) : (
+          <Loader2 className="w-5 h-5 animate-spin text-green-600" />
+        );
       case UPLOAD_PHASE.ERROR:
         return <AlertCircle className="w-5 h-5 text-destructive" />;
       case UPLOAD_PHASE.UPLOADING:
-        return <Upload className="w-5 h-5 text-primary animate-pulse" />;
-      case UPLOAD_PHASE.PROCESSING:
-        return <Loader2 className="w-5 h-5 text-primary animate-spin" />;
+        return <Upload className="w-5 h-5 animate-pulse text-primary" />;
       default:
         return <Clock className="w-5 h-5 text-muted-foreground" />;
     }
@@ -36,16 +41,16 @@ export function FileProgressItem({ file, topic }: FileProgressItemProps) {
 
   const getStatusText = () => {
     switch (file.phase) {
-      case UPLOAD_PHASE.COMPLETED:
-        return "Completed";
+      case UPLOAD_PHASE.UPLOADED:
+        return file.isProcessingComplete
+          ? t("statusUploadedComplete")
+          : t("statusUploadedProcessing");
       case UPLOAD_PHASE.ERROR:
-        return file.error?.message || "Error";
+        return file.error?.message || t("statusError");
       case UPLOAD_PHASE.UPLOADING:
-        return `Uploading... ${file.progress}%`;
-      case UPLOAD_PHASE.PROCESSING:
-        return "Processing...";
+        return t("statusUploading");
       default:
-        return "Waiting...";
+        return t("statusWaiting");
     }
   };
 
@@ -58,7 +63,7 @@ export function FileProgressItem({ file, topic }: FileProgressItemProps) {
         "flex items-center justify-between p-3 rounded-lg",
         file.phase === UPLOAD_PHASE.ERROR
           ? "bg-destructive/10"
-          : file.phase === UPLOAD_PHASE.COMPLETED
+          : file.phase === UPLOAD_PHASE.UPLOADED
             ? "bg-green-50 dark:bg-green-950/20"
             : "bg-muted/50",
       )}

@@ -28,3 +28,6 @@ export const PARTICIPANT_REF_LENGTH = 4;
 export const UPLOAD_TIMEOUT_MS = 1000 * 60 * 3; // 3 minutes
 export const UPLOAD_CONCURRENCY_LIMIT = 1;
 export const UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS = 15000; // 15 seconds
+export const MIN_UPLOAD_PROGRESS_DISPLAY_MS = 3000; // 3 seconds
+export const PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS = 5000; // 5 seconds
+export const PARTICIPANT_FINALIZATION_TIMEOUT_MS = 1000 * 60 * 2; // 2 minutes

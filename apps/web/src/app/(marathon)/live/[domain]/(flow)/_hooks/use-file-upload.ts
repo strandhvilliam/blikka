@@ -7,49 +7,53 @@ import { uploadFileToPresignedUrl } from "@/lib/upload-client";
 import {
   useUploadStore,
   selectFailedFiles,
-  selectAllFiles,
 } from "../_lib/upload-store";
 import type {
+  FinalizationState,
   PhotoWithPresignedUrl,
   UploadFileState,
   UploadPhase,
 } from "../_lib/types";
-import { UPLOAD_PHASE } from "../_lib/types";
+import { FINALIZATION_STATE, UPLOAD_PHASE } from "../_lib/types";
 import {
+  MIN_UPLOAD_PROGRESS_DISPLAY_MS,
+  PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS,
+  PARTICIPANT_FINALIZATION_TIMEOUT_MS,
   UPLOAD_TIMEOUT_MS,
   UPLOAD_CONCURRENCY_LIMIT,
   UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS,
 } from "../_lib/constants";
-import {
-  getPollingCompletionKeys,
-  getRealtimeSubmissionCompletion,
-  shouldCompleteUploadFlow,
-  shouldReconcileUploadStatus,
-  type UploadRealtimeFileSnapshot,
-} from "../_lib/upload-status-realtime";
 import { chunk } from "../_lib/utils";
 import { useUploadStatusRealtime } from "./use-upload-status-realtime";
 
 interface UseFileUploadOptions {
   domain: string;
   reference: string;
-  onAllCompleted?: () => void;
-  activeByCameraOrderIndex?: number;
 }
 
 export function useFileUpload({
   domain,
   reference,
-  onAllCompleted,
-  activeByCameraOrderIndex,
 }: UseFileUploadOptions) {
   const trpc = useTRPC();
-  const [isCompletionHandled, setIsCompletionHandled] = useState(false);
+  const [finalizationState, setFinalizationState] = useState<FinalizationState>(
+    FINALIZATION_STATE.IDLE,
+  );
+  const [participantStatus, setParticipantStatus] = useState<string | null>(null);
+  const [uploadUiStartedAt, setUploadUiStartedAt] = useState<number | null>(null);
+  const [minimumProgressDisplayReached, setMinimumProgressDisplayReached] =
+    useState(false);
+  const [finalizationStartedAt, setFinalizationStartedAt] = useState<number | null>(
+    null,
+  );
 
   const files = useUploadStore((state) => state.files);
   const isUploading = useUploadStore((state) => state.isUploading);
   const initializeFiles = useUploadStore((state) => state.initializeFiles);
   const updateFilePhase = useUploadStore((state) => state.updateFilePhase);
+  const setFileProcessingComplete = useUploadStore(
+    (state) => state.setFileProcessingComplete,
+  );
   const setFileError = useUploadStore((state) => state.setFileError);
   const clearFiles = useUploadStore((state) => state.clearFiles);
   const setIsUploading = useUploadStore((state) => state.setIsUploading);
@@ -57,186 +61,246 @@ export function useFileUpload({
   const unlockFile = useUploadStore((state) => state.unlockFile);
   const isFileLocked = useUploadStore((state) => state.isFileLocked);
   const filesRef = useRef(files);
-  const completionHandledRef = useRef(false);
-  const participantFinalizedRef = useRef(false);
 
   useEffect(() => {
     filesRef.current = files;
   }, [files]);
 
-  const resetCompletionTracking = useCallback(() => {
-    completionHandledRef.current = false;
-    participantFinalizedRef.current = false;
-    setIsCompletionHandled(false);
+  const resetUploadLifecycle = useCallback(() => {
+    setFinalizationState(FINALIZATION_STATE.IDLE);
+    setParticipantStatus(null);
+    setUploadUiStartedAt(null);
+    setMinimumProgressDisplayReached(false);
+    setFinalizationStartedAt(null);
   }, []);
 
   useEffect(() => {
     if (!isUploading) {
-      resetCompletionTracking();
+      resetUploadLifecycle();
     }
-  }, [isUploading, resetCompletionTracking]);
+  }, [isUploading, resetUploadLifecycle]);
 
+  const fileList = useMemo(() => Array.from(files.values()), [files]);
   const orderIndexes = useMemo(
+    () => fileList.map((file) => file.orderIndex),
+    [fileList],
+  );
+
+  const failedFiles = useMemo(
+    () => fileList.filter((file) => file.phase === UPLOAD_PHASE.ERROR),
+    [fileList],
+  );
+
+  const allFilesUploaded = useMemo(
     () =>
-      activeByCameraOrderIndex || activeByCameraOrderIndex === 0
-        ? [activeByCameraOrderIndex]
-        : Array.from(files.values()).map((f) => f.orderIndex),
-    [activeByCameraOrderIndex, files],
+      fileList.length > 0 &&
+      fileList.every((file) => file.phase === UPLOAD_PHASE.UPLOADED),
+    [fileList],
   );
 
-  const getFileSnapshots = useCallback(
-    (): UploadRealtimeFileSnapshot[] =>
-      Array.from(filesRef.current.values()).map((file) => ({
-        key: file.key,
-        orderIndex: file.orderIndex,
-        phase: file.phase,
-      })),
-    [],
-  );
+  const participantIsReady =
+    participantStatus === "completed" || participantStatus === "verified";
 
-  const handleAllCompleted = useCallback(() => {
-    if (completionHandledRef.current) {
+  useEffect(() => {
+    if (!isUploading || fileList.length === 0) {
       return;
     }
 
-    completionHandledRef.current = true;
-    setIsCompletionHandled(true);
-    onAllCompleted?.();
-  }, [onAllCompleted]);
+    if (participantIsReady) {
+      setFinalizationState(FINALIZATION_STATE.READY);
+      return;
+    }
 
-  const maybeHandleCompletion = useCallback(
-    (participantFinalized: boolean) => {
-      if (
-        !shouldCompleteUploadFlow(
-          getFileSnapshots(),
-          participantFinalized,
-          UPLOAD_PHASE.COMPLETED,
-        )
-      ) {
-        return false;
+    if (allFilesUploaded) {
+      setFinalizationState((current) =>
+        current === FINALIZATION_STATE.TIMEOUT_BLOCKED
+          ? current
+          : FINALIZATION_STATE.FINALIZING,
+      );
+      return;
+    }
+
+    setFinalizationState(FINALIZATION_STATE.UPLOADING);
+  }, [allFilesUploaded, fileList.length, isUploading, participantIsReady]);
+
+  useEffect(() => {
+    if (finalizationState !== FINALIZATION_STATE.FINALIZING) {
+      if (!allFilesUploaded) {
+        setFinalizationStartedAt(null);
       }
+      return;
+    }
 
-      handleAllCompleted();
-      return true;
-    },
-    [getFileSnapshots, handleAllCompleted],
+    setFinalizationStartedAt((current) => current ?? Date.now());
+  }, [allFilesUploaded, finalizationState]);
+
+  useEffect(() => {
+    if (
+      finalizationState !== FINALIZATION_STATE.FINALIZING ||
+      finalizationStartedAt === null
+    ) {
+      return;
+    }
+
+    const remainingTime =
+      PARTICIPANT_FINALIZATION_TIMEOUT_MS -
+      (Date.now() - finalizationStartedAt);
+
+    if (remainingTime <= 0) {
+      setFinalizationState(FINALIZATION_STATE.TIMEOUT_BLOCKED);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setFinalizationState((current) =>
+        current === FINALIZATION_STATE.FINALIZING
+          ? FINALIZATION_STATE.TIMEOUT_BLOCKED
+          : current,
+      );
+    }, remainingTime);
+
+    return () => window.clearTimeout(timeout);
+  }, [finalizationStartedAt, finalizationState]);
+
+  useEffect(() => {
+    if (!isUploading || uploadUiStartedAt === null) {
+      return;
+    }
+
+    const remainingTime =
+      MIN_UPLOAD_PROGRESS_DISPLAY_MS - (Date.now() - uploadUiStartedAt);
+
+    if (remainingTime <= 0) {
+      setMinimumProgressDisplayReached(true);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setMinimumProgressDisplayReached(true);
+    }, remainingTime);
+
+    return () => window.clearTimeout(timeout);
+  }, [isUploading, uploadUiStartedAt]);
+
+  const participantQueryEnabled =
+    isUploading &&
+    allFilesUploaded &&
+    !!reference &&
+    (finalizationState === FINALIZATION_STATE.FINALIZING ||
+      finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED);
+
+  const { data: participant } = useQuery(
+    trpc.participants.getPublicParticipantByReference.queryOptions(
+      {
+        domain,
+        reference,
+      },
+      {
+        enabled: participantQueryEnabled,
+        refetchInterval: participantQueryEnabled
+          ? PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS
+          : false,
+        refetchIntervalInBackground: true,
+        retry: false,
+      },
+    ),
   );
 
   useEffect(() => {
-    if (!isUploading || completionHandledRef.current) {
+    if (!participant) {
       return;
     }
 
-    if (participantFinalizedRef.current) {
-      maybeHandleCompletion(true);
-    }
-  }, [files, isUploading, maybeHandleCompletion]);
+    setParticipantStatus(participant.status);
+  }, [participant]);
 
-  const markFileCompletedByKey = useCallback(
-    (key: string) => {
-      const file = filesRef.current.get(key);
-      if (!file || file.phase === UPLOAD_PHASE.COMPLETED) {
-        return Boolean(file);
-      }
-
-      updateFilePhase(key, UPLOAD_PHASE.COMPLETED, 100);
-      return true;
-    },
-    [updateFilePhase],
-  );
-
-  const markFileCompletedByOrderIndex = useCallback(
-    (orderIndex: number | null | undefined) => {
-      const completion = getRealtimeSubmissionCompletion(
-        getFileSnapshots(),
-        orderIndex,
-        UPLOAD_PHASE.COMPLETED,
-      );
-      if (!completion) {
-        return false;
-      }
-
-      if (completion.shouldUpdate) {
-        updateFilePhase(completion.key, UPLOAD_PHASE.COMPLETED, 100);
-      }
-
-      return true;
-    },
-    [getFileSnapshots, updateFilePhase],
-  );
+  const processingStatusEnabled =
+    isUploading && !!reference && orderIndexes.length > 0;
 
   const { data: uploadStatus, refetch: refetchUploadStatus } = useQuery(
     trpc.uploadFlow.getUploadStatus.queryOptions(
-      { domain, reference, orderIndexes },
       {
-        enabled: isUploading && orderIndexes.length > 0 && !!reference,
-        refetchInterval:
-          isUploading &&
-          orderIndexes.length > 0 &&
-          !!reference &&
-          !isCompletionHandled
-            ? UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS
-            : false,
-        refetchIntervalInBackground: false,
+        domain,
+        reference,
+        orderIndexes,
+      },
+      {
+        enabled: processingStatusEnabled,
+        refetchInterval: processingStatusEnabled
+          ? UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS
+          : false,
+        refetchIntervalInBackground: true,
+        retry: false,
       },
     ),
+  );
+
+  const markFileProcessingCompleteByOrderIndex = useCallback(
+    (orderIndex: number | null | undefined) => {
+      if (orderIndex === null || orderIndex === undefined) {
+        return false;
+      }
+
+      const file = Array.from(filesRef.current.values()).find(
+        (candidate) => candidate.orderIndex === orderIndex,
+      );
+
+      if (!file) {
+        return false;
+      }
+
+      setFileProcessingComplete(file.key);
+      return true;
+    },
+    [setFileProcessingComplete],
+  );
+
+  const markFileProcessingCompleteByKey = useCallback(
+    (key: string) => {
+      const file = filesRef.current.get(key);
+      if (!file) {
+        return false;
+      }
+
+      setFileProcessingComplete(key);
+      return true;
+    },
+    [setFileProcessingComplete],
   );
 
   useUploadStatusRealtime({
     domain,
     reference,
-    enabled: isUploading && !!reference,
+    enabled: processingStatusEnabled,
     onSubmissionProcessed: ({ orderIndex }) => {
-      const wasHandled = markFileCompletedByOrderIndex(orderIndex);
-      if (!wasHandled) {
+      const handled = markFileProcessingCompleteByOrderIndex(orderIndex);
+      if (!handled) {
         void refetchUploadStatus();
-        return;
-      }
-
-      if (participantFinalizedRef.current) {
-        maybeHandleCompletion(true);
       }
     },
     onParticipantFinalized: () => {
-      participantFinalizedRef.current = true;
-      if (!maybeHandleCompletion(true)) {
-        void refetchUploadStatus();
-      }
+      fileList.forEach((file) => {
+        if (file.phase === UPLOAD_PHASE.UPLOADED) {
+          setFileProcessingComplete(file.key);
+        }
+      });
     },
-    onEventError: (_event, data) => {
-      if (shouldReconcileUploadStatus(data.outcome)) {
-        void refetchUploadStatus();
-      }
+    onEventError: () => {
+      void refetchUploadStatus();
     },
   });
 
   useEffect(() => {
-    if (!uploadStatus || !isUploading) return;
+    if (!uploadStatus) {
+      return;
+    }
 
-    const keysToComplete = getPollingCompletionKeys(
-      getFileSnapshots(),
-      uploadStatus.submissions,
-      UPLOAD_PHASE.COMPLETED,
-    );
-
-    keysToComplete.forEach((key) => {
-      if (!isFileLocked(key)) {
-        markFileCompletedByKey(key);
+    uploadStatus.submissions.forEach((submission) => {
+      if (submission.exifProcessed || submission.thumbnailKey !== null) {
+        markFileProcessingCompleteByKey(submission.key);
       }
     });
-
-    if (uploadStatus.participant?.finalized) {
-      participantFinalizedRef.current = true;
-      maybeHandleCompletion(true);
-    }
-  }, [
-    uploadStatus,
-    isUploading,
-    isFileLocked,
-    getFileSnapshots,
-    markFileCompletedByKey,
-    maybeHandleCompletion,
-  ]);
+  }, [markFileProcessingCompleteByKey, uploadStatus]);
 
   const uploadSingleFile = useCallback(
     async (file: UploadFileState): Promise<void> => {
@@ -259,8 +323,7 @@ export function useFileUpload({
           return;
         }
 
-        // Mark as processing - server will update to completed
-        updateFilePhase(file.key, UPLOAD_PHASE.PROCESSING, 100);
+        updateFilePhase(file.key, UPLOAD_PHASE.UPLOADED, 100);
       } finally {
         unlockFile(file.key);
       }
@@ -282,7 +345,8 @@ export function useFileUpload({
 
   const executeUpload = useCallback(
     async (photos: PhotoWithPresignedUrl[]): Promise<void> => {
-      resetCompletionTracking();
+      resetUploadLifecycle();
+      setUploadUiStartedAt(Date.now());
       initializeFiles(photos);
 
       const filesToUpload = photos
@@ -299,7 +363,7 @@ export function useFileUpload({
 
       await uploadWithConcurrency(filesToUpload);
     },
-    [initializeFiles, resetCompletionTracking, uploadWithConcurrency],
+    [initializeFiles, resetUploadLifecycle, uploadWithConcurrency],
   );
 
   const retryFailedFiles = useCallback(async (): Promise<void> => {
@@ -312,20 +376,26 @@ export function useFileUpload({
       }
     });
 
+    setFinalizationState(FINALIZATION_STATE.UPLOADING);
+
     const filesToRetry = failedFiles.filter((f) => !isFileLocked(f.key));
     await uploadWithConcurrency(filesToRetry);
   }, [isFileLocked, updateFilePhase, uploadWithConcurrency]);
 
   const clearUploadFiles = useCallback(() => {
-    resetCompletionTracking();
+    resetUploadLifecycle();
     clearFiles();
-  }, [clearFiles, resetCompletionTracking]);
+  }, [clearFiles, resetUploadLifecycle]);
 
   return {
     isUploading,
-    files: selectAllFiles(useUploadStore.getState()),
-    failedFiles: selectFailedFiles(useUploadStore.getState()),
-    uploadStatus,
+    files: fileList,
+    failedFiles,
+    allFilesUploaded,
+    minimumProgressDisplayReached,
+    finalizationState,
+    participantStatus,
+    participantReference: reference,
     executeUpload,
     retryFailedFiles,
     clearFiles: clearUploadFiles,

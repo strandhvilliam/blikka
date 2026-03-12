@@ -164,9 +164,11 @@
     "uploadProgress": {
       "titleUploading": "Uploading Photos",
       "titleComplete": "Upload Complete!",
+      "titleUploaded": "Photos Uploaded",
       "titleIssues": "Upload Issues",
       "clickToContinue": "Click continue to proceed",
       "clickToRetry": "Some files failed. Click retry to try again.",
+      "finishingSubmission": "Your photos are uploaded. We are finishing your submission.",
       "thisMayTakeSeveralMinutes": "This may take several minutes",
       "close": "Close",
       "overallProgress": "Overall Progress",
@@ -176,7 +178,26 @@
       "multipleFilesFailed": "{count} files failed to upload",
       "checkConnection": "Please check your connection and try again",
       "retryFailed": "Retry Failed ({count})",
-      "continue": "Continue"
+      "continue": "Continue",
+      "statusUploaded": "Uploaded",
+      "statusUploadedComplete": "Uploaded!",
+      "statusUploadedProcessing": "Uploaded! Processing...",
+      "statusUploading": "Uploading",
+      "statusWaiting": "Waiting...",
+      "statusError": "Upload failed"
+    },
+    "uploadFinalizing": {
+      "title": "Finalizing your submission",
+      "description": "Your photos have been successfully uploaded! Processing them in the background now.",
+      "timeoutTitle": "Your photos were received",
+      "timeoutDescription": "We could not finish the registration yet, but your photos are safely stored.",
+      "participantNumber": "Participant number",
+      "receivedTitle": "Photos received",
+      "receivedDescription": "You do not need to upload your photos again.",
+      "waitNote": "Please keep this page open for a moment while we finish things in the background.",
+      "doNotUploadAgain": "Do not upload again.",
+      "staffHelp": "Show this participant number to staff so they can help complete the registration.",
+      "autoContinue": "If the registration finishes automatically, this page will continue on its own."
     },
     "prepareStep": {
       "reviewTitle": "Confirm your details",
