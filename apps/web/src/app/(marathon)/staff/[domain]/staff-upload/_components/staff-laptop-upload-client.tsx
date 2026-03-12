@@ -35,6 +35,7 @@ import {
 import { uploadPreparedFiles } from "@/lib/participant-upload/upload-runner";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,6 +69,24 @@ import { UploadStep } from "./upload-step";
 
 const POLLING_INTERVAL_MS = 3000;
 
+interface StaffLaptopUploadClientProps {
+  staffEmail?: string | null;
+  staffImage?: string | null;
+  staffName?: string | null;
+}
+
+function getStaffInitials(name?: string | null, email?: string | null) {
+  const source = (name || email || "Staff").trim();
+  const words = source.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "ST";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return words
+    .slice(0, 2)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase();
+}
+
 function getBlockedMessage(status: ParticipantExistenceStatus) {
   if (status === "verified") {
     return "This participant has already been verified and cannot be uploaded again from the staff laptop flow.";
@@ -76,7 +95,11 @@ function getBlockedMessage(status: ParticipantExistenceStatus) {
   return "This participant has already completed the upload flow and cannot be uploaded again from the staff laptop flow.";
 }
 
-export function StaffLaptopUploadClient() {
+export function StaffLaptopUploadClient({
+  staffEmail,
+  staffImage,
+  staffName,
+}: StaffLaptopUploadClientProps) {
   const domain = useDomain();
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -87,7 +110,9 @@ export function StaffLaptopUploadClient() {
   const formValues = useStaffUploadStore((s) => s.formValues);
   const existingParticipant = useStaffUploadStore((s) => s.existingParticipant);
   const showOverwriteDialog = useStaffUploadStore((s) => s.showOverwriteDialog);
-  const requiresOverwriteWarning = useStaffUploadStore(selectRequiresOverwriteWarning);
+  const requiresOverwriteWarning = useStaffUploadStore(
+    selectRequiresOverwriteWarning,
+  );
 
   const resetForm = useStaffUploadStore((s) => s.resetForm);
   const setFormField = useStaffUploadStore((s) => s.setFormField);
@@ -110,7 +135,9 @@ export function StaffLaptopUploadClient() {
   const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus);
   const uploadComplete = useStaffUploadStore((s) => s.uploadComplete);
 
-  const updateUploadFileState = useStaffUploadStore((s) => s.updateUploadFileState);
+  const updateUploadFileState = useStaffUploadStore(
+    (s) => s.updateUploadFileState,
+  );
   const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow);
   const patchUpload = useStaffUploadStore((s) => s.patchUpload);
 
@@ -380,7 +407,9 @@ export function StaffLaptopUploadClient() {
         }),
       );
 
-      patchParticipant({ existingParticipant: participant as StaffParticipant });
+      patchParticipant({
+        existingParticipant: participant as StaffParticipant,
+      });
       void setStep("upload");
     } catch (error) {
       console.error(error);
@@ -476,15 +505,25 @@ export function StaffLaptopUploadClient() {
     return (
       <div className="relative min-h-screen">
         <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-lg">
-          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
             <Button asChild variant="ghost" size="sm" className="rounded-full">
               <Link href={backUrl}>
                 <ArrowLeft className="mr-1.5 h-4 w-4" />
                 Back
               </Link>
             </Button>
-            <div className="rounded-full border border-border bg-background/60 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground shadow-sm backdrop-blur-sm">
-              {domain}
+            <div className="flex items-center gap-2.5">
+              <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
+                {marathon.name}
+              </span>
+              <Avatar className="h-7 w-7 ring-1 ring-border">
+                {staffImage ? (
+                  <AvatarImage src={staffImage} alt={staffName ?? ""} />
+                ) : null}
+                <AvatarFallback className="bg-muted text-[10px] font-semibold">
+                  {getStaffInitials(staffName, staffEmail)}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </div>
         </header>
@@ -496,7 +535,7 @@ export function StaffLaptopUploadClient() {
               </div>
               <div>
                 <h1 className="font-rocgrotesk text-2xl text-amber-900">
-                  Laptop upload unavailable
+                  Staff upload unavailable
                 </h1>
                 <p className="mt-2 text-sm text-amber-800">
                   This staff tool is only available for marathon mode events.
@@ -514,18 +553,35 @@ export function StaffLaptopUploadClient() {
     <>
       <div className="relative min-h-screen">
         <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-lg">
-          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3">
-            <Button asChild variant="ghost" size="sm" className="rounded-full">
+          <div className="relative mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="relative z-10 rounded-full"
+            >
               <Link href={backUrl}>
                 <ArrowLeft className="mr-1.5 h-4 w-4" />
                 <span className="hidden sm:inline">Back</span>
               </Link>
             </Button>
 
-            <StepIndicator />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <StepIndicator />
+            </div>
 
-            <div className="rounded-full border border-border bg-background/60 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground shadow-sm backdrop-blur-sm">
-              {domain}
+            <div className="relative z-10 flex items-center gap-2.5">
+              <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
+                {marathon.name}
+              </span>
+              <Avatar className="h-7 w-7 ring-1 ring-border">
+                {staffImage ? (
+                  <AvatarImage src={staffImage} alt={staffName ?? ""} />
+                ) : null}
+                <AvatarFallback className="bg-muted text-[10px] font-semibold">
+                  {getStaffInitials(staffName, staffEmail)}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </div>
         </header>

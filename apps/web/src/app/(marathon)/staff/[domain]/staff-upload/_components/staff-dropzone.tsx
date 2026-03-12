@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { ImagePlus, Loader2 } from "lucide-react";
-import { useDropzone, type Accept } from "react-dropzone";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { ImagePlus, Loader2 } from "lucide-react"
+import { useDropzone, type Accept } from "react-dropzone"
+import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 const DROPZONE_ACCEPT: Accept = {
   "image/jpeg": [".jpg", ".jpeg"],
@@ -12,15 +12,15 @@ const DROPZONE_ACCEPT: Accept = {
   "image/webp": [".webp"],
   "image/heic": [".heic"],
   "image/heif": [".heif"],
-};
+}
 
 interface StaffDropzoneProps {
-  disabled: boolean;
-  onFilesSelected: (files: File[]) => void | Promise<void>;
-  isProcessing: boolean;
-  selectedCount: number;
-  expectedCount: number;
-  errorMessage?: string | null;
+  disabled: boolean
+  onFilesSelected: (files: File[]) => void | Promise<void>
+  isProcessing: boolean
+  selectedCount: number
+  expectedCount: number
+  errorMessage?: string | null
 }
 
 export function StaffDropzone({
@@ -36,15 +36,15 @@ export function StaffDropzone({
     disabled,
     multiple: true,
     onDropAccepted: (files) => {
-      void onFilesSelected(files);
+      void onFilesSelected(files)
     },
     onDropRejected: () => {
-      toast.error("Some files were rejected. Please use supported image formats.");
+      toast.error("Some files were rejected. Please use supported image formats.")
     },
-  });
+  })
 
-  const isComplete = selectedCount >= expectedCount && expectedCount > 0;
-  const remaining = expectedCount - selectedCount;
+  const isComplete = selectedCount >= expectedCount && expectedCount > 0
+  const remaining = expectedCount - selectedCount
 
   return (
     <div className="space-y-2">
@@ -57,8 +57,8 @@ export function StaffDropzone({
             : isComplete
               ? "cursor-default border-emerald-300 bg-emerald-50/60"
               : isDragActive
-                ? "cursor-copy border-primary bg-primary/5 shadow-inner"
-                : "cursor-pointer border-border bg-card hover:border-primary/40 hover:bg-muted/30",
+                ? "cursor-copy border-brand-primary bg-primary/5 shadow-inner"
+                : "cursor-pointer border-border bg-card hover:border-brand-primary/40 hover:bg-muted/30",
         )}
       >
         <input {...getInputProps()} />
@@ -109,5 +109,5 @@ export function StaffDropzone({
         <p className="text-sm font-medium text-rose-600">{errorMessage}</p>
       ) : null}
     </div>
-  );
+  )
 }
