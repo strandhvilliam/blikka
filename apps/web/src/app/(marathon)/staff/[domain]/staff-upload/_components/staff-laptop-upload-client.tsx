@@ -246,10 +246,14 @@ export function StaffLaptopUploadClient({
     marathonEndDate: marathon.endDate,
   });
 
-  const { resetCompletion } = useUploadStatusSync(
-    uploadStatusQuery.data,
+  const { resetCompletion } = useUploadStatusSync({
+    domain,
+    uploadStatusData: uploadStatusQuery.data,
+    refetchUploadStatus: async () => {
+      await uploadStatusQuery.refetch();
+    },
     setStep,
-  );
+  });
 
   async function runUpload(
     reference: string,

@@ -106,7 +106,13 @@ export function useFileUpload({
 
   const maybeHandleCompletion = useCallback(
     (participantFinalized: boolean) => {
-      if (!shouldCompleteUploadFlow(getFileSnapshots(), participantFinalized)) {
+      if (
+        !shouldCompleteUploadFlow(
+          getFileSnapshots(),
+          participantFinalized,
+          UPLOAD_PHASE.COMPLETED,
+        )
+      ) {
         return false;
       }
 
@@ -144,6 +150,7 @@ export function useFileUpload({
       const completion = getRealtimeSubmissionCompletion(
         getFileSnapshots(),
         orderIndex,
+        UPLOAD_PHASE.COMPLETED,
       );
       if (!completion) {
         return false;
@@ -209,6 +216,7 @@ export function useFileUpload({
     const keysToComplete = getPollingCompletionKeys(
       getFileSnapshots(),
       uploadStatus.submissions,
+      UPLOAD_PHASE.COMPLETED,
     );
 
     keysToComplete.forEach((key) => {

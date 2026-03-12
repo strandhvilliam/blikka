@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc/client";
+import {
+  getPollingCompletionKeys,
+  getRealtimeSubmissionCompletion,
+  shouldCompleteUploadFlow,
+  shouldReconcileUploadStatus,
+  type UploadRealtimeFileSnapshot,
+} from "@/lib/participant-upload/upload-status-realtime";
+import { useUploadStatusRealtime } from "@/lib/participant-upload/use-upload-status-realtime";
 import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload/types";
 import { useStaffUploadStore } from "../_lib/staff-upload-store";
 import type { StaffUploadStep } from "./use-staff-upload-step";
@@ -18,62 +26,59 @@ type UploadStatusData = {
 
 type SetStepFn = (step: StaffUploadStep) => unknown;
 
+interface UseUploadStatusSyncOptions {
+  domain: string;
+  uploadStatusData: UploadStatusData | undefined;
+  refetchUploadStatus: () => Promise<unknown>;
+  setStep: SetStepFn;
+}
+
 /**
  * Syncs the upload status poll data into the store and handles completion.
- * Also navigates to the "complete" step once finalized.
+ * Uses realtime for fast updates and polling only for reconciliation.
  *
  * Returns `resetCompletion` which must be called before each new upload run
  * to prevent the completion toast from being suppressed.
  */
-export function useUploadStatusSync(
-  uploadStatusData: UploadStatusData | undefined,
-  setStep: SetStepFn,
-) {
+export function useUploadStatusSync({
+  domain,
+  uploadStatusData,
+  refetchUploadStatus,
+  setStep,
+}: UseUploadStatusSyncOptions) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const completionHandledRef = useRef(false);
+  const participantFinalizedRef = useRef(false);
 
   const uploadFiles = useStaffUploadStore((s) => s.uploadFiles);
+  const submittedReference = useStaffUploadStore((s) => s.submittedReference);
+  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles);
+  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus);
+  const updateUploadFileState = useStaffUploadStore(
+    (s) => s.updateUploadFileState,
+  );
   const patchUpload = useStaffUploadStore((s) => s.patchUpload);
+  const filesRef = useRef(uploadFiles);
 
   useEffect(() => {
-    if (!uploadStatusData || uploadFiles.length === 0) return;
+    filesRef.current = uploadFiles;
+  }, [uploadFiles]);
 
-    let didUpdateFiles = false;
-    const updatedFiles = uploadFiles.map((file) => {
-      const status = uploadStatusData.submissions.find(
-        (submission) => submission.key === file.key,
-      );
+  const getFileSnapshots = useCallback(
+    (): UploadRealtimeFileSnapshot[] =>
+      filesRef.current.map((file) => ({
+        key: file.key,
+        orderIndex: file.orderIndex,
+        phase: file.phase,
+      })),
+    [],
+  );
 
-      if (
-        status?.uploaded &&
-        file.phase !== PARTICIPANT_UPLOAD_PHASE.COMPLETED
-      ) {
-        didUpdateFiles = true;
-        return {
-          ...file,
-          phase: PARTICIPANT_UPLOAD_PHASE.COMPLETED,
-          progress: 100,
-          error: undefined,
-        };
-      }
-
-      return file;
-    });
-
-    if (didUpdateFiles) {
-      patchUpload({ uploadFiles: updatedFiles });
+  const completeUploadFlow = useCallback(() => {
+    if (completionHandledRef.current) {
+      return;
     }
-
-    if (uploadStatusData.participant?.errors.length) {
-      patchUpload({
-        uploadErrorMessage: uploadStatusData.participant.errors.join(", "),
-      });
-    }
-
-    if (!uploadStatusData.participant?.finalized) return;
-
-    if (completionHandledRef.current) return;
 
     completionHandledRef.current = true;
     patchUpload({
@@ -84,20 +89,145 @@ export function useUploadStatusSync(
     });
     void setStep("complete");
     toast.success("Participant created and upload completed");
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: trpc.participants.getByDomainInfinite.pathKey(),
     });
+  }, [patchUpload, queryClient, setStep, trpc.participants]);
+
+  const maybeHandleCompletion = useCallback(
+    (participantFinalized: boolean) => {
+      if (
+        !shouldCompleteUploadFlow(
+          getFileSnapshots(),
+          participantFinalized,
+          PARTICIPANT_UPLOAD_PHASE.COMPLETED,
+        )
+      ) {
+        return false;
+      }
+
+      completeUploadFlow();
+      return true;
+    },
+    [completeUploadFlow, getFileSnapshots],
+  );
+
+  const markFileCompletedByKey = useCallback(
+    (key: string) => {
+      const file = filesRef.current.find((candidate) => candidate.key === key);
+      if (!file || file.phase === PARTICIPANT_UPLOAD_PHASE.COMPLETED) {
+        return Boolean(file);
+      }
+
+      updateUploadFileState(key, {
+        phase: PARTICIPANT_UPLOAD_PHASE.COMPLETED,
+        progress: 100,
+        error: undefined,
+      });
+      return true;
+    },
+    [updateUploadFileState],
+  );
+
+  const markFileCompletedByOrderIndex = useCallback(
+    (orderIndex: number | null | undefined) => {
+      const completion = getRealtimeSubmissionCompletion(
+        getFileSnapshots(),
+        orderIndex,
+        PARTICIPANT_UPLOAD_PHASE.COMPLETED,
+      );
+      if (!completion) {
+        return false;
+      }
+
+      if (completion.shouldUpdate) {
+        updateUploadFileState(completion.key, {
+          phase: PARTICIPANT_UPLOAD_PHASE.COMPLETED,
+          progress: 100,
+          error: undefined,
+        });
+      }
+
+      return true;
+    },
+    [getFileSnapshots, updateUploadFileState],
+  );
+
+  useUploadStatusRealtime({
+    domain,
+    reference: submittedReference,
+    enabled:
+      submittedReference.length > 0 &&
+      uploadFiles.length > 0 &&
+      (isUploadingFiles || isPollingStatus),
+    onSubmissionProcessed: ({ orderIndex }) => {
+      const wasHandled = markFileCompletedByOrderIndex(orderIndex);
+      if (!wasHandled) {
+        void refetchUploadStatus();
+        return;
+      }
+
+      if (participantFinalizedRef.current) {
+        maybeHandleCompletion(true);
+      }
+    },
+    onParticipantFinalized: () => {
+      participantFinalizedRef.current = true;
+
+      if (!maybeHandleCompletion(true)) {
+        void refetchUploadStatus();
+      }
+    },
+    onEventError: (_event, data) => {
+      if (shouldReconcileUploadStatus(data.outcome)) {
+        void refetchUploadStatus();
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (!uploadStatusData || uploadFiles.length === 0) return;
+
+    const keysToComplete = getPollingCompletionKeys(
+      getFileSnapshots(),
+      uploadStatusData.submissions,
+      PARTICIPANT_UPLOAD_PHASE.COMPLETED,
+    );
+
+    keysToComplete.forEach((key) => {
+      markFileCompletedByKey(key);
+    });
+
+    if (uploadStatusData.participant?.errors.length) {
+      patchUpload({
+        uploadErrorMessage: uploadStatusData.participant.errors.join(", "),
+      });
+    }
+
+    if (!uploadStatusData.participant?.finalized) return;
+
+    participantFinalizedRef.current = true;
+    maybeHandleCompletion(true);
   }, [
-    queryClient,
+    getFileSnapshots,
+    markFileCompletedByKey,
+    maybeHandleCompletion,
     patchUpload,
-    setStep,
-    trpc.participants,
     uploadFiles,
     uploadStatusData,
   ]);
 
+  useEffect(() => {
+    if (completionHandledRef.current || !participantFinalizedRef.current) {
+      return;
+    }
+
+    maybeHandleCompletion(true);
+  }, [maybeHandleCompletion, uploadFiles]);
+
   const resetCompletion = () => {
     completionHandledRef.current = false;
+    participantFinalizedRef.current = false;
   };
 
   return { resetCompletion };

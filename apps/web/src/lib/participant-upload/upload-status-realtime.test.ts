@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { UPLOAD_PHASE } from "./types";
+import { PARTICIPANT_UPLOAD_PHASE } from "./types";
 import {
   getPollingCompletionKeys,
   getRealtimeSubmissionCompletion,
@@ -9,16 +9,18 @@ import {
   type UploadRealtimeFileSnapshot,
 } from "./upload-status-realtime";
 
+const COMPLETED_PHASE = PARTICIPANT_UPLOAD_PHASE.COMPLETED;
+
 const files: UploadRealtimeFileSnapshot[] = [
   {
     key: "submission-0",
     orderIndex: 0,
-    phase: UPLOAD_PHASE.PROCESSING,
+    phase: PARTICIPANT_UPLOAD_PHASE.PROCESSING,
   },
   {
     key: "submission-1",
     orderIndex: 1,
-    phase: UPLOAD_PHASE.COMPLETED,
+    phase: COMPLETED_PHASE,
   },
 ];
 
@@ -57,36 +59,37 @@ describe("upload-status-realtime", () => {
   });
 
   it("resolves the matching file for realtime submission completion", () => {
-    expect(getRealtimeSubmissionCompletion(files, 0)).toEqual({
+    expect(getRealtimeSubmissionCompletion(files, 0, COMPLETED_PHASE)).toEqual({
       key: "submission-0",
       shouldUpdate: true,
     });
   });
 
   it("treats duplicate completion events as idempotent", () => {
-    expect(getRealtimeSubmissionCompletion(files, 1)).toEqual({
+    expect(getRealtimeSubmissionCompletion(files, 1, COMPLETED_PHASE)).toEqual({
       key: "submission-1",
       shouldUpdate: false,
     });
   });
 
   it("does not complete the flow early when a file is still incomplete", () => {
-    expect(shouldCompleteUploadFlow(files, true)).toBe(false);
+    expect(shouldCompleteUploadFlow(files, true, COMPLETED_PHASE)).toBe(false);
     expect(
       shouldCompleteUploadFlow(
         [
           {
             key: "submission-0",
             orderIndex: 0,
-            phase: UPLOAD_PHASE.COMPLETED,
+            phase: COMPLETED_PHASE,
           },
           {
             key: "submission-1",
             orderIndex: 1,
-            phase: UPLOAD_PHASE.COMPLETED,
+            phase: COMPLETED_PHASE,
           },
         ],
         true,
+        COMPLETED_PHASE,
       ),
     ).toBe(true);
   });
@@ -99,11 +102,15 @@ describe("upload-status-realtime", () => {
 
   it("returns polling completion keys for missed realtime events", () => {
     expect(
-      getPollingCompletionKeys(files, [
-        { key: "submission-0", uploaded: true },
-        { key: "submission-1", uploaded: true },
-        { key: "submission-2", uploaded: false },
-      ]),
+      getPollingCompletionKeys(
+        files,
+        [
+          { key: "submission-0", uploaded: true },
+          { key: "submission-1", uploaded: true },
+          { key: "submission-2", uploaded: false },
+        ],
+        COMPLETED_PHASE,
+      ),
     ).toEqual(["submission-0"]);
   });
 });
