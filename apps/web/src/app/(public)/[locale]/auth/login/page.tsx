@@ -4,6 +4,7 @@ import { getAppSession } from "@/lib/auth/server"
 import { decodeSearchParams, Page } from "@/lib/next-utils"
 import { Effect, Option, Schema } from "effect"
 import { redirect } from "next/navigation"
+import { DotPattern } from "@/components/dot-pattern"
 
 const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
   function* ({ searchParams }: PageProps<"/[locale]/auth/login">) {
@@ -19,7 +20,8 @@ const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
     }
 
     return (
-      <div className="relative min-h-svh overflow-hidden bg-[#f1eeee]">
+      <div className="relative min-h-svh overflow-hidden">
+        <DotPattern />
         <div className="pointer-events-none absolute inset-0">
           {/* <div className="absolute inset-0 bg-dot-pattern-light opacity-30" /> */}
           <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/8 via-transparent to-brand-black/4" />
