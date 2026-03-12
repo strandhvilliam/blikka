@@ -1,37 +1,38 @@
-"use client";
+"use client"
 
-import { useMemo } from "react";
-import { useStaffUploadStore } from "../_lib/staff-upload-store";
-import { useStaffUploadMarathon } from "./use-staff-upload-marathon";
+import { useMemo } from "react"
+import { useStaffUploadStore } from "../_lib/staff-upload-store"
+import { useStaffUploadMarathon } from "./use-staff-upload-marathon"
+import { normalizeParticipantReference } from "../../_lib/staff-utils"
 
 export function useStaffUploadParticipantSummary() {
-  const marathon = useStaffUploadMarathon();
+  const marathon = useStaffUploadMarathon()
   const existingParticipant = useStaffUploadStore(
     (state) => state.existingParticipant,
-  );
-  const formValues = useStaffUploadStore((state) => state.formValues);
-  const participantStatus = useStaffUploadStore((state) => state.participantStatus);
+  )
+  const formValues = useStaffUploadStore((state) => state.formValues)
+  const participantStatus = useStaffUploadStore((state) => state.participantStatus)
 
   return useMemo(() => {
     const activeCompetitionClassId = existingParticipant
       ? String(existingParticipant.competitionClassId)
-      : formValues.competitionClassId;
+      : formValues.competitionClassId
     const activeDeviceGroupId = existingParticipant
       ? String(existingParticipant.deviceGroupId)
-      : formValues.deviceGroupId;
+      : formValues.deviceGroupId
 
     const selectedCompetitionClass =
       marathon.competitionClasses.find(
         (cc) => cc.id === Number(activeCompetitionClassId),
-      ) ?? null;
+      ) ?? null
     const selectedDeviceGroup =
       marathon.deviceGroups.find(
         (dg) => dg.id === Number(activeDeviceGroupId),
-      ) ?? null;
+      ) ?? null
 
     if (existingParticipant && selectedCompetitionClass && selectedDeviceGroup) {
       return {
-        reference: Number(existingParticipant.reference).toString(),
+        reference: normalizeParticipantReference(existingParticipant.reference),
         firstName: existingParticipant.firstname,
         lastName: existingParticipant.lastname,
         email: existingParticipant.email ?? "",
@@ -45,7 +46,7 @@ export function useStaffUploadParticipantSummary() {
           participantStatus === "initialized"
             ? ("warning" as const)
             : ("default" as const),
-      };
+      }
     }
 
     if (selectedCompetitionClass && selectedDeviceGroup) {
@@ -58,10 +59,10 @@ export function useStaffUploadParticipantSummary() {
         deviceGroupName: selectedDeviceGroup.name,
         statusLabel: "Manual entry",
         statusTone: "default" as const,
-      };
+      }
     }
 
-    return null;
+    return null
   }, [
     marathon.competitionClasses,
     marathon.deviceGroups,
@@ -73,5 +74,5 @@ export function useStaffUploadParticipantSummary() {
     formValues.lastName,
     formValues.reference,
     participantStatus,
-  ]);
+  ])
 }
