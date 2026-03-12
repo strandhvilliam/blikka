@@ -55,14 +55,31 @@ export class UploadFinalizerService extends ServiceMap.Service<UploadFinalizerSe
               { concurrency: 2 },
             )
 
-            if (submissionStates.length === 0 || exifStates.length === 0) {
+            if (submissionStates.length === 0) {
               return yield* new FailedToFinalizeParticipantError({
-                message: "Submission states or exif states not found",
+                message: "Submission states not found",
+              })
+            }
+
+            const exifStatesByOrderIndex = new Map(
+              exifStates.map((state) => [state.orderIndex, state.exif] as const),
+            )
+
+            const missingExifOrderIndexes = submissionStates
+              .filter(
+                (state) =>
+                  state.exifProcessed && !exifStatesByOrderIndex.has(state.orderIndex),
+              )
+              .map((state) => state.orderIndex)
+
+            if (missingExifOrderIndexes.length > 0) {
+              yield* Effect.logWarning("Missing EXIF state during upload finalization", {
+                missingExifOrderIndexes,
               })
             }
 
             const updates = submissionStates.map((state) => {
-              const exif = exifStates.find((e) => e.orderIndex === state.orderIndex)?.exif ?? {}
+              const exif = exifStatesByOrderIndex.get(state.orderIndex) ?? {}
 
               return {
                 orderIndex: state.orderIndex,
