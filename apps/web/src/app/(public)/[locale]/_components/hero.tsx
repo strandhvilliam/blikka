@@ -69,8 +69,8 @@ export function Hero() {
 
           {/* Tagline with accent line */}
           <div className="mt-6 flex items-start gap-4 lg:mt-8 animate-hero-fade-in [animation-delay:250ms]">
-            <p className="max-w-xl text-center text-base leading-elaxed text-white/70 sm:text-left lg:max-w-xl lg:text-2xl">
-              We take care of the tech behind the scenes, from photo uploads to judging, so you can focus on running the event.
+            <p className="max-w-xl text-center text-base leading-elaxed text-white/80 sm:text-left lg:max-w-xl lg:text-2xl">
+              Blikka takes care of the tech behind the scenes, from photo uploads to judging, so you can focus on running the event.
             </p>
           </div>
 

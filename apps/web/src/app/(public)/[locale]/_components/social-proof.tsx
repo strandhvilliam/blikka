@@ -32,7 +32,7 @@ export function SocialProof() {
             Trusted by organizers
           </p>
           <h2 className="font-gothic max-w-2xl text-balance text-3xl leading-snug font-normal tracking-tight text-brand-white lg:text-[2.75rem] lg:leading-[1.2]">
-            Hear from the community
+            Hear from the people who use blikka
           </h2>
         </FadeIn>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Upload } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryStates } from "nuqs";
 import { submissionSearchParams } from "../_lib/search-params";
@@ -93,12 +93,12 @@ export function SubmissionsHeader() {
 
   const effectiveTab =
     marathon.mode === "by-camera" &&
-    (activeTab === TAB.PREPARED ||
-      activeTab === TAB.NOT_VERIFIED ||
-      activeTab === TAB.VERIFIED)
+      (activeTab === TAB.PREPARED ||
+        activeTab === TAB.NOT_VERIFIED ||
+        activeTab === TAB.VERIFIED)
       ? TAB.ALL
       : marathon.mode !== "by-camera" &&
-          (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
+        (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
         ? TAB.ALL
         : activeTab;
 
@@ -158,7 +158,7 @@ export function SubmissionsHeader() {
             disabled={isRefreshing}
           >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+              className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
             />
             Refresh
           </Button>
@@ -166,8 +166,8 @@ export function SubmissionsHeader() {
             onClick={() => setIsCreateUploadDialogOpen(true)}
             className="bg-[#20201c] hover:bg-[#313129]"
           >
-            <Plus className="h-4 w-4" />
-            Add Participant Upload
+            <Upload className="h-4 w-4" />
+            Manual Upload
           </PrimaryButton>
         </div>
       </div>

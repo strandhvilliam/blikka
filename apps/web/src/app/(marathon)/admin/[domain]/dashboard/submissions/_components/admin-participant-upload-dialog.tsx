@@ -353,7 +353,7 @@ export function AdminParticipantUploadDialog({
               <div>
                 <div className="flex items-center gap-2">
                   <DialogTitle className="font-gothic text-2xl font-normal tracking-tight text-[#242424]">
-                    Add Participant Upload
+                    Manual Upload
                   </DialogTitle>
                   <Badge
                     variant="outline"
