@@ -26,6 +26,7 @@ export type FinalizationState =
 
 // Selected photo before upload
 export interface SelectedPhoto {
+  id: string;
   file: File;
   exif: Record<string, unknown>;
   preview: string; // Object URL for preview

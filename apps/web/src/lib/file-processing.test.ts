@@ -21,6 +21,7 @@ async function importFileProcessing() {
 afterEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   vi.doUnmock("./exif-parsing");
 });
 
@@ -130,5 +131,83 @@ describe("file-processing", () => {
     expect(revokeSpy).toHaveBeenCalledTimes(2);
     expect(revokeSpy).toHaveBeenNthCalledWith(1, "blob:one");
     expect(revokeSpy).toHaveBeenNthCalledWith(2, "blob:two");
+  });
+
+  it("generates thumbnail object urls from a resized image blob", async () => {
+    const closeSpy = vi.fn();
+    const drawImageSpy = vi.fn();
+    const convertToBlobSpy = vi
+      .fn()
+      .mockResolvedValue(new Blob(["thumb"], { type: "image/jpeg" }));
+    const createObjectURLSpy = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:thumb");
+
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn().mockResolvedValue({
+        width: 320,
+        height: 180,
+        close: closeSpy,
+      }),
+    );
+    vi.stubGlobal(
+      "OffscreenCanvas",
+      class FakeOffscreenCanvas {
+        width: number;
+        height: number;
+
+        constructor(width: number, height: number) {
+          this.width = width;
+          this.height = height;
+        }
+
+        getContext() {
+          return {
+            drawImage: drawImageSpy,
+          };
+        }
+
+        convertToBlob = convertToBlobSpy;
+      },
+    );
+
+    const { generateThumbnailUrl } = await importFileProcessing();
+    const file = new File(["original"], "capture.jpg", { type: "image/jpeg" });
+
+    const thumbnailUrl = await generateThumbnailUrl(file);
+
+    expect(thumbnailUrl).toBe("blob:thumb");
+    expect(createImageBitmap).toHaveBeenCalledWith(file, {
+      resizeWidth: 400,
+      resizeQuality: "medium",
+    });
+    expect(drawImageSpy).toHaveBeenCalledTimes(1);
+    expect(convertToBlobSpy).toHaveBeenCalledWith({
+      type: "image/jpeg",
+      quality: 0.7,
+    });
+    expect(createObjectURLSpy).toHaveBeenCalledWith(expect.any(Blob));
+    expect(createObjectURLSpy).not.toHaveBeenCalledWith(file);
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to a direct object url when thumbnail generation fails", async () => {
+    const createObjectURLSpy = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:fallback");
+
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn().mockRejectedValue(new Error("decode failed")),
+    );
+
+    const { generateThumbnailUrl } = await importFileProcessing();
+    const file = new File(["original"], "capture.jpg", { type: "image/jpeg" });
+
+    const thumbnailUrl = await generateThumbnailUrl(file);
+
+    expect(thumbnailUrl).toBe("blob:fallback");
+    expect(createObjectURLSpy).toHaveBeenCalledWith(file);
   });
 });

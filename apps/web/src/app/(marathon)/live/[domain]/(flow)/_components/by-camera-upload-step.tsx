@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "motion/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useFileUpload } from "../_hooks/use-file-upload"
+import { useLivePhotoValidation } from "../_hooks/use-live-photo-validation"
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
 import { useSelectFile } from "../_hooks/use-select-file"
 import { usePhotoStore } from "../_lib/photo-store"
@@ -63,6 +64,7 @@ export function ByCameraUploadStep({
   const photos = usePhotoStore((state) => state.photos)
   const removePhoto = usePhotoStore((state) => state.removePhoto)
   const validationResults = usePhotoStore((state) => state.validationResults)
+  const isProcessingFiles = usePhotoStore((state) => state.isProcessingFiles)
 
 
   const isUploading = useUploadStore((state) => state.isUploading)
@@ -80,6 +82,12 @@ export function ByCameraUploadStep({
   const { handleFileSelect } = useSelectFile({
     maxPhotos: BY_CAMERA_MAX_PHOTOS,
     t,
+  })
+
+  useLivePhotoValidation({
+    ruleConfigs,
+    marathonStartDate,
+    marathonEndDate,
   })
 
   const {
@@ -153,10 +161,6 @@ export function ByCameraUploadStep({
 
   useEffect(() => {
     initializeStore({
-      maxPhotos: BY_CAMERA_MAX_PHOTOS,
-      validationRules,
-      marathonStartDate: marathonStartDate,
-      marathonEndDate: marathonEndDate,
       topicOrderIndexes: [0],
     })
 
@@ -166,9 +170,6 @@ export function ByCameraUploadStep({
   }, [
     initializeStore,
     cleanup,
-    validationRules,
-    marathonStartDate,
-    marathonEndDate,
   ])
 
   const handleSelectFiles = async (files: FileList | null) => {
@@ -262,6 +263,7 @@ export function ByCameraUploadStep({
   )
 
   const canSubmit = photoSelected && !hasValidationErrors
+    && !isProcessingFiles
 
   return (
     <>
@@ -333,9 +335,9 @@ export function ByCameraUploadStep({
                 photo={photo || null}
                 validationResults={validationResults}
                 hasValidationRules={hasValidationRules}
+                isProcessing={isProcessingFiles}
                 onFileSelect={handleSelectFiles}
                 onRemovePhoto={removePhoto}
-                onChooseClick={() => { }}
               />
             </CardContent>
 

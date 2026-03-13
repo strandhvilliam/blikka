@@ -1,89 +1,58 @@
 "use client";
 
 import { create } from "zustand";
-import { Effect } from "effect";
-import { type ValidationResult, type ValidationRule } from "@blikka/validation";
+import { type ValidationResult } from "@blikka/validation";
 import type { SelectedPhoto } from "./types";
-import {
-  buildValidationInputs,
-  prepareValidationRules,
-  runClientValidation,
-} from "@/lib/validation";
 import {
   reassignOrderIndexes,
   revokePreviewUrls,
-  sortByExifDate,
 } from "@/lib/file-processing";
 
 interface PhotoStore {
-  // State
   photos: SelectedPhoto[];
   validationResults: ValidationResult[];
-  maxPhotos: number;
-  validationRules: ValidationRule[];
-  marathonStartDate?: string | Date;
-  marathonEndDate?: string | Date;
   topicOrderIndexes: number[];
   objectUrls: Set<string>;
+  isProcessingFiles: boolean;
 
-  // Actions
   initialize: (config: {
-    maxPhotos: number;
-    validationRules: ValidationRule[];
-    marathonStartDate?: string | Date;
-    marathonEndDate?: string | Date;
     topicOrderIndexes: number[];
   }) => void;
-  addPhotos: (newPhotos: SelectedPhoto[]) => void;
+  setPhotos: (photos: SelectedPhoto[]) => void;
   removePhoto: (orderIndex: number) => void;
   clearPhotos: () => void;
   reorderPhotos: (photos: SelectedPhoto[]) => void;
-  runPhotoValidation: () => Promise<void>;
+  setValidationResults: (results: ValidationResult[]) => void;
+  setIsProcessingFiles: (isProcessing: boolean) => void;
   cleanup: () => void;
 }
 
 export const usePhotoStore = create<PhotoStore>((set, get) => ({
   photos: [],
   validationResults: [],
-  maxPhotos: 0,
-  validationRules: [],
   topicOrderIndexes: [],
   objectUrls: new Set<string>(),
+  isProcessingFiles: false,
 
   initialize: (config) => {
     set({
-      maxPhotos: config.maxPhotos,
-      validationRules: config.validationRules,
-      marathonStartDate: config.marathonStartDate,
-      marathonEndDate: config.marathonEndDate,
       topicOrderIndexes: config.topicOrderIndexes,
     });
   },
 
-  addPhotos: (newPhotos) => {
+  setPhotos: (photos) => {
     const state = get();
-    const remainingSlots = state.maxPhotos - state.photos.length;
-    const photosToAdd = newPhotos.slice(0, remainingSlots);
+    const nextUrls = new Set(
+      photos.map((photo) => photo.preview).filter(Boolean),
+    );
 
-    const newObjectUrls = new Set(state.objectUrls);
-    photosToAdd.forEach((photo) => {
-      if (photo.preview) {
-        newObjectUrls.add(photo.preview);
+    state.photos.forEach((photo) => {
+      if (!nextUrls.has(photo.preview)) {
+        URL.revokeObjectURL(photo.preview);
       }
     });
 
-    const sortedPhotos = reassignOrderIndexes(
-      sortByExifDate([...state.photos, ...photosToAdd], (photo) => photo.exif),
-      state.topicOrderIndexes,
-      (photo, orderIndex) => ({
-        ...photo,
-        orderIndex,
-      }),
-    );
-
-    set({ photos: sortedPhotos, objectUrls: newObjectUrls });
-
-    get().runPhotoValidation();
+    set({ photos, objectUrls: nextUrls });
   },
 
   removePhoto: (orderIndex) => {
@@ -106,8 +75,6 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       );
 
       set({ photos: reorderedPhotos, objectUrls: newObjectUrls });
-
-      get().runPhotoValidation();
     }
   },
 
@@ -116,45 +83,25 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
 
     revokePreviewUrls(state.photos, (photo) => photo.preview);
 
-    set({ photos: [], validationResults: [], objectUrls: new Set() });
+    set({
+      photos: [],
+      validationResults: [],
+      objectUrls: new Set(),
+      isProcessingFiles: false,
+    });
   },
 
   reorderPhotos: (reorderedPhotos) => {
     set({ photos: reorderedPhotos });
-    get().runPhotoValidation();
   },
 
-  runPhotoValidation: async () => {
-    const state = get();
+  setValidationResults: (results) => set({ validationResults: results }),
 
-    if (state.photos.length === 0) {
-      set({ validationResults: [] });
-      return;
-    }
-
-    const preparedValidationRules = prepareValidationRules(
-      state.validationRules,
-      {
-        start: state.marathonStartDate,
-        end: state.marathonEndDate,
-      },
-    );
-
-    try {
-      const results = await runClientValidation(
-        preparedValidationRules,
-        buildValidationInputs(state.photos),
-      );
-      set({ validationResults: results });
-    } catch (error) {
-      console.error("Validation error:", error);
-      set({ validationResults: [] });
-    }
-  },
+  setIsProcessingFiles: (isProcessing) => set({ isProcessingFiles: isProcessing }),
 
   cleanup: () => {
     const state = get();
     revokePreviewUrls(Array.from(state.objectUrls), (url) => url);
-    set({ objectUrls: new Set() });
+    set({ objectUrls: new Set(), isProcessingFiles: false });
   },
 }));

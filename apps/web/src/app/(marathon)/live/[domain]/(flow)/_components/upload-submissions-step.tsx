@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useFileUpload } from "../_hooks/use-file-upload";
+import { useLivePhotoValidation } from "../_hooks/use-live-photo-validation";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useSelectFile } from "../_hooks/use-select-file";
 import { usePhotoStore } from "../_lib/photo-store";
@@ -39,7 +40,6 @@ import { UploadSection } from "./upload-section";
 import { HeicConversionDialog } from "./heic-conversion-dialog";
 import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
-import { mapRuleConfigsToValidationRules } from "@/lib/validation";
 import { FINALIZATION_STATE } from "../_lib/types";
 
 export function UploadSubmissionsStep({
@@ -68,6 +68,7 @@ export function UploadSubmissionsStep({
   const photos = usePhotoStore((state) => state.photos);
   const removePhoto = usePhotoStore((state) => state.removePhoto);
   const validationResults = usePhotoStore((state) => state.validationResults);
+  const isProcessingFiles = usePhotoStore((state) => state.isProcessingFiles);
 
   const isUploading = useUploadStore((state) => state.isUploading);
   const setIsUploading = useUploadStore((state) => state.setIsUploading);
@@ -85,6 +86,12 @@ export function UploadSubmissionsStep({
   const { handleFileSelect } = useSelectFile({
     maxPhotos: competitionClass.numberOfPhotos,
     t,
+  });
+
+  useLivePhotoValidation({
+    ruleConfigs,
+    marathonStartDate,
+    marathonEndDate,
   });
 
   const {
@@ -153,10 +160,6 @@ export function UploadSubmissionsStep({
     }),
   );
 
-  const validationRules = useMemo(
-    () => mapRuleConfigsToValidationRules(ruleConfigs),
-    [ruleConfigs],
-  );
   const topicOrderIndexes = useMemo(
     () => topics.map((topic) => topic.orderIndex),
     [topics],
@@ -164,27 +167,19 @@ export function UploadSubmissionsStep({
 
   useEffect(() => {
     initializeStore({
-      maxPhotos: competitionClass.numberOfPhotos,
-      validationRules,
-      marathonStartDate: marathonStartDate,
-      marathonEndDate: marathonEndDate,
       topicOrderIndexes,
     });
 
     return () => {
       cleanup();
     };
-  }, [
-    initializeStore,
-    cleanup,
-    competitionClass.numberOfPhotos,
-    validationRules,
-    marathonStartDate,
-    marathonEndDate,
-    topicOrderIndexes,
-  ]);
+  }, [initializeStore, cleanup, topicOrderIndexes]);
 
   const handleUploadClick = () => {
+    if (isProcessingFiles) {
+      return;
+    }
+
     if (photos.length >= competitionClass.numberOfPhotos) {
       toast.error(t("maxPhotosReached"));
       return;
@@ -269,7 +264,8 @@ export function UploadSubmissionsStep({
       result.severity === "error",
   );
 
-  const canSubmit = allPhotosSelected && !hasValidationErrors;
+  const canSubmit =
+    allPhotosSelected && !hasValidationErrors && !isProcessingFiles;
 
   return (
     <>
@@ -328,6 +324,7 @@ export function UploadSubmissionsStep({
               <UploadSection
                 maxPhotos={competitionClass.numberOfPhotos}
                 onUploadClick={handleUploadClick}
+                isProcessingFiles={isProcessingFiles}
               />
               <SubmissionList
                 topics={topics}
@@ -342,7 +339,11 @@ export function UploadSubmissionsStep({
                 accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(
                   ",",
                 )}
-                onChange={(e) => handleFileSelect(e.target.files)}
+                onChange={async (e) => {
+                  const target = e.currentTarget;
+                  await handleFileSelect(target.files);
+                  target.value = "";
+                }}
                 className="hidden"
               />
             </CardContent>

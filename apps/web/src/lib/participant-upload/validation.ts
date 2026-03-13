@@ -1,29 +1,33 @@
 import type { RuleConfig } from "@blikka/db";
 import type { ValidationResult } from "@blikka/validation";
 import {
+  type ValidatablePhotoLike,
   buildValidationInputs,
   hasBlockingValidationErrors,
   mapRuleConfigsToValidationRules,
   prepareValidationRules,
   runClientValidation,
-} from "@/lib/validation";
-import type { ParticipantSelectedPhoto } from "./types";
+} from "../validation";
 
 export { hasBlockingValidationErrors };
 
-interface RunParticipantPhotoValidationInput {
-  photos: ParticipantSelectedPhoto[];
+interface RunParticipantPhotoValidationInput<
+  TPhoto extends ValidatablePhotoLike = ValidatablePhotoLike,
+> {
+  photos: TPhoto[];
   ruleConfigs: RuleConfig[];
   marathonStartDate?: string | Date | null;
   marathonEndDate?: string | Date | null;
 }
 
-export async function runParticipantPhotoValidation({
+export async function runParticipantPhotoValidation<
+  TPhoto extends ValidatablePhotoLike,
+>({
   photos,
   ruleConfigs,
   marathonStartDate,
   marathonEndDate,
-}: RunParticipantPhotoValidationInput): Promise<ValidationResult[]> {
+}: RunParticipantPhotoValidationInput<TPhoto>): Promise<ValidationResult[]> {
   if (photos.length === 0) {
     return [];
   }
@@ -45,4 +49,3 @@ export async function runParticipantPhotoValidation({
     );
   }
 }
-

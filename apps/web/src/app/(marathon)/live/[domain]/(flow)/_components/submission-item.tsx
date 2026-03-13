@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { SelectedPhoto } from "../_lib/types";
 import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation";
 import { ValidationStatusBadge } from "./validation-status-badge";
@@ -49,48 +49,39 @@ export function SubmissionItem({
   const hasExifData = Object.keys(relevantExifData).length > 0;
   const takenAt = getTimeTaken(photo?.exif);
 
-  // Sort validation results by severity (errors first, then warnings)
-  const sortedValidationResults = useMemo(() => {
-    return validationResults?.sort((a, b) => {
-      if (a.outcome !== b.outcome) {
-        if (a.outcome === VALIDATION_OUTCOME.FAILED) return -1;
-        if (b.outcome === VALIDATION_OUTCOME.FAILED) return 1;
-        if (a.outcome === VALIDATION_OUTCOME.SKIPPED) return -1;
-        if (b.outcome === VALIDATION_OUTCOME.SKIPPED) return 1;
-      }
-
-      if (a.severity !== b.severity) {
-        if (a.severity === "error") return -1;
-        if (b.severity === "error") return 1;
-      }
-
-      return 0;
-    });
-  }, [validationResults]);
-
-  // Get the highest priority validation result to display
-  const displayValidation = useMemo(() => {
-    const highestPriorityResult = sortedValidationResults?.[0];
-
-    // Check if EXIF data is missing (warning for photos without metadata)
-    if (photo?.exif && Object.keys(photo.exif).length === 0) {
-      return {
-        message: t("noExifData"),
-        outcome: VALIDATION_OUTCOME.FAILED as typeof VALIDATION_OUTCOME.FAILED,
-        severity: "warning" as const,
-      };
+  const sortedValidationResults = validationResults?.toSorted((a, b) => {
+    if (a.outcome !== b.outcome) {
+      if (a.outcome === VALIDATION_OUTCOME.FAILED) return -1;
+      if (b.outcome === VALIDATION_OUTCOME.FAILED) return 1;
+      if (a.outcome === VALIDATION_OUTCOME.SKIPPED) return -1;
+      if (b.outcome === VALIDATION_OUTCOME.SKIPPED) return 1;
     }
 
-    return {
-      message: highestPriorityResult?.message,
-      outcome: highestPriorityResult?.outcome,
-      severity: highestPriorityResult?.severity,
-      ruleKey: highestPriorityResult?.ruleKey,
-    };
-  }, [sortedValidationResults, photo?.exif, t]);
+    if (a.severity !== b.severity) {
+      if (a.severity === "error") return -1;
+      if (b.severity === "error") return 1;
+    }
+
+    return 0;
+  });
+
+  const highestPriorityResult = sortedValidationResults?.[0];
+  const displayValidation =
+    photo?.exif && Object.keys(photo.exif).length === 0
+      ? {
+          message: t("noExifData"),
+          outcome:
+            VALIDATION_OUTCOME.FAILED as typeof VALIDATION_OUTCOME.FAILED,
+          severity: "warning" as const,
+        }
+      : {
+          message: highestPriorityResult?.message,
+          outcome: highestPriorityResult?.outcome,
+          severity: highestPriorityResult?.severity,
+          ruleKey: highestPriorityResult?.ruleKey,
+        };
 
   if (!photo) {
-    // Empty slot
     return (
       <div
         className={`flex flex-row gap-4 p-4 border rounded-lg bg-background ${onUploadClick

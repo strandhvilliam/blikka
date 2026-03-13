@@ -2,14 +2,12 @@
 
 import { useCallback } from "react";
 import { toast } from "sonner";
-import {
-  filterDuplicateImageCandidates,
-  limitImageCandidates,
-} from "@/lib/file-processing";
-import { parseExifData } from "@/lib/exif-parsing";
+import { prepareParticipantSelectedPhotos } from "@/lib/participant-upload/file-processing";
+import { isSupportedImageFile } from "@/lib/file-processing";
 import { usePhotoStore } from "../_lib/photo-store";
 import { useHeicStore } from "../_lib/heic-store";
 import type { SelectedPhoto } from "../_lib/types";
+import type { ParticipantSelectedPhoto } from "@/lib/participant-upload/types";
 
 interface UseSelectFileOptions {
   maxPhotos: number;
@@ -28,11 +26,13 @@ export function useSelectFile({
   t,
 }: UseSelectFileOptions): UseSelectFileResult {
   const photos = usePhotoStore((state) => state.photos);
-  const addPhotos = usePhotoStore((state) => state.addPhotos);
-  const clearPhotos = usePhotoStore((state) => state.clearPhotos);
+  const setPhotos = usePhotoStore((state) => state.setPhotos);
+  const setIsProcessingFiles = usePhotoStore(
+    (state) => state.setIsProcessingFiles,
+  );
+  const topicOrderIndexes = usePhotoStore((state) => state.topicOrderIndexes);
 
   const convertFiles = useHeicStore((state) => state.convertFiles);
-  const isCancelling = useHeicStore((state) => state.isCancelling);
 
   const handleFileSelect = useCallback(
     async (fileList: FileList | null, replace?: boolean) => {
@@ -45,71 +45,102 @@ export function useSelectFile({
 
       const { converted, nonHeic } = await convertFiles(files);
 
-      if (isCancelling) {
+      if (useHeicStore.getState().isCancelling) {
         toast.message(t("conversionCancelled"));
         return;
       }
 
-      const allFiles = [...nonHeic, ...converted.map((c) => c.file)];
+      const candidates = [
+        ...nonHeic
+          .filter((file) => isSupportedImageFile(file))
+          .map((file) => ({
+            file,
+            preconvertedExif: null,
+          })),
+        ...converted.map((file) => ({
+          file: file.file,
+          preconvertedExif: file.preconvertedExif ?? null,
+        })),
+      ];
 
-      if (allFiles.length === 0) {
+      if (candidates.length === 0) {
         toast.error(t("noValidFiles"));
         return;
       }
 
-      // If replace mode, clear existing photos first
-      if (replace) {
-        clearPhotos();
-      }
+      setIsProcessingFiles(true);
 
-      const { uniqueCandidates, duplicateFileNames } =
-        filterDuplicateImageCandidates(
-          allFiles.map((file) => ({ file, preconvertedExif: null })),
-          photos.map((photo) => photo.file.name),
+      try {
+        const result = await prepareParticipantSelectedPhotos({
+          candidates,
+          existingPhotos: (replace ? [] : photos).map(
+            (photo): ParticipantSelectedPhoto => ({
+              id: photo.id,
+              file: photo.file,
+              exif: photo.exif,
+              previewUrl: photo.preview,
+              orderIndex: photo.orderIndex,
+              preconvertedExif: photo.preconvertedExif,
+            }),
+          ),
+          maxPhotos,
+          topicOrderIndexes,
+        });
+
+        const duplicateWarnings = result.warnings.filter((message) =>
+          message.endsWith(": duplicate skipped"),
         );
-
-      if (duplicateFileNames.length > 0) {
-        toast.warning(
-          t("duplicatesSkipped", {
-            names: duplicateFileNames.join(", "),
-          }),
-        );
-      }
-
-      const remainingSlots = replace ? maxPhotos : maxPhotos - photos.length;
-
-      const { acceptedCandidates, truncatedCount } = limitImageCandidates(
-        uniqueCandidates,
-        remainingSlots,
-      );
-
-      if (truncatedCount > 0) {
-        toast.warning(t("tooManyFiles", { max: remainingSlots }));
-      }
-
-      const newPhotos: SelectedPhoto[] = await Promise.all(
-        acceptedCandidates.map(async ({ file }, index) => {
-          const convertedInfo = converted.find(
-            (c) => c.file.name === file.name,
+        if (duplicateWarnings.length > 0) {
+          toast.warning(
+            t("duplicatesSkipped", {
+              names: duplicateWarnings
+                .map((message) => message.replace(/: duplicate skipped$/, ""))
+                .join(", "),
+            }),
           );
-          const exif =
-            convertedInfo?.preconvertedExif ||
-            (await parseExifData(file)) ||
-            {};
+        }
 
-          return {
-            file,
-            exif,
-            preconvertedExif: convertedInfo?.preconvertedExif || null,
-            preview: URL.createObjectURL(file),
-            orderIndex: replace ? index : photos.length + index,
-          };
-        }),
-      );
+        if (
+          result.warnings.some((message) =>
+            message.startsWith("Only ") &&
+            message.endsWith(" additional image(s) accepted"),
+          )
+        ) {
+          const remainingSlots = replace ? maxPhotos : maxPhotos - photos.length;
+          toast.warning(t("tooManyFiles", { max: remainingSlots }));
+        }
 
-      addPhotos(newPhotos);
+        result.errors.forEach((message) => {
+          toast.error(message);
+        });
+
+        const nextPhotos: SelectedPhoto[] = result.photos.map((photo) => ({
+          id: photo.id,
+          file: photo.file,
+          exif: photo.exif,
+          preconvertedExif: photo.preconvertedExif,
+          preview: photo.previewUrl,
+          orderIndex: photo.orderIndex,
+        }));
+
+        if (replace && nextPhotos.length === 0 && photos.length > 0) {
+          return;
+        }
+
+        setPhotos(nextPhotos);
+      } finally {
+        setIsProcessingFiles(false);
+      }
     },
-    [photos, maxPhotos, convertFiles, isCancelling, addPhotos, clearPhotos, t],
+    [
+      photos,
+      maxPhotos,
+      convertFiles,
+      setIsProcessingFiles,
+      setPhotos,
+      t,
+      topicOrderIndexes,
+    ],
   );
 
   return {

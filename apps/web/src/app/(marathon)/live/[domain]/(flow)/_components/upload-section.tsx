@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { CloudUpload } from "lucide-react";
+import { CloudUpload, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
 import { usePhotoStore } from "../_lib/photo-store";
@@ -12,14 +12,19 @@ import { usePhotoStore } from "../_lib/photo-store";
 interface UploadSectionProps {
   maxPhotos: number;
   onUploadClick: () => void;
+  isProcessingFiles: boolean;
 }
 
-export function UploadSection({ maxPhotos, onUploadClick }: UploadSectionProps) {
+export function UploadSection({
+  maxPhotos,
+  onUploadClick,
+  isProcessingFiles,
+}: UploadSectionProps) {
   const t = useTranslations("FlowPage.uploadStep");
   const photos = usePhotoStore((state) => state.photos);
 
   const allPhotosSelected = photos.length === maxPhotos && photos.length > 0;
-  const isDisabled = photos.length >= maxPhotos;
+  const isDisabled = photos.length >= maxPhotos || isProcessingFiles;
 
   return (
     <AnimatePresence mode="popLayout">
@@ -73,11 +78,15 @@ export function UploadSection({ maxPhotos, onUploadClick }: UploadSectionProps) 
                 className="flex items-center justify-center p-4 rounded-full mb-4"
                 disabled={isDisabled}
               >
-                <CloudUpload className="w-10 h-10 text-white" />
+                {isProcessingFiles ? (
+                  <Loader2 className="w-10 h-10 animate-spin text-white" />
+                ) : (
+                  <CloudUpload className="w-10 h-10 text-white" />
+                )}
               </PrimaryButton>
 
               <p className="text-muted-foreground mb-2">
-                {t("clickToSelect")}
+                {isProcessingFiles ? "Preparing previews..." : t("clickToSelect")}
               </p>
               <p className="text-sm text-muted-foreground">
                 {t("photoCount", { current: photos.length, max: maxPhotos })}
@@ -90,7 +99,7 @@ export function UploadSection({ maxPhotos, onUploadClick }: UploadSectionProps) 
         </motion.div>
       ) : (
         <motion.div
-          key="loading-skeleton"
+          key="processing-state"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -98,11 +107,27 @@ export function UploadSection({ maxPhotos, onUploadClick }: UploadSectionProps) 
         >
           <div className="border-2 border-dashed border-muted-foreground/40 bg-background/60 backdrop-blur-sm rounded-lg p-8 mb-6">
             <div className="text-center flex flex-col justify-center items-center">
-              <Skeleton className="h-20 w-20 rounded-full mb-4" />
-              <Skeleton className="h-5 w-64 mb-2" />
-              <Skeleton className="h-4 w-40 mb-2" />
-              <Skeleton className="h-4 w-20 mb-4" />
-              <Skeleton className="h-10 w-32" />
+              {isProcessingFiles ? (
+                <>
+                  <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Loader2 className="h-10 w-10 animate-spin" />
+                  </div>
+                  <p className="mb-2 text-base font-medium text-foreground">
+                    Preparing previews...
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("photoCount", { current: photos.length, max: maxPhotos })}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Skeleton className="h-20 w-20 rounded-full mb-4" />
+                  <Skeleton className="h-5 w-64 mb-2" />
+                  <Skeleton className="h-4 w-40 mb-2" />
+                  <Skeleton className="h-4 w-20 mb-4" />
+                  <Skeleton className="h-10 w-32" />
+                </>
+              )}
             </div>
           </div>
         </motion.div>

@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
@@ -8,6 +9,7 @@ import { useRef, useState, useMemo } from "react";
 import {
   FileImage,
   Info,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing";
@@ -98,18 +100,18 @@ interface UploadInputProps {
     message: string;
   }>;
   hasValidationRules: boolean;
+  isProcessing: boolean;
   onFileSelect: (files: FileList | null) => Promise<void>;
   onRemovePhoto: (orderIndex: number) => void;
-  onChooseClick: () => void;
 }
 
 export function ByCameraUploadInput({
   photo,
   validationResults,
   hasValidationRules,
+  isProcessing,
   onFileSelect,
   onRemovePhoto,
-  onChooseClick,
 }: UploadInputProps) {
   const t = useTranslations("FlowPage.uploadStep");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -123,12 +125,21 @@ export function ByCameraUploadInput({
   const takenAt = photo ? getTimeTaken(photo.exif) : null;
 
   const handleChooseClick = () => {
+    if (isProcessing) {
+      return;
+    }
+
     fileInputRef.current?.click();
   };
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+
+    if (isProcessing) {
+      return;
+    }
+
     if (e.dataTransfer.files?.length > 0) {
       await onFileSelect(e.dataTransfer.files);
     }
@@ -146,7 +157,10 @@ export function ByCameraUploadInput({
       >
         {!photo ? (
           <div
-            className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 cursor-pointer ${isDragOver
+            className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 ${isProcessing
+                ? "cursor-progress opacity-70"
+                : "cursor-pointer"
+              } ${isDragOver
                 ? "border-primary bg-primary/5 scale-[1.02]"
                 : "border-muted-foreground/25 bg-background hover:border-muted-foreground/50 hover:bg-muted/50"
               }`}
@@ -196,12 +210,17 @@ export function ByCameraUploadInput({
                   e.stopPropagation();
                   handleChooseClick();
                 }}
+                disabled={isProcessing}
                 className="rounded-full px-8 py-3 text-base font-semibold whitespace-nowrap"
               >
-                <Icon
-                  icon="solar:gallery-add-outline"
-                  className="w-5 h-5 mr-1 shrink-0"
-                />
+                {isProcessing ? (
+                  <Loader2 className="mr-1 h-5 w-5 shrink-0 animate-spin" />
+                ) : (
+                  <Icon
+                    icon="solar:gallery-add-outline"
+                    className="w-5 h-5 mr-1 shrink-0"
+                  />
+                )}
                 <span className="whitespace-nowrap">
                   {t("chooseFromLibrary")}
                 </span>
@@ -316,9 +335,10 @@ export function ByCameraUploadInput({
         accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
         onChange={async (e) => {
           const target = e.currentTarget;
-          await onFileSelect(e.target.files);
+          await onFileSelect(target.files);
           target.value = "";
         }}
+        disabled={isProcessing}
         className="hidden"
       />
     </>

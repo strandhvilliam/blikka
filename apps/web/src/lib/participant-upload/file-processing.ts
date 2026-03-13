@@ -2,6 +2,7 @@ import type {
   ParticipantSelectedPhoto,
   ProcessSelectedFilesResult,
 } from "./types";
+import type { ExifData } from "../exif-parsing";
 import {
   COMMON_IMAGE_EXTENSIONS,
   createClientPhotoId,
@@ -12,11 +13,19 @@ import {
   reassignOrderIndexes,
   revokePreviewUrls,
   sortByExifDate,
-} from "@/lib/file-processing";
-import { parseExifData } from "@/lib/exif-parsing";
+  type NormalizedImageCandidate,
+} from "../file-processing";
+import { parseExifData } from "../exif-parsing";
 
 interface ProcessSelectedFilesInput {
   fileList: FileList | File[] | null;
+  existingPhotos: ParticipantSelectedPhoto[];
+  maxPhotos: number;
+  topicOrderIndexes: number[];
+}
+
+interface PrepareParticipantSelectedPhotosInput {
+  candidates: NormalizedImageCandidate[];
   existingPhotos: ParticipantSelectedPhoto[];
   maxPhotos: number;
   topicOrderIndexes: number[];
@@ -34,6 +43,87 @@ export function reassignPhotoOrderIndexes(
 
 export function revokePhotoPreviewUrls(photos: ParticipantSelectedPhoto[]) {
   revokePreviewUrls(photos, (photo) => photo.previewUrl);
+}
+
+async function createParticipantSelectedPhoto(candidate: {
+  file: File;
+  preconvertedExif: ExifData | null;
+}): Promise<ParticipantSelectedPhoto> {
+  const [parsedExif, previewUrl] = await Promise.all([
+    candidate.preconvertedExif
+      ? Promise.resolve(candidate.preconvertedExif)
+      : parseExifData(candidate.file),
+    generateThumbnailUrl(candidate.file),
+  ]);
+
+  return {
+    id: createClientPhotoId(),
+    file: candidate.file,
+    exif: candidate.preconvertedExif || parsedExif || {},
+    preconvertedExif: candidate.preconvertedExif,
+    previewUrl,
+    orderIndex: 0,
+  };
+}
+
+export async function prepareParticipantSelectedPhotos({
+  candidates,
+  existingPhotos,
+  maxPhotos,
+  topicOrderIndexes,
+}: PrepareParticipantSelectedPhotosInput): Promise<ProcessSelectedFilesResult> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (candidates.length === 0) {
+    return {
+      photos: existingPhotos,
+      warnings,
+      errors: ["No valid image files available"],
+    };
+  }
+
+  const { uniqueCandidates, duplicateFileNames } =
+    filterDuplicateImageCandidates(
+      candidates,
+      existingPhotos.map((photo) => photo.file.name),
+    );
+
+  duplicateFileNames.forEach((fileName) => {
+    warnings.push(`${fileName}: duplicate skipped`);
+  });
+
+  const remainingSlots = Math.max(0, maxPhotos - existingPhotos.length);
+  if (remainingSlots === 0) {
+    warnings.push("Maximum number of images already selected");
+    return {
+      photos: existingPhotos,
+      warnings,
+      errors,
+    };
+  }
+
+  const { acceptedCandidates: candidatesToUse, truncatedCount } =
+    limitImageCandidates(uniqueCandidates, remainingSlots);
+
+  if (truncatedCount > 0) {
+    warnings.push(`Only ${remainingSlots} additional image(s) accepted`);
+  }
+
+  const newPhotos = await Promise.all(
+    candidatesToUse.map(createParticipantSelectedPhoto),
+  );
+
+  const sortedPhotos = sortByExifDate(
+    [...existingPhotos, ...newPhotos],
+    (photo) => photo.exif,
+  );
+
+  return {
+    photos: reassignPhotoOrderIndexes(sortedPhotos, topicOrderIndexes),
+    warnings,
+    errors,
+  };
 }
 
 export async function processSelectedFiles({
@@ -64,68 +154,17 @@ export async function processSelectedFiles({
   const files = Array.isArray(fileList) ? fileList : Array.from(fileList);
   const { candidates, warnings: normalizationWarnings } =
     await normalizeSelectedImageFiles(files, COMMON_IMAGE_EXTENSIONS);
-  warnings.push(...normalizationWarnings);
 
-  if (candidates.length === 0) {
-    return {
-      photos: existingPhotos,
-      warnings,
-      errors: ["No valid image files available"],
-    };
-  }
-
-  const { uniqueCandidates, duplicateFileNames } =
-    filterDuplicateImageCandidates(
-      candidates,
-      existingPhotos.map((photo) => photo.file.name),
-    );
-  duplicateFileNames.forEach((fileName) => {
-    warnings.push(`${fileName}: duplicate skipped`);
+  const result = await prepareParticipantSelectedPhotos({
+    candidates,
+    existingPhotos,
+    maxPhotos,
+    topicOrderIndexes,
   });
 
-  const remainingSlots = Math.max(0, maxPhotos - existingPhotos.length);
-  if (remainingSlots === 0) {
-    warnings.push("Maximum number of images already selected");
-    return {
-      photos: existingPhotos,
-      warnings,
-      errors,
-    };
-  }
-
-  const { acceptedCandidates: candidatesToUse, truncatedCount } =
-    limitImageCandidates(uniqueCandidates, remainingSlots);
-
-  if (truncatedCount > 0) {
-    warnings.push(`Only ${remainingSlots} additional image(s) accepted`);
-  }
-
-  const newPhotos = await Promise.all(
-    candidatesToUse.map(async (candidate) => {
-      const [parsedExif, previewUrl] = await Promise.all([
-        parseExifData(candidate.file),
-        generateThumbnailUrl(candidate.file),
-      ]);
-      return {
-        id: createClientPhotoId(),
-        file: candidate.file,
-        exif: candidate.preconvertedExif || parsedExif || {},
-        preconvertedExif: candidate.preconvertedExif,
-        previewUrl,
-        orderIndex: 0,
-      } satisfies ParticipantSelectedPhoto;
-    }),
-  );
-
-  const sortedPhotos = sortByExifDate(
-    [...existingPhotos, ...newPhotos],
-    (photo) => photo.exif,
-  );
-
   return {
-    photos: reassignPhotoOrderIndexes(sortedPhotos, topicOrderIndexes),
-    warnings,
-    errors,
+    photos: result.photos,
+    warnings: [...normalizationWarnings, ...result.warnings],
+    errors: [...errors, ...result.errors],
   };
 }
-
