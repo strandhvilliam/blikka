@@ -14,7 +14,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
 import { QrCodeGenerator } from "./qr-code-generator"
-import { useUploadFlowState } from "../(flow)/_hooks/use-upload-flow-state";
+import { useUploadFlowState } from "../(flow)/_hooks/use-upload-flow-state"
 
 interface VerificationClientProps {
   participantRef: string
@@ -27,11 +27,6 @@ export function VerificationClient({ participantRef, participantId }: Verificati
   const t = useTranslations("VerificationPage")
   const { uploadFlowState } = useUploadFlowState()
   const [refreshTimeout, setRefreshTimeout] = useState(0)
-
-  const handleNavigateOnVerified = useCallback(() => {
-    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
-    window.location.replace(formatDomainPathname(`/live/confirmation${serializedParams}`, domain))
-  }, [participantRef, participantId, domain])
 
   const {
     data: participant,
@@ -49,19 +44,18 @@ export function VerificationClient({ participantRef, participantId }: Verificati
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
         refetchInterval: 15000,
-      }
-    )
+      },
+    ),
   )
 
   useEffect(() => {
     if (participant?.status === "verified") {
-      handleNavigateOnVerified()
+      const serializedParams = flowStateClientParamSerializer(uploadFlowState)
+      window.location.replace(formatDomainPathname(`/live/confirmation${serializedParams}`, domain))
     }
 
-    if (!isLoading && !participant) {
-      notFound()
-    }
-  }, [participant, handleNavigateOnVerified, isLoading])
+    if (!isLoading && !participant) notFound()
+  }, [participant, isLoading, uploadFlowState, domain])
 
   useEffect(() => {
     if (refreshTimeout <= 0) return
@@ -86,9 +80,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
           {t("almostThere")}
         </CardTitle>
-        <CardDescription className="text-center">
-          {t("showQrCode")}
-        </CardDescription>
+        <CardDescription className="text-center">{t("showQrCode")}</CardDescription>
       </CardHeader>
 
       <div className="flex flex-col items-center space-y-4">
@@ -144,9 +136,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
         disabled={refreshTimeout > 0}
       >
         <RefreshCcw className={cn("h-4 w-4")} />
-        {refreshTimeout > 0
-          ? t("refreshAvailable", { seconds: refreshTimeout })
-          : t("refresh")}
+        {refreshTimeout > 0 ? t("refreshAvailable", { seconds: refreshTimeout }) : t("refresh")}
       </PrimaryButton>
     </div>
   )

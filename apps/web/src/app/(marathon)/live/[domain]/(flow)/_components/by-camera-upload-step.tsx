@@ -37,6 +37,7 @@ import { VALIDATION_OUTCOME } from "@blikka/validation"
 import { mapRuleConfigsToValidationRules } from "@/lib/validation"
 import { ArrowRight } from "lucide-react"
 import { FINALIZATION_STATE } from "../_lib/types"
+import { buildInitializeByCameraUploadInput } from "../_lib/upload-flow-state"
 
 const BY_CAMERA_MAX_PHOTOS = 1
 
@@ -189,29 +190,19 @@ export function ByCameraUploadStep({
   const handleConfirmedUpload = async () => {
     setShowConfirmationDialog(false)
 
-    if (
-      !domain ||
-      !uploadFlowState.participantFirstName ||
-      !uploadFlowState.participantLastName ||
-      !uploadFlowState.participantEmail ||
-      !uploadFlowState.participantPhone ||
-      !uploadFlowState.deviceGroupId
-    ) {
+    const initializeByCameraUploadInput = domain
+      ? buildInitializeByCameraUploadInput(domain, uploadFlowState)
+      : null
+
+    if (!initializeByCameraUploadInput) {
       toast.error(t("missingRequiredInfo"))
       return
     }
 
     try {
-      const initialization = await initializeByCameraUpload({
-        domain,
-        firstname: uploadFlowState.participantFirstName,
-        lastname: uploadFlowState.participantLastName,
-        email: uploadFlowState.participantEmail,
-        deviceGroupId: uploadFlowState.deviceGroupId,
-        phoneNumber: uploadFlowState.participantPhone,
-        replaceExistingActiveTopicUpload:
-          uploadFlowState.replaceExistingActiveTopicUpload ?? undefined,
-      })
+      const initialization = await initializeByCameraUpload(
+        initializeByCameraUploadInput,
+      )
 
       if (!initialization || initialization.uploads.length === 0) {
         toast.error(t("failedToGetPresignedUrls"))

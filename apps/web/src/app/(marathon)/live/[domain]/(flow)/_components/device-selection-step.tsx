@@ -14,6 +14,7 @@ import { DeviceSelectionItem } from "./device-selection-item";
 import { useTranslations } from "next-intl";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useStepState } from "../_lib/step-state-context";
+import { hasDeviceSelectionRequirements } from "../_lib/upload-flow-state";
 
 interface DeviceSelectionStepProps {
   deviceGroups: DeviceGroup[];
@@ -30,16 +31,10 @@ export function DeviceSelectionStep({
 
   // For marathon mode, competition class is required
   // For by-camera mode, it's not needed
-  const isValid = isByCameraMode
-    ? uploadFlowState.deviceGroupId &&
-      uploadFlowState.participantFirstName &&
-      uploadFlowState.participantLastName &&
-      uploadFlowState.participantEmail
-    : uploadFlowState.deviceGroupId &&
-      uploadFlowState.competitionClassId &&
-      uploadFlowState.participantFirstName &&
-      uploadFlowState.participantLastName &&
-      uploadFlowState.participantEmail;
+  const isValid = hasDeviceSelectionRequirements(
+    uploadFlowState,
+    isByCameraMode,
+  );
 
   const handleContinue = () => {
     if (!isValid) return;

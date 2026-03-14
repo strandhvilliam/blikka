@@ -41,6 +41,7 @@ import { HeicConversionDialog } from "./heic-conversion-dialog";
 import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
 import { FINALIZATION_STATE } from "../_lib/types";
+import { buildInitializeUploadFlowInput } from "../_lib/upload-flow-state";
 
 export function UploadSubmissionsStep({
   ruleConfigs,
@@ -200,15 +201,11 @@ export function UploadSubmissionsStep({
   const handleConfirmedUpload = async () => {
     setShowConfirmationDialog(false);
 
-    if (
-      !domain ||
-      !uploadFlowState.participantRef ||
-      !uploadFlowState.competitionClassId ||
-      !uploadFlowState.deviceGroupId ||
-      !uploadFlowState.participantFirstName ||
-      !uploadFlowState.participantLastName ||
-      !uploadFlowState.participantEmail
-    ) {
+    const initializeUploadFlowInput = domain
+      ? buildInitializeUploadFlowInput(domain, uploadFlowState)
+      : null;
+
+    if (!initializeUploadFlowInput) {
       toast.error(t("missingRequiredInfo"));
       return;
     }
@@ -216,16 +213,9 @@ export function UploadSubmissionsStep({
     try {
       setIsUploading(true);
 
-      const presignedUrls = await initializeUploadFlow({
-        domain,
-        reference: uploadFlowState.participantRef,
-        firstname: uploadFlowState.participantFirstName,
-        lastname: uploadFlowState.participantLastName,
-        email: uploadFlowState.participantEmail,
-        competitionClassId: uploadFlowState.competitionClassId,
-        deviceGroupId: uploadFlowState.deviceGroupId,
-        phoneNumber: uploadFlowState.participantPhone,
-      });
+      const presignedUrls = await initializeUploadFlow(
+        initializeUploadFlowInput,
+      );
 
       if (!presignedUrls || presignedUrls.length === 0) {
         setIsUploading(false);

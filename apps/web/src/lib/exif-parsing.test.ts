@@ -6,22 +6,14 @@ function mockExifDependencies() {
       runPromise: vi.fn(),
     },
   }));
-  vi.doMock(
-    "effect",
-    () => ({
-      Effect: {
-        gen: (fn: () => unknown) => fn(),
-      },
-    }),
-    { virtual: true },
-  );
-  vi.doMock(
-    "@blikka/image-manipulation/exif-parser",
-    () => ({
-      ExifParser: {},
-    }),
-    { virtual: true },
-  );
+  vi.doMock("effect", () => ({
+    Effect: {
+      gen: (fn: () => unknown) => fn(),
+    },
+  }));
+  vi.doMock("@blikka/image-manipulation/exif-parser", () => ({
+    ExifParser: {},
+  }));
 }
 
 afterEach(() => {

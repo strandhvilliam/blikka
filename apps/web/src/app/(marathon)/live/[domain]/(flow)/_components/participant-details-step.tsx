@@ -36,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toParticipantFlowStatePatch } from "../_lib/upload-flow-state";
 
 function getCountryFromLocale(): string {
   if (typeof navigator === "undefined") return "SE";
@@ -139,13 +140,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
   }) => {
     await setUploadFlowState((prev) => ({
       ...prev,
-      participantId,
-      participantRef: reference,
-      participantFirstName: values.firstname,
-      participantLastName: values.lastname,
-      participantEmail: values.email,
-      participantPhone: values.phone,
-      replaceExistingActiveTopicUpload,
+      ...toParticipantFlowStatePatch(values, {
+        participantId,
+        participantRef: reference,
+        replaceExistingActiveTopicUpload,
+      }),
     }));
   };
 
@@ -209,10 +208,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
 
       await setUploadFlowState((prev) => ({
         ...prev,
-        participantFirstName: value.firstname,
-        participantLastName: value.lastname,
-        participantEmail: value.email,
-        participantPhone: value.phone.trim() || null,
+        ...toParticipantFlowStatePatch(value, { trimPhone: true }),
       }));
       handleNextStep();
     },

@@ -23,6 +23,10 @@ import { useStepState } from "../_lib/step-state-context";
 import type { CompetitionClass, DeviceGroup } from "@blikka/db";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import {
+  buildPrepareCompletedSearchParams,
+  buildPrepareUploadFlowInput,
+} from "../_lib/upload-flow-state";
 
 interface PrepareNextStepProps {
   competitionClass: CompetitionClass;
@@ -50,39 +54,23 @@ export function PrepareNextStep({
   );
 
   const handlePrepare = async () => {
-    if (
-      !uploadFlowState.participantRef ||
-      !uploadFlowState.participantFirstName ||
-      !uploadFlowState.participantLastName ||
-      !uploadFlowState.participantEmail ||
-      !uploadFlowState.competitionClassId ||
-      !uploadFlowState.deviceGroupId
-    ) {
+    const prepareUploadFlowInput = buildPrepareUploadFlowInput(
+      domain,
+      uploadFlowState,
+    );
+    const completedSearchParams =
+      buildPrepareCompletedSearchParams(uploadFlowState);
+
+    if (!prepareUploadFlowInput || !completedSearchParams) {
       toast.error(commonT("missingRequiredInfo"));
       return;
     }
 
     try {
-      await prepareUploadFlow({
-        domain,
-        reference: uploadFlowState.participantRef,
-        firstname: uploadFlowState.participantFirstName,
-        lastname: uploadFlowState.participantLastName,
-        email: uploadFlowState.participantEmail,
-        competitionClassId: uploadFlowState.competitionClassId,
-        deviceGroupId: uploadFlowState.deviceGroupId,
-        phoneNumber: uploadFlowState.participantPhone,
-      });
+      await prepareUploadFlow(prepareUploadFlowInput);
 
-      const serializedParams = flowStateClientParamSerializer({
-        competitionClassId: uploadFlowState.competitionClassId,
-        deviceGroupId: uploadFlowState.deviceGroupId,
-        participantId: uploadFlowState.participantId,
-        participantRef: uploadFlowState.participantRef,
-        participantEmail: uploadFlowState.participantEmail,
-        participantFirstName: uploadFlowState.participantFirstName,
-        participantLastName: uploadFlowState.participantLastName,
-      });
+      const serializedParams =
+        flowStateClientParamSerializer(completedSearchParams);
 
       router.replace(
         formatDomainPathname(

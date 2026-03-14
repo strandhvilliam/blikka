@@ -1,9 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Calendar, Clock, Loader2 } from "lucide-react"
+import { Calendar, Loader2 } from "lucide-react"
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export function ConfirmationDetailsDialog({
   image,
@@ -41,8 +47,9 @@ export function ConfirmationDetailsDialog({
               <img
                 src={image?.thumbnailUrl}
                 alt={image?.name ?? "Preview"}
-                className={`w-full h-auto max-h-[60vh] object-contain transition-opacity duration-300 ${isLoading ? "opacity-0" : "opacity-100"
-                  }`}
+                className={`w-full h-auto max-h-[60vh] object-contain transition-opacity duration-300 ${
+                  isLoading ? "opacity-0" : "opacity-100"
+                }`}
                 onLoad={() => setIsLoading(false)}
               />
             ) : (

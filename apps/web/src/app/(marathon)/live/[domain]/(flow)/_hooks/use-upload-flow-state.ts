@@ -1,12 +1,4 @@
-import {
-  parseAsInteger,
-  parseAsString,
-  parseAsBoolean,
-  useQueryStates,
-  useQueryState,
-} from "nuqs";
-import { PARTICIPANT_SUBMISSION_STEPS } from "../_lib/constants";
-import { useState } from "react";
+import { parseAsInteger, parseAsString, parseAsBoolean, useQueryStates } from "nuqs"
 
 export function useUploadFlowState() {
   const [uploadFlowState, setUploadFlowState] = useQueryStates(
@@ -36,7 +28,7 @@ export function useUploadFlowState() {
         uploadInstructionsShown: "uis",
       },
     },
-  );
+  )
 
-  return { uploadFlowState, setUploadFlowState };
+  return { uploadFlowState, setUploadFlowState }
 }

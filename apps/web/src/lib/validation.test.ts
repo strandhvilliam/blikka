@@ -1,30 +1,22 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 function mockValidationDependencies() {
-  vi.doMock(
-    "effect",
-    () => ({
-      Effect: {
-        gen: (fn: () => unknown) => fn(),
-      },
-    }),
-    { virtual: true },
-  );
-  vi.doMock(
-    "@blikka/validation",
-    () => ({
-      RULE_KEYS: {
-        WITHIN_TIMERANGE: "within_timerange",
-      },
-      VALIDATION_OUTCOME: {
-        FAILED: "failed",
-        PASSED: "passed",
-      },
-      ValidationEngine: {},
-      ValidationInput: {},
-    }),
-    { virtual: true },
-  );
+  vi.doMock("effect", () => ({
+    Effect: {
+      gen: (fn: () => unknown) => fn(),
+    },
+  }));
+  vi.doMock("@blikka/validation", () => ({
+    RULE_KEYS: {
+      WITHIN_TIMERANGE: "within_timerange",
+    },
+    VALIDATION_OUTCOME: {
+      FAILED: "failed",
+      PASSED: "passed",
+    },
+    ValidationEngine: {},
+    ValidationInput: {},
+  }));
   vi.doMock("./client-runtime", () => ({
     clientRuntime: {
       runPromise: vi.fn(),
