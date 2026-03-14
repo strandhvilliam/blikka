@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   Select,
@@ -6,22 +6,18 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import type { CompetitionClass, DeviceGroup, Topic } from "@blikka/db";
-import {
-  pluralizePhotos,
-  type ParticipantUploadFormApi,
-} from "../_hooks/use-participant-upload-form";
-
+} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import type { CompetitionClass, DeviceGroup, Topic } from "@blikka/db"
+import { pluralizePhotos, type ParticipantUploadFormApi } from "@/hooks/use-participant-upload-form"
 
 interface UploadMappingSectionProps {
-  form: ParticipantUploadFormApi;
-  marathonMode: string;
-  competitionClasses: CompetitionClass[];
-  deviceGroups: DeviceGroup[];
-  selectedTopics: Topic[];
-  isBusy: boolean;
+  form: ParticipantUploadFormApi
+  marathonMode: string
+  competitionClasses: CompetitionClass[]
+  deviceGroups: DeviceGroup[]
+  selectedTopics: Topic[]
+  isBusy: boolean
 }
 
 export function UploadMappingSection({
@@ -34,9 +30,7 @@ export function UploadMappingSection({
 }: UploadMappingSectionProps) {
   return (
     <section className="rounded-xl border border-[#e2e2d8] bg-white p-5 shadow-sm">
-      <h3 className="font-gothic text-lg text-[#1f1f1f]">
-        Upload Mapping
-      </h3>
+      <h3 className="font-gothic text-lg text-[#1f1f1f]">Upload Mapping</h3>
       <p className="mt-1 text-sm text-[#66665f]">
         Files are sorted by EXIF timestamp before being mapped to topic order.
       </p>
@@ -63,8 +57,8 @@ export function UploadMappingSection({
                     <SelectTrigger
                       className={cn(
                         !field.state.meta.isValid &&
-                        field.state.meta.isTouched &&
-                        "border-rose-400 focus-visible:ring-rose-400",
+                          field.state.meta.isTouched &&
+                          "border-rose-400 focus-visible:ring-rose-400",
                       )}
                     >
                       <SelectValue placeholder="Select class" />
@@ -81,10 +75,10 @@ export function UploadMappingSection({
                       ))}
                     </SelectContent>
                   </Select>
-                  {!field.state.meta.isValid && field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
-                    <p className="text-xs text-rose-600">
-                      {field.state.meta.errors.join(", ")}
-                    </p>
+                  {!field.state.meta.isValid &&
+                  field.state.meta.isTouched &&
+                  field.state.meta.errors.length > 0 ? (
+                    <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
                   ) : null}
                 </div>
               )}
@@ -105,27 +99,24 @@ export function UploadMappingSection({
                   <SelectTrigger
                     className={cn(
                       !field.state.meta.isValid &&
-                      field.state.meta.isTouched &&
-                      "border-rose-400 focus-visible:ring-rose-400",
+                        field.state.meta.isTouched &&
+                        "border-rose-400 focus-visible:ring-rose-400",
                     )}
                   >
                     <SelectValue placeholder="Select device group" />
                   </SelectTrigger>
                   <SelectContent>
                     {deviceGroups.map((group) => (
-                      <SelectItem
-                        key={group.id}
-                        value={group.id.toString()}
-                      >
+                      <SelectItem key={group.id} value={group.id.toString()}>
                         {group.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {!field.state.meta.isValid && field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
-                  <p className="text-xs text-rose-600">
-                    {field.state.meta.errors.join(", ")}
-                  </p>
+                {!field.state.meta.isValid &&
+                field.state.meta.isTouched &&
+                field.state.meta.errors.length > 0 ? (
+                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
                 ) : null}
               </div>
             )}
@@ -137,9 +128,7 @@ export function UploadMappingSection({
             Topic Mapping
           </p>
           {selectedTopics.length === 0 ? (
-            <p className="text-sm text-[#6a6a63]">
-              No topics available for current selection.
-            </p>
+            <p className="text-sm text-[#6a6a63]">No topics available for current selection.</p>
           ) : (
             <div className="space-y-2">
               {selectedTopics.map((topic) => (
@@ -150,9 +139,7 @@ export function UploadMappingSection({
                   <span className="text-[#2f2f28]">
                     #{topic.orderIndex + 1} {topic.name}
                   </span>
-                  <span className="text-xs text-[#7a7a71]">
-                    orderIndex {topic.orderIndex}
-                  </span>
+                  <span className="text-xs text-[#7a7a71]">orderIndex {topic.orderIndex}</span>
                 </div>
               ))}
             </div>
@@ -160,5 +147,5 @@ export function UploadMappingSection({
         </div>
       </div>
     </section>
-  );
+  )
 }

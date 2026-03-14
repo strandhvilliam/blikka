@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import { useMemo } from "react";
+import { useMemo } from "react"
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   flexRender,
-} from "@tanstack/react-table";
-import { useRouter } from "next/navigation";
+} from "@tanstack/react-table"
+import { useRouter } from "next/navigation"
 import {
   Table,
   TableBody,
@@ -15,27 +15,27 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Loader2, AlertCircle, FileText } from "lucide-react";
-import { formatDomainPathname } from "@/lib/utils";
-import { useSubmissionsTable } from "../_hooks/use-submissions-table";
-import { SubmissionsFilters } from "./submissions-filters";
-import { getSubmissionsColumns } from "../_lib/submissions-columns";
-import { SubmissionsBulkToolbar } from "./submissions-bulk-toolbar";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc/client";
-import { toast } from "sonner";
-import { useDomain } from "@/lib/domain-provider";
+} from "@/components/ui/table"
+import { Loader2, AlertCircle, FileText } from "lucide-react"
+import { formatDomainPathname } from "@/lib/utils"
+import { useSubmissionsTable } from "../_hooks/use-submissions-table"
+import { SubmissionsFilters } from "./submissions-filters"
+import { getSubmissionsColumns } from "../_lib/submissions-columns"
+import { SubmissionsBulkToolbar } from "./submissions-bulk-toolbar"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useTRPC } from "@/lib/trpc/client"
+import { toast } from "sonner"
+import { useDomain } from "@/lib/domain-provider"
 import {
   useSubmissionsTableRealtime,
   useEnrichedParticipants,
-} from "../_hooks/use-submissions-table-realtime";
+} from "../_hooks/use-submissions-table-realtime"
 
 export function SubmissionsTable() {
-  const router = useRouter();
-  const trpc = useTRPC();
-  const domain = useDomain();
-  const queryClient = useQueryClient();
+  const router = useRouter()
+  const trpc = useTRPC()
+  const domain = useDomain()
+  const queryClient = useQueryClient()
   const {
     marathon,
     sorting,
@@ -59,101 +59,97 @@ export function SubmissionsTable() {
     clearSelection,
     canVerifySelected,
     participantsQueryPathKey,
-  } = useSubmissionsTable();
+  } = useSubmissionsTable()
   const tracking = useSubmissionsTableRealtime({
     domain,
     queryClient,
     participantsQueryPathKey,
-  });
-  const enrichedParticipants = useEnrichedParticipants(participants, tracking);
+  })
+  const enrichedParticipants = useEnrichedParticipants(participants, tracking)
 
   const batchDeleteMutation = useMutation(
     trpc.participants.batchDelete.mutationOptions({
       onSuccess: async (data) => {
         toast.success(
           `Deleted ${data.deletedCount} participant${data.deletedCount === 1 ? "" : "s"}`,
-        );
+        )
         if (data.failedIds.length > 0) {
           toast.error(
             `Failed to delete ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"}`,
-          );
+          )
         }
 
         await queryClient.invalidateQueries({
           queryKey: trpc.participants.getByDomainInfinite.pathKey(),
-        });
+        })
 
-        clearSelection();
+        clearSelection()
       },
       onError: (error) => {
-        toast.error(`Failed to delete participants: ${error.message}`);
+        toast.error(`Failed to delete participants: ${error.message}`)
       },
     }),
-  );
+  )
 
   const batchVerifyMutation = useMutation(
     trpc.participants.batchVerify.mutationOptions({
       onSuccess: async (data) => {
         toast.success(
           `Verified ${data.updatedCount} participant${data.updatedCount === 1 ? "" : "s"}`,
-        );
+        )
         if (data.failedIds.length > 0) {
           toast.error(
             `Failed to verify ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"} (not in completed status)`,
-          );
+          )
         }
-        clearSelection();
+        clearSelection()
       },
       onError: (error) => {
-        toast.error(`Failed to verify participants: ${error.message}`);
+        toast.error(`Failed to verify participants: ${error.message}`)
       },
     }),
-  );
+  )
 
-  const reTriggerMutation = useMutation(
-    trpc.uploadFlow.reTriggerUploadFlow.mutationOptions(),
-  );
+  const reTriggerMutation = useMutation(trpc.uploadFlow.reTriggerUploadFlow.mutationOptions())
 
   const handleBatchDelete = () => {
-    if (selectedCount === 0) return;
+    if (selectedCount === 0) return
     batchDeleteMutation.mutate({
       ids: Array.from(selectedIds),
       domain,
-    });
-  };
+    })
+  }
 
   const handleBatchVerify = () => {
-    if (selectedCount === 0 || !canVerifySelected) return;
+    if (selectedCount === 0 || !canVerifySelected) return
     batchVerifyMutation.mutate({
       ids: Array.from(selectedIds),
       domain,
-    });
-  };
+    })
+  }
 
   const handleReTriggerUploadFlow = async () => {
-    if (selectedCount === 0 || !participants.length) return;
+    if (selectedCount === 0 || !participants.length) return
     const selectedReferences = participants
       .filter((p) => selectedIds.has(p.id))
-      .map((p) => p.reference);
+      .map((p) => p.reference)
     try {
       await Promise.all(
-        selectedReferences.map((reference) =>
-          reTriggerMutation.mutateAsync({ domain, reference }),
-        ),
-      );
+        selectedReferences.map((reference) => reTriggerMutation.mutateAsync({ domain, reference })),
+      )
       toast.success(
         `Re-triggered upload flow for ${selectedReferences.length} participant${selectedReferences.length === 1 ? "" : "s"}`,
-      );
+      )
       queryClient.invalidateQueries({
         queryKey: trpc.participants.getByDomainInfinite.pathKey(),
-      });
-      clearSelection();
+      })
+      clearSelection()
     } catch (error) {
       toast.error(
         `Failed to re-trigger: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      )
     }
-  };
+  }
 
   const columns = useMemo(
     () =>
@@ -164,14 +160,8 @@ export function SubmissionsTable() {
         onToggleSelection: toggleSelection,
         onToggleAll: toggleAllVisible,
       }),
-    [
-      marathon?.mode,
-      enrichedParticipants,
-      selectedIds,
-      toggleSelection,
-      toggleAllVisible,
-    ],
-  );
+    [marathon?.mode, enrichedParticipants, selectedIds, toggleSelection, toggleAllVisible],
+  )
 
   const table = useReactTable({
     data: enrichedParticipants,
@@ -183,7 +173,7 @@ export function SubmissionsTable() {
     },
     onSortingChange: setSorting,
     manualSorting: true,
-  });
+  })
 
   return (
     <div className="flex flex-col h-full space-y-4">
@@ -222,10 +212,7 @@ export function SubmissionsTable() {
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-card">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow
-                    key={headerGroup.id}
-                    className="border-b bg-muted/30 hover:bg-muted/30"
-                  >
+                  <TableRow key={headerGroup.id} className="border-b bg-muted/30 hover:bg-muted/30">
                     {headerGroup.headers.map((header) => (
                       <TableHead
                         key={header.id}
@@ -233,10 +220,7 @@ export function SubmissionsTable() {
                       >
                         {header.isPlaceholder
                           ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
+                          : flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -245,10 +229,7 @@ export function SubmissionsTable() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-32 text-center"
-                    >
+                    <TableCell colSpan={columns.length} className="h-32 text-center">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
@@ -259,10 +240,7 @@ export function SubmissionsTable() {
                   </TableRow>
                 ) : isError ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-32 text-center"
-                    >
+                    <TableCell colSpan={columns.length} className="h-32 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <AlertCircle className="h-6 w-6 text-destructive" />
                         <span className="text-sm text-destructive font-medium">
@@ -273,10 +251,7 @@ export function SubmissionsTable() {
                   </TableRow>
                 ) : participants.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-32 text-center"
-                    >
+                    <TableCell colSpan={columns.length} className="h-32 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <FileText className="h-8 w-8 text-muted-foreground/50" />
                         <span className="text-sm text-muted-foreground font-medium">
@@ -293,59 +268,49 @@ export function SubmissionsTable() {
                 ) : (
                   <>
                     {table.getRowModel().rows.map((row) => {
-                      const participant = row.original;
+                      const participant = row.original
                       const byCameraSubmissionHref =
                         participant.activeTopicSubmissionId !== null
                           ? `/admin/dashboard/submissions/${participant.reference}/${participant.activeTopicSubmissionId}`
-                          : `/admin/dashboard/submissions/${participant.reference}`;
+                          : `/admin/dashboard/submissions/${participant.reference}`
                       const href = formatDomainPathname(
                         marathon?.mode === "by-camera"
                           ? byCameraSubmissionHref
                           : `/admin/dashboard/submissions/${participant.reference}`,
                         domain,
-                      );
-                      const isRowSelected = isSelected(participant.id);
+                      )
+                      const isRowSelected = isSelected(participant.id)
                       return (
                         <TableRow
                           key={row.id}
                           className={`cursor-pointer transition-colors border-b ${
-                            isRowSelected
-                              ? "bg-muted/80 hover:bg-muted/80"
-                              : "hover:bg-muted/60"
+                            isRowSelected ? "bg-muted/80 hover:bg-muted/80" : "hover:bg-muted/60"
                           }`}
                           onClick={(e) => {
                             // Don't navigate if clicking the checkbox
-                            const target = e.target as HTMLElement;
+                            const target = e.target as HTMLElement
                             const isCheckboxClick =
-                              target.closest('[data-slot="checkbox"]') !== null;
+                              target.closest('[data-slot="checkbox"]') !== null
                             if (!isCheckboxClick) {
-                              router.push(href);
+                              router.push(href)
                             }
                           }}
                         >
                           {row.getVisibleCells().map((cell) => (
                             <TableCell key={cell.id} className="py-2">
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                              )}
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </TableCell>
                           ))}
                         </TableRow>
-                      );
+                      )
                     })}
                     <TableRow>
                       <TableCell colSpan={columns.length} className="py-2">
-                        <div
-                          ref={observerTarget}
-                          className="flex items-center justify-center"
-                        >
+                        <div ref={observerTarget} className="flex items-center justify-center">
                           {isFetchingNextPage && (
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              <span className="text-xs">
-                                Loading more participants...
-                              </span>
+                              <span className="text-xs">Loading more participants...</span>
                             </div>
                           )}
                           {!hasNextPage && participants.length > 0 && (
@@ -364,5 +329,5 @@ export function SubmissionsTable() {
         </div>
       </div>
     </div>
-  );
+  )
 }

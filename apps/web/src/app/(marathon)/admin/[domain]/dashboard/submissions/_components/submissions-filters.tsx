@@ -1,24 +1,24 @@
-import { Search, ArrowUpDown, Filter } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Search, ArrowUpDown, Filter } from "lucide-react"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
 
 interface SubmissionsFiltersProps {
-  search: string | null;
-  onSearchChange: (value: string | null) => void;
-  sortOrder: "asc" | "desc";
-  onSortOrderChange: (value: "asc" | "desc") => void;
-  competitionClassId: number[] | null;
-  onCompetitionClassChange: (value: string) => void;
-  competitionClasses: { id: number; name: string }[];
-  deviceGroupId: number[] | null;
-  onDeviceGroupChange: (value: string) => void;
-  deviceGroups: { id: number; name: string }[];
+  search: string | null
+  onSearchChange: (value: string | null) => void
+  sortOrder: "asc" | "desc"
+  onSortOrderChange: (value: "asc" | "desc") => void
+  competitionClassId: number[] | null
+  onCompetitionClassChange: (value: string) => void
+  competitionClasses: { id: number; name: string }[]
+  deviceGroupId: number[] | null
+  onDeviceGroupChange: (value: string) => void
+  deviceGroups: { id: number; name: string }[]
 }
 
 export function SubmissionsFilters({
@@ -85,11 +85,7 @@ export function SubmissionsFilters({
         </Select>
 
         <Select
-          value={
-            !deviceGroupId || deviceGroupId.length === 0
-              ? "all"
-              : deviceGroupId.join(",")
-          }
+          value={!deviceGroupId || deviceGroupId.length === 0 ? "all" : deviceGroupId.join(",")}
           onValueChange={onDeviceGroupChange}
         >
           <SelectTrigger className="w-full sm:w-[200px] h-9 bg-background">
@@ -109,5 +105,5 @@ export function SubmissionsFilters({
         </Select>
       </div>
     </div>
-  );
+  )
 }

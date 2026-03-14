@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -8,20 +8,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Trash2, CheckCircle, X, Loader2, RefreshCw } from "lucide-react";
-import { useState } from "react";
+} from "@/components/ui/dialog"
+import { Trash2, CheckCircle, X, Loader2, RefreshCw } from "lucide-react"
+import { useState } from "react"
 
 interface SubmissionsBulkToolbarProps {
-  selectedCount: number;
-  canVerify: boolean;
-  isDeleting: boolean;
-  isVerifying: boolean;
-  isReTriggering: boolean;
-  onClearSelection: () => void;
-  onDelete: () => void;
-  onVerify: () => void;
-  onReTriggerUploadFlow: () => void;
+  selectedCount: number
+  canVerify: boolean
+  isDeleting: boolean
+  isVerifying: boolean
+  isReTriggering: boolean
+  onClearSelection: () => void
+  onDelete: () => void
+  onVerify: () => void
+  onReTriggerUploadFlow: () => void
 }
 
 export function SubmissionsBulkToolbar({
@@ -35,24 +35,22 @@ export function SubmissionsBulkToolbar({
   onVerify,
   onReTriggerUploadFlow,
 }: SubmissionsBulkToolbarProps) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const handleDeleteClick = () => {
-    setShowDeleteDialog(true);
-  };
+    setShowDeleteDialog(true)
+  }
 
   const handleConfirmDelete = () => {
-    onDelete();
-    setShowDeleteDialog(false);
-  };
+    onDelete()
+    setShowDeleteDialog(false)
+  }
 
   return (
     <>
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 bg-card rounded-md border border-border h-9 pl-3 pr-1">
-          <span className="text-sm text-muted-foreground bg-card">
-            {selectedCount} selected
-          </span>
+          <span className="text-sm text-muted-foreground bg-card">{selectedCount} selected</span>
           <Button
             variant="ghost"
             size="icon"
@@ -116,9 +114,8 @@ export function SubmissionsBulkToolbar({
               {selectedCount === 1 ? "" : "s"}? This action cannot be undone.
               {canVerify === false && selectedCount > 0 && (
                 <span className="block mt-2 text-destructive">
-                  Note: Some selected participants are not in
-                  &quot;completed&quot; status and cannot be verified, but they
-                  can still be deleted.
+                  Note: Some selected participants are not in &quot;completed&quot; status and
+                  cannot be verified, but they can still be deleted.
                 </span>
               )}
             </DialogDescription>
@@ -131,11 +128,7 @@ export function SubmissionsBulkToolbar({
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmDelete}
-              disabled={isDeleting}
-            >
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
               {isDeleting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Delete {selectedCount} Participant
               {selectedCount === 1 ? "" : "s"}
@@ -144,5 +137,5 @@ export function SubmissionsBulkToolbar({
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

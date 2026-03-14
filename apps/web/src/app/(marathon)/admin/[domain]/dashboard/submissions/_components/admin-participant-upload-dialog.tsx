@@ -1,17 +1,13 @@
-"use client";
+"use client"
 
-import { useEffect, useRef, useState } from "react";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useDropzone, type Accept } from "react-dropzone";
-import { CheckCircle2, Loader2, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { useEffect, useRef, useState } from "react"
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import { useDropzone, type Accept } from "react-dropzone"
+import { CheckCircle2, Loader2, Upload } from "lucide-react"
+import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -19,9 +15,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { PrimaryButton } from "@/components/ui/primary-button";
+} from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { PrimaryButton } from "@/components/ui/primary-button"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,28 +27,25 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"
 
-import { formatDomainPathname } from "@/lib/utils";
-import { useTRPC } from "@/lib/trpc/client";
-import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping";
-import { revokePhotoPreviewUrls } from "@/lib/participant-upload/file-processing";
+import { formatDomainPathname } from "@/lib/utils"
+import { useTRPC } from "@/lib/trpc/client"
+import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping"
+import { revokePhotoPreviewUrls } from "@/lib/participant-upload/file-processing"
 import {
   getDropzoneDisabledReason,
   getDropzoneVariant,
-} from "@/lib/participant-upload/upload-utils";
-import {
-  pluralizePhotos,
-  useParticipantUploadForm,
-} from "@/hooks/use-participant-upload-form";
-import { useParticipantPhotoSelection } from "@/hooks/use-participant-photo-selection";
-import { useParticipantUploadFlow } from "@/hooks/use-participant-upload-flow";
-import { ParticipantDetailsForm } from "@/components/participant-upload/participant-details-form";
-import { UploadMappingSection } from "@/components/participant-upload/upload-mapping-section";
-import { ImageDropzoneSection } from "@/components/participant-upload/image-dropzone-section";
-import { SelectedImagesSection } from "@/components/participant-upload/selected-images-section";
-import { UploadStatusSection } from "@/components/participant-upload/upload-status-section";
-import { useDomain } from "@/lib/domain-provider";
+} from "@/lib/participant-upload/upload-utils"
+import { pluralizePhotos, useParticipantUploadForm } from "@/hooks/use-participant-upload-form"
+import { useParticipantPhotoSelection } from "@/hooks/use-participant-photo-selection"
+import { useParticipantUploadFlow } from "@/hooks/use-participant-upload-flow"
+import { ParticipantDetailsForm } from "@/components/participant-upload/participant-details-form"
+import { UploadMappingSection } from "@/components/participant-upload/upload-mapping-section"
+import { ImageDropzoneSection } from "@/components/participant-upload/image-dropzone-section"
+import { SelectedImagesSection } from "@/components/participant-upload/selected-images-section"
+import { UploadStatusSection } from "@/components/participant-upload/upload-status-section"
+import { useDomain } from "@/lib/domain-provider"
 
 const DROPZONE_ACCEPT: Accept = {
   "image/jpeg": [".jpg", ".jpeg"],
@@ -61,100 +54,89 @@ const DROPZONE_ACCEPT: Accept = {
   "image/webp": [".webp"],
   "image/heic": [".heic"],
   "image/heif": [".heif"],
-};
+}
 
 interface AdminParticipantUploadDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 export function AdminParticipantUploadDialog({
   open,
   onOpenChange,
 }: AdminParticipantUploadDialogProps) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const router = useRouter();
-  const domain = useDomain();
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain }),
-  );
-  const marathonMode = marathon.mode as "marathon" | "by-camera";
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const router = useRouter()
+  const domain = useDomain()
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
+  const marathonMode = marathon.mode as "marathon" | "by-camera"
 
-  const signatureRef = useRef<string | null>(null);
+  const signatureRef = useRef<string | null>(null)
 
-  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
-  const [pendingReference, setPendingReference] = useState<string | null>(null);
-  const [filesError, setFilesError] = useState<string | null>(null);
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false)
+  const [pendingReference, setPendingReference] = useState<string | null>(null)
+  const [filesError, setFilesError] = useState<string | null>(null)
   const submitLogicRef =
-    useRef<
-      (value: { reference: string } & Record<string, string>) => Promise<void>
-    >(null);
+    useRef<(value: { reference: string } & Record<string, string>) => Promise<void>>(null)
 
   const checkParticipantExistsMutation = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
-  );
+  )
 
-  const { form, formValues, validateFiles, resetForm } =
-    useParticipantUploadForm(marathonMode, {
-      onSubmit: async (value) => {
-        await submitLogicRef.current?.(value);
-      },
-    });
+  const { form, formValues, validateFiles, resetForm } = useParticipantUploadForm(marathonMode, {
+    onSubmit: async (value) => {
+      await submitLogicRef.current?.(value)
+    },
+  })
 
-  const sortedTopics = marathon.topics.toSorted(
-    (a, b) => a.orderIndex - b.orderIndex,
-  );
-  const activeByCameraTopic =
-    sortedTopics.find((topic) => topic.visibility === "active") ?? null;
+  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
+  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === "active") ?? null
   const selectedCompetitionClass =
     marathon.competitionClasses.find(
-      (competitionClass) =>
-        competitionClass.id === Number(formValues.competitionClassId),
-    ) ?? null;
+      (competitionClass) => competitionClass.id === Number(formValues.competitionClassId),
+    ) ?? null
 
   const selectedTopics = getSelectedTopics(
     marathonMode,
     activeByCameraTopic,
     selectedCompetitionClass,
     sortedTopics,
-  );
+  )
 
   const expectedPhotoCount = getExpectedPhotoCount(
     marathonMode,
     activeByCameraTopic,
     selectedCompetitionClass,
-  );
+  )
 
-  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex);
+  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex)
 
   const isMappingReady =
     !!formValues.deviceGroupId &&
-    (marathon.mode === "marathon"
-      ? !!formValues.competitionClassId
-      : !!activeByCameraTopic);
+    (marathon.mode === "marathon" ? !!formValues.competitionClassId : !!activeByCameraTopic)
 
   const dropzoneDisabledReason = getDropzoneDisabledReason({
     deviceGroupId: formValues.deviceGroupId,
     marathonMode,
     competitionClassId: formValues.competitionClassId,
     activeByCameraTopic,
-  });
+  })
 
-  const canSelectFiles = isMappingReady && expectedPhotoCount > 0;
+  const canSelectFiles = isMappingReady && expectedPhotoCount > 0
 
   const uploadFlow = useParticipantUploadFlow({
     domain,
     marathonMode,
     formValues,
     queryClient,
-  });
+  })
 
   const isUploadBusy =
     uploadFlow.isUploadingFiles ||
     uploadFlow.isPollingStatus ||
     uploadFlow.initializeUploadFlowMutation.isPending ||
-    uploadFlow.initializeByCameraUploadMutation.isPending;
+    uploadFlow.initializeByCameraUploadMutation.isPending
 
   const photoSelection = useParticipantPhotoSelection({
     open,
@@ -168,7 +150,7 @@ export function AdminParticipantUploadDialog({
     canSelectFiles,
     onClearFormFilesError: () => setFilesError(null),
     onResetUploadState: () => uploadFlow.resetUploadFlow(),
-  });
+  })
 
   const isBusy =
     photoSelection.isProcessingFiles ||
@@ -176,67 +158,57 @@ export function AdminParticipantUploadDialog({
     uploadFlow.isPollingStatus ||
     checkParticipantExistsMutation.isPending ||
     uploadFlow.initializeUploadFlowMutation.isPending ||
-    uploadFlow.initializeByCameraUploadMutation.isPending;
+    uploadFlow.initializeByCameraUploadMutation.isPending
 
   const isPrimaryActionBusy =
     photoSelection.isProcessingFiles ||
     uploadFlow.isUploadingFiles ||
     checkParticipantExistsMutation.isPending ||
     uploadFlow.initializeUploadFlowMutation.isPending ||
-    uploadFlow.initializeByCameraUploadMutation.isPending;
+    uploadFlow.initializeByCameraUploadMutation.isPending
 
   const isMaxImagesReached =
-    photoSelection.selectedPhotos.length >= expectedPhotoCount &&
-    expectedPhotoCount > 0;
+    photoSelection.selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0
   const isDropzoneDisabled =
-    !canSelectFiles ||
-    isBusy ||
-    uploadFlow.uploadComplete ||
-    isMaxImagesReached;
+    !canSelectFiles || isBusy || uploadFlow.uploadComplete || isMaxImagesReached
 
   const dropzoneVariant = getDropzoneVariant({
     canSelectFiles,
     isMaxImagesReached,
     uploadComplete: uploadFlow.uploadComplete,
     isBusy,
-  });
+  })
 
   useEffect(() => {
     submitLogicRef.current = async (formValue) => {
-      setFilesError(null);
+      setFilesError(null)
       const filesValidationError = validateFiles({
         expectedPhotoCount,
         selectedPhotosCount: photoSelection.selectedPhotos.length,
         validationResults: photoSelection.validationResults,
         validationRunError: photoSelection.validationRunError,
-      });
+      })
       if (filesValidationError) {
-        setFilesError(filesValidationError);
-        return;
+        setFilesError(filesValidationError)
+        return
       }
       try {
-        const participantCheck =
-          await checkParticipantExistsMutation.mutateAsync({
-            domain,
-            reference: formValue.reference,
-          });
+        const participantCheck = await checkParticipantExistsMutation.mutateAsync({
+          domain,
+          reference: formValue.reference,
+        })
         if (participantCheck.exists) {
-          setPendingReference(formValue.reference);
-          setShowOverwriteDialog(true);
-          return;
+          setPendingReference(formValue.reference)
+          setShowOverwriteDialog(true)
+          return
         }
-        await uploadFlow.runUpload(
-          formValue.reference,
-          photoSelection.selectedPhotos,
-        );
+        await uploadFlow.runUpload(formValue.reference, photoSelection.selectedPhotos)
       } catch (error) {
         const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to check participant reference";
-        toast.error(message);
+          error instanceof Error ? error.message : "Failed to check participant reference"
+        toast.error(message)
       }
-    };
+    }
   }, [
     domain,
     expectedPhotoCount,
@@ -246,78 +218,71 @@ export function AdminParticipantUploadDialog({
     checkParticipantExistsMutation,
     uploadFlow,
     validateFiles,
-  ]);
+  ])
 
   const resetDialogState = () => {
-    resetForm();
-    setFilesError(null);
-    photoSelection.resetPhotoSelection();
-    uploadFlow.resetUploadFlow();
-    setPendingReference(null);
-    setShowOverwriteDialog(false);
-    signatureRef.current = null;
-  };
+    resetForm()
+    setFilesError(null)
+    photoSelection.resetPhotoSelection()
+    uploadFlow.resetUploadFlow()
+    setPendingReference(null)
+    setShowOverwriteDialog(false)
+    signatureRef.current = null
+  }
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
-      resetDialogState();
+      resetDialogState()
     }
-    onOpenChange(nextOpen);
-  };
+    onOpenChange(nextOpen)
+  }
 
   useEffect(() => {
     if (!open) {
-      return;
+      return
     }
 
-    const signature = `${expectedPhotoCount}:${topicOrderIndexes.join(",")}`;
+    const signature = `${expectedPhotoCount}:${topicOrderIndexes.join(",")}`
 
     if (!signatureRef.current) {
-      signatureRef.current = signature;
-      return;
+      signatureRef.current = signature
+      return
     }
 
-    if (
-      signatureRef.current !== signature &&
-      photoSelection.selectedPhotos.length > 0
-    ) {
-      revokePhotoPreviewUrls(photoSelection.selectedPhotos);
-      photoSelection.setSelectedPhotos([]);
-      uploadFlow.resetUploadFlow();
-      toast.message(
-        "Image selection cleared because class/topic mapping changed",
-      );
+    if (signatureRef.current !== signature && photoSelection.selectedPhotos.length > 0) {
+      revokePhotoPreviewUrls(photoSelection.selectedPhotos)
+      photoSelection.setSelectedPhotos([])
+      uploadFlow.resetUploadFlow()
+      toast.message("Image selection cleared because class/topic mapping changed")
     }
 
-    signatureRef.current = signature;
-  }, [open, expectedPhotoCount, topicOrderIndexes, photoSelection, uploadFlow]);
+    signatureRef.current = signature
+  }, [open, expectedPhotoCount, topicOrderIndexes, photoSelection, uploadFlow])
 
   const handleSubmit = () => {
     if (isBusy || uploadFlow.uploadComplete) {
-      return;
+      return
     }
-    void form.handleSubmit();
-  };
+    void form.handleSubmit()
+  }
 
   const handleConfirmOverwrite = async () => {
     if (!pendingReference) {
-      return;
+      return
     }
 
-    setShowOverwriteDialog(false);
-    await uploadFlow.runUpload(pendingReference, photoSelection.selectedPhotos);
-    setPendingReference(null);
-  };
+    setShowOverwriteDialog(false)
+    await uploadFlow.runUpload(pendingReference, photoSelection.selectedPhotos)
+    setPendingReference(null)
+  }
 
   const onDropAccepted = (files: File[]) => {
-    void photoSelection.handleFileSelect(files);
-  };
+    void photoSelection.handleFileSelect(files)
+  }
 
   const onDropRejected = () => {
-    toast.error(
-      "Some files were rejected. Please use supported image formats.",
-    );
-  };
+    toast.error("Some files were rejected. Please use supported image formats.")
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: DROPZONE_ACCEPT,
@@ -325,21 +290,21 @@ export function AdminParticipantUploadDialog({
     multiple: true,
     onDropAccepted,
     onDropRejected,
-  });
+  })
 
   const handleOpenParticipant = () => {
     if (!uploadFlow.submittedReference) {
-      return;
+      return
     }
 
     const targetHref = formatDomainPathname(
       `/admin/dashboard/submissions/${uploadFlow.submittedReference}`,
       domain,
-    );
+    )
 
-    handleDialogOpenChange(false);
-    router.push(targetHref);
-  };
+    handleDialogOpenChange(false)
+    router.push(targetHref)
+  }
 
   return (
     <>
@@ -355,20 +320,13 @@ export function AdminParticipantUploadDialog({
                   <DialogTitle className="font-gothic text-2xl font-normal tracking-tight text-[#242424]">
                     Manual Upload
                   </DialogTitle>
-                  <Badge
-                    variant="outline"
-                    className="border-[#d8d8cf] bg-white text-[#5f5f58]"
-                  >
+                  <Badge variant="outline" className="border-[#d8d8cf] bg-white text-[#5f5f58]">
                     {marathon.mode === "by-camera" ? "By Camera" : "Marathon"}
                   </Badge>
                 </div>
                 <DialogDescription className="mt-1 text-sm text-[#66665f]">
-                  Create participant details and upload{" "}
-                  {pluralizePhotos(expectedPhotoCount || 0)}
-                  {marathon.mode === "by-camera"
-                    ? " for the active topic"
-                    : " with class mapping"}
-                  .
+                  Create participant details and upload {pluralizePhotos(expectedPhotoCount || 0)}
+                  {marathon.mode === "by-camera" ? " for the active topic" : " with class mapping"}.
                 </DialogDescription>
               </div>
             </div>
@@ -377,10 +335,7 @@ export function AdminParticipantUploadDialog({
           <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1.2fr_1fr]">
             <div className="min-h-0 overflow-y-auto px-6 py-6">
               <div className="space-y-6">
-                <ParticipantDetailsForm
-                  form={form}
-                  marathonMode={marathonMode}
-                />
+                <ParticipantDetailsForm form={form} marathonMode={marathonMode} />
                 <UploadMappingSection
                   form={form}
                   marathonMode={marathonMode}
@@ -470,24 +425,20 @@ export function AdminParticipantUploadDialog({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
-        open={showOverwriteDialog}
-        onOpenChange={setShowOverwriteDialog}
-      >
+      <AlertDialog open={showOverwriteDialog} onOpenChange={setShowOverwriteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Participant Reference Exists</AlertDialogTitle>
             <AlertDialogDescription>
-              Participant #{pendingReference} already exists. Continuing will
-              overwrite initialization data and recreate submissions for this
-              reference.
+              Participant #{pendingReference} already exists. Continuing will overwrite
+              initialization data and recreate submissions for this reference.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
               onClick={() => {
-                setPendingReference(null);
-                setShowOverwriteDialog(false);
+                setPendingReference(null)
+                setShowOverwriteDialog(false)
               }}
             >
               Cancel
@@ -499,5 +450,5 @@ export function AdminParticipantUploadDialog({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }
