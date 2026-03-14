@@ -2,7 +2,7 @@
 
 import { AlertTriangle, CheckCircle } from "lucide-react"
 import Link from "next/link"
-import { AnimatePresence, motion } from "motion/react"
+import { motion } from "motion/react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -40,10 +40,10 @@ export function ParticipantSubmissionCard({
 
   const hasFailedValidations = validationResults.some((result) => result.outcome === "failed")
   const hasErrors = validationResults.some(
-    (result) => result.severity === "error" && result.outcome === "failed"
+    (result) => result.severity === "error" && result.outcome === "failed",
   )
   const hasWarnings = validationResults.some(
-    (result) => result.severity === "warning" && result.outcome === "failed"
+    (result) => result.severity === "warning" && result.outcome === "failed",
   )
   const allPassed = validationResults.length > 0 && !hasFailedValidations
   const imageUrl = getImageUrl(submission)
@@ -52,7 +52,7 @@ export function ParticipantSubmissionCard({
     <Link
       href={formatDomainPathname(
         `/admin/dashboard/submissions/${participantRef}/${submission.id}`,
-        domain
+        domain,
       )}
     >
       <motion.div
@@ -125,7 +125,7 @@ export function ParticipantSubmissionCard({
                             <p
                               className={cn(
                                 "font-semibold",
-                                hasErrors ? "text-destructive" : "text-yellow-500"
+                                hasErrors ? "text-destructive" : "text-yellow-500",
                               )}
                             >
                               {hasErrors ? "Errors:" : "Warnings:"}

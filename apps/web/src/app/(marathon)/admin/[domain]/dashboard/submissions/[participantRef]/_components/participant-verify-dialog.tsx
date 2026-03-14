@@ -51,7 +51,7 @@ export function ParticipantVerifyDialog({
           queryKey: trpc.validations.pathKey(),
         })
       },
-    })
+    }),
   )
 
   const handleVerifyParticipant = () => {
@@ -73,13 +73,11 @@ export function ParticipantVerifyDialog({
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-gothic">
-            Verify Participant
-          </AlertDialogTitle>
+          <AlertDialogTitle className="font-gothic">Verify Participant</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to verify {participant.firstname}{" "}
-            {participant.lastname} (#{participant.reference})? This action will
-            mark their submission as verified and cannot be undone.
+            Are you sure you want to verify {participant.firstname} {participant.lastname} (#
+            {participant.reference})? This action will mark their submission as verified and cannot
+            be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -106,4 +104,3 @@ export function ParticipantVerifyDialog({
     </AlertDialog>
   )
 }
-

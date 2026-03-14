@@ -18,23 +18,15 @@ export function SubmissionHeader({ participant, marathonMode }: SubmissionHeader
 
   const getBackLink = () => {
     if (marathonMode === "by-camera") {
-      return formatDomainPathname(
-        `/admin/dashboard/submissions`,
-        domain
-      )
+      return formatDomainPathname(`/admin/dashboard/submissions`, domain)
     }
-    return formatDomainPathname(
-      `/admin/dashboard/submissions/${participant.reference}`,
-      domain
-    )
+    return formatDomainPathname(`/admin/dashboard/submissions/${participant.reference}`, domain)
   }
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild className="h-9 w-9">
-          <Link
-            href={getBackLink()}
-          >
+          <Link href={getBackLink()}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -55,7 +47,7 @@ export function SubmissionHeader({ participant, marathonMode }: SubmissionHeader
           <Link
             href={formatDomainPathname(
               `/admin/dashboard/submissions/${participant.reference}`,
-              domain
+              domain,
             )}
           >
             <User className="h-4 w-4 mr-2" />

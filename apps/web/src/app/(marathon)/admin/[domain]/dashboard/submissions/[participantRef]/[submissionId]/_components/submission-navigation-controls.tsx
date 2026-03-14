@@ -47,7 +47,7 @@ export function SubmissionNavigationControls({
           <Link
             href={formatDomainPathname(
               `/admin/dashboard/submissions/${participantRef}/${previousSubmission?.id}`,
-              domain
+              domain,
             )}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -77,7 +77,7 @@ export function SubmissionNavigationControls({
                 <Link
                   href={formatDomainPathname(
                     `/admin/dashboard/submissions/${participantRef}/${sub.id}`,
-                    domain
+                    domain,
                   )}
                   className="flex items-center gap-3 px-3 py-2"
                 >
@@ -102,7 +102,7 @@ export function SubmissionNavigationControls({
           <Link
             href={formatDomainPathname(
               `/admin/dashboard/submissions/${participantRef}/${nextSubmission?.id}`,
-              domain
+              domain,
             )}
           >
             Next

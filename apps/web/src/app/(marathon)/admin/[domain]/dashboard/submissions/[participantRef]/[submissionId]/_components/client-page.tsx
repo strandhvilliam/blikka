@@ -7,7 +7,14 @@ import { useTRPC } from "@/lib/trpc/client"
 import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
 import { SubmissionValidationSteps } from "./submission-validation-steps"
 import { SubmissionHeader } from "./submission-header"
-import type { Submission } from "@blikka/db"
+import type {
+  Participant,
+  Submission,
+  ValidationResult,
+  Topic,
+  CompetitionClass,
+  DeviceGroup,
+} from "@blikka/db"
 import { SubmissionImageViewer } from "./submission-image-viewer"
 import { SubmissionMetadataPanel } from "./submission-metadata-panel"
 import { SubmissionNavigationControls } from "./submission-navigation-controls"
@@ -32,11 +39,14 @@ const getImageUrl = (submission: Submission) => {
 
 interface VotingDataPanelProps {
   submission: Submission
-  participant: any
+  participant: Participant & {
+    competitionClass: CompetitionClass | null
+    deviceGroup: DeviceGroup | null
+  }
   hasIssues: boolean
-  validationResults: any[]
+  validationResults: ValidationResult[]
   domain: string
-  topics: any[]
+  topics: Topic[]
 }
 
 function VotingDataPanel({
@@ -113,23 +123,16 @@ export function ParticipantSubmissionClientPage({
 
   const submissionValidationResults =
     participant?.validationResults?.filter(
-      (result) =>
-        result.fileName &&
-        submission?.key &&
-        result.fileName.includes(submission.key),
+      (result) => result.fileName && submission?.key && result.fileName.includes(submission.key),
     ) || []
 
-  const hasIssues = submissionValidationResults.some(
-    (result) => result.outcome === "failed",
-  )
+  const hasIssues = submissionValidationResults.some((result) => result.outcome === "failed")
 
   const allSubmissions = participant?.submissions
     .filter((s) => s.topic)
     .sort((a, b) => (a.topic?.orderIndex || 0) - (b.topic?.orderIndex || 0))
 
-  const currentIndex = allSubmissions.findIndex(
-    (s) => s.id === submissionId,
-  )
+  const currentIndex = allSubmissions.findIndex((s) => s.id === submissionId)
 
   if (!submission || !topic || !participant) {
     notFound()
@@ -137,10 +140,7 @@ export function ParticipantSubmissionClientPage({
 
   return (
     <div className="space-y-6">
-      <SubmissionHeader
-        participant={participant}
-        marathonMode={marathon.mode}
-      />
+      <SubmissionHeader participant={participant} marathonMode={marathon.mode} />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6">
         <div className="space-y-6">
@@ -165,9 +165,7 @@ export function ParticipantSubmissionClientPage({
             submission={submission}
             validationResults={submissionValidationResults}
             onShowExif={() => setShowExifPanel(!showExifPanel)}
-            onShowValidation={() =>
-              setShowValidationPanel(!showValidationPanel)
-            }
+            onShowValidation={() => setShowValidationPanel(!showValidationPanel)}
             showExifPanel={showExifPanel}
             showValidationPanel={showValidationPanel}
             marathonMode={marathon?.mode}
@@ -178,21 +176,15 @@ export function ParticipantSubmissionClientPage({
 
           {showValidationPanel && (
             <Card className="p-4">
-              <h3 className="text-base font-semibold font-gothic mb-3">
-                Validation Results
-              </h3>
-              <SubmissionValidationSteps
-                validationResults={submissionValidationResults}
-              />
+              <h3 className="text-base font-semibold font-gothic mb-3">Validation Results</h3>
+              <SubmissionValidationSteps validationResults={submissionValidationResults} />
             </Card>
           )}
 
           {showExifPanel && (
             <Card className="p-4">
-              <h3 className="text-base font-semibold font-gothic mb-3">
-                EXIF Data
-              </h3>
-              <SubmissionExifDataDisplay exifData={submission.exif} />
+              <h3 className="text-base font-semibold font-gothic mb-3">EXIF Data</h3>
+              <SubmissionExifDataDisplay exifData={submission.exif || {}} />
             </Card>
           )}
 

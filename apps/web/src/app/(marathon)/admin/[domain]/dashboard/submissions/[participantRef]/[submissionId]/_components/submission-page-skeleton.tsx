@@ -74,4 +74,3 @@ export function SubmissionPageSkeleton() {
     </div>
   )
 }
-

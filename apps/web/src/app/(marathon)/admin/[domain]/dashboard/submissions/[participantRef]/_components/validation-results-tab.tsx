@@ -1,8 +1,8 @@
 "use client"
 "use no memo"
 
-import { AlertTriangle, CheckCircle, Hammer, Loader2, XCircle } from "lucide-react"
-import type { ValidationResult, Topic } from "@blikka/db"
+import { AlertTriangle, CheckCircle, XCircle } from "lucide-react"
+import type { ValidationResult } from "@blikka/db"
 import {
   Table,
   TableBody,
@@ -26,7 +26,6 @@ import {
 } from "@tanstack/react-table"
 import { useMemo, useState } from "react"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { useQueryClient } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { toast } from "sonner"
 import { useDomain } from "@/lib/domain-provider"
@@ -65,21 +64,17 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
     trpc.participants.getByReference.queryOptions({
       reference: participantRef,
       domain,
-    })
+    }),
   )
 
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({
       domain,
-    })
+    }),
   )
 
   const validationResults = participant?.validationResults || []
   const topics = marathon?.topics || []
-
-  if (!participant || !marathon) {
-    return <div>Loading...</div>
-  }
 
   const updateValidationResult = ({ id, data }: { id: number; data: { overruled: boolean } }) => {
     toast.success("Not implemented")
@@ -153,7 +148,7 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
                 className={cn(
                   info.row.original.severity === "error"
                     ? "bg-destructive/15 text-destructive hover:bg-destructive/20"
-                    : "bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20"
+                    : "bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20",
                 )}
               >
                 {info.row.original.severity === "error" ? (
@@ -223,7 +218,7 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
         },
       }),
     ],
-    [updateValidationResult]
+    [updateValidationResult],
   )
 
   const resultsWithOrderIndex = useMemo(
@@ -249,7 +244,7 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
           topicName,
         }
       }),
-    [validationResults, topics]
+    [validationResults, topics],
   )
 
   const table = useReactTable({
@@ -268,6 +263,10 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
       sorting: [{ id: "extractedOrderIndex", desc: false }],
     },
   })
+
+  if (!participant || !marathon) {
+    return <div>Loading...</div>
+  }
 
   if (validationResults.length === 0) {
     return (

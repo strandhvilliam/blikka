@@ -16,7 +16,7 @@ export function ParticipantSubmissionsTab({ participantRef }: { participantRef: 
     trpc.participants.getByReference.queryOptions({
       reference: participantRef,
       domain,
-    })
+    }),
   )
 
   const data = participant?.submissions
@@ -24,7 +24,7 @@ export function ParticipantSubmissionsTab({ participantRef }: { participantRef: 
       submission: s,
       validationResults:
         participant?.validationResults?.filter(
-          (result) => result.fileName && result.fileName.includes(s.key)
+          (result) => result.fileName && result.fileName.includes(s.key),
         ) || [],
     }))
     .sort((a, b) => (a.submission.topic?.orderIndex ?? 0) - (b.submission.topic?.orderIndex ?? 0))
@@ -37,7 +37,7 @@ export function ParticipantSubmissionsTab({ participantRef }: { participantRef: 
     <div
       className={cn(
         "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4",
-        data.length < 12 ? "xl:grid-cols-4" : "xl:grid-cols-6"
+        data.length < 12 ? "xl:grid-cols-4" : "xl:grid-cols-6",
       )}
     >
       <AnimatePresence>

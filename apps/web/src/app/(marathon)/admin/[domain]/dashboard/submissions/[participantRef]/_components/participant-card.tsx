@@ -23,7 +23,7 @@ export function ParticipantCard({
     <div
       className={cn(
         "items-center flex rounded-lg border border-border min-w-[260px] bg-background",
-        className
+        className,
       )}
     >
       <CardContent className="p-4">

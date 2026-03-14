@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   CheckCircle,
@@ -9,25 +9,25 @@ import {
   CheckCircle2,
   Upload,
   UserCheck,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
-import type { Participant, Submission } from "@blikka/db";
+} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { format } from "date-fns"
+import type { Participant, Submission } from "@blikka/db"
 
 interface ReviewStep {
-  status: "completed" | "pending" | "upcoming";
-  title: string;
-  description: string;
-  timestamp?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  isPending?: boolean;
+  status: "completed" | "pending" | "upcoming"
+  title: string
+  description: string
+  timestamp?: string
+  icon: React.ComponentType<{ className?: string }>
+  isPending?: boolean
 }
 
 interface ReviewTimelineProps {
-  submission: Submission;
-  participant: Participant;
-  hasIssues: boolean;
-  marathonMode?: string;
+  submission: Submission
+  participant: Participant
+  hasIssues: boolean
+  marathonMode?: string
 }
 
 export function SubmissionReviewTimeline({
@@ -37,8 +37,8 @@ export function SubmissionReviewTimeline({
   marathonMode,
 }: ReviewTimelineProps) {
   // Check if participant is verified
-  const isParticipantVerified = participant.status === "verified";
-  const isByCameraMode = marathonMode === "by-camera";
+  const isParticipantVerified = participant.status === "verified"
+  const isByCameraMode = marathonMode === "by-camera"
 
   // Build steps based on mode
   const baseSteps: ReviewStep[] = [
@@ -62,10 +62,7 @@ export function SubmissionReviewTimeline({
           status: "completed",
           title: "Photo Uploaded",
           description: "Photo uploaded by participant",
-          timestamp: format(
-            new Date(submission.createdAt),
-            "MMM d, yyyy HH:mm",
-          ),
+          timestamp: format(new Date(submission.createdAt), "MMM d, yyyy HH:mm"),
           icon: ImageIcon,
         },
     // Submission Processing Step - can be pending or completed
@@ -94,7 +91,7 @@ export function SubmissionReviewTimeline({
             icon: AlertTriangle,
             isPending: true,
           },
-  ];
+  ]
 
   // Staff Verification Step - only for marathon mode
   const verificationStep: ReviewStep = isByCameraMode
@@ -146,16 +143,14 @@ export function SubmissionReviewTimeline({
               title: "Staff Verification Pending",
               description: "Will be reviewed after processing",
               icon: Clock3,
-            };
+            }
 
-  const reviewSteps: ReviewStep[] = [...baseSteps, verificationStep];
+  const reviewSteps: ReviewStep[] = [...baseSteps, verificationStep]
 
   return (
     <Card>
       <CardHeader className="pb-2 pt-4 px-4">
-        <CardTitle className="text-base font-semibold font-gothic">
-          Submission Timeline
-        </CardTitle>
+        <CardTitle className="text-base font-semibold font-gothic">Submission Timeline</CardTitle>
       </CardHeader>
       <CardContent className="pb-4 px-4 pt-2">
         <div className="relative">
@@ -164,8 +159,7 @@ export function SubmissionReviewTimeline({
               {index < reviewSteps.length - 1 && (
                 <div
                   className={`absolute left-[15px] z-10 top-[32px] bottom-0 w-[2px] ${
-                    step.status === "completed" &&
-                    reviewSteps[index + 1]?.status === "completed"
+                    step.status === "completed" && reviewSteps[index + 1]?.status === "completed"
                       ? "bg-primary"
                       : step.status === "completed" &&
                           (reviewSteps[index + 1]?.status === "pending" ||
@@ -230,5 +224,5 @@ export function SubmissionReviewTimeline({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

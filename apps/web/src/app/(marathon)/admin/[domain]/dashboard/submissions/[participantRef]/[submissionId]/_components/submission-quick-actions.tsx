@@ -1,10 +1,9 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import type { Submission, ValidationResult } from "@blikka/db";
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import type { Submission, ValidationResult } from "@blikka/db"
 import {
-  AlertTriangle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -14,8 +13,8 @@ import {
   ReplaceIcon,
   ShieldCheck,
   UserCheck,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,23 +25,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useTRPC } from "@/lib/trpc/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useDomain } from "@/lib/domain-provider";
-import { toast } from "sonner";
+} from "@/components/ui/alert-dialog"
+import { useTRPC } from "@/lib/trpc/client"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useDomain } from "@/lib/domain-provider"
+import { toast } from "sonner"
 
 interface SubmissionQuickActionsProps {
-  submission: Submission;
-  validationResults: ValidationResult[];
-  onShowExif: () => void;
-  onShowValidation: () => void;
-  showExifPanel: boolean;
-  showValidationPanel: boolean;
-  marathonMode?: string;
-  participantId?: number;
-  participantStatus?: string;
-  participantRef: string;
+  submission: Submission
+  validationResults: ValidationResult[]
+  onShowExif: () => void
+  onShowValidation: () => void
+  showExifPanel: boolean
+  showValidationPanel: boolean
+  marathonMode?: string
+  participantId?: number
+  participantStatus?: string
+  participantRef: string
 }
 
 export function SubmissionQuickActions({
@@ -57,72 +56,68 @@ export function SubmissionQuickActions({
   participantStatus,
   participantRef,
 }: SubmissionQuickActionsProps) {
-  const hasExif = submission.exif && Object.keys(submission.exif).length > 0;
-  const hasValidation = validationResults.length > 0;
-  const hasIssues = validationResults.some(
-    (result) => result.outcome === "failed",
-  );
-  const isByCameraMode = marathonMode === "by-camera";
-  const isMarathonMode = !isByCameraMode;
-  const isVerified = participantStatus === "verified";
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const hasExif = submission.exif && Object.keys(submission.exif).length > 0
+  const hasValidation = validationResults.length > 0
+  const hasIssues = validationResults.some((result) => result.outcome === "failed")
+  const isByCameraMode = marathonMode === "by-camera"
+  const isMarathonMode = !isByCameraMode
+  const isVerified = participantStatus === "verified"
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
 
   const verifyMutation = useMutation(
     trpc.participants.verifyParticipant.mutationOptions({
       onSuccess: () => {
-        toast.success("Participant verified successfully");
+        toast.success("Participant verified successfully")
         queryClient.invalidateQueries({
           queryKey: trpc.participants.getByReference.queryKey({
             reference: participantRef,
             domain,
           }),
-        });
+        })
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to verify participant");
+        toast.error(error.message || "Failed to verify participant")
       },
     }),
-  );
+  )
 
   const rerunValidationsMutation = useMutation(
     trpc.validations.runValidations.mutationOptions({
       onSuccess: (data) => {
-        toast.success(
-          `Validations rerun successfully (${data.resultsCount} results)`,
-        );
+        toast.success(`Validations rerun successfully (${data.resultsCount} results)`)
         queryClient.invalidateQueries({
           queryKey: trpc.participants.getByReference.queryKey({
             reference: participantRef,
             domain,
           }),
-        });
+        })
         queryClient.invalidateQueries({
           queryKey: trpc.participants.getByDomainInfinite.pathKey(),
-        });
+        })
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to rerun validations");
+        toast.error(error.message || "Failed to rerun validations")
       },
     }),
-  );
+  )
 
   const handleVerify = () => {
     if (participantId) {
       verifyMutation.mutate({
         id: participantId,
         domain,
-      });
+      })
     }
-  };
+  }
 
   const handleRerunValidations = () => {
     rerunValidationsMutation.mutate({
       domain,
       reference: participantRef,
-    });
-  };
+    })
+  }
 
   return (
     <Card className="p-3">
@@ -147,17 +142,13 @@ export function SubmissionQuickActions({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Verify Participant</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to verify this participant? This will
-                    mark all their submissions as verified and complete their
-                    registration.
+                    Are you sure you want to verify this participant? This will mark all their
+                    submissions as verified and complete their registration.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleVerify}
-                    disabled={verifyMutation.isPending}
-                  >
+                  <AlertDialogAction onClick={handleVerify} disabled={verifyMutation.isPending}>
                     {verifyMutation.isPending ? "Verifying..." : "Verify"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -235,10 +226,7 @@ export function SubmissionQuickActions({
             <FileCode className="h-4 w-4" />
             EXIF Data
             {hasExif && (
-              <Badge
-                variant="secondary"
-                className="bg-blue-500/20 text-blue-600 ml-1"
-              >
+              <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 ml-1">
                 {Object.keys(submission.exif || {}).length}
               </Badge>
             )}
@@ -251,5 +239,5 @@ export function SubmissionQuickActions({
         </div>
       </div>
     </Card>
-  );
+  )
 }

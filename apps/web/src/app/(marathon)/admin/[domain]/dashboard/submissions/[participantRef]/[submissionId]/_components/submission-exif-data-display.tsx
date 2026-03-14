@@ -1,7 +1,7 @@
 import { format } from "date-fns"
 import { Camera, FileSpreadsheet, ImageIcon, InfoIcon, ListFilter, MapPin } from "lucide-react"
 
-export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
+export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<string, unknown> }) {
   if (!exifData || Object.keys(exifData).length === 0) {
     return (
       <div className="p-8 text-center text-muted-foreground">
@@ -10,7 +10,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
         </div>
         <h3 className="text-base font-semibold font-gothic mb-1">No EXIF data available</h3>
         <p className="text-xs">
-          This image does not contain EXIF metadata or it couldn't be extracted.
+          This image does not contain EXIF metadata or it couldn&apos;t be extracted.
         </p>
       </div>
     )
@@ -62,7 +62,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
     },
   }
 
-  const formatExifValue = (key: string, value: any) => {
+  const formatExifValue = (key: string, value: unknown) => {
     if (value === undefined || value === null) return "Not available"
 
     if (typeof value === "object" && !Array.isArray(value)) {
@@ -112,7 +112,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
         if (!isNaN(date.getTime())) {
           return format(date, "MMM d, yyyy HH:mm:ss")
         }
-      } catch (e) {
+      } catch {
         return value
       }
     }
@@ -120,7 +120,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: any }) {
     return value.toString()
   }
 
-  const formatNestedValue = (value: any): string | React.ReactNode => {
+  const formatNestedValue = (value: unknown): string | React.ReactNode => {
     if (value === undefined || value === null) return "Not available"
 
     if (typeof value === "object" && !Array.isArray(value)) {

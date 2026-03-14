@@ -17,6 +17,8 @@ import {
   RefreshCw,
   Camera,
   Trash2,
+  Zap,
+  Smartphone,
 } from "lucide-react"
 import type { Participant, ValidationResult } from "@blikka/db"
 import { useTRPC } from "@/lib/trpc/client"
@@ -53,7 +55,6 @@ import { toast } from "sonner"
 import { useDomain } from "@/lib/domain-provider"
 import {
   getStatusConfig,
-  getDeviceIcon,
   getValidationBadgeConfig,
   type ParticipantWithRelations,
 } from "../_lib/utils"
@@ -72,12 +73,12 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
     trpc.participants.getByReference.queryOptions({
       reference: participantRef,
       domain,
-    })
+    }),
   )
 
   const runValidationsMutation = useMutation(trpc.validations.runValidations.mutationOptions())
   const generateContactSheetMutation = useMutation(
-    trpc.contactSheets.generateContactSheet.mutationOptions()
+    trpc.contactSheets.generateContactSheet.mutationOptions(),
   )
   const deleteParticipantMutation = useMutation(trpc.participants.delete.mutationOptions())
 
@@ -97,7 +98,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         onError: (error) => {
           toast.error(error instanceof Error ? error.message : "Failed to run validations")
         },
-      }
+      },
     )
 
   const handleGenerateContactSheet = () =>
@@ -116,7 +117,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         onError: (error) => {
           toast.error(error instanceof Error ? error.message : "Failed to generate contact sheet")
         },
-      }
+      },
     )
 
   const handleDeleteParticipant = () =>
@@ -136,7 +137,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         onError: (error) => {
           toast.error(error instanceof Error ? error.message : "Failed to delete participant")
         },
-      }
+      },
     )
   return (
     <div className="space-y-4">
@@ -346,12 +347,21 @@ function ParticipantCompetitionClassCard({
   )
 }
 
-function ParticipantDeviceGroupCard({ participant }: { participant: ParticipantWithRelations }) {
-  const Icon = getDeviceIcon(participant.deviceGroup?.icon)
+export const DeviceIcon = ({ icon }: { icon?: string }): React.ReactNode => {
+  switch (icon) {
+    case "smartphone":
+      return <Smartphone className="h-5 w-5" />
+    case "action-camera":
+      return <Zap className="h-5 w-5" />
+    default:
+      return <Camera className="h-5 w-5" />
+  }
+}
 
+function ParticipantDeviceGroupCard({ participant }: { participant: ParticipantWithRelations }) {
   return (
     <ParticipantCard
-      icon={<Icon className="h-5 w-5" />}
+      icon={DeviceIcon({ icon: participant.deviceGroup?.icon })}
       title={
         <>
           <span className="font-normal text-muted-foreground">Device:</span>{" "}
