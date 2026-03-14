@@ -26,9 +26,9 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="px-6 py-24 lg:px-12 lg:py-36">
+    <section id="features" className="px-6 py-24 md:px-10 md:py-28 lg:px-12 lg:py-36">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-16 flex flex-col gap-6 lg:mb-20 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-16 flex flex-col gap-6 md:mb-18 md:flex-row md:items-end md:justify-between lg:mb-20">
           <FadeIn>
             <div>
               <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground">
@@ -40,13 +40,13 @@ export function Features() {
             </div>
           </FadeIn>
           <FadeIn delay={150}>
-            <p className="max-w-md text-sm leading-relaxed text-muted-foreground lg:text-right">
+            <p className="max-w-md text-sm leading-relaxed text-muted-foreground md:text-right">
               Everything your photo event needs. Collecting entries, managing submissions, and scoring winners, in a single platform.
             </p>
           </FadeIn>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
             <FadeIn key={feature.label} delay={index * 120}>
               <div className="group">

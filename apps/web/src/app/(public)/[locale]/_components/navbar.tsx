@@ -7,8 +7,9 @@ import { motion, AnimatePresence } from "motion/react"
 
 const navLinks = [
   { href: "#features", label: "Features" },
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#gallery", label: "Gallery" },
+  { href: "#how-it-works", label: "How It Works" },
+  { href: "#who-its-for", label: "Who It's For" },
+  { href: "#faq", label: "FAQ" },
   { href: "#pricing", label: "Pricing" },
 ] as const
 
@@ -41,7 +42,7 @@ export function Navbar() {
           </Link>
 
           <motion.div
-            className="hidden items-center gap-10 md:flex"
+            className="hidden items-center gap-8 lg:flex lg:gap-10"
             initial="hidden"
             animate="visible"
             variants={{
@@ -67,7 +68,7 @@ export function Navbar() {
               >
                 <Link
                   href={link.href}
-                  className="block text-sm text-brand-white transition-colors hover:text-white"
+                  className="block text-sm text-brand-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
                 >
                   {link.label}
                 </Link>
@@ -76,21 +77,18 @@ export function Navbar() {
           </motion.div>
         </div>
 
-        <div className="hidden items-center gap-4 md:flex animate-hero-fade-in-from-top [animation-delay:120ms]">
-          <Link href="#" className="text-sm text-white/80 transition-colors hover:text-white">
-            Log in
-          </Link>
+        <div className="hidden items-center gap-4 lg:flex animate-hero-fade-in-from-top [animation-delay:120ms]">
           <Link
             href="#pricing"
-            className="rounded-full border border-white/30 bg-white/10 px-5 py-2 text-sm text-white backdrop-blur-sm transition-all hover:bg-white hover:text-foreground"
+            className="rounded-full border border-white/30 bg-white/10 px-5 py-2 text-sm text-white backdrop-blur-sm transition-[background-color,color,border-color] hover:bg-white hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
           >
-            Get started
+            Get Started
           </Link>
         </div>
 
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="relative z-70 text-white md:hidden animate-hero-fade-in-from-top [animation-delay:80ms]"
+          className="relative z-70 text-white lg:hidden animate-hero-fade-in-from-top [animation-delay:80ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
           aria-label="Toggle menu"
         >
           {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -100,7 +98,7 @@ export function Navbar() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            className="fixed inset-0 z-60 flex flex-col bg-white/80 backdrop-blur-2xl md:hidden"
+            className="fixed inset-0 z-60 flex flex-col overscroll-contain bg-white/80 backdrop-blur-2xl lg:hidden"
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
@@ -118,7 +116,7 @@ export function Navbar() {
               </Link>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="text-brand-black"
+                className="text-brand-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2"
                 aria-label="Close menu"
               >
                 <X className="h-6 w-6" />
@@ -168,18 +166,11 @@ export function Navbar() {
               transition={{ delay: 0.35, duration: 0.3 }}
             >
               <Link
-                href="#"
-                className="block py-2 text-base text-brand-black/50 transition-colors hover:text-brand-black"
-                onClick={() => setMobileOpen(false)}
-              >
-                Log in
-              </Link>
-              <Link
                 href="#pricing"
-                className="rounded-full bg-brand-red px-6 py-3.5 text-center text-base font-medium text-white transition-opacity hover:opacity-90"
+                className="rounded-full bg-brand-primary px-6 py-3.5 text-center text-base font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2"
                 onClick={() => setMobileOpen(false)}
               >
-                Get started
+                Get Started
               </Link>
             </motion.div>
           </motion.div>

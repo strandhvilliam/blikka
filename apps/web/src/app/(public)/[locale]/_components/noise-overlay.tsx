@@ -2,7 +2,11 @@
 
 import { useEffect, useRef } from "react"
 
-export function NoiseOverlay() {
+type NoiseOverlayProps = {
+  opacity?: number
+}
+
+export function NoiseOverlay({ opacity = 0.15 }: NoiseOverlayProps) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -25,8 +29,9 @@ export function NoiseOverlay() {
   return (
     <div
       ref={ref}
-      className="pointer-events-none absolute opacity-15 will-change-transform"
+      className="pointer-events-none absolute will-change-transform"
       style={{
+        opacity,
         backgroundImage: "url('/noise.png')",
         backgroundRepeat: "repeat",
         inset: "-200%",

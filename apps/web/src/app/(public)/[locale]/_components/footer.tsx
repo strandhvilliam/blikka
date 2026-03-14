@@ -6,30 +6,31 @@ import { FadeIn } from "./fade-in"
 const footerLinks = {
   Product: [
     { label: "Features", href: "#features" },
+    { label: "How It Works", href: "#how-it-works" },
+    { label: "Who It's For", href: "#who-its-for" },
+    { label: "FAQ", href: "#faq" },
     { label: "Pricing", href: "#pricing" },
-    { label: "How it works", href: "#how-it-works" },
-    { label: "Gallery", href: "#gallery" },
   ],
-  Company: [
-    { label: "About", href: "#" },
-    { label: "Contact", href: "#" },
-  ],
-  Legal: [
-    { label: "Privacy", href: "#" },
-    { label: "Terms", href: "#" },
-    { label: "Cookie Policy", href: "#" },
+  Contact: [
+    { label: "hello@blikka.app", href: "mailto:hello@blikka.app" },
+    { label: "Book A Demo", href: "#pricing" },
   ],
 }
 
+const socialLinks = [
+  { label: "Twitter", href: "https://x.com/villiamstrandh" },
+  { label: "Instagram", href: "https://www.instagram.com/stockholmfotomaraton" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/villiam-strandh/" },
+]
+
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-background px-6 py-16 lg:px-12">
+    <footer className="border-t border-border bg-background px-6 py-12 md:px-10 lg:px-12 lg:py-14">
       <div className="mx-auto max-w-6xl">
         <FadeIn>
-          <div className="flex flex-col gap-12 lg:flex-row lg:justify-between">
-            {/* Brand */}
+            <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[1fr_auto_auto]">
             <div className="max-w-xs">
-              <Link href="/" className="flex items-center" aria-label="blikka home">
+              <Link href="/" className="inline-block" aria-label="blikka home">
                 <img
                   src="/blikka-logo-dark.svg"
                   alt="blikka logo"
@@ -39,50 +40,46 @@ export function Footer() {
                 />
               </Link>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                The simplest way to collect and showcase photo competition entries.
-                Made for creators, by creators.
+                Blikka helps organizers run upload, judging, and showcase workflows for photo
+                events without the usual operational mess.
               </p>
             </div>
 
-            {/* Link columns */}
-            <div className="grid grid-cols-3 gap-4 sm:gap-8">
-              {Object.entries(footerLinks).map(([category, links]) => (
-                <div key={category}>
-                  <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-foreground">
-                    {category}
-                  </p>
-                  <ul className="flex flex-col gap-3">
-                    {links.map((link) => (
-                      <li key={link.label}>
-                        <Link
-                          href={link.href}
-                          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          {link.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
+            {Object.entries(footerLinks).map(([category, links]) => (
+              <div key={category}>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-foreground">
+                  {category}
+                </p>
+                <ul className="flex flex-col gap-2.5">
+                  {links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
 
-          {/* Bottom bar */}
-          <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 sm:flex-row">
+          <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 sm:flex-row">
             <p className="text-xs text-muted-foreground">
-              {`© ${new Date().getFullYear()} Villiam Strandh & Fotomaraton Sverige AB. All rights reserved.`}
+              {`© ${new Date().getFullYear()} Villiam Strandh & Fotomaraton Sverige AB`}
             </p>
             <div className="flex gap-6">
-              <Link href="https://x.com/villiamstrandh" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-                Twitter
-              </Link>
-              <Link href="https://www.instagram.com/stockholmfotomaraton" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-                Instagram
-              </Link>
-              <Link href="https://www.linkedin.com/in/villiam-strandh/" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
-                LinkedIn
-              </Link>
+              {socialLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
           </div>
         </FadeIn>

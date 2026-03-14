@@ -25,7 +25,7 @@ export function Hero() {
         </div>
 
         {/* Top-right upcoming event card */}
-        <div className="absolute top-28 right-8 z-10 hidden w-full max-w-[340px] animate-hero-fade-in [animation-delay:320ms] lg:block">
+        <div className="absolute top-28 right-8 z-10 hidden w-full max-w-[300px] animate-hero-fade-in [animation-delay:320ms] lg:block xl:max-w-[340px]">
           <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-black/35 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
             <div className="pointer-events-none absolute inset-0 rounded-2xl " />
             <div className="relative">
@@ -58,24 +58,18 @@ export function Hero() {
         </div>
 
         {/* Content area - vertically centred on mobile, bottom-aligned on desktop */}
-        <div className="relative z-10 mt-auto flex w-full min-w-0 flex-col px-6 pb-10 pt-24 lg:px-12 lg:pb-16 lg:pt-48">
-          {/* Oversized brand name */}
-          {/* <h1 className="font-special-gothic text-center text-[clamp(4.5rem,18vw,14rem)] leading-[0.8] tracking-tighter text-white animate-hero-fade-in-from-left [animation-delay:150ms] sm:-ml-4 sm:text-left">
-            blikka
-          </h1> */}
-          <h1 className="font-special-gothic text-center text-[clamp(2rem,12vw,5.6rem)] max-w-[77rem] leading-[0.8] tracking-tighter text-white animate-hero-fade-in-from-left [animation-delay:150ms] sm:-ml-2 sm:text-left">
+        <div className="relative z-10 mt-auto flex w-full min-w-0 flex-col px-6 pb-10 pt-24 md:px-10 md:pb-12 lg:px-12 lg:pb-16 lg:pt-48">
+          <h1 className="font-special-gothic text-center text-[clamp(2rem,8vw,3.5rem)] max-w-308 leading-[0.85] tracking-tighter text-white animate-hero-fade-in-from-left [animation-delay:150ms] sm:-ml-2 sm:text-left lg:max-w-[60%] lg:text-[clamp(3rem,5vw,5.6rem)] xl:max-w-308">
             Manage your entire photo event in one place.
           </h1>
 
-          {/* Tagline with accent line */}
-          <div className="mt-6 flex items-start gap-4 lg:mt-8 animate-hero-fade-in [animation-delay:250ms]">
-            <p className="max-w-xl text-center text-base leading-elaxed text-white/80 sm:text-left lg:max-w-xl lg:text-2xl">
+          <div className="mt-6 flex items-start gap-4 md:mt-7 lg:mt-8 animate-hero-fade-in [animation-delay:250ms]">
+            <p className="max-w-xl text-center text-base leading-relaxed text-white/80 sm:text-left md:text-lg lg:max-w-[55%] lg:text-xl xl:max-w-xl xl:text-2xl">
               Blikka takes care of the tech behind the scenes, from photo uploads to judging, so you can focus on running the event.
             </p>
           </div>
 
-          {/* CTA buttons */}
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-start lg:mt-10 animate-hero-fade-in [animation-delay:350ms]">
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-start md:mt-9 lg:mt-10 animate-hero-fade-in [animation-delay:350ms]">
             <Link
               href="#pricing"
               className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-medium text-brand-white transition-[background-color,gap] duration-200 hover:gap-3 hover:bg-brand-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70 sm:w-auto sm:justify-start"
