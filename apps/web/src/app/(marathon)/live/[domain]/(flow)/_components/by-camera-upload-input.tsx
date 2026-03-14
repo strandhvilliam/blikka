@@ -1,35 +1,35 @@
-"use client";
+"use client"
 /* eslint-disable @next/next/no-img-element */
 
-import { Button } from "@/components/ui/button";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { useTranslations } from "next-intl";
-import { motion } from "motion/react";
-import { useRef, useState, useMemo } from "react";
+import { Button } from "@/components/ui/button"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { useTranslations } from "next-intl"
+import { motion } from "motion/react"
+import { useRef, useState, useMemo } from "react"
 import {
   FileImage,
   Info,
   Loader2,
-} from "lucide-react";
-import { format } from "date-fns";
-import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing";
-import { ValidationStatusBadge } from "./validation-status-badge";
-import type { SelectedPhoto } from "../_lib/types";
-import { VALIDATION_OUTCOME } from "@blikka/validation";
-import { Icon } from "@iconify/react";
+} from "lucide-react"
+import { format } from "date-fns"
+import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
+import { ValidationStatusBadge } from "./validation-status-badge"
+import type { SelectedPhoto } from "../_lib/types"
+import { VALIDATION_OUTCOME } from "@blikka/validation"
+import { Icon } from "@iconify/react"
 
 interface ValidationSummary {
-  status: "pending" | "passed" | "warning" | "error";
-  outcome?: (typeof VALIDATION_OUTCOME)[keyof typeof VALIDATION_OUTCOME];
-  severity?: "error" | "warning";
-  messages: string[];
+  status: "pending" | "passed" | "warning" | "error"
+  outcome?: (typeof VALIDATION_OUTCOME)[keyof typeof VALIDATION_OUTCOME]
+  severity?: "error" | "warning"
+  messages: string[]
 }
 
 function getValidationSummary(
   validationResults: Array<{
-    outcome: (typeof VALIDATION_OUTCOME)[keyof typeof VALIDATION_OUTCOME];
-    severity?: "error" | "warning";
-    message: string;
+    outcome: (typeof VALIDATION_OUTCOME)[keyof typeof VALIDATION_OUTCOME]
+    severity?: "error" | "warning"
+    message: string
   }>,
   hasValidationRules: boolean,
 ): ValidationSummary {
@@ -40,14 +40,14 @@ function getValidationSummary(
         status: "passed",
         outcome: VALIDATION_OUTCOME.PASSED,
         messages: [],
-      };
+      }
     }
-    return { status: "pending", messages: [] };
+    return { status: "pending", messages: [] }
   }
 
   const blockingError = validationResults.find(
     (r) => r.outcome === VALIDATION_OUTCOME.FAILED && r.severity === "error",
-  );
+  )
   if (blockingError) {
     return {
       status: "error",
@@ -56,12 +56,12 @@ function getValidationSummary(
       messages: validationResults
         .filter((r) => r.outcome !== VALIDATION_OUTCOME.PASSED)
         .map((r) => r.message),
-    };
+    }
   }
 
   const warning = validationResults.find(
     (r) => r.outcome !== VALIDATION_OUTCOME.PASSED,
-  );
+  )
   if (warning) {
     return {
       status: "warning",
@@ -70,39 +70,39 @@ function getValidationSummary(
       messages: validationResults
         .filter((r) => r.outcome !== VALIDATION_OUTCOME.PASSED)
         .map((r) => r.message),
-    };
+    }
   }
 
   return {
     status: "passed",
     outcome: VALIDATION_OUTCOME.PASSED,
     messages: [],
-  };
+  }
 }
 
 function getTimeTaken(exif?: Record<string, unknown>): Date | null {
-  if (!exif?.DateTimeOriginal) return null;
+  if (!exif?.DateTimeOriginal) return null
   try {
-    const dateString = String(exif.DateTimeOriginal);
-    const date = new Date(dateString);
-    if (!Number.isNaN(date.getTime())) return date;
+    const dateString = String(exif.DateTimeOriginal)
+    const date = new Date(dateString)
+    if (!Number.isNaN(date.getTime())) return date
   } catch {
     // ignore
   }
-  return null;
+  return null
 }
 
 interface UploadInputProps {
-  photo: SelectedPhoto | null;
+  photo: SelectedPhoto | null
   validationResults: Array<{
-    outcome: (typeof VALIDATION_OUTCOME)[keyof typeof VALIDATION_OUTCOME];
-    severity?: "error" | "warning";
-    message: string;
-  }>;
-  hasValidationRules: boolean;
-  isProcessing: boolean;
-  onFileSelect: (files: FileList | null) => Promise<void>;
-  onRemovePhoto: (orderIndex: number) => void;
+    outcome: (typeof VALIDATION_OUTCOME)[keyof typeof VALIDATION_OUTCOME]
+    severity?: "error" | "warning"
+    message: string
+  }>
+  hasValidationRules: boolean
+  isProcessing: boolean
+  onFileSelect: (files: FileList | null) => Promise<void>
+  onRemovePhoto: (orderIndex: number) => void
 }
 
 export function ByCameraUploadInput({
@@ -113,37 +113,37 @@ export function ByCameraUploadInput({
   onFileSelect,
   onRemovePhoto,
 }: UploadInputProps) {
-  const t = useTranslations("FlowPage.uploadStep");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const t = useTranslations("FlowPage.uploadStep")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const validationSummary = useMemo(
     () => getValidationSummary(validationResults, hasValidationRules),
     [validationResults, hasValidationRules],
-  );
+  )
 
-  const takenAt = photo ? getTimeTaken(photo.exif) : null;
+  const takenAt = photo ? getTimeTaken(photo.exif) : null
 
   const handleChooseClick = () => {
     if (isProcessing) {
-      return;
+      return
     }
 
-    fileInputRef.current?.click();
-  };
+    fileInputRef.current?.click()
+  }
 
   const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
+    e.preventDefault()
+    setIsDragOver(false)
 
     if (isProcessing) {
-      return;
+      return
     }
 
     if (e.dataTransfer.files?.length > 0) {
-      await onFileSelect(e.dataTransfer.files);
+      await onFileSelect(e.dataTransfer.files)
     }
-  };
+  }
 
   return (
     <>
@@ -158,20 +158,20 @@ export function ByCameraUploadInput({
         {!photo ? (
           <div
             className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 ${isProcessing
-                ? "cursor-progress opacity-70"
-                : "cursor-pointer"
+              ? "cursor-progress opacity-70"
+              : "cursor-pointer"
               } ${isDragOver
                 ? "border-primary bg-primary/5 scale-[1.02]"
                 : "border-muted-foreground/25 bg-background hover:border-muted-foreground/50 hover:bg-muted/50"
               }`}
             onClick={handleChooseClick}
             onDragEnter={(e) => {
-              e.preventDefault();
-              setIsDragOver(true);
+              e.preventDefault()
+              setIsDragOver(true)
             }}
             onDragLeave={(e) => {
-              e.preventDefault();
-              setIsDragOver(false);
+              e.preventDefault()
+              setIsDragOver(false)
             }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
@@ -207,8 +207,8 @@ export function ByCameraUploadInput({
               <PrimaryButton
                 type="button"
                 onClick={(e) => {
-                  e.stopPropagation();
-                  handleChooseClick();
+                  e.stopPropagation()
+                  handleChooseClick()
                 }}
                 disabled={isProcessing}
                 className="rounded-full px-8 py-3 text-base font-semibold whitespace-nowrap"
@@ -334,13 +334,13 @@ export function ByCameraUploadInput({
         type="file"
         accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
         onChange={async (e) => {
-          const target = e.currentTarget;
-          await onFileSelect(target.files);
-          target.value = "";
+          const target = e.currentTarget
+          await onFileSelect(target.files)
+          target.value = ""
         }}
         disabled={isProcessing}
         className="hidden"
       />
     </>
-  );
+  )
 }
