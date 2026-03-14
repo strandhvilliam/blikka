@@ -33,13 +33,8 @@ export function hasDeviceSelectionRequirements(
   state: UploadFlowStateSnapshot,
   isByCameraMode: boolean,
 ) {
-  if (!hasParticipantIdentity(state) || !state.deviceGroupId) {
-    return false
-  }
-
-  if (isByCameraMode) {
-    return true
-  }
+  if (!hasParticipantIdentity(state) || !state.deviceGroupId) return false
+  if (isByCameraMode) return true
 
   return Boolean(state.competitionClassId)
 }
@@ -79,9 +74,14 @@ export function toParticipantFlowStatePatch(
 }
 
 export function buildInitializeUploadFlowInput(domain: string, state: UploadFlowStateSnapshot) {
-  if (!hasMarathonUploadRequirements(state)) {
-    return null
-  }
+  if (!hasMarathonUploadRequirements(state)) return null
+  if (!state.competitionClassId) return null
+  if (!state.deviceGroupId) return null
+  if (!state.participantRef) return null
+  if (!state.participantFirstName) return null
+  if (!state.participantLastName) return null
+  if (!state.participantEmail) return null
+  if (!state.participantPhone) return null
 
   return {
     domain,
@@ -96,9 +96,7 @@ export function buildInitializeUploadFlowInput(domain: string, state: UploadFlow
 }
 
 export function buildInitializeByCameraUploadInput(domain: string, state: UploadFlowStateSnapshot) {
-  if (!hasByCameraUploadRequirements(state)) {
-    return null
-  }
+  if (!hasByCameraUploadRequirements(state)) return null
 
   return {
     domain,
@@ -112,9 +110,7 @@ export function buildInitializeByCameraUploadInput(domain: string, state: Upload
 }
 
 export function buildPrepareUploadFlowInput(domain: string, state: UploadFlowStateSnapshot) {
-  if (!hasMarathonUploadRequirements(state)) {
-    return null
-  }
+  if (!hasMarathonUploadRequirements(state)) return null
 
   return {
     domain,
@@ -129,9 +125,7 @@ export function buildPrepareUploadFlowInput(domain: string, state: UploadFlowSta
 }
 
 export function buildPrepareCompletedSearchParams(state: UploadFlowStateSnapshot) {
-  if (!hasMarathonUploadRequirements(state)) {
-    return null
-  }
+  if (!hasMarathonUploadRequirements(state)) return null
 
   return {
     competitionClassId: state.competitionClassId,

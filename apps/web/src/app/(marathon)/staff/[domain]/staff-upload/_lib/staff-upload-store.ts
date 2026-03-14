@@ -15,10 +15,7 @@ import {
 } from "@/lib/participant-upload/file-processing"
 import { type ParticipantExistenceStatus } from "@/lib/participant-upload/flow-helpers"
 import type { StaffParticipant } from "../../_lib/staff-types"
-import {
-  STAFF_UPLOAD_DEFAULT_FORM_VALUES,
-  type StaffUploadFormErrors,
-} from "./staff-upload-form"
+import { STAFF_UPLOAD_DEFAULT_FORM_VALUES, type StaffUploadFormErrors } from "./staff-upload-form"
 
 interface ParticipantState {
   formValues: ParticipantFormValues
@@ -53,12 +50,10 @@ function initialParticipantState(): ParticipantState {
   }
 }
 
-const createParticipantSlice: StateCreator<
-  StaffUploadStore,
-  [],
-  [],
-  ParticipantSlice
-> = (set, get) => ({
+const createParticipantSlice: StateCreator<StaffUploadStore, [], [], ParticipantSlice> = (
+  set,
+  get,
+) => ({
   ...initialParticipantState(),
   resetForm: (reference = "") => {
     set({
@@ -80,9 +75,7 @@ const createParticipantSlice: StateCreator<
     set((prev) => ({
       formValues: { ...prev.formValues, [key]: value },
       formErrors: { ...prev.formErrors, [key]: undefined },
-      ...(shouldResetPhotoSession
-        ? { ...initialPhotoState(), ...initialUploadState() }
-        : {}),
+      ...(shouldResetPhotoSession ? { ...initialPhotoState(), ...initialUploadState() } : {}),
     }))
   },
   setFormErrors: (errors) => set({ formErrors: errors }),
@@ -117,12 +110,7 @@ function initialPhotoState(): PhotoState {
   }
 }
 
-const createPhotoSlice: StateCreator<
-  StaffUploadStore,
-  [],
-  [],
-  PhotoSlice
-> = (set, get) => ({
+const createPhotoSlice: StateCreator<StaffUploadStore, [], [], PhotoSlice> = (set, get) => ({
   ...initialPhotoState(),
   setSelectedPhotos: (photos) => set({ selectedPhotos: photos }),
   removeSelectedPhoto: (photoId, topicOrderIndexes) => {
@@ -158,9 +146,7 @@ interface UploadState {
 interface UploadActions {
   updateUploadFileState: (
     key: string,
-    patch: Partial<
-      Pick<ParticipantUploadFileState, "phase" | "progress" | "error">
-    >,
+    patch: Partial<Pick<ParticipantUploadFileState, "phase" | "progress" | "error">>,
   ) => void
   resetUploadFlow: () => void
   patchUpload: (patch: Partial<UploadState>) => void
@@ -180,12 +166,7 @@ function initialUploadState(): UploadState {
   }
 }
 
-const createUploadSlice: StateCreator<
-  StaffUploadStore,
-  [],
-  [],
-  UploadSlice
-> = (set) => ({
+const createUploadSlice: StateCreator<StaffUploadStore, [], [], UploadSlice> = (set) => ({
   ...initialUploadState(),
 
   updateUploadFileState: (key, patch) => {
@@ -193,15 +174,15 @@ const createUploadSlice: StateCreator<
       uploadFiles: state.uploadFiles.map((file) =>
         file.key === key
           ? {
-            ...file,
-            ...patch,
-            phase: (patch.phase ?? file.phase) as ParticipantUploadPhase,
-            progress: patch.progress ?? file.progress,
-            error:
-              patch.phase === "error"
-                ? (patch.error as ParticipantUploadError | undefined)
-                : (patch.error ?? file.error),
-          }
+              ...file,
+              ...patch,
+              phase: (patch.phase ?? file.phase) as ParticipantUploadPhase,
+              progress: patch.progress ?? file.progress,
+              error:
+                patch.phase === "error"
+                  ? (patch.error as ParticipantUploadError | undefined)
+                  : (patch.error ?? file.error),
+            }
           : file,
       ),
     }))
@@ -214,12 +195,7 @@ interface SharedSlice {
   resetAllState: () => void
 }
 
-const createSharedSlice: StateCreator<
-  StaffUploadStore,
-  [],
-  [],
-  SharedSlice
-> = (set, get) => ({
+const createSharedSlice: StateCreator<StaffUploadStore, [], [], SharedSlice> = (set, get) => ({
   resetAllState: () => {
     revokePhotoPreviewUrls(get().selectedPhotos)
     set({
@@ -230,10 +206,7 @@ const createSharedSlice: StateCreator<
   },
 })
 
-export type StaffUploadStore = ParticipantSlice &
-  PhotoSlice &
-  UploadSlice &
-  SharedSlice
+export type StaffUploadStore = ParticipantSlice & PhotoSlice & UploadSlice & SharedSlice
 
 export const useStaffUploadStore = create<StaffUploadStore>()((...a) => ({
   ...createParticipantSlice(...a),
