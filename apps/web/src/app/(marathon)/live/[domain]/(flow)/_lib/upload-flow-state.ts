@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 export interface UploadFlowStateSnapshot {
   competitionClassId: number | null
   deviceGroupId: number | null
@@ -25,31 +27,46 @@ interface ParticipantPatchOptions {
   trimPhone?: boolean
 }
 
+const participantIdentitySchema = z.object({
+  participantFirstName: z.string().min(1),
+  participantLastName: z.string().min(1),
+  participantEmail: z.string().min(1),
+})
+
+export const byCameraUploadStateSchema = participantIdentitySchema.extend({
+  deviceGroupId: z.number(),
+  participantPhone: z.string().min(1),
+  replaceExistingActiveTopicUpload: z.boolean().nullable().optional(),
+})
+
+export const marathonUploadStateSchema = participantIdentitySchema.extend({
+  participantRef: z.string().min(1),
+  competitionClassId: z.number(),
+  deviceGroupId: z.number(),
+  participantPhone: z.string().min(1),
+})
+
+const marathonDeviceSelectionStateSchema = participantIdentitySchema.extend({
+  deviceGroupId: z.number(),
+  competitionClassId: z.number(),
+})
+
 export function hasParticipantIdentity(state: UploadFlowStateSnapshot) {
-  return Boolean(state.participantFirstName && state.participantLastName && state.participantEmail)
+  return participantIdentitySchema.safeParse(state).success
 }
 
 export function hasDeviceSelectionRequirements(
   state: UploadFlowStateSnapshot,
   isByCameraMode: boolean,
 ) {
-  if (!hasParticipantIdentity(state) || !state.deviceGroupId) return false
-  if (isByCameraMode) return true
-
-  return Boolean(state.competitionClassId)
+  if (isByCameraMode) {
+    return byCameraUploadStateSchema.safeParse(state).success
+  }
+  return marathonDeviceSelectionStateSchema.safeParse(state).success
 }
 
 export function hasMarathonUploadRequirements(state: UploadFlowStateSnapshot) {
-  return Boolean(
-    state.participantRef &&
-    hasParticipantIdentity(state) &&
-    state.competitionClassId &&
-    state.deviceGroupId,
-  )
-}
-
-export function hasByCameraUploadRequirements(state: UploadFlowStateSnapshot) {
-  return Boolean(hasParticipantIdentity(state) && state.participantPhone && state.deviceGroupId)
+  return marathonUploadStateSchema.safeParse(state).success
 }
 
 export function toParticipantFlowStatePatch(
@@ -73,67 +90,62 @@ export function toParticipantFlowStatePatch(
   }
 }
 
-export function buildInitializeUploadFlowInput(domain: string, state: UploadFlowStateSnapshot) {
-  if (!hasMarathonUploadRequirements(state)) return null
-  if (!state.competitionClassId) return null
-  if (!state.deviceGroupId) return null
-  if (!state.participantRef) return null
-  if (!state.participantFirstName) return null
-  if (!state.participantLastName) return null
-  if (!state.participantEmail) return null
-  if (!state.participantPhone) return null
+const initializeUploadFlowInputSchema = marathonUploadStateSchema.transform((data) => ({
+  reference: data.participantRef,
+  firstname: data.participantFirstName,
+  lastname: data.participantLastName,
+  email: data.participantEmail,
+  competitionClassId: data.competitionClassId,
+  deviceGroupId: data.deviceGroupId,
+  phoneNumber: data.participantPhone,
+}))
 
-  return {
-    domain,
-    reference: state.participantRef,
-    firstname: state.participantFirstName,
-    lastname: state.participantLastName,
-    email: state.participantEmail,
-    competitionClassId: state.competitionClassId,
-    deviceGroupId: state.deviceGroupId,
-    phoneNumber: state.participantPhone,
-  }
+export function buildInitializeUploadFlowInput(domain: string, state: UploadFlowStateSnapshot) {
+  const result = initializeUploadFlowInputSchema.safeParse(state)
+  if (!result.success) return null
+  return { domain, ...result.data }
 }
 
-export function buildInitializeByCameraUploadInput(domain: string, state: UploadFlowStateSnapshot) {
-  if (!hasByCameraUploadRequirements(state)) return null
+const initializeByCameraUploadInputSchema = byCameraUploadStateSchema.transform((data) => ({
+  firstname: data.participantFirstName,
+  lastname: data.participantLastName,
+  email: data.participantEmail,
+  deviceGroupId: data.deviceGroupId,
+  phoneNumber: data.participantPhone,
+  replaceExistingActiveTopicUpload: data.replaceExistingActiveTopicUpload ?? undefined,
+}))
 
-  return {
-    domain,
-    firstname: state.participantFirstName,
-    lastname: state.participantLastName,
-    email: state.participantEmail,
-    deviceGroupId: state.deviceGroupId,
-    phoneNumber: state.participantPhone,
-    replaceExistingActiveTopicUpload: state.replaceExistingActiveTopicUpload ?? undefined,
-  }
+export function buildInitializeByCameraUploadInput(domain: string, state: UploadFlowStateSnapshot) {
+  const result = initializeByCameraUploadInputSchema.safeParse(state)
+  if (!result.success) return null
+  return { domain, ...result.data }
 }
 
 export function buildPrepareUploadFlowInput(domain: string, state: UploadFlowStateSnapshot) {
-  if (!hasMarathonUploadRequirements(state)) return null
-
+  const result = marathonUploadStateSchema.safeParse(state)
+  if (!result.success) return null
   return {
     domain,
-    reference: state.participantRef,
-    firstname: state.participantFirstName,
-    lastname: state.participantLastName,
-    email: state.participantEmail,
-    competitionClassId: state.competitionClassId,
-    deviceGroupId: state.deviceGroupId,
-    phoneNumber: state.participantPhone,
+    reference: result.data.participantRef,
+    firstname: result.data.participantFirstName,
+    lastname: result.data.participantLastName,
+    email: result.data.participantEmail,
+    competitionClassId: result.data.competitionClassId,
+    deviceGroupId: result.data.deviceGroupId,
+    phoneNumber: result.data.participantPhone,
   }
 }
 
 export function buildPrepareCompletedSearchParams(state: UploadFlowStateSnapshot) {
-  if (!hasMarathonUploadRequirements(state)) return null
-
+  const result = marathonUploadStateSchema.safeParse(state)
+  if (!result.success) return null
   return {
-    competitionClassId: state.competitionClassId,
-    deviceGroupId: state.deviceGroupId,
+    competitionClassId: result.data.competitionClassId,
+    deviceGroupId: result.data.deviceGroupId,
     participantId: state.participantId,
-    participantRef: state.participantRef,
-    participantEmail: state.participantEmail,
-    participantFirstName: state.participantFirstName,
-    participantLastName: state.participantLastName,
+    participantRef: result.data.participantRef,
+    participantEmail: result.data.participantEmail,
+    participantFirstName: result.data.participantFirstName,
+    participantLastName: result.data.participantLastName,
   }
 }
