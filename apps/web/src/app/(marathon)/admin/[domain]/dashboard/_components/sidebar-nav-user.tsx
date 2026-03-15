@@ -1,10 +1,14 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   SidebarMenuButton,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { useSession } from "@/lib/auth/client"
+import { authClient, useSession } from "@/lib/auth/client"
+import { useDomain } from "@/lib/domain-provider"
+import { formatDomainPathname } from "@/lib/utils"
 import {
   BadgeCheck,
   Bell,
@@ -22,11 +26,31 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
 
 export function SidebarNavUser() {
   const { data: session } = useSession()
   const user = session?.user
   const { isMobile } = useSidebar()
+  const domain = useDomain()
+  const router = useRouter()
+  const [isLogoutLoading, setIsLogoutLoading] = useState(false)
+
+  const handleLogout = async () => {
+    try {
+      setIsLogoutLoading(true)
+      await authClient.signOut()
+      router.push(
+        `/auth/login?next=${encodeURIComponent(formatDomainPathname("/admin/dashboard", domain, "admin"))}`,
+      )
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to sign out")
+    } finally {
+      setIsLogoutLoading(false)
+    }
+  }
+
   if (!user) return null
 
   return (
@@ -80,9 +104,12 @@ export function SidebarNavUser() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => void handleLogout()}
+          disabled={isLogoutLoading}
+        >
           <LogOut />
-          Log out
+          {isLogoutLoading ? "Logging out..." : "Log out"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
