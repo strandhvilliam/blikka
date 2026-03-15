@@ -21,10 +21,8 @@ export function Providers({
     <NuqsAdapter>
       <NextIntlClientProvider locale={locale} messages={messages}>
         <TRPCReactProvider domain={domain}>
-          <ReactQueryDevtools initialIsOpen={false} />
-          <RealtimeProvider>
-            {children}
-          </RealtimeProvider>
+          {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+          <RealtimeProvider>{children}</RealtimeProvider>
         </TRPCReactProvider>
       </NextIntlClientProvider>
     </NuqsAdapter>
