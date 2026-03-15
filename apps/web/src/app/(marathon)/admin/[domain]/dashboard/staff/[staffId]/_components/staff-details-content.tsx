@@ -173,7 +173,7 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 bg-muted/30">
+      <ScrollArea className="flex-1 min-h-0 bg-muted/30">
         <div className=" space-y-4 p-6">
           <StaffAccessCard />
           <div className=" pt-4">

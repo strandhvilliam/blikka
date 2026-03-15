@@ -1,11 +1,12 @@
 "use client"
 
-import { useMemo, useState, useEffect, useRef } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
+  getPaginationRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
@@ -36,6 +37,22 @@ import { cn, formatDomainPathname } from "@/lib/utils"
 import { useDomain } from "@/lib/domain-provider"
 import { useRouter } from "next/navigation"
 import { useDebounce } from "use-debounce"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 type VerificationData = {
   id: number
@@ -72,10 +89,9 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
   const [sorting, setSorting] = useState<SortingState>([])
   const [search, setSearch] = useState("")
   const [debouncedSearch] = useDebounce(search, 300)
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
-  const observerTarget = useRef<HTMLDivElement>(null)
-
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery(
+  const { data, isLoading } = useInfiniteQuery(
     trpc.users.getVerificationsByStaffId.infiniteQueryOptions(
       {
         staffId,
@@ -84,8 +100,8 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
       },
       {
         getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
-      }
-    )
+      },
+    ),
   )
 
   const verifications = useMemo(() => {
@@ -100,31 +116,13 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
         v.participant.reference.toLowerCase().includes(searchLower) ||
         v.participant.firstname.toLowerCase().includes(searchLower) ||
         v.participant.lastname.toLowerCase().includes(searchLower) ||
-        (v.participant.email && v.participant.email.toLowerCase().includes(searchLower))
+        (v.participant.email && v.participant.email.toLowerCase().includes(searchLower)),
     )
   }, [verifications, debouncedSearch])
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    const target = observerTarget.current
-    if (target) {
-      observer.observe(target)
-    }
-
-    return () => {
-      if (target) {
-        observer.unobserve(target)
-      }
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+    setPagination((p) => ({ ...p, pageIndex: 0 }))
+  }, [debouncedSearch])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -243,7 +241,7 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
         },
       },
     ],
-    []
+    [],
   )
 
   const table = useReactTable({
@@ -251,10 +249,13 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
+      pagination,
     },
     onSortingChange: setSorting,
+    onPaginationChange: setPagination,
   })
 
   if (isLoading) {
@@ -272,7 +273,7 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
           <Shield className="h-12 w-12 mb-3 text-muted-foreground/50" />
           <p className="text-sm font-medium text-muted-foreground">No verifications yet</p>
           <p className="text-xs text-muted-foreground mt-1">
-            This staff member hasn't verified any participants
+            This staff member hasn&apos;t verified any participants
           </p>
         </div>
       </div>
@@ -321,8 +322,8 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
                       router.push(
                         formatDomainPathname(
                           `/admin/dashboard/submissions/${row.original.participant.reference}`,
-                          domain
-                        )
+                          domain,
+                        ),
                       )
                     }
                   >
@@ -350,12 +351,102 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
           </TableBody>
         </Table>
 
-        <div ref={observerTarget} className="h-4" />
-
-        {isFetchingNextPage && (
-          <div className="flex items-center justify-center py-4 border-t bg-muted/30">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-            <span className="text-sm text-muted-foreground">Loading more...</span>
+        {filteredVerifications.length > 0 && (
+          <div className="flex flex-col gap-4 border-t bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-muted-foreground">
+                Showing{" "}
+                {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) *
+                    table.getState().pagination.pageSize,
+                  filteredVerifications.length,
+                )}{" "}
+                of {filteredVerifications.length} verifications
+              </p>
+              <Select
+                value={String(pagination.pageSize)}
+                onValueChange={(value) => {
+                  setPagination((p) => ({ ...p, pageSize: Number(value), pageIndex: 0 }))
+                }}
+              >
+                <SelectTrigger className="h-8 w-[70px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      table.previousPage()
+                    }}
+                    className={cn(
+                      !table.getCanPreviousPage() && "pointer-events-none opacity-50",
+                    )}
+                  />
+                </PaginationItem>
+                {(() => {
+                  const pageCount = table.getPageCount()
+                  const currentPage = pagination.pageIndex
+                  const getPageItems = () => {
+                    if (pageCount <= 7) {
+                      return Array.from({ length: pageCount }, (_, i) => i)
+                    }
+                    const items: (number | "ellipsis")[] = [0]
+                    if (currentPage > 2) items.push("ellipsis")
+                    const midStart = Math.max(1, currentPage - 1)
+                    const midEnd = Math.min(pageCount - 2, currentPage + 1)
+                    for (let i = midStart; i <= midEnd; i++) {
+                      items.push(i)
+                    }
+                    if (currentPage < pageCount - 3) items.push("ellipsis")
+                    if (pageCount > 1) items.push(pageCount - 1)
+                    return items
+                  }
+                  return getPageItems().map((p, i) =>
+                    p === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${i}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            table.setPageIndex(p)
+                          }}
+                          isActive={currentPage === p}
+                        >
+                          {p + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ),
+                  )
+                })()}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      table.nextPage()
+                    }}
+                    className={cn(
+                      !table.getCanNextPage() && "pointer-events-none opacity-50",
+                    )}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
       </div>
