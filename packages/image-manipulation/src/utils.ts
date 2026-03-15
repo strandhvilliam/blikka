@@ -53,7 +53,14 @@ export class SvgGenerationError extends Schema.TaggedErrorClass<SvgGenerationErr
 
 export const parseKey = (key: string) =>
   Effect.sync(() => {
-    const [domain, reference, orderIndex, fileName] = key.split("/")
+    const parts = key.split("/")
+    const [domain, maybeSeedNamespace, maybeReference, maybeOrderIndex, maybeFileName] =
+      parts
+    const isSeedKey = maybeSeedNamespace === "__seed"
+    const reference = isSeedKey ? maybeReference : maybeSeedNamespace
+    const orderIndex = isSeedKey ? maybeOrderIndex : maybeReference
+    const fileName = isSeedKey ? maybeFileName : maybeOrderIndex
+
     if (!domain || !reference || !orderIndex || !fileName) {
       return Effect.fail(
         new InvalidKeyFormatError({

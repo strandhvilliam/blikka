@@ -33,6 +33,48 @@ export const ResetMarathonInputSchema = Schema.toStandardSchemaV1(
   })
 )
 
+export const GetSeedScenarioStatusInputSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+  })
+)
+
+export const SeedFinishedScenarioInputSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+  })
+)
+
+const PreviewSchema = Schema.Struct({
+  participants: Schema.Number,
+  topics: Schema.Number,
+  competitionClasses: Schema.Number,
+  deviceGroups: Schema.Number,
+})
+
+export const SeedScenarioStatusSchema = Schema.Struct({
+  environment: Schema.String,
+  mode: Schema.String,
+  isAdminForDomain: Schema.Boolean,
+  staffCount: Schema.Number,
+  blockers: Schema.Array(Schema.String),
+  canRun: Schema.Boolean,
+  preview: PreviewSchema,
+})
+
+export const SeedScenarioResultSchema = Schema.Struct({
+  mode: Schema.String,
+  participantsCreated: Schema.Number,
+  submissionsCreated: Schema.Number,
+  participantVerificationsCreated: Schema.Number,
+  validationResultsCreated: Schema.Number,
+  juryInvitationsCreated: Schema.Number,
+  juryRatingsCreated: Schema.Number,
+  votingSessionsCreated: Schema.Number,
+  votesCast: Schema.Number,
+  contactSheetsCreated: Schema.Number,
+})
+
 export const GetLogoUploadUrlInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,

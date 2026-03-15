@@ -8,6 +8,8 @@ import {
   submissions,
   zippedSubmissions,
   juryInvitations,
+  contactSheets,
+  votingSession,
 } from "../schema";
 import { topics } from "../schema";
 import { competitionClasses } from "../schema";
@@ -242,6 +244,78 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
           return { id };
         },
       );
+      const clearOperationalSeedableData = Effect.fn(
+        "MarathonsQueries.clearOperationalSeedableData",
+      )(function* ({ id }: { id: number }) {
+        const marathon = yield* use((db) =>
+          db.query.marathons.findFirst({
+            where: (table, operators) => operators.eq(table.id, id),
+          }),
+        );
+        if (!marathon) {
+          return yield* Effect.fail(
+            new DbError({
+              message: "Marathon not found",
+            }),
+          );
+        }
+
+        const marathonParticipants = yield* use((db) =>
+          db
+            .select({ id: participants.id })
+            .from(participants)
+            .where(eq(participants.marathonId, id)),
+        );
+        const participantIds = marathonParticipants.map((participant) => participant.id);
+
+        yield* use((db) =>
+          db.delete(votingSession).where(eq(votingSession.marathonId, id)),
+        );
+
+        if (participantIds.length > 0) {
+          yield* use((db) =>
+            db
+              .delete(validationResults)
+              .where(inArray(validationResults.participantId, participantIds)),
+          );
+          yield* use((db) =>
+            db
+              .delete(participantVerifications)
+              .where(inArray(participantVerifications.participantId, participantIds)),
+          );
+          yield* use((db) =>
+            db.delete(contactSheets).where(inArray(contactSheets.participantId, participantIds)),
+          );
+          yield* use((db) =>
+            db
+              .delete(zippedSubmissions)
+              .where(inArray(zippedSubmissions.participantId, participantIds)),
+          );
+        }
+
+        yield* use((db) =>
+          db.delete(submissions).where(eq(submissions.marathonId, id)),
+        );
+        yield* use((db) =>
+          db.delete(participants).where(eq(participants.marathonId, id)),
+        );
+        yield* use((db) =>
+          db.delete(juryInvitations).where(eq(juryInvitations.marathonId, id)),
+        );
+        yield* use((db) =>
+          db.delete(topics).where(eq(topics.marathonId, id)),
+        );
+        yield* use((db) =>
+          db
+            .delete(competitionClasses)
+            .where(eq(competitionClasses.marathonId, id)),
+        );
+        yield* use((db) =>
+          db.delete(deviceGroups).where(eq(deviceGroups.marathonId, id)),
+        );
+
+        return { id };
+      });
       return {
         getMarathons,
         getMarathonById,
@@ -252,6 +326,7 @@ export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
         updateMarathonByDomain,
         deleteMarathon,
         resetMarathon,
+        clearOperationalSeedableData,
       } as const;
     }),
   },

@@ -7,6 +7,8 @@ import {
   GetByDomainInputSchema,
   UpdateMarathonInputSchema,
   ResetMarathonInputSchema,
+  GetSeedScenarioStatusInputSchema,
+  SeedFinishedScenarioInputSchema,
   GetLogoUploadUrlInputSchema,
   GetTermsUploadUrlInputSchema,
   GetCurrentTermsInputSchema,
@@ -67,6 +69,38 @@ export const marathonRouter = createTRPCRouter({
         return yield* MarathonApiService.use((s) => s.getCurrentTerms({
           domain: input.domain,
         }))
+      })
+    )
+  ),
+  getSeedScenarioStatus: domainProcedure.input(GetSeedScenarioStatusInputSchema).query(
+    trpcEffect(
+      Effect.fn("MarathonRouter.getSeedScenarioStatus")(function* ({ input, ctx }) {
+        const isAdminForDomain = ctx.permissions.some(
+          (permission) => permission.domain === input.domain && permission.role === "admin"
+        )
+
+        return yield* MarathonApiService.use((s) =>
+          s.getSeedScenarioStatusForDomain({
+            domain: input.domain,
+            isAdminForDomain,
+          })
+        )
+      })
+    )
+  ),
+  seedFinishedScenario: domainProcedure.input(SeedFinishedScenarioInputSchema).mutation(
+    trpcEffect(
+      Effect.fn("MarathonRouter.seedFinishedScenario")(function* ({ input, ctx }) {
+        const isAdminForDomain = ctx.permissions.some(
+          (permission) => permission.domain === input.domain && permission.role === "admin"
+        )
+
+        return yield* MarathonApiService.use((s) =>
+          s.seedFinishedScenarioForDomain({
+            domain: input.domain,
+            isAdminForDomain,
+          })
+        )
       })
     )
   ),

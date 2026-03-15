@@ -214,10 +214,10 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       const createMultipleSubmissions = Effect.fn(
         "SubmissionsQueries.createMultipleSubmissions",
       )(function* ({ data }: { data: NewSubmission[] }) {
-        const [result] = yield* use((db) =>
+        const result = yield* use((db) =>
           db.insert(submissions).values(data).returning(),
         );
-        if (!result) {
+        if (result.length === 0) {
           return yield* Effect.fail(
             new DbError({
               message: "Failed to create multiple submissions",

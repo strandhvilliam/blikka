@@ -3,8 +3,11 @@ import "server-only"
 import { Effect, Result, Option, Config, ServiceMap, Layer } from "effect"
 import { Database, type NewMarathon } from "@blikka/db"
 import { S3Service } from "@blikka/aws"
+import { ContactSheetBuilder, SharpImageService } from "@blikka/image-manipulation"
 import { MarathonApiError } from "./schemas"
 import { RULE_KEYS } from "@blikka/validation"
+import { JuryApiService } from "../jury/service"
+import { getSeedScenarioStatus, seedFinishedScenario } from "./seed-service"
 
 export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()(
   "@blikka/api/MarathonApiService",
@@ -180,6 +183,36 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
         })
       })
 
+      const getSeedScenarioStatusForDomain = Effect.fn(
+        "MarathonApiService.getSeedScenarioStatusForDomain",
+      )(function* ({
+        domain,
+        isAdminForDomain,
+      }: {
+        domain: string
+        isAdminForDomain: boolean
+      }) {
+        return yield* getSeedScenarioStatus({
+          domain,
+          isAdminForDomain,
+        })
+      })
+
+      const seedFinishedScenarioForDomain = Effect.fn(
+        "MarathonApiService.seedFinishedScenarioForDomain",
+      )(function* ({
+        domain,
+        isAdminForDomain,
+      }: {
+        domain: string
+        isAdminForDomain: boolean
+      }) {
+        return yield* seedFinishedScenario({
+          domain,
+          isAdminForDomain,
+        })
+      })
+
       return {
         getMarathonByDomain,
         getUserMarathons,
@@ -188,6 +221,8 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
         getLogoUploadUrl,
         getTermsUploadUrl,
         getCurrentTerms,
+        getSeedScenarioStatusForDomain,
+        seedFinishedScenarioForDomain,
       } as const
     }),
   }
@@ -196,6 +231,9 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
     Layer.provide(Layer.mergeAll(
       Database.layer,
       S3Service.layer,
+      SharpImageService.layer,
+      ContactSheetBuilder.layer,
+      JuryApiService.layer,
     ))
   )
 }
