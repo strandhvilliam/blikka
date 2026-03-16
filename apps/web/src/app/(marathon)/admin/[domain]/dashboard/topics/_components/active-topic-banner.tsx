@@ -1,7 +1,7 @@
 "use client";
 
 import type { Topic } from "@blikka/db";
-import { CheckCircle2, Pencil, Plus, TagIcon, Zap } from "lucide-react";
+import { CheckCircle2, Clock, Pencil, Plus, TagIcon, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatTimestamp } from "../_lib/formatting";
@@ -22,6 +22,10 @@ export function ActiveTopicBanner({
   isLoading,
 }: ActiveTopicBannerProps) {
   if (activeTopic) {
+    const scheduledInFuture =
+      activeTopic.scheduledStart &&
+      new Date(activeTopic.scheduledStart) > new Date();
+
     return (
       <div
         className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm sm:p-6"
@@ -40,15 +44,31 @@ export function ActiveTopicBanner({
                 <h3 className="truncate text-lg font-semibold tracking-tight text-foreground">
                   {activeTopic.name}
                 </h3>
-                <Badge className="h-5 shrink-0 gap-1 rounded-full border-emerald-200 bg-emerald-50 px-2 text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
-                  <CheckCircle2 className="size-3" />
-                  Active
-                </Badge>
+                {scheduledInFuture ? (
+                  <Badge className="h-5 shrink-0 gap-1 rounded-full border-blue-200 bg-blue-50 px-2 text-[10px] font-semibold uppercase tracking-wider text-blue-700">
+                    <Clock className="size-3" />
+                    Scheduled
+                  </Badge>
+                ) : (
+                  <Badge className="h-5 shrink-0 gap-1 rounded-full border-emerald-200 bg-emerald-50 px-2 text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+                    <CheckCircle2 className="size-3" />
+                    Active
+                  </Badge>
+                )}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Active since{" "}
-                {formatTimestamp(
-                  activeTopic.activatedAt ?? activeTopic.createdAt,
+                {scheduledInFuture ? (
+                  <>
+                    Submissions open at{" "}
+                    {formatTimestamp(activeTopic.scheduledStart)}
+                  </>
+                ) : (
+                  <>
+                    Active since{" "}
+                    {formatTimestamp(
+                      activeTopic.activatedAt ?? activeTopic.createdAt,
+                    )}
+                  </>
                 )}
               </p>
             </div>

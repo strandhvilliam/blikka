@@ -6,18 +6,18 @@ import { TopicsSkeleton } from "./_components/topics-skeleton"
 import { TopicsContent } from "./_components/topics-content"
 
 const _TopicsPage = Effect.fn("@blikka/web/TopicsPage")(
-  function* ({ params, searchParams }: PageProps<"/admin/[domain]/dashboard">) {
+  function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
     const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
 
     prefetch(
       trpc.marathons.getByDomain.queryOptions({
         domain,
-      })
+      }),
     )
     prefetch(
       trpc.topics.getWithSubmissionCount.queryOptions({
         domain,
-      })
+      }),
     )
 
     return (
@@ -30,7 +30,7 @@ const _TopicsPage = Effect.fn("@blikka/web/TopicsPage")(
       </HydrateClient>
     )
   },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Page(_TopicsPage)

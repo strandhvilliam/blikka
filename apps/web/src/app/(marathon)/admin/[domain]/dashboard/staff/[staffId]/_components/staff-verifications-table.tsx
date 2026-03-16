@@ -73,7 +73,7 @@ type VerificationData = {
       id: number
       name: string
     } | null
-    submissions: any[]
+    submissions: Submission[]
   }
 }
 
@@ -389,9 +389,7 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
                       e.preventDefault()
                       table.previousPage()
                     }}
-                    className={cn(
-                      !table.getCanPreviousPage() && "pointer-events-none opacity-50",
-                    )}
+                    className={cn(!table.getCanPreviousPage() && "pointer-events-none opacity-50")}
                   />
                 </PaginationItem>
                 {(() => {
@@ -440,9 +438,7 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
                       e.preventDefault()
                       table.nextPage()
                     }}
-                    className={cn(
-                      !table.getCanNextPage() && "pointer-events-none opacity-50",
-                    )}
+                    className={cn(!table.getCanNextPage() && "pointer-events-none opacity-50")}
                   />
                 </PaginationItem>
               </PaginationContent>

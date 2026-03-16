@@ -18,8 +18,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
+import { Label } from "@/components/ui/label";
 import { useEffect } from "react";
 import type { Topic } from "@blikka/db";
+import { toDateTimeLocalValue, toIsoFromLocal } from "../_lib/formatting";
 
 interface EditTopicDialogProps {
   topic: Topic | null;
@@ -80,6 +82,9 @@ export function TopicsEditDialog({
       name: topic?.name || "",
       visibility: topic ? topic.visibility !== "private" : true,
       activate: topic ? topic.visibility === "active" : false,
+      scheduledStart: topic?.scheduledStart
+        ? toDateTimeLocalValue(new Date(topic.scheduledStart))
+        : "",
     },
     onSubmit: async ({ value }) => {
       if (!topic) return;
@@ -90,7 +95,10 @@ export function TopicsEditDialog({
       const shouldKeepActive =
         topic.visibility === "active" && value.visibility;
 
-      // Update topic fields
+      const scheduledStartIso = value.scheduledStart
+        ? toIsoFromLocal(value.scheduledStart)
+        : null;
+
       updateTopic({
         domain,
         id: topic.id,
@@ -99,10 +107,10 @@ export function TopicsEditDialog({
           visibility: (shouldKeepActive
             ? "active"
             : visibility) as "public" | "private" | "scheduled" | "active",
+          scheduledStart: scheduledStartIso,
         },
       });
 
-      // Activate topic separately if needed
       if (shouldActivate) {
         activateTopic({
           domain,
@@ -117,6 +125,12 @@ export function TopicsEditDialog({
       form.setFieldValue("name", topic.name);
       form.setFieldValue("visibility", topic.visibility !== "private");
       form.setFieldValue("activate", topic.visibility === "active");
+      form.setFieldValue(
+        "scheduledStart",
+        topic.scheduledStart
+          ? toDateTimeLocalValue(new Date(topic.scheduledStart))
+          : "",
+      );
     }
   }, [topic, form]);
 
@@ -211,6 +225,28 @@ export function TopicsEditDialog({
                     onCheckedChange={(checked) => field.handleChange(checked)}
                     disabled={topic?.visibility === "active"}
                   />
+                </div>
+              )}
+            />
+          ) : null}
+
+          {showActiveToggle ? (
+            <form.Field
+              name="scheduledStart"
+              children={(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="scheduled-start">
+                    Submissions open at
+                  </Label>
+                  <Input
+                    id="scheduled-start"
+                    type="datetime-local"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty to accept submissions immediately when activated.
+                  </p>
                 </div>
               )}
             />

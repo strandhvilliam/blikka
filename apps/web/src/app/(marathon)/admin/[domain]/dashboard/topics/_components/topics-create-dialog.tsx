@@ -18,7 +18,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
+import { Label } from "@/components/ui/label"
 import { useEffect } from "react"
+import { toIsoFromLocal } from "../_lib/formatting"
 
 interface CreateTopicDialogProps {
   isOpen: boolean
@@ -59,9 +61,13 @@ export function TopicsCreateDialog({
       name: "",
       visibility: true,
       activate: showActiveToggle ? defaultActive : false,
+      scheduledStart: "",
     },
     onSubmit: async ({ value }) => {
       const visibility = value.visibility ? "public" : "private"
+      const scheduledStartIso = value.scheduledStart
+        ? toIsoFromLocal(value.scheduledStart)
+        : undefined
       const data = {
         name: value.name,
         visibility: visibility as
@@ -70,12 +76,11 @@ export function TopicsCreateDialog({
           | "scheduled"
           | "active",
         ...(showActiveToggle && value.activate ? { activate: true } : {}),
+        ...(scheduledStartIso ? { scheduledStart: scheduledStartIso } : {}),
       }
       createTopic({
         domain,
-        data: {
-          ...data,
-        },
+        data,
       })
     },
   })
@@ -175,6 +180,28 @@ export function TopicsCreateDialog({
                     checked={field.state.value}
                     onCheckedChange={(checked) => field.handleChange(checked)}
                   />
+                </div>
+              )}
+            />
+          ) : null}
+
+          {showActiveToggle ? (
+            <form.Field
+              name="scheduledStart"
+              children={(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="scheduled-start">
+                    Submissions open at
+                  </Label>
+                  <Input
+                    id="scheduled-start"
+                    type="datetime-local"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty to accept submissions immediately when activated.
+                  </p>
                 </div>
               )}
             />

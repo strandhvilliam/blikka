@@ -125,7 +125,6 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
               }),
             )
           }
-
           if (activeTopic.visibility !== "active") {
             return yield* Effect.fail(
               new UploadFlowApiError({
@@ -133,19 +132,19 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
               }),
             )
           }
-
-          if (activeTopic.votingStartsAt && activeTopic.votingEndsAt) {
-            const votingStartDate = new Date(activeTopic.votingStartsAt)
-            const votingEndDate = new Date(activeTopic.votingEndsAt)
-            const now = new Date()
-
-            if (now < votingStartDate || now > votingEndDate) {
-              return yield* Effect.fail(
-                new UploadFlowApiError({
-                  message: `[${domain}] Voting is closed for this topic`,
-                }),
-              )
-            }
+          if (activeTopic.scheduledStart && new Date(activeTopic.scheduledStart) > new Date()) {
+            return yield* Effect.fail(
+              new UploadFlowApiError({
+                message: `[${domain}] Active upload window has not started yet`,
+              }),
+            )
+          }
+          if (activeTopic.votingStartsAt && new Date(activeTopic.votingStartsAt) < new Date()) {
+            return yield* Effect.fail(
+              new UploadFlowApiError({
+                message: `[${domain}] Active upload window has expired`,
+              }),
+            )
           }
         }
       })
