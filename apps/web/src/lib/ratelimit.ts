@@ -8,10 +8,16 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 })
 
-const loginRatelimit = new Ratelimit({
+export const loginRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(5, "1 m"),
   prefix: "@blikka/login",
+})
+
+export const getStartedRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(3, "10 m"),
+  prefix: "@blikka/get-started",
 })
 
 export function getClientIp(headers: Headers): string {
@@ -20,7 +26,12 @@ export function getClientIp(headers: Headers): string {
   return headers.get("x-real-ip") ?? "anonymous"
 }
 
-export const checkLoginRateLimit = async (identifier: string) => {
-  const { success } = await loginRatelimit.limit(identifier)
-  return success
-}
+// export const checkLoginRateLimit = async (identifier: string) => {
+//   const { success } = await loginRatelimit.limit(identifier)
+//   return success
+// }
+
+// export const checkGetStartedRateLimit = async (identifier: string) => {
+//   const { success } = await getStartedRatelimit.limit(identifier)
+//   return success
+// }
