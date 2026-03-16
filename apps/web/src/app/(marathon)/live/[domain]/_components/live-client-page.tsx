@@ -76,6 +76,13 @@ export function LiveClientPage() {
     ?.filter((s) => s.type.startsWith("live-initial"))
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
+  const activeTopic =
+    marathon.mode === "by-camera" ? marathon.topics[0] ?? null : null
+  const submissionsClosedForByCamera =
+    marathon.mode === "by-camera" &&
+    activeTopic != null &&
+    activeTopic.votingStartsAt != null
+
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
       <div className="z-20 flex flex-col flex-1 h-full">
@@ -99,6 +106,7 @@ export function LiveClientPage() {
               onUploadClick={handleStartUpload}
               onPrepareClick={handleStartPrepare}
               disabled={!termsAccepted}
+              submissionsClosed={submissionsClosedForByCamera}
             />
 
             <SponsorsSection sponsorImages={sponsorImages} />
@@ -230,11 +238,13 @@ function StartButtons({
   onUploadClick,
   onPrepareClick,
   disabled,
+  submissionsClosed,
 }: {
   marathonMode: "marathon" | "by-camera"
   onUploadClick: () => void
   onPrepareClick: () => void
   disabled: boolean
+  submissionsClosed?: boolean
 }) {
   const t = useTranslations("LivePage")
   if (marathonMode === "marathon") {
@@ -257,6 +267,14 @@ function StartButtons({
           {t("prepareForLater")}
         </Button>
       </div>
+    )
+  }
+
+  if (submissionsClosed) {
+    return (
+      <p className="text-center text-muted-foreground py-4 px-2">
+        {t("submissionsClosed")}
+      </p>
     )
   }
 
