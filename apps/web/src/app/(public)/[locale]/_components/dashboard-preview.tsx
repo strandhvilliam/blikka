@@ -3,12 +3,11 @@
 import Image from "next/image"
 import { FadeIn } from "./fade-in"
 import { NoiseOverlay } from "./noise-overlay"
-import { BarChart3, Camera, Shield, Users } from "lucide-react"
+import { Camera, Shield, Users } from "lucide-react"
 
 const badges = [
   { icon: Camera, label: "Real-time uploads" },
   { icon: Users, label: "Judge management" },
-  { icon: BarChart3, label: "Live scoring" },
   { icon: Shield, label: "Submission validation" },
 ]
 
@@ -35,12 +34,11 @@ export function DashboardPreview() {
             <div className="relative">
               <div className="relative mx-auto overflow-hidden rounded-xl border border-brand-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] lg:rounded-2xl">
                 <Image
-                  src="https://placehold.co/1920x1080/1a1a1a/444444?text=Dashboard+Preview"
+                  src="/blikka-dashboard.png"
                   alt="Blikka organizer dashboard preview"
                   width={1920}
                   height={1080}
                   className="block w-full"
-                  unoptimized
                 />
               </div>
 

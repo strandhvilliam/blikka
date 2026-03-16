@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import { Card, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
@@ -11,6 +12,7 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { formatDomainLink } from "@/lib/utils"
 
 export function SelectDomainList() {
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set())
   const trpc = useTRPC()
   const t = useTranslations("MarathonPage")
 
@@ -40,9 +42,20 @@ export function SelectDomainList() {
           className="block group"
         >
           <Card className="flex flex-row items-center gap-4 p-5 w-full transition-all duration-200 hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5 cursor-pointer">
-            <div className="flex items-center justify-center size-10 rounded-full bg-primary/10 text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
-              {/* TODO: Add logo */}
-              <Trophy className="size-5" />
+            <div className="flex items-center justify-center size-10 rounded-full bg-primary/10 text-primary shrink-0 overflow-hidden group-hover:bg-primary/20 transition-colors">
+              {marathon.logoUrl && !imageErrors.has(marathon.id) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={marathon.logoUrl}
+                  alt=""
+                  className="size-full object-cover"
+                  onError={() =>
+                    setImageErrors((prev) => new Set(prev).add(marathon.id))
+                  }
+                />
+              ) : (
+                <Trophy className="size-5" />
+              )}
             </div>
             <div className="flex flex-col flex-1 min-w-0 gap-1">
               <CardTitle className="text-base font-semibold leading-tight group-hover:text-primary transition-colors">
