@@ -8,7 +8,7 @@ import { Trophy, ArrowRight, MapPin } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useTRPC } from "@/lib/trpc/client"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { formatDomainPathname } from "@/lib/utils"
+import { formatDomainLink } from "@/lib/utils"
 
 export function SelectDomainList() {
   const trpc = useTRPC()
@@ -36,7 +36,7 @@ export function SelectDomainList() {
         <Link
           key={marathon.id}
           prefetch={true}
-          href={formatDomainPathname(`/admin/dashboard`, marathon.domain)}
+          href={formatDomainLink(`/admin/dashboard`, marathon.domain)}
           className="block group"
         >
           <Card className="flex flex-row items-center gap-4 p-5 w-full transition-all duration-200 hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5 cursor-pointer">

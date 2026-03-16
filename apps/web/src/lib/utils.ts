@@ -8,24 +8,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function parseDateFromExif(exif?: Record<string, unknown>) {
-  if (!exif) return null
-  const dateFields = ["DateTimeOriginal", "CreateDate"]
-    .map((field) => exif[field])
-    .filter(Boolean)
-  const date = dateFields.at(0)
-  if (!date) return null
-  const formatted = format(new Date(date as string), "MMM d, yyyy kk:mm")
-  return formatted
-}
-
-export const formatSubdomainUrlAdmin = (subdomain: string) => {
-  if (process.env.NODE_ENV === "production") {
-    return `${protocol}://${subdomain}.${rootDomain}`
-  }
-  // for local development since we don't have a subdomain
-  return `${protocol}://localhost:3002/admin/${subdomain}`
-}
 export function buildS3Url(bucketName?: string, key?: string | null) {
   if (!bucketName || !key) return undefined
   return `${AWS_S3_BASE_URL}/${bucketName}/${key}`
@@ -50,7 +32,7 @@ export const formatPublicPathname = (pathname: string, domain?: string, locale?:
 export const formatDomainPathname = (
   pathname: string,
   domain?: string,
-  site: "admin" | "live" | "staff" = "admin"
+  site: "admin" | "live" | "staff" = "admin",
 ) => {
   if (!domain) return pathname
 
@@ -69,11 +51,10 @@ export const formatDomainPathname = (
   return pathname
 }
 
-
 export const formatDomainLink = (
   pathname: string,
   domain?: string,
-  site: "admin" | "live" | "staff" = "admin"
+  site: "admin" | "live" | "staff" = "admin",
 ) => {
   if (!domain) return pathname
 
