@@ -7,6 +7,8 @@ import { useTranslations } from "next-intl"
 import { motion } from "motion/react"
 import { useRef, useState, useMemo } from "react"
 import {
+  ChevronDown,
+  ChevronUp,
   FileImage,
   Info,
   Loader2,
@@ -92,6 +94,69 @@ function getTimeTaken(exif?: Record<string, unknown>): Date | null {
   return null
 }
 
+function getRelevantExifData(exif: Record<string, unknown>): Record<string, string> {
+  const relevantData: Record<string, string> = {}
+
+  if (!exif) return relevantData
+
+  if (exif.Make && typeof exif.Make === "string")
+    relevantData["Camera Make"] = exif.Make
+  if (exif.Model && typeof exif.Model === "string")
+    relevantData["Camera Model"] = exif.Model
+
+  if (exif.ExposureTime && typeof exif.ExposureTime === "number") {
+    const exposureValue = exif.ExposureTime
+    relevantData["Exposure"] =
+      exposureValue < 1
+        ? `1/${Math.round(1 / exposureValue)}s`
+        : `${exposureValue}s`
+  }
+
+  if (exif.FNumber && typeof exif.FNumber === "number") {
+    relevantData["Aperture"] = `f/${exif.FNumber}`
+  }
+
+  if (
+    exif.ISO &&
+    (typeof exif.ISO === "number" || typeof exif.ISO === "string")
+  ) {
+    relevantData["ISO"] = `ISO ${exif.ISO}`
+  }
+
+  if (exif.FocalLength && typeof exif.FocalLength === "number") {
+    relevantData["Focal Length"] = `${exif.FocalLength}mm`
+  }
+
+  if (exif.DateTimeOriginal) {
+    try {
+      const dateString = String(exif.DateTimeOriginal)
+      const date = new Date(dateString)
+      if (!Number.isNaN(date.getTime())) {
+        relevantData["Date Taken"] = date.toLocaleDateString()
+        relevantData["Time Taken"] = date.toLocaleTimeString()
+      }
+    } catch {
+      // Skip if date parsing fails
+    }
+  }
+
+  if (exif.LensModel && typeof exif.LensModel === "string") {
+    relevantData["Lens"] = exif.LensModel
+  }
+
+  if (
+    exif.latitude &&
+    exif.longitude &&
+    typeof exif.latitude === "number" &&
+    typeof exif.longitude === "number"
+  ) {
+    relevantData["GPS"] =
+      `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
+  }
+
+  return relevantData
+}
+
 interface UploadInputProps {
   photo: SelectedPhoto | null
   validationResults: Array<{
@@ -116,6 +181,11 @@ export function ByCameraUploadInput({
   const t = useTranslations("FlowPage.uploadStep")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [exifExpanded, setExifExpanded] = useState(false)
+
+  const exifData = photo?.exif || {}
+  const relevantExifData = getRelevantExifData(exifData)
+  const hasExifData = Object.keys(relevantExifData).length > 0
 
   const validationSummary = useMemo(
     () => getValidationSummary(validationResults, hasValidationRules),
@@ -299,6 +369,55 @@ export function ByCameraUploadInput({
                   </div>
                 ) : null}
               </div>
+
+              <div className="flex items-center gap-2">
+                {hasExifData ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1 px-2 h-7 text-xs"
+                    onClick={() => setExifExpanded(!exifExpanded)}
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                    <span>{t("photoDetails")}</span>
+                    {exifExpanded ? (
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 px-2">
+                    <Info className="h-3.5 w-3.5" />
+                    {t("noExifData")}
+                  </span>
+                )}
+              </div>
+
+              {exifExpanded && hasExifData && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="rounded-2xl border border-muted overflow-hidden"
+                >
+                  <table className="w-full text-xs">
+                    <tbody>
+                      {Object.entries(relevantExifData).map(([key, value]) => (
+                        <tr
+                          key={key}
+                          className="border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                        >
+                          <td className="py-1.5 px-3 font-medium text-muted-foreground">
+                            {key}
+                          </td>
+                          <td className="py-1.5 px-3 text-right">{value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </motion.div>
+              )}
 
               {validationSummary.messages.length > 0 ? (
                 <div
