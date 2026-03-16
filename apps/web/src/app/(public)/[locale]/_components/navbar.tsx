@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { PublicNavigation } from "@/i18n/navigation.public"
 import { Menu, X } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 
@@ -78,6 +79,12 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-4 lg:flex animate-hero-fade-in-from-top [animation-delay:120ms]">
+          <PublicNavigation.Link
+            href="/auth/login"
+            className="text-sm text-brand-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
+          >
+            Login
+          </PublicNavigation.Link>
           <Link
             href="#pricing"
             className="rounded-full border border-white/30 bg-white/10 px-5 py-2 text-sm text-white backdrop-blur-sm transition-[background-color,color,border-color] hover:bg-white hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
@@ -165,6 +172,13 @@ export function Navbar() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.35, duration: 0.3 }}
             >
+              <PublicNavigation.Link
+                href="/auth/login"
+                className="py-4 text-center text-base font-medium text-brand-black transition-colors hover:text-brand-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2"
+                onClick={() => setMobileOpen(false)}
+              >
+                Login
+              </PublicNavigation.Link>
               <Link
                 href="#pricing"
                 className="rounded-full bg-brand-primary px-6 py-3.5 text-center text-base font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2"
