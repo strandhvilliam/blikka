@@ -28,9 +28,13 @@ export function Footer() {
     <footer className="border-t border-border bg-background px-6 py-12 md:px-10 lg:px-12 lg:py-14">
       <div className="mx-auto max-w-6xl">
         <FadeIn>
-            <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[1fr_auto_auto]">
+          <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[1fr_auto_auto]">
             <div className="max-w-xs">
-              <Link href="/" className="inline-block" aria-label="blikka home">
+              <Link
+                href="/"
+                className="gap-2 flex items-center tracking-tight"
+                aria-label="blikka home"
+              >
                 <img
                   src="/blikka-logo-dark.svg"
                   alt="blikka logo"
@@ -38,10 +42,11 @@ export function Footer() {
                   height={30}
                   className="h-7 w-auto"
                 />
+                <span className="font-special-gothic text-4xl">blikka</span>
               </Link>
               <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                Blikka helps organizers run upload, judging, and showcase workflows for photo
-                events without the usual operational mess.
+                Blikka takes care of the tech behind the scenes, from photo uploads to judging, so
+                you can focus on running the event.
               </p>
             </div>
 
