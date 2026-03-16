@@ -18,10 +18,14 @@ export interface HeicConversionState {
   cancelRequested: boolean;
 }
 
+interface HeicConversionResult {
+  converted: ConvertedFile[];
+  nonHeic: File[];
+  cancelled: boolean;
+}
+
 interface HeicStore extends HeicConversionState {
-  convertFiles: (
-    files: File[],
-  ) => Promise<{ converted: ConvertedFile[]; nonHeic: File[] }>;
+  convertFiles: (files: File[]) => Promise<HeicConversionResult>;
   cancel: () => void;
   reset: () => void;
 }
@@ -42,7 +46,7 @@ export const useHeicStore = create<HeicStore>((set, get) => ({
     const nonHeicFiles = files.filter((f) => !isHeicFile(f));
 
     if (heicFiles.length === 0) {
-      return { converted: [], nonHeic: nonHeicFiles };
+      return { converted: [], nonHeic: nonHeicFiles, cancelled: false };
     }
 
     set({
@@ -54,10 +58,12 @@ export const useHeicStore = create<HeicStore>((set, get) => ({
     });
 
     const converted: ConvertedFile[] = [];
+    let wasCancelled = false;
 
     try {
       for (let i = 0; i < heicFiles.length; i++) {
         if (get().cancelRequested) {
+          wasCancelled = true;
           break;
         }
 
@@ -70,12 +76,14 @@ export const useHeicStore = create<HeicStore>((set, get) => ({
         const preconvertedExif = await parseExifData(file);
 
         if (get().cancelRequested) {
+          wasCancelled = true;
           break;
         }
 
         const convertedFile = await convertHeicToJpeg(file);
 
         if (get().cancelRequested) {
+          wasCancelled = true;
           break;
         }
 
@@ -93,6 +101,7 @@ export const useHeicStore = create<HeicStore>((set, get) => ({
         }));
       }
     } finally {
+      wasCancelled = wasCancelled || get().cancelRequested;
       set({
         isConverting: false,
         isCancelling: false,
@@ -103,8 +112,9 @@ export const useHeicStore = create<HeicStore>((set, get) => ({
     }
 
     return {
-      converted: get().cancelRequested ? [] : converted,
+      converted: wasCancelled ? [] : converted,
       nonHeic: nonHeicFiles,
+      cancelled: wasCancelled,
     };
   },
 

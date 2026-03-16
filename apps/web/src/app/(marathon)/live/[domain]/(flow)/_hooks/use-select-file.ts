@@ -43,9 +43,9 @@ export function useSelectFile({
 
       const files = Array.from(fileList);
 
-      const { converted, nonHeic } = await convertFiles(files);
+      const { converted, nonHeic, cancelled } = await convertFiles(files);
 
-      if (useHeicStore.getState().isCancelling) {
+      if (cancelled) {
         toast.message(t("conversionCancelled"));
         return;
       }

@@ -47,14 +47,26 @@ export function isSupportedImageFile(
   return extension ? supportedExtensions.includes(extension) : false;
 }
 
+const HEIC_CONVERSION_TIMEOUT_MS = 60_000;
+
 export async function convertHeicToJpeg(file: File): Promise<File | null> {
   try {
     const heic2any = await import("heic2any");
-    const result = await heic2any.default({
+
+    const conversionPromise = heic2any.default({
       blob: file,
       toType: "image/jpeg",
       quality: 1,
     });
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(
+        () => reject(new Error("HEIC conversion timed out")),
+        HEIC_CONVERSION_TIMEOUT_MS,
+      );
+    });
+
+    const result = await Promise.race([conversionPromise, timeoutPromise]);
 
     const blob = Array.isArray(result) ? result[0] : result;
     if (!blob) {
