@@ -41,7 +41,10 @@ import { HeicConversionDialog } from "./heic-conversion-dialog";
 import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
 import { FINALIZATION_STATE } from "../_lib/types";
-import { buildInitializeUploadFlowInput } from "../_lib/upload-flow-state";
+import {
+  buildInitializeUploadFlowInputResult,
+  getUploadFlowIssueMessageKeys,
+} from "../_lib/upload-flow-state";
 
 export function UploadSubmissionsStep({
   ruleConfigs,
@@ -201,12 +204,21 @@ export function UploadSubmissionsStep({
   const handleConfirmedUpload = async () => {
     setShowConfirmationDialog(false);
 
-    const initializeUploadFlowInput = domain
-      ? buildInitializeUploadFlowInput(domain, uploadFlowState)
+    const initializeUploadFlowResult = domain
+      ? buildInitializeUploadFlowInputResult(domain, uploadFlowState)
       : null;
 
-    if (!initializeUploadFlowInput) {
-      toast.error(t("missingRequiredInfo"));
+    if (!initializeUploadFlowResult?.ok) {
+      const issueLabels = initializeUploadFlowResult
+        ? getUploadFlowIssueMessageKeys(initializeUploadFlowResult.issues).map(
+            (messageKey) => t(messageKey),
+          )
+        : [];
+      toast.error(
+        issueLabels.length > 0
+          ? t("missingRequiredInfoDetailed", { fields: issueLabels.join(", ") })
+          : t("missingRequiredInfo"),
+      );
       return;
     }
 
@@ -214,7 +226,7 @@ export function UploadSubmissionsStep({
       setIsUploading(true);
 
       const presignedUrls = await initializeUploadFlow(
-        initializeUploadFlowInput,
+        initializeUploadFlowResult.data,
       );
 
       if (!presignedUrls || presignedUrls.length === 0) {

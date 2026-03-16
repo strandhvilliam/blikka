@@ -24,8 +24,9 @@ import type { CompetitionClass, DeviceGroup } from "@blikka/db";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
-  buildPrepareCompletedSearchParams,
-  buildPrepareUploadFlowInput,
+  buildPrepareCompletedSearchParamsResult,
+  buildPrepareUploadFlowInputResult,
+  getUploadFlowIssueMessageKeys,
 } from "../_lib/upload-flow-state";
 
 interface PrepareNextStepProps {
@@ -54,23 +55,35 @@ export function PrepareNextStep({
   );
 
   const handlePrepare = async () => {
-    const prepareUploadFlowInput = buildPrepareUploadFlowInput(
+    const prepareUploadFlowInputResult = buildPrepareUploadFlowInputResult(
       domain,
       uploadFlowState,
     );
-    const completedSearchParams =
-      buildPrepareCompletedSearchParams(uploadFlowState);
+    const completedSearchParamsResult =
+      buildPrepareCompletedSearchParamsResult(uploadFlowState);
 
-    if (!prepareUploadFlowInput || !completedSearchParams) {
-      toast.error(commonT("missingRequiredInfo"));
+    if (!prepareUploadFlowInputResult.ok || !completedSearchParamsResult.ok) {
+      const issueLabels = getUploadFlowIssueMessageKeys(
+        !prepareUploadFlowInputResult.ok
+          ? prepareUploadFlowInputResult.issues
+          : completedSearchParamsResult.issues,
+      ).map((messageKey) => commonT(messageKey));
+
+      toast.error(
+        issueLabels.length > 0
+          ? commonT("missingRequiredInfoDetailed", {
+              fields: issueLabels.join(", "),
+            })
+          : commonT("missingRequiredInfo"),
+      );
       return;
     }
 
     try {
-      await prepareUploadFlow(prepareUploadFlowInput);
+      await prepareUploadFlow(prepareUploadFlowInputResult.data);
 
       const serializedParams =
-        flowStateClientParamSerializer(completedSearchParams);
+        flowStateClientParamSerializer(completedSearchParamsResult.data);
 
       router.replace(
         formatDomainPathname(

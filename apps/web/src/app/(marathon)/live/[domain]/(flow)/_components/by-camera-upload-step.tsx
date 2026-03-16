@@ -37,7 +37,10 @@ import { VALIDATION_OUTCOME } from "@blikka/validation"
 import { mapRuleConfigsToValidationRules } from "@/lib/validation"
 import { ArrowRight } from "lucide-react"
 import { FINALIZATION_STATE } from "../_lib/types"
-import { buildInitializeByCameraUploadInput } from "../_lib/upload-flow-state"
+import {
+  buildInitializeByCameraUploadInputResult,
+  getUploadFlowIssueMessageKeys,
+} from "../_lib/upload-flow-state"
 
 const BY_CAMERA_MAX_PHOTOS = 1
 
@@ -190,18 +193,27 @@ export function ByCameraUploadStep({
   const handleConfirmedUpload = async () => {
     setShowConfirmationDialog(false)
 
-    const initializeByCameraUploadInput = domain
-      ? buildInitializeByCameraUploadInput(domain, uploadFlowState)
+    const initializeByCameraUploadResult = domain
+      ? buildInitializeByCameraUploadInputResult(domain, uploadFlowState)
       : null
 
-    if (!initializeByCameraUploadInput) {
-      toast.error(t("missingRequiredInfo"))
+    if (!initializeByCameraUploadResult?.ok) {
+      const issueLabels = initializeByCameraUploadResult
+        ? getUploadFlowIssueMessageKeys(initializeByCameraUploadResult.issues).map(
+            (messageKey) => t(messageKey),
+          )
+        : []
+      toast.error(
+        issueLabels.length > 0
+          ? t("missingRequiredInfoDetailed", { fields: issueLabels.join(", ") })
+          : t("missingRequiredInfo"),
+      )
       return
     }
 
     try {
       const initialization = await initializeByCameraUpload(
-        initializeByCameraUploadInput,
+        initializeByCameraUploadResult.data,
       )
 
       if (!initialization || initialization.uploads.length === 0) {
