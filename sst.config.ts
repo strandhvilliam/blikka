@@ -1,7 +1,5 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
-
-
 export default $config({
   app(input) {
     return {
@@ -43,18 +41,10 @@ export default $config({
       "https://blikka.app",
     ]
 
-
     /* BUCKETS */
 
     const submissionsBucket = new sst.aws.Bucket("V2SubmissionsBucket", {
       access: "public",
-      policy: [
-        {
-          effect: "allow",
-          actions: ["s3:PutObject"],
-          principals: "*",
-        },
-      ],
       cors: {
         allowOrigins: ALLOWED_ORIGINS,
         exposeHeaders: ["Access-Control-Allow-Origin"],
