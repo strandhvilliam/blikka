@@ -12,7 +12,12 @@ import {
   ReTriggerUploadFlowSchema,
 } from "./schemas";
 import { trpcEffect } from "../../utils";
-import { createTRPCRouter, domainProcedure, publicProcedure } from "../../root";
+import {
+  createTRPCRouter,
+  domainProcedure,
+  publicProcedure,
+  requireMatchingInputDomainMiddleware,
+} from "../../root";
 import { UploadFlowApiService } from "./service";
 
 export const uploadFlowRouter = createTRPCRouter({
@@ -101,6 +106,7 @@ export const uploadFlowRouter = createTRPCRouter({
 
   reTriggerUploadFlow: domainProcedure
     .input(ReTriggerUploadFlowSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn("UploadFlowRouter.reTriggerUploadFlow")(function* ({

@@ -22,7 +22,12 @@ import {
   DeleteVotingSessionSchema,
 } from "./schemas";
 import { trpcEffect } from "../../utils";
-import { createTRPCRouter, domainProcedure, publicProcedure } from "../../root";
+import {
+  createTRPCRouter,
+  domainProcedure,
+  publicProcedure,
+  requireMatchingInputDomainMiddleware,
+} from "../../root";
 import { VotingApiService } from "./service";
 
 export const votingRouter = createTRPCRouter({
@@ -36,144 +41,183 @@ export const votingRouter = createTRPCRouter({
 
   startVotingSessions: domainProcedure
     .input(StartVotingSessionsSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.startVotingSessions")(function* ({ input }) {
-          return yield* VotingApiService.use((s) => s.startVotingSessions(input));
+          return yield* VotingApiService.use((s) =>
+            s.startVotingSessions(input),
+          );
         }),
       ),
     ),
 
   setTopicVotingWindow: domainProcedure
     .input(SetTopicVotingWindowSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.setTopicVotingWindow")(function* ({ input }) {
-          return yield* VotingApiService.use((s) => s.setTopicVotingWindow(input));
+          return yield* VotingApiService.use((s) =>
+            s.setTopicVotingWindow(input),
+          );
         }),
       ),
     ),
 
   closeTopicVotingWindow: domainProcedure
     .input(CloseTopicVotingWindowSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.closeTopicVotingWindow")(function* ({ input }) {
-          return yield* VotingApiService.use((s) => s.closeTopicVotingWindow(input));
+          return yield* VotingApiService.use((s) =>
+            s.closeTopicVotingWindow(input),
+          );
         }),
       ),
     ),
 
   getSubmissionVoteStats: domainProcedure
     .input(GetSubmissionVoteStatsSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
         Effect.fn("VotingRouter.getSubmissionVoteStats")(function* ({ input }) {
-          return yield* VotingApiService.use((s) => s.getSubmissionVoteStats(input));
+          return yield* VotingApiService.use((s) =>
+            s.getSubmissionVoteStats(input),
+          );
         }),
       ),
     ),
 
   createOrUpdateVotingSession: domainProcedure
     .input(CreateOrUpdateVotingSessionSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.createOrUpdateVotingSession")(function* ({
           input,
         }) {
-          return yield* VotingApiService.use((s) => s.createOrUpdateVotingSessionForParticipant(input));
+          return yield* VotingApiService.use((s) =>
+            s.createOrUpdateVotingSessionForParticipant(input),
+          );
         }),
       ),
     ),
 
   getVotingSessionByParticipant: domainProcedure
     .input(GetVotingSessionByParticipantSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
         Effect.fn("VotingRouter.getVotingSessionByParticipant")(function* ({
           input,
         }) {
-          return yield* VotingApiService.use((s) => s.getVotingSessionByParticipant(input));
+          return yield* VotingApiService.use((s) =>
+            s.getVotingSessionByParticipant(input),
+          );
         }),
       ),
     ),
 
   getVotingAdminSummary: domainProcedure
     .input(GetVotingAdminSummarySchema)
+    .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
         Effect.fn("VotingRouter.getVotingAdminSummary")(function* ({ input }) {
-          return yield* VotingApiService.use((s) => s.getVotingAdminSummary(input));
+          return yield* VotingApiService.use((s) =>
+            s.getVotingAdminSummary(input),
+          );
         }),
       ),
     ),
 
   getParticipantsWithoutVotingSession: domainProcedure
     .input(GetParticipantsWithoutVotingSessionSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("VotingRouter.getParticipantsWithoutVotingSession")(function* ({
-          input,
-        }) {
-          return yield* VotingApiService.use((s) => s.getParticipantsWithoutVotingSession(input));
-        }),
+        Effect.fn("VotingRouter.getParticipantsWithoutVotingSession")(
+          function* ({ input }) {
+            return yield* VotingApiService.use((s) =>
+              s.getParticipantsWithoutVotingSession(input),
+            );
+          },
+        ),
       ),
     ),
 
   startVotingSessionsForParticipants: domainProcedure
     .input(StartVotingSessionsForParticipantsSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("VotingRouter.startVotingSessionsForParticipants")(function* ({
-          input,
-        }) {
-          return yield* VotingApiService.use((s) => s.startVotingSessionsForParticipants(input));
-        }),
+        Effect.fn("VotingRouter.startVotingSessionsForParticipants")(
+          function* ({ input }) {
+            return yield* VotingApiService.use((s) =>
+              s.startVotingSessionsForParticipants(input),
+            );
+          },
+        ),
       ),
     ),
 
   getVotingLeaderboardPage: domainProcedure
     .input(GetVotingLeaderboardPageSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
         Effect.fn("VotingRouter.getVotingLeaderboardPage")(function* ({
           input,
         }) {
-          return yield* VotingApiService.use((s) => s.getVotingLeaderboardPage(input));
+          return yield* VotingApiService.use((s) =>
+            s.getVotingLeaderboardPage(input),
+          );
         }),
       ),
     ),
 
   getVotingVotersPage: domainProcedure
     .input(GetVotingVotersPageSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
         Effect.fn("VotingRouter.getVotingVotersPage")(function* ({ input }) {
-          return yield* VotingApiService.use((s) => s.getVotingVotersPage(input));
+          return yield* VotingApiService.use((s) =>
+            s.getVotingVotersPage(input),
+          );
         }),
       ),
     ),
 
   createManualVotingSession: domainProcedure
     .input(CreateManualVotingSessionSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.createManualVotingSession")(function* ({
           input,
         }) {
-          return yield* VotingApiService.use((s) => s.createManualVotingSession(input));
+          return yield* VotingApiService.use((s) =>
+            s.createManualVotingSession(input),
+          );
         }),
       ),
     ),
 
   resendVotingSessionNotification: domainProcedure
     .input(ResendVotingSessionNotificationSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.resendVotingSessionNotification")(function* ({
           input,
         }) {
-          return yield* VotingApiService.use((s) => s.resendVotingSessionNotification(input));
+          return yield* VotingApiService.use((s) =>
+            s.resendVotingSessionNotification(input),
+          );
         }),
       ),
     ),
@@ -181,7 +225,9 @@ export const votingRouter = createTRPCRouter({
   getVotingSubmissions: publicProcedure.input(GetVotingSubmissionsSchema).query(
     trpcEffect(
       Effect.fn("VotingRouter.getVotingSubmissions")(function* ({ input }) {
-        return yield* VotingApiService.use((s) => s.getVotingSubmissions(input));
+        return yield* VotingApiService.use((s) =>
+          s.getVotingSubmissions(input),
+        );
       }),
     ),
   ),
@@ -194,20 +240,26 @@ export const votingRouter = createTRPCRouter({
     ),
   ),
 
-  clearVote: domainProcedure.input(ClearVoteSchema).mutation(
-    trpcEffect(
-      Effect.fn("VotingRouter.clearVote")(function* ({ input }) {
-        return yield* VotingApiService.use((s) => s.clearVote(input));
-      }),
+  clearVote: domainProcedure
+    .input(ClearVoteSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn("VotingRouter.clearVote")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.clearVote(input));
+        }),
+      ),
     ),
-  ),
 
   deleteVotingSession: domainProcedure
     .input(DeleteVotingSessionSchema)
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.deleteVotingSession")(function* ({ input }) {
-          return yield* VotingApiService.use((s) => s.deleteVotingSession(input));
+          return yield* VotingApiService.use((s) =>
+            s.deleteVotingSession(input),
+          );
         }),
       ),
     ),

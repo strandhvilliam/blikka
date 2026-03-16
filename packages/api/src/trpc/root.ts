@@ -5,6 +5,7 @@ import type { ManagedRuntime, Layer } from "effect"
 import type { BetterAuthService, Session } from "@blikka/auth"
 import type { CoreServices } from "@blikka/runtime"
 import { ApiLayer } from "../layer"
+import { assertMatchingInputDomain } from "./domain-input-middleware"
 
 type ApiServices = Layer.Success<typeof ApiLayer>
 
@@ -65,6 +66,13 @@ export const authProcedure = t.procedure.use(async ({ next, ctx }) => {
   })
 })
 
+export const requireMatchingInputDomainMiddleware = t.middleware(async ({ next, ctx, input }) => {
+  assertMatchingInputDomain(ctx.domain, input)
+  return next()
+})
+
+// Route handlers that accept a domain in their input should chain
+// `requireMatchingInputDomainMiddleware` after `input(...)`.
 export const domainProcedure = authProcedure.use(async ({ next, ctx }) => {
   if (!ctx.domain) {
     throw new TRPCError({
