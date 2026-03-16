@@ -55,9 +55,7 @@ export interface UploadFlowIssue {
   step?: number
 }
 
-export type BuildResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; issues: UploadFlowIssue[] }
+export type BuildResult<T> = { ok: true; data: T } | { ok: false; issues: UploadFlowIssue[] }
 
 interface NormalizedUploadFlowState {
   competitionClassId: number | null
@@ -167,10 +165,7 @@ export function normalizeUploadFlowState(
   }
 }
 
-function toIssueCode(
-  field: UploadFlowIssueField,
-  value: unknown,
-): UploadFlowIssueCode {
+function toIssueCode(field: UploadFlowIssueField, value: unknown): UploadFlowIssueCode {
   if (value == null) return "missing"
   if (typeof value === "string" && value.trim().length === 0) return "missing"
 
@@ -201,7 +196,10 @@ function toUploadFlowIssues(
 
   for (const issue of error.issues) {
     const pathField = issue.path[0]
-    if (typeof pathField !== "string" || !uploadFlowIssueFields.has(pathField as UploadFlowIssueField)) {
+    if (
+      typeof pathField !== "string" ||
+      !uploadFlowIssueFields.has(pathField as UploadFlowIssueField)
+    ) {
       continue
     }
 
@@ -269,23 +267,13 @@ export function validateDeviceSelectionRequirements(
   isByCameraMode: boolean,
 ) {
   if (isByCameraMode) {
-    return validateStateWithSchema(
-      state,
-      byCameraDeviceSelectionStateSchema,
-      byCameraStepByField,
-    )
+    return validateStateWithSchema(state, byCameraDeviceSelectionStateSchema, byCameraStepByField)
   }
 
-  return validateStateWithSchema(
-    state,
-    marathonDeviceSelectionStateSchema,
-    marathonStepByField,
-  )
+  return validateStateWithSchema(state, marathonDeviceSelectionStateSchema, marathonStepByField)
 }
 
-export function validateMarathonUploadRequirements(
-  state: UploadFlowStateSnapshot,
-) {
+export function validateMarathonUploadRequirements(state: UploadFlowStateSnapshot) {
   return validateStateWithSchema(state, marathonUploadStateSchema, marathonStepByField)
 }
 
@@ -437,26 +425,17 @@ export function hasMarathonUploadRequirements(state: UploadFlowStateSnapshot) {
   return validateMarathonUploadRequirements(state).ok
 }
 
-export function buildInitializeUploadFlowInput(
-  domain: string,
-  state: UploadFlowStateSnapshot,
-) {
+export function buildInitializeUploadFlowInput(domain: string, state: UploadFlowStateSnapshot) {
   const result = buildInitializeUploadFlowInputResult(domain, state)
   return result.ok ? result.data : null
 }
 
-export function buildInitializeByCameraUploadInput(
-  domain: string,
-  state: UploadFlowStateSnapshot,
-) {
+export function buildInitializeByCameraUploadInput(domain: string, state: UploadFlowStateSnapshot) {
   const result = buildInitializeByCameraUploadInputResult(domain, state)
   return result.ok ? result.data : null
 }
 
-export function buildPrepareUploadFlowInput(
-  domain: string,
-  state: UploadFlowStateSnapshot,
-) {
+export function buildPrepareUploadFlowInput(domain: string, state: UploadFlowStateSnapshot) {
   const result = buildPrepareUploadFlowInputResult(domain, state)
   return result.ok ? result.data : null
 }
