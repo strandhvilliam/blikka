@@ -6,6 +6,16 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { AlertTriangle, Check, ImageIcon, Loader2, Play, TimerOff, Users, Vote } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTRPC } from "@/lib/trpc/client"
@@ -184,6 +194,8 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     const endsAt = summary.votingWindow.endsAt
     return endsAt ? toDateTimeLocalValue(new Date(endsAt)) : ""
   })
+  const [isStartVotingDialogOpen, setIsStartVotingDialogOpen] = useState(false)
+  const [isCloseVotingDialogOpen, setIsCloseVotingDialogOpen] = useState(false)
 
   const submissionState = getSubmissionLifecycleState(activeTopic.scheduledStart, activeTopic.scheduledEnd)
   const votingState = getVotingLifecycleState(summary.votingWindow)
@@ -234,7 +246,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     })
   }
 
-  const handleStartVoting = () => {
+  const handleStartVotingClick = () => {
     if (startBlockedMessage) {
       toast.error(startBlockedMessage)
       return
@@ -245,18 +257,36 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       return
     }
 
-    startVotingMutation.mutate({
-      domain,
-      topicId: activeTopic.id,
-      endsAt: plannedEndIso,
-    })
+    setIsStartVotingDialogOpen(true)
   }
 
-  const handleCloseVoting = () => {
-    closeVotingMutation.mutate({
-      domain,
-      topicId: activeTopic.id,
-    })
+  const handleConfirmStartVoting = () => {
+    startVotingMutation.mutate(
+      {
+        domain,
+        topicId: activeTopic.id,
+        endsAt: plannedEndIso,
+      },
+      {
+        onSuccess: () => setIsStartVotingDialogOpen(false),
+      },
+    )
+  }
+
+  const handleCloseVotingClick = () => {
+    setIsCloseVotingDialogOpen(true)
+  }
+
+  const handleConfirmCloseVoting = () => {
+    closeVotingMutation.mutate(
+      {
+        domain,
+        topicId: activeTopic.id,
+      },
+      {
+        onSuccess: () => setIsCloseVotingDialogOpen(false),
+      },
+    )
   }
 
   return (
@@ -347,23 +377,60 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 />
                 <p className="text-xs text-slate-400">Leave empty to close voting manually.</p>
               </div>
-              <Button
-                onClick={handleStartVoting}
-                disabled={!canStartVoting || startVotingMutation.isPending}
-                className="shrink-0"
+              <AlertDialog
+                open={isStartVotingDialogOpen}
+                onOpenChange={setIsStartVotingDialogOpen}
               >
-                {startVotingMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Starting...
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Start voting
-                  </>
-                )}
-              </Button>
+                <Button
+                  onClick={handleStartVotingClick}
+                  disabled={!canStartVoting || startVotingMutation.isPending}
+                  className="shrink-0"
+                >
+                  {startVotingMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-2 h-4 w-4" />
+                      Start voting
+                    </>
+                  )}
+                </Button>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Start voting?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will open the voting window and create voting sessions
+                      for all {participantWithSubmissionCount} participants with
+                      submissions. An SMS with a voting link will be sent to each
+                      participant who has a phone number on file.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={startVotingMutation.isPending}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleConfirmStartVoting()
+                      }}
+                      disabled={startVotingMutation.isPending}
+                    >
+                      {startVotingMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Starting...
+                        </>
+                      ) : (
+                        "Start voting"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
             {startBlockedMessage && (
@@ -386,24 +453,60 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 )}
               </div>
             </div>
-            <Button
-              variant="destructive"
-              onClick={handleCloseVoting}
-              disabled={closeVotingMutation.isPending}
-              className="shrink-0"
+            <AlertDialog
+              open={isCloseVotingDialogOpen}
+              onOpenChange={setIsCloseVotingDialogOpen}
             >
-              {closeVotingMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Closing...
-                </>
-              ) : (
-                <>
-                  <TimerOff className="mr-2 h-4 w-4" />
-                  Close voting
-                </>
-              )}
-            </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCloseVotingClick}
+                disabled={closeVotingMutation.isPending}
+                className="shrink-0"
+              >
+                {closeVotingMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Closing...
+                  </>
+                ) : (
+                  <>
+                    <TimerOff className="mr-2 h-4 w-4" />
+                    Close voting
+                  </>
+                )}
+              </Button>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Close voting?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will close the voting window. Participants will no longer
+                    be able to submit votes. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={closeVotingMutation.isPending}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleConfirmCloseVoting()
+                    }}
+                    disabled={closeVotingMutation.isPending}
+                    className="bg-destructive text-white hover:bg-destructive/90"
+                  >
+                    {closeVotingMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Closing...
+                      </>
+                    ) : (
+                      "Close voting"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
 
