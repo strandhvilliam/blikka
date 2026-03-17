@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Option, ServiceMap } from "effect"
+import { Effect, Layer, Option, ServiceMap } from "effect"
 import { S3Service } from "@blikka/aws"
 import { ExifKVRepository, ExifState, UploadSessionRepository } from "@blikka/kv-store"
 import { ExifParser } from "@blikka/image-manipulation"
@@ -6,6 +6,7 @@ import { BusService } from "@blikka/aws"
 import { makeThumbnailKey } from "./utils"
 import { FailedToIncrementParticipantStateError, PhotoNotFoundError } from "./errors"
 import { SharpImageService } from "@blikka/image-manipulation/sharp"
+import { Resource as SSTResource } from "sst"
 
 const THUMBNAIL_WIDTH = 400
 
@@ -28,8 +29,8 @@ export class UploadProcessorService extends ServiceMap.Service<UploadProcessorSe
       const bus = yield* BusService
       const sharp = yield* SharpImageService
 
-      const thumbnailsBucketName = yield* Config.string("THUMBNAILS_BUCKET_NAME")
-      const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
+      const thumbnailsBucketName = SSTResource.V2ThumbnailsBucket.name
+      const submissionsBucketName = SSTResource.V2SubmissionsBucket.name
 
       const handleParticipantError = Effect.fn("UploadProcessorService.handleParticipantError")(
         function* (domain: string, reference: string, errorCode: string, error: Error) {

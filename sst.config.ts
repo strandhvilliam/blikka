@@ -138,6 +138,20 @@ export default $config({
       nodejs: {
         install: ["sharp"],
       },
+      permissions: [
+        sst.aws.permission({
+          actions: ["s3:ListBucket"],
+          resources: [submissionsBucket.arn],
+        }),
+        sst.aws.permission({
+          actions: ["s3:GetObject"],
+          resources: [submissionsBucket.arn.apply((arn) => `${arn}/*`)],
+        }),
+        sst.aws.permission({
+          actions: ["s3:PutObject"],
+          resources: [thumbnailsBucket.arn.apply((arn) => `${arn}/*`)],
+        }),
+      ],
       link: [uploadProcessorQueue, submissionsBucket, thumbnailsBucket, submissionFinalizedBus],
     })
 
