@@ -13,6 +13,11 @@ import {
   type EncryptedPhoneNumber,
 } from "../../utils/phone-number-encryption"
 import { randomBytes } from "crypto"
+import {
+  getVotingLifecycleState,
+  hasSubmissionWindowEnded,
+  parseVotingScheduleInput,
+} from "./lifecycle"
 
 const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
 
@@ -29,40 +34,19 @@ function parseVotingWindow({
   endsAt,
 }: {
   startsAt: string
-  endsAt: string
-}): Effect.Effect<{ startsAtIso: string; endsAtIso: string }, VotingApiError> {
-  return Effect.gen(function* () {
-    const startsAtDate = new Date(startsAt)
-    const endsAtDate = new Date(endsAt)
-
-    if (Number.isNaN(startsAtDate.getTime())) {
-      return yield* Effect.fail(
-        new VotingApiError({
-          message: "Invalid startsAt timestamp",
-        }),
-      )
-    }
-
-    if (Number.isNaN(endsAtDate.getTime())) {
-      return yield* Effect.fail(
-        new VotingApiError({
-          message: "Invalid endsAt timestamp",
-        }),
-      )
-    }
-
-    if (startsAtDate >= endsAtDate) {
-      return yield* Effect.fail(
-        new VotingApiError({
-          message: "startsAt must be before endsAt",
-        }),
-      )
-    }
-
-    return {
-      startsAtIso: startsAtDate.toISOString(),
-      endsAtIso: endsAtDate.toISOString(),
-    }
+  endsAt?: string | null
+}): Effect.Effect<
+  { startsAtIso: string; endsAtIso: string | null },
+  VotingApiError
+> {
+  return Effect.try({
+    try: () => parseVotingScheduleInput({ startsAt, endsAt }),
+    catch: (error) =>
+      new VotingApiError({
+        message:
+          error instanceof Error ? error.message : "Invalid voting timestamps",
+        cause: error,
+      }),
   })
 }
 
@@ -85,12 +69,11 @@ function ensureSessionDomain(
 }
 
 function ensureVotingSessionWindow(
-  votingWindow: { startsAt: string; endsAt: string },
+  votingWindow: { startsAt: string | null; endsAt: string | null },
 ): Effect.Effect<void, VotingApiError> {
-  const now = new Date()
+  const state = getVotingLifecycleState(votingWindow)
 
-  const startsAt = new Date(votingWindow.startsAt)
-  if (startsAt > now) {
+  if (state === "not-started") {
     return Effect.fail(
       new VotingApiError({
         message: "Voting session has not started yet",
@@ -98,8 +81,7 @@ function ensureVotingSessionWindow(
     )
   }
 
-  const endsAt = new Date(votingWindow.endsAt)
-  if (endsAt < now) {
+  if (state === "ended") {
     return Effect.fail(
       new VotingApiError({
         message: "Voting session has expired",
@@ -213,8 +195,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         }
       })
 
-      const getRequiredTopicVotingWindow = Effect.fn(
-        "VotingApiService.getRequiredTopicVotingWindow",
+      const getTopicVotingWindow = Effect.fn(
+        "VotingApiService.getTopicVotingWindow",
       )(function* ({
         marathonId,
         topicId,
@@ -227,15 +209,10 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           topicId,
         })
 
-        if (
-          !votingWindow ||
-          votingWindow.startsAt === null ||
-          votingWindow.endsAt === null
-        ) {
+        if (!votingWindow) {
           return yield* Effect.fail(
             new VotingApiError({
-              message:
-                "Voting window is not configured for this topic. Configure it before creating or using voting sessions.",
+              message: "Voting topic not found",
             }),
           )
         }
@@ -263,7 +240,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
 
           yield* ensureSessionDomain(votingSession, domain)
 
-          const votingWindow = yield* getRequiredTopicVotingWindow({
+          const votingWindow = yield* getTopicVotingWindow({
             marathonId: votingSession.marathonId,
             topicId: votingSession.topicId,
           })
@@ -287,7 +264,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         domain: string
         topicId: number
         startsAt: string
-        endsAt: string
+        endsAt?: string | null
       }) {
         const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
           startsAt,
@@ -354,10 +331,22 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           )
         }
 
-        yield* getRequiredTopicVotingWindow({
+        const votingWindow = yield* getTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
         })
+
+        const votingState = getVotingLifecycleState(votingWindow)
+        if (votingState !== "active") {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                votingState === "ended"
+                  ? "Voting has already ended for this topic"
+                  : "Voting has not started for this topic",
+            }),
+          )
+        }
 
         const nowIso = new Date().toISOString()
 
@@ -387,9 +376,11 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
       )(function* ({
         domain,
         topicId,
+        endsAt,
       }: {
         domain: string
         topicId: number
+        endsAt?: string | null
       }) {
         const { marathon, topic, activeTopic } =
           yield* getByCameraMarathonWithTopic({
@@ -405,9 +396,28 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             }),
           )
         }
-        const votingWindow = yield* getRequiredTopicVotingWindow({
-          marathonId: marathon.id,
-          topicId,
+
+        if (topic.votingStartsAt) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Voting has already been started for this topic",
+            }),
+          )
+        }
+
+        if (!hasSubmissionWindowEnded(topic.scheduledEnd)) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "Voting cannot start until submissions have ended for the active topic",
+            }),
+          )
+        }
+
+        const nowIso = new Date().toISOString()
+        const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
+          startsAt: nowIso,
+          endsAt,
         })
 
         const existingCount =
@@ -416,31 +426,66 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             topicId,
           })
 
-        if (existingCount > 0) {
+        const participantsWithoutSession =
+          yield* db.votingQueries.getParticipantsWithSubmissionsButNoVotingSession(
+            {
+              marathonId: marathon.id,
+              topicId,
+            },
+          )
+
+        if (existingCount === 0 && participantsWithoutSession.length === 0) {
+          const participantsWithSubmissions =
+            yield* db.votingQueries.getParticipantsWithSubmissionsByTopicId({
+              marathonId: marathon.id,
+              topicId,
+            })
+
+          if (participantsWithSubmissions.length === 0) {
+            return yield* Effect.fail(
+              new VotingApiError({
+                message: "No participants with submissions found for this topic",
+              }),
+            )
+          }
+        }
+
+        const votingWindow = yield* db.votingQueries.upsertTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+          startsAt: startsAtIso,
+          endsAt: endsAtIso,
+        })
+
+        if (!votingWindow) {
           return yield* Effect.fail(
             new VotingApiError({
-              message: "Voting sessions already exist for this topic",
+              message: "Failed to start voting for this topic",
             }),
           )
         }
 
-        const participantsWithSubmissions =
-          yield* db.votingQueries.getParticipantsWithSubmissionsByTopicId({
-            marathonId: marathon.id,
-            topicId,
-          })
+        const fullParticipants = yield* Effect.all(
+          participantsWithoutSession.map((participant) =>
+            db.participantsQueries.getParticipantById({ id: participant.id }),
+          ),
+        )
 
-        if (participantsWithSubmissions.length === 0) {
+        const participantData = fullParticipants.flatMap((participantOpt) =>
+          Option.isSome(participantOpt) ? [participantOpt.value] : [],
+        )
+
+        if (existingCount === 0 && participantData.length === 0) {
           return yield* Effect.fail(
             new VotingApiError({
-              message: "No participants with submissions found for this topic",
+              message: "Could not load participant data for this topic",
             }),
           )
         }
 
         const usedTokens = new Set<string>()
         const sessionsToCreate: NewVotingSession[] = yield* Effect.forEach(
-          participantsWithSubmissions,
+          participantData,
           (participant) =>
             Effect.gen(function* () {
               const token = yield* generateUniqueToken({ usedTokens })
@@ -500,10 +545,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           { concurrency: 5 },
         )
 
-        yield* db.votingQueries.updateMultipleLastNotificationSentAt({
-          ids: createdSessions.map((session) => session.id),
-          notificationLastSentAt: new Date().toISOString(),
-        })
+        if (createdSessions.length > 0) {
+          yield* db.votingQueries.updateMultipleLastNotificationSentAt({
+            ids: createdSessions.map((session) => session.id),
+            notificationLastSentAt: new Date().toISOString(),
+          })
+        }
 
         return {
           topicId,
@@ -511,6 +558,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           sessionsCreated: createdSessions.length,
           smsSent: smsResults.filter((result) => !("error" in result)).length,
           smsResults,
+          existingSessions: existingCount,
         }
       })
 
@@ -571,10 +619,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             }),
           )
         }
-        const votingWindow = yield* getRequiredTopicVotingWindow({
+        const votingWindow = yield* getTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
         })
+
+        yield* ensureVotingSessionWindow(votingWindow)
 
         if (participantIds.length === 0) {
           return yield* Effect.fail(
@@ -688,10 +738,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           { concurrency: 5 },
         )
 
-        yield* db.votingQueries.updateMultipleLastNotificationSentAt({
-          ids: createdSessions.map((session) => session.id),
-          notificationLastSentAt: new Date().toISOString(),
-        })
+        if (createdSessions.length > 0) {
+          yield* db.votingQueries.updateMultipleLastNotificationSentAt({
+            ids: createdSessions.map((session) => session.id),
+            notificationLastSentAt: new Date().toISOString(),
+          })
+        }
 
         return {
           topicId,
@@ -814,10 +866,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           )
         }
 
-        yield* getRequiredTopicVotingWindow({
+        const votingWindow = yield* getTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
         })
+
+        yield* ensureVotingSessionWindow(votingWindow)
 
         const existingSessionOpt =
           yield* db.votingQueries.getVotingSessionByParticipantAndTopicId({
@@ -1238,10 +1292,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             }),
           )
         }
-        yield* getRequiredTopicVotingWindow({
+        const votingWindow = yield* getTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
         })
+
+        yield* ensureVotingSessionWindow(votingWindow)
 
         const created = yield* db.votingQueries.createVotingSessions({
           sessions: [
@@ -1376,7 +1432,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         })
 
         // yield* ensureSessionDomain(votingSession, domain)
-        const votingWindow = yield* getRequiredTopicVotingWindow({
+        const votingWindow = yield* getTopicVotingWindow({
           marathonId: votingSession.marathonId,
           topicId: votingSession.topicId,
         })
@@ -1471,7 +1527,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           }
         }
 
-        const votingWindow = yield* getRequiredTopicVotingWindow({
+        const votingWindow = yield* getTopicVotingWindow({
           marathonId: votingSession.marathonId,
           topicId: votingSession.topicId,
         })

@@ -25,11 +25,6 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -45,6 +40,7 @@ import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { PrimaryButton } from "@/components/ui/primary-button"
+import { getVotingLifecycleState } from "@/lib/voting/voting-lifecycle"
 import {
   formatDateTime,
   getSubmissionImageUrl,
@@ -230,10 +226,17 @@ export function VotersTab({
       topicId: activeTopic.id,
     }),
   )
+  const { data: summary } = useSuspenseQuery(
+    trpc.voting.getVotingAdminSummary.queryOptions({
+      domain,
+      topicId: activeTopic.id,
+    }),
+  )
 
   const voters = votersPageData?.items ?? []
   const pageCount = votersPageData?.pageCount ?? 0
   const total = votersPageData?.total ?? 0
+  const votingState = getVotingLifecycleState(summary.votingWindow)
 
   useEffect(() => {
     if (pageCount > 0 && votersPage > pageCount) {
@@ -282,7 +285,10 @@ export function VotersTab({
                     participantIds: participantsWithoutSession.map((p) => p.id),
                   })
                 }
-                disabled={startVotingSessionsForParticipantsMutation.isPending}
+                disabled={
+                  startVotingSessionsForParticipantsMutation.isPending ||
+                  votingState !== "active"
+                }
               >
                 {startVotingSessionsForParticipantsMutation.isPending ? (
                   <>
@@ -296,6 +302,12 @@ export function VotersTab({
                   </>
                 )}
               </PrimaryButton>
+              {votingState !== "active" ? (
+                <p className="text-sm">
+                  Late participant sessions can only be started while voting is
+                  active.
+                </p>
+              ) : null}
             </div>
           </AlertDescription>
         </Alert>

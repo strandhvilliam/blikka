@@ -4,9 +4,11 @@ import { motion } from "motion/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { ImageIcon, PlayIcon } from "lucide-react";
+import { Clock, ImageIcon, PlayIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { getVotingUnavailableReason } from "@/lib/voting/voting-lifecycle";
+import { getVotingUnavailableContent } from "../_lib/voting-unavailable";
 
 export function VoteInitialClient({
   domain,
@@ -23,6 +25,14 @@ export function VoteInitialClient({
   const { data: marathon } = useSuspenseQuery(
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
   );
+
+  const unavailableReason = getVotingUnavailableReason({
+    startsAt: votingSession.startsAt,
+    endsAt: votingSession.endsAt,
+  });
+  const unavailableContent = unavailableReason
+    ? getVotingUnavailableContent(unavailableReason)
+    : null;
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
@@ -54,7 +64,7 @@ export function VoteInitialClient({
                 Welcome, {votingSession.firstName}
               </h2>
               <p className="text-sm text-gray-500">
-                You've been invited to vote on submissions
+                You&apos;ve been invited to vote on submissions
               </p>
             </div>
 
@@ -65,14 +75,40 @@ export function VoteInitialClient({
               </p>
             </div>
 
-            <Link href={`/live/${domain}/vote/${token}/viewer`}>
-              <PrimaryButton
-                className="w-full py-3 text-base text-white rounded-full"
-              >
-                Start Voting
-                <PlayIcon className="h-4 w-4" />
-              </PrimaryButton>
-            </Link>
+            {unavailableContent ? (
+              <div className="space-y-4">
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-left">
+                  <div className="flex items-center gap-2 text-amber-700">
+                    <Clock className="h-4 w-4" />
+                    <p className="text-sm font-semibold">
+                      {unavailableContent.title}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm text-amber-800">
+                    {unavailableContent.description}
+                  </p>
+                  <p className="mt-2 text-xs text-amber-700">
+                    {unavailableContent.hint}
+                  </p>
+                </div>
+                <PrimaryButton
+                  className="w-full py-3 text-base text-white rounded-full"
+                  disabled
+                >
+                  Start Voting
+                  <PlayIcon className="h-4 w-4" />
+                </PrimaryButton>
+              </div>
+            ) : (
+              <Link href={`/live/${domain}/vote/${token}/viewer`}>
+                <PrimaryButton
+                  className="w-full py-3 text-base text-white rounded-full"
+                >
+                  Start Voting
+                  <PlayIcon className="h-4 w-4" />
+                </PrimaryButton>
+              </Link>
+            )}
 
             <p className="text-center text-xs text-muted-foreground mt-4">
               Voting as {votingSession.email}

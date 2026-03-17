@@ -1,5 +1,6 @@
 "use client"
 
+import type { Topic } from "@blikka/db"
 import { Suspense, useEffect } from "react"
 import {
   useSuspenseQuery,
@@ -22,7 +23,7 @@ import { useVotingUiState } from "../_hooks/use-voting-ui-state"
 function VotingSummaryContent({
   activeTopic,
 }: {
-  activeTopic: { id: number; name: string; orderIndex: number }
+  activeTopic: Topic
 }) {
   const trpc = useTRPC()
   const domain = useDomain()
@@ -49,26 +50,16 @@ function VotingSummaryContent({
   if (!hasSessions) {
     return (
       <>
-        <VotingHeader
-          activeTopic={activeTopic}
-          hasSessions={false}
-          isOverviewLoading={false}
-        />
-        <VotingSetup
-          activeTopic={activeTopic}
-          hasSessions={hasSessions}
-        />
+        <VotingHeader activeTopic={activeTopic} />
+        <VotingSetup key={activeTopic.id} activeTopic={activeTopic} />
       </>
     )
   }
 
   return (
     <>
-      <VotingHeader
-        activeTopic={activeTopic}
-        hasSessions={hasSessions}
-        isOverviewLoading={false}
-      />
+      <VotingHeader activeTopic={activeTopic} />
+      <VotingSetup key={activeTopic.id} activeTopic={activeTopic} />
 
       <Tabs
         value={activeTab}

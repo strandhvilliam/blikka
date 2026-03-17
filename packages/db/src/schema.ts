@@ -505,17 +505,6 @@ export const topics = pgTable(
     })
       .onUpdate("cascade")
       .onDelete("cascade"),
-    check(
-      "topics_voting_window_range_check",
-      sql`(
-        (${table.votingStartsAt} is null and ${table.votingEndsAt} is null)
-        or (
-          ${table.votingStartsAt} is not null
-          and ${table.votingEndsAt} is not null
-          and ${table.votingStartsAt} < ${table.votingEndsAt}
-        )
-      )`,
-    ),
   ],
 )
 

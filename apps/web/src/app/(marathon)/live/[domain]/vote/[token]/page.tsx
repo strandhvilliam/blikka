@@ -11,6 +11,7 @@ import { Splash } from "@/components/splash"
 import { VoteInitialClient } from "./_components/vote-initial-client"
 import { notFound, redirect } from "next/navigation"
 import { formatDomainPathname } from "@/lib/utils"
+import { getVotingUnavailableReason } from "@/lib/voting/voting-lifecycle"
 
 const _VotePage = Effect.fn("@blikka/web/VotePage")(
   function* ({ params }: PageProps<"/live/[domain]/vote/[token]">) {
@@ -33,22 +34,19 @@ const _VotePage = Effect.fn("@blikka/web/VotePage")(
       return redirect(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'))
     }
 
-    const now = new Date()
-    if (votingSession.startsAt) {
-      const startsAt = new Date(votingSession.startsAt)
-      if (startsAt > now) {
-        return redirect(
-          formatDomainPathname(`/live/vote/${token}/unavailable?reason=not-started`, domain, 'live'),
-        )
-      }
-    }
-    if (votingSession.endsAt) {
-      const endsAt = new Date(votingSession.endsAt)
-      if (endsAt < now) {
-        return redirect(
-          formatDomainPathname(`/live/vote/${token}/unavailable?reason=ended`, domain, 'live'),
-        )
-      }
+    const unavailableReason = getVotingUnavailableReason({
+      startsAt: votingSession.startsAt,
+      endsAt: votingSession.endsAt,
+    })
+
+    if (unavailableReason) {
+      return redirect(
+        formatDomainPathname(
+          `/live/vote/${token}/unavailable?reason=${unavailableReason}`,
+          domain,
+          "live",
+        ),
+      )
     }
 
     return (

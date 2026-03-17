@@ -349,7 +349,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
         startsAt: string;
-        endsAt: string;
+        endsAt: string | null;
       }) {
         const result = yield* use((db) =>
           db

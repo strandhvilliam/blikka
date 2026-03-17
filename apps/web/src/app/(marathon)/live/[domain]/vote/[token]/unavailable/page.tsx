@@ -4,6 +4,7 @@ import { Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
+import { getVotingUnavailableContent } from "../_lib/voting-unavailable"
 
 export default function UnavailablePage() {
   const router = useRouter()
@@ -11,9 +12,7 @@ export default function UnavailablePage() {
   const searchParams = useSearchParams()
   const domain = params?.domain as string
   const reason = searchParams.get("reason")
-
-  const isNotStarted = reason === "not-started"
-  const isEnded = reason === "ended"
+  const content = getVotingUnavailableContent(reason)
 
   const handleGoToLanding = () => {
     if (domain) {
@@ -22,24 +21,6 @@ export default function UnavailablePage() {
       router.push("/")
     }
   }
-
-  const title = isNotStarted
-    ? "Voting Has Not Started Yet"
-    : isEnded
-      ? "Voting Has Ended"
-      : "Voting Is Not Available"
-
-  const description = isNotStarted
-    ? "The voting period for this session hasn't started yet. Please check back later."
-    : isEnded
-      ? "The voting period for this session has ended. Thank you for your interest."
-      : "Voting is not available at this time."
-
-  const hint = isNotStarted
-    ? "You'll be able to vote once the voting window opens. Make sure to save this link for when voting begins."
-    : isEnded
-      ? "The voting window has closed. Results may be available on the event page."
-      : "This could happen if the voting link is incorrect or the voting period has not been set."
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
@@ -51,13 +32,15 @@ export default function UnavailablePage() {
                 <Clock className="w-10 h-10 text-amber-600" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-center mb-2">{title}</h1>
+            <h1 className="text-2xl font-bold text-center mb-2">
+              {content.title}
+            </h1>
             <p className="text-muted-foreground text-center mb-6">
-              {description}
+              {content.description}
             </p>
             <div className="bg-muted rounded-xl p-4 mb-6">
               <p className="text-sm text-muted-foreground text-center">
-                {hint}
+                {content.hint}
               </p>
             </div>
             <div className="flex justify-center">

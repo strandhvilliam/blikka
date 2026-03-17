@@ -20,6 +20,7 @@ export const StartVotingSessionsSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     topicId: Schema.Number,
+    endsAt: Schema.optional(Schema.NullishOr(Schema.String)),
   }),
 );
 
@@ -28,7 +29,7 @@ export const SetTopicVotingWindowSchema = Schema.toStandardSchemaV1(
     domain: Schema.String,
     topicId: Schema.Number,
     startsAt: Schema.String,
-    endsAt: Schema.String,
+    endsAt: Schema.optional(Schema.NullishOr(Schema.String)),
   }),
 );
 

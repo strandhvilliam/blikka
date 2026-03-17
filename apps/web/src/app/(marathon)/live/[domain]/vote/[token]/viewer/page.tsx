@@ -8,6 +8,7 @@ import { Splash } from "@/components/splash";
 import { VotingClient } from "./_components/voting-client";
 import { notFound, redirect } from "next/navigation";
 import { formatDomainPathname } from "@/lib/utils";
+import { getVotingUnavailableReason } from "@/lib/voting/voting-lifecycle";
 
 const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
   function* ({ params }: PageProps<"/live/[domain]/vote/[token]/viewer">) {
@@ -28,6 +29,21 @@ const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
 
     if (votingSession.voteSubmissionId && votingSession.votedAt) {
       return redirect(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'));
+    }
+
+    const unavailableReason = getVotingUnavailableReason({
+      startsAt: votingSession.startsAt,
+      endsAt: votingSession.endsAt,
+    });
+
+    if (unavailableReason) {
+      return redirect(
+        formatDomainPathname(
+          `/live/vote/${token}/unavailable?reason=${unavailableReason}`,
+          domain,
+          "live",
+        ),
+      );
     }
 
     batchPrefetch([
