@@ -291,6 +291,7 @@ export function ByCameraUploadStep({
             className="max-w-4xl mx-auto"
           >
             <UploadProgress
+              mode="by-camera"
               files={uploadFiles}
               topics={[]}
               expectedCount={BY_CAMERA_MAX_PHOTOS}
