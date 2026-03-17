@@ -10,12 +10,18 @@ import type {
   ValidationResult,
 } from "../types";
 import { attachFileName, createValidationResult } from "../utils";
+import {
+  normalizeAllowedFileTypes,
+  normalizeImageExtensionAlias,
+} from "../../src/utils";
 
 function getExtensionFromFilename(
   filename: string,
 ): keyof typeof IMAGE_EXTENSION_TO_MIME_TYPE | null {
   const match = filename.match(/\.([^.]+)$/);
-  const extension = match ? match[1]?.toLowerCase().replace(/^\./, "") : null;
+  const extension = match
+    ? normalizeImageExtensionAlias(match[1]?.replace(/^\./, "") ?? "")
+    : null;
   return extension as keyof typeof IMAGE_EXTENSION_TO_MIME_TYPE | null;
 }
 
@@ -24,14 +30,9 @@ function checkIfValidExtension(
   input: ValidationInput,
 ): ValidationResult {
   const extension = getExtensionFromFilename(input.fileName);
-
-  const parsedAllowedFileTypes = rule.allowedFileTypes.reduce((acc, curr) => {
-    if (curr === "jpg") {
-      acc.push("jpeg");
-    }
-    acc.push(curr);
-    return acc;
-  }, [] as string[]);
+  const parsedAllowedFileTypes = normalizeAllowedFileTypes(
+    rule.allowedFileTypes,
+  );
 
   if (!extension) {
     return createValidationResult(
