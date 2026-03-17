@@ -92,7 +92,15 @@ export function LiveClientPage() {
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
       <div className="z-20 flex flex-col flex-1 h-full">
         <main className="flex-1 px-6 pb-6 max-w-md mx-auto w-full flex flex-col justify-end">
-          <LogoAndEventInfo marathon={marathon} />
+          <LogoAndEventInfo
+            marathon={marathon}
+            mode={marathon.mode as "marathon" | "by-camera"}
+            activeTopicName={
+              marathon.mode === "by-camera"
+                ? byCameraAccessState?.activeTopic?.name ?? null
+                : null
+            }
+          />
 
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-border shadow-xl">
             <LanguageSelection locale={locale} setLocale={setLocale} isPending={isPending} />
@@ -127,6 +135,8 @@ export function LiveClientPage() {
 
 function LogoAndEventInfo({
   marathon,
+  mode,
+  activeTopicName,
 }: {
   marathon: {
     logoUrl: string | null
@@ -134,8 +144,17 @@ function LogoAndEventInfo({
     startDate: string | null
     endDate: string | null
   }
+  mode: "marathon" | "by-camera"
+  activeTopicName: string | null
 }) {
   const t = useTranslations("LivePage")
+  const subtitle =
+    mode === "by-camera"
+      ? activeTopicName ?? t("datesToBeAnnounced")
+      : marathon.startDate && marathon.endDate
+        ? `${format(new Date(marathon.startDate), "dd MMMM yyyy")} - ${format(new Date(marathon.endDate), "dd MMMM yyyy")}`
+        : t("datesToBeAnnounced")
+
   return (
     <div className="flex flex-col items-center pb-12">
       {marathon.logoUrl ? (
@@ -151,14 +170,7 @@ function LogoAndEventInfo({
         {marathon.name}
       </h1>
       <p className="text-center text-lg mt-1 font-medium tracking-wide">
-        {marathon.startDate && marathon.endDate ? (
-          <>
-            {format(new Date(marathon.startDate), "dd MMMM yyyy")} -{" "}
-            {format(new Date(marathon.endDate), "dd MMMM yyyy")}
-          </>
-        ) : (
-          t("datesToBeAnnounced")
-        )}
+        {subtitle}
       </p>
     </div>
   )
