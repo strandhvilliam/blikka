@@ -50,14 +50,14 @@ export function UploadSubmissionsStep({
   ruleConfigs,
   topics,
   competitionClass,
-  marathonStartDate,
-  marathonEndDate,
+  validationStartDate,
+  validationEndDate,
 }: {
   ruleConfigs: DbRuleConfig[];
   topics: Topic[];
   competitionClass: CompetitionClass;
-  marathonStartDate: string;
-  marathonEndDate: string;
+  validationStartDate: string;
+  validationEndDate: string;
 }) {
   const t = useTranslations("FlowPage.uploadStep");
   const trpc = useTRPC();
@@ -94,8 +94,8 @@ export function UploadSubmissionsStep({
 
   useLivePhotoValidation({
     ruleConfigs,
-    marathonStartDate,
-    marathonEndDate,
+    validationStartDate,
+    validationEndDate,
   });
 
   const {

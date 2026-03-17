@@ -7,14 +7,14 @@ import { usePhotoStore } from "../_lib/photo-store";
 
 interface UseLivePhotoValidationOptions {
   ruleConfigs: RuleConfig[];
-  marathonStartDate?: string | Date | null;
-  marathonEndDate?: string | Date | null;
+  validationStartDate?: string | Date | null;
+  validationEndDate?: string | Date | null;
 }
 
 export function useLivePhotoValidation({
   ruleConfigs,
-  marathonStartDate,
-  marathonEndDate,
+  validationStartDate,
+  validationEndDate,
 }: UseLivePhotoValidationOptions) {
   const photos = usePhotoStore((state) => state.photos);
   const setValidationResults = usePhotoStore(
@@ -34,8 +34,8 @@ export function useLivePhotoValidation({
         const results = await runParticipantPhotoValidation({
           photos,
           ruleConfigs,
-          marathonStartDate,
-          marathonEndDate,
+          marathonStartDate: validationStartDate,
+          marathonEndDate: validationEndDate,
         });
 
         if (!cancelled) {
@@ -56,8 +56,8 @@ export function useLivePhotoValidation({
       cancelled = true;
     };
   }, [
-    marathonEndDate,
-    marathonStartDate,
+    validationEndDate,
+    validationStartDate,
     photos,
     ruleConfigs,
     setValidationResults,

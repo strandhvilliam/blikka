@@ -1,98 +1,97 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import type { RuleConfig as DbRuleConfig, Topic } from "@blikka/db"
-import { useMutation } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
-import { motion, AnimatePresence } from "motion/react"
-import { useEffect, useMemo, useRef, useState } from "react"
-import { toast } from "sonner"
-import { useFileUpload } from "../_hooks/use-file-upload"
-import { useLivePhotoValidation } from "../_hooks/use-live-photo-validation"
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
-import { useSelectFile } from "../_hooks/use-select-file"
-import { usePhotoStore } from "../_lib/photo-store"
-import { useHeicStore } from "../_lib/heic-store"
-import { useStepState } from "../_lib/step-state-context"
-import { useRouter } from "next/navigation"
-import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
-import { formatDomainPathname } from "@/lib/utils"
-import type { PhotoWithPresignedUrl } from "../_lib/types"
-import { useUploadStore } from "../_lib/upload-store"
-import { UploadProgress } from "./upload-progress"
-import { ByCameraUploadInput } from "./by-camera-upload-input"
-import { HeicConversionDialog } from "./heic-conversion-dialog"
-import { UploadConfirmationDialog } from "./upload-confirmation-dialog"
-import { VALIDATION_OUTCOME } from "@blikka/validation"
-import { mapRuleConfigsToValidationRules } from "@/lib/validation"
-import { ArrowRight } from "lucide-react"
-import { FINALIZATION_STATE } from "../_lib/types"
+} from "@/components/ui/card";
+import { PrimaryButton } from "@/components/ui/primary-button";
+import { useDomain } from "@/lib/domain-provider";
+import { useTRPC } from "@/lib/trpc/client";
+import type { RuleConfig as DbRuleConfig, Topic } from "@blikka/db";
+import { useMutation } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { useFileUpload } from "../_hooks/use-file-upload";
+import { useLivePhotoValidation } from "../_hooks/use-live-photo-validation";
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import { useSelectFile } from "../_hooks/use-select-file";
+import { usePhotoStore } from "../_lib/photo-store";
+import { useHeicStore } from "../_lib/heic-store";
+import { useStepState } from "../_lib/step-state-context";
+import { useRouter } from "next/navigation";
+import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client";
+import { formatDomainPathname } from "@/lib/utils";
+import type { PhotoWithPresignedUrl } from "../_lib/types";
+import { useUploadStore } from "../_lib/upload-store";
+import { UploadProgress } from "./upload-progress";
+import { ByCameraUploadInput } from "./by-camera-upload-input";
+import { HeicConversionDialog } from "./heic-conversion-dialog";
+import { UploadConfirmationDialog } from "./upload-confirmation-dialog";
+import { VALIDATION_OUTCOME } from "@blikka/validation";
+import { mapRuleConfigsToValidationRules } from "@/lib/validation";
+import { ArrowRight } from "lucide-react";
+import { FINALIZATION_STATE } from "../_lib/types";
 import {
   buildInitializeByCameraUploadInputResult,
   getUploadFlowIssueMessageKeys,
-} from "../_lib/upload-flow-state"
+} from "../_lib/upload-flow-state";
 
-const BY_CAMERA_MAX_PHOTOS = 1
+const BY_CAMERA_MAX_PHOTOS = 1;
 
 export function ByCameraUploadStep({
   topic,
   ruleConfigs,
-  marathonStartDate,
-  marathonEndDate,
+  validationStartDate,
+  validationEndDate,
 }: {
-  topic?: Topic
-  ruleConfigs: DbRuleConfig[]
-  marathonStartDate: string
-  marathonEndDate: string
+  topic?: Topic;
+  ruleConfigs: DbRuleConfig[];
+  validationStartDate?: string | null;
+  validationEndDate?: string | null;
 }) {
-  const t = useTranslations("FlowPage.uploadStep")
-  const trpc = useTRPC()
-  const domain = useDomain()
-  const { handlePrevStep } = useStepState()
-  const router = useRouter()
-  const { uploadFlowState, setUploadFlowState } = useUploadFlowState()
+  const t = useTranslations("FlowPage.uploadStep");
+  const trpc = useTRPC();
+  const domain = useDomain();
+  const { handlePrevStep } = useStepState();
+  const router = useRouter();
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
 
-  const initializeStore = usePhotoStore((state) => state.initialize)
-  const cleanup = usePhotoStore((state) => state.cleanup)
-  const clearPhotos = usePhotoStore((state) => state.clearPhotos)
-  const photos = usePhotoStore((state) => state.photos)
-  const removePhoto = usePhotoStore((state) => state.removePhoto)
-  const validationResults = usePhotoStore((state) => state.validationResults)
-  const isProcessingFiles = usePhotoStore((state) => state.isProcessingFiles)
+  const initializeStore = usePhotoStore((state) => state.initialize);
+  const cleanup = usePhotoStore((state) => state.cleanup);
+  const clearPhotos = usePhotoStore((state) => state.clearPhotos);
+  const photos = usePhotoStore((state) => state.photos);
+  const removePhoto = usePhotoStore((state) => state.removePhoto);
+  const validationResults = usePhotoStore((state) => state.validationResults);
+  const isProcessingFiles = usePhotoStore((state) => state.isProcessingFiles);
 
+  const isUploading = useUploadStore((state) => state.isUploading);
+  const setIsUploading = useUploadStore((state) => state.setIsUploading);
 
-  const isUploading = useUploadStore((state) => state.isUploading)
-  const setIsUploading = useUploadStore((state) => state.setIsUploading)
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const hasRedirectedRef = useRef(false);
 
-  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
-  const hasRedirectedRef = useRef(false)
-
-  const heicIsConverting = useHeicStore((state) => state.isConverting)
-  const heicIsCancelling = useHeicStore((state) => state.isCancelling)
-  const heicProgress = useHeicStore((state) => state.progress)
-  const heicCurrentFileName = useHeicStore((state) => state.currentFileName)
-  const cancelHeicConversion = useHeicStore((state) => state.cancel)
+  const heicIsConverting = useHeicStore((state) => state.isConverting);
+  const heicIsCancelling = useHeicStore((state) => state.isCancelling);
+  const heicProgress = useHeicStore((state) => state.progress);
+  const heicCurrentFileName = useHeicStore((state) => state.currentFileName);
+  const cancelHeicConversion = useHeicStore((state) => state.cancel);
 
   const { handleFileSelect } = useSelectFile({
     maxPhotos: BY_CAMERA_MAX_PHOTOS,
     t,
-  })
+  });
 
   useLivePhotoValidation({
     ruleConfigs,
-    marathonStartDate,
-    marathonEndDate,
-  })
+    validationStartDate,
+    validationEndDate,
+  });
 
   const {
     files: uploadFiles,
@@ -105,15 +104,15 @@ export function ByCameraUploadStep({
   } = useFileUpload({
     domain,
     reference: uploadFlowState.participantRef || "",
-  })
+  });
 
   useEffect(() => {
     return () => {
       if (hasRedirectedRef.current) {
-        clearFiles()
+        clearFiles();
       }
-    }
-  }, [clearFiles])
+    };
+  }, [clearFiles]);
 
   useEffect(() => {
     if (
@@ -122,103 +121,98 @@ export function ByCameraUploadStep({
       hasRedirectedRef.current ||
       !domain
     ) {
-      return
+      return;
     }
 
-    hasRedirectedRef.current = true
-    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
+    hasRedirectedRef.current = true;
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState);
     router.push(
       formatDomainPathname(`/live/confirmation${serializedParams}`, domain),
-    )
+    );
   }, [
     domain,
     finalizationState,
     minimumProgressDisplayReached,
     router,
     uploadFlowState,
-  ])
+  ]);
 
   const handleResetAndGoBack = () => {
-    const confirmed = window.confirm(t("confirmGoBack"))
-    if (!confirmed) return
-    clearPhotos()
-    clearFiles()
-    setIsUploading(false)
-    setShowConfirmationDialog(false)
-    handlePrevStep()
-  }
-
+    const confirmed = window.confirm(t("confirmGoBack"));
+    if (!confirmed) return;
+    clearPhotos();
+    clearFiles();
+    setIsUploading(false);
+    setShowConfirmationDialog(false);
+    handlePrevStep();
+  };
 
   const { mutateAsync: initializeByCameraUpload, isPending: isInitializing } =
     useMutation(
       trpc.uploadFlow.initializeByCameraUpload.mutationOptions({
         onError: (error) => {
-          toast.error(error.message || t("initializationFailed"))
+          toast.error(error.message || t("initializationFailed"));
         },
       }),
-    )
+    );
 
   const validationRules = useMemo(
     () => mapRuleConfigsToValidationRules(ruleConfigs),
     [ruleConfigs],
-  )
+  );
 
   useEffect(() => {
     initializeStore({
       topicOrderIndexes: [0],
-    })
+    });
 
     return () => {
-      cleanup()
-    }
-  }, [
-    initializeStore,
-    cleanup,
-  ])
+      cleanup();
+    };
+  }, [initializeStore, cleanup]);
 
   const handleSelectFiles = async (files: FileList | null) => {
-    const replace = photos.length > 0
-    await handleFileSelect(files, replace)
-  }
-
+    const replace = photos.length > 0;
+    await handleFileSelect(files, replace);
+  };
 
   const handleSubmit = () => {
     if (photos.length !== BY_CAMERA_MAX_PHOTOS) {
-      toast.error(t("selectPhoto"))
-      return
+      toast.error(t("selectPhoto"));
+      return;
     }
-    setShowConfirmationDialog(true)
-  }
+    setShowConfirmationDialog(true);
+  };
 
   const handleConfirmedUpload = async () => {
-    setShowConfirmationDialog(false)
+    setShowConfirmationDialog(false);
 
     const initializeByCameraUploadResult = domain
       ? buildInitializeByCameraUploadInputResult(domain, uploadFlowState)
-      : null
+      : null;
 
     if (!initializeByCameraUploadResult?.ok) {
       const issueLabels = initializeByCameraUploadResult
-        ? getUploadFlowIssueMessageKeys(initializeByCameraUploadResult.issues).map(
-            (messageKey) => t(messageKey),
-          )
-        : []
+        ? getUploadFlowIssueMessageKeys(
+            initializeByCameraUploadResult.issues,
+          ).map((messageKey) => t(messageKey))
+        : [];
       toast.error(
         issueLabels.length > 0
           ? t("missingRequiredInfoDetailed", { fields: issueLabels.join(", ") })
           : t("missingRequiredInfo"),
-      )
-      return
+      );
+      return;
     }
 
     try {
       const initialization = await initializeByCameraUpload(
         initializeByCameraUploadResult.data,
-      )
+      );
 
       if (!initialization || initialization.uploads.length === 0) {
-        toast.error(t("failedToGetPresignedUrls"))
-        return
+        toast.error(t("failedToGetPresignedUrls"));
+        return;
       }
 
       await setUploadFlowState((prev) => ({
@@ -226,47 +220,46 @@ export function ByCameraUploadStep({
         participantId: initialization.participantId,
         participantRef: initialization.reference,
         replaceExistingActiveTopicUpload: null,
-      }))
-      setIsUploading(true)
+      }));
+      setIsUploading(true);
 
       const photosWithUrls: PhotoWithPresignedUrl[] = photos.map(
         (photo, index) => {
-          const urlInfo = initialization.uploads[index]
+          const urlInfo = initialization.uploads[index];
           if (!urlInfo) {
-            throw new Error("Missing presigned URL for photo " + index)
+            throw new Error("Missing presigned URL for photo " + index);
           }
           return {
             ...photo,
             presignedUrl: urlInfo.url,
             key: urlInfo.key,
-          }
+          };
         },
-      )
+      );
 
-      await executeUpload(photosWithUrls)
+      await executeUpload(photosWithUrls);
     } catch (error) {
-      console.error("Upload failed:", error)
-      setIsUploading(false)
+      console.error("Upload failed:", error);
+      setIsUploading(false);
       toast.error(
         error instanceof Error && error.message
           ? error.message
           : t("uploadFailed"),
-      )
+      );
     }
-  }
+  };
 
-  const photoSelected = photos.length === BY_CAMERA_MAX_PHOTOS
-  const photo = photos[0]
+  const photoSelected = photos.length === BY_CAMERA_MAX_PHOTOS;
+  const photo = photos[0];
 
-  const hasValidationRules = validationRules.length > 0
+  const hasValidationRules = validationRules.length > 0;
   const hasValidationErrors = validationResults.some(
     (result) =>
       result.outcome === VALIDATION_OUTCOME.FAILED &&
       result.severity === "error",
-  )
+  );
 
-  const canSubmit = photoSelected && !hasValidationErrors
-    && !isProcessingFiles
+  const canSubmit = photoSelected && !hasValidationErrors && !isProcessingFiles;
 
   return (
     <>
@@ -360,9 +353,7 @@ export function ByCameraUploadStep({
                   size="lg"
                   className="w-[140px] rounded-full"
                 >
-                  <span className="whitespace-nowrap">
-                    Select another
-                  </span>
+                  <span className="whitespace-nowrap">Select another</span>
                 </Button>
               )}
             </CardFooter>
@@ -389,5 +380,5 @@ export function ByCameraUploadStep({
         </motion.div>
       )}
     </>
-  )
+  );
 }

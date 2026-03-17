@@ -6,6 +6,7 @@ import { AnimatePresence } from "motion/react";
 import dynamic from "next/dynamic";
 import { useHandleBeforeUnload } from "../_hooks/use-handle-before-unload";
 import { BY_CAMERA_STEPS } from "../_lib/constants";
+import { getByCameraValidationWindow } from "../_lib/live-validation-window";
 import { ByCameraStepNavigator } from "../_components/by-camera-step-navigator";
 import { AnimatedStepWrapper } from "../_components/animated-step-wrapper";
 import { ParticipantDetailsStep } from "../_components/participant-details-step";
@@ -14,6 +15,7 @@ import { ByCameraUploadStep } from "../_components/by-camera-upload-step";
 import { useStepState } from "../_lib/step-state-context";
 import { redirect } from "next/navigation";
 import { formatDomainPathname } from "@/lib/utils";
+import { getByCameraLiveAccessState } from "@/lib/topics/by-camera-live-access-state";
 
 const NetworkStatusBanner = dynamic(
   () =>
@@ -34,9 +36,18 @@ export function ByCameraClientWrapper() {
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
   );
 
-  if (!marathon.startDate || !marathon.endDate) {
-    redirect(formatDomainPathname(`/live/not-configured`, domain, "live"));
+  if (marathon.mode !== "by-camera") {
+    redirect(formatDomainPathname(`/live`, domain, "live"));
   }
+
+  const byCameraAccessState = getByCameraLiveAccessState(marathon);
+  const activeTopic = byCameraAccessState.activeTopic;
+
+  if (byCameraAccessState.state !== "open" || !activeTopic) {
+    redirect(formatDomainPathname(`/live`, domain, "live"));
+  }
+
+  const validationWindow = getByCameraValidationWindow(activeTopic);
 
   return (
     <div className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 min-h-dvh pb-[env(safe-area-inset-bottom)]">
@@ -70,10 +81,9 @@ export function ByCameraClientWrapper() {
             direction={direction}
           >
             <ByCameraUploadStep
-              topic={marathon.topics[0]}
+              topic={activeTopic}
               ruleConfigs={marathon.ruleConfigs}
-              marathonStartDate={marathon.startDate}
-              marathonEndDate={marathon.endDate}
+              {...validationWindow}
             />
           </AnimatedStepWrapper>
         )}

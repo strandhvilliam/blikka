@@ -24,9 +24,9 @@ import { changeLocaleAction } from "@/lib/actions/change-locale-action";
 import { useRouter } from "next/navigation";
 import { useDomain } from "@/lib/domain-provider";
 import {
-  getByCameraSubmissionWindowState,
-  type ByCameraSubmissionWindowState,
-} from "@/lib/topics/by-camera-submission-window-state";
+  getByCameraLiveAccessState,
+  type ByCameraLiveAccessResult,
+} from "@/lib/topics/by-camera-live-access-state";
 
 const BUCKET_NAME = process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME;
 
@@ -54,6 +54,9 @@ export function LiveClientPage() {
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
   );
 
+  const byCameraAccessState =
+    marathon.mode === "by-camera" ? getByCameraLiveAccessState(marathon) : null;
+
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleStartUpload = () => {
@@ -63,6 +66,10 @@ export function LiveClientPage() {
           router.push(formatDomainPathname(`/live/marathon`, domain, "live"));
           break;
         case "by-camera":
+          if (byCameraAccessState?.state !== "open") {
+            return;
+          }
+
           router.push(formatDomainPathname(`/live/by-camera`, domain, "live"));
           break;
       }
@@ -83,13 +90,6 @@ export function LiveClientPage() {
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
-
-  const activeTopic =
-    marathon.mode === "by-camera" ? (marathon.topics[0] ?? null) : null;
-  const byCameraSubmissionState =
-    marathon.mode === "by-camera"
-      ? getByCameraSubmissionWindowState(activeTopic)
-      : null;
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
@@ -118,8 +118,8 @@ export function LiveClientPage() {
               onUploadClick={handleStartUpload}
               onPrepareClick={handleStartPrepare}
               disabled={!termsAccepted}
-              byCameraSubmissionState={byCameraSubmissionState}
-              activeTopic={activeTopic}
+              byCameraAccessState={byCameraAccessState}
+              activeTopic={byCameraAccessState?.activeTopic ?? null}
             />
 
             <SponsorsSection sponsorImages={sponsorImages} />
@@ -255,14 +255,14 @@ function StartButtons({
   onUploadClick,
   onPrepareClick,
   disabled,
-  byCameraSubmissionState,
+  byCameraAccessState,
   activeTopic,
 }: {
   marathonMode: "marathon" | "by-camera";
   onUploadClick: () => void;
   onPrepareClick: () => void;
   disabled: boolean;
-  byCameraSubmissionState?: ByCameraSubmissionWindowState | null;
+  byCameraAccessState?: ByCameraLiveAccessResult | null;
   activeTopic?: {
     scheduledStart: string | null;
   } | null;
@@ -292,11 +292,11 @@ function StartButtons({
     );
   }
 
-  if (byCameraSubmissionState !== "open") {
+  if (byCameraAccessState?.state !== "open") {
     let message = t("submissionsUnavailable");
 
     if (
-      byCameraSubmissionState === "scheduled" &&
+      byCameraAccessState?.state === "scheduled" &&
       activeTopic?.scheduledStart
     ) {
       message = t("submissionsScheduled", {
@@ -304,9 +304,9 @@ function StartButtons({
           locale: dateFnsLocales[locale] ?? enUS,
         }),
       });
-    } else if (byCameraSubmissionState === "not-opened") {
+    } else if (byCameraAccessState?.reason === "missing-scheduled-start") {
       message = t("submissionsNotOpenYet");
-    } else if (byCameraSubmissionState === "closed") {
+    } else if (byCameraAccessState?.state === "closed") {
       message = t("submissionsClosed");
     }
 

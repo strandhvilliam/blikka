@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { redirect } from "next/navigation";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { useHandleBeforeUnload } from "../_hooks/use-handle-before-unload";
+import { getMarathonValidationWindow } from "../_lib/live-validation-window";
 import {
   PARTICIPANT_SUBMISSION_STEPS,
   PREPARE_PARTICIPANT_STEPS,
@@ -76,6 +77,14 @@ export function MarathonClientWrapper() {
     );
   }, [marathon.deviceGroups, uploadFlowState.deviceGroupId]);
 
+  const validationWindow =
+    marathon.startDate && marathon.endDate
+      ? getMarathonValidationWindow({
+          startDate: marathon.startDate,
+          endDate: marathon.endDate,
+        })
+      : null;
+
   return (
     <div className="mx-auto max-w-2xl px-4 sm:px-6 py-6 sm:py-10 min-h-dvh pb-[env(safe-area-inset-bottom)]">
       <NetworkStatusBanner />
@@ -120,8 +129,7 @@ export function MarathonClientWrapper() {
         {flowVariant === "upload" &&
           step === PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep &&
           selectedCompetitionClass &&
-          marathon.startDate &&
-          marathon.endDate && (
+          validationWindow && (
             <AnimatedStepWrapper
               key={PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep}
               direction={direction}
@@ -130,8 +138,7 @@ export function MarathonClientWrapper() {
                 competitionClass={selectedCompetitionClass}
                 topics={topicsForClass}
                 ruleConfigs={marathon.ruleConfigs}
-                marathonStartDate={marathon.startDate}
-                marathonEndDate={marathon.endDate}
+                {...validationWindow}
               />
             </AnimatedStepWrapper>
           )}
