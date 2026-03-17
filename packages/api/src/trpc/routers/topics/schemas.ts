@@ -6,8 +6,7 @@ export class TopicApiError extends Schema.TaggedErrorClass<TopicApiError>()(
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
-) {
-}
+) {}
 
 export const CreateTopicInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
@@ -17,6 +16,7 @@ export const CreateTopicInputSchema = Schema.toStandardSchemaV1(
       visibility: Schema.Literals(["public", "private", "scheduled", "active"]),
       activate: Schema.optional(Schema.Boolean),
       scheduledStart: Schema.optional(Schema.String),
+      scheduledEnd: Schema.optional(Schema.String),
       orderIndex: Schema.optional(Schema.Number),
     }),
   }),
@@ -32,6 +32,7 @@ export const UpdateTopicInputSchema = Schema.toStandardSchemaV1(
         Schema.Literals(["public", "private", "scheduled", "active"]),
       ),
       scheduledStart: Schema.optional(Schema.NullishOr(Schema.String)),
+      scheduledEnd: Schema.optional(Schema.NullishOr(Schema.String)),
       orderIndex: Schema.optional(Schema.Number),
     }),
   }),
@@ -51,11 +52,12 @@ export const UpdateTopicsOrderInputSchema = Schema.toStandardSchemaV1(
   }),
 );
 
-export const GetTopicsWithSubmissionCountInputSchema = Schema.toStandardSchemaV1(
-  Schema.Struct({
-    domain: Schema.String,
-  }),
-);
+export const GetTopicsWithSubmissionCountInputSchema =
+  Schema.toStandardSchemaV1(
+    Schema.Struct({
+      domain: Schema.String,
+    }),
+  );
 
 export const ActivateTopicInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({

@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTopicsByCameraDialogState } from "../_hooks/use-topics-by-camera-dialog-state";
+import { getByCameraSubmissionWindowState } from "../_lib/by-camera-submission-window-state";
 import { TopicsCreateDialog } from "./topics-create-dialog";
 import { TopicsEditDialog } from "./topics-edit-dialog";
 import { TopicsDeleteDialog } from "./topics-delete-dialog";
@@ -18,6 +19,7 @@ import { TopicsByCameraEmptyState } from "./topics-by-camera-empty-state";
 import { TopicsByCameraStats } from "./topics-by-camera-stats";
 import { ActiveTopicBanner } from "./active-topic-banner";
 import { TopicsHistoryList } from "./topics-history-list";
+import { TopicsSubmissionWindowDialog } from "./topics-submission-window-dialog";
 
 export function TopicsByCamera() {
   const domain = useDomain();
@@ -30,6 +32,7 @@ export function TopicsByCamera() {
     openCreate,
     openEdit,
     openDelete,
+    openSubmissionWindow,
   } = useTopicsByCameraDialogState();
 
   const { data: marathon } = useSuspenseQuery(
@@ -51,20 +54,26 @@ export function TopicsByCamera() {
   const sortedTopics = [...topics].sort((a, b) => a.orderIndex - b.orderIndex);
   const activeTopic =
     sortedTopics.find((topic) => topic.visibility === "active") ?? null;
+  const activeTopicSubmissionState =
+    getByCameraSubmissionWindowState(activeTopic);
   const historyTopics = sortedTopics.filter(
     (topic) => topic.id !== activeTopic?.id,
   );
-  const totalSubmissions = submissionCounts.reduce((sum, row) => sum + row.count, 0);
+  const totalSubmissions = submissionCounts.reduce(
+    (sum, row) => sum + row.count,
+    0,
+  );
 
   const selectedTopic =
-    topicId != null
-      ? topics.find((t) => t.id === topicId) ?? null
-      : null;
+    topicId != null ? (topics.find((t) => t.id === topicId) ?? null) : null;
 
   const { mutate: activateTopic, isPending: isActivatingTopic } = useMutation(
     trpc.topics.activate.mutationOptions({
       onSuccess: () => {
-        toast.success("Topic activated");
+        toast.success("Topic activated", {
+          description:
+            "Start submissions from the active topic panel when ready.",
+        });
       },
       onError: (error) => {
         toast.error(error.message || "Failed to activate topic");
@@ -110,6 +119,10 @@ export function TopicsByCamera() {
     openDelete(topic.id);
   };
 
+  const handleSubmissionWindowClick = (topic: Topic) => {
+    openSubmissionWindow(topic.id);
+  };
+
   const handleDeleteConfirm = (topic: Topic) => {
     deleteTopic({ domain, id: topic.id });
     closeDialog();
@@ -117,10 +130,7 @@ export function TopicsByCamera() {
 
   return (
     <div className="flex flex-col gap-8 max-w-[1000px] mx-auto w-full">
-      <TopicsByCameraHeader
-        onCreateClick={openCreate}
-        isLoading={isLoading}
-      />
+      <TopicsByCameraHeader onCreateClick={openCreate} isLoading={isLoading} />
 
       <TopicsCreateDialog
         isOpen={dialog === "create"}
@@ -136,13 +146,15 @@ export function TopicsByCamera() {
           <TopicsByCameraStats
             topicsCount={topics.length}
             totalSubmissions={totalSubmissions}
-            activeTopic={activeTopic}
+            submissionState={activeTopicSubmissionState}
           />
 
           <ActiveTopicBanner
             activeTopic={activeTopic}
+            submissionState={activeTopicSubmissionState}
             submissionCount={submissionCountMap.get(activeTopic?.id ?? 0) ?? 0}
             onEdit={handleEditClick}
+            onEditSubmissionWindow={handleSubmissionWindowClick}
             onCreate={openCreate}
             isLoading={isLoading}
           />
@@ -181,7 +193,12 @@ export function TopicsByCamera() {
         topic={selectedTopic}
         isOpen={dialog === "edit"}
         onOpenChange={(open) => !open && closeDialog()}
-        showActiveToggle
+      />
+
+      <TopicsSubmissionWindowDialog
+        topic={selectedTopic}
+        isOpen={dialog === "submission-window"}
+        onOpenChange={(open) => !open && closeDialog()}
       />
     </div>
   );

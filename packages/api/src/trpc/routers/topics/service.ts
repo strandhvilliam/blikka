@@ -6,6 +6,33 @@ import { TopicApiError } from "./schemas";
 
 type TopicVisibility = "public" | "private" | "scheduled" | "active";
 
+function validateSubmissionWindow({
+  scheduledStart,
+  scheduledEnd,
+}: {
+  scheduledStart?: string | null | undefined;
+  scheduledEnd?: string | null | undefined;
+}) {
+  if (!scheduledStart || !scheduledEnd) {
+    return;
+  }
+
+  const start = new Date(scheduledStart);
+  const end = new Date(scheduledEnd);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    throw new TopicApiError({
+      message: "Invalid submission window",
+    });
+  }
+
+  if (end <= start) {
+    throw new TopicApiError({
+      message: "Submission end must be after the submission start",
+    });
+  }
+}
+
 export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
   "@blikka/api/TopicsApiService",
   {
@@ -47,6 +74,7 @@ export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
           visibility: TopicVisibility;
           activate?: boolean;
           scheduledStart?: string;
+          scheduledEnd?: string;
           orderIndex?: number;
         };
       }) {
@@ -71,9 +99,15 @@ export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
           orderIndex = existingTopics.length;
         }
 
+        validateSubmissionWindow({
+          scheduledStart: data.scheduledStart,
+          scheduledEnd: data.scheduledEnd,
+        });
+
         const isByCamera = marathon.value.mode === "by-camera";
         const shouldActivate =
-          isByCamera && (data.activate === true || data.visibility === "active");
+          isByCamera &&
+          (data.activate === true || data.visibility === "active");
 
         const { activate: _, ...createData } = data;
         const createVisibility =
@@ -130,6 +164,7 @@ export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
           name?: string;
           visibility?: TopicVisibility;
           scheduledStart?: string | null | undefined;
+          scheduledEnd?: string | null | undefined;
           orderIndex?: number;
         };
       }) {
@@ -143,9 +178,26 @@ export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
           );
         }
 
+        const nextScheduledStart =
+          data.scheduledStart === undefined
+            ? topic.scheduledStart
+            : data.scheduledStart;
+        const nextScheduledEnd =
+          data.scheduledEnd === undefined
+            ? topic.scheduledEnd
+            : data.scheduledEnd;
+
+        validateSubmissionWindow({
+          scheduledStart: nextScheduledStart,
+          scheduledEnd: nextScheduledEnd,
+        });
+
         const updateData: Partial<NewTopic> = {
           ...data,
-          scheduledStart: data.scheduledStart === null ? undefined : data.scheduledStart,
+          scheduledStart:
+            data.scheduledStart === null ? undefined : data.scheduledStart,
+          scheduledEnd:
+            data.scheduledEnd === undefined ? undefined : data.scheduledEnd,
         };
 
         if (updateData.visibility === "active") {
@@ -168,11 +220,14 @@ export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
             { concurrency: 1 },
           );
 
-          const activatedAt = updateData.activatedAt ?? new Date().toISOString();
+          const activatedAt =
+            updateData.activatedAt ?? new Date().toISOString();
           updateData.activatedAt = activatedAt;
           yield* db.votingQueries.closeVotingWindowsForTopics({
             marathonId: topic.marathonId,
-            topicIds: currentlyActiveTopics.map((activeTopic) => activeTopic.id),
+            topicIds: currentlyActiveTopics.map(
+              (activeTopic) => activeTopic.id,
+            ),
             nowIso: activatedAt,
           });
         }
@@ -183,53 +238,54 @@ export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
         });
       });
 
-      const activateTopic = Effect.fn("TopicsApiService.activateTopic")(function* ({
-        id,
-      }: {
-        id: number;
-      }) {
-        const topic = yield* db.topicsQueries.getTopicById({ id });
+      const activateTopic = Effect.fn("TopicsApiService.activateTopic")(
+        function* ({ id }: { id: number }) {
+          const topic = yield* db.topicsQueries.getTopicById({ id });
 
-        if (!topic) {
-          return yield* Effect.fail(
-            new TopicApiError({
-              message: `Topic not found with id ${id}`,
-            }),
+          if (!topic) {
+            return yield* Effect.fail(
+              new TopicApiError({
+                message: `Topic not found with id ${id}`,
+              }),
+            );
+          }
+
+          const topics = yield* db.topicsQueries.getTopicsByMarathonId({
+            id: topic.marathonId,
+          });
+          const currentlyActiveTopics = topics.filter(
+            (candidateTopic) =>
+              candidateTopic.id !== id &&
+              candidateTopic.visibility === "active",
           );
-        }
+          yield* Effect.forEach(
+            currentlyActiveTopics,
+            (activeTopic) =>
+              db.topicsQueries.updateTopic({
+                id: activeTopic.id,
+                data: { visibility: "public" },
+              }),
+            { concurrency: 1 },
+          );
 
-        const topics = yield* db.topicsQueries.getTopicsByMarathonId({
-          id: topic.marathonId,
-        });
-        const currentlyActiveTopics = topics.filter(
-          (candidateTopic) =>
-            candidateTopic.id !== id && candidateTopic.visibility === "active",
-        );
-        yield* Effect.forEach(
-          currentlyActiveTopics,
-          (activeTopic) =>
-            db.topicsQueries.updateTopic({
-              id: activeTopic.id,
-              data: { visibility: "public" },
-            }),
-          { concurrency: 1 },
-        );
+          const activatedAt = new Date().toISOString();
+          yield* db.votingQueries.closeVotingWindowsForTopics({
+            marathonId: topic.marathonId,
+            topicIds: currentlyActiveTopics.map(
+              (activeTopic) => activeTopic.id,
+            ),
+            nowIso: activatedAt,
+          });
 
-        const activatedAt = new Date().toISOString();
-        yield* db.votingQueries.closeVotingWindowsForTopics({
-          marathonId: topic.marathonId,
-          topicIds: currentlyActiveTopics.map((activeTopic) => activeTopic.id),
-          nowIso: activatedAt,
-        });
-
-        return yield* db.topicsQueries.updateTopic({
-          id,
-          data: {
-            activatedAt,
-            visibility: "active",
-          },
-        });
-      });
+          return yield* db.topicsQueries.updateTopic({
+            id,
+            data: {
+              activatedAt,
+              visibility: "active",
+            },
+          });
+        },
+      );
 
       const deleteTopic = Effect.fn("TopicsApiService.deleteTopic")(function* ({
         id,
@@ -265,30 +321,32 @@ export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
         });
       });
 
-      const updateTopicsOrder = Effect.fn("TopicsApiService.updateTopicsOrder")(function* ({
-        domain,
-        topicIds,
-      }: {
-        domain: string;
-        topicIds: readonly number[];
-      }) {
-        const marathon = yield* db.marathonsQueries.getMarathonByDomain({
+      const updateTopicsOrder = Effect.fn("TopicsApiService.updateTopicsOrder")(
+        function* ({
           domain,
-        });
+          topicIds,
+        }: {
+          domain: string;
+          topicIds: readonly number[];
+        }) {
+          const marathon = yield* db.marathonsQueries.getMarathonByDomain({
+            domain,
+          });
 
-        if (Option.isNone(marathon)) {
-          return yield* Effect.fail(
-            new TopicApiError({
-              message: `Marathon not found for domain ${domain}`,
-            }),
-          );
-        }
+          if (Option.isNone(marathon)) {
+            return yield* Effect.fail(
+              new TopicApiError({
+                message: `Marathon not found for domain ${domain}`,
+              }),
+            );
+          }
 
-        return yield* db.topicsQueries.updateTopicsOrder({
-          topicIds: [...topicIds],
-          marathonId: marathon.value.id,
-        });
-      });
+          return yield* db.topicsQueries.updateTopicsOrder({
+            topicIds: [...topicIds],
+            marathonId: marathon.value.id,
+          });
+        },
+      );
 
       return {
         getTopicsWithSubmissionCount,

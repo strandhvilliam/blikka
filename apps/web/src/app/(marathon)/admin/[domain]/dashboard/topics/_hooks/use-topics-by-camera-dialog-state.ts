@@ -2,8 +2,12 @@
 
 import { parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs";
 
-
-const dialogParser = parseAsStringEnum(["create", "edit", "delete"]);
+const dialogParser = parseAsStringEnum([
+  "create",
+  "edit",
+  "delete",
+  "submission-window",
+]);
 
 export function useTopicsByCameraDialogState() {
   const [params, setParams] = useQueryStates({
@@ -27,6 +31,10 @@ export function useTopicsByCameraDialogState() {
     setParams({ dialog: "delete", topicId });
   };
 
+  const openSubmissionWindow = (topicId: number) => {
+    setParams({ dialog: "submission-window", topicId });
+  };
+
   return {
     dialog: params.dialog,
     topicId: params.topicId,
@@ -34,6 +42,7 @@ export function useTopicsByCameraDialogState() {
     openCreate,
     openEdit,
     openDelete,
+    openSubmissionWindow,
     setParams,
   };
 }

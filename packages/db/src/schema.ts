@@ -150,10 +150,7 @@ export const participants = pgTable(
     phoneEncrypted: text("phone_encrypted"),
   },
   (table) => [
-    index("participants_domain_idx").using(
-      "btree",
-      table.domain.asc().nullsLast().op("text_ops"),
-    ),
+    index("participants_domain_idx").using("btree", table.domain.asc().nullsLast().op("text_ops")),
     index("participants_reference_domain_idx").using(
       "btree",
       table.reference.asc().nullsLast().op("text_ops"),
@@ -168,10 +165,7 @@ export const participants = pgTable(
       table.marathonId.asc().nullsLast().op("int8_ops"),
       table.phoneHash.asc().nullsLast().op("text_ops"),
     ),
-    unique("participants_domain_reference_key").on(
-      table.domain,
-      table.reference,
-    ),
+    unique("participants_domain_reference_key").on(table.domain, table.reference),
     foreignKey({
       columns: [table.competitionClassId],
       foreignColumns: [competitionClasses.id],
@@ -325,10 +319,7 @@ export const marathons = pgTable(
     mode: text().default("marathon").notNull(),
   },
   (table) => [
-    index("marathons_domain_idx").using(
-      "btree",
-      table.domain.asc().nullsLast().op("text_ops"),
-    ),
+    index("marathons_domain_idx").using("btree", table.domain.asc().nullsLast().op("text_ops")),
   ],
 )
 
@@ -402,9 +393,7 @@ export const participantVerifications = pgTable(
     notes: text(),
   },
   (table) => [
-    index("participant_verifications_participant_id_idx").on(
-      table.participantId,
-    ),
+    index("participant_verifications_participant_id_idx").on(table.participantId),
     index("participant_verifications_staff_id_idx").using(
       "btree",
       table.staffId.asc().nullsLast().op("text_ops"),
@@ -443,10 +432,7 @@ export const submissions = pgTable(
     status: text().default("initialized").notNull(),
   },
   (table) => [
-    index("submissions_key_idx").using(
-      "btree",
-      table.key.asc().nullsLast().op("text_ops"),
-    ),
+    index("submissions_key_idx").using("btree", table.key.asc().nullsLast().op("text_ops")),
     index("submissions_marathon_id_idx").using(
       "btree",
       table.marathonId.asc().nullsLast().op("int8_ops"),
@@ -491,6 +477,10 @@ export const topics = pgTable(
     orderIndex: integer("order_index").default(0).notNull(),
     visibility: text().default("private").notNull(),
     scheduledStart: timestamp("scheduled_start", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    scheduledEnd: timestamp("scheduled_end", {
       withTimezone: true,
       mode: "string",
     }),
@@ -651,18 +641,13 @@ export const votingSession = pgTable(
     topicId: bigint("topic_id", { mode: "number" }).notNull(),
   },
   (table) => [
-    index("voting_session_connected_participant_id_idx").on(
-      table.connectedParticipantId,
-    ),
+    index("voting_session_connected_participant_id_idx").on(table.connectedParticipantId),
     uniqueIndex("voting_session_connected_participant_topic_unique_idx").on(
       table.connectedParticipantId,
       table.topicId,
     ),
     uniqueIndex("voting_session_token_unique_idx").on(table.token),
-    index("voting_session_marathon_topic_idx").on(
-      table.marathonId,
-      table.topicId,
-    ),
+    index("voting_session_marathon_topic_idx").on(table.marathonId, table.topicId),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],

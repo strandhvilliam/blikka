@@ -29,8 +29,8 @@ export function TopicsByCameraHeader({
           </Badge>
         </div>
         <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
-          Each event runs on a single active topic. Create topics for your
-          events and activate them when you&apos;re ready to accept submissions.
+          Each event runs on a single active topic. Activate a topic first, then
+          start or schedule submissions when you&apos;re ready to open uploads.
         </p>
       </div>
       <PrimaryButton

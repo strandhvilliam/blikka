@@ -1,40 +1,35 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "@tanstack/react-form";
+import type { Topic } from "@blikka/db";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
-import { Label } from "@/components/ui/label";
-import { useEffect } from "react";
-import type { Topic } from "@blikka/db";
-import { toDateTimeLocalValue, toIsoFromLocal } from "../_lib/formatting";
+import { useTRPC } from "@/lib/trpc/client";
 
 interface EditTopicDialogProps {
   topic: Topic | null;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  showActiveToggle?: boolean;
 }
 
 export function TopicsEditDialog({
   topic,
   isOpen,
   onOpenChange,
-  showActiveToggle = false,
 }: EditTopicDialogProps) {
   const domain = useDomain();
   const trpc = useTRPC();
@@ -59,79 +54,36 @@ export function TopicsEditDialog({
     }),
   );
 
-  const { mutate: activateTopic, isPending: isActivatingTopic } = useMutation(
-    trpc.topics.activate.mutationOptions({
-      onError: (error) => {
-        toast.error("Failed to activate topic", {
-          description: error.message,
-        });
-      },
-      onSuccess: () => {
-        toast.success("Topic activated");
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries({
-          queryKey: trpc.marathons.pathKey(),
-        });
-      },
-    }),
-  );
-
   const form = useForm({
     defaultValues: {
-      name: topic?.name || "",
+      name: topic?.name ?? "",
       visibility: topic ? topic.visibility !== "private" : true,
-      activate: topic ? topic.visibility === "active" : false,
-      scheduledStart: topic?.scheduledStart
-        ? toDateTimeLocalValue(new Date(topic.scheduledStart))
-        : "",
     },
     onSubmit: async ({ value }) => {
       if (!topic) return;
-
-      const visibility = value.visibility ? "public" : "private";
-      const shouldActivate =
-        showActiveToggle && value.activate && topic.visibility !== "active";
-      const shouldKeepActive =
-        topic.visibility === "active" && value.visibility;
-
-      const scheduledStartIso = value.scheduledStart
-        ? toIsoFromLocal(value.scheduledStart)
-        : null;
 
       updateTopic({
         domain,
         id: topic.id,
         data: {
           name: value.name,
-          visibility: (shouldKeepActive
+          visibility: (topic.visibility === "active" && value.visibility
             ? "active"
-            : visibility) as "public" | "private" | "scheduled" | "active",
-          scheduledStart: scheduledStartIso,
+            : value.visibility
+              ? "public"
+              : "private") as "public" | "private" | "scheduled" | "active",
         },
       });
-
-      if (shouldActivate) {
-        activateTopic({
-          domain,
-          id: topic.id,
-        });
-      }
     },
   });
 
   useEffect(() => {
-    if (topic) {
-      form.setFieldValue("name", topic.name);
-      form.setFieldValue("visibility", topic.visibility !== "private");
-      form.setFieldValue("activate", topic.visibility === "active");
-      form.setFieldValue(
-        "scheduledStart",
-        topic.scheduledStart
-          ? toDateTimeLocalValue(new Date(topic.scheduledStart))
-          : "",
-      );
+    if (!topic) {
+      return;
     }
+
+    form.setFieldValue("name", topic.name);
+    form.setFieldValue("visibility", topic.visibility !== "private");
   }, [topic, form]);
 
   return (
@@ -140,13 +92,14 @@ export function TopicsEditDialog({
         <DialogHeader>
           <DialogTitle>Edit Topic</DialogTitle>
           <DialogDescription>
-            Make changes to the topic details here. Click save when you're done.
+            Update the topic details here. Submission timing is managed from the
+            active topic panel.
           </DialogDescription>
         </DialogHeader>
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
             form.handleSubmit();
           }}
           className="space-y-4"
@@ -158,10 +111,12 @@ export function TopicsEditDialog({
                 if (!value || value.length < 1) {
                   return "Name is required";
                 }
+
                 return undefined;
               },
             }}
-            children={(field) => (
+          >
+            {(field) => (
               <div className="space-y-2">
                 <label
                   htmlFor={field.name}
@@ -174,22 +129,21 @@ export function TopicsEditDialog({
                   name={field.name}
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(event) => field.handleChange(event.target.value)}
                   placeholder="Enter topic name"
                 />
                 {field.state.meta.isTouched &&
                 field.state.meta.errors.length ? (
-                  <p className="text-sm text-destructive mt-1">
+                  <p className="mt-1 text-sm text-destructive">
                     {field.state.meta.errors.join(", ")}
                   </p>
                 ) : null}
               </div>
             )}
-          />
+          </form.Field>
 
-          <form.Field
-            name="visibility"
-            children={(field) => (
+          <form.Field name="visibility">
+            {(field) => (
               <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                 <div className="space-y-0.5">
                   <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -205,52 +159,7 @@ export function TopicsEditDialog({
                 />
               </div>
             )}
-          />
-
-          {showActiveToggle ? (
-            <form.Field
-              name="activate"
-              children={(field) => (
-                <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Make active
-                    </label>
-                    <p className="text-sm text-muted-foreground">
-                      Mark this topic as the active one
-                    </p>
-                  </div>
-                  <Switch
-                    checked={field.state.value}
-                    onCheckedChange={(checked) => field.handleChange(checked)}
-                    disabled={topic?.visibility === "active"}
-                  />
-                </div>
-              )}
-            />
-          ) : null}
-
-          {showActiveToggle ? (
-            <form.Field
-              name="scheduledStart"
-              children={(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor="scheduled-start">
-                    Submissions open at
-                  </Label>
-                  <Input
-                    id="scheduled-start"
-                    type="datetime-local"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty to accept submissions immediately when activated.
-                  </p>
-                </div>
-              )}
-            />
-          ) : null}
+          </form.Field>
 
           <DialogFooter>
             <Button
@@ -261,13 +170,8 @@ export function TopicsEditDialog({
             >
               Cancel
             </Button>
-            <PrimaryButton
-              type="submit"
-              disabled={isUpdatingTopic || isActivatingTopic}
-            >
-              {isUpdatingTopic || isActivatingTopic
-                ? "Saving..."
-                : "Save changes"}
+            <PrimaryButton type="submit" disabled={isUpdatingTopic}>
+              {isUpdatingTopic ? "Saving..." : "Save changes"}
             </PrimaryButton>
           </DialogFooter>
         </form>

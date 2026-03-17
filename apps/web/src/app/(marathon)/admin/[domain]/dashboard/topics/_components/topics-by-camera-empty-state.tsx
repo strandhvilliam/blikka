@@ -19,8 +19,8 @@ export function TopicsByCameraEmptyState({
         No topics yet
       </h2>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Create your first topic to get started. Once active, participants can
-        begin submitting their photos.
+        Create your first topic to get started. Once a topic is active, you can
+        open submissions from the active topic panel.
       </p>
       <PrimaryButton onClick={onCreateClick} className="mt-6">
         <Plus className="size-4" />

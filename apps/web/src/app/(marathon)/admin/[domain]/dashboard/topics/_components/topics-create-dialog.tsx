@@ -1,32 +1,30 @@
-"use client"
+"use client";
 
-import { useForm } from "@tanstack/react-form"
-import { Button } from "@/components/ui/button"
+import { useEffect } from "react";
+import { useForm } from "@tanstack/react-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Switch } from "@/components/ui/switch"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { Label } from "@/components/ui/label"
-import { useEffect } from "react"
-import { toIsoFromLocal } from "../_lib/formatting"
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { PrimaryButton } from "@/components/ui/primary-button";
+import { Switch } from "@/components/ui/switch";
+import { useDomain } from "@/lib/domain-provider";
+import { useTRPC } from "@/lib/trpc/client";
 
 interface CreateTopicDialogProps {
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
-  showActiveToggle?: boolean
-  defaultActive?: boolean
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  showActiveToggle?: boolean;
+  defaultActive?: boolean;
 }
 
 export function TopicsCreateDialog({
@@ -35,61 +33,55 @@ export function TopicsCreateDialog({
   showActiveToggle = false,
   defaultActive = true,
 }: CreateTopicDialogProps) {
-  const domain = useDomain()
-  const trpc = useTRPC()
-  const queryClient = useQueryClient()
+  const domain = useDomain();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
   const { mutate: createTopic, isPending: isCreatingTopic } = useMutation(
     trpc.topics.create.mutationOptions({
       onSuccess: () => {
-        form.reset()
-        onOpenChange(false)
-        toast.success("Topic created")
+        form.reset();
+        onOpenChange(false);
+        toast.success("Topic created");
       },
       onError: (error) => {
-        toast.error(error.message)
+        toast.error(error.message);
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
-        })
+        });
       },
-    })
-  )
+    }),
+  );
 
   const form = useForm({
     defaultValues: {
       name: "",
       visibility: true,
       activate: showActiveToggle ? defaultActive : false,
-      scheduledStart: "",
     },
     onSubmit: async ({ value }) => {
-      const visibility = value.visibility ? "public" : "private"
-      const scheduledStartIso = value.scheduledStart
-        ? toIsoFromLocal(value.scheduledStart)
-        : undefined
-      const data = {
-        name: value.name,
-        visibility: visibility as
-          | "public"
-          | "private"
-          | "scheduled"
-          | "active",
-        ...(showActiveToggle && value.activate ? { activate: true } : {}),
-        ...(scheduledStartIso ? { scheduledStart: scheduledStartIso } : {}),
-      }
       createTopic({
         domain,
-        data,
-      })
+        data: {
+          name: value.name,
+          visibility: (value.visibility ? "public" : "private") as
+            | "public"
+            | "private"
+            | "scheduled"
+            | "active",
+          ...(showActiveToggle && value.activate ? { activate: true } : {}),
+        },
+      });
     },
-  })
+  });
 
   useEffect(() => {
     if (isOpen) {
-      form.reset()
+      form.reset();
     }
-  }, [isOpen, form])
+  }, [isOpen, form]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -97,14 +89,15 @@ export function TopicsCreateDialog({
         <DialogHeader>
           <DialogTitle>Create New Topic</DialogTitle>
           <DialogDescription>
-            Add a new topic to your marathon. Fill in the details below.
+            Add a new topic to your marathon. Submission timing can be started
+            later from the active topic panel.
           </DialogDescription>
         </DialogHeader>
         <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            form.handleSubmit()
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            form.handleSubmit();
           }}
           className="space-y-4"
         >
@@ -113,12 +106,14 @@ export function TopicsCreateDialog({
             validators={{
               onChange: ({ value }) => {
                 if (!value || value.length < 1) {
-                  return "Name is required"
+                  return "Name is required";
                 }
-                return undefined
+
+                return undefined;
               },
             }}
-            children={(field) => (
+          >
+            {(field) => (
               <div className="space-y-2">
                 <label
                   htmlFor={field.name}
@@ -131,21 +126,21 @@ export function TopicsCreateDialog({
                   name={field.name}
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(event) => field.handleChange(event.target.value)}
                   placeholder="Enter topic name"
                 />
-                {field.state.meta.isTouched && field.state.meta.errors.length ? (
-                  <p className="text-sm text-destructive mt-1">
+                {field.state.meta.isTouched &&
+                field.state.meta.errors.length ? (
+                  <p className="mt-1 text-sm text-destructive">
                     {field.state.meta.errors.join(", ")}
                   </p>
                 ) : null}
               </div>
             )}
-          />
+          </form.Field>
 
-          <form.Field
-            name="visibility"
-            children={(field) => (
+          <form.Field name="visibility">
+            {(field) => (
               <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                 <div className="space-y-0.5">
                   <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -161,19 +156,19 @@ export function TopicsCreateDialog({
                 />
               </div>
             )}
-          />
+          </form.Field>
 
           {showActiveToggle ? (
-            <form.Field
-              name="activate"
-              children={(field) => (
+            <form.Field name="activate">
+              {(field) => (
                 <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       Make active
                     </label>
                     <p className="text-sm text-muted-foreground">
-                      Mark this topic as the active one
+                      Mark this topic as the active one. Submissions stay closed
+                      until you start them from the active topic panel.
                     </p>
                   </div>
                   <Switch
@@ -182,33 +177,16 @@ export function TopicsCreateDialog({
                   />
                 </div>
               )}
-            />
-          ) : null}
-
-          {showActiveToggle ? (
-            <form.Field
-              name="scheduledStart"
-              children={(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor="scheduled-start">
-                    Submissions open at
-                  </Label>
-                  <Input
-                    id="scheduled-start"
-                    type="datetime-local"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty to accept submissions immediately when activated.
-                  </p>
-                </div>
-              )}
-            />
+            </form.Field>
           ) : null}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)} type="button" size="sm">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              type="button"
+              size="sm"
+            >
               Cancel
             </Button>
             <PrimaryButton type="submit" disabled={isCreatingTopic}>
@@ -218,5 +196,5 @@ export function TopicsCreateDialog({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

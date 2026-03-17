@@ -53,9 +53,10 @@ export function TopicListItem({
                   : `Created ${formatTimestamp(topic.createdAt)}`}
               </span>
               {topic.scheduledStart ? (
-                <span>
-                  Submissions at {formatTimestamp(topic.scheduledStart)}
-                </span>
+                <span>Starts {formatTimestamp(topic.scheduledStart)}</span>
+              ) : null}
+              {topic.scheduledEnd ? (
+                <span>Ends {formatTimestamp(topic.scheduledEnd)}</span>
               ) : null}
               <span className="tabular-nums">
                 {submissionCount} submissions
