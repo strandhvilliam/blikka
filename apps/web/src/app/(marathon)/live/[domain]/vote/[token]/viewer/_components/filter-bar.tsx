@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Star, Info, Languages, Check } from "lucide-react";
 import { VotingInfoDrawer } from "./voting-info-drawer";
 import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
-import { useLocale, Locale } from "next-intl";
+import { useLocale, Locale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import ReactCountryFlag from "react-country-flag";
 import { changeLocaleAction } from "@/lib/actions/change-locale-action";
@@ -20,13 +20,13 @@ import {
 interface FilterBarProps {
   ratingCounts: Record<number, number>;
   totalCount: number;
-  onViewModeChange: (mode: "carousel" | "grid") => void;
+  reviewTotalCount: number;
   ratedCount: number;
   className?: string;
 }
 
 const filterOptions = [
-  { value: null, label: "All" },
+  { value: null, labelKey: "all" },
   { value: 5, label: "5" },
   { value: 4, label: "4" },
   { value: 3, label: "3" },
@@ -37,14 +37,13 @@ const filterOptions = [
 export function FilterBar({
   ratingCounts,
   totalCount,
-  onViewModeChange,
+  reviewTotalCount,
   ratedCount,
   className,
 }: FilterBarProps) {
   const {
     currentImageIndex,
     setCurrentImageIndex,
-    viewMode,
     currentFilter,
     setCurrentFilter,
   } = useVotingSearchParams();
@@ -54,11 +53,15 @@ export function FilterBar({
     await setCurrentImageIndex(0);
   };
 
-  const progress = totalCount > 0 ? Math.round(((currentImageIndex + 1) / totalCount) * 100) : 0;
+  const progress =
+    totalCount > 0
+      ? Math.round(((currentImageIndex + 1) / totalCount) * 100)
+      : 0;
 
   const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("VotingViewerPage");
 
   const setLocale = (newLocale: Locale) => {
     if (newLocale === locale || isPending) return;
@@ -94,7 +97,7 @@ export function FilterBar({
         )}
       >
         {option.value !== null && <Star className="w-3 h-3 fill-current" />}
-        {option.label}
+        {option.value === null ? t("filterBar.all") : option.label}
         {count > 0 && <span className="ml-0.5 opacity-60">({count})</span>}
       </button>
     );
@@ -108,10 +111,12 @@ export function FilterBar({
       )}
     >
       <div className="flex items-center justify-between mb-3">
-        <VotingInfoDrawer votingInfo={{ rated: ratedCount, total: totalCount }}>
+        <VotingInfoDrawer
+          votingInfo={{ rated: ratedCount, total: reviewTotalCount }}
+        >
           <button
             className="h-10 w-10 rounded-xl bg-muted/50 border-0 shadow-sm hover:bg-muted active:scale-[0.98] flex items-center justify-center transition-all"
-            aria-label="How voting works"
+            aria-label={t("infoDrawer.triggerLabel")}
           >
             <Info className="w-5 h-5" />
           </button>
@@ -135,7 +140,7 @@ export function FilterBar({
             <button
               disabled={isPending}
               className="h-10 w-10 rounded-xl bg-muted/50 border-0 shadow-sm hover:bg-muted active:scale-[0.98] flex items-center justify-center transition-all"
-              aria-label="Change language"
+              aria-label={t("filterBar.changeLanguage")}
             >
               <Languages className="w-5 h-5" />
             </button>
@@ -171,8 +176,10 @@ export function FilterBar({
       <div className="mb-3">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
           <span className="font-medium text-foreground">
-            {visibleCurrentIndex}{" "}
-            <span className="text-muted-foreground">of</span> {totalCount}
+            {t("filterBar.photoProgress", {
+              current: visibleCurrentIndex,
+              total: totalCount,
+            })}
           </span>
           <span>{progress}%</span>
         </div>

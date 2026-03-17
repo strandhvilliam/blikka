@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Heart } from "lucide-react";
 import {
@@ -16,22 +17,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PrimaryButton } from "@/components/ui/primary-button";
 
-function getVoteButtonLabel({
-  isSelected,
-  hasVoted,
-}: {
-  isSelected: boolean
-  hasVoted: boolean
-}) {
-  if (isSelected) return "Your Vote"
-  if (hasVoted) return "Already voted"
-  return "Cast your vote!"
-}
-
 interface VoteButtonProps {
   isSelected: boolean;
   isEnabled: boolean;
   hasVoted: boolean;
+  isOwnSubmission?: boolean;
   onVote: () => void;
   showComplete?: boolean;
   className?: string;
@@ -43,19 +33,28 @@ export function VoteButton({
   isSelected,
   isEnabled,
   hasVoted,
+  isOwnSubmission = false,
   onVote,
   className,
   submissionTitle,
   imageUrl,
 }: VoteButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-
+  const t = useTranslations("VotingViewerPage");
+  const isDisabled = !isEnabled || isSelected || hasVoted || isOwnSubmission;
+  const buttonLabel = isOwnSubmission
+    ? t("voteButton.cannotVoteForYourself")
+    : isSelected
+      ? t("voteButton.yourVote")
+      : hasVoted
+        ? t("voteButton.alreadyVoted")
+        : t("voteButton.voteForThisPhoto");
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
         <PrimaryButton
-          disabled={!isEnabled || isSelected || hasVoted}
+          disabled={isDisabled}
           className={cn("w-full py-4 rounded-2xl text-base", className)}
         >
           <Heart
@@ -64,37 +63,44 @@ export function VoteButton({
               isSelected && "fill-current",
             )}
           />
-          {getVoteButtonLabel({ isSelected, hasVoted })}
+          {buttonLabel}
         </PrimaryButton>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Your Vote</AlertDialogTitle>
+          <AlertDialogTitle>{t("voteButton.dialogTitle")}</AlertDialogTitle>
           {imageUrl && (
             <div className="rounded-lg overflow-hidden bg-muted aspect-video max-h-32">
               <img
                 src={imageUrl}
-                alt="Submission"
+                alt={t("voteButton.imageAlt")}
                 className="w-full h-full object-contain"
               />
             </div>
           )}
           <AlertDialogDescription>
-            Are you sure you want to vote for this submission?
+            {t("voteButton.dialogDescription")}
             {submissionTitle && (
-              <span className="block mt-2 font-medium text-foreground">
-                {submissionTitle}
+              <span className="block mt-2">
+                <span className="block text-xs text-muted-foreground">
+                  {t("voteButton.topicLabel")}
+                </span>
+                <span className="block font-medium text-foreground">
+                  {submissionTitle}
+                </span>
               </span>
             )}
             <span className="block mt-2 text-xs">
-              This action cannot be undone.
+              {t("voteButton.cannotBeChanged")}
             </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("voteButton.cancel")}</AlertDialogCancel>
           <AlertDialogAction asChild>
-            <PrimaryButton onClick={onVote}>Confirm Vote</PrimaryButton>
+            <PrimaryButton onClick={onVote}>
+              {t("voteButton.confirm")}
+            </PrimaryButton>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

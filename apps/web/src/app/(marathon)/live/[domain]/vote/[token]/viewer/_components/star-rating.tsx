@@ -1,34 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useClientReady } from "../_hooks/use-client-ready";
 
 interface StarRatingProps {
   value?: number;
   onChange?: (value: number) => void;
+  disabled?: boolean;
   className?: string;
 }
 
-export function StarRating({ value, onChange, className }: StarRatingProps) {
+export function StarRating({
+  value,
+  onChange,
+  disabled = false,
+  className,
+}: StarRatingProps) {
   const [hoverValue, setHoverValue] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const isClientReady = useClientReady();
   const isMobile = useIsMobile();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const t = useTranslations("VotingViewerPage");
 
   const handleClick = (rating: number) => {
+    if (disabled) return;
     if (!isMobile) setHoverValue(null);
     onChange?.(rating);
   };
 
   const displayValue = hoverValue ?? value ?? 0;
 
-
-  if (!mounted) {
+  if (!isClientReady) {
     return (
       <div className={cn("space-y-2", className)}>
         <div className="flex items-center justify-center">
@@ -49,17 +54,28 @@ export function StarRating({ value, onChange, className }: StarRatingProps) {
     <div className={cn("space-y-2", className)}>
       <div
         className="flex items-center justify-center"
-        onMouseLeave={() => !isMobile ? setHoverValue(null) : undefined}
+        onMouseLeave={() =>
+          !isMobile && !disabled ? setHoverValue(null) : undefined
+        }
       >
         {[1, 2, 3, 4, 5].map((rating) => (
           <button
             key={rating}
             type="button"
+            disabled={disabled}
             onClick={() => handleClick(rating)}
-            onMouseEnter={() => !isMobile ? setHoverValue(rating) : undefined}
-            onTouchStart={() => !isMobile ? setHoverValue(rating) : undefined}
-            className="flex flex-col items-center gap-1 px-2"
-            aria-label={`Rate ${rating} stars`}
+            onMouseEnter={() =>
+              !isMobile && !disabled ? setHoverValue(rating) : undefined
+            }
+            onTouchStart={() =>
+              !isMobile && !disabled ? setHoverValue(rating) : undefined
+            }
+            className={cn(
+              "flex flex-col items-center gap-1 px-2 transition-opacity disabled:cursor-not-allowed",
+              disabled && "opacity-45",
+            )}
+            aria-label={t("starRating.rateStars", { rating })}
+            aria-disabled={disabled}
           >
             <Star
               className={cn(
@@ -82,7 +98,6 @@ export function StarRating({ value, onChange, className }: StarRatingProps) {
           </button>
         ))}
       </div>
-
     </div>
   );
 }

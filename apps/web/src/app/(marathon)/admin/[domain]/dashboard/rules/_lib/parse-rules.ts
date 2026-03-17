@@ -1,12 +1,12 @@
-import type { RuleConfig } from "@blikka/db";
-import { normalizeAllowedFileTypes, RULE_KEYS } from "@blikka/validation";
-import type { RuleKey } from "@blikka/validation";
+import type { RuleConfig } from "@blikka/db"
+import { normalizeAllowedFileTypes, RULE_KEYS } from "@blikka/validation"
+import type { RuleKey } from "@blikka/validation"
 import {
   allowedFileTypesParamsSchema,
   maxFileSizeParamsSchema,
   RulesFormValues,
   withinTimerangeParamsSchema,
-} from "./schemas";
+} from "./schemas"
 
 const DEFAULT_RULE_CONFIGS: RulesFormValues = {
   max_file_size: {
@@ -46,59 +46,49 @@ const DEFAULT_RULE_CONFIGS: RulesFormValues = {
     severity: "error",
     params: null,
   },
-};
+}
 
 function parseRuleWithParams<TParams>(
   rule: RuleConfig,
   schema: {
-    safeParse: (params: unknown) => { success: boolean; data?: TParams };
+    safeParse: (params: unknown) => { success: boolean; data?: TParams }
   },
   key: keyof RulesFormValues,
   transformParams?: (params: TParams) => TParams,
 ): Partial<RulesFormValues> {
-  if (!rule.params) return {};
-  const ok = schema.safeParse(rule.params);
-  if (!ok.success) return {};
-  const parsedParams = ok.data as TParams;
-  const params = transformParams ? transformParams(parsedParams) : parsedParams;
+  if (!rule.params) return {}
+  const ok = schema.safeParse(rule.params)
+  if (!ok.success) return {}
+  const parsedParams = ok.data as TParams
+  const params = transformParams ? transformParams(parsedParams) : parsedParams
   return {
     [key]: {
       enabled: rule.enabled,
       severity: rule.severity,
       params,
     },
-  } as Partial<RulesFormValues>;
+  } as Partial<RulesFormValues>
 }
 
-function parseSimpleRule(
-  key: keyof RulesFormValues,
-  rule: RuleConfig,
-): Partial<RulesFormValues> {
+function parseSimpleRule(key: keyof RulesFormValues, rule: RuleConfig): Partial<RulesFormValues> {
   return {
     [key]: {
       enabled: rule.enabled,
       severity: rule.severity,
       params: null,
     },
-  };
+  }
 }
 
 export function parseRules(
   rules: RuleConfig[],
   marathon: { startDate?: string | null; endDate?: string | null },
 ): RulesFormValues {
-  let parsedRules: Partial<RulesFormValues> = {};
+  let parsedRules: Partial<RulesFormValues> = {}
 
-  const ruleHandlers: Record<
-    RuleKey,
-    (rule: RuleConfig) => Partial<RulesFormValues>
-  > = {
+  const ruleHandlers: Record<RuleKey, (rule: RuleConfig) => Partial<RulesFormValues>> = {
     [RULE_KEYS.MAX_FILE_SIZE]: (rule) =>
-      parseRuleWithParams(
-        rule,
-        maxFileSizeParamsSchema,
-        RULE_KEYS.MAX_FILE_SIZE,
-      ),
+      parseRuleWithParams(rule, maxFileSizeParamsSchema, RULE_KEYS.MAX_FILE_SIZE),
     [RULE_KEYS.ALLOWED_FILE_TYPES]: (rule) =>
       parseRuleWithParams(
         rule,
@@ -120,21 +110,18 @@ export function parseRules(
           end: marathon.endDate ?? "",
         }),
       ),
-    [RULE_KEYS.SAME_DEVICE]: (rule) =>
-      parseSimpleRule(RULE_KEYS.SAME_DEVICE, rule),
+    [RULE_KEYS.SAME_DEVICE]: (rule) => parseSimpleRule(RULE_KEYS.SAME_DEVICE, rule),
     [RULE_KEYS.MODIFIED]: (rule) => parseSimpleRule(RULE_KEYS.MODIFIED, rule),
     [RULE_KEYS.STRICT_TIMESTAMP_ORDERING]: (rule) =>
       parseSimpleRule(RULE_KEYS.STRICT_TIMESTAMP_ORDERING, rule),
-  };
+  }
 
   for (const rule of rules) {
-    const isValidRuleKey = Object.values(RULE_KEYS).includes(
-      rule.ruleKey as RuleKey,
-    );
-    if (!isValidRuleKey) continue;
-    const handler = ruleHandlers[rule.ruleKey as RuleKey];
+    const isValidRuleKey = Object.values(RULE_KEYS).includes(rule.ruleKey as RuleKey)
+    if (!isValidRuleKey) continue
+    const handler = ruleHandlers[rule.ruleKey as RuleKey]
     if (handler) {
-      parsedRules = { ...parsedRules, ...handler(rule) };
+      parsedRules = { ...parsedRules, ...handler(rule) }
     }
   }
 
@@ -147,19 +134,19 @@ export function parseRules(
         end: marathon.endDate ?? "",
       },
     },
-  };
+  }
 
   return {
     ...defaultRulesWithMarathonDates,
     ...parsedRules,
-  };
+  }
 }
 
 export function mapRulesToDbRules(rules: RulesFormValues): Array<{
-  ruleKey: string;
-  params?: Record<string, unknown> | undefined;
-  severity?: string;
-  enabled?: boolean;
+  ruleKey: string
+  params?: Record<string, unknown> | undefined
+  severity?: string
+  enabled?: boolean
 }> {
   return Object.entries(rules).map(([key, value]) => {
     const params =
@@ -167,16 +154,16 @@ export function mapRulesToDbRules(rules: RulesFormValues): Array<{
         ? {
             ...value.params,
             allowedFileTypes: normalizeAllowedFileTypes(
-              value.params.allowedFileTypes,
+              (value.params as { allowedFileTypes: string[] }).allowedFileTypes,
             ),
           }
-        : (value.params ?? undefined);
+        : (value.params ?? undefined)
 
     return {
       ruleKey: key,
       params,
       enabled: value.enabled,
       severity: value.severity,
-    };
-  });
+    }
+  })
 }

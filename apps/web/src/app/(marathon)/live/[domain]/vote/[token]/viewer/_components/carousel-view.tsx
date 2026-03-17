@@ -1,33 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
+import { useState, useCallback } from "react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from "@/components/ui/carousel";
 import { FullscreenImage } from "./fullscreen-image";
 import { useVotingCarouselApi } from "../_hooks/use-voting-carousel-api";
 import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
-
-interface VotingSubmission {
-  submissionId: number;
-  participantId: number;
-  url?: string;
-  thumbnailUrl?: string;
-  previewUrl?: string;
-  topicId: number;
-  topicName: string;
-}
+import { OwnSubmissionBadge } from "./own-submission-badge";
+import type { VotingSubmission } from "../_lib/voting-submission";
 
 interface CarouselViewProps {
   submissions: VotingSubmission[];
 }
 
-export function CarouselView({
-  submissions,
-}: CarouselViewProps) {
+export function CarouselView({ submissions }: CarouselViewProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const { api, setApi } = useVotingCarouselApi();
-  const { currentFilter } = useVotingSearchParams();
+  const { setApi } = useVotingCarouselApi();
+  const { currentFilter, currentImageIndex } = useVotingSearchParams();
 
   const handleApiChange = useCallback(
     (newApi: CarouselApi) => {
@@ -36,23 +30,7 @@ export function CarouselView({
     [setApi],
   );
 
-  useEffect(() => {
-    if (!api) return;
-
-    const onSelect = () => {
-      setCurrentIndex(api.selectedScrollSnap());
-    };
-
-    api.on("select", onSelect);
-
-    setCurrentIndex(api.selectedScrollSnap());
-
-    return () => {
-      api.off("select", onSelect);
-    };
-  }, [api]);
-
-  const currentSubmission = submissions[currentIndex];
+  const currentSubmission = submissions[currentImageIndex];
 
   return (
     <>
@@ -76,8 +54,9 @@ export function CarouselView({
                   {submission.url ? (
                     <button
                       onClick={() => setIsFullscreen(true)}
-                      className="w-full h-full cursor-zoom-in flex items-center justify-center"
+                      className="relative w-full h-full cursor-zoom-in flex items-center justify-center overflow-hidden rounded-lg"
                     >
+                      {submission.isOwnSubmission && <OwnSubmissionBadge />}
                       <img
                         src={submission.url}
                         alt={`photo-${submission.submissionId}`}

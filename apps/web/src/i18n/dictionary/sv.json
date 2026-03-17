@@ -279,5 +279,83 @@
       "3": "Jury möts {juryDate}. Först {resultsDate} får ni dela era tävlingsbilder utanför vår grupp på Facebook",
       "4": "Boka in {prizeDate} redan nu då årets prisgala är planerad!"
     }
+  },
+  "VotingViewerPage": {
+    "infoDrawer": {
+      "triggerLabel": "Så fungerar röstningen",
+      "title": "Så fungerar röstningen",
+      "rateImages": {
+        "title": "Betygsätt foton",
+        "description": "Tryck på stjärnorna under varje foto för att ge det ett betyg från 1 till 5. Du kan ändra ditt betyg när som helst. Du kan inte betygsätta ditt eget foto."
+      },
+      "navigatePhotos": {
+        "title": "Bläddra bland foton",
+        "description": "Svep eller använd pilknapparna för att gå mellan foton. Tryck på rutnätsknappen för att se alla miniatyrer och hoppa direkt till ett foto."
+      },
+      "filterByRating": {
+        "title": "Filtrera på betyg",
+        "description": "Använd filtren högst upp för att visa foton som du har gett ett visst betyg. Det gör det enklare att jämföra favoriter eller hitta obetygsatta foton."
+      },
+      "chooseFinalPhoto": {
+        "title": "Välj ditt slutgiltiga foto",
+        "description": "När du visar fotot du vill välja trycker du på \"{buttonLabel}\". Du kan inte rösta på ditt eget foto."
+      },
+      "confirmVote": {
+        "title": "Bekräfta din röst",
+        "description": "När du har tryckt på \"{buttonLabel}\" bekräftar du för att skicka in ditt slutgiltiga val. Din röst kan inte ändras efteråt."
+      },
+      "progressTitle": "Dina framsteg",
+      "progressValue": "{rated} / {total} röstbara foton betygsatta"
+    },
+    "filterBar": {
+      "all": "Alla",
+      "changeLanguage": "Byt språk",
+      "photoProgress": "Foto {current} av {total}"
+    },
+    "footer": {
+      "navigationHint": "Svep eller använd pilarna för att bläddra bland foton",
+      "previousPhoto": "Föregående foto",
+      "showGrid": "Visa alla foton",
+      "nextPhoto": "Nästa foto"
+    },
+    "voteButton": {
+      "cannotVoteForYourself": "Du kan inte rösta på ditt eget foto",
+      "yourVote": "Din röst",
+      "alreadyVoted": "Röst skickad",
+      "voteForThisPhoto": "Rösta på det här fotot",
+      "dialogTitle": "Rösta på det här fotot?",
+      "dialogDescription": "Du håller på att skicka in din slutgiltiga röst för fotot du visar just nu.",
+      "topicLabel": "Tema",
+      "cannotBeChanged": "Detta kan inte ändras senare.",
+      "cancel": "Avbryt",
+      "confirm": "Skicka slutgiltig röst",
+      "imageAlt": "Fotot du röstar på"
+    },
+    "emptyState": {
+      "title": "Inga foton hittades",
+      "filteredDescription": "Du har inte gett några foton {rating} stjärnor ännu.",
+      "defaultDescription": "Det finns inga foton att granska just nu.",
+      "showAll": "Visa alla foton"
+    },
+    "gridView": {
+      "photoAlt": "Foto från deltagare {participantId}",
+      "noImage": "Ingen bild",
+      "viewing": "Visas nu",
+      "showCarousel": "Visa fotovisaren"
+    },
+    "ownSubmissionBadge": {
+      "label": "Ditt foto"
+    },
+    "starRating": {
+      "rateStars": "Ge {rating} stjärnor",
+      "ratedToast": "Gav {rating} stjärnor"
+    },
+    "toasts": {
+      "cannotVoteForOwn": "Du kan inte rösta på ditt eget foto.",
+      "missingSessionInfo": "Saknar information om röstningssessionen.",
+      "voteSubmitted": "Din röst har skickats.",
+      "alreadyVoted": "Du har redan skickat din röst.",
+      "submitFailed": "Det gick inte att skicka din röst. Försök igen."
+    }
   }
 }

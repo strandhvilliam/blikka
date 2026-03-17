@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import {
+  Check,
   Copy,
   Loader2,
   Mail,
@@ -373,8 +374,9 @@ export function VotersTab({
                               <button className="inline-flex">
                                 <Badge
                                   variant="secondary"
-                                  className="cursor-pointer hover:bg-secondary/80"
+                                  className="cursor-pointer hover:bg-emerald-600/90 bg-emerald-600 text-white border-0 shadow-sm"
                                 >
+                                  <Check className="mr-1.5 size-3.5 shrink-0" />
                                   {voter.voteSubmission.participantReference ||
                                     "Unknown"}
                                 </Badge>

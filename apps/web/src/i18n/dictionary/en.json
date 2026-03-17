@@ -280,5 +280,83 @@
       "3": "The jury meets {juryDate}. First {resultsDate} you can share your competition photos outside our group on Facebook",
       "4": "Book in {prizeDate} already as the annual prize ceremony is planned!"
     }
+  },
+  "VotingViewerPage": {
+    "infoDrawer": {
+      "triggerLabel": "How voting works",
+      "title": "How voting works",
+      "rateImages": {
+        "title": "Rate photos",
+        "description": "Tap the stars below each photo to rate it from 1 to 5. You can change your rating at any time. You can't rate your own photo."
+      },
+      "navigatePhotos": {
+        "title": "Browse photos",
+        "description": "Swipe or use the arrow buttons to move between photos. Tap the grid button to see all thumbnails and jump to any photo."
+      },
+      "filterByRating": {
+        "title": "Filter by rating",
+        "description": "Use the filters at the top to show photos you've given a specific rating. This makes it easier to compare favorites or find unrated photos."
+      },
+      "chooseFinalPhoto": {
+        "title": "Choose your final photo",
+        "description": "When you're viewing the photo you want to pick, tap \"{buttonLabel}\". You can't vote for your own photo."
+      },
+      "confirmVote": {
+        "title": "Confirm your vote",
+        "description": "After you tap \"{buttonLabel}\", confirm to submit your final choice. Your vote can't be changed later."
+      },
+      "progressTitle": "Your progress",
+      "progressValue": "{rated} / {total} eligible photos rated"
+    },
+    "filterBar": {
+      "all": "All",
+      "changeLanguage": "Change language",
+      "photoProgress": "Photo {current} of {total}"
+    },
+    "footer": {
+      "navigationHint": "Swipe or use the arrows to browse photos",
+      "previousPhoto": "Previous photo",
+      "showGrid": "Show all photos",
+      "nextPhoto": "Next photo"
+    },
+    "voteButton": {
+      "cannotVoteForYourself": "You can't vote for your own photo",
+      "yourVote": "Your vote",
+      "alreadyVoted": "Vote submitted",
+      "voteForThisPhoto": "Vote for this photo",
+      "dialogTitle": "Vote for this photo?",
+      "dialogDescription": "You're about to submit your final vote for the photo you're viewing now.",
+      "topicLabel": "Topic",
+      "cannotBeChanged": "This can't be changed later.",
+      "cancel": "Cancel",
+      "confirm": "Submit final vote",
+      "imageAlt": "Photo you're voting for"
+    },
+    "emptyState": {
+      "title": "No photos found",
+      "filteredDescription": "You haven't rated any photos {rating} stars yet.",
+      "defaultDescription": "There are no photos to review right now.",
+      "showAll": "Show all photos"
+    },
+    "gridView": {
+      "photoAlt": "Photo from participant {participantId}",
+      "noImage": "No image",
+      "viewing": "Viewing now",
+      "showCarousel": "Show photo viewer"
+    },
+    "ownSubmissionBadge": {
+      "label": "Your photo"
+    },
+    "starRating": {
+      "rateStars": "Rate {rating} stars",
+      "ratedToast": "Rated {rating} stars"
+    },
+    "toasts": {
+      "cannotVoteForOwn": "You can't vote for your own photo.",
+      "missingSessionInfo": "Missing voting session information.",
+      "voteSubmitted": "Your vote has been submitted.",
+      "alreadyVoted": "You have already submitted your vote.",
+      "submitFailed": "Failed to submit your vote. Please try again."
+    }
   }
 }

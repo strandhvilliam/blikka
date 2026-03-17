@@ -53,6 +53,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { type Submission } from "@blikka/db"
 
 type VerificationData = {
   id: number

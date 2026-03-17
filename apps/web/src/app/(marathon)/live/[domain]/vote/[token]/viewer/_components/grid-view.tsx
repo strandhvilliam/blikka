@@ -1,19 +1,12 @@
 "use client";
 
-import * as React from "react";
 import { Eye, Images } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { cn } from "@/lib/utils";
 import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
 import { useVotingCarouselApi } from "../_hooks/use-voting-carousel-api";
-
-interface VotingSubmission {
-  submissionId: number;
-  participantId: number;
-  url?: string;
-  thumbnailUrl?: string;
-  previewUrl?: string;
-  topicId: number;
-  topicName: string;
-}
+import { OwnSubmissionBadge } from "./own-submission-badge";
+import type { VotingSubmission } from "../_lib/voting-submission";
 
 interface GridViewProps {
   submissions: VotingSubmission[];
@@ -30,6 +23,7 @@ export function GridView({
 }: GridViewProps) {
   const { currentImageIndex, setParams } = useVotingSearchParams();
   const { isNavigatingRef } = useVotingCarouselApi();
+  const t = useTranslations("VotingViewerPage");
 
   const handleThumbnailClick = (index: number) => {
     isNavigatingRef.current = true;
@@ -56,16 +50,19 @@ export function GridView({
               {submission.thumbnailUrl || submission.url ? (
                 <img
                   src={submission.thumbnailUrl || submission.url}
-                  alt={`Photo by ${submission.participantId}`}
+                  alt={t("gridView.photoAlt", {
+                    participantId: submission.participantId,
+                  })}
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="flex items-center justify-center w-full h-full bg-muted">
                   <span className="text-muted-foreground text-xs">
-                    No image
+                    {t("gridView.noImage")}
                   </span>
                 </div>
               )}
+              {submission.isOwnSubmission && <OwnSubmissionBadge compact />}
               {rating !== undefined && (
                 <div className="absolute top-1 right-1 bg-background/80 backdrop-blur-sm rounded-full px-1.5 py-0.5 text-xs font-medium">
                   ★{rating}
@@ -75,12 +72,15 @@ export function GridView({
                 <>
                   <div className="absolute inset-0 ring-2 ring-[#FF5D4B] ring-inset rounded-lg" />
                   <div
-                    className="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 shadow-md"
+                    className={cn(
+                      "absolute left-1.5 flex items-center gap-1 rounded-full pl-1.5 pr-2 py-0.5 shadow-md",
+                      submission.isOwnSubmission ? "top-8" : "top-1.5",
+                    )}
                     style={{ backgroundColor: "#FF5D4B" }}
                   >
                     <Eye className="w-3 h-3 text-white" />
                     <span className="text-[10px] font-semibold text-white">
-                      Viewing
+                      {t("gridView.viewing")}
                     </span>
                   </div>
                 </>
@@ -98,7 +98,7 @@ export function GridView({
           <button
             onClick={() => onViewModeChange("carousel")}
             className="pointer-events-auto h-12 w-12 rounded-full bg-muted border-0 shadow-lg hover:bg-muted/80 flex items-center justify-center transition-colors"
-            aria-label="Show carousel view"
+            aria-label={t("gridView.showCarousel")}
           >
             <Images className="w-6 h-6" />
           </button>

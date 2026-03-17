@@ -1,11 +1,7 @@
 import "server-only"
 
 import { Config, Effect, Layer, Option, ServiceMap } from "effect"
-import {
-  Database,
-  type VotingSession,
-  type NewVotingSession,
-} from "@blikka/db"
+import { Database, type VotingSession, type NewVotingSession } from "@blikka/db"
 import { VotingApiError } from "./schemas"
 import { SMSService } from "@blikka/aws"
 import {
@@ -68,9 +64,10 @@ function ensureSessionDomain(
   return Effect.void
 }
 
-function ensureVotingSessionWindow(
-  votingWindow: { startsAt: string | null; endsAt: string | null },
-): Effect.Effect<void, VotingApiError> {
+function ensureVotingSessionWindow(votingWindow: {
+  startsAt: string | null
+  endsAt: string | null
+}): Effect.Effect<void, VotingApiError> {
   const state = getVotingLifecycleState(votingWindow)
 
   if (state === "not-started") {
@@ -101,9 +98,7 @@ function normalizePaginationInput({
 }) {
   const normalizedPage = Number.isInteger(page) && page && page > 0 ? page : 1
   const normalizedLimit =
-    Number.isInteger(limit) && limit && limit > 0
-      ? Math.min(limit, 100)
-      : 50
+    Number.isInteger(limit) && limit && limit > 0 ? Math.min(limit, 100) : 50
 
   return {
     page: normalizedPage,
@@ -148,13 +143,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
 
       const getByCameraMarathonWithTopic = Effect.fn(
         "VotingApiService.getByCameraMarathonWithTopic",
-      )(function* ({
-        domain,
-        topicId,
-      }: {
-        domain: string
-        topicId: number
-      }) {
+      )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
         const marathonOpt =
           yield* db.marathonsQueries.getMarathonByDomainWithOptions({
             domain,
@@ -191,7 +180,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           marathon,
           topic,
           activeTopic:
-            marathon.topics.find((item) => item.visibility === "active") ?? null,
+            marathon.topics.find((item) => item.visibility === "active") ??
+            null,
         }
       })
 
@@ -309,13 +299,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
 
       const closeTopicVotingWindow = Effect.fn(
         "VotingApiService.closeTopicVotingWindow",
-      )(function* ({
-        domain,
-        topicId,
-      }: {
-        domain: string
-        topicId: number
-      }) {
+      )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
         const { marathon, topic, activeTopic } =
           yield* getByCameraMarathonWithTopic({
             domain,
@@ -444,7 +428,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           if (participantsWithSubmissions.length === 0) {
             return yield* Effect.fail(
               new VotingApiError({
-                message: "No participants with submissions found for this topic",
+                message:
+                  "No participants with submissions found for this topic",
               }),
             )
           }
@@ -564,13 +549,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
 
       const getParticipantsWithoutVotingSession = Effect.fn(
         "VotingApiService.getParticipantsWithoutVotingSession",
-      )(function* ({
-        domain,
-        topicId,
-      }: {
-        domain: string
-        topicId: number
-      }) {
+      )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
         const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
@@ -905,8 +884,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           topicId,
         }
 
-        const session =
-          yield* db.votingQueries.upsertVotingSession(sessionData)
+        const session = yield* db.votingQueries.upsertVotingSession(sessionData)
 
         let smsResult = null
         if (session.phoneEncrypted) {
@@ -1091,166 +1069,165 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
 
       const getVotingLeaderboardPage = Effect.fn(
         "VotingApiService.getVotingLeaderboardPage",
-      )(
-        function* ({
+      )(function* ({
+        domain,
+        topicId,
+        page,
+        limit,
+      }: {
+        domain: string
+        topicId: number
+        page?: number | null
+        limit?: number | null
+      }) {
+        const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
-          page,
-          limit,
-        }: {
-          domain: string
-          topicId: number
-          page?: number | null
-          limit?: number | null
-        }) {
-          const { marathon } = yield* getByCameraMarathonWithTopic({
-            domain,
-            topicId,
+        })
+        const { page: normalizedPage, limit: normalizedLimit } =
+          normalizePaginationInput({
+            page,
+            limit,
           })
-          const { page: normalizedPage, limit: normalizedLimit } =
-            normalizePaginationInput({
-              page,
-              limit,
-            })
 
-          const [items, total] = yield* Effect.all([
-            db.votingQueries.getLeaderboardPageForTopic({
-              marathonId: marathon.id,
-              topicId,
-              page: normalizedPage,
-              limit: normalizedLimit,
-            }),
-            db.votingQueries.countSubmissionsForTopic({
-              marathonId: marathon.id,
-              topicId,
-            }),
-          ])
-
-          return {
-            items: items.map((entry) => ({
-              rank: entry.rank,
-              submissionId: entry.submissionId,
-              submissionCreatedAt: entry.submissionCreatedAt,
-              submissionKey: entry.submissionKey,
-              submissionThumbnailKey: entry.submissionThumbnailKey,
-              participantId: entry.participantId,
-              participantFirstName: entry.participantFirstName,
-              participantLastName: entry.participantLastName,
-              participantReference: entry.participantReference,
-              voteCount: entry.voteCount,
-              tieSize: entry.tieSize,
-              isTie: entry.tieSize > 1,
-            })),
-            total,
+        const [items, total] = yield* Effect.all([
+          db.votingQueries.getLeaderboardPageForTopic({
+            marathonId: marathon.id,
+            topicId,
             page: normalizedPage,
             limit: normalizedLimit,
-            pageCount: total > 0 ? Math.ceil(total / normalizedLimit) : 0,
-          }
-        },
-      )
+          }),
+          db.votingQueries.countSubmissionsForTopic({
+            marathonId: marathon.id,
+            topicId,
+          }),
+        ])
+
+        return {
+          items: items.map((entry) => ({
+            rank: entry.rank,
+            submissionId: entry.submissionId,
+            submissionCreatedAt: entry.submissionCreatedAt,
+            submissionKey: entry.submissionKey,
+            submissionThumbnailKey: entry.submissionThumbnailKey,
+            participantId: entry.participantId,
+            participantFirstName: entry.participantFirstName,
+            participantLastName: entry.participantLastName,
+            participantReference: entry.participantReference,
+            voteCount: entry.voteCount,
+            tieSize: entry.tieSize,
+            isTie: entry.tieSize > 1,
+          })),
+          total,
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pageCount: total > 0 ? Math.ceil(total / normalizedLimit) : 0,
+        }
+      })
 
       const getVotingVotersPage = Effect.fn(
         "VotingApiService.getVotingVotersPage",
-      )(
-        function* ({
+      )(function* ({
+        domain,
+        topicId,
+        page,
+        limit,
+      }: {
+        domain: string
+        topicId: number
+        page?: number | null
+        limit?: number | null
+      }) {
+        const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
-          page,
-          limit,
-        }: {
-          domain: string
-          topicId: number
-          page?: number | null
-          limit?: number | null
-        }) {
-          const { marathon } = yield* getByCameraMarathonWithTopic({
-            domain,
-            topicId,
+        })
+        const { page: normalizedPage, limit: normalizedLimit } =
+          normalizePaginationInput({
+            page,
+            limit,
           })
-          const { page: normalizedPage, limit: normalizedLimit } =
-            normalizePaginationInput({
-              page,
-              limit,
-            })
 
-          const [sessions, total] = yield* Effect.all([
-            db.votingQueries.getVotersPageForTopic({
-              marathonId: marathon.id,
-              topicId,
-              page: normalizedPage,
-              limit: normalizedLimit,
-            }),
-            db.votingQueries.countVotingSessionsForTopic({
-              marathonId: marathon.id,
-              topicId,
-            }),
-          ])
+        const [sessions, total] = yield* Effect.all([
+          db.votingQueries.getVotersPageForTopic({
+            marathonId: marathon.id,
+            topicId,
+            page: normalizedPage,
+            limit: normalizedLimit,
+          }),
+          db.votingQueries.countVotingSessionsForTopic({
+            marathonId: marathon.id,
+            topicId,
+          }),
+        ])
 
-          type VoteSubmissionDetails = {
-            id: number
-            key: string
-            thumbnailKey: string | null
-            createdAt: string
-            participant?: {
-              reference: string
-              firstname: string
-              lastname: string
-            } | null
-          }
+        type VoteSubmissionDetails = {
+          id: number
+          key: string
+          thumbnailKey: string | null
+          createdAt: string
+          participant?: {
+            reference: string
+            firstname: string
+            lastname: string
+          } | null
+        }
 
-          const items = yield* Effect.forEach(
-            sessions,
-            (session) =>
-              Effect.gen(function* () {
-                const phoneNumber = session.phoneEncrypted
-                  ? yield* phoneEncryption
+        const items = yield* Effect.forEach(
+          sessions,
+          (session) =>
+            Effect.gen(function* () {
+              const phoneNumber = session.phoneEncrypted
+                ? yield* phoneEncryption
                     .decrypt({
                       encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
                     })
                     .pipe(Effect.catch(() => Effect.succeed(null)))
+                : null
+
+              const voteSubmission =
+                "submissions" in session
+                  ? ((session as { submissions?: VoteSubmissionDetails | null })
+                      .submissions ?? null)
                   : null
 
-                const voteSubmission =
-                  "submissions" in session
-                    ? (session as { submissions?: VoteSubmissionDetails | null })
-                      .submissions ?? null
-                    : null
-
-                return {
-                  sessionId: session.id,
-                  firstName: session.firstName,
-                  lastName: session.lastName,
-                  email: session.email,
-                  token: session.token,
-                  phoneNumber,
-                  notificationLastSentAt: session.notificationLastSentAt,
-                  connectedParticipantId: session.connectedParticipantId,
-                  votedAt: session.votedAt,
-                  voteSubmission: voteSubmission
-                    ? {
+              return {
+                sessionId: session.id,
+                firstName: session.firstName,
+                lastName: session.lastName,
+                email: session.email,
+                token: session.token,
+                phoneNumber,
+                notificationLastSentAt: session.notificationLastSentAt,
+                connectedParticipantId: session.connectedParticipantId,
+                votedAt: session.votedAt,
+                voteSubmission: voteSubmission
+                  ? {
                       submissionId: voteSubmission.id,
-                      participantReference: voteSubmission.participant?.reference ?? null,
-                      participantFirstName: voteSubmission.participant?.firstname ?? null,
-                      participantLastName: voteSubmission.participant?.lastname ?? null,
+                      participantReference:
+                        voteSubmission.participant?.reference ?? null,
+                      participantFirstName:
+                        voteSubmission.participant?.firstname ?? null,
+                      participantLastName:
+                        voteSubmission.participant?.lastname ?? null,
                       thumbnailKey: voteSubmission.thumbnailKey,
                       key: voteSubmission.key,
                       createdAt: voteSubmission.createdAt,
                     }
-                    : null,
-                }
-              }),
-            { concurrency: 5 },
-          )
+                  : null,
+              }
+            }),
+          { concurrency: 5 },
+        )
 
-          return {
-            items,
-            total,
-            page: normalizedPage,
-            limit: normalizedLimit,
-            pageCount: total > 0 ? Math.ceil(total / normalizedLimit) : 0,
-          }
-        },
-      )
+        return {
+          items,
+          total,
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pageCount: total > 0 ? Math.ceil(total / normalizedLimit) : 0,
+        }
+      })
 
       const createManualVotingSession = Effect.fn(
         "VotingApiService.createManualVotingSession",
@@ -1348,11 +1325,13 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           topicId,
         })
 
-        const sessionOpt = yield* db.votingQueries.getVotingSessionByIdForTopic({
-          marathonId: marathon.id,
-          topicId,
-          sessionId,
-        })
+        const sessionOpt = yield* db.votingQueries.getVotingSessionByIdForTopic(
+          {
+            marathonId: marathon.id,
+            topicId,
+            sessionId,
+          },
+        )
         const session = yield* Option.match(sessionOpt, {
           onSome: (s) => Effect.succeed(s),
           onNone: () =>
@@ -1477,6 +1456,9 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             ),
             topicId: submission.topicId,
             topicName: submission.topic?.name ?? "",
+            isOwnSubmission:
+              votingSession.connectedParticipantId !== null &&
+              submission.participantId === votingSession.connectedParticipantId,
           }))
 
         return {
@@ -1538,7 +1520,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           id: submissionId,
         })
 
-        yield* Option.match(submission, {
+        const resolvedSubmission = yield* Option.match(submission, {
           onSome: (resolvedSubmission) => {
             if (resolvedSubmission.marathonId !== votingSession.marathonId) {
               return Effect.fail(
@@ -1556,7 +1538,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               )
             }
 
-            return Effect.void
+            return Effect.succeed(resolvedSubmission)
           },
           onNone: () =>
             Effect.fail(
@@ -1565,6 +1547,17 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               }),
             ),
         })
+
+        if (
+          votingSession.connectedParticipantId !== null &&
+          resolvedSubmission.participantId ===
+            votingSession.connectedParticipantId
+        ) {
+          return {
+            success: false as const,
+            error: "cannot_vote_for_self" as const,
+          }
+        }
 
         const updatedSession = yield* db.votingQueries.recordVote({
           token,
@@ -1708,10 +1701,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(
-      Database.layer,
-      SMSService.layer,
-      PhoneNumberEncryptionService.layer,
-    ))
+    Layer.provide(
+      Layer.mergeAll(
+        Database.layer,
+        SMSService.layer,
+        PhoneNumberEncryptionService.layer,
+      ),
+    ),
   )
 }

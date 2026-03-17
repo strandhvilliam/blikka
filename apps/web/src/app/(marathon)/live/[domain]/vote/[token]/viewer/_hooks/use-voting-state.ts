@@ -5,16 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-
-export interface VotingSubmission {
-  submissionId: number;
-  participantId: number;
-  url?: string | undefined;
-  thumbnailUrl?: string | undefined;
-  previewUrl?: string | undefined;
-  topicId: number;
-  topicName: string;
-}
+import {
+  getVotingReviewStats,
+  sanitizeVotingState,
+} from "../_lib/voting-review-state";
+import type { VotingSubmission } from "../_lib/voting-submission";
 
 interface VotingState {
   ratings: Record<number, number | undefined>;
@@ -41,7 +36,8 @@ const createVotingStore = (storageKey: string) =>
         setRating: (submissionId, rating) =>
           set((state) => {
             if (rating === undefined) {
-              const { [submissionId]: _removed, ...remaining } = state.ratings;
+              const remaining = { ...state.ratings };
+              delete remaining[submissionId];
               return { ratings: remaining };
             }
             return {
@@ -90,7 +86,10 @@ export function useVotingState({
     ),
   );
 
-  const submissions = votingData?.submissions ?? [];
+  const submissions = useMemo<VotingSubmission[]>(
+    () => votingData?.submissions ?? [],
+    [votingData?.submissions],
+  );
   const resolvedStorageKey = useMemo(
     () => storageKey ?? `voting-${domain}-${token || "anon"}`,
     [domain, storageKey, token],
@@ -100,7 +99,6 @@ export function useVotingState({
     () => getVotingStore(resolvedStorageKey),
     [resolvedStorageKey],
   );
-
 
   const ratings = useVotingStore((state) => state.ratings);
   const selectedSubmissionId = useVotingStore(
@@ -113,51 +111,19 @@ export function useVotingState({
 
   useEffect(() => {
     if (isLoading || !votingData) return;
-    const submissionIds = new Set(submissions.map((s) => s.submissionId));
     const currentState = useVotingStore.getState();
-    const currentRatings = currentState.ratings;
-    const currentSelectedId = currentState.selectedSubmissionId;
+    const nextState = sanitizeVotingState({
+      submissions,
+      ratings: currentState.ratings,
+      selectedSubmissionId: currentState.selectedSubmissionId,
+    });
 
-    if (submissionIds.size === 0) {
-      if (
-        Object.keys(currentRatings).length > 0 ||
-        currentSelectedId !== null
-      ) {
-        useVotingStore.setState(
-          { ratings: {}, selectedSubmissionId: null },
-          false,
-        );
-      }
-      return;
-    }
-
-    let hasChanges = false;
-    const nextRatings: Record<number, number> = {};
-    for (const [key, value] of Object.entries(currentRatings)) {
-      const submissionId = parseInt(key, 10);
-      if (
-        !Number.isNaN(submissionId) &&
-        submissionIds.has(submissionId) &&
-        value !== undefined &&
-        value !== null
-      ) {
-        nextRatings[submissionId] = value;
-      } else {
-        hasChanges = true;
-      }
-    }
-
-    const nextSelectedId =
-      currentSelectedId !== null && submissionIds.has(currentSelectedId)
-        ? currentSelectedId
-        : null;
-    if (nextSelectedId !== currentSelectedId) {
-      hasChanges = true;
-    }
-
-    if (hasChanges) {
+    if (nextState.hasChanges) {
       useVotingStore.setState(
-        { ratings: nextRatings, selectedSubmissionId: nextSelectedId },
+        {
+          ratings: nextState.ratings,
+          selectedSubmissionId: nextState.selectedSubmissionId,
+        },
         false,
       );
     }
@@ -181,35 +147,11 @@ export function useVotingState({
   );
 
   const stats = useMemo(() => {
-    const total = submissions.length;
-    const rated = Object.keys(ratings).filter(
-      (id) => ratings[parseInt(id, 10)] !== undefined,
-    ).length;
-    const unrated = total - rated;
-    const hasCompletedReview = rated === total && total > 0;
-    const hasSelectedFinal = selectedSubmissionId !== null;
-
-    const ratingCounts: Record<number, number> = {
-      1: 0,
-      2: 0,
-      3: 0,
-      4: 0,
-      5: 0,
-    };
-    for (const rating of Object.values(ratings)) {
-      if (rating !== undefined && rating >= 1 && rating <= 5) {
-        ratingCounts[rating]++;
-      }
-    }
-
-    return {
-      total,
-      rated,
-      unrated,
-      hasCompletedReview,
-      hasSelectedFinal,
-      ratingCounts,
-    };
+    return getVotingReviewStats({
+      submissions,
+      ratings,
+      selectedSubmissionId,
+    });
   }, [submissions, ratings, selectedSubmissionId]);
 
   return {
