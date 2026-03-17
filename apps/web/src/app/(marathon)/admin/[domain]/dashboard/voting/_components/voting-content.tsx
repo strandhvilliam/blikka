@@ -19,6 +19,7 @@ import { VotersTabSkeleton } from "./voters-tab-skeleton"
 import { VotingSummarySkeleton } from "./voting-summary-skeleton"
 import { tabTriggerClassName } from "../_lib/utils"
 import { useVotingUiState } from "../_hooks/use-voting-ui-state"
+import { useVotingRealtime } from "../_hooks/use-voting-realtime"
 
 function VotingSummaryContent({
   activeTopic,
@@ -28,7 +29,14 @@ function VotingSummaryContent({
   const trpc = useTRPC()
   const domain = useDomain()
 
-  const { activeTab, setActiveTab, setLeaderboardPage, setVotersPage } = useVotingUiState()
+  const {
+    activeTab,
+    setActiveTab,
+    setLeaderboardPage,
+    setVotersPage,
+    leaderboardPage,
+    votersPage,
+  } = useVotingUiState()
 
   const { data: summary } = useSuspenseQuery(
     trpc.voting.getVotingAdminSummary.queryOptions({
@@ -36,6 +44,13 @@ function VotingSummaryContent({
       topicId: activeTopic.id,
     }),
   )
+
+  useVotingRealtime({
+    domain,
+    topicId: activeTopic.id,
+    leaderboardPage,
+    votersPage,
+  })
 
   const hasSessions = (summary?.sessionStats.total ?? 0) > 0
 

@@ -53,10 +53,9 @@ const createVotingStore = (storageKey: string) =>
       {
         name: storageKey,
         storage: createJSONStorage(() => localStorage),
-        partialize: (state) => ({
-          ratings: state.ratings,
-          selectedSubmissionId: state.selectedSubmissionId,
-        }),
+        // Only persist star ratings locally. Final vote (selectedSubmissionId) must
+        // come from server so admin reset of voting session is respected.
+        partialize: (state) => ({ ratings: state.ratings }),
       },
     ),
   );
@@ -112,10 +111,12 @@ export function useVotingState({
   useEffect(() => {
     if (isLoading || !votingData) return;
     const currentState = useVotingStore.getState();
+    // Server is source of truth for final vote - respects admin reset
+    const serverSelectedSubmissionId = votingData.votedSubmissionId ?? null;
     const nextState = sanitizeVotingState({
       submissions,
       ratings: currentState.ratings,
-      selectedSubmissionId: currentState.selectedSubmissionId,
+      selectedSubmissionId: serverSelectedSubmissionId,
     });
 
     if (nextState.hasChanges) {

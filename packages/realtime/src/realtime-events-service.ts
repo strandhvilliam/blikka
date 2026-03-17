@@ -1,13 +1,17 @@
 import { Cause, Effect, Exit, Layer, ServiceMap } from "effect"
 import { RealtimeService } from "./realtime-service"
 import { RealtimeChannel, RealtimeError } from "./channel"
-import { getRealtimeResultEventName } from "./contract"
+import {
+  getRealtimeResultEventName,
+  getVotingVoteCastEventName,
+} from "./contract"
 import type {
   RealtimeChannelEnv,
   RealtimeEventChannels,
   RealtimeEventKey,
   RealtimeEventResultPayload,
   RealtimeResultOutcome,
+  VotingVoteCastPayload,
 } from "./contract"
 
 interface RealtimeTarget {
@@ -29,6 +33,21 @@ export interface EmitEventResultOptions extends RealtimeTarget {
 export interface WithEventResultOptions extends RealtimeTarget {
   eventKey: RealtimeEventKey
   metadata?: { orderIndex?: number }
+}
+
+export interface EmitVotingVoteCastOptions {
+  environment: RealtimeChannelEnv
+  domain: string
+  topicId: number
+  sessionId: number
+  submissionId: number
+  votedAt: string
+  participantReference: string | null
+  participantFirstName: string | null
+  participantLastName: string | null
+  submissionCreatedAt: string
+  submissionKey: string | null
+  submissionThumbnailKey: string | null
 }
 
 function resolveChannels(
@@ -100,6 +119,31 @@ export class RealtimeEventsService extends ServiceMap.Service<RealtimeEventsServ
         yield* emitToChannels(options, getRealtimeResultEventName(eventKey), payload)
       })
 
+      const emitVotingVoteCast = Effect.fn(
+        "RealtimeEventsService.emitVotingVoteCast",
+      )(function* (options: EmitVotingVoteCastOptions) {
+        const payload: VotingVoteCastPayload = {
+          eventId: `${options.sessionId}:${options.votedAt}`,
+          domain: options.domain,
+          topicId: options.topicId,
+          sessionId: options.sessionId,
+          submissionId: options.submissionId,
+          votedAt: options.votedAt,
+          participantReference: options.participantReference,
+          participantFirstName: options.participantFirstName,
+          participantLastName: options.participantLastName,
+          submissionCreatedAt: options.submissionCreatedAt,
+          submissionKey: options.submissionKey,
+          submissionThumbnailKey: options.submissionThumbnailKey,
+        }
+
+        yield* emitToChannels(
+          { environment: options.environment, domain: options.domain, channels: "domain" },
+          getVotingVoteCastEventName(),
+          payload,
+        )
+      })
+
       const withEventResult = <A, E, R>(
         effect: Effect.Effect<A, E, R>,
         options: WithEventResultOptions,
@@ -145,7 +189,7 @@ export class RealtimeEventsService extends ServiceMap.Service<RealtimeEventsServ
           )
         })
 
-      return { emitEventResult, withEventResult } as const
+      return { emitEventResult, emitVotingVoteCast, withEventResult } as const
     }),
   },
 ) {

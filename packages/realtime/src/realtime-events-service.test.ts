@@ -1,7 +1,13 @@
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
-import { getRealtimeResultEventName } from "./contract"
-import type { RealtimeEventResultPayload } from "./contract"
+import {
+  getRealtimeResultEventName,
+  getVotingVoteCastEventName,
+} from "./contract"
+import type {
+  RealtimeEventResultPayload,
+  VotingVoteCastPayload,
+} from "./contract"
 import { RealtimeEventsService } from "./realtime-events-service"
 import { RealtimeService } from "./realtime-service"
 import type { RealtimeChannel } from "./channel"
@@ -114,6 +120,37 @@ describe("RealtimeEventsService", () => {
 
       expect(emittedEvents).toHaveLength(1)
       expect(emittedEvents[0]?.channel).toBe("dev:demo")
+    }).pipe(Effect.provide(makeTestLayer(emittedEvents)))
+  })
+
+  it.effect("emits voting vote-cast updates on the domain channel", () => {
+    const emittedEvents: EmittedRealtimeEvent[] = []
+
+    return Effect.gen(function* () {
+      const realtimeEvents = yield* RealtimeEventsService
+
+      yield* realtimeEvents.emitVotingVoteCast({
+        environment: "dev",
+        domain: "demo",
+        topicId: 7,
+        sessionId: 42,
+        submissionId: 99,
+        votedAt: "2026-03-17T12:00:00.000Z",
+        participantReference: "1234",
+        participantFirstName: "Ada",
+        participantLastName: "Lovelace",
+        submissionCreatedAt: "2026-03-17T11:00:00.000Z",
+        submissionKey: "submission-key",
+        submissionThumbnailKey: "thumb-key",
+      })
+
+      expect(emittedEvents).toHaveLength(1)
+      expect(emittedEvents[0]?.channel).toBe("dev:demo")
+      expect(emittedEvents[0]?.eventName).toBe(getVotingVoteCastEventName())
+
+      const payload = emittedEvents[0]?.payload as VotingVoteCastPayload
+      expect(payload.eventId).toBe("42:2026-03-17T12:00:00.000Z")
+      expect(payload.submissionId).toBe(99)
     }).pipe(Effect.provide(makeTestLayer(emittedEvents)))
   })
 })

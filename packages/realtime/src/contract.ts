@@ -85,3 +85,26 @@ export const RealtimeEventResultPayloadSchema = Schema.Union([
 export type RealtimeEventResultPayload = Schema.Schema.Type<
   typeof RealtimeEventResultPayloadSchema
 >;
+
+export function getVotingVoteCastEventName(): "event.voting.vote-cast" {
+  return "event.voting.vote-cast";
+}
+
+export const VotingVoteCastPayloadSchema = Schema.Struct({
+  eventId: Schema.String,
+  domain: Schema.String,
+  topicId: Schema.Number,
+  sessionId: Schema.Number,
+  submissionId: Schema.Number,
+  votedAt: Schema.String,
+  participantReference: Schema.NullOr(Schema.String),
+  participantFirstName: Schema.NullOr(Schema.String),
+  participantLastName: Schema.NullOr(Schema.String),
+  submissionCreatedAt: Schema.String,
+  submissionKey: Schema.NullOr(Schema.String),
+  submissionThumbnailKey: Schema.NullOr(Schema.String),
+});
+
+export type VotingVoteCastPayload = Schema.Schema.Type<
+  typeof VotingVoteCastPayloadSchema
+>;

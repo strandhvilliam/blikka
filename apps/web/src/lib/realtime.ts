@@ -42,9 +42,27 @@ function createRealtimeEventScopedSchema<TSchema extends z.ZodTypeAny>(schema: T
   ) as Record<(typeof realtimeEventKeys)[number], TSchema>
 }
 
+const VotingVoteCastPayloadSchema = z.object({
+  eventId: z.string(),
+  domain: z.string(),
+  topicId: z.number(),
+  sessionId: z.number(),
+  submissionId: z.number(),
+  votedAt: z.string(),
+  participantReference: z.string().nullable(),
+  participantFirstName: z.string().nullable(),
+  participantLastName: z.string().nullable(),
+  submissionCreatedAt: z.string(),
+  submissionKey: z.string().nullable(),
+  submissionThumbnailKey: z.string().nullable(),
+})
+
 const realtimeContractSchema = {
   event: {
     result: createRealtimeEventScopedSchema(RealtimeEventResultPayloadSchema),
+    voting: {
+      "vote-cast": VotingVoteCastPayloadSchema,
+    },
   },
 } as const
 

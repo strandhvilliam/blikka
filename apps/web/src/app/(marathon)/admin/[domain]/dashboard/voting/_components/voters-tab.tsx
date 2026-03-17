@@ -45,12 +45,11 @@ import { getVotingLifecycleState } from "@/lib/voting/voting-lifecycle"
 import {
   formatDateTime,
   getSubmissionImageUrl,
+  VOTING_PAGE_SIZE,
 } from "../_lib/utils"
 import { useVotingUiState } from "../_hooks/use-voting-ui-state"
 import { formatDomainLink } from "@/lib/utils"
 import { VotingProgress } from "./voting-progress"
-
-const PAGE_SIZE = 50
 
 interface VotersTabProps {
   activeTopic: { id: number; name: string; orderIndex: number }
@@ -217,7 +216,7 @@ export function VotersTab({
       domain,
       topicId: activeTopic.id,
       page: votersPage,
-      limit: PAGE_SIZE,
+      limit: VOTING_PAGE_SIZE,
     }),
   )
 

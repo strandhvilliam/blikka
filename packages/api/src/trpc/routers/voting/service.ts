@@ -5,6 +5,10 @@ import { Database, type VotingSession, type NewVotingSession } from "@blikka/db"
 import { VotingApiError } from "./schemas"
 import { SMSService } from "@blikka/aws"
 import {
+  RealtimeEventsService,
+  getRealtimeChannelEnvironmentFromNodeEnv,
+} from "@blikka/realtime"
+import {
   PhoneNumberEncryptionService,
   type EncryptedPhoneNumber,
 } from "../../utils/phone-number-encryption"
@@ -112,6 +116,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
     make: Effect.gen(function* () {
       const db = yield* Database
       const smsService = yield* SMSService
+      const realtimeEvents = yield* RealtimeEventsService
       const phoneEncryption = yield* PhoneNumberEncryptionService
 
       const submissionsBucketName = yield* Config.string(
@@ -119,6 +124,9 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
       )
       const thumbnailsBucketName = yield* Config.string(
         "THUMBNAILS_BUCKET_NAME",
+      )
+      const environment = yield* Config.string("NODE_ENV").pipe(
+        Config.map(getRealtimeChannelEnvironmentFromNodeEnv),
       )
 
       const generateUniqueToken = Effect.fn(
@@ -1572,6 +1580,39 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           )
         }
 
+        const voteRealtimePayloadResult =
+          yield* db.submissionsQueries.getSubmissionVoteRealtimePayloadById({
+            id: submissionId,
+          })
+
+        yield* Option.match(voteRealtimePayloadResult, {
+          onSome: (voteRealtimePayload) =>
+            realtimeEvents.emitVotingVoteCast({
+              environment,
+              domain,
+              topicId: votingSession.topicId,
+              sessionId: updatedSession.id,
+              submissionId,
+              votedAt: updatedSession.votedAt ?? new Date().toISOString(),
+              participantReference: voteRealtimePayload.participantReference,
+              participantFirstName: voteRealtimePayload.participantFirstName,
+              participantLastName: voteRealtimePayload.participantLastName,
+              submissionCreatedAt: voteRealtimePayload.submissionCreatedAt,
+              submissionKey: voteRealtimePayload.submissionKey,
+              submissionThumbnailKey: voteRealtimePayload.submissionThumbnailKey,
+            }).pipe(
+              Effect.catch((error) =>
+                Effect.logWarning(
+                  `[VotingApiService.submitVote] Failed to publish realtime vote update for ${domain}:${votingSession.topicId}:${updatedSession.id} - ${error.message}`,
+                ),
+              ),
+            ),
+          onNone: () =>
+            Effect.logWarning(
+              `[VotingApiService.submitVote] Skipped realtime vote update for ${domain}:${votingSession.topicId}:${updatedSession.id} because the payload could not be loaded`,
+            ),
+        })
+
         return {
           success: true as const,
           votedAt: updatedSession.votedAt,
@@ -1705,6 +1746,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
       Layer.mergeAll(
         Database.layer,
         SMSService.layer,
+        RealtimeEventsService.layer,
         PhoneNumberEncryptionService.layer,
       ),
     ),

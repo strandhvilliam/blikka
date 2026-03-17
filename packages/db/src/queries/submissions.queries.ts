@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, ServiceMap } from "effect";
 import { DrizzleClient } from "../drizzle-client";
-import { submissions, zippedSubmissions } from "../schema";
+import { participants, submissions, zippedSubmissions } from "../schema";
 import { eq, inArray } from "drizzle-orm";
 import type {
   NewSubmission,
@@ -39,6 +39,26 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
           }),
         );
         return Option.fromNullishOr(result);
+      });
+      const getSubmissionVoteRealtimePayloadById = Effect.fn(
+        "SubmissionsQueries.getSubmissionVoteRealtimePayloadById",
+      )(function* ({ id }: { id: number }) {
+        const result = yield* use((db) =>
+          db
+            .select({
+              submissionId: submissions.id,
+              submissionCreatedAt: submissions.createdAt,
+              submissionKey: submissions.key,
+              submissionThumbnailKey: submissions.thumbnailKey,
+              participantReference: participants.reference,
+              participantFirstName: participants.firstname,
+              participantLastName: participants.lastname,
+            })
+            .from(submissions)
+            .innerJoin(participants, eq(participants.id, submissions.participantId))
+            .where(eq(submissions.id, id)),
+        );
+        return Option.fromNullishOr(result[0]);
       });
       const getSubmissionByKey = Effect.fn(
         "SubmissionsQueries.getSubmissionByKey",
@@ -421,6 +441,7 @@ export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()
       return {
         getAllSubmissionKeysForMarathon,
         getSubmissionById,
+        getSubmissionVoteRealtimePayloadById,
         getSubmissionByKey,
         getZippedSubmissionsByDomain,
         getZippedSubmissionsByMarathonId,

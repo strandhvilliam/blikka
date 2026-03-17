@@ -20,11 +20,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useTRPC } from "@/lib/trpc/client"
-import { formatDateTime, getSubmissionImageUrl } from "../_lib/utils"
+import {
+  formatDateTime,
+  getSubmissionImageUrl,
+  VOTING_PAGE_SIZE,
+} from "../_lib/utils"
 import { useDomain } from "@/lib/domain-provider"
 import { useVotingUiState } from "../_hooks/use-voting-ui-state"
-
-const PAGE_SIZE = 50
 
 interface LeaderboardEntry {
   submissionId: number
@@ -66,7 +68,7 @@ export function LeaderboardTab({
       domain,
       topicId: activeTopic.id,
       page: leaderboardPage,
-      limit: PAGE_SIZE,
+      limit: VOTING_PAGE_SIZE,
     }),
   )
 
