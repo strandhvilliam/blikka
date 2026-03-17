@@ -1,3 +1,5 @@
+import { useState } from "react"
+import type { Topic } from "@blikka/db"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { useQueryClient } from "@tanstack/react-query"
@@ -9,8 +11,12 @@ import { TagIcon, ChevronsUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { TopicsActivateDialog } from "../topics/_components/topics-activate-dialog"
 
 export function DashboardHeaderTopicSwitcher() {
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [pendingTopicToActivate, setPendingTopicToActivate] =
+    useState<Topic | null>(null)
   const trpc = useTRPC()
   const domain = useDomain()
   const queryClient = useQueryClient()
@@ -43,8 +49,23 @@ export function DashboardHeaderTopicSwitcher() {
     return null
   }
 
+  const handleTopicClick = (topic: Topic) => {
+    if (topic.id === activeTopic?.id) return
+    setPopoverOpen(false)
+    setPendingTopicToActivate(topic)
+  }
+
+  const handleActivateConfirm = (topic: Topic) => {
+    activateTopic(
+      { domain, id: topic.id },
+      {
+        onSuccess: () => setPendingTopicToActivate(null),
+      },
+    )
+  }
+
   return (
-    <Popover>
+    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
         <SidebarMenuButton
           size="lg"
@@ -90,10 +111,7 @@ export function DashboardHeaderTopicSwitcher() {
                         ? "border-[#FE3923]/40 bg-[#FF5D4B]/10 shadow-[0_0_0_1px_rgba(255,93,75,0.25)] hover:bg-[#FF5D4B]/15"
                         : "border-transparent hover:border-[#FE3923]/30 hover:bg-[#FF5D4B]/5"
                     )}
-                    onClick={() => {
-                      if (isActive) return
-                      activateTopic({ domain, id: topic.id })
-                    }}
+                    onClick={() => handleTopicClick(topic)}
                     disabled={isActivatingTopic}
                   >
                     <div className="min-w-0 text-left">
@@ -117,6 +135,14 @@ export function DashboardHeaderTopicSwitcher() {
           )}
         </div>
       </PopoverContent>
+      <TopicsActivateDialog
+        topicToActivate={pendingTopicToActivate}
+        activeTopic={activeTopic}
+        isOpen={pendingTopicToActivate != null}
+        onOpenChange={(open) => !open && setPendingTopicToActivate(null)}
+        onConfirm={handleActivateConfirm}
+        isPending={isActivatingTopic}
+      />
     </Popover>
   )
 } 

@@ -14,6 +14,7 @@ import { getByCameraSubmissionWindowState } from "../_lib/by-camera-submission-w
 import { TopicsCreateDialog } from "./topics-create-dialog";
 import { TopicsEditDialog } from "./topics-edit-dialog";
 import { TopicsDeleteDialog } from "./topics-delete-dialog";
+import { TopicsActivateDialog } from "./topics-activate-dialog";
 import { TopicsByCameraHeader } from "./topics-by-camera-header";
 import { TopicsByCameraEmptyState } from "./topics-by-camera-empty-state";
 import { TopicsByCameraStats } from "./topics-by-camera-stats";
@@ -33,6 +34,7 @@ export function TopicsByCamera() {
     openEdit,
     openDelete,
     openSubmissionWindow,
+    openActivate,
   } = useTopicsByCameraDialogState();
 
   const { data: marathon } = useSuspenseQuery(
@@ -104,11 +106,20 @@ export function TopicsByCamera() {
 
   const isLoading = isDeletingTopic || isActivatingTopic;
 
-  const handleSetActive = (topic: Topic) => {
-    activateTopic({
-      domain,
-      id: topic.id,
-    });
+  const handleActivateClick = (topic: Topic) => {
+    openActivate(topic.id);
+  };
+
+  const handleActivateConfirm = (topic: Topic) => {
+    activateTopic(
+      {
+        domain,
+        id: topic.id,
+      },
+      {
+        onSuccess: () => closeDialog(),
+      },
+    );
   };
 
   const handleEditClick = (topic: Topic) => {
@@ -173,7 +184,7 @@ export function TopicsByCamera() {
             <TopicsHistoryList
               topics={historyTopics}
               submissionCountMap={submissionCountMap}
-              onActivate={handleSetActive}
+              onActivate={handleActivateClick}
               onEdit={handleEditClick}
               onDelete={handleDeleteClick}
               isLoading={isLoading}
@@ -199,6 +210,15 @@ export function TopicsByCamera() {
         topic={selectedTopic}
         isOpen={dialog === "submission-window"}
         onOpenChange={(open) => !open && closeDialog()}
+      />
+
+      <TopicsActivateDialog
+        topicToActivate={selectedTopic}
+        activeTopic={activeTopic}
+        isOpen={dialog === "activate"}
+        onOpenChange={(open) => !open && closeDialog()}
+        onConfirm={handleActivateConfirm}
+        isPending={isActivatingTopic}
       />
     </div>
   );

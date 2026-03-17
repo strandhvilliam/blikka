@@ -7,6 +7,7 @@ const dialogParser = parseAsStringEnum([
   "edit",
   "delete",
   "submission-window",
+  "activate",
 ]);
 
 export function useTopicsByCameraDialogState() {
@@ -35,6 +36,10 @@ export function useTopicsByCameraDialogState() {
     setParams({ dialog: "submission-window", topicId });
   };
 
+  const openActivate = (topicId: number) => {
+    setParams({ dialog: "activate", topicId });
+  };
+
   return {
     dialog: params.dialog,
     topicId: params.topicId,
@@ -43,6 +48,7 @@ export function useTopicsByCameraDialogState() {
     openEdit,
     openDelete,
     openSubmissionWindow,
+    openActivate,
     setParams,
   };
 }
