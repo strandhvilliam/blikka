@@ -22,7 +22,10 @@
     "termsAndConditions": "villkoren",
     "beginUpload": "Ladda upp nu",
     "prepareForLater": "Förbered för senare",
-    "submissionsClosed": "Inlämningarna är stängda. Röstningen har startat för det aktuella temat.",
+    "submissionsUnavailable": "Det finns inget tema som är öppet för inlämning just nu.",
+    "submissionsNotOpenYet": "Inlämningen har inte öppnat för det aktuella temat ännu.",
+    "submissionsScheduled": "Inlämningen öppnar {date}.",
+    "submissionsClosed": "Inlämningen är stängd för det aktuella temat.",
     "sponsors": "Sponsorer",
     "poweredBy": "drivs av",
     "datesToBeAnnounced": "Datum meddelas senare"

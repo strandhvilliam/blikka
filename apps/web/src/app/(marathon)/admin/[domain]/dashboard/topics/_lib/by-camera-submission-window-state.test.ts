@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getByCameraSubmissionWindowState } from "./by-camera-submission-window-state";
+import { getByCameraSubmissionWindowState } from "../../../../../../../lib/topics/by-camera-submission-window-state";
 
 const now = new Date("2026-03-17T10:00:00.000Z");
 
