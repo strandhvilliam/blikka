@@ -1,6 +1,6 @@
 export type VotingLifecycleState = "not-started" | "active" | "ended"
 export type VotingUnavailableReason = Exclude<VotingLifecycleState, "active">
-export type SubmissionLifecycleState = "open" | "ended"
+export type SubmissionLifecycleState = "not-started" | "open" | "ended"
 
 type NullableTimestamp = string | null | undefined
 
@@ -48,9 +48,15 @@ export function getVotingUnavailableReason(
 }
 
 export function getSubmissionLifecycleState(
+  scheduledStart: NullableTimestamp,
   scheduledEnd: NullableTimestamp,
   now = new Date(),
 ): SubmissionLifecycleState {
+  const startsAt = parseTimestamp(scheduledStart)
+  if (!startsAt || startsAt > now) {
+    return "not-started"
+  }
+
   const endsAt = parseTimestamp(scheduledEnd)
   if (endsAt && endsAt <= now) {
     return "ended"

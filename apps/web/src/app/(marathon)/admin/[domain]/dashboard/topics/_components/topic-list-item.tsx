@@ -68,7 +68,7 @@ export function TopicListItem({
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            variant="default"
+            variant="outline"
             onClick={() => onActivate(topic)}
             disabled={isLoading}
             className="gap-1.5"

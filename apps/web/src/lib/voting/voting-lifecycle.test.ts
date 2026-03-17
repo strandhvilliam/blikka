@@ -75,13 +75,22 @@ describe("web voting lifecycle helpers", () => {
     ).toBe("ended")
   })
 
-  it("tracks whether the submission window has ended", () => {
-    expect(getSubmissionLifecycleState(null, now)).toBe("open")
+  it("treats missing or future scheduledStart as not-started", () => {
+    expect(getSubmissionLifecycleState(null, null, now)).toBe("not-started")
     expect(
-      getSubmissionLifecycleState("2026-03-17T12:00:00.000Z", now),
+      getSubmissionLifecycleState("2026-03-17T12:00:00.000Z", null, now),
+    ).toBe("not-started")
+  })
+
+  it("tracks whether the submission window is open or ended", () => {
+    expect(
+      getSubmissionLifecycleState("2026-03-17T08:00:00.000Z", null, now),
     ).toBe("open")
     expect(
-      getSubmissionLifecycleState("2026-03-17T09:00:00.000Z", now),
+      getSubmissionLifecycleState("2026-03-17T08:00:00.000Z", "2026-03-17T12:00:00.000Z", now),
+    ).toBe("open")
+    expect(
+      getSubmissionLifecycleState("2026-03-17T08:00:00.000Z", "2026-03-17T09:00:00.000Z", now),
     ).toBe("ended")
   })
 })

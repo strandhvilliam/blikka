@@ -18,12 +18,18 @@ interface VotingSetupProps {
   activeTopic: Topic
 }
 
-type LifecyclePhase = "end-submissions" | "start-voting" | "close-voting" | "complete"
+type LifecyclePhase =
+  | "waiting"
+  | "end-submissions"
+  | "start-voting"
+  | "close-voting"
+  | "complete"
 
 function getLifecyclePhase(
-  submissionState: "open" | "ended",
+  submissionState: "not-started" | "open" | "ended",
   votingState: "not-started" | "active" | "ended",
 ): LifecyclePhase {
+  if (submissionState === "not-started") return "waiting"
   if (submissionState === "open") return "end-submissions"
   if (votingState === "not-started") return "start-voting"
   if (votingState === "active") return "close-voting"
@@ -40,7 +46,9 @@ type StepStatus = "completed" | "current" | "upcoming"
 
 function getStepStatus(stepId: string, currentPhase: LifecyclePhase): StepStatus {
   const order = ["end-submissions", "start-voting", "close-voting"]
-  const currentIdx = currentPhase === "complete" ? 3 : order.indexOf(currentPhase)
+  const phaseIdx = order.indexOf(currentPhase)
+  const currentIdx =
+    currentPhase === "complete" ? 3 : currentPhase === "waiting" ? -1 : phaseIdx
   const stepIdx = order.indexOf(stepId)
   if (stepIdx < currentIdx) return "completed"
   if (stepIdx === currentIdx) return "current"
@@ -136,6 +144,18 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     }),
   )
 
+  const startSubmissionsMutation = useMutation(
+    trpc.topics.update.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Submissions started")
+        await invalidateVotingData()
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to start submissions")
+      },
+    }),
+  )
+
   const startVotingMutation = useMutation(
     trpc.voting.startVotingSessions.mutationOptions({
       onSuccess: async () => {
@@ -165,7 +185,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     return endsAt ? toDateTimeLocalValue(new Date(endsAt)) : ""
   })
 
-  const submissionState = getSubmissionLifecycleState(activeTopic.scheduledEnd)
+  const submissionState = getSubmissionLifecycleState(activeTopic.scheduledStart, activeTopic.scheduledEnd)
   const votingState = getVotingLifecycleState(summary.votingWindow)
   const currentPhase = getLifecyclePhase(submissionState, votingState)
   const submissionCount = summary?.submissionStats.submissionCount ?? 0
@@ -193,6 +213,16 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
   }, [hasScheduledVotingStart, hasValidPlannedEnd, submissionCount, submissionState])
 
   const canStartVoting = !startBlockedMessage && votingState === "not-started"
+
+  const handleStartSubmissionsNow = () => {
+    startSubmissionsMutation.mutate({
+      domain,
+      id: activeTopic.id,
+      data: {
+        scheduledStart: new Date().toISOString(),
+      },
+    })
+  }
 
   const handleEndSubmissionsNow = () => {
     endSubmissionsMutation.mutate({
@@ -234,6 +264,38 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       <StepIndicator currentPhase={currentPhase} />
 
       <div className="border-t border-slate-100 px-6 py-5">
+        {currentPhase === "waiting" && (
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                Waiting for submissions to begin
+              </p>
+              <p className="mt-0.5 text-sm text-slate-500">
+                {activeTopic.scheduledStart
+                  ? `Submissions scheduled to start ${formatDateTime(activeTopic.scheduledStart)}`
+                  : "No submission start time has been scheduled yet."}
+              </p>
+            </div>
+            <Button
+              onClick={handleStartSubmissionsNow}
+              disabled={startSubmissionsMutation.isPending}
+              className="shrink-0"
+            >
+              {startSubmissionsMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <Play className="mr-2 h-4 w-4" />
+                  Start submissions now
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
         {currentPhase === "end-submissions" && (
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
