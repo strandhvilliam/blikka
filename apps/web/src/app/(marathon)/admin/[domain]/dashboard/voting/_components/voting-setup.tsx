@@ -1,81 +1,98 @@
 "use client"
 
 import type { Topic } from "@blikka/db"
-import type { ReactNode } from "react"
-import { useMemo, useState } from "react"
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock3,
-  ImageIcon,
-  Loader2,
-  Play,
-  TimerOff,
-  Users,
-  Vote,
-} from "lucide-react"
+import { Fragment, useMemo, useState } from "react"
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { AlertTriangle, Check, ImageIcon, Loader2, Play, TimerOff, Users, Vote } from "lucide-react"
 import { toast } from "sonner"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { Button } from "@/components/ui/button"
-import {
-  getSubmissionLifecycleState,
-  getVotingLifecycleState,
-} from "@/lib/voting/voting-lifecycle"
-import {
-  formatDateTime,
-  toDateTimeLocalValue,
-  toIsoFromLocal,
-} from "../_lib/utils"
+import { getSubmissionLifecycleState, getVotingLifecycleState } from "@/lib/voting/voting-lifecycle"
+import { formatDateTime, toDateTimeLocalValue, toIsoFromLocal } from "../_lib/utils"
 
 interface VotingSetupProps {
   activeTopic: Topic
 }
 
-const SUBMISSION_STATE_STYLES = {
-  open: "border-blue-200 bg-blue-50 text-blue-700",
-  ended: "border-emerald-200 bg-emerald-50 text-emerald-700",
-} as const
+type LifecyclePhase = "end-submissions" | "start-voting" | "close-voting" | "complete"
 
-const VOTING_STATE_STYLES = {
-  "not-started": "border-slate-200 bg-slate-100 text-slate-700",
-  active: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  ended: "border-amber-200 bg-amber-50 text-amber-700",
-} as const
+function getLifecyclePhase(
+  submissionState: "open" | "ended",
+  votingState: "not-started" | "active" | "ended",
+): LifecyclePhase {
+  if (submissionState === "open") return "end-submissions"
+  if (votingState === "not-started") return "start-voting"
+  if (votingState === "active") return "close-voting"
+  return "complete"
+}
 
-function StatusPill({
-  className,
-  children,
-}: {
-  className: string
-  children: ReactNode
-}) {
+const STEPS = [
+  { id: "end-submissions", label: "End submissions" },
+  { id: "start-voting", label: "Start voting" },
+  { id: "close-voting", label: "Close voting" },
+] as const
+
+type StepStatus = "completed" | "current" | "upcoming"
+
+function getStepStatus(stepId: string, currentPhase: LifecyclePhase): StepStatus {
+  const order = ["end-submissions", "start-voting", "close-voting"]
+  const currentIdx = currentPhase === "complete" ? 3 : order.indexOf(currentPhase)
+  const stepIdx = order.indexOf(stepId)
+  if (stepIdx < currentIdx) return "completed"
+  if (stepIdx === currentIdx) return "current"
+  return "upcoming"
+}
+
+function StepIndicator({ currentPhase }: { currentPhase: LifecyclePhase }) {
   return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}
-    >
-      {children}
-    </span>
+    <div className="flex items-center justify-center px-6 py-4">
+      {STEPS.map((step, i) => {
+        const status = getStepStatus(step.id, currentPhase)
+        return (
+          <Fragment key={step.id}>
+            <div className="flex items-center gap-2">
+              <div
+                className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                  status === "completed" && "bg-emerald-500 text-white",
+                  status === "current" &&
+                    "bg-[#FF5D4B] text-white ring-2 ring-[#FF5D4B]/25 ring-offset-1",
+                  status === "upcoming" && "bg-slate-200 text-slate-400",
+                )}
+              >
+                {status === "completed" ? <Check className="h-3 w-3" strokeWidth={3} /> : i + 1}
+              </div>
+              <span
+                className={cn(
+                  "hidden text-[13px] font-medium sm:inline",
+                  status === "completed" && "text-emerald-700",
+                  status === "current" && "text-slate-900",
+                  status === "upcoming" && "text-slate-400",
+                )}
+              >
+                {step.label}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div
+                className={cn(
+                  "mx-2 h-px w-8 sm:mx-4 sm:w-14",
+                  status === "completed" ? "bg-emerald-300" : "bg-slate-200",
+                )}
+              />
+            )}
+          </Fragment>
+        )
+      })}
+    </div>
   )
 }
 
-export function VotingSetup({
-  activeTopic,
-}: VotingSetupProps) {
+export function VotingSetup({ activeTopic }: VotingSetupProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const domain = useDomain()
@@ -150,6 +167,7 @@ export function VotingSetup({
 
   const submissionState = getSubmissionLifecycleState(activeTopic.scheduledEnd)
   const votingState = getVotingLifecycleState(summary.votingWindow)
+  const currentPhase = getLifecyclePhase(submissionState, votingState)
   const submissionCount = summary?.submissionStats.submissionCount ?? 0
   const participantWithSubmissionCount =
     summary?.submissionStats.participantWithSubmissionCount ?? 0
@@ -172,12 +190,7 @@ export function VotingSetup({
       return "Choose a valid planned end timestamp or leave it empty."
     }
     return null
-  }, [
-    hasScheduledVotingStart,
-    hasValidPlannedEnd,
-    submissionCount,
-    submissionState,
-  ])
+  }, [hasScheduledVotingStart, hasValidPlannedEnd, submissionCount, submissionState])
 
   const canStartVoting = !startBlockedMessage && votingState === "not-started"
 
@@ -217,282 +230,148 @@ export function VotingSetup({
   }
 
   return (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader className="gap-1">
-        <CardTitle className="font-gothic text-xl">
-          Voting lifecycle
-        </CardTitle>
-        <CardDescription>
-          End submissions, start voting when the topic is ready, and close
-          voting directly from this page.
-        </CardDescription>
-      </CardHeader>
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <StepIndicator currentPhase={currentPhase} />
 
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <div className="rounded-xl border border-border bg-muted/40 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-foreground">
-                Submission status
+      <div className="border-t border-slate-100 px-6 py-5">
+        {currentPhase === "end-submissions" && (
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Submissions are still open</p>
+              <p className="mt-0.5 text-sm text-slate-500">
+                {activeTopic.scheduledEnd
+                  ? `Scheduled to end ${formatDateTime(activeTopic.scheduledEnd)}`
+                  : "No scheduled end time set"}
               </p>
-              <StatusPill className={SUBMISSION_STATE_STYLES[submissionState]}>
-                {submissionState === "ended" ? "Ended" : "Open"}
-              </StatusPill>
             </div>
-
-            <p className="mt-3 text-sm text-muted-foreground">
-              {submissionState === "ended"
-                ? "Voting can start once the topic is ready."
-                : "Voting remains blocked until submissions have ended."}
-            </p>
-
-            <div className="mt-4 space-y-2 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Scheduled end</span>
-                <span className="font-medium text-foreground">
-                  {activeTopic.scheduledEnd
-                    ? formatDateTime(activeTopic.scheduledEnd)
-                    : "Not set"}
-                </span>
-              </div>
-            </div>
-
-            {submissionState === "open" ? (
-              <Button
-                className="mt-4 w-full"
-                variant="outline"
-                onClick={handleEndSubmissionsNow}
-                disabled={endSubmissionsMutation.isPending}
-              >
-                {endSubmissionsMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Ending submissions...
-                  </>
-                ) : (
-                  <>
-                    <TimerOff className="mr-2 h-4 w-4" />
-                    End submissions now
-                  </>
-                )}
-              </Button>
-            ) : null}
+            <Button
+              variant="outline"
+              onClick={handleEndSubmissionsNow}
+              disabled={endSubmissionsMutation.isPending}
+              className="shrink-0"
+            >
+              {endSubmissionsMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Ending...
+                </>
+              ) : (
+                <>
+                  <TimerOff className="mr-2 h-4 w-4" />
+                  End submissions now
+                </>
+              )}
+            </Button>
           </div>
+        )}
 
-          <div className="rounded-xl border border-border bg-muted/40 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-foreground">
-                Voting status
-              </p>
-              <StatusPill className={VOTING_STATE_STYLES[votingState]}>
-                {votingState === "not-started"
-                  ? "Not started"
-                  : votingState === "active"
-                    ? "Active"
-                    : "Ended"}
-              </StatusPill>
-            </div>
-
-            <div className="mt-4 space-y-2 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Started</span>
-                <span className="font-medium text-foreground">
-                  {summary.votingWindow.startsAt
-                    ? formatDateTime(summary.votingWindow.startsAt)
-                    : "Not started"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Ends</span>
-                <span className="font-medium text-foreground">
-                  {summary.votingWindow.endsAt
-                    ? formatDateTime(summary.votingWindow.endsAt)
-                    : "No planned end"}
-                </span>
-              </div>
-            </div>
-
-            {votingState === "not-started" ? (
-              <div className="mt-4 space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="planned-voting-end">
-                    Optional voting end
-                  </Label>
-                  <Input
-                    id="planned-voting-end"
-                    type="datetime-local"
-                    value={endsAtInput}
-                    onChange={(event) => setEndsAtInput(event.target.value)}
-                    placeholder="Leave empty"
-                    disabled={hasScheduledVotingStart}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty to keep voting open until you close it manually.
-                  </p>
-                </div>
-
-                {startBlockedMessage ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    {startBlockedMessage}
-                  </div>
-                ) : null}
-
-                <Button
-                  className="w-full"
-                  onClick={handleStartVoting}
-                  disabled={!canStartVoting || startVotingMutation.isPending}
+        {currentPhase === "start-voting" && (
+          <div className="space-y-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="planned-voting-end"
+                  className="text-[13px] font-medium text-slate-700"
                 >
-                  {startVotingMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Starting voting...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-2 h-4 w-4" />
-                      Start voting now
-                    </>
-                  )}
-                </Button>
+                  Voting end time <span className="font-normal text-slate-400">(optional)</span>
+                </Label>
+                <Input
+                  id="planned-voting-end"
+                  type="datetime-local"
+                  value={endsAtInput}
+                  onChange={(event) => setEndsAtInput(event.target.value)}
+                  disabled={hasScheduledVotingStart}
+                  className="max-w-64"
+                />
+                <p className="text-xs text-slate-400">Leave empty to close voting manually.</p>
               </div>
-            ) : null}
-
-            {votingState === "active" ? (
               <Button
-                className="mt-4 w-full"
-                variant="destructive"
-                onClick={handleCloseVoting}
-                disabled={closeVotingMutation.isPending}
+                onClick={handleStartVoting}
+                disabled={!canStartVoting || startVotingMutation.isPending}
+                className="shrink-0"
               >
-                {closeVotingMutation.isPending ? (
+                {startVotingMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Closing voting...
+                    Starting...
                   </>
                 ) : (
                   <>
-                    <TimerOff className="mr-2 h-4 w-4" />
-                    Close voting now
+                    <Play className="mr-2 h-4 w-4" />
+                    Start voting
                   </>
                 )}
               </Button>
-            ) : null}
+            </div>
 
-            {votingState === "ended" ? (
-              <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                Voting has ended for this topic. Results and completed votes
-                remain available below.
-              </p>
-            ) : null}
+            {startBlockedMessage && (
+              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                {startBlockedMessage}
+              </div>
+            )}
           </div>
+        )}
 
-          <div className="rounded-xl border border-border bg-muted/40 p-4">
-            <p className="text-sm font-medium text-foreground">
-              Session readiness
+        {currentPhase === "close-voting" && (
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Voting is live</p>
+              <div className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-slate-500">
+                <span>Started {formatDateTime(summary.votingWindow.startsAt)}</span>
+                {summary.votingWindow.endsAt && (
+                  <span>Ends {formatDateTime(summary.votingWindow.endsAt)}</span>
+                )}
+              </div>
+            </div>
+            <Button
+              variant="destructive"
+              onClick={handleCloseVoting}
+              disabled={closeVotingMutation.isPending}
+              className="shrink-0"
+            >
+              {closeVotingMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Closing...
+                </>
+              ) : (
+                <>
+                  <TimerOff className="mr-2 h-4 w-4" />
+                  Close voting
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {currentPhase === "complete" && (
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Voting complete</p>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Results and completed votes are available in the tabs below.
             </p>
-
-            <div className="mt-4 grid grid-cols-1 gap-3">
-              <div className="rounded-lg border border-border bg-background p-3">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <ImageIcon className="h-4 w-4" />
-                  <p className="text-sm">Submissions in topic</p>
-                </div>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {submissionCount}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-border bg-background p-3">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <p className="text-sm">Eligible participants</p>
-                </div>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {participantWithSubmissionCount}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-border bg-background p-3">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Vote className="h-4 w-4" />
-                  <p className="text-sm">Current sessions</p>
-                </div>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {totalSessions}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Missing participant sessions will be created when voting
-                  starts.
-                </p>
-              </div>
-            </div>
           </div>
-        </div>
+        )}
+      </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="rounded-lg border border-border bg-white px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-slate-700">
-                Topic submissions ended
-              </span>
-              {submissionState === "ended" ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Ready
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Pending
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border bg-white px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-slate-700">
-                Topic has submissions
-              </span>
-              {submissionCount > 0 ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Ready
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Missing
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border bg-white px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-slate-700">
-                Voting session lifecycle
-              </span>
-              {votingState === "active" ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-                  <Clock3 className="h-3.5 w-3.5" />
-                  Running
-                </span>
-              ) : votingState === "ended" ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
-                  <TimerOff className="h-3.5 w-3.5" />
-                  Closed
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-700">
-                  <Clock3 className="h-3.5 w-3.5" />
-                  Awaiting start
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-slate-100 px-6 py-3">
+        <span className="inline-flex items-center gap-1.5 text-[13px] text-slate-500">
+          <ImageIcon className="h-3.5 w-3.5 text-slate-400" />
+          <span className="font-semibold text-slate-700">{submissionCount}</span> submissions
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-[13px] text-slate-500">
+          <Users className="h-3.5 w-3.5 text-slate-400" />
+          <span className="font-semibold text-slate-700">
+            {participantWithSubmissionCount}
+          </span>{" "}
+          participants
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-[13px] text-slate-500">
+          <Vote className="h-3.5 w-3.5 text-slate-400" />
+          <span className="font-semibold text-slate-700">{totalSessions}</span> sessions
+        </span>
+      </div>
+    </div>
   )
 }
