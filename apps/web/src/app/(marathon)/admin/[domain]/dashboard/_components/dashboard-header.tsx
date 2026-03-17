@@ -8,7 +8,6 @@ import { Suspense } from "react"
 import { useDomain } from "@/lib/domain-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDomainLink } from "@/lib/utils"
-import { DashboardHeaderTopicSwitcher } from "./dashboard-header-topic-switcher"
 import { cn } from "@/lib/utils"
 
 function QuickNavLink({
@@ -51,11 +50,6 @@ export function DashboardHeader() {
           <div className="w-64">
             <Suspense fallback={<Skeleton className="h-10 w-64" />}>
               <DomainSwitchDropdown />
-            </Suspense>
-          </div>
-          <div className="w-64">
-            <Suspense fallback={<Skeleton className="h-10 w-64" />}>
-              <DashboardHeaderTopicSwitcher />
             </Suspense>
           </div>
         </div>

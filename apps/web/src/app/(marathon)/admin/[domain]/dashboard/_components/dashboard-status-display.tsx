@@ -1,19 +1,38 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
-import Link from "next/link"
-import { AlertTriangle, ArrowRight, CalendarClock, Clock3, Radio, Wrench } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useMarathonConfiguration } from "@/hooks/use-marathon-configuration"
-import {
-  MarathonStatus,
-  useMarathonCountdown } from "@/hooks/use-marathon-countdown"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useMarathonConfiguration } from "@/hooks/use-marathon-configuration"
 import type { RequiredAction } from "@/hooks/use-marathon-configuration"
+import { useMarathonCountdown, type MarathonStatus } from "@/hooks/use-marathon-countdown"
+import { cn } from "@/lib/utils"
+import { useTRPC } from "@/lib/trpc/client"
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { format } from "date-fns"
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarClock,
+  CheckCircle2,
+  ChevronsUpDown,
+  Clock3,
+  Radio,
+  TagIcon,
+  Vote,
+  Wrench,
+} from "lucide-react"
+import Link from "next/link"
+import { toast } from "sonner"
+import { type ByCameraPhase, useByCameraLifecycle } from "../_hooks/use-by-camera-lifecycle"
 
 interface DashboardStatusDisplayProps {
   domain: string
@@ -21,12 +40,30 @@ interface DashboardStatusDisplayProps {
 
 export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) {
   const { marathon, requiredActions } = useMarathonConfiguration(domain)
+
+  if (!marathon) return null
+
+  if (marathon.mode === "by-camera") {
+    return <ByCameraStatusDisplay domain={domain} />
+  }
+
+  return <MarathonStatusDisplay domain={domain} requiredActions={requiredActions} />
+}
+
+function MarathonStatusDisplay({
+  domain,
+  requiredActions,
+}: {
+  domain: string
+  requiredActions: RequiredAction[]
+}) {
+  const { marathon } = useMarathonConfiguration(domain)
   const { countdown, status } = useMarathonCountdown(domain)
 
   const startDate = marathon?.startDate ? new Date(marathon.startDate) : null
   const endDate = marathon?.endDate ? new Date(marathon.endDate) : null
 
-  const statusMeta = getStatusMeta(status, requiredActions.length)
+  const statusMeta = getMarathonStatusMeta(status, requiredActions.length)
   const StatusIcon = statusMeta.icon
 
   return (
@@ -94,14 +131,7 @@ export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) 
           <HoverCardTrigger asChild>
             <div>
               <StatusPill className={cn("gap-2", statusMeta.toneClass)}>
-                {status === "live" ? (
-                  <span className="relative flex size-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500/60" />
-                    <span className="relative inline-flex size-2 rounded-full bg-red-500" />
-                  </span>
-                ) : (
-                  <StatusIcon className="size-3.5" />
-                )}
+                {status === "live" ? <PingDot /> : <StatusIcon className="size-3.5" />}
 
                 <span className="font-semibold">{statusMeta.label}</span>
 
@@ -127,10 +157,10 @@ export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) 
                   variant="outline"
                   className={cn(
                     status === "live" &&
-                    "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400",
+                      "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400",
                     status === "upcoming" &&
-                    "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-                    status === "ended" && "text-muted-foreground"
+                      "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                    status === "ended" && "text-muted-foreground",
                   )}
                 >
                   {statusMeta.label}
@@ -140,11 +170,15 @@ export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) 
               <div className="grid gap-2 text-sm">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">Start</span>
-                  <span className="font-medium">{startDate ? format(startDate, "MMM dd, HH:mm") : "—"}</span>
+                  <span className="font-medium">
+                    {startDate ? format(startDate, "MMM dd, HH:mm") : "—"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">End</span>
-                  <span className="font-medium">{endDate ? format(endDate, "MMM dd, HH:mm") : "—"}</span>
+                  <span className="font-medium">
+                    {endDate ? format(endDate, "MMM dd, HH:mm") : "—"}
+                  </span>
                 </div>
               </div>
 
@@ -162,6 +196,157 @@ export function DashboardStatusDisplay({ domain }: DashboardStatusDisplayProps) 
           </HoverCardContent>
         </HoverCard>
       )}
+    </div>
+  )
+}
+function ByCameraStatusDisplay({ domain }: { domain: string }) {
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
+
+  const topics = [...(marathon?.topics ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
+  const activeTopic = topics.find((t) => t.visibility === "active") ?? null
+  const phase = useByCameraLifecycle(activeTopic)
+  const phaseMeta = getPhaseMeta(phase)
+  const PhaseIcon = phaseMeta.icon
+
+  const { mutate: activateTopic, isPending } = useMutation(
+    trpc.topics.activate.mutationOptions({
+      onSuccess: () => toast.success("Topic activated"),
+      onError: (error) => toast.error(error.message || "Failed to activate topic"),
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.marathons.pathKey() })
+      },
+    }),
+  )
+
+  const isLive = phase === "submissions-ongoing" || phase === "voting-ongoing"
+
+  return (
+    <div className="flex items-center gap-2">
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" className="focus-visible:outline-none">
+            <StatusPill className={cn("gap-2 cursor-pointer", phaseMeta.toneClass)}>
+              {isLive ? (
+                <PingDot color={phaseMeta.pingColor} />
+              ) : (
+                <PhaseIcon className="size-3.5" />
+              )}
+              {activeTopic ? (
+                <>
+                  <span className="font-semibold max-w-[120px] truncate">{activeTopic.name}</span>
+                  <span className="text-[10px] opacity-60">·</span>
+                </>
+              ) : null}
+              <span className={cn("text-[11px]", activeTopic ? "opacity-80" : "font-semibold")}>
+                {phaseMeta.label}
+              </span>
+              <ChevronsUpDown className="size-3 opacity-50" />
+            </StatusPill>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[320px] p-0" align="end">
+          <div className="px-4 pt-3 pb-2 flex items-center justify-between border-b border-border/60">
+            <span className="text-xs font-medium text-muted-foreground">By-camera mode</span>
+            <Badge variant="outline" className={cn("text-[10px] py-0", phaseMeta.badgeClass)}>
+              {phaseMeta.label}
+            </Badge>
+          </div>
+
+          <div className="p-3 space-y-3">
+            {activeTopic && (
+              <div
+                className={cn("rounded-lg border px-3 py-2.5 space-y-1", phaseMeta.cardBorderClass)}
+              >
+                <div className="flex items-center gap-2">
+                  <TagIcon className="size-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium truncate">{activeTopic.name}</span>
+                  <span className="text-[11px] text-muted-foreground ml-auto shrink-0">
+                    #{activeTopic.orderIndex + 1}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {phaseMeta.description}
+                </p>
+              </div>
+            )}
+
+            {topics.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-muted-foreground">
+                  Switch topic
+                </label>
+                <Select
+                  value={activeTopic ? String(activeTopic.id) : undefined}
+                  onValueChange={(value) => {
+                    const id = Number(value)
+                    if (id && id !== activeTopic?.id) {
+                      activateTopic({ domain, id })
+                    }
+                  }}
+                  disabled={isPending}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a topic…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {topics.map((topic) => (
+                      <SelectItem key={topic.id} value={String(topic.id)}>
+                        #{topic.orderIndex + 1} — {topic.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {topics.length === 0 && (
+              <p className="text-sm text-muted-foreground">No topics created yet.</p>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
+
+function StatusPill({ className, children }: { className?: string; children: React.ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-xs select-none",
+        "bg-sidebar-accent/70 text-foreground border-border/60",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+function PingDot({ color = "bg-red-500" }: { color?: string }) {
+  return (
+    <span className="relative flex size-2">
+      <span
+        className={cn(
+          "absolute inline-flex h-full w-full animate-ping rounded-full opacity-60",
+          color,
+        )}
+      />
+      <span className={cn("relative inline-flex size-2 rounded-full", color)} />
+    </span>
+  )
+}
+
+export function DashboardStatusDisplaySkeleton() {
+  return (
+    <div className="flex items-center">
+      <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs bg-muted/40 text-muted-foreground animate-pulse">
+        <div className="size-3.5 rounded-full bg-muted" />
+        <div className="h-3 w-16 rounded bg-muted" />
+        <div className="h-3 w-12 rounded bg-muted" />
+      </div>
     </div>
   )
 }
@@ -209,7 +394,7 @@ function getSetupLinks(domain: string, requiredActions: RequiredAction[]) {
   return Array.from(unique.values())
 }
 
-function getStatusMeta(status: MarathonStatus, requiredActionsCount: number) {
+function getMarathonStatusMeta(status: MarathonStatus, requiredActionsCount: number) {
   const metaForStatus: Record<
     MarathonStatus,
     { label: string; sublabel: string; toneClass: string; icon: typeof AlertTriangle }
@@ -242,28 +427,73 @@ function getStatusMeta(status: MarathonStatus, requiredActionsCount: number) {
   return metaForStatus[status]
 }
 
-export function DashboardStatusDisplaySkeleton() {
-  return (
-    <div className="flex items-center">
-      <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs bg-muted/40 text-muted-foreground animate-pulse">
-        <div className="size-3.5 rounded-full bg-muted" />
-        <div className="h-3 w-16 rounded bg-muted" />
-        <div className="h-3 w-12 rounded bg-muted" />
-      </div>
-    </div>
-  )
+function getPhaseMeta(phase: ByCameraPhase) {
+  const meta: Record<
+    ByCameraPhase,
+    {
+      label: string
+      description: string
+      toneClass: string
+      badgeClass: string
+      cardBorderClass: string
+      icon: typeof Clock3
+      pingColor: string
+    }
+  > = {
+    "no-active-topic": {
+      label: "No active topic",
+      description: "Activate a topic to get started.",
+      toneClass: "bg-muted border-border/60 text-muted-foreground",
+      badgeClass: "text-muted-foreground",
+      cardBorderClass: "border-border",
+      icon: TagIcon,
+      pingColor: "bg-slate-400",
+    },
+    "submissions-not-started": {
+      label: "Awaiting submissions",
+      description: "Submissions have not been started yet for this topic.",
+      toneClass: "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400",
+      badgeClass: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+      cardBorderClass: "border-amber-200 dark:border-amber-800",
+      icon: Clock3,
+      pingColor: "bg-amber-500",
+    },
+    "submissions-ongoing": {
+      label: "Submissions live",
+      description: "Participants are currently submitting photos for this topic.",
+      toneClass: "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400",
+      badgeClass: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400",
+      cardBorderClass: "border-red-200 dark:border-red-800",
+      icon: Radio,
+      pingColor: "bg-red-500",
+    },
+    "submissions-ended": {
+      label: "Submissions closed",
+      description: "Submission window has ended. Ready to start voting.",
+      toneClass: "bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400",
+      badgeClass: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400",
+      cardBorderClass: "border-blue-200 dark:border-blue-800",
+      icon: CheckCircle2,
+      pingColor: "bg-blue-500",
+    },
+    "voting-ongoing": {
+      label: "Voting live",
+      description: "Voters are currently casting their votes for this topic.",
+      toneClass: "bg-violet-500/10 border-violet-500/30 text-violet-700 dark:text-violet-400",
+      badgeClass: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-400",
+      cardBorderClass: "border-violet-200 dark:border-violet-800",
+      icon: Vote,
+      pingColor: "bg-violet-500",
+    },
+    "voting-ended": {
+      label: "Voting complete",
+      description: "Voting has concluded for this topic.",
+      toneClass: "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400",
+      badgeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      cardBorderClass: "border-emerald-200 dark:border-emerald-800",
+      icon: CheckCircle2,
+      pingColor: "bg-emerald-500",
+    },
+  }
+  return meta[phase]
 }
-
-function StatusPill({ className, children }: { className?: string; children: React.ReactNode }) {
-  return (
-    <div
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-xs select-none",
-        "bg-sidebar-accent/70 text-foreground border-border/60",
-        className
-      )}
-    >
-      {children}
-    </div>
-  )
-} 

@@ -10,6 +10,7 @@ import {
   Calendar as CalendarIcon,
   Clock,
   AlertTriangle,
+  Info,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar } from "@/components/ui/calendar"
@@ -101,6 +102,8 @@ export function SettingsForm() {
     )
   }
 
+  const isByCameraMode = marathon.mode === "by-camera"
+
   const [logoState, setLogoState] = useState<{
     previewUrl: string | null
     isUploading: boolean
@@ -161,10 +164,16 @@ export function SettingsForm() {
         data: {
           name: value.name,
           description: value.description,
-          startDate: value.startDate
-            ? value.startDate.toISOString()
-            : undefined,
-          endDate: value.endDate ? value.endDate.toISOString() : undefined,
+          ...(isByCameraMode
+            ? {}
+            : {
+                startDate: value.startDate
+                  ? value.startDate.toISOString()
+                  : undefined,
+                endDate: value.endDate
+                  ? value.endDate.toISOString()
+                  : undefined,
+              }),
           logoUrl,
           termsAndConditionsKey: termsKey,
         },
@@ -512,13 +521,26 @@ Examples of formatting:
             <TabsContent value="date-time" className="space-y-6">
               <div className="grid grid-cols-1 gap-6 max-w-2xl">
                 <div className="space-y-4">
-                  <div className="flex gap-1 flex-col">
-                    <h3 className="font-medium">Contest Schedule</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Set the start and end dates for your marathon
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1 flex-col">
+                      <h3 className="font-medium">Contest Schedule</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Set the start and end dates for your marathon
+                      </p>
+                    </div>
+                    {isByCameraMode && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-md z-10 relative">
+                        <Info className="size-4" />
+                        <span>Not applicable for by-camera mode</span>
+                      </div>
+                    )}
                   </div>
 
+                  <div
+                    className={cn(
+                      isByCameraMode && "opacity-50 pointer-events-none blur-[2px]",
+                    )}
+                  >
                   <div className="grid grid-cols-2 gap-4">
                     <form.Field
                       name="startDate"
@@ -729,6 +751,7 @@ Examples of formatting:
                     startDate={form.state.values.startDate}
                     endDate={form.state.values.endDate}
                   />
+                  </div>
                 </div>
               </div>
             </TabsContent>
