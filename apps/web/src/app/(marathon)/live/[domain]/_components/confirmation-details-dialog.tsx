@@ -16,7 +16,7 @@ export function ConfirmationDetailsDialog({
   open,
   onOpenChange,
 }: {
-  image: { thumbnailUrl: string | undefined; name: string; orderIndex: number } | null
+  image: { imageUrl: string | undefined; name: string; orderIndex: number } | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -38,14 +38,14 @@ export function ConfirmationDetailsDialog({
 
         <div className="relative mt-2">
           <div className="rounded-md overflow-hidden bg-black/5 aspect-square sm:aspect-auto min-h-[200px] flex items-center justify-center">
-            {isLoading && image?.thumbnailUrl && (
+            {isLoading && image?.imageUrl && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/5">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             )}
-            {image?.thumbnailUrl ? (
+            {image?.imageUrl ? (
               <img
-                src={image?.thumbnailUrl}
+                src={image?.imageUrl}
                 alt={image?.name ?? "Preview"}
                 className={`w-full h-auto max-h-[60vh] object-contain transition-opacity duration-300 ${
                   isLoading ? "opacity-0" : "opacity-100"

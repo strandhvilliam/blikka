@@ -42,6 +42,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
             },
             status: submission.status,
             createdAt: submission.createdAt,
+            key: submission.key,
             thumbnailKey: submission.thumbnailKey,
           })),
           competitionClass: {

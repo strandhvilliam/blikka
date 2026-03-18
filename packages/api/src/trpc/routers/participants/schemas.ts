@@ -81,6 +81,7 @@ export const PublicParticipantSchema = Schema.Struct({
       }),
       status: Schema.String,
       createdAt: Schema.String,
+      key: Schema.NullOr(Schema.String),
       thumbnailKey: Schema.NullOr(Schema.String),
     }),
   ),
