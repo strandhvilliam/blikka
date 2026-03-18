@@ -18,13 +18,21 @@ const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
 
 
     const votingSession = yield* fetchEffectQuery(
-      trpc.voting.getVotingSession.queryOptions({ domain, token }),
+      trpc.voting.getVotingSession.queryOptions({ token }),
     ).pipe(
       Effect.catch((error) => {
         console.error("Failed to fetch voting session:", error);
         return Effect.fail(notFound());
       }),
     );
+
+    const sessionDomain = votingSession.marathon?.domain;
+
+    if (sessionDomain && sessionDomain !== domain) {
+      return redirect(
+        formatDomainPathname(`/live/vote/${token}/viewer`, sessionDomain, "live"),
+      );
+    }
 
 
     if (votingSession.voteSubmissionId && votingSession.votedAt) {
@@ -48,7 +56,7 @@ const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
 
     batchPrefetch([
       trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
-      trpc.voting.getVotingSubmissions.queryOptions({ token, domain })
+      trpc.voting.getVotingSubmissions.queryOptions({ token })
     ]);
 
 

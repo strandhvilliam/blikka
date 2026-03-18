@@ -71,14 +71,14 @@ const getVotingStore = (storageKey: string) => {
 };
 
 export function useVotingState({
-  domain,
   token,
+  domain,
   storageKey,
 }: UseVotingStateOptions) {
   const trpc = useTRPC();
   const { data: votingData, isLoading } = useQuery(
     trpc.voting.getVotingSubmissions.queryOptions(
-      { token, domain },
+      { token },
       {
         enabled: !!token && !!domain,
       },

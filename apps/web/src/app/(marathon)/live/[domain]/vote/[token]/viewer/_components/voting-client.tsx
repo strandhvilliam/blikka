@@ -94,7 +94,6 @@ export function VotingClient({
       const result = await submitVoteMutation.mutateAsync({
         token,
         submissionId: currentSubmission.submissionId,
-        domain,
       });
 
       if (result.success) {

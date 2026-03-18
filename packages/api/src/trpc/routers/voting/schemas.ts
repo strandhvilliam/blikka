@@ -12,7 +12,6 @@ export class VotingApiError extends Schema.TaggedErrorClass<VotingApiError>()(
 export const GetVotingSessionSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
-    domain: Schema.String,
   }),
 );
 
@@ -128,7 +127,6 @@ export const ResendVotingSessionNotificationSchema = Schema.toStandardSchemaV1(
 export const GetVotingSubmissionsSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
-    domain: Schema.String,
   }),
 );
 
@@ -136,7 +134,6 @@ export const SubmitVoteSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,
     submissionId: Schema.Number,
-    domain: Schema.String,
   }),
 );
 

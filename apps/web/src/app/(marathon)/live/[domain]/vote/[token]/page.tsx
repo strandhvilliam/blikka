@@ -19,16 +19,22 @@ const _VotePage = Effect.fn("@blikka/web/VotePage")(
       Schema.Struct({ domain: Schema.String, token: Schema.String }),
     )(params)
 
-    prefetch(trpc.voting.getVotingSession.queryOptions({ domain, token }))
+    prefetch(trpc.voting.getVotingSession.queryOptions({ token }))
 
     const votingSession = yield* fetchEffectQuery(
-      trpc.voting.getVotingSession.queryOptions({ domain, token }),
+      trpc.voting.getVotingSession.queryOptions({ token }),
     ).pipe(
       Effect.catch((error) => {
         console.error("Failed to fetch voting session:", error)
         return Effect.fail(notFound())
       }),
     )
+
+    const sessionDomain = votingSession.marathon?.domain
+
+    if (sessionDomain && sessionDomain !== domain) {
+      return redirect(formatDomainPathname(`/live/vote/${token}`, sessionDomain, "live"))
+    }
 
     if (votingSession.voteSubmissionId && votingSession.votedAt) {
       return redirect(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'))

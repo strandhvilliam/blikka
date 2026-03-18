@@ -39,13 +39,21 @@ const VotingCompletedPage = Effect.fn("@blikka/web/VotingCompletedPage")(
     )(params);
 
     const votingSession = yield* fetchEffectQuery(
-      trpc.voting.getVotingSession.queryOptions({ token, domain }),
+      trpc.voting.getVotingSession.queryOptions({ token }),
     ).pipe(
       Effect.catch((error) => {
         console.error("Failed to fetch voting session:", error);
         return Effect.fail(notFound());
       }),
     );
+
+    const sessionDomain = votingSession.marathon?.domain;
+
+    if (sessionDomain && sessionDomain !== domain) {
+      return redirect(
+        formatDomainPathname(`/live/vote/${token}/completed`, sessionDomain, "live"),
+      );
+    }
 
     if (!votingSession.voteSubmissionId || !votingSession.votedAt) {
       return redirect(formatDomainPathname(`/live/vote/${token}`, domain, 'live'));
@@ -55,7 +63,7 @@ const VotingCompletedPage = Effect.fn("@blikka/web/VotingCompletedPage")(
     const email = votingSession?.email ?? "";
     const obfuscatedEmail = obfuscateEmail(email);
 
-    prefetch(trpc.voting.getVotingSession.queryOptions({ token, domain }));
+    prefetch(trpc.voting.getVotingSession.queryOptions({ token }));
 
     return (
       <HydrateClient>

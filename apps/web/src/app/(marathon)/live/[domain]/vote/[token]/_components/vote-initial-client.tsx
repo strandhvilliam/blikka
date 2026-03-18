@@ -19,7 +19,7 @@ export function VoteInitialClient({
 }) {
   const trpc = useTRPC();
   const { data: votingSession } = useSuspenseQuery(
-    trpc.voting.getVotingSession.queryOptions({ domain, token }),
+    trpc.voting.getVotingSession.queryOptions({ token }),
   );
 
   const { data: marathon } = useSuspenseQuery(

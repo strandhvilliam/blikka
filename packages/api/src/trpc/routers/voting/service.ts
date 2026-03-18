@@ -68,6 +68,22 @@ function ensureSessionDomain(
   return Effect.void
 }
 
+function getSessionDomain(
+  votingSession: VotingSession & { marathon?: { domain: string } | null },
+): Effect.Effect<string, VotingApiError> {
+  const domain = votingSession.marathon?.domain
+
+  if (!domain) {
+    return Effect.fail(
+      new VotingApiError({
+        message: "Voting session not found",
+      }),
+    )
+  }
+
+  return Effect.succeed(domain)
+}
+
 function ensureVotingSessionWindow(votingWindow: {
   startsAt: string | null
   endsAt: string | null
@@ -222,7 +238,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
       })
 
       const getVotingSession = Effect.fn("VotingApiService.getVotingSession")(
-        function* ({ token, domain }: { token: string; domain: string }) {
+        function* ({ token }: { token: string }) {
           const votingSessionResult =
             yield* db.votingQueries.getVotingSessionByToken({ token })
 
@@ -235,8 +251,6 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 }),
               ),
           })
-
-          yield* ensureSessionDomain(votingSession, domain)
 
           const votingWindow = yield* getTopicVotingWindow({
             marathonId: votingSession.marathonId,
@@ -1404,7 +1418,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
 
       const getVotingSubmissions = Effect.fn(
         "VotingApiService.getVotingSubmissions",
-      )(function* ({ token, domain }: { token: string; domain: string }) {
+      )(function* ({ token }: { token: string }) {
         const votingSessionResult =
           yield* db.votingQueries.getVotingSessionByToken({ token })
 
@@ -1418,7 +1432,6 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             ),
         })
 
-        // yield* ensureSessionDomain(votingSession, domain)
         const votingWindow = yield* getTopicVotingWindow({
           marathonId: votingSession.marathonId,
           topicId: votingSession.topicId,
@@ -1488,11 +1501,9 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
       const submitVote = Effect.fn("VotingApiService.submitVote")(function* ({
         token,
         submissionId,
-        domain,
       }: {
         token: string
         submissionId: number
-        domain: string
       }) {
         const votingSessionResult =
           yield* db.votingQueries.getVotingSessionByToken({ token })
@@ -1507,7 +1518,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             ),
         })
 
-        yield* ensureSessionDomain(votingSession, domain)
+        const domain = yield* getSessionDomain(votingSession)
 
         if (votingSession.votedAt) {
           return {
