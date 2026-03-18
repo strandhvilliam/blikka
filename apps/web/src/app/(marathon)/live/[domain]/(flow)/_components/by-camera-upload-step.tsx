@@ -206,11 +206,14 @@ export function ByCameraUploadStep({
     }
 
     try {
+      setIsUploading(true);
+
       const initialization = await initializeByCameraUpload(
         initializeByCameraUploadResult.data,
       );
 
       if (!initialization || initialization.uploads.length === 0) {
+        setIsUploading(false);
         toast.error(t("failedToGetPresignedUrls"));
         return;
       }
@@ -221,7 +224,6 @@ export function ByCameraUploadStep({
         participantRef: initialization.reference,
         replaceExistingActiveTopicUpload: null,
       }));
-      setIsUploading(true);
 
       const photosWithUrls: PhotoWithPresignedUrl[] = photos.map(
         (photo, index) => {

@@ -12,12 +12,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
 import { useStepState } from "../_lib/step-state-context";
 import { type FlowMode } from "../_lib/constants";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   isPossiblePhoneNumber,
   parsePhoneNumber,
@@ -121,11 +121,23 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
     participantId: number;
     reference: string;
   } | null>(null);
+  const [isCheckingParticipant, setIsCheckingParticipant] = useState(false);
+  const isCheckingParticipantRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const defaultCountry = getCountryFromLocale();
   const resolveByCameraParticipantByPhone = useMutation(
     trpc.uploadFlow.resolveByCameraParticipantByPhone.mutationOptions(),
   );
+  const isByCameraLookupPending =
+    mode === "by-camera" &&
+    (isCheckingParticipant || resolveByCameraParticipantByPhone.isPending);
 
   const persistByCameraParticipant = async ({
     values,
@@ -171,6 +183,13 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
     },
     onSubmit: async ({ value }) => {
       if (mode === "by-camera") {
+        if (isCheckingParticipantRef.current) {
+          return;
+        }
+
+        isCheckingParticipantRef.current = true;
+        setIsCheckingParticipant(true);
+
         try {
           const resolution =
             await resolveByCameraParticipantByPhone.mutateAsync({
@@ -203,6 +222,12 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
           console.error(error);
           toast.error(t("participantDetails.resolveError"));
           return;
+        } finally {
+          isCheckingParticipantRef.current = false;
+
+          if (isMountedRef.current) {
+            setIsCheckingParticipant(false);
+          }
         }
       }
 
@@ -304,6 +329,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoComplete="given-name"
                           autoCapitalize="words"
                           enterKeyHint="next"
+                          disabled={isByCameraLookupPending}
                           className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
                             showError
                               ? "border-destructive focus-visible:ring-destructive"
@@ -366,6 +392,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoComplete="family-name"
                           autoCapitalize="words"
                           enterKeyHint="next"
+                          disabled={isByCameraLookupPending}
                           className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
                             showError
                               ? "border-destructive focus-visible:ring-destructive"
@@ -429,6 +456,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoCapitalize="none"
                           autoCorrect="off"
                           spellCheck={false}
+                          disabled={isByCameraLookupPending}
                           className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
                             showError
                               ? "border-destructive focus-visible:ring-destructive"
@@ -506,6 +534,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                             enterKeyHint="done"
                             international
                             countryCallingCodeEditable={false}
+                            disabled={isByCameraLookupPending}
                             className={`rounded-xl text-base sm:text-lg bg-background ${
                               showError
                                 ? "border-destructive focus-visible:ring-destructive"
@@ -545,13 +574,22 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                 type="button"
                 className="w-full py-3.5 text-base sm:text-lg rounded-full"
                 disabled={
-                  isSubmitting || resolveByCameraParticipantByPhone.isPending
+                  isSubmitting || isByCameraLookupPending
                 }
                 // submit mannually to avoid specific bug when navigating back between steps
                 onClick={() => form.handleSubmit()}
               >
-                <span>{t("participantDetails.continue")}</span>
-                <ArrowRight className="ml-2 h-5 w-5" />
+                {isByCameraLookupPending ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    <span>{t("participantDetails.checking")}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{t("participantDetails.continue")}</span>
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
+                )}
               </PrimaryButton>
             )}
           </form.Subscribe>
@@ -561,6 +599,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
             size="lg"
             onClick={handlePrevStep}
             className="w-full"
+            disabled={isByCameraLookupPending}
           >
             {t("participantDetails.back")}
           </Button>

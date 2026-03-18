@@ -17,7 +17,7 @@ import { useDomain } from "@/lib/domain-provider";
 import { useTranslations } from "next-intl";
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,10 +66,21 @@ export function ParticipantNumberStep() {
   const [existingParticipantStatus, setExistingParticipantStatus] = useState<
     string | null
   >(null);
+  const [isCheckingParticipant, setIsCheckingParticipant] = useState(false);
+  const isCheckingParticipantRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const checkParticipantExists = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
   );
+  const isParticipantLookupPending =
+    isCheckingParticipant || checkParticipantExists.isPending;
 
   const form = useForm({
     defaultValues: {
@@ -77,8 +88,14 @@ export function ParticipantNumberStep() {
       domain,
     },
     onSubmit: async ({ value }) => {
+      if (isCheckingParticipantRef.current) {
+        return;
+      }
+
       const paddedRef = value.participantRef.padStart(4, "0");
       setPendingRef(paddedRef);
+      isCheckingParticipantRef.current = true;
+      setIsCheckingParticipant(true);
 
       try {
         const participantCheck = await checkParticipantExists.mutateAsync({
@@ -116,6 +133,12 @@ export function ParticipantNumberStep() {
       } catch (error) {
         console.error(error);
         toast.error(t("participantNumber.error"));
+      } finally {
+        isCheckingParticipantRef.current = false;
+
+        if (isMountedRef.current) {
+          setIsCheckingParticipant(false);
+        }
       }
     },
     validators: {
@@ -188,6 +211,7 @@ export function ParticipantNumberStep() {
                       }
                       autoFocus
                       maxLength={4}
+                      disabled={isParticipantLookupPending}
                       value={field.state.value}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -232,10 +256,15 @@ export function ParticipantNumberStep() {
               <PrimaryButton
                 type="submit"
                 className="w-full py-3.5 text-base sm:text-lg rounded-full"
-                disabled={isSubmitting || checkParticipantExists.isPending}
+                disabled={
+                  isSubmitting || isParticipantLookupPending
+                }
               >
-                {isSubmitting || checkParticipantExists.isPending ? (
-                  <Loader2 className="animate-spin" />
+                {isParticipantLookupPending ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    <span>{t("participantNumber.checking")}</span>
+                  </>
                 ) : (
                   <>
                     <span>{t("participantNumber.continue")}</span>
