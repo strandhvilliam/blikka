@@ -100,15 +100,61 @@ export function ConfirmationByCameraClient({
             </motion.div>
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
+              animate={{
+                scale: [1, 1.035, 1],
+                opacity: [1, 0.72, 1],
+              }}
+              transition={{
+                delay: 0.4,
+                duration: 3.8,
+                ease: "easeInOut",
+                repeat: Number.POSITIVE_INFINITY,
+              }}
               className="absolute inset-0 rounded-full border-2 border-emerald-600/30 scale-[1.35]"
             />
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.55, duration: 0.6, ease: "easeOut" }}
+              animate={{
+                scale: [1, 1.025, 1],
+                opacity: [1, 0.7, 1],
+              }}
+              transition={{
+                delay: 0.75,
+                duration: 4.6,
+                ease: "easeInOut",
+                repeat: Number.POSITIVE_INFINITY,
+              }}
               className="absolute inset-0 rounded-full border border-emerald-600/15 scale-[1.7]"
+            />
+            <motion.div
+              initial={{ scale: 1.05, opacity: 0 }}
+              animate={{
+                scale: [1.05, 1.92],
+                opacity: [0, 0.24, 0],
+              }}
+              transition={{
+                delay: 0.9,
+                duration: 2.4,
+                ease: "easeOut",
+                repeat: Number.POSITIVE_INFINITY,
+                repeatDelay: 0.2,
+              }}
+              className="absolute inset-0 rounded-full border-2 border-emerald-500/30"
+            />
+            <motion.div
+              initial={{ scale: 1.05, opacity: 0 }}
+              animate={{
+                scale: [1.05, 1.92],
+                opacity: [0, 0.18, 0],
+              }}
+              transition={{
+                delay: 2.1,
+                duration: 2.4,
+                ease: "easeOut",
+                repeat: Number.POSITIVE_INFINITY,
+                repeatDelay: 0.2,
+              }}
+              className="absolute inset-0 rounded-full border border-emerald-500/20"
             />
           </div>
 
