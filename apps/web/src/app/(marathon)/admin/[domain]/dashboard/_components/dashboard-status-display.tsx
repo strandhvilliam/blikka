@@ -1,5 +1,16 @@
 "use client"
 
+import { useState } from "react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
@@ -25,6 +36,7 @@ import {
   CheckCircle2,
   ChevronsUpDown,
   Clock3,
+  Loader2,
   Radio,
   TagIcon,
   Vote,
@@ -32,6 +44,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
+import { getVotingLifecycleState, getSubmissionLifecycleState } from "@/lib/voting/voting-lifecycle"
 import { type ByCameraPhase, useByCameraLifecycle } from "../_hooks/use-by-camera-lifecycle"
 
 interface DashboardStatusDisplayProps {
@@ -200,27 +213,112 @@ function MarathonStatusDisplay({
   )
 }
 function ByCameraStatusDisplay({ domain }: { domain: string }) {
+  const [pendingTopicId, setPendingTopicId] = useState<number | null>(null)
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   const topics = [...(marathon?.topics ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
   const activeTopic = topics.find((t) => t.visibility === "active") ?? null
+  const pendingTopic = topics.find((topic) => topic.id === pendingTopicId) ?? null
   const phase = useByCameraLifecycle(activeTopic)
   const phaseMeta = getPhaseMeta(phase)
   const PhaseIcon = phaseMeta.icon
+  const submissionState = getSubmissionLifecycleState(
+    activeTopic?.scheduledStart,
+    activeTopic?.scheduledEnd,
+  )
+  const votingState = getVotingLifecycleState({
+    startsAt: activeTopic?.votingStartsAt,
+    endsAt: activeTopic?.votingEndsAt,
+  })
+  const hasOpenSubmissions = submissionState === "open"
+  const hasActiveVoting = votingState === "active"
 
-  const { mutate: activateTopic, isPending } = useMutation(
+  const invalidateMarathon = async () => {
+    await queryClient.invalidateQueries({ queryKey: trpc.marathons.pathKey() })
+  }
+
+  const activateTopicMutation = useMutation(
     trpc.topics.activate.mutationOptions({
       onSuccess: () => toast.success("Topic activated"),
       onError: (error) => toast.error(error.message || "Failed to activate topic"),
-      onSettled: () => {
-        queryClient.invalidateQueries({ queryKey: trpc.marathons.pathKey() })
-      },
+      onSettled: invalidateMarathon,
     }),
   )
 
+  const endSubmissionsMutation = useMutation(
+    trpc.topics.update.mutationOptions({
+      onSuccess: () => toast.success("Submissions ended"),
+      onError: (error) => toast.error(error.message || "Failed to end submissions"),
+      onSettled: invalidateMarathon,
+    }),
+  )
+
+  const closeVotingMutation = useMutation(
+    trpc.voting.closeTopicVotingWindow.mutationOptions({
+      onSuccess: () => toast.success("Voting closed"),
+      onError: (error) => toast.error(error.message || "Failed to close voting"),
+      onSettled: invalidateMarathon,
+    }),
+  )
+
+  const handleActivateTopic = async (id: number) => {
+    await activateTopicMutation.mutateAsync({ domain, id })
+  }
+
+  const handleTopicChange = (value: string) => {
+    const id = Number(value)
+    if (!id || id === activeTopic?.id) {
+      return
+    }
+
+    if (hasOpenSubmissions || hasActiveVoting) {
+      setPendingTopicId(id)
+      return
+    }
+
+    void handleActivateTopic(id)
+  }
+
+  const handleConfirmSwitch = async () => {
+    if (!pendingTopicId || !activeTopic) {
+      return
+    }
+
+    try {
+      if (hasOpenSubmissions) {
+        await endSubmissionsMutation.mutateAsync({
+          domain,
+          id: activeTopic.id,
+          data: {
+            scheduledEnd: new Date().toISOString(),
+          },
+        })
+      } else if (hasActiveVoting) {
+        await closeVotingMutation.mutateAsync({
+          domain,
+          topicId: activeTopic.id,
+        })
+      }
+
+      await handleActivateTopic(pendingTopicId)
+      setPendingTopicId(null)
+    } catch {
+      // Errors are surfaced by the mutations; keep the dialog open for retry.
+    }
+  }
+
+  const isSwitchPending =
+    activateTopicMutation.isPending ||
+    endSubmissionsMutation.isPending ||
+    closeVotingMutation.isPending
   const isLive = phase === "submissions-ongoing" || phase === "voting-ongoing"
+  const confirmDescription = hasOpenSubmissions
+    ? `Switching topics will end submissions for "${activeTopic?.name}" now before activating "${pendingTopic?.name ?? "the selected topic"}".`
+    : hasActiveVoting
+      ? `Switching topics will close voting for "${activeTopic?.name}" now before activating "${pendingTopic?.name ?? "the selected topic"}".`
+      : `Switch to "${pendingTopic?.name ?? "the selected topic"}"?`
 
   return (
     <div className="flex items-center gap-2">
@@ -279,13 +377,8 @@ function ByCameraStatusDisplay({ domain }: { domain: string }) {
                 </label>
                 <Select
                   value={activeTopic ? String(activeTopic.id) : undefined}
-                  onValueChange={(value) => {
-                    const id = Number(value)
-                    if (id && id !== activeTopic?.id) {
-                      activateTopic({ domain, id })
-                    }
-                  }}
-                  disabled={isPending}
+                  onValueChange={handleTopicChange}
+                  disabled={isSwitchPending}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a topic…" />
@@ -307,6 +400,40 @@ function ByCameraStatusDisplay({ domain }: { domain: string }) {
           </div>
         </PopoverContent>
       </Popover>
+      <AlertDialog
+        open={pendingTopicId != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingTopicId(null)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Switch topic?</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDescription}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSwitchPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                void handleConfirmSwitch()
+              }}
+              disabled={!pendingTopic || isSwitchPending}
+            >
+              {isSwitchPending ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Switching...
+                </>
+              ) : (
+                "Confirm"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
