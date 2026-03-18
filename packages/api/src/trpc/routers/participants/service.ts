@@ -91,6 +91,12 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
         });
       });
 
+      const getDashboardOverview = Effect.fn(
+        "ParticipantsApiService.getDashboardOverview",
+      )(function* ({ domain }: { domain: string }) {
+        return yield* db.participantsQueries.getDashboardOverview({ domain });
+      });
+
       const getByReference = Effect.fn("ParticipantsApiService.getByReference")(
         function* ({ reference, domain }) {
           const result =
@@ -195,6 +201,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
       return {
         getPublicParticipantByReference,
         getInfiniteParticipantsByDomain,
+        getDashboardOverview,
         getByReference,
         deleteByReference,
         createParticipant,

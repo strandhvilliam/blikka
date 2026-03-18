@@ -48,6 +48,10 @@ export const GetByReferenceInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({ reference: Schema.String, domain: Schema.String }),
 );
 
+export const GetDashboardOverviewInputSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({ domain: Schema.String }),
+);
+
 export const BatchDeleteInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     ids: Schema.Array(Schema.Number),

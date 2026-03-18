@@ -16,6 +16,7 @@ import {
   ilike,
   notInArray,
   isNotNull,
+  count,
 } from "drizzle-orm";
 import type { NewParticipant } from "../types";
 import { DbError } from "../utils";
@@ -435,6 +436,107 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           nextCursor,
         };
       });
+      const getDashboardOverview = Effect.fn(
+        "ParticipantsQueries.getDashboardOverview",
+      )(function* ({ domain }: { domain: string }) {
+        const [statusRows, participantsWithValidationIssues, recentParticipants] =
+          yield* Effect.all([
+            use((db) =>
+              db
+                .select({
+                  status: participants.status,
+                  count: count(),
+                })
+                .from(participants)
+                .where(eq(participants.domain, domain))
+                .groupBy(participants.status),
+            ),
+            use((db) =>
+              db
+                .selectDistinct({
+                  participantId: validationResults.participantId,
+                })
+                .from(validationResults)
+                .innerJoin(
+                  participants,
+                  eq(participants.id, validationResults.participantId),
+                )
+                .where(
+                  and(
+                    eq(participants.domain, domain),
+                    eq(validationResults.outcome, VALIDATION_OUTCOME.FAILED),
+                    or(
+                      eq(validationResults.severity, "error"),
+                      eq(validationResults.severity, "warning"),
+                    ),
+                  ),
+                ),
+            ),
+            use((db) =>
+              db.query.participants.findMany({
+                where: (table, operators) => operators.eq(table.domain, domain),
+                columns: {
+                  id: true,
+                  reference: true,
+                  firstname: true,
+                  lastname: true,
+                  status: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+                with: {
+                  validationResults: {
+                    columns: {
+                      outcome: true,
+                      severity: true,
+                    },
+                  },
+                },
+                orderBy: (table, operators) => [
+                  operators.desc(table.updatedAt),
+                  operators.desc(table.createdAt),
+                  operators.desc(table.id),
+                ],
+                limit: 6,
+              }),
+            ),
+          ]);
+
+        const statusCounts = {
+          prepared: 0,
+          initialized: 0,
+          completed: 0,
+          verified: 0,
+        };
+
+        for (const row of statusRows) {
+          if (row.status === "prepared") statusCounts.prepared = row.count;
+          if (row.status === "initialized") statusCounts.initialized = row.count;
+          if (row.status === "completed") statusCounts.completed = row.count;
+          if (row.status === "verified") statusCounts.verified = row.count;
+        }
+
+        return {
+          totalParticipants: statusRows.reduce((total, row) => total + row.count, 0),
+          statusCounts,
+          uploadedCount: statusCounts.completed + statusCounts.verified,
+          validationIssueCount: participantsWithValidationIssues.length,
+          recentParticipants: recentParticipants.map((participant) => ({
+            id: participant.id,
+            reference: participant.reference,
+            firstname: participant.firstname,
+            lastname: participant.lastname,
+            status: participant.status,
+            updatedAt: participant.updatedAt ?? participant.createdAt,
+            validationIssueCount: participant.validationResults.filter(
+              (validation) =>
+                validation.outcome === VALIDATION_OUTCOME.FAILED &&
+                (validation.severity === "error" ||
+                  validation.severity === "warning"),
+            ).length,
+          })),
+        };
+      });
       const createParticipant = Effect.fn(
         "ParticipantsQueries.createParticipantMutation",
       )(function* ({ data }: { data: NewParticipant }) {
@@ -584,6 +686,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         getParticipantByReference,
         getByPhoneHashForByCamera,
         getInfiniteParticipantsByDomain,
+        getDashboardOverview,
         createParticipant,
         updateParticipantById,
         updateParticipantByReference,

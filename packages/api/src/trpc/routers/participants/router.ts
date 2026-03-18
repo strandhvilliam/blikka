@@ -9,6 +9,7 @@ import { Effect } from "effect";
 import {
   GetByDomainInfiniteInputSchema,
   GetByReferenceInputSchema,
+  GetDashboardOverviewInputSchema,
   GetPublicParticipantByReferenceInputSchema,
   BatchDeleteInputSchema,
   BatchVerifyInputSchema,
@@ -61,6 +62,23 @@ export const participantRouter = createTRPCRouter({
                 : undefined,
               hasValidationErrors: input.hasValidationErrors ?? undefined,
               votedFilter: input.votedFilter ?? undefined,
+            }),
+          );
+        }),
+      ),
+    ),
+
+  getDashboardOverview: domainProcedure
+    .input(GetDashboardOverviewInputSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn("ParticipantRouter.getDashboardOverview")(function* ({
+          input,
+        }) {
+          return yield* ParticipantsApiService.use((s) =>
+            s.getDashboardOverview({
+              domain: input.domain,
             }),
           );
         }),
