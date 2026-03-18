@@ -283,30 +283,30 @@
   },
   "VotingViewerPage": {
     "infoDrawer": {
-      "triggerLabel": "How voting works",
-      "title": "How voting works",
+      "triggerLabel": "How review and voting works",
+      "title": "How review and voting works",
       "rateImages": {
-        "title": "Rate photos",
-        "description": "Tap the stars below each photo to rate it from 1 to 5. You can change your rating at any time. You can't rate your own photo."
+        "title": "Shortlist with stars",
+        "description": "Tap the stars below each photo to leave private review notes from 1 to 5. These stars are only for your own sorting and are not part of the final vote. You can't mark your own photo."
       },
       "navigatePhotos": {
         "title": "Browse photos",
         "description": "Swipe or use the arrow buttons to move between photos. Tap the grid button to see all thumbnails and jump to any photo."
       },
       "filterByRating": {
-        "title": "Filter by rating",
-        "description": "Use the filters at the top to show photos you've given a specific rating. This makes it easier to compare favorites or find unrated photos."
+        "title": "Filter your shortlist",
+        "description": "Use the filters at the top to revisit photos you've marked with a certain number of stars, compare favorites, or find photos you haven't reviewed yet."
       },
       "chooseFinalPhoto": {
-        "title": "Choose your final photo",
-        "description": "When you're viewing the photo you want to pick, tap \"{buttonLabel}\". You can't vote for your own photo."
+        "title": "Pick one winner",
+        "description": "When you're viewing the photo you want to choose, tap \"{buttonLabel}\". This is the only action that counts as your vote. You can't vote for your own photo."
       },
       "confirmVote": {
         "title": "Confirm your vote",
-        "description": "After you tap \"{buttonLabel}\", confirm to submit your final choice. Your vote can't be changed later."
+        "description": "After you tap \"{buttonLabel}\", confirm to submit your final winner. Your vote can't be changed later."
       },
-      "progressTitle": "Your progress",
-      "progressValue": "{rated} / {total} eligible photos rated"
+      "progressTitle": "Review progress",
+      "progressValue": "{rated} / {total} eligible photos reviewed"
     },
     "filterBar": {
       "all": "All",
@@ -315,26 +315,28 @@
     },
     "footer": {
       "navigationHint": "Swipe or use the arrows to browse photos",
+      "reviewHintButton": "Show review help",
+      "reviewHint": "Stars are private review notes. Only the button below submits your final vote.",
       "previousPhoto": "Previous photo",
       "showGrid": "Show all photos",
       "nextPhoto": "Next photo"
     },
     "voteButton": {
       "cannotVoteForYourself": "You can't vote for your own photo",
-      "yourVote": "Your vote",
-      "alreadyVoted": "Vote submitted",
-      "voteForThisPhoto": "Vote for this photo",
-      "dialogTitle": "Vote for this photo?",
-      "dialogDescription": "You're about to submit your final vote for the photo you're viewing now.",
+      "yourVote": "Your winner",
+      "alreadyVoted": "Winner selected",
+      "voteForThisPhoto": "Choose this as winner",
+      "dialogTitle": "Choose this photo as winner?",
+      "dialogDescription": "You're about to submit your final vote for the photo you're viewing now. Star marks are only private review notes.",
       "topicLabel": "Topic",
       "cannotBeChanged": "This can't be changed later.",
       "cancel": "Cancel",
-      "confirm": "Submit final vote",
+      "confirm": "Submit winner",
       "imageAlt": "Photo you're voting for"
     },
     "emptyState": {
       "title": "No photos found",
-      "filteredDescription": "You haven't rated any photos {rating} stars yet.",
+      "filteredDescription": "You haven't marked any photos {rating} stars yet.",
       "defaultDescription": "There are no photos to review right now.",
       "showAll": "Show all photos"
     },
@@ -348,8 +350,8 @@
       "label": "Your photo"
     },
     "starRating": {
-      "rateStars": "Rate {rating} stars",
-      "ratedToast": "Rated {rating} stars"
+      "rateStars": "Mark {rating} stars for review",
+      "ratedToast": "Saved {rating} stars to your shortlist"
     },
     "toasts": {
       "cannotVoteForOwn": "You can't vote for your own photo.",

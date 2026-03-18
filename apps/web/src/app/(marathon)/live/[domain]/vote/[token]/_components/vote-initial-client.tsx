@@ -70,8 +70,9 @@ export function VoteInitialClient({
 
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
               <p className="text-sm text-gray-600 text-center leading-relaxed">
-                Use 1-5 stars to filter and organize photos (like Lightroom).
-                Then select your single favorite to cast your vote.
+                Use 1-5 stars as private review notes to shortlist photos for
+                yourself. The stars do not count as your vote. When you have
+                picked one winner, submit that photo as your final vote.
               </p>
             </div>
 
@@ -95,7 +96,7 @@ export function VoteInitialClient({
                   className="w-full py-3 text-base text-white rounded-full"
                   disabled
                 >
-                  Start Voting
+                  Start Reviewing Photos
                   <PlayIcon className="h-4 w-4" />
                 </PrimaryButton>
               </div>
@@ -104,7 +105,7 @@ export function VoteInitialClient({
                 <PrimaryButton
                   className="w-full py-3 text-base text-white rounded-full"
                 >
-                  Start Voting
+                  Start Reviewing Photos
                   <PlayIcon className="h-4 w-4" />
                 </PrimaryButton>
               </Link>

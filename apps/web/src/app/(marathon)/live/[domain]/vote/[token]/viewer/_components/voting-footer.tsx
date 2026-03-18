@@ -1,7 +1,17 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, LayoutGrid } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CircleQuestionMark,
+  LayoutGrid,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { StarRating } from "./star-rating";
 import { VoteButton } from "./vote-button";
 import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
@@ -45,9 +55,27 @@ export function VotingFooter({
       {/* Navigation and Rating - only show in carousel mode */}
       {viewMode === "carousel" && hasImages && (
         <div className="px-4 pt-4 pb-2 space-y-4">
-          <p className="text-center text-xs text-muted-foreground/60">
-            {t("footer.navigationHint")}
-          </p>
+          <div className="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground/60">
+            <p>{t("footer.navigationHint")}</p>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label={t("footer.reviewHintButton")}
+                >
+                  <CircleQuestionMark className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="top"
+                align="center"
+                className="w-64 text-sm leading-relaxed"
+              >
+                {t("footer.reviewHint")}
+              </PopoverContent>
+            </Popover>
+          </div>
           <StarRating
             value={currentRating}
             onChange={onRatingChange}

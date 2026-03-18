@@ -282,30 +282,30 @@
   },
   "VotingViewerPage": {
     "infoDrawer": {
-      "triggerLabel": "Så fungerar röstningen",
-      "title": "Så fungerar röstningen",
+      "triggerLabel": "Så fungerar granskning och röstning",
+      "title": "Så fungerar granskning och röstning",
       "rateImages": {
-        "title": "Betygsätt foton",
-        "description": "Tryck på stjärnorna under varje foto för att ge det ett betyg från 1 till 5. Du kan ändra ditt betyg när som helst. Du kan inte betygsätta ditt eget foto."
+        "title": "Markera med stjärnor",
+        "description": "Tryck på stjärnorna under varje foto för att lämna privata granskningsanteckningar från 1 till 5. Stjärnorna är bara till för din egen sortering och är inte en del av den slutliga rösten. Du kan inte markera ditt eget foto."
       },
       "navigatePhotos": {
         "title": "Bläddra bland foton",
         "description": "Svep eller använd pilknapparna för att gå mellan foton. Tryck på rutnätsknappen för att se alla miniatyrer och hoppa direkt till ett foto."
       },
       "filterByRating": {
-        "title": "Filtrera på betyg",
-        "description": "Använd filtren högst upp för att visa foton som du har gett ett visst betyg. Det gör det enklare att jämföra favoriter eller hitta obetygsatta foton."
+        "title": "Filtrera ditt urval",
+        "description": "Använd filtren högst upp för att gå tillbaka till foton du har markerat med ett visst antal stjärnor, jämföra favoriter eller hitta foton du inte har granskat ännu."
       },
       "chooseFinalPhoto": {
-        "title": "Välj ditt slutgiltiga foto",
-        "description": "När du visar fotot du vill välja trycker du på \"{buttonLabel}\". Du kan inte rösta på ditt eget foto."
+        "title": "Välj en vinnare",
+        "description": "När du visar fotot du vill välja trycker du på \"{buttonLabel}\". Det är bara detta som räknas som din röst. Du kan inte rösta på ditt eget foto."
       },
       "confirmVote": {
         "title": "Bekräfta din röst",
-        "description": "När du har tryckt på \"{buttonLabel}\" bekräftar du för att skicka in ditt slutgiltiga val. Din röst kan inte ändras efteråt."
+        "description": "När du har tryckt på \"{buttonLabel}\" bekräftar du för att skicka in ditt slutliga val av vinnare. Din röst kan inte ändras efteråt."
       },
-      "progressTitle": "Dina framsteg",
-      "progressValue": "{rated} / {total} röstbara foton betygsatta"
+      "progressTitle": "Granskningsframsteg",
+      "progressValue": "{rated} / {total} röstbara foton granskade"
     },
     "filterBar": {
       "all": "Alla",
@@ -314,26 +314,28 @@
     },
     "footer": {
       "navigationHint": "Svep eller använd pilarna för att bläddra bland foton",
+      "reviewHintButton": "Visa hjälp för granskning",
+      "reviewHint": "Stjärnorna är privata granskningsanteckningar. Det är bara knappen nedan som skickar din slutliga röst.",
       "previousPhoto": "Föregående foto",
       "showGrid": "Visa alla foton",
       "nextPhoto": "Nästa foto"
     },
     "voteButton": {
       "cannotVoteForYourself": "Du kan inte rösta på ditt eget foto",
-      "yourVote": "Din röst",
-      "alreadyVoted": "Röst skickad",
-      "voteForThisPhoto": "Rösta på det här fotot",
-      "dialogTitle": "Rösta på det här fotot?",
-      "dialogDescription": "Du håller på att skicka in din slutgiltiga röst för fotot du visar just nu.",
+      "yourVote": "Din vinnare",
+      "alreadyVoted": "Vinnare vald",
+      "voteForThisPhoto": "Välj som vinnare",
+      "dialogTitle": "Välj det här fotot som vinnare?",
+      "dialogDescription": "Du håller på att skicka in din slutliga röst för fotot du visar just nu. Stjärnmarkeringar är bara privata granskningsanteckningar.",
       "topicLabel": "Tema",
       "cannotBeChanged": "Detta kan inte ändras senare.",
       "cancel": "Avbryt",
-      "confirm": "Skicka slutgiltig röst",
+      "confirm": "Skicka vinnare",
       "imageAlt": "Fotot du röstar på"
     },
     "emptyState": {
       "title": "Inga foton hittades",
-      "filteredDescription": "Du har inte gett några foton {rating} stjärnor ännu.",
+      "filteredDescription": "Du har inte markerat några foton med {rating} stjärnor ännu.",
       "defaultDescription": "Det finns inga foton att granska just nu.",
       "showAll": "Visa alla foton"
     },
@@ -347,8 +349,8 @@
       "label": "Ditt foto"
     },
     "starRating": {
-      "rateStars": "Ge {rating} stjärnor",
-      "ratedToast": "Gav {rating} stjärnor"
+      "rateStars": "Markera {rating} stjärnor för granskning",
+      "ratedToast": "Sparade {rating} stjärnor i ditt urval"
     },
     "toasts": {
       "cannotVoteForOwn": "Du kan inte rösta på ditt eget foto.",
