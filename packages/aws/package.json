@@ -23,6 +23,6 @@
     "@aws-sdk/client-sqs": "^3.1003.0",
     "@aws-sdk/s3-request-presigner": "^3.932.0",
     "effect": "catalog:",
-    "sst": "^3.17.19"
+    "sst": "^4.3.9"
   }
 }

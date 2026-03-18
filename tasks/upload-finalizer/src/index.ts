@@ -42,7 +42,10 @@ const effectHandler = (event: SQSEvent) =>
     yield* Effect.forEach(event.Records, (record) => processSQSRecord(record), {
       concurrency: 2,
     })
-  }).pipe(Effect.withSpan("UploadFinalizer.handler"), Effect.catch((error) => Effect.logError("Error running upload finalizer", error)))
+  }).pipe(
+    Effect.withSpan("UploadFinalizer.handler"),
+    Effect.tapError((error) => Effect.logError("Upload finalizer failed", error)),
+  )
 
 const serviceLayer = Layer.mergeAll(
   RealtimeEventsService.layer,

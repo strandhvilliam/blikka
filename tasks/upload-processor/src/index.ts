@@ -61,8 +61,10 @@ const effectHandler = (event: SQSEvent) =>
     yield* Effect.forEach(event.Records, (record) => processSQSRecord(record), {
       concurrency: 3,
     })
-  })
-    .pipe(Effect.withSpan("UploadProcessor.handler"), Effect.catch(Effect.logError))
+  }).pipe(
+    Effect.withSpan("UploadProcessor.handler"),
+    Effect.tapError((error) => Effect.logError("UploadProcessor failed", error)),
+  )
 
 const serviceLayer = Layer.mergeAll(
   UploadProcessorService.layer,

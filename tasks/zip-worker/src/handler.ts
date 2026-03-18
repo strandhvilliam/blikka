@@ -56,7 +56,10 @@ const effectHandler = (event: SQSEvent) =>
         }).pipe(Effect.annotateLogs({ domain, reference }))
       })
     )
-  }).pipe(Effect.withSpan("ZipWorker.handler"), Effect.catch((error) => Effect.logError("Error running zip worker", error)))
+  }).pipe(
+    Effect.withSpan("ZipWorker.handler"),
+    Effect.tapError((error) => Effect.logError("Zip worker failed", error)),
+  )
 
 const serviceLayer = Layer.mergeAll(
   UploadSessionRepository.layer,

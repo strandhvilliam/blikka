@@ -2,11 +2,20 @@
 /* tslint:disable */
 /* eslint-disable */
 /* deno-fmt-ignore-file */
+/* biome-ignore-all lint: auto-generated */
 
 declare module "sst" {
   export interface Resource {
     "BlikkaMainVPC": {
       "type": "sst.aws.Vpc"
+    }
+    "BusTargetDLQ": {
+      "type": "sst.aws.Queue"
+      "url": string
+    }
+    "SheetGeneratorDLQ": {
+      "type": "sst.aws.Queue"
+      "url": string
     }
     "SheetGeneratorQueue": {
       "type": "sst.aws.Queue"
@@ -17,11 +26,19 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Bus"
     }
+    "UploadFinalizerDLQ": {
+      "type": "sst.aws.Queue"
+      "url": string
+    }
     "UploadFinalizerQueue": {
       "type": "sst.aws.Queue"
       "url": string
     }
-    "UploadStatusQueue": {
+    "UploadProcessorDLQ": {
+      "type": "sst.aws.Queue"
+      "url": string
+    }
+    "UploadProcessorQueue": {
       "type": "sst.aws.Queue"
       "url": string
     }
@@ -49,6 +66,10 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Bucket"
     }
+    "ValidationDLQ": {
+      "type": "sst.aws.Queue"
+      "url": string
+    }
     "ValidationQueue": {
       "type": "sst.aws.Queue"
       "url": string
@@ -74,6 +95,10 @@ declare module "sst" {
       "subnets": any
       "taskDefinition": string
       "type": "sst.aws.Task"
+    }
+    "ZipWorkerDLQ": {
+      "type": "sst.aws.Queue"
+      "url": string
     }
   }
 }

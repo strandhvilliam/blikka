@@ -49,7 +49,10 @@ const effectHandler = (event: SQSEvent) =>
     })
 
     yield* Effect.forEach(event.Records, (record) => processSQSRecord(record), { concurrency: 2 })
-  }).pipe(Effect.withSpan("ContactSheetGenerator.handler"), Effect.catch((error) => Effect.logError("Error running contact sheet generator", error)))
+  }).pipe(
+    Effect.withSpan("ContactSheetGenerator.handler"),
+    Effect.tapError((error) => Effect.logError("Contact sheet generator failed", error)),
+  )
 
 const serviceLayer = Layer.mergeAll(
   SheetGeneratorService.layer,

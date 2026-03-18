@@ -61,13 +61,6 @@ export default $config({
     })
     const zipsBucket = new sst.aws.Bucket("V2ZipsBucket", {
       access: "public",
-      policy: [
-        {
-          effect: "allow",
-          actions: ["s3:PutObject"],
-          principals: "*",
-        },
-      ],
       cors: {
         allowOrigins: ALLOWED_ORIGINS,
         exposeHeaders: ["Access-Control-Allow-Origin"],
@@ -75,13 +68,6 @@ export default $config({
     })
     const marathonSettingsBucket = new sst.aws.Bucket("V2MarathonSettingsBucket", {
       access: "public",
-      policy: [
-        {
-          effect: "allow",
-          actions: ["s3:PutObject"],
-          principals: "*",
-        },
-      ],
       cors: {
         allowOrigins: ALLOWED_ORIGINS,
         exposeHeaders: ["Access-Control-Allow-Origin"],
@@ -91,11 +77,35 @@ export default $config({
     /* QUEUES & BUSES */
 
     const submissionFinalizedBus = new sst.aws.Bus("SubmissionFinalizedBus")
-    const uploadProcessorQueue = new sst.aws.Queue("UploadStatusQueue")
-    const uploadFinalizerQueue = new sst.aws.Queue("UploadFinalizerQueue")
-    const validationQueue = new sst.aws.Queue("ValidationQueue")
-    const sheetGeneratorQueue = new sst.aws.Queue("SheetGeneratorQueue")
-    const zipWorkerQueue = new sst.aws.Queue("ZipGeneratorQueue")
+
+    /* Dead-letter queues for failed messages */
+    const uploadProcessorDlq = new sst.aws.Queue("UploadProcessorDLQ")
+    const validationDlq = new sst.aws.Queue("ValidationDLQ")
+    const sheetGeneratorDlq = new sst.aws.Queue("SheetGeneratorDLQ")
+    const zipWorkerDlq = new sst.aws.Queue("ZipWorkerDLQ")
+    const uploadFinalizerDlq = new sst.aws.Queue("UploadFinalizerDLQ")
+    const busTargetDlq = new sst.aws.Queue("BusTargetDLQ")
+
+    const uploadProcessorQueue = new sst.aws.Queue("UploadProcessorQueue", {
+      dlq: { queue: uploadProcessorDlq.arn, retry: 5 },
+      visibilityTimeout: "5 minutes",
+    })
+    const uploadFinalizerQueue = new sst.aws.Queue("UploadFinalizerQueue", {
+      dlq: { queue: uploadFinalizerDlq.arn, retry: 5 },
+      visibilityTimeout: "5 minutes",
+    })
+    const validationQueue = new sst.aws.Queue("ValidationQueue", {
+      dlq: { queue: validationDlq.arn, retry: 5 },
+      visibilityTimeout: "5 minutes",
+    })
+    const sheetGeneratorQueue = new sst.aws.Queue("SheetGeneratorQueue", {
+      dlq: { queue: sheetGeneratorDlq.arn, retry: 5 },
+      visibilityTimeout: "10 minutes",
+    })
+    const zipWorkerQueue = new sst.aws.Queue("ZipGeneratorQueue", {
+      dlq: { queue: zipWorkerDlq.arn, retry: 5 },
+      visibilityTimeout: "10 minutes",
+    })
 
     /* BUCKET NOTIFICATIONS */
 
@@ -134,6 +144,7 @@ export default $config({
     /* QUEUE HANDLERS */
     uploadProcessorQueue.subscribe({
       handler: "./tasks/upload-processor/src/index.handler",
+      timeout: "2 minutes",
       environment: env,
       nodejs: {
         install: ["sharp"],
@@ -157,6 +168,7 @@ export default $config({
 
     sheetGeneratorQueue.subscribe({
       handler: "./tasks/contact-sheet-generator/src/index.handler",
+      timeout: "3 minutes",
       nodejs: {
         install: ["sharp"],
       },
@@ -166,12 +178,14 @@ export default $config({
 
     uploadFinalizerQueue.subscribe({
       handler: "./tasks/upload-finalizer/src/index.handler",
+      timeout: "2 minutes",
       environment: env,
       link: [uploadFinalizerQueue],
     })
 
     zipWorkerQueue.subscribe({
       handler: "./tasks/zip-worker/src/handler.handler",
+      timeout: "5 minutes",
       environment: env,
       link: [
         zipWorkerQueue,
@@ -185,6 +199,7 @@ export default $config({
 
     validationQueue.subscribe({
       handler: "./tasks/validation-runner/src/index.handler",
+      timeout: "2 minutes",
       environment: env,
       link: [
         validationQueue,
@@ -197,10 +212,48 @@ export default $config({
 
     /* BUS SUBSCRIPTIONS */
 
-    submissionFinalizedBus.subscribeQueue("ValidationBusSubscription", validationQueue)
-    submissionFinalizedBus.subscribeQueue("SheetGeneratorBusSubscription", sheetGeneratorQueue)
-    submissionFinalizedBus.subscribeQueue("ZipGeneratorBusSubscription", zipWorkerQueue)
-    submissionFinalizedBus.subscribeQueue("UploadFinalizerBusSubscription", uploadFinalizerQueue)
+    const busTargetTransform = {
+      transform: {
+        target: (args: aws.cloudwatch.EventTargetArgs) => {
+          args.deadLetterConfig = { arn: busTargetDlq.arn }
+          args.retryPolicy = { maximumEventAgeInSeconds: 3600, maximumRetryAttempts: 24 }
+          return undefined
+        },
+      },
+    }
+
+    submissionFinalizedBus.subscribeQueue("ValidationBusSubscription", validationQueue, busTargetTransform)
+    submissionFinalizedBus.subscribeQueue("SheetGeneratorBusSubscription", sheetGeneratorQueue, busTargetTransform)
+    submissionFinalizedBus.subscribeQueue("ZipGeneratorBusSubscription", zipWorkerQueue, busTargetTransform)
+    submissionFinalizedBus.subscribeQueue("UploadFinalizerBusSubscription", uploadFinalizerQueue, busTargetTransform)
+
+    /* EventBridge DLQ policy - allows EventBridge to send failed events to the DLQ */
+    const pulumi = await import("@pulumi/pulumi")
+    const callerIdentity = aws.getCallerIdentity()
+    const region = aws.getRegion()
+    new aws.sqs.QueuePolicy("BusTargetDLQPolicy", {
+      queueUrl: busTargetDlq.url,
+      policy: pulumi.all([busTargetDlq.arn, region, callerIdentity]).apply(
+        ([queueArn, r, identity]) =>
+          JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [
+              {
+                Sid: "AllowEventBridgeToSendToDLQ",
+                Effect: "Allow",
+                Principal: { Service: "events.amazonaws.com" },
+                Action: "sqs:SendMessage",
+                Resource: queueArn,
+                Condition: {
+                  ArnLike: {
+                    "aws:SourceArn": `arn:aws:events:${r.name}:${identity.accountId}:rule/blikka-*`,
+                  },
+                },
+              },
+            ],
+          }),
+      ),
+    })
 
     return {
       submissionsBucket: submissionsBucket.name,

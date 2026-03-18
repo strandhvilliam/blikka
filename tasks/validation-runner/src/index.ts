@@ -48,7 +48,10 @@ const effectHandler = (event: SQSEvent) =>
     })
 
     yield* Effect.forEach(event.Records, (record) => processSQSRecord(record), { concurrency: 2 })
-  }).pipe(Effect.withSpan("ValidationRunner.handler"), Effect.catch((error) => Effect.logError("ValidationRunner.handler", error)))
+  }).pipe(
+    Effect.withSpan("ValidationRunner.handler"),
+    Effect.tapError((error) => Effect.logError("Validation runner failed", error)),
+  )
 
 const serviceLayer = Layer.mergeAll(
   ValidationRunner.layer,
