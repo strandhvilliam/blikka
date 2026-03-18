@@ -404,6 +404,34 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         );
         return result[0];
       });
+      const reopenTopicVotingWindow = Effect.fn(
+        "VotingQueries.reopenTopicVotingWindow",
+      )(function* ({
+        marathonId,
+        topicId,
+        nowIso,
+      }: {
+        marathonId: number;
+        topicId: number;
+        nowIso: string;
+      }) {
+        const result = yield* use((db) =>
+          db
+            .update(topics)
+            .set({
+              votingEndsAt: null,
+              updatedAt: nowIso,
+            })
+            .where(
+              and(eq(topics.marathonId, marathonId), eq(topics.id, topicId)),
+            )
+            .returning({
+              startsAt: topics.votingStartsAt,
+              endsAt: topics.votingEndsAt,
+            }),
+        );
+        return result[0];
+      });
       const closeVotingWindowsForTopics = Effect.fn(
         "VotingQueries.closeVotingWindowsForTopics",
       )(function* ({
@@ -1056,6 +1084,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         getVotingWindowForTopic,
         upsertTopicVotingWindow,
         closeTopicVotingWindow,
+        reopenTopicVotingWindow,
         closeVotingWindowsForTopics,
         countSubmissionsForTopic,
         countParticipantsWithSubmissionsForTopic,

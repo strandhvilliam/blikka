@@ -9,10 +9,9 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Calendar, ChevronsUpDown, Frame, Users } from "lucide-react"
+import { ChevronsUpDown, ImageIcon, Settings, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { useDomain } from "@/lib/domain-provider"
 import { useSuspenseQuery } from "@tanstack/react-query"
@@ -64,7 +63,7 @@ export function DomainSwitchDropdown() {
                 onLoad={handleImageLoad}
               />
             ) : (
-              <Frame className="size-4" />
+              <ImageIcon className="size-4" />
             )}
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
@@ -72,9 +71,8 @@ export function DomainSwitchDropdown() {
               {marathon?.name}
             </span>
             <span className="truncate text-xs">
-              {marathon?.startDate
-                ? format(marathon.startDate, "d MMMM yyyy")
-                : "Date not set"}
+              Mode:{" "}
+              {marathon?.mode === "by-camera" ? "ByCamera" : "Marathon"}
             </span>
           </div>
           <ChevronsUpDown className="ml-auto" />
@@ -100,7 +98,7 @@ export function DomainSwitchDropdown() {
                     onLoad={handleImageLoad}
                   />
                 ) : (
-                  <Frame className="size-8" />
+                  <ImageIcon className="size-8" />
                 )}
               </div>
               <div>
@@ -121,11 +119,10 @@ export function DomainSwitchDropdown() {
               )}
 
               <div className="flex items-center gap-2 text-sm">
-                <Calendar className="size-4" />
+                <Settings className="size-4" />
                 <span>
-                  {marathon.startDate
-                    ? format(new Date(marathon.startDate), "d MMMM yyyy")
-                    : "Date not set"}
+                  Mode:{" "}
+                  {marathon.mode === "by-camera" ? "ByCamera" : "Marathon"}
                 </span>
               </div>
 

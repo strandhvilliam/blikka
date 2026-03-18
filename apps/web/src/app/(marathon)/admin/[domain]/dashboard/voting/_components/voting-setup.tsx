@@ -3,7 +3,7 @@
 import type { Topic } from "@blikka/db"
 import { Fragment, useMemo, useState } from "react"
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { AlertTriangle, Check, ImageIcon, Loader2, Play, TimerOff, Users, Vote } from "lucide-react"
+import { AlertTriangle, Check, ImageIcon, Loader2, Play, RotateCcw, TimerOff, Users, Vote } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
@@ -190,12 +190,25 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     }),
   )
 
+  const reopenVotingMutation = useMutation(
+    trpc.voting.reopenTopicVotingWindow.mutationOptions({
+      onSuccess: async () => {
+        toast.success("Voting reopened")
+        await invalidateVotingData()
+      },
+      onError: (error) => {
+        toast.error(error.message || "Failed to reopen voting")
+      },
+    }),
+  )
+
   const [endsAtInput, setEndsAtInput] = useState(() => {
     const endsAt = summary.votingWindow.endsAt
     return endsAt ? toDateTimeLocalValue(new Date(endsAt)) : ""
   })
   const [isStartVotingDialogOpen, setIsStartVotingDialogOpen] = useState(false)
   const [isCloseVotingDialogOpen, setIsCloseVotingDialogOpen] = useState(false)
+  const [isReopenVotingDialogOpen, setIsReopenVotingDialogOpen] = useState(false)
 
   const submissionState = getSubmissionLifecycleState(activeTopic.scheduledStart, activeTopic.scheduledEnd)
   const votingState = getVotingLifecycleState(summary.votingWindow)
@@ -285,6 +298,22 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       },
       {
         onSuccess: () => setIsCloseVotingDialogOpen(false),
+      },
+    )
+  }
+
+  const handleReopenVotingClick = () => {
+    setIsReopenVotingDialogOpen(true)
+  }
+
+  const handleConfirmReopenVoting = () => {
+    reopenVotingMutation.mutate(
+      {
+        domain,
+        topicId: activeTopic.id,
+      },
+      {
+        onSuccess: () => setIsReopenVotingDialogOpen(false),
       },
     )
   }
@@ -511,11 +540,66 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
         )}
 
         {currentPhase === "complete" && (
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Voting complete</p>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Results and completed votes are available in the tabs below.
-            </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Voting complete</p>
+              <p className="mt-0.5 text-sm text-slate-500">
+                Results and completed votes are available in the tabs below.
+              </p>
+            </div>
+            <AlertDialog
+              open={isReopenVotingDialogOpen}
+              onOpenChange={setIsReopenVotingDialogOpen}
+            >
+              <Button
+                variant="outline"
+                onClick={handleReopenVotingClick}
+                disabled={reopenVotingMutation.isPending}
+                className="shrink-0"
+              >
+                {reopenVotingMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Reopening...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Reopen voting
+                  </>
+                )}
+              </Button>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reopen voting?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will reopen the voting window. Participants will be able
+                    to submit votes again. Votes already cast will remain.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={reopenVotingMutation.isPending}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleConfirmReopenVoting()
+                    }}
+                    disabled={reopenVotingMutation.isPending}
+                  >
+                    {reopenVotingMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Reopening...
+                      </>
+                    ) : (
+                      "Reopen voting"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
       </div>

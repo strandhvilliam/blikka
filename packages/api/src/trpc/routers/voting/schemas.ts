@@ -39,6 +39,13 @@ export const CloseTopicVotingWindowSchema = Schema.toStandardSchemaV1(
   }),
 );
 
+export const ReopenTopicVotingWindowSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+  }),
+);
+
 export const GetSubmissionVoteStatsSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     submissionId: Schema.Number,

@@ -377,6 +377,64 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         }
       })
 
+      const reopenTopicVotingWindow = Effect.fn(
+        "VotingApiService.reopenTopicVotingWindow",
+      )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
+        const { marathon, topic, activeTopic } =
+          yield* getByCameraMarathonWithTopic({
+            domain,
+            topicId,
+          })
+
+        if (!activeTopic || activeTopic.id !== topic.id) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "Voting window can only be reopened for the active by-camera topic",
+            }),
+          )
+        }
+
+        const votingWindow = yield* getTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+        })
+
+        const votingState = getVotingLifecycleState(votingWindow)
+        if (votingState !== "ended") {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                votingState === "active"
+                  ? "Voting is still open for this topic"
+                  : "Voting has not started for this topic",
+            }),
+          )
+        }
+
+        const nowIso = new Date().toISOString()
+
+        const updatedWindow = yield* db.votingQueries.reopenTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+          nowIso,
+        })
+
+        if (!updatedWindow) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to reopen voting window",
+            }),
+          )
+        }
+
+        return {
+          topicId,
+          startsAt: updatedWindow.startsAt,
+          endsAt: updatedWindow.endsAt,
+        }
+      })
+
       const startVotingSessions = Effect.fn(
         "VotingApiService.startVotingSessions",
       )(function* ({
@@ -1733,6 +1791,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         getVotingSession,
         setTopicVotingWindow,
         closeTopicVotingWindow,
+        reopenTopicVotingWindow,
         startVotingSessions,
         getParticipantsWithoutVotingSession,
         startVotingSessionsForParticipants,
