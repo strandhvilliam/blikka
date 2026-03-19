@@ -750,6 +750,17 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             Array.take(competitionClass.numberOfPhotos),
           );
 
+          if (
+            uploadContentTypes !== undefined &&
+            uploadContentTypes.length !== topics.length
+          ) {
+            return yield* Effect.fail(
+              new UploadFlowApiError({
+                message: `[${domain}|${reference}] uploadContentTypes length must match the number of submissions (${topics.length})`,
+              }),
+            );
+          }
+
           const submissionKeys = yield* Effect.forEach(
             topics,
             (topic) =>
@@ -774,17 +785,6 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           });
 
           yield* kv.initializeState(domain, reference, submissionKeys);
-
-          if (
-            uploadContentTypes !== undefined &&
-            uploadContentTypes.length !== topics.length
-          ) {
-            return yield* Effect.fail(
-              new UploadFlowApiError({
-                message: `[${domain}|${reference}] uploadContentTypes length must match the number of submissions (${topics.length})`,
-              }),
-            );
-          }
 
           const resolvedContentTypes =
             uploadContentTypes === undefined
