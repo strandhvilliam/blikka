@@ -29,7 +29,7 @@
     "dev:web": "bun --cwd apps/web dev",
     "build:web": "bun --cwd apps/web build",
     "lint:web": "bun --cwd apps/web lint",
-    "load:by-camera:smoke:local": "k6 run .local/load-testing/k6/by-camera-upload.js -e RAMP_PROFILE=smoke -e TEST_CASE=happy-path",
+    "load:by-camera:smoke:local": "k6 run --include-system-env-vars .local/load-testing/k6/by-camera-upload.js -e TARGET_BASE_URL=\"$TARGET_BASE_URL\" -e MARATHON_DOMAIN=\"$MARATHON_DOMAIN\" -e DEVICE_GROUP_ID=\"$DEVICE_GROUP_ID\" -e PRODUCTION_ACK=\"$PRODUCTION_ACK\" -e X_MARATHON_DOMAIN=\"$X_MARATHON_DOMAIN\" -e TEST_PHONE_PREFIX=\"$TEST_PHONE_PREFIX\" -e MAX_FINALIZATION_WAIT_MS=\"$MAX_FINALIZATION_WAIT_MS\" -e RAMP_PROFILE=smoke -e TEST_CASE=happy-path",
     "load:by-camera:fargate:run": "bun run check-aws-account && bunx sst shell --stage ${SST_STAGE:-production} bun .local/load-testing/scripts/run-fargate-task.ts",
     "deploy:prod": "bun run check-aws-account && bunx sst deploy --stage production",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
