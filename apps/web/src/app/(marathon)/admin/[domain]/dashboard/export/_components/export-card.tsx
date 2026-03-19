@@ -16,6 +16,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { toast } from "sonner"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { cn } from "@/lib/utils"
+import { downloadFile } from "../_lib/download-file"
 
 interface SelectOption {
   value: string
@@ -27,6 +28,7 @@ interface ExportCardProps {
   description: string
   icon: React.ReactNode
   exportType: string
+  downloadName?: string
   formatOptions?: SelectOption[]
   validationOptions?: SelectOption[]
   fileFormatOptions?: SelectOption[]
@@ -36,7 +38,9 @@ interface ExportCardProps {
 
 function getFileExtension(exportType: string, format: string, fileFormat: string): string {
   if (exportType === "exif") return format || "json"
-  if (exportType === "txt_validation_results") return fileFormat === "folder" ? "zip" : "txt"
+  if (exportType.startsWith("txt_validation_results")) {
+    return fileFormat === "folder" ? "zip" : "txt"
+  }
   return "xlsx"
 }
 
@@ -79,22 +83,6 @@ function buildExportUrl(
   return `/api/${domain}/export/${exportType}${queryString ? `?${queryString}` : ""}`
 }
 
-async function downloadFile(url: string, filename: string): Promise<void> {
-  const response = await fetch(url, { method: "GET" })
-
-  if (!response.ok) throw new Error("Export failed")
-
-  const blob = await response.blob()
-  const downloadUrl = window.URL.createObjectURL(blob)
-  const anchor = document.createElement("a")
-  anchor.href = downloadUrl
-  anchor.download = filename
-  document.body.appendChild(anchor)
-  anchor.click()
-  window.URL.revokeObjectURL(downloadUrl)
-  document.body.removeChild(anchor)
-}
-
 function ExportSelect({
   value,
   onValueChange,
@@ -131,6 +119,7 @@ export function ExportCard({
   description,
   icon,
   exportType,
+  downloadName,
   formatOptions,
   validationOptions,
   fileFormatOptions,
@@ -165,7 +154,8 @@ export function ExportCard({
       })
 
       const exportExtension = getFileExtension(exportType, format, fileFormat)
-      const filename = `${exportType}-export-${new Date().toISOString().split("T")[0]}.${exportExtension}`
+      const filenameBase = downloadName ?? exportType
+      const filename = `${filenameBase}-export-${new Date().toISOString().split("T")[0]}.${exportExtension}`
 
       await downloadFile(url, filename)
 
@@ -182,6 +172,7 @@ export function ExportCard({
   }, [
     domain,
     exportType,
+    downloadName,
     format,
     onlyFailed,
     fileFormat,
