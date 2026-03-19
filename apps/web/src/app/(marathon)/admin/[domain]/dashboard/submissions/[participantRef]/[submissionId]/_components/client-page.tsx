@@ -19,23 +19,15 @@ import { SubmissionImageViewer } from "./submission-image-viewer"
 import { SubmissionMetadataPanel } from "./submission-metadata-panel"
 import { SubmissionNavigationControls } from "./submission-navigation-controls"
 import { useState } from "react"
-import { SubmissionQuickActions } from "./submission-quick-actions"
+import { SubmissionQuickActions, type SubmissionDetailTab } from "./submission-quick-actions"
 import { SubmissionReviewTimeline } from "./submission-review-timeline"
 import { Card } from "@/components/ui/card"
 import { useDomain } from "@/lib/domain-provider"
-import { AWS_S3_BASE_URL } from "@/lib/constants"
-
-const getImageUrl = (submission: Submission) => {
-  const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
-  const submissionBaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
-  if (submission.thumbnailKey && thumbnailBaseUrl) {
-    return `${AWS_S3_BASE_URL}/${thumbnailBaseUrl}/${submission.thumbnailKey}`
-  }
-  if (submission.key && submissionBaseUrl) {
-    return `${AWS_S3_BASE_URL}/${submissionBaseUrl}/${submission.key}`
-  }
-  return null
-}
+import {
+  getSubmissionDownloadFileName,
+  getSubmissionOriginalImageUrl,
+  getSubmissionPreviewImageUrl,
+} from "../_lib/submission-image-urls"
 
 interface VotingDataPanelProps {
   submission: Submission
@@ -99,8 +91,7 @@ export function ParticipantSubmissionClientPage({
   const domain = useDomain()
 
   const trpc = useTRPC()
-  const [showExifPanel, setShowExifPanel] = useState(false)
-  const [showValidationPanel, setShowValidationPanel] = useState(false)
+  const [detailTab, setDetailTab] = useState<SubmissionDetailTab>("exif")
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
@@ -117,8 +108,6 @@ export function ParticipantSubmissionClientPage({
 
   const submission = participant?.submissions.find((s) => s.id === submissionId)
 
-  console.log({ submission })
-
   const topic = submission?.topic
 
   const submissionValidationResults =
@@ -127,6 +116,11 @@ export function ParticipantSubmissionClientPage({
     ) || []
 
   const hasIssues = submissionValidationResults.some((result) => result.outcome === "failed")
+
+  const previewImageUrl = getSubmissionPreviewImageUrl(submission)
+  const originalImageUrl = getSubmissionOriginalImageUrl(submission)
+  const submissionDownloadFileName = getSubmissionDownloadFileName(submission)
+  const submissionDownloadUrl = originalImageUrl ?? previewImageUrl
 
   const allSubmissions = participant?.submissions
     .filter((s) => s.topic)
@@ -154,7 +148,9 @@ export function ParticipantSubmissionClientPage({
               />
             )}
             <SubmissionImageViewer
-              imageUrl={getImageUrl(submission)}
+              imageUrl={previewImageUrl}
+              originalImageUrl={originalImageUrl}
+              downloadFileName={submissionDownloadFileName}
               topic={topic}
               competitionClass={participant.competitionClass}
               marathonMode={marathon?.mode}
@@ -164,36 +160,29 @@ export function ParticipantSubmissionClientPage({
           <SubmissionQuickActions
             submission={submission}
             validationResults={submissionValidationResults}
-            onShowExif={() => setShowExifPanel(!showExifPanel)}
-            onShowValidation={() => setShowValidationPanel(!showValidationPanel)}
-            showExifPanel={showExifPanel}
-            showValidationPanel={showValidationPanel}
+            activeDetailTab={detailTab}
+            onDetailTabChange={setDetailTab}
             marathonMode={marathon?.mode}
             participantId={participant.id}
             participantStatus={participant.status}
             participantRef={participantRef}
+            downloadUrl={submissionDownloadUrl}
+            downloadFileName={submissionDownloadFileName}
           />
 
-          {showValidationPanel && (
-            <Card className="p-4">
-              <h3 className="text-base font-semibold font-gothic mb-3">Validation Results</h3>
-              <SubmissionValidationSteps validationResults={submissionValidationResults} />
-            </Card>
-          )}
-
-          {showExifPanel && (
-            <Card className="p-4">
-              <h3 className="text-base font-semibold font-gothic mb-3">EXIF Data</h3>
-              <SubmissionExifDataDisplay exifData={submission.exif || {}} />
-            </Card>
-          )}
-
-          <SubmissionReviewTimeline
-            submission={submission}
-            participant={participant}
-            hasIssues={hasIssues}
-            marathonMode={marathon?.mode}
-          />
+          <Card className="p-4" role="tabpanel">
+            {detailTab === "validation" ? (
+              <>
+                <h3 className="font-gothic mb-3 text-base font-normal tracking-tight">Validation Results</h3>
+                <SubmissionValidationSteps validationResults={submissionValidationResults} />
+              </>
+            ) : (
+              <>
+                <h3 className="font-gothic mb-3 text-base font-normal tracking-tight">EXIF Data</h3>
+                <SubmissionExifDataDisplay exifData={submission.exif || {}} />
+              </>
+            )}
+          </Card>
         </div>
 
         <div className="space-y-6">
@@ -227,6 +216,8 @@ export function ParticipantSubmissionClientPage({
               topics={marathon.topics}
             />
           )}
+
+          <SubmissionReviewTimeline submission={submission} participant={participant} marathonMode={marathon?.mode} />
         </div>
       </div>
     </div>

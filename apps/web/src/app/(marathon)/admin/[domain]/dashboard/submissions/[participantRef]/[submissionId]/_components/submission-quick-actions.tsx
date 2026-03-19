@@ -5,8 +5,6 @@ import { Card } from "@/components/ui/card"
 import type { Submission, ValidationResult } from "@blikka/db"
 import {
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Download,
   FileCode,
   RefreshCw,
@@ -30,31 +28,35 @@ import { useTRPC } from "@/lib/trpc/client"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useDomain } from "@/lib/domain-provider"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
+import { downloadRemoteUrl } from "../_lib/download-remote-url"
+
+export type SubmissionDetailTab = "exif" | "validation"
 
 interface SubmissionQuickActionsProps {
   submission: Submission
   validationResults: ValidationResult[]
-  onShowExif: () => void
-  onShowValidation: () => void
-  showExifPanel: boolean
-  showValidationPanel: boolean
+  activeDetailTab: SubmissionDetailTab
+  onDetailTabChange: (tab: SubmissionDetailTab) => void
   marathonMode?: string
   participantId?: number
   participantStatus?: string
   participantRef: string
+  downloadUrl: string | null
+  downloadFileName: string
 }
 
 export function SubmissionQuickActions({
   submission,
   validationResults,
-  onShowExif,
-  onShowValidation,
-  showExifPanel,
-  showValidationPanel,
+  activeDetailTab,
+  onDetailTabChange,
   marathonMode,
   participantId,
   participantStatus,
   participantRef,
+  downloadUrl,
+  downloadFileName,
 }: SubmissionQuickActionsProps) {
   const hasExif = submission.exif && Object.keys(submission.exif).length > 0
   const hasValidation = validationResults.length > 0
@@ -117,6 +119,13 @@ export function SubmissionQuickActions({
       domain,
       reference: participantRef,
     })
+  }
+
+  const handleDownload = () => {
+    if (!downloadUrl) {
+      return
+    }
+    void downloadRemoteUrl(downloadUrl, downloadFileName)
   }
 
   return (
@@ -183,19 +192,59 @@ export function SubmissionQuickActions({
             <ReplaceIcon className="h-4 w-4" />
             Replace
           </Button>
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={!downloadUrl}
+            onClick={handleDownload}
+          >
             <Download className="h-4 w-4" />
             Download
           </Button>
         </div>
 
-        {/* Toggle Panels */}
-        <div className="flex flex-wrap gap-2">
+        {/* Detail tabs */}
+        <div
+          className="flex flex-wrap gap-0.5 rounded-lg bg-muted/60 p-1 dark:bg-muted/40"
+          role="tablist"
+          aria-label="Submission technical details"
+        >
           <Button
-            variant={showValidationPanel ? "secondary" : "outline"}
+            type="button"
+            role="tab"
+            aria-selected={activeDetailTab === "exif"}
+            variant="ghost"
             size="sm"
-            className="gap-2"
-            onClick={onShowValidation}
+            className={cn(
+              "h-8 gap-2 rounded-md shadow-none",
+              activeDetailTab === "exif"
+                ? "bg-background font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-background dark:bg-card dark:ring-border"
+                : "text-muted-foreground hover:bg-transparent hover:text-foreground",
+            )}
+            onClick={() => onDetailTabChange("exif")}
+          >
+            <FileCode className="h-4 w-4" />
+            EXIF Data
+            {hasExif && (
+              <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 ml-1">
+                {Object.keys(submission.exif || {}).length}
+              </Badge>
+            )}
+          </Button>
+          <Button
+            type="button"
+            role="tab"
+            aria-selected={activeDetailTab === "validation"}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-8 gap-2 rounded-md shadow-none",
+              activeDetailTab === "validation"
+                ? "bg-background font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-background dark:bg-card dark:ring-border"
+                : "text-muted-foreground hover:bg-transparent hover:text-foreground",
+            )}
+            onClick={() => onDetailTabChange("validation")}
           >
             <ShieldCheck className="h-4 w-4" />
             Validation
@@ -210,30 +259,6 @@ export function SubmissionQuickActions({
               >
                 {validationResults.length}
               </Badge>
-            )}
-            {showValidationPanel ? (
-              <ChevronUp className="h-3 w-3 ml-1" />
-            ) : (
-              <ChevronDown className="h-3 w-3 ml-1" />
-            )}
-          </Button>
-          <Button
-            variant={showExifPanel ? "secondary" : "outline"}
-            size="sm"
-            className="gap-2"
-            onClick={onShowExif}
-          >
-            <FileCode className="h-4 w-4" />
-            EXIF Data
-            {hasExif && (
-              <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 ml-1">
-                {Object.keys(submission.exif || {}).length}
-              </Badge>
-            )}
-            {showExifPanel ? (
-              <ChevronUp className="h-3 w-3 ml-1" />
-            ) : (
-              <ChevronDown className="h-3 w-3 ml-1" />
             )}
           </Button>
         </div>

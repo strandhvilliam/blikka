@@ -38,25 +38,9 @@ export function SubmissionPageSkeleton() {
             <Skeleton className="h-10 w-32" />
             <Skeleton className="h-10 w-32" />
           </div>
-
-          {/* Timeline skeleton */}
-          <div className="space-y-4">
-            <Skeleton className="h-6 w-48" />
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex gap-3">
-                  <Skeleton className="h-4 w-4 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-3 w-3/4" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* Right column - Metadata panel skeleton */}
+        {/* Right column - Metadata + timeline skeleton */}
         <div className="space-y-6">
           <div className="rounded-lg border bg-card p-6 space-y-4">
             <Skeleton className="h-6 w-32" />
@@ -65,6 +49,24 @@ export function SubmissionPageSkeleton() {
                 <div key={i} className="space-y-1">
                   <Skeleton className="h-3 w-24" />
                   <Skeleton className="h-4 w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-lg border bg-card">
+            <div className="border-b bg-muted/30 px-4 py-3">
+              <Skeleton className="h-4 w-36" />
+            </div>
+            <div className="space-y-3 px-3 py-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex gap-2.5">
+                  <Skeleton className="h-7 w-7 shrink-0 rounded-full" />
+                  <div className="min-w-0 flex-1 space-y-1.5 pt-0.5">
+                    <Skeleton className="h-3.5 w-4/5" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
                 </div>
               ))}
             </div>

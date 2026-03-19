@@ -6,9 +6,20 @@ import type { CompetitionClass, Topic } from "@blikka/db"
 import { AlertTriangle, Download, Expand, ZoomIn, ZoomOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { downloadRemoteUrl } from "../_lib/download-remote-url"
 
 interface SubmissionImageViewerProps {
   imageUrl: string | null
+  /** Full-resolution object URL (submissions bucket). Used for expand + download. */
+  originalImageUrl: string | null
+  downloadFileName: string
   topic: Topic
   competitionClass: CompetitionClass | null
   marathonMode?: string
@@ -16,18 +27,30 @@ interface SubmissionImageViewerProps {
 
 export function SubmissionImageViewer({
   imageUrl,
+  originalImageUrl,
+  downloadFileName,
   topic,
   competitionClass,
   marathonMode,
 }: SubmissionImageViewerProps) {
   const [hasError, setHasError] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [largeViewOpen, setLargeViewOpen] = useState(false)
   const [zoom, setZoom] = useState(1)
   const isByCameraMode = marathonMode === "by-camera"
+
+  const downloadSourceUrl = originalImageUrl ?? imageUrl
+  const largeViewImageUrl = originalImageUrl ?? imageUrl
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3))
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5))
   const handleResetZoom = () => setZoom(1)
+
+  const handleDownload = () => {
+    if (!downloadSourceUrl) {
+      return
+    }
+    void downloadRemoteUrl(downloadSourceUrl, downloadFileName)
+  }
 
   return (
     <Card className="overflow-hidden bg-linear-to-br from-muted/30 to-muted/10">
@@ -38,7 +61,7 @@ export function SubmissionImageViewer({
             #{topic.orderIndex + 1}
           </Badge>
           <div>
-            <h2 className="font-semibold font-gothic text-base leading-tight">{topic.name}</h2>
+            <h2 className="font-gothic text-base font-normal leading-tight tracking-tight">{topic.name}</h2>
             {!isByCameraMode && (
               <p className="text-xs text-muted-foreground leading-tight">
                 Topic {topic.orderIndex + 1} of {competitionClass?.numberOfPhotos || "?"}
@@ -74,19 +97,54 @@ export function SubmissionImageViewer({
             <ZoomIn className="h-4 w-4" />
           </Button>
           <div className="w-px h-6 bg-border mx-1" />
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            disabled={!downloadSourceUrl}
+            onClick={handleDownload}
+            aria-label="Download image"
+          >
             <Download className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            onClick={() => setIsFullscreen(!isFullscreen)}
+            disabled={!largeViewImageUrl}
+            onClick={() => setLargeViewOpen(true)}
+            aria-label="View larger image"
           >
             <Expand className="h-4 w-4" />
           </Button>
         </div>
       </div>
+
+      <Dialog open={largeViewOpen} onOpenChange={setLargeViewOpen}>
+        <DialogContent
+          size="xl"
+          showCloseButton
+          className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[96vw]"
+        >
+          <DialogHeader className="shrink-0 space-y-1 border-b px-5 py-4 text-left">
+            <DialogTitle className="font-gothic text-base font-normal tracking-tight">
+              {topic.name}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Full-size submission image. Close the dialog to return to the review page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-auto bg-muted/30 p-4">
+            {largeViewImageUrl ? (
+              <img
+                src={largeViewImageUrl}
+                alt=""
+                className="mx-auto max-h-[calc(90dvh-7rem)] w-auto max-w-full object-contain shadow-lg"
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Image Display Area */}
       <div className="relative bg-muted/20 flex items-center justify-center min-h-[500px] max-h-[70vh] overflow-auto">
@@ -114,7 +172,12 @@ export function SubmissionImageViewer({
                 to view it properly.
               </p>
             </div>
-            <Button variant="outline" className="mt-2">
+            <Button
+              variant="outline"
+              className="mt-2"
+              disabled={!downloadSourceUrl}
+              onClick={handleDownload}
+            >
               <Download className="h-4 w-4 mr-2" />
               Download Original
             </Button>
