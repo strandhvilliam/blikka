@@ -203,7 +203,7 @@
     },
     "uploadFinalizing": {
       "title": "Finalizing your submission",
-      "description": "Your photos have been successfully uploaded! Processing them in the background now.",
+      "description": "Your photos has been successfully recieved!",
       "timeoutTitle": "Your photos were received",
       "timeoutDescription": "We could not finish the registration yet, but your photos are safely stored.",
       "participantNumber": "Participant number",

@@ -31,3 +31,7 @@ export const UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS = 15000; // 15 seconds
 export const MIN_UPLOAD_PROGRESS_DISPLAY_MS = 3000; // 3 seconds
 export const PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS = 5000; // 5 seconds
 export const PARTICIPANT_FINALIZATION_TIMEOUT_MS = 1000 * 60 * 2; // 2 minutes
+
+/** Retries for status queries during upload finalization (transient network). */
+export const UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT = 3;
+export const UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS = 10_000;

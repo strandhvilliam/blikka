@@ -128,10 +128,6 @@ export default $config({
     /* TASKS */
     const vpc = new sst.aws.Vpc("BlikkaMainVPC")
     const cluster = new sst.aws.Cluster("BlikkaMainCluster", { vpc })
-    const localLoadTestDockerfilePath = "./.local/load-testing/Dockerfile"
-    const shouldCreateLocalLoadTestTask =
-      process.env.ENABLE_LOCAL_LOAD_TEST_TASK === "1" &&
-      existsSync(localLoadTestDockerfilePath)
 
     const zipHandlerTask = new sst.aws.Task("ZipHandlerTask", {
       cluster,
@@ -151,27 +147,6 @@ export default $config({
       link: [zipsBucket],
       // dev: false,
     })
-    // const byCameraLoadTestTask = shouldCreateLocalLoadTestTask
-    //   ? new sst.aws.Task("ByCameraLoadTestTask", {
-    //       cluster,
-    //       image: {
-    //         dockerfile: "/.local/load-testing/Dockerfile",
-    //       },
-    //       environment: compactEnv({
-    //         TARGET_BASE_URL: process.env.LOAD_TEST_TARGET_BASE_URL,
-    //         MARATHON_DOMAIN: process.env.LOAD_TEST_MARATHON_DOMAIN,
-    //         X_MARATHON_DOMAIN: process.env.LOAD_TEST_X_MARATHON_DOMAIN,
-    //         DEVICE_GROUP_ID: process.env.LOAD_TEST_DEVICE_GROUP_ID,
-    //         TEST_PHONE_PREFIX: process.env.LOAD_TEST_PHONE_PREFIX,
-    //         MAX_FINALIZATION_WAIT_MS: process.env.LOAD_TEST_MAX_FINALIZATION_WAIT_MS,
-    //         RAMP_PROFILE: process.env.LOAD_TEST_RAMP_PROFILE ?? "smoke",
-    //         TEST_CASE: process.env.LOAD_TEST_CASE ?? "happy-path",
-    //         PRODUCTION_ACK:
-    //           process.env.LOAD_TEST_PRODUCTION_ACK ??
-    //           "I_UNDERSTAND_PRODUCTION_LOAD_TEST",
-    //       }),
-    //     })
-    //   : null
 
     /* QUEUE HANDLERS */
     uploadProcessorQueue.subscribe({
@@ -254,10 +229,26 @@ export default $config({
       },
     }
 
-    submissionFinalizedBus.subscribeQueue("ValidationBusSubscription", validationQueue, busTargetTransform)
-    submissionFinalizedBus.subscribeQueue("SheetGeneratorBusSubscription", sheetGeneratorQueue, busTargetTransform)
-    submissionFinalizedBus.subscribeQueue("ZipGeneratorBusSubscription", zipWorkerQueue, busTargetTransform)
-    submissionFinalizedBus.subscribeQueue("UploadFinalizerBusSubscription", uploadFinalizerQueue, busTargetTransform)
+    submissionFinalizedBus.subscribeQueue(
+      "ValidationBusSubscription",
+      validationQueue,
+      busTargetTransform,
+    )
+    submissionFinalizedBus.subscribeQueue(
+      "SheetGeneratorBusSubscription",
+      sheetGeneratorQueue,
+      busTargetTransform,
+    )
+    submissionFinalizedBus.subscribeQueue(
+      "ZipGeneratorBusSubscription",
+      zipWorkerQueue,
+      busTargetTransform,
+    )
+    submissionFinalizedBus.subscribeQueue(
+      "UploadFinalizerBusSubscription",
+      uploadFinalizerQueue,
+      busTargetTransform,
+    )
 
     /* EventBridge DLQ policy - allows EventBridge to send failed events to the DLQ */
     const pulumi = await import("@pulumi/pulumi")
@@ -265,8 +256,9 @@ export default $config({
     const region = aws.getRegion()
     new aws.sqs.QueuePolicy("BusTargetDLQPolicy", {
       queueUrl: busTargetDlq.url,
-      policy: pulumi.all([busTargetDlq.arn, region, callerIdentity]).apply(
-        ([queueArn, r, identity]) =>
+      policy: pulumi
+        .all([busTargetDlq.arn, region, callerIdentity])
+        .apply(([queueArn, r, identity]) =>
           JSON.stringify({
             Version: "2012-10-17",
             Statement: [
@@ -284,7 +276,7 @@ export default $config({
               },
             ],
           }),
-      ),
+        ),
     })
 
     return {
@@ -294,11 +286,6 @@ export default $config({
       sponsorBucket: sponsorBucket.name,
       zipsBucket: zipsBucket.name,
       marathonSettingsBucket: marathonSettingsBucket.name,
-      ...(byCameraLoadTestTask
-        ? {
-            byCameraLoadTestTaskArn: byCameraLoadTestTask.arn,
-          }
-        : {}),
     }
   },
 })

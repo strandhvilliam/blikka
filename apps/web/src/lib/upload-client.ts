@@ -64,15 +64,20 @@ export async function uploadFileToPresignedUrl({
   file,
   presignedUrl,
   timeoutMs = CLIENT_UPLOAD_TIMEOUT_MS,
+  contentType,
 }: {
   file: File;
   presignedUrl: string;
   timeoutMs?: number;
+  /** When set, must match the Content-Type used to sign the presigned URL. */
+  contentType?: string;
 }): Promise<{ ok: true } | { ok: false; error: ClientUploadError }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
   }, timeoutMs);
+
+  const resolvedContentType = contentType ?? (file.type || "image/jpeg");
 
   try {
     const response = await fetch(presignedUrl, {
@@ -80,7 +85,7 @@ export async function uploadFileToPresignedUrl({
       body: file,
       signal: controller.signal,
       headers: {
-        "Content-Type": file.type || "image/jpeg",
+        "Content-Type": resolvedContentType,
       },
     });
 

@@ -1,5 +1,27 @@
 import { Schema } from "effect";
 
+const ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "image/avif",
+]);
+
+/** Normalizes client-provided MIME types for S3 presigned PUT signatures. */
+export function normalizeUploadContentType(raw: string | undefined | null): string {
+  const trimmed = (raw ?? "").trim().toLowerCase();
+  if (trimmed === "" || trimmed === "image/jpg") {
+    return "image/jpeg";
+  }
+  if (ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES.has(trimmed)) {
+    return trimmed;
+  }
+  return "image/jpeg";
+}
+
 export class UploadFlowApiError extends Schema.TaggedErrorClass<UploadFlowApiError>()(
   "@blikka/api/UploadFlowApiError",
   {
@@ -24,6 +46,7 @@ export const InitializeUploadFlowSchema = Schema.toStandardSchemaV1(
     competitionClassId: Schema.Number,
     deviceGroupId: Schema.Number,
     phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
+    uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
   }),
 );
 

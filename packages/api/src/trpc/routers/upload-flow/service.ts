@@ -19,7 +19,7 @@ import {
 import { S3Service, SQSService } from "@blikka/aws";
 import { UploadSessionRepository } from "@blikka/kv-store";
 import { RealtimeEventsService } from "@blikka/realtime";
-import { UploadFlowApiError } from "./schemas";
+import { UploadFlowApiError, normalizeUploadContentType } from "./schemas";
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption";
 
 const ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE =
@@ -665,6 +665,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         competitionClassId,
         deviceGroupId,
         phoneNumber,
+        uploadContentTypes,
       }) {
         const executeEffect = Effect.gen(function* () {
           const marathon = yield* getMarathonByDomainOrFail(domain);
@@ -749,6 +750,17 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             Array.take(competitionClass.numberOfPhotos),
           );
 
+          if (
+            uploadContentTypes !== undefined &&
+            uploadContentTypes.length !== topics.length
+          ) {
+            return yield* Effect.fail(
+              new UploadFlowApiError({
+                message: `[${domain}|${reference}] uploadContentTypes length must match the number of submissions (${topics.length})`,
+              }),
+            );
+          }
+
           const submissionKeys = yield* Effect.forEach(
             topics,
             (topic) =>
@@ -774,15 +786,27 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
 
           yield* kv.initializeState(domain, reference, submissionKeys);
 
+          const resolvedContentTypes =
+            uploadContentTypes === undefined
+              ? topics.map(() => "image/jpeg")
+              : uploadContentTypes.map((raw: string) =>
+                  normalizeUploadContentType(raw),
+                );
+
           const presignedUrls = yield* Effect.forEach(
-            submissionKeys,
-            (key) => s3.getPresignedUrl(bucketName, key, "PUT"),
+            submissionKeys.map((key, index) => ({
+              key,
+              contentType: resolvedContentTypes[index]!,
+            })),
+            ({ key, contentType }) =>
+              s3.getPresignedUrl(bucketName, key, "PUT", { contentType }),
             { concurrency: "unbounded" },
           );
 
           return submissionKeys.map((key, index) => ({
             key,
             url: presignedUrls[index]!,
+            contentType: resolvedContentTypes[index]!,
           }));
         });
 

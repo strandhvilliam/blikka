@@ -45,6 +45,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         file: photo.file,
         presignedUrl: photo.presignedUrl,
         preview: photo.preview,
+        contentType: photo.contentType,
         phase: UPLOAD_PHASE.PRESIGNED,
         progress: 0,
         isProcessingComplete: false,

@@ -225,9 +225,16 @@ export function UploadSubmissionsStep({
     try {
       setIsUploading(true);
 
-      const presignedUrls = await initializeUploadFlow(
-        initializeUploadFlowResult.data,
+      const photosInTopicOrder = [...photos].sort(
+        (a, b) => a.orderIndex - b.orderIndex,
       );
+
+      const presignedUrls = await initializeUploadFlow({
+        ...initializeUploadFlowResult.data,
+        uploadContentTypes: photosInTopicOrder.map(
+          (photo) => photo.file.type || "image/jpeg",
+        ),
+      });
 
       if (!presignedUrls || presignedUrls.length === 0) {
         setIsUploading(false);
@@ -235,7 +242,7 @@ export function UploadSubmissionsStep({
         return;
       }
 
-      const photosWithUrls: PhotoWithPresignedUrl[] = photos.map(
+      const photosWithUrls: PhotoWithPresignedUrl[] = photosInTopicOrder.map(
         (photo, index) => {
           const urlInfo = presignedUrls[index];
           if (!urlInfo) {
@@ -245,6 +252,7 @@ export function UploadSubmissionsStep({
             ...photo,
             presignedUrl: urlInfo.url,
             key: urlInfo.key,
+            contentType: urlInfo.contentType,
           };
         },
       );
