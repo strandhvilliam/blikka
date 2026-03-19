@@ -148,26 +148,31 @@ export function SubmissionReviewTimeline({
   const reviewSteps: ReviewStep[] = [...baseSteps, verificationStep]
 
   return (
-    <Card>
-      <CardHeader className="pb-2 pt-4 px-4">
-        <CardTitle className="text-base font-semibold font-gothic">Submission Timeline</CardTitle>
+    <Card className="border shadow-sm">
+      <CardHeader className="px-5 pt-6 pb-2">
+        <CardTitle className="text-lg font-semibold font-gothic">
+          What&apos;s happened so far
+        </CardTitle>
+        <p className="text-sm text-muted-foreground font-normal pt-1">
+          A simple history of this submission — newest context at the bottom.
+        </p>
       </CardHeader>
-      <CardContent className="pb-4 px-4 pt-2">
+      <CardContent className="px-5 pb-6 pt-2">
         <div className="relative">
           {reviewSteps.map((step, index) => (
             <div key={index} className="flex gap-3 pb-6 last:pb-0 relative">
               {index < reviewSteps.length - 1 && (
                 <div
-                  className={`absolute left-[15px] z-10 top-[32px] bottom-0 w-[2px] ${
+                  className={`absolute left-[15px] z-10 top-[32px] bottom-0 w-0.5 ${
                     step.status === "completed" && reviewSteps[index + 1]?.status === "completed"
                       ? "bg-primary"
                       : step.status === "completed" &&
                           (reviewSteps[index + 1]?.status === "pending" ||
                             reviewSteps[index + 1]?.status === "upcoming")
-                        ? "bg-linear-to-b from-primary to-blue-500"
+                        ? "bg-primary/70"
                         : step.status === "pending"
-                          ? "bg-linear-to-b from-blue-500 to-muted-foreground/30"
-                          : "bg-muted-foreground/30"
+                          ? "bg-sky-500/70"
+                          : "bg-border"
                   }`}
                 />
               )}
@@ -196,7 +201,7 @@ export function SubmissionReviewTimeline({
                         step.status === "completed"
                           ? "text-primary"
                           : step.status === "pending"
-                            ? "text-blue-600 dark:text-blue-400"
+                            ? "text-sky-700"
                             : "text-muted-foreground"
                       }`}
                     >
@@ -204,9 +209,7 @@ export function SubmissionReviewTimeline({
                     </p>
                     <p
                       className={`text-xs mt-0.5 ${
-                        step.isPending
-                          ? "text-blue-700 dark:text-blue-300"
-                          : "text-muted-foreground"
+                        step.isPending ? "text-sky-800" : "text-muted-foreground"
                       }`}
                     >
                       {step.description}

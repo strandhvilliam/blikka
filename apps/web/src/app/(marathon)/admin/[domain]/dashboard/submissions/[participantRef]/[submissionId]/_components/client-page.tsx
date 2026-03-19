@@ -4,8 +4,6 @@ import { notFound } from "next/navigation"
 import { Suspense } from "react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
-import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
-import { SubmissionValidationSteps } from "./submission-validation-steps"
 import { SubmissionHeader } from "./submission-header"
 import type {
   Participant,
@@ -18,7 +16,6 @@ import type {
 import { SubmissionImageViewer } from "./submission-image-viewer"
 import { SubmissionMetadataPanel } from "./submission-metadata-panel"
 import { SubmissionNavigationControls } from "./submission-navigation-controls"
-import { useState } from "react"
 import { SubmissionQuickActions } from "./submission-quick-actions"
 import { SubmissionReviewTimeline } from "./submission-review-timeline"
 import { Card } from "@/components/ui/card"
@@ -39,6 +36,7 @@ const getImageUrl = (submission: Submission) => {
 
 interface VotingDataPanelProps {
   submission: Submission
+  topic: Topic
   participant: Participant & {
     competitionClass: CompetitionClass | null
     deviceGroup: DeviceGroup | null
@@ -51,6 +49,7 @@ interface VotingDataPanelProps {
 
 function VotingDataPanel({
   submission,
+  topic,
   participant,
   hasIssues,
   validationResults,
@@ -77,6 +76,7 @@ function VotingDataPanel({
   return (
     <SubmissionMetadataPanel
       submission={submission}
+      topic={topic}
       participant={participant}
       hasIssues={hasIssues}
       validationResults={validationResults}
@@ -99,8 +99,6 @@ export function ParticipantSubmissionClientPage({
   const domain = useDomain()
 
   const trpc = useTRPC()
-  const [showExifPanel, setShowExifPanel] = useState(false)
-  const [showValidationPanel, setShowValidationPanel] = useState(false)
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
@@ -116,8 +114,6 @@ export function ParticipantSubmissionClientPage({
   )
 
   const submission = participant?.submissions.find((s) => s.id === submissionId)
-
-  console.log({ submission })
 
   const topic = submission?.topic
 
@@ -139,12 +135,17 @@ export function ParticipantSubmissionClientPage({
   }
 
   return (
-    <div className="space-y-6">
-      <SubmissionHeader participant={participant} marathonMode={marathon.mode} />
+    <div className="space-y-8 pb-10">
+      <SubmissionHeader
+        participant={participant}
+        marathonMode={marathon.mode}
+        hasIssues={hasIssues}
+        submissionStatus={submission.status}
+      />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)]">
         <div className="space-y-6">
-          <div className="relative">
+          <div className="space-y-3">
             {marathon.mode !== "by-camera" && (
               <SubmissionNavigationControls
                 currentIndex={currentIndex}
@@ -158,35 +159,16 @@ export function ParticipantSubmissionClientPage({
               topic={topic}
               competitionClass={participant.competitionClass}
               marathonMode={marathon?.mode}
+              className="shadow-md"
             />
           </div>
 
           <SubmissionQuickActions
-            submission={submission}
-            validationResults={submissionValidationResults}
-            onShowExif={() => setShowExifPanel(!showExifPanel)}
-            onShowValidation={() => setShowValidationPanel(!showValidationPanel)}
-            showExifPanel={showExifPanel}
-            showValidationPanel={showValidationPanel}
             marathonMode={marathon?.mode}
             participantId={participant.id}
             participantStatus={participant.status}
             participantRef={participantRef}
           />
-
-          {showValidationPanel && (
-            <Card className="p-4">
-              <h3 className="text-base font-semibold font-gothic mb-3">Validation Results</h3>
-              <SubmissionValidationSteps validationResults={submissionValidationResults} />
-            </Card>
-          )}
-
-          {showExifPanel && (
-            <Card className="p-4">
-              <h3 className="text-base font-semibold font-gothic mb-3">EXIF Data</h3>
-              <SubmissionExifDataDisplay exifData={submission.exif || {}} />
-            </Card>
-          )}
 
           <SubmissionReviewTimeline
             submission={submission}
@@ -196,17 +178,19 @@ export function ParticipantSubmissionClientPage({
           />
         </div>
 
-        <div className="space-y-6">
+        <div className="xl:sticky xl:top-6 xl:self-start">
           {marathon.mode === "by-camera" ? (
             <Suspense
               fallback={
-                <Card className="p-4 animate-pulse">
-                  <div className="h-32 bg-muted rounded" />
+                <Card className="animate-pulse border p-6 shadow-sm">
+                  <div className="mb-4 h-6 w-40 rounded bg-muted" />
+                  <div className="h-36 rounded bg-muted" />
                 </Card>
               }
             >
               <VotingDataPanel
                 submission={submission}
+                topic={topic}
                 participant={participant}
                 hasIssues={hasIssues}
                 validationResults={submissionValidationResults}
@@ -217,6 +201,7 @@ export function ParticipantSubmissionClientPage({
           ) : (
             <SubmissionMetadataPanel
               submission={submission}
+              topic={topic}
               participant={participant}
               hasIssues={hasIssues}
               validationResults={submissionValidationResults}

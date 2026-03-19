@@ -6,12 +6,14 @@ import type { CompetitionClass, Topic } from "@blikka/db"
 import { AlertTriangle, Download, Expand, ZoomIn, ZoomOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface SubmissionImageViewerProps {
   imageUrl: string | null
   topic: Topic
   competitionClass: CompetitionClass | null
   marathonMode?: string
+  className?: string
 }
 
 export function SubmissionImageViewer({
@@ -19,6 +21,7 @@ export function SubmissionImageViewer({
   topic,
   competitionClass,
   marathonMode,
+  className,
 }: SubmissionImageViewerProps) {
   const [hasError, setHasError] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -30,7 +33,12 @@ export function SubmissionImageViewer({
   const handleResetZoom = () => setZoom(1)
 
   return (
-    <Card className="overflow-hidden bg-linear-to-br from-muted/30 to-muted/10">
+    <Card
+      className={cn(
+        "overflow-hidden border bg-card",
+        className,
+      )}
+    >
       {/* Image Header Bar */}
       <div className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">

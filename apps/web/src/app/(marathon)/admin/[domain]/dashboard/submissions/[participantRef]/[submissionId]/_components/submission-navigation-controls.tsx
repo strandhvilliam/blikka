@@ -35,7 +35,7 @@ export function SubmissionNavigationControls({
   const nextSubmission = hasNext ? allSubmissions[currentIndex + 1] : null
 
   return (
-    <div className="flex items-center justify-between mb-4">
+    <div className="flex items-center justify-between gap-2">
       <Button
         variant="outline"
         size="sm"
@@ -61,13 +61,16 @@ export function SubmissionNavigationControls({
         )}
       </Button>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col items-center gap-1 sm:flex-row sm:gap-2">
+        <span className="text-xs text-muted-foreground sm:hidden">
+          Photo {currentIndex + 1} of {totalSubmissions}
+        </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">
               <Grid2x2 className="h-4 w-4" />
-              <span className="font-mono">
-                {currentIndex + 1} / {totalSubmissions}
+              <span className="tabular-nums">
+                Photo {currentIndex + 1} / {totalSubmissions}
               </span>
             </Button>
           </DropdownMenuTrigger>
