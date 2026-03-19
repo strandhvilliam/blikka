@@ -464,37 +464,38 @@ const exportGetImpl = Effect.fn("@blikka/web/exportGET")(function* (
   switch (type) {
     case EXPORT_KEYS.XLSX_PARTICIPANTS:
       if (marathon.mode === "by-camera") {
-        if (blockedByCameraResponse) {
-          return blockedByCameraResponse
-        }
-
-        return yield* handleParticipantsExportByCameraActiveTopic(caller, domain)
+        return NextResponse.json(
+          {
+            error: "Invalid export type for this marathon mode",
+            details: `Use ${EXPORT_KEYS.XLSX_PARTICIPANTS_BY_CAMERA_ACTIVE_TOPIC} for by-camera marathons.`,
+          },
+          { status: 400 },
+        )
       }
 
       return yield* handleParticipantsExport(caller, domain)
 
     case EXPORT_KEYS.XLSX_SUBMISSIONS:
       if (marathon.mode === "by-camera") {
-        if (blockedByCameraResponse) {
-          return blockedByCameraResponse
-        }
-
-        return yield* handleSubmissionsExportByCameraActiveTopic(caller, domain)
+        return NextResponse.json(
+          {
+            error: "Invalid export type for this marathon mode",
+            details: `Use ${EXPORT_KEYS.XLSX_SUBMISSIONS_BY_CAMERA_ACTIVE_TOPIC} for by-camera marathons.`,
+          },
+          { status: 400 },
+        )
       }
 
       return yield* handleSubmissionsExport(caller, domain)
 
     case EXPORT_KEYS.TXT_VALIDATION_RESULTS:
       if (marathon.mode === "by-camera") {
-        if (blockedByCameraResponse) {
-          return blockedByCameraResponse
-        }
-
-        return yield* handleValidationResultsExportByCameraActiveTopic(
-          caller,
-          domain,
-          onlyFailed,
-          fileFormat,
+        return NextResponse.json(
+          {
+            error: "Invalid export type for this marathon mode",
+            details: `Use ${EXPORT_KEYS.TXT_VALIDATION_RESULTS_BY_CAMERA_ACTIVE_TOPIC} for by-camera marathons.`,
+          },
+          { status: 400 },
         )
       }
 
