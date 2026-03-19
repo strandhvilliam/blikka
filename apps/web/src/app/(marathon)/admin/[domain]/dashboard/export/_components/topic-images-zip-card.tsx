@@ -11,22 +11,11 @@ import { cn } from "@/lib/utils"
 import { PrimaryButton } from "@/components/ui/primary-button"
 
 import { downloadFile } from "../_lib/download-file"
+import { sanitizeFilenameSegment } from "../_lib/sanitize-filename-segment"
 
 interface TopicImagesZipCardProps {
   disabled?: boolean
   topicName: string | null
-}
-
-function slugifyTopicName(topicName: string | null) {
-  if (!topicName) {
-    return "active-topic"
-  }
-
-  return topicName
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
 }
 
 export function TopicImagesZipCard({
@@ -40,7 +29,7 @@ export function TopicImagesZipCard({
     try {
       setIsLoading(true)
 
-      const topicSlug = slugifyTopicName(topicName)
+      const topicSlug = sanitizeFilenameSegment(topicName)
       const filename = `${topicSlug}-images-${new Date().toISOString().split("T")[0]}.zip`
 
       await downloadFile(`/api/${domain}/export/by_camera_topic_images`, filename)

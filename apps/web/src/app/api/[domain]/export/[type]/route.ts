@@ -9,6 +9,7 @@ import {
   ExportsApiService,
 } from "@blikka/api/trpc"
 
+import { sanitizeFilenameSegment } from "@/app/(marathon)/admin/[domain]/dashboard/export/_lib/sanitize-filename-segment"
 import { getByCameraExportAccessState } from "@/lib/topics/by-camera-export-access-state"
 import { Route } from "@/lib/next-utils"
 import { serverRuntime, type RuntimeDependencies } from "@/lib/server-runtime"
@@ -31,18 +32,6 @@ type Caller = ReturnType<typeof createCaller>
 
 function getDateStamp() {
   return new Date().toISOString().split("T")[0]
-}
-
-function sanitizeFilenameSegment(value: string | null | undefined) {
-  if (!value) {
-    return "active-topic"
-  }
-
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
 }
 
 function createWorkbookResponse(
