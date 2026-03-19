@@ -36,6 +36,7 @@ async function uploadSingleFile(
     file: file.file,
     presignedUrl: file.presignedUrl,
     timeoutMs,
+    contentType: file.contentType,
   });
 
   if (!result.ok) {

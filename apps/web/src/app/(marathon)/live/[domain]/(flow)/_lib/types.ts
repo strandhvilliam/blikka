@@ -38,6 +38,8 @@ export interface SelectedPhoto {
 export interface PhotoWithPresignedUrl extends SelectedPhoto {
   presignedUrl: string;
   key: string;
+  /** From API; must match the presigned PUT signature when set. */
+  contentType?: string;
 }
 
 // Upload file state tracked during upload
@@ -47,6 +49,7 @@ export interface UploadFileState {
   file: File;
   presignedUrl: string;
   preview: string;
+  contentType?: string;
 
   // Upload state
   phase: UploadPhase;

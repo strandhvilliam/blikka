@@ -203,7 +203,7 @@
     },
     "uploadFinalizing": {
       "title": "Slutför din inlämning",
-      "description": "Dina foton har laddats upp! Vi bearbetar dem i bakgrunden nu.",
+      "description": "Dina foton har mottagits!",
       "timeoutTitle": "Dina foton har tagits emot",
       "timeoutDescription": "Vi kunde inte slutföra registreringen ännu, men dina foton är tryggt sparade.",
       "participantNumber": "Deltagarnummer",

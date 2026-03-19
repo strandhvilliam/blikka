@@ -155,6 +155,10 @@ export function useParticipantUploadFlow({
         phoneNumber: resolvedFormValues.phone.trim(),
       }
 
+      const orderedPhotos = [...selectedPhotos].sort(
+        (a, b) => a.orderIndex - b.orderIndex,
+      )
+
       const initialization =
         marathonMode === "marathon"
           ? await initializeUploadFlowMutation.mutateAsync({
@@ -162,6 +166,9 @@ export function useParticipantUploadFlow({
               reference,
               phoneNumber: resolvedFormValues.phone.trim() ? resolvedFormValues.phone.trim() : null,
               competitionClassId: Number(resolvedFormValues.competitionClassId),
+              uploadContentTypes: orderedPhotos.map(
+                (photo) => photo.file.type || "image/jpeg",
+              ),
             })
           : await initializeByCameraUploadMutation.mutateAsync(commonPayload)
 
@@ -175,16 +182,22 @@ export function useParticipantUploadFlow({
         throw new Error("Failed to initialize upload URLs")
       }
 
-      const preparedUploads: ParticipantPreparedUpload[] = selectedPhotos.map((photo, index) => {
+      const preparedUploads: ParticipantPreparedUpload[] = orderedPhotos.map((photo, index) => {
         const urlData = presignedUrls[index]
         if (!urlData) {
           throw new Error(`Missing upload URL for image #${index + 1}`)
         }
 
+        const contentTypeFromApi =
+          "contentType" in urlData && typeof urlData.contentType === "string"
+            ? urlData.contentType
+            : undefined
+
         return {
           ...photo,
           key: urlData.key,
           presignedUrl: urlData.url,
+          ...(contentTypeFromApi !== undefined ? { contentType: contentTypeFromApi } : {}),
         }
       })
 

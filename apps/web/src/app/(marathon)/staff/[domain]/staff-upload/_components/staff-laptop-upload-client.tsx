@@ -286,6 +286,8 @@ export function StaffLaptopUploadClient({
         phoneNumber: resolvedFormValues.phone.trim(),
       };
 
+      const orderedPhotos = [...photos].sort((a, b) => a.orderIndex - b.orderIndex);
+
       const initialization =
         marathonMode === "marathon"
           ? await initializeUploadFlowMutation.mutateAsync({
@@ -293,6 +295,9 @@ export function StaffLaptopUploadClient({
               reference,
               phoneNumber: commonPayload.phoneNumber || null,
               competitionClassId: Number(resolvedFormValues.competitionClassId),
+              uploadContentTypes: orderedPhotos.map(
+                (photo) => photo.file.type || "image/jpeg",
+              ),
             })
           : await initializeByCameraUploadMutation.mutateAsync(commonPayload);
 
@@ -308,7 +313,7 @@ export function StaffLaptopUploadClient({
         throw new Error("Failed to initialize upload URLs");
       }
 
-      const preparedUploads: ParticipantPreparedUpload[] = photos.map(
+      const preparedUploads: ParticipantPreparedUpload[] = orderedPhotos.map(
         (photo, index) => {
           const urlData = presignedUrls[index];
 
@@ -316,10 +321,18 @@ export function StaffLaptopUploadClient({
             throw new Error(`Missing upload URL for image #${index + 1}`);
           }
 
+          const contentTypeFromApi =
+            "contentType" in urlData && typeof urlData.contentType === "string"
+              ? urlData.contentType
+              : undefined;
+
           return {
             ...photo,
             key: urlData.key,
             presignedUrl: urlData.url,
+            ...(contentTypeFromApi !== undefined
+              ? { contentType: contentTypeFromApi }
+              : {}),
           };
         },
       );

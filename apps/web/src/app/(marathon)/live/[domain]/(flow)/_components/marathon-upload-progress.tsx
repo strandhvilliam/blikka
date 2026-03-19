@@ -39,20 +39,6 @@ export function MarathonUploadProgress({
   const finalizingT = useTranslations("FlowPage.uploadFinalizing");
   const [elapsedTime, setElapsedTime] = useState(0);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setElapsedTime((prev) => prev + 1);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   const progress = useMemo(() => {
     const total = files.length || expectedCount;
     const completed = files.filter(
@@ -69,6 +55,22 @@ export function MarathonUploadProgress({
   }, [files, expectedCount]);
 
   const allUploadsComplete = progress.completed === expectedCount;
+
+  useEffect(() => {
+    if (allUploadsComplete) return;
+
+    const interval = setInterval(() => {
+      setElapsedTime((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [allUploadsComplete]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
   const hasFailures = progress.failed > 0;
   const isFinalizing =
     allUploadsComplete &&
@@ -98,19 +100,18 @@ export function MarathonUploadProgress({
     <div className="w-full flex items-center justify-center min-h-[60dvh]">
       <Card className="w-full max-w-lg">
         <CardHeader className="pt-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm w-8 text-muted-foreground font-mono">
-              {!hasFailures && formatTime(elapsedTime)}
-            </div>
-            <div className="flex flex-col items-center">
-              <CardTitle className="text-xl font-semibold">
-                {getTitle()}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {getDescription()}
+          <div className="flex flex-col items-center text-center">
+            {!allUploadsComplete && !hasFailures ? (
+              <p className="mb-1 text-sm text-muted-foreground font-mono tabular-nums">
+                {formatTime(elapsedTime)}
               </p>
-            </div>
-            <div className="w-8" />
+            ) : null}
+            <CardTitle className="text-xl font-semibold">
+              {getTitle()}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md">
+              {getDescription()}
+            </p>
           </div>
         </CardHeader>
 

@@ -27,6 +27,8 @@ export interface ParticipantSelectedPhoto {
 export interface ParticipantPreparedUpload extends ParticipantSelectedPhoto {
   key: string;
   presignedUrl: string;
+  /** From API; must match the presigned PUT signature when set. */
+  contentType?: string;
 }
 
 export type ParticipantUploadErrorCode = ClientUploadErrorCode;

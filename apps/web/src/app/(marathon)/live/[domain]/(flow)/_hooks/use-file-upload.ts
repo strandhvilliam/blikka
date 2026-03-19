@@ -16,6 +16,8 @@ import {
   MIN_UPLOAD_PROGRESS_DISPLAY_MS,
   PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS,
   PARTICIPANT_FINALIZATION_TIMEOUT_MS,
+  UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
+  UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
   UPLOAD_TIMEOUT_MS,
   UPLOAD_CONCURRENCY_LIMIT,
   UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS,
@@ -162,7 +164,12 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
           ? PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS
           : false,
         refetchIntervalInBackground: true,
-        retry: false,
+        retry: UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
+        retryDelay: (attemptIndex) =>
+          Math.min(
+            1000 * 2 ** attemptIndex,
+            UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
+          ),
       },
     ),
   )
@@ -188,7 +195,12 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
         enabled: processingStatusEnabled,
         refetchInterval: processingStatusEnabled ? UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS : false,
         refetchIntervalInBackground: true,
-        retry: false,
+        retry: UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
+        retryDelay: (attemptIndex) =>
+          Math.min(
+            1000 * 2 ** attemptIndex,
+            UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
+          ),
       },
     ),
   )
@@ -263,6 +275,7 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
           file: file.file,
           presignedUrl: file.presignedUrl,
           timeoutMs: UPLOAD_TIMEOUT_MS,
+          contentType: file.contentType,
         })
 
         if (!result.ok) {
@@ -296,17 +309,16 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
       setUploadUiStartedAt(Date.now())
       initializeFiles(photos)
 
-      const filesToUpload = photos
-        .map((photo) => ({
-          key: photo.key,
-          orderIndex: photo.orderIndex,
-          file: photo.file,
-          presignedUrl: photo.presignedUrl,
-          preview: photo.preview,
-          phase: UPLOAD_PHASE.PRESIGNED as UploadPhase,
-          progress: 0,
-        }))
-        .filter((file): file is UploadFileState => file !== undefined)
+      const filesToUpload: UploadFileState[] = photos.map((photo) => ({
+        key: photo.key,
+        orderIndex: photo.orderIndex,
+        file: photo.file,
+        presignedUrl: photo.presignedUrl,
+        preview: photo.preview,
+        contentType: photo.contentType,
+        phase: UPLOAD_PHASE.PRESIGNED as UploadPhase,
+        progress: 0,
+      }))
 
       await uploadWithConcurrency(filesToUpload)
     },
