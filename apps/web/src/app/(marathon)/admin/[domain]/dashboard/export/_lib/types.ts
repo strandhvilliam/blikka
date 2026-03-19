@@ -41,6 +41,7 @@ export interface ExportTypeConfig {
   description: string;
   icon: LucideIcon;
   exportType: string;
+  downloadName?: string;
   accentColor: string;
   formatOptions?: SelectOption[];
   validationOptions?: SelectOption[];

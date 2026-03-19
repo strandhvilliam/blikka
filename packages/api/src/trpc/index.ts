@@ -1,5 +1,6 @@
 export { createTRPCContext, createCallerFactory } from "./root"
 export { appRouter } from "./routers/_app"
+export { ExportsApiService } from "./routers/exports/service"
 export { ApiLayer } from "../layer"
 export type { TRPCRequiredServices } from "./root"
 export type * from "./types"

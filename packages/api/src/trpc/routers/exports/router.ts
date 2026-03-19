@@ -51,6 +51,40 @@ export const exportsRouter = createTRPCRouter({
       ),
     ),
 
+  getParticipantsExportDataByCameraActiveTopic: domainProcedure
+    .input(GetParticipantsExportDataInputSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn("ExportsRouter.getParticipantsExportDataByCameraActiveTopic")(function* ({
+          input,
+        }) {
+          return yield* ExportsApiService.use((s) =>
+            s.getParticipantsExportDataByCameraActiveTopic({
+              domain: input.domain,
+            }),
+          );
+        }),
+      ),
+    ),
+
+  getSubmissionsExportDataByCameraActiveTopic: domainProcedure
+    .input(GetSubmissionsExportDataInputSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn("ExportsRouter.getSubmissionsExportDataByCameraActiveTopic")(function* ({
+          input,
+        }) {
+          return yield* ExportsApiService.use((s) =>
+            s.getSubmissionsExportDataByCameraActiveTopic({
+              domain: input.domain,
+            }),
+          );
+        }),
+      ),
+    ),
+
   getExifExportData: domainProcedure
     .input(GetExifExportDataInputSchema)
     .use(requireMatchingInputDomainMiddleware)
@@ -76,6 +110,24 @@ export const exportsRouter = createTRPCRouter({
         }) {
           return yield* ExportsApiService.use((s) =>
             s.getValidationResultsExportData({
+              domain: input.domain,
+              onlyFailed: input.onlyFailed ?? undefined,
+            }),
+          );
+        }),
+      ),
+    ),
+
+  getValidationResultsExportDataByCameraActiveTopic: domainProcedure
+    .input(GetValidationResultsExportDataInputSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn("ExportsRouter.getValidationResultsExportDataByCameraActiveTopic")(function* ({
+          input,
+        }) {
+          return yield* ExportsApiService.use((s) =>
+            s.getValidationResultsExportDataByCameraActiveTopic({
               domain: input.domain,
               onlyFailed: input.onlyFailed ?? undefined,
             }),

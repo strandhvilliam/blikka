@@ -2,16 +2,19 @@
 
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { Archive, AlertCircle } from "lucide-react";
+
 import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
+import { getByCameraExportAccessState } from "@/lib/topics/by-camera-export-access-state";
 import { ExportHeader } from "./export-header";
 import { ExportCard } from "./export-card";
-import { EXPORT_TYPES } from "../_lib/utils";
+import { BY_CAMERA_EXPORT_TYPES, MARATHON_EXPORT_TYPES } from "../_lib/utils";
 import { FullMarathonZipCard } from "./full-marathon-zip-card";
+import { TopicImagesZipCard } from "./topic-images-zip-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { AlertCircle } from "lucide-react";
 
 export function ExportContent() {
   const domain = useDomain();
@@ -37,14 +40,34 @@ export function ExportContent() {
   })();
 
   const isDevelopment = process.env.NODE_ENV === "development";
-  const shouldDisableExports = isLive && !bypassRestriction;
+  const isByCamera = marathon.mode === "by-camera";
+  const byCameraExportAccess = isByCamera
+    ? getByCameraExportAccessState(marathon)
+    : null;
+  const activeTopic = byCameraExportAccess?.activeTopic ?? null;
+  const exportTypes = isByCamera ? BY_CAMERA_EXPORT_TYPES : MARATHON_EXPORT_TYPES;
+  const shouldDisableExports = isByCamera
+    ? !(byCameraExportAccess?.isExportAllowed ?? false)
+    : isLive && !bypassRestriction;
 
   if (!marathon) return null;
 
   return (
     <div className="container mx-auto max-w-[1200px] space-y-8 px-4 py-8 sm:px-6">
       <ExportHeader domain={domain} marathonName={marathonName} />
-      {isLive && (
+      {isByCamera && (
+        <Alert>
+          <Archive className="h-4 w-4" />
+          <AlertTitle>
+            {activeTopic ? `Active topic: ${activeTopic.name}` : "By-camera exports"}
+          </AlertTitle>
+          <AlertDescription>
+            Exports on this page are scoped to the active topic only. The ZIP download contains
+            the original uploaded images for that topic in one flat archive.
+          </AlertDescription>
+        </Alert>
+      )}
+      {!isByCamera && isLive && (
         <>
           {isDevelopment && (
             <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950">
@@ -61,28 +84,31 @@ export function ExportContent() {
               </Label>
             </div>
           )}
-          {shouldDisableExports && (
-            <Alert className="bg-red-50 border-red-300 text-red-900 dark:bg-red-950 dark:border-red-800 dark:text-red-100">
-              <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              <AlertTitle className="text-red-900 dark:text-red-100">
-                Exports unavailable
-              </AlertTitle>
-              <AlertDescription className="text-red-800 dark:text-red-200">
-                Exports are not available while the marathon is live. Please
-                wait until the marathon ends to generate exports.
-              </AlertDescription>
-            </Alert>
-          )}
         </>
       )}
+      {shouldDisableExports ? (
+        <Alert className="bg-red-50 border-red-300 text-red-900 dark:bg-red-950 dark:border-red-800 dark:text-red-100">
+          <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <AlertTitle className="text-red-900 dark:text-red-100">
+            {isByCamera ? byCameraExportAccess?.message?.title ?? "Exports unavailable" : "Exports unavailable"}
+          </AlertTitle>
+          <AlertDescription className="text-red-800 dark:text-red-200">
+            {isByCamera
+              ? byCameraExportAccess?.message?.description ??
+                "Exports are unavailable for the active topic right now."
+              : "Exports are not available while the marathon is live. Please wait until the marathon ends to generate exports."}
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {EXPORT_TYPES.map((exportType) => (
+        {exportTypes.map((exportType) => (
           <ExportCard
             key={exportType.id}
             title={exportType.title}
             description={exportType.description}
             icon={<exportType.icon className="h-5 w-5" />}
             exportType={exportType.exportType}
+            downloadName={exportType.downloadName}
             accentColor={exportType.accentColor}
             formatOptions={exportType.formatOptions}
             validationOptions={exportType.validationOptions}
@@ -90,7 +116,14 @@ export function ExportContent() {
             disabled={shouldDisableExports}
           />
         ))}
-        <FullMarathonZipCard disabled={shouldDisableExports} />
+        {isByCamera ? (
+          <TopicImagesZipCard
+            disabled={shouldDisableExports}
+            topicName={activeTopic?.name ?? null}
+          />
+        ) : (
+          <FullMarathonZipCard disabled={shouldDisableExports} />
+        )}
       </div>
     </div>
   );
