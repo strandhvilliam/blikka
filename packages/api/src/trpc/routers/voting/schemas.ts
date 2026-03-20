@@ -6,8 +6,7 @@ export class VotingApiError extends Schema.TaggedErrorClass<VotingApiError>()(
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
-) {
-}
+) {}
 
 export const GetVotingSessionSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
@@ -46,6 +45,14 @@ export const ReopenTopicVotingWindowSchema = Schema.toStandardSchemaV1(
   }),
 );
 
+export const StartTiebreakRoundSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+    endsAt: Schema.optional(Schema.NullishOr(Schema.String)),
+  }),
+);
+
 export const GetSubmissionVoteStatsSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     submissionId: Schema.Number,
@@ -76,20 +83,22 @@ export const GetVotingAdminSummarySchema = Schema.toStandardSchemaV1(
   }),
 );
 
-export const GetParticipantsWithoutVotingSessionSchema = Schema.toStandardSchemaV1(
-  Schema.Struct({
-    domain: Schema.String,
-    topicId: Schema.Number,
-  }),
-);
+export const GetParticipantsWithoutVotingSessionSchema =
+  Schema.toStandardSchemaV1(
+    Schema.Struct({
+      domain: Schema.String,
+      topicId: Schema.Number,
+    }),
+  );
 
-export const StartVotingSessionsForParticipantsSchema = Schema.toStandardSchemaV1(
-  Schema.Struct({
-    domain: Schema.String,
-    topicId: Schema.Number,
-    participantIds: Schema.Array(Schema.Number),
-  }),
-);
+export const StartVotingSessionsForParticipantsSchema =
+  Schema.toStandardSchemaV1(
+    Schema.Struct({
+      domain: Schema.String,
+      topicId: Schema.Number,
+      participantIds: Schema.Array(Schema.Number),
+    }),
+  );
 
 export const GetVotingLeaderboardPageSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
@@ -97,7 +106,10 @@ export const GetVotingLeaderboardPageSchema = Schema.toStandardSchemaV1(
     topicId: Schema.Number,
     page: Schema.NullishOr(Schema.Number.check(Schema.isGreaterThan(0))),
     limit: Schema.NullishOr(
-      Schema.Number.check(Schema.isGreaterThan(0), Schema.isLessThanOrEqualTo(100)),
+      Schema.Number.check(
+        Schema.isGreaterThan(0),
+        Schema.isLessThanOrEqualTo(100),
+      ),
     ),
   }),
 );
@@ -108,7 +120,10 @@ export const GetVotingVotersPageSchema = Schema.toStandardSchemaV1(
     topicId: Schema.Number,
     page: Schema.NullishOr(Schema.Number.check(Schema.isGreaterThan(0))),
     limit: Schema.NullishOr(
-      Schema.Number.check(Schema.isGreaterThan(0), Schema.isLessThanOrEqualTo(100)),
+      Schema.Number.check(
+        Schema.isGreaterThan(0),
+        Schema.isLessThanOrEqualTo(100),
+      ),
     ),
   }),
 );

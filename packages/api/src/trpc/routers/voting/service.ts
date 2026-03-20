@@ -1,39 +1,44 @@
-import "server-only"
+import "server-only";
 
-import { Config, Effect, Layer, Option, ServiceMap } from "effect"
-import { Database, type VotingSession, type NewVotingSession } from "@blikka/db"
-import { VotingApiError } from "./schemas"
-import { SMSService, SQSService } from "@blikka/aws"
+import { Config, Effect, Layer, Option, ServiceMap } from "effect";
+import {
+  Database,
+  type VotingRound,
+  type VotingSession,
+  type NewVotingSession,
+} from "@blikka/db";
+import { VotingApiError } from "./schemas";
+import { SMSService, SQSService } from "@blikka/aws";
 import {
   RealtimeEventsService,
   getRealtimeChannelEnvironmentFromNodeEnv,
-} from "@blikka/realtime"
+} from "@blikka/realtime";
 import {
   PhoneNumberEncryptionService,
   type EncryptedPhoneNumber,
-} from "../../utils/phone-number-encryption"
-import { randomBytes } from "crypto"
+} from "../../utils/phone-number-encryption";
+import { randomBytes } from "crypto";
 import {
   getVotingLifecycleState,
   hasSubmissionWindowEnded,
   parseVotingScheduleInput,
-} from "./lifecycle"
+} from "./lifecycle";
 
-const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
-const VOTING_SMS_CHUNK_SIZE = 30
-const VOTING_SMS_ENQUEUE_CONCURRENCY = 10
+const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com";
+const VOTING_SMS_CHUNK_SIZE = 30;
+const VOTING_SMS_ENQUEUE_CONCURRENCY = 10;
 
 interface VotingSmsQueueMessage {
-  votingSessionIds: number[]
-  forceResend?: boolean
+  votingSessionIds: number[];
+  forceResend?: boolean;
 }
 
 function buildS3Url(
   bucketName: string,
   key: string | null | undefined,
 ): string | undefined {
-  if (!key) return undefined
-  return `${AWS_S3_BASE_URL}/${bucketName}/${key}`
+  if (!key) return undefined;
+  return `${AWS_S3_BASE_URL}/${bucketName}/${key}`;
 }
 
 function buildVotingInviteMessage({
@@ -41,29 +46,29 @@ function buildVotingInviteMessage({
   domain,
   token,
 }: {
-  marathonName: string
-  domain: string
-  token: string
+  marathonName: string;
+  domain: string;
+  token: string;
 }) {
-  return `Voting is starting for ${marathonName}! Vote here: https://${domain}.blikka.app/live/vote/${token}`
+  return `Voting is starting for ${marathonName}! Vote here: https://${domain}.blikka.app/live/vote/${token}`;
 }
 
 function chunkItems<T>(items: readonly T[], size: number): T[][] {
-  const chunks: T[][] = []
+  const chunks: T[][] = [];
 
   for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
+    chunks.push(items.slice(index, index + size));
   }
 
-  return chunks
+  return chunks;
 }
 
 function parseVotingWindow({
   startsAt,
   endsAt,
 }: {
-  startsAt: string
-  endsAt?: string | null
+  startsAt: string;
+  endsAt?: string | null;
 }): Effect.Effect<
   { startsAtIso: string; endsAtIso: string | null },
   VotingApiError
@@ -76,7 +81,7 @@ function parseVotingWindow({
           error instanceof Error ? error.message : "Invalid voting timestamps",
         cause: error,
       }),
-  })
+  });
 }
 
 function ensureSessionDomain(
@@ -91,40 +96,40 @@ function ensureSessionDomain(
       new VotingApiError({
         message: "Voting session not found",
       }),
-    )
+    );
   }
 
-  return Effect.void
+  return Effect.void;
 }
 
 function getSessionDomain(
   votingSession: VotingSession & { marathon?: { domain: string } | null },
 ): Effect.Effect<string, VotingApiError> {
-  const domain = votingSession.marathon?.domain
+  const domain = votingSession.marathon?.domain;
 
   if (!domain) {
     return Effect.fail(
       new VotingApiError({
         message: "Voting session not found",
       }),
-    )
+    );
   }
 
-  return Effect.succeed(domain)
+  return Effect.succeed(domain);
 }
 
 function ensureVotingSessionWindow(votingWindow: {
-  startsAt: string | null
-  endsAt: string | null
+  startsAt: string | null;
+  endsAt: string | null;
 }): Effect.Effect<void, VotingApiError> {
-  const state = getVotingLifecycleState(votingWindow)
+  const state = getVotingLifecycleState(votingWindow);
 
   if (state === "not-started") {
     return Effect.fail(
       new VotingApiError({
         message: "Voting session has not started yet",
       }),
-    )
+    );
   }
 
   if (state === "ended") {
@@ -132,49 +137,87 @@ function ensureVotingSessionWindow(votingWindow: {
       new VotingApiError({
         message: "Voting session has expired",
       }),
-    )
+    );
   }
 
-  return Effect.void
+  return Effect.void;
 }
 
 function normalizePaginationInput({
   page,
   limit,
 }: {
-  page?: number | null
-  limit?: number | null
+  page?: number | null;
+  limit?: number | null;
 }) {
-  const normalizedPage = Number.isInteger(page) && page && page > 0 ? page : 1
+  const normalizedPage = Number.isInteger(page) && page && page > 0 ? page : 1;
   const normalizedLimit =
-    Number.isInteger(limit) && limit && limit > 0 ? Math.min(limit, 100) : 50
+    Number.isInteger(limit) && limit && limit > 0 ? Math.min(limit, 100) : 50;
 
   return {
     page: normalizedPage,
     limit: normalizedLimit,
+  };
+}
+
+function mapRoundSummary(round: VotingRound | null) {
+  if (!round) {
+    return null;
   }
+
+  return {
+    id: round.id,
+    roundNumber: round.roundNumber,
+    kind: round.kind,
+    startedAt: round.startedAt,
+    endsAt: round.endsAt,
+    sourceRoundId: round.sourceRoundId,
+  };
+}
+
+function applyLatestRoundVoteToSession({
+  votingSession,
+  round,
+  vote,
+}: {
+  votingSession: VotingSession & {
+    marathon?: { domain: string } | null;
+    topic?: { name: string } | null;
+  };
+  round: VotingRound | null;
+  vote: {
+    submissionId: number;
+    votedAt: string;
+  } | null;
+}) {
+  return {
+    ...votingSession,
+    voteSubmissionId: vote?.submissionId ?? null,
+    votedAt: vote?.votedAt ?? null,
+    currentRound: mapRoundSummary(round),
+  };
 }
 
 export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
   "@blikka/api/VotingApiService",
   {
     make: Effect.gen(function* () {
-      const db = yield* Database
-      const smsService = yield* SMSService
-      const sqs = yield* SQSService
-      const realtimeEvents = yield* RealtimeEventsService
-      const phoneEncryption = yield* PhoneNumberEncryptionService
+      const db = yield* Database;
+      const smsService = yield* SMSService;
+      const sqs = yield* SQSService;
+      const realtimeEvents = yield* RealtimeEventsService;
+      const phoneEncryption = yield* PhoneNumberEncryptionService;
 
       const submissionsBucketName = yield* Config.string(
         "SUBMISSIONS_BUCKET_NAME",
-      )
+      );
       const thumbnailsBucketName = yield* Config.string(
         "THUMBNAILS_BUCKET_NAME",
-      )
+      );
       const environment = yield* Config.string("NODE_ENV").pipe(
         Config.map(getRealtimeChannelEnvironmentFromNodeEnv),
-      )
-      const shouldSendVotingSms = environment === "prod"
+      );
+      const shouldSendVotingSms = environment === "prod";
 
       const enqueueVotingSmsNotifications = Effect.fn(
         "VotingApiService.enqueueVotingSmsNotifications",
@@ -182,43 +225,43 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         sessionIds,
         forceResend = false,
       }: {
-        sessionIds: readonly number[]
-        forceResend?: boolean
+        sessionIds: readonly number[];
+        forceResend?: boolean;
       }) {
         if (!shouldSendVotingSms) {
           return {
             smsChunksEnqueued: 0,
             smsSessionsQueued: 0,
-          }
+          };
         }
 
-        const uniqueSessionIds = Array.from(new Set(sessionIds))
+        const uniqueSessionIds = Array.from(new Set(sessionIds));
         if (uniqueSessionIds.length === 0) {
           return {
             smsChunksEnqueued: 0,
             smsSessionsQueued: 0,
-          }
+          };
         }
 
-        const queueUrl = yield* Config.string("VOTING_SMS_QUEUE_URL")
-        const queueChunks = chunkItems(uniqueSessionIds, VOTING_SMS_CHUNK_SIZE)
+        const queueUrl = yield* Config.string("VOTING_SMS_QUEUE_URL");
+        const queueChunks = chunkItems(uniqueSessionIds, VOTING_SMS_CHUNK_SIZE);
 
         yield* Effect.all(
           queueChunks.map((votingSessionIds) => {
             const message: VotingSmsQueueMessage = forceResend
               ? { votingSessionIds, forceResend: true }
-              : { votingSessionIds }
+              : { votingSessionIds };
 
-            return sqs.sendMessage(queueUrl, JSON.stringify(message))
+            return sqs.sendMessage(queueUrl, JSON.stringify(message));
           }),
           { concurrency: VOTING_SMS_ENQUEUE_CONCURRENCY },
-        )
+        );
 
         return {
           smsChunksEnqueued: queueChunks.length,
           smsSessionsQueued: uniqueSessionIds.length,
-        }
-      })
+        };
+      });
 
       const generateUniqueToken = Effect.fn(
         "VotingApiService.generateUniqueToken",
@@ -226,19 +269,19 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         usedTokens = new Set<string>(),
       }: { usedTokens?: Set<string> } = {}) {
         while (true) {
-          const token = randomBytes(8).toString("base64url").slice(0, 8)
+          const token = randomBytes(8).toString("base64url").slice(0, 8);
           if (usedTokens.has(token)) {
-            continue
+            continue;
           }
           const existing = yield* db.votingQueries.getVotingSessionByToken({
             token,
-          })
+          });
           if (Option.isNone(existing)) {
-            usedTokens.add(token)
-            return token
+            usedTokens.add(token);
+            return token;
           }
         }
-      })
+      });
 
       const getByCameraMarathonWithTopic = Effect.fn(
         "VotingApiService.getByCameraMarathonWithTopic",
@@ -246,7 +289,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         const marathonOpt =
           yield* db.marathonsQueries.getMarathonByDomainWithOptions({
             domain,
-          })
+          });
 
         const marathon = yield* Option.match(marathonOpt, {
           onSome: (m) => Effect.succeed(m),
@@ -256,23 +299,23 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: `Marathon not found for domain ${domain}`,
               }),
             ),
-        })
+        });
 
         if (marathon.mode !== "by-camera") {
           return yield* Effect.fail(
             new VotingApiError({
               message: `Marathon '${marathon.domain}' is not in by-camera mode`,
             }),
-          )
+          );
         }
 
-        const topic = marathon.topics.find((item) => item.id === topicId)
+        const topic = marathon.topics.find((item) => item.id === topicId);
         if (!topic) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Topic not found",
             }),
-          )
+          );
         }
 
         return {
@@ -281,8 +324,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           activeTopic:
             marathon.topics.find((item) => item.visibility === "active") ??
             null,
-        }
-      })
+        };
+      });
 
       const getTopicVotingWindow = Effect.fn(
         "VotingApiService.getTopicVotingWindow",
@@ -290,32 +333,66 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         marathonId,
         topicId,
       }: {
-        marathonId: number
-        topicId: number
+        marathonId: number;
+        topicId: number;
       }) {
         const votingWindow = yield* db.votingQueries.getVotingWindowForTopic({
           marathonId,
           topicId,
-        })
+        });
 
         if (!votingWindow) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Voting topic not found",
             }),
-          )
+          );
         }
 
         return {
           startsAt: votingWindow.startsAt,
           endsAt: votingWindow.endsAt,
-        }
-      })
+        };
+      });
+
+      const getLatestVotingRoundForTopic = Effect.fn(
+        "VotingApiService.getLatestVotingRoundForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        const roundOpt = yield* db.votingQueries.getLatestVotingRoundForTopic({
+          marathonId,
+          topicId,
+        });
+
+        return Option.getOrUndefined(roundOpt) ?? null;
+      });
+
+      const getActiveVotingRoundForTopic = Effect.fn(
+        "VotingApiService.getActiveVotingRoundForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        const roundOpt = yield* db.votingQueries.getActiveVotingRoundForTopic({
+          marathonId,
+          topicId,
+        });
+
+        return Option.getOrUndefined(roundOpt) ?? null;
+      });
 
       const getVotingSession = Effect.fn("VotingApiService.getVotingSession")(
         function* ({ token }: { token: string }) {
           const votingSessionResult =
-            yield* db.votingQueries.getVotingSessionByToken({ token })
+            yield* db.votingQueries.getVotingSessionByToken({ token });
 
           const votingSession = yield* Option.match(votingSessionResult, {
             onSome: (session) => Effect.succeed(session),
@@ -325,20 +402,43 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                   message: "Voting session not found",
                 }),
               ),
-          })
+          });
 
           const votingWindow = yield* getTopicVotingWindow({
             marathonId: votingSession.marathonId,
             topicId: votingSession.topicId,
-          })
+          });
+
+          const latestRound = yield* getLatestVotingRoundForTopic({
+            marathonId: votingSession.marathonId,
+            topicId: votingSession.topicId,
+          });
+          const latestVote = latestRound
+            ? yield* db.votingQueries.getVotingRoundVoteForSession({
+                roundId: latestRound.id,
+                sessionId: votingSession.id,
+              })
+            : Option.none();
+          const latestVoteValue = Option.getOrUndefined(latestVote) ?? null;
+
+          const sessionWithLatestRound = applyLatestRoundVoteToSession({
+            votingSession,
+            round: latestRound,
+            vote: latestVoteValue
+              ? {
+                  submissionId: latestVoteValue.submissionId,
+                  votedAt: latestVoteValue.votedAt,
+                }
+              : null,
+          });
 
           return {
-            ...votingSession,
+            ...sessionWithLatestRound,
             startsAt: votingWindow.startsAt,
             endsAt: votingWindow.endsAt,
-          }
+          };
         },
-      )
+      );
 
       const setTopicVotingWindow = Effect.fn(
         "VotingApiService.setTopicVotingWindow",
@@ -348,21 +448,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         startsAt,
         endsAt,
       }: {
-        domain: string
-        topicId: number
-        startsAt: string
-        endsAt?: string | null
+        domain: string;
+        topicId: number;
+        startsAt: string;
+        endsAt?: string | null;
       }) {
         const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
           startsAt,
           endsAt,
-        })
+        });
 
         const { marathon, topic, activeTopic } =
           yield* getByCameraMarathonWithTopic({
             domain,
             topicId,
-          })
+          });
 
         if (!activeTopic || activeTopic.id !== topic.id) {
           return yield* Effect.fail(
@@ -370,7 +470,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               message:
                 "Voting window can only be configured for the active by-camera topic",
             }),
-          )
+          );
         }
 
         const window = yield* db.votingQueries.upsertTopicVotingWindow({
@@ -378,21 +478,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           topicId,
           startsAt: startsAtIso,
           endsAt: endsAtIso,
-        })
+        });
         if (!window) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to upsert voting window",
             }),
-          )
+          );
         }
 
         return {
           topicId,
           startsAt: window.startsAt,
           endsAt: window.endsAt,
-        }
-      })
+        };
+      });
 
       const closeTopicVotingWindow = Effect.fn(
         "VotingApiService.closeTopicVotingWindow",
@@ -401,7 +501,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           yield* getByCameraMarathonWithTopic({
             domain,
             topicId,
-          })
+          });
 
         if (!activeTopic || activeTopic.id !== topic.id) {
           return yield* Effect.fail(
@@ -409,15 +509,15 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               message:
                 "Voting window can only be closed for the active by-camera topic",
             }),
-          )
+          );
         }
 
         const votingWindow = yield* getTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
-        })
+        });
 
-        const votingState = getVotingLifecycleState(votingWindow)
+        const votingState = getVotingLifecycleState(votingWindow);
         if (votingState !== "active") {
           return yield* Effect.fail(
             new VotingApiError({
@@ -426,31 +526,49 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                   ? "Voting has already ended for this topic"
                   : "Voting has not started for this topic",
             }),
-          )
+          );
         }
 
-        const nowIso = new Date().toISOString()
+        const nowIso = new Date().toISOString();
+        const latestRound = yield* getLatestVotingRoundForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
+
+        if (!latestRound) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No voting round found for this topic",
+            }),
+          );
+        }
 
         const updatedWindow = yield* db.votingQueries.closeTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
           nowIso,
-        })
+        });
 
         if (!updatedWindow) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to close voting window",
             }),
-          )
+          );
         }
+
+        yield* db.votingQueries.updateVotingRoundWindow({
+          roundId: latestRound.id,
+          endsAt: nowIso,
+          updatedAt: nowIso,
+        });
 
         return {
           topicId,
           startsAt: updatedWindow.startsAt,
           endsAt: updatedWindow.endsAt,
-        }
-      })
+        };
+      });
 
       const reopenTopicVotingWindow = Effect.fn(
         "VotingApiService.reopenTopicVotingWindow",
@@ -459,7 +577,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           yield* getByCameraMarathonWithTopic({
             domain,
             topicId,
-          })
+          });
 
         if (!activeTopic || activeTopic.id !== topic.id) {
           return yield* Effect.fail(
@@ -467,15 +585,15 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               message:
                 "Voting window can only be reopened for the active by-camera topic",
             }),
-          )
+          );
         }
 
         const votingWindow = yield* getTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
-        })
+        });
 
-        const votingState = getVotingLifecycleState(votingWindow)
+        const votingState = getVotingLifecycleState(votingWindow);
         if (votingState !== "ended") {
           return yield* Effect.fail(
             new VotingApiError({
@@ -484,31 +602,163 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                   ? "Voting is still open for this topic"
                   : "Voting has not started for this topic",
             }),
-          )
+          );
         }
 
-        const nowIso = new Date().toISOString()
+        const nowIso = new Date().toISOString();
+        const latestRound = yield* getLatestVotingRoundForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
+
+        if (!latestRound) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No voting round found for this topic",
+            }),
+          );
+        }
 
         const updatedWindow = yield* db.votingQueries.reopenTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
           nowIso,
-        })
+        });
 
         if (!updatedWindow) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to reopen voting window",
             }),
-          )
+          );
         }
+
+        yield* db.votingQueries.updateVotingRoundWindow({
+          roundId: latestRound.id,
+          endsAt: null,
+          updatedAt: nowIso,
+        });
 
         return {
           topicId,
           startsAt: updatedWindow.startsAt,
           endsAt: updatedWindow.endsAt,
+        };
+      });
+
+      const startTiebreakRound = Effect.fn(
+        "VotingApiService.startTiebreakRound",
+      )(function* ({
+        domain,
+        topicId,
+        endsAt,
+      }: {
+        domain: string;
+        topicId: number;
+        endsAt?: string | null;
+      }) {
+        const { marathon, topic, activeTopic } =
+          yield* getByCameraMarathonWithTopic({
+            domain,
+            topicId,
+          });
+
+        if (!activeTopic || activeTopic.id !== topic.id) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message:
+                "Tie-break voting can only be started for the active by-camera topic",
+            }),
+          );
         }
-      })
+
+        const latestRound = yield* getLatestVotingRoundForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
+
+        if (!latestRound) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No completed voting round exists for this topic",
+            }),
+          );
+        }
+
+        if (!latestRound.endsAt) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "The latest voting round is still open",
+            }),
+          );
+        }
+
+        const leadingTieOpt = yield* db.votingQueries.getLeadingTieForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
+        const leadingTie = Option.getOrUndefined(leadingTieOpt);
+
+        if (!leadingTie) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No lead tie exists for the latest voting round",
+            }),
+          );
+        }
+
+        const nowIso = new Date().toISOString();
+        const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
+          startsAt: nowIso,
+          endsAt,
+        });
+
+        const votingWindow = yield* db.votingQueries.upsertTopicVotingWindow({
+          marathonId: marathon.id,
+          topicId,
+          startsAt: startsAtIso,
+          endsAt: endsAtIso,
+        });
+
+        if (!votingWindow) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to start tie-break voting for this topic",
+            }),
+          );
+        }
+
+        const createdRound = yield* db.votingQueries.createVotingRound({
+          marathonId: marathon.id,
+          topicId,
+          roundNumber: latestRound.roundNumber + 1,
+          kind: "tiebreak",
+          sourceRoundId: latestRound.id,
+          startedAt: startsAtIso,
+          endsAt: endsAtIso,
+        });
+
+        if (!createdRound) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to create a tie-break round",
+            }),
+          );
+        }
+
+        yield* db.votingQueries.createVotingRoundSubmissions({
+          roundId: createdRound.id,
+          submissionIds: leadingTie.submissionIds,
+        });
+
+        return {
+          topicId,
+          votingWindow,
+          round: mapRoundSummary(createdRound),
+          eligibleSubmissionCount: leadingTie.submissionIds.length,
+          tieSize: leadingTie.tieSize,
+        };
+      });
 
       const startVotingSessions = Effect.fn(
         "VotingApiService.startVotingSessions",
@@ -517,15 +767,15 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         topicId,
         endsAt,
       }: {
-        domain: string
-        topicId: number
-        endsAt?: string | null
+        domain: string;
+        topicId: number;
+        endsAt?: string | null;
       }) {
         const { marathon, topic, activeTopic } =
           yield* getByCameraMarathonWithTopic({
             domain,
             topicId,
-          })
+          });
 
         if (!activeTopic || activeTopic.id !== topic.id) {
           return yield* Effect.fail(
@@ -533,7 +783,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               message:
                 "Voting can only be started for the active by-camera topic",
             }),
-          )
+          );
         }
 
         if (topic.votingStartsAt) {
@@ -541,7 +791,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             new VotingApiError({
               message: "Voting has already been started for this topic",
             }),
-          )
+          );
         }
 
         if (!hasSubmissionWindowEnded(topic.scheduledEnd)) {
@@ -550,20 +800,41 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               message:
                 "Voting cannot start until submissions have ended for the active topic",
             }),
-          )
+          );
         }
 
-        const nowIso = new Date().toISOString()
+        const nowIso = new Date().toISOString();
         const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
           startsAt: nowIso,
           endsAt,
-        })
+        });
+        const participantsWithSubmissions =
+          yield* db.votingQueries.getParticipantsWithSubmissionsByTopicId({
+            marathonId: marathon.id,
+            topicId,
+          });
+
+        if (participantsWithSubmissions.length === 0) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No participants with submissions found for this topic",
+            }),
+          );
+        }
+
+        const submissionIds = Array.from(
+          new Set(
+            participantsWithSubmissions.flatMap((participant) =>
+              participant.submissions.map((submission) => submission.id),
+            ),
+          ),
+        );
 
         const existingCount =
           yield* db.votingQueries.countVotingSessionsForTopic({
             marathonId: marathon.id,
             topicId,
-          })
+          });
 
         const participantsWithoutSession =
           yield* db.votingQueries.getParticipantsWithSubmissionsButNoVotingSession(
@@ -571,64 +842,70 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               marathonId: marathon.id,
               topicId,
             },
-          )
-
-        if (existingCount === 0 && participantsWithoutSession.length === 0) {
-          const participantsWithSubmissions =
-            yield* db.votingQueries.getParticipantsWithSubmissionsByTopicId({
-              marathonId: marathon.id,
-              topicId,
-            })
-
-          if (participantsWithSubmissions.length === 0) {
-            return yield* Effect.fail(
-              new VotingApiError({
-                message:
-                  "No participants with submissions found for this topic",
-              }),
-            )
-          }
-        }
+          );
 
         const votingWindow = yield* db.votingQueries.upsertTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
           startsAt: startsAtIso,
           endsAt: endsAtIso,
-        })
+        });
 
         if (!votingWindow) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to start voting for this topic",
             }),
-          )
+          );
         }
+
+        const createdRound = yield* db.votingQueries.createVotingRound({
+          marathonId: marathon.id,
+          topicId,
+          roundNumber: 1,
+          kind: "initial",
+          sourceRoundId: null,
+          startedAt: startsAtIso,
+          endsAt: endsAtIso,
+        });
+
+        if (!createdRound) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to create voting round for this topic",
+            }),
+          );
+        }
+
+        yield* db.votingQueries.createVotingRoundSubmissions({
+          roundId: createdRound.id,
+          submissionIds,
+        });
 
         const fullParticipants = yield* Effect.all(
           participantsWithoutSession.map((participant) =>
             db.participantsQueries.getParticipantById({ id: participant.id }),
           ),
-        )
+        );
 
         const participantData = fullParticipants.flatMap((participantOpt) =>
           Option.isSome(participantOpt) ? [participantOpt.value] : [],
-        )
+        );
 
         if (existingCount === 0 && participantData.length === 0) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Could not load participant data for this topic",
             }),
-          )
+          );
         }
 
-        const usedTokens = new Set<string>()
+        const usedTokens = new Set<string>();
         const sessionsToCreate: NewVotingSession[] = yield* Effect.forEach(
           participantData,
           (participant) =>
             Effect.gen(function* () {
-              const token = yield* generateUniqueToken({ usedTokens })
+              const token = yield* generateUniqueToken({ usedTokens });
 
               return {
                 token,
@@ -642,21 +919,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 connectedParticipantId: participant.id,
                 notificationLastSentAt: null,
                 topicId,
-              } satisfies NewVotingSession
+              } satisfies NewVotingSession;
             }),
           { concurrency: 1 },
-        )
+        );
 
         const createdSessions = yield* db.votingQueries.createVotingSessions({
           sessions: sessionsToCreate,
-        })
+        });
 
         const { smsChunksEnqueued, smsSessionsQueued } =
           yield* enqueueVotingSmsNotifications({
             sessionIds: createdSessions
               .filter((session) => session.phoneEncrypted)
               .map((session) => session.id),
-          })
+          });
 
         return {
           topicId,
@@ -667,8 +944,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           smsChunksEnqueued,
           smsSessionsQueued,
           existingSessions: existingCount,
-        }
-      })
+        };
+      });
 
       const getParticipantsWithoutVotingSession = Effect.fn(
         "VotingApiService.getParticipantsWithoutVotingSession",
@@ -676,16 +953,16 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
-        })
+        });
 
         const existingCount =
           yield* db.votingQueries.countVotingSessionsForTopic({
             marathonId: marathon.id,
             topicId,
-          })
+          });
 
         if (existingCount === 0) {
-          return []
+          return [];
         }
 
         return yield* db.votingQueries.getParticipantsWithSubmissionsButNoVotingSession(
@@ -693,8 +970,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             marathonId: marathon.id,
             topicId,
           },
-        )
-      })
+        );
+      });
 
       const startVotingSessionsForParticipants = Effect.fn(
         "VotingApiService.startVotingSessionsForParticipants",
@@ -703,15 +980,15 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         topicId,
         participantIds,
       }: {
-        domain: string
-        topicId: number
-        participantIds: readonly number[]
+        domain: string;
+        topicId: number;
+        participantIds: readonly number[];
       }) {
         const { marathon, topic, activeTopic } =
           yield* getByCameraMarathonWithTopic({
             domain,
             topicId,
-          })
+          });
 
         if (!activeTopic || activeTopic.id !== topic.id) {
           return yield* Effect.fail(
@@ -719,21 +996,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               message:
                 "Voting can only be started for the active by-camera topic",
             }),
-          )
+          );
         }
         const votingWindow = yield* getTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
-        })
+        });
 
-        yield* ensureVotingSessionWindow(votingWindow)
+        yield* ensureVotingSessionWindow(votingWindow);
 
         if (participantIds.length === 0) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "No participant IDs provided",
             }),
-          )
+          );
         }
 
         const participantsWithSubmissions =
@@ -742,14 +1019,14 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               marathonId: marathon.id,
               topicId,
             },
-          )
+          );
 
         const validParticipantIds = new Set(
           participantsWithSubmissions.map((p) => p.id),
-        )
+        );
         const idsToProcess = participantIds.filter((id) =>
           validParticipantIds.has(id),
-        )
+        );
 
         if (idsToProcess.length === 0) {
           return yield* Effect.fail(
@@ -757,33 +1034,33 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               message:
                 "None of the provided participants are eligible (they may already have sessions or no submissions for this topic)",
             }),
-          )
+          );
         }
 
         const fullParticipants = yield* Effect.all(
           idsToProcess.map((id) =>
             db.participantsQueries.getParticipantById({ id }),
           ),
-        )
+        );
 
         const participantData = fullParticipants.flatMap((opt) =>
           Option.isSome(opt) ? [opt.value] : [],
-        )
+        );
 
         if (participantData.length === 0) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Could not load participant data",
             }),
-          )
+          );
         }
 
-        const usedTokens = new Set<string>()
+        const usedTokens = new Set<string>();
         const sessionsToCreate: NewVotingSession[] = yield* Effect.forEach(
           participantData,
           (participant) =>
             Effect.gen(function* () {
-              const token = yield* generateUniqueToken({ usedTokens })
+              const token = yield* generateUniqueToken({ usedTokens });
 
               return {
                 token,
@@ -797,21 +1074,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 connectedParticipantId: participant.id,
                 notificationLastSentAt: null,
                 topicId,
-              } satisfies NewVotingSession
+              } satisfies NewVotingSession;
             }),
           { concurrency: 1 },
-        )
+        );
 
         const createdSessions = yield* db.votingQueries.createVotingSessions({
           sessions: sessionsToCreate,
-        })
+        });
 
         const { smsChunksEnqueued, smsSessionsQueued } =
           yield* enqueueVotingSmsNotifications({
             sessionIds: createdSessions
               .filter((session) => session.phoneEncrypted)
               .map((session) => session.id),
-          })
+          });
 
         return {
           topicId,
@@ -821,8 +1098,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           smsResults: [],
           smsChunksEnqueued,
           smsSessionsQueued,
-        }
-      })
+        };
+      });
 
       const getSubmissionVoteStats = Effect.fn(
         "VotingApiService.getSubmissionVoteStats",
@@ -830,13 +1107,13 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         submissionId,
         domain,
       }: {
-        submissionId: number
-        domain: string
+        submissionId: number;
+        domain: string;
       }) {
         const statsResult = yield* db.votingQueries.getSubmissionVoteStats({
           submissionId,
           domain,
-        })
+        });
 
         const stats = yield* Option.match(statsResult, {
           onSome: (s) => Effect.succeed(s),
@@ -846,32 +1123,32 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: "Failed to get vote stats",
               }),
             ),
-        })
+        });
 
         const submission = yield* db.submissionsQueries.getSubmissionById({
           id: submissionId,
-        })
+        });
 
-        let participantVoteInfo = null
+        let participantVoteInfo = null;
         if (Option.isSome(submission)) {
-          const participantId = submission.value.participantId
+          const participantId = submission.value.participantId;
           const voteInfoResult = yield* db.votingQueries.getParticipantVoteInfo(
             {
               participantId,
               topicId: submission.value.topicId,
             },
-          )
+          );
 
           if (Option.isSome(voteInfoResult)) {
-            participantVoteInfo = voteInfoResult.value
+            participantVoteInfo = voteInfoResult.value;
           }
         }
 
         return {
           ...stats,
           participantVoteInfo,
-        }
-      })
+        };
+      });
 
       const createOrUpdateVotingSessionForParticipant = Effect.fn(
         "VotingApiService.createOrUpdateVotingSessionForParticipant",
@@ -880,14 +1157,14 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         domain,
         topicId,
       }: {
-        participantId: number
-        domain: string
-        topicId: number
+        participantId: number;
+        domain: string;
+        topicId: number;
       }) {
         const marathonOpt =
           yield* db.marathonsQueries.getMarathonByDomainWithOptions({
             domain,
-          })
+          });
 
         const marathon = yield* Option.match(marathonOpt, {
           onSome: (m) => Effect.succeed(m),
@@ -897,21 +1174,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: `Marathon not found for domain ${domain}`,
               }),
             ),
-        })
+        });
 
         if (marathon.mode !== "by-camera") {
           return yield* Effect.fail(
             new VotingApiError({
               message: `Marathon '${marathon.domain}' is not in by-camera mode`,
             }),
-          )
+          );
         }
 
         const participantOpt = yield* db.participantsQueries.getParticipantById(
           {
             id: participantId,
           },
-        )
+        );
 
         const participant = yield* Option.match(participantOpt, {
           onSome: (p) => Effect.succeed(p),
@@ -921,45 +1198,56 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: `Participant not found with id ${participantId}`,
               }),
             ),
-        })
+        });
 
         const submissions =
           yield* db.submissionsQueries.getSubmissionsByParticipantId({
             participantId,
-          })
+          });
 
         if (!submissions.some((submission) => submission.topicId === topicId)) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Participant has no submissions for this topic",
             }),
-          )
+          );
         }
 
         const votingWindow = yield* getTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
-        })
+        });
 
-        yield* ensureVotingSessionWindow(votingWindow)
+        yield* ensureVotingSessionWindow(votingWindow);
 
         const existingSessionOpt =
           yield* db.votingQueries.getVotingSessionByParticipantAndTopicId({
             participantId,
             topicId,
-          })
+          });
+        const latestRound = yield* getLatestVotingRoundForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
 
         if (Option.isSome(existingSessionOpt)) {
-          const existingSession = existingSessionOpt.value
-          if (existingSession.votedAt) {
+          const existingSession = existingSessionOpt.value;
+          const latestRoundVote = latestRound
+            ? yield* db.votingQueries.getVotingRoundVoteForSession({
+                roundId: latestRound.id,
+                sessionId: existingSession.id,
+              })
+            : Option.none();
+
+          if (Option.isSome(latestRoundVote)) {
             return {
               action: "already_voted" as const,
               session: existingSession,
-            }
+            };
           }
         }
 
-        const nowIso = new Date().toISOString()
+        const nowIso = new Date().toISOString();
 
         const sessionData: NewVotingSession = {
           token: yield* generateUniqueToken(),
@@ -975,32 +1263,33 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             ? existingSessionOpt.value.notificationLastSentAt
             : null,
           topicId,
-        }
+        };
 
-        const session = yield* db.votingQueries.upsertVotingSession(sessionData)
+        const session =
+          yield* db.votingQueries.upsertVotingSession(sessionData);
 
-        let smsResult = null
+        let smsResult = null;
         if (session.phoneEncrypted && shouldSendVotingSms) {
           const smsResult_ = yield* Effect.gen(function* () {
             const phoneNumber = yield* phoneEncryption.decrypt({
               encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
-            })
+            });
 
             const message = buildVotingInviteMessage({
               marathonName: marathon.name,
               domain,
               token: session.token,
-            })
+            });
 
             const result = yield* smsService.sendWithOptOutCheck({
               phoneNumber,
               message,
-            })
+            });
 
             return {
               phoneNumber,
               smsResult: result,
-            }
+            };
           }).pipe(
             Effect.catch((error) =>
               Effect.succeed({
@@ -1008,21 +1297,23 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 error: String(error),
               }),
             ),
-          )
-          smsResult = smsResult_
+          );
+          smsResult = smsResult_;
         }
 
         const notificationLastSentAt =
-          smsResult && !("error" in smsResult) ? nowIso : session.notificationLastSentAt
+          smsResult && !("error" in smsResult)
+            ? nowIso
+            : session.notificationLastSentAt;
 
         if (notificationLastSentAt !== session.notificationLastSentAt) {
           yield* db.votingQueries.updateMultipleLastNotificationSentAt({
             ids: [session.id],
             notificationLastSentAt,
-          })
+          });
         }
 
-        const action = Option.isSome(existingSessionOpt) ? "resent" : "created"
+        const action = Option.isSome(existingSessionOpt) ? "resent" : "created";
 
         return {
           action,
@@ -1032,8 +1323,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           },
           smsSent: smsResult !== null && !("error" in smsResult),
           smsError: smsResult && "error" in smsResult ? smsResult.error : null,
-        }
-      })
+        };
+      });
 
       const getVotingSessionByParticipant = Effect.fn(
         "VotingApiService.getVotingSessionByParticipant",
@@ -1041,27 +1332,41 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         participantId,
         topicId,
       }: {
-        participantId: number
-        topicId: number
+        participantId: number;
+        topicId: number;
       }) {
         const sessionOpt =
           yield* db.votingQueries.getVotingSessionByParticipantAndTopicId({
             participantId,
             topicId,
-          })
+          });
+        const session = Option.getOrUndefined(sessionOpt);
+        const latestRound = session
+          ? yield* getLatestVotingRoundForTopic({
+              marathonId: session.marathonId,
+              topicId,
+            })
+          : null;
+        const latestVote =
+          session && latestRound
+            ? yield* db.votingQueries.getVotingRoundVoteForSession({
+                roundId: latestRound.id,
+                sessionId: session.id,
+              })
+            : Option.none();
 
         return Option.match(sessionOpt, {
           onSome: (session) => ({
             hasSession: true as const,
             session,
-            hasVoted: session.votedAt !== null,
+            hasVoted: Option.isSome(latestVote),
             notificationLastSentAt: session.notificationLastSentAt,
           }),
           onNone: () => ({
             hasSession: false as const,
           }),
-        })
-      })
+        });
+      });
 
       const getVotingAdminSummary = Effect.fn(
         "VotingApiService.getVotingAdminSummary",
@@ -1069,12 +1374,15 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         const { marathon, topic } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
-        })
+        });
 
         const [
           sessionStatsResult,
           votingWindowResult,
+          latestRound,
+          leadingTieOpt,
           submissionCount,
+          eligibleSubmissionCount,
           participantWithSubmissionCount,
           topRankRows,
         ] = yield* Effect.all([
@@ -1086,7 +1394,19 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             marathonId: marathon.id,
             topicId,
           }),
+          getLatestVotingRoundForTopic({
+            marathonId: marathon.id,
+            topicId,
+          }),
+          db.votingQueries.getLeadingTieForTopic({
+            marathonId: marathon.id,
+            topicId,
+          }),
           db.votingQueries.countSubmissionsForTopic({
+            marathonId: marathon.id,
+            topicId,
+          }),
+          db.votingQueries.countVotingRoundSubmissionsForTopic({
             marathonId: marathon.id,
             topicId,
           }),
@@ -1098,27 +1418,27 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             marathonId: marathon.id,
             topicId,
           }),
-        ])
+        ]);
 
         type TopRankPreviewEntry = {
-          rank: number
-          submissionId: number
-          submissionCreatedAt: string
-          submissionKey: string | null
-          submissionThumbnailKey: string | null
-          participantId: number
-          participantFirstName: string
-          participantLastName: string
-          participantReference: string
-          voteCount: number
-          tieSize: number
-          isTie: boolean
-        }
+          rank: number;
+          submissionId: number;
+          submissionCreatedAt: string;
+          submissionKey: string | null;
+          submissionThumbnailKey: string | null;
+          participantId: number;
+          participantFirstName: string;
+          participantLastName: string;
+          participantReference: string;
+          voteCount: number;
+          tieSize: number;
+          isTie: boolean;
+        };
 
         const topRanks = Array.from(
           topRankRows.reduce((acc, row) => {
             if (!acc.has(row.rank)) {
-              acc.set(row.rank, [])
+              acc.set(row.rank, []);
             }
 
             acc.get(row.rank)!.push({
@@ -1134,19 +1454,25 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               voteCount: row.voteCount,
               tieSize: row.tieSize,
               isTie: row.tieSize > 1,
-            })
+            });
 
-            return acc
+            return acc;
           }, new Map<number, TopRankPreviewEntry[]>()),
         )
           .sort(([rankA], [rankB]) => rankA - rankB)
           .map(([rank, entries]) => ({
             rank,
             entries,
-          }))
+          }));
 
         const pendingSessions =
-          sessionStatsResult.total - sessionStatsResult.completed
+          sessionStatsResult.total - sessionStatsResult.completed;
+        const leadingTie = Option.getOrUndefined(leadingTieOpt) ?? null;
+        const canStartTiebreak =
+          !!latestRound &&
+          !!latestRound.endsAt &&
+          !!leadingTie &&
+          leadingTie.tieSize > 1;
 
         return {
           topic: {
@@ -1171,11 +1497,15 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           },
           submissionStats: {
             submissionCount,
+            eligibleSubmissionCount,
             participantWithSubmissionCount,
           },
+          currentRound: mapRoundSummary(latestRound),
+          leadingTie,
+          canStartTiebreak,
           topRanks,
-        }
-      })
+        };
+      });
 
       const getVotingLeaderboardPage = Effect.fn(
         "VotingApiService.getVotingLeaderboardPage",
@@ -1185,20 +1515,20 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         page,
         limit,
       }: {
-        domain: string
-        topicId: number
-        page?: number | null
-        limit?: number | null
+        domain: string;
+        topicId: number;
+        page?: number | null;
+        limit?: number | null;
       }) {
         const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
-        })
+        });
         const { page: normalizedPage, limit: normalizedLimit } =
           normalizePaginationInput({
             page,
             limit,
-          })
+          });
 
         const [items, total] = yield* Effect.all([
           db.votingQueries.getLeaderboardPageForTopic({
@@ -1207,11 +1537,11 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             page: normalizedPage,
             limit: normalizedLimit,
           }),
-          db.votingQueries.countSubmissionsForTopic({
+          db.votingQueries.countVotingRoundSubmissionsForTopic({
             marathonId: marathon.id,
             topicId,
           }),
-        ])
+        ]);
 
         return {
           items: items.map((entry) => ({
@@ -1232,8 +1562,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           page: normalizedPage,
           limit: normalizedLimit,
           pageCount: total > 0 ? Math.ceil(total / normalizedLimit) : 0,
-        }
-      })
+        };
+      });
 
       const getVotingVotersPage = Effect.fn(
         "VotingApiService.getVotingVotersPage",
@@ -1243,20 +1573,20 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         page,
         limit,
       }: {
-        domain: string
-        topicId: number
-        page?: number | null
-        limit?: number | null
+        domain: string;
+        topicId: number;
+        page?: number | null;
+        limit?: number | null;
       }) {
         const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
-        })
+        });
         const { page: normalizedPage, limit: normalizedLimit } =
           normalizePaginationInput({
             page,
             limit,
-          })
+          });
 
         const [sessions, total] = yield* Effect.all([
           db.votingQueries.getVotersPageForTopic({
@@ -1269,19 +1599,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             marathonId: marathon.id,
             topicId,
           }),
-        ])
-
-        type VoteSubmissionDetails = {
-          id: number
-          key: string
-          thumbnailKey: string | null
-          createdAt: string
-          participant?: {
-            reference: string
-            firstname: string
-            lastname: string
-          } | null
-        }
+        ]);
 
         const items = yield* Effect.forEach(
           sessions,
@@ -1293,13 +1611,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                       encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
                     })
                     .pipe(Effect.catch(() => Effect.succeed(null)))
-                : null
-
-              const voteSubmission =
-                "submissions" in session
-                  ? ((session as { submissions?: VoteSubmissionDetails | null })
-                      .submissions ?? null)
-                  : null
+                : null;
 
               return {
                 sessionId: session.id,
@@ -1311,24 +1623,24 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 notificationLastSentAt: session.notificationLastSentAt,
                 connectedParticipantId: session.connectedParticipantId,
                 votedAt: session.votedAt,
-                voteSubmission: voteSubmission
+                voteSubmission: session.voteSubmissionId
                   ? {
-                      submissionId: voteSubmission.id,
+                      submissionId: session.voteSubmissionId,
                       participantReference:
-                        voteSubmission.participant?.reference ?? null,
+                        session.voteParticipantReference ?? null,
                       participantFirstName:
-                        voteSubmission.participant?.firstname ?? null,
+                        session.voteParticipantFirstName ?? null,
                       participantLastName:
-                        voteSubmission.participant?.lastname ?? null,
-                      thumbnailKey: voteSubmission.thumbnailKey,
-                      key: voteSubmission.key,
-                      createdAt: voteSubmission.createdAt,
+                        session.voteParticipantLastName ?? null,
+                      thumbnailKey: session.voteSubmissionThumbnailKey,
+                      key: session.voteSubmissionKey,
+                      createdAt: session.voteSubmissionCreatedAt,
                     }
                   : null,
-              }
+              };
             }),
           { concurrency: 5 },
-        )
+        );
 
         return {
           items,
@@ -1336,8 +1648,8 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           page: normalizedPage,
           limit: normalizedLimit,
           pageCount: total > 0 ? Math.ceil(total / normalizedLimit) : 0,
-        }
-      })
+        };
+      });
 
       const createManualVotingSession = Effect.fn(
         "VotingApiService.createManualVotingSession",
@@ -1348,43 +1660,43 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         lastName,
         email,
       }: {
-        domain: string
-        topicId: number
-        firstName: string
-        lastName: string
-        email: string
+        domain: string;
+        topicId: number;
+        firstName: string;
+        lastName: string;
+        email: string;
       }) {
-        const parsedFirstName = firstName.trim()
-        const parsedLastName = lastName.trim()
-        const parsedEmail = email.trim()
+        const parsedFirstName = firstName.trim();
+        const parsedLastName = lastName.trim();
+        const parsedEmail = email.trim();
 
         if (!parsedFirstName || !parsedLastName || !parsedEmail) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "First name, last name and email are required",
             }),
-          )
+          );
         }
 
         const { marathon, topic, activeTopic } =
           yield* getByCameraMarathonWithTopic({
             domain,
             topicId,
-          })
+          });
         if (!activeTopic || activeTopic.id !== topic.id) {
           return yield* Effect.fail(
             new VotingApiError({
               message:
                 "Manual invites are only allowed on the active by-camera topic",
             }),
-          )
+          );
         }
         const votingWindow = yield* getTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
-        })
+        });
 
-        yield* ensureVotingSessionWindow(votingWindow)
+        yield* ensureVotingSessionWindow(votingWindow);
 
         const created = yield* db.votingQueries.createVotingSessions({
           sessions: [
@@ -1402,22 +1714,22 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               topicId,
             },
           ],
-        })
+        });
 
-        const createdSession = created[0]
+        const createdSession = created[0];
         if (!createdSession) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to create manual voting session",
             }),
-          )
+          );
         }
 
         return {
           session: createdSession,
           votingUrl: `https://${domain}.blikka.app/live/vote/${createdSession.token}`,
-        }
-      })
+        };
+      });
 
       const resendVotingSessionNotification = Effect.fn(
         "VotingApiService.resendVotingSessionNotification",
@@ -1426,14 +1738,14 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         topicId,
         sessionId,
       }: {
-        domain: string
-        topicId: number
-        sessionId: number
+        domain: string;
+        topicId: number;
+        sessionId: number;
       }) {
         const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
-        })
+        });
 
         const sessionOpt = yield* db.votingQueries.getVotingSessionByIdForTopic(
           {
@@ -1441,7 +1753,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             topicId,
             sessionId,
           },
-        )
+        );
         const session = yield* Option.match(sessionOpt, {
           onSome: (s) => Effect.succeed(s),
           onNone: () =>
@@ -1450,7 +1762,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: "Voting session not found for the selected topic",
               }),
             ),
-        })
+        });
 
         if (!session.phoneEncrypted) {
           return yield* Effect.fail(
@@ -1458,7 +1770,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               message:
                 "This voter has no phone number, so SMS notification cannot be sent",
             }),
-          )
+          );
         }
 
         const phoneNumber = yield* phoneEncryption
@@ -1472,7 +1784,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                   message: "Failed to decrypt phone number for this voter",
                 }),
             ),
-          )
+          );
 
         yield* smsService
           .sendWithOptOutCheck({
@@ -1490,25 +1802,25 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                   cause: error,
                 }),
             ),
-          )
+          );
 
-        const notificationLastSentAt = new Date().toISOString()
+        const notificationLastSentAt = new Date().toISOString();
         yield* db.votingQueries.updateMultipleLastNotificationSentAt({
           ids: [session.id],
           notificationLastSentAt,
-        })
+        });
 
         return {
           sessionId: session.id,
           notificationLastSentAt,
-        }
-      })
+        };
+      });
 
       const getVotingSubmissions = Effect.fn(
         "VotingApiService.getVotingSubmissions",
       )(function* ({ token }: { token: string }) {
         const votingSessionResult =
-          yield* db.votingQueries.getVotingSessionByToken({ token })
+          yield* db.votingQueries.getVotingSessionByToken({ token });
 
         const votingSession = yield* Option.match(votingSessionResult, {
           onSome: (session) => Effect.succeed(session),
@@ -1518,18 +1830,30 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: "Voting session not found",
               }),
             ),
-        })
+        });
 
         const votingWindow = yield* getTopicVotingWindow({
           marathonId: votingSession.marathonId,
           topicId: votingSession.topicId,
-        })
+        });
+        const latestRound = yield* getLatestVotingRoundForTopic({
+          marathonId: votingSession.marathonId,
+          topicId: votingSession.topicId,
+        });
+        const latestRoundVote = latestRound
+          ? yield* db.votingQueries.getVotingRoundVoteForSession({
+              roundId: latestRound.id,
+              sessionId: votingSession.id,
+            })
+          : Option.none();
+        const latestRoundVoteValue =
+          Option.getOrUndefined(latestRoundVote) ?? null;
 
-        if (votingSession.votedAt && votingSession.voteSubmissionId) {
+        if (latestRound && latestRoundVoteValue) {
           return {
             alreadyVoted: true,
-            votedAt: votingSession.votedAt,
-            votedSubmissionId: votingSession.voteSubmissionId,
+            votedAt: latestRoundVoteValue.votedAt,
+            votedSubmissionId: latestRoundVoteValue.submissionId,
             submissions: [],
             sessionInfo: {
               token: votingSession.token,
@@ -1538,16 +1862,30 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               email: votingSession.email,
               startsAt: votingWindow.startsAt,
               endsAt: votingWindow.endsAt,
+              currentRound: mapRoundSummary(latestRound),
             },
-          }
+          };
         }
 
-        yield* ensureVotingSessionWindow(votingWindow)
+        yield* ensureVotingSessionWindow(votingWindow);
+        const activeRound = yield* getActiveVotingRoundForTopic({
+          marathonId: votingSession.marathonId,
+          topicId: votingSession.topicId,
+        });
+
+        if (!activeRound) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No active voting round found",
+            }),
+          );
+        }
 
         const submissions = yield* db.votingQueries.getSubmissionsForVoting({
           marathonId: votingSession.marathonId,
           topicId: votingSession.topicId,
-        })
+          roundId: activeRound.id,
+        });
 
         const votingSubmissions = submissions
           .filter((submission) => submission.key)
@@ -1568,12 +1906,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             isOwnSubmission:
               votingSession.connectedParticipantId !== null &&
               submission.participantId === votingSession.connectedParticipantId,
-          }))
+          }));
 
         return {
           alreadyVoted: false,
-          votedAt: votingSession.votedAt,
-          votedSubmissionId: votingSession.voteSubmissionId,
+          votedAt: null,
+          votedSubmissionId: null,
           submissions: votingSubmissions,
           sessionInfo: {
             token: votingSession.token,
@@ -1582,19 +1920,20 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             email: votingSession.email,
             startsAt: votingWindow.startsAt,
             endsAt: votingWindow.endsAt,
+            currentRound: mapRoundSummary(activeRound),
           },
-        }
-      })
+        };
+      });
 
       const submitVote = Effect.fn("VotingApiService.submitVote")(function* ({
         token,
         submissionId,
       }: {
-        token: string
-        submissionId: number
+        token: string;
+        submissionId: number;
       }) {
         const votingSessionResult =
-          yield* db.votingQueries.getVotingSessionByToken({ token })
+          yield* db.votingQueries.getVotingSessionByToken({ token });
 
         const votingSession = yield* Option.match(votingSessionResult, {
           onSome: (session) => Effect.succeed(session),
@@ -1604,28 +1943,46 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: "Voting session not found",
               }),
             ),
-        })
+        });
 
-        const domain = yield* getSessionDomain(votingSession)
-
-        if (votingSession.votedAt) {
-          return {
-            success: false as const,
-            error: "already_voted" as const,
-            votedAt: votingSession.votedAt,
-          }
-        }
+        const domain = yield* getSessionDomain(votingSession);
 
         const votingWindow = yield* getTopicVotingWindow({
           marathonId: votingSession.marathonId,
           topicId: votingSession.topicId,
-        })
+        });
 
-        yield* ensureVotingSessionWindow(votingWindow)
+        yield* ensureVotingSessionWindow(votingWindow);
+        const activeRound = yield* getActiveVotingRoundForTopic({
+          marathonId: votingSession.marathonId,
+          topicId: votingSession.topicId,
+        });
+
+        if (!activeRound) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No active voting round found",
+            }),
+          );
+        }
+
+        const existingVote =
+          yield* db.votingQueries.getVotingRoundVoteForSession({
+            roundId: activeRound.id,
+            sessionId: votingSession.id,
+          });
+
+        if (Option.isSome(existingVote)) {
+          return {
+            success: false as const,
+            error: "already_voted" as const,
+            votedAt: existingVote.value.votedAt,
+          };
+        }
 
         const submission = yield* db.submissionsQueries.getSubmissionById({
           id: submissionId,
-        })
+        });
 
         const resolvedSubmission = yield* Option.match(submission, {
           onSome: (resolvedSubmission) => {
@@ -1634,7 +1991,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 new VotingApiError({
                   message: "Submission does not belong to this marathon",
                 }),
-              )
+              );
             }
 
             if (resolvedSubmission.topicId !== votingSession.topicId) {
@@ -1642,10 +1999,10 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 new VotingApiError({
                   message: "Submission does not belong to this voting topic",
                 }),
-              )
+              );
             }
 
-            return Effect.succeed(resolvedSubmission)
+            return Effect.succeed(resolvedSubmission);
           },
           onNone: () =>
             Effect.fail(
@@ -1653,7 +2010,27 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: "Submission not found",
               }),
             ),
-        })
+        });
+
+        const roundSubmissions =
+          yield* db.votingQueries.getSubmissionsForVoting({
+            marathonId: votingSession.marathonId,
+            topicId: votingSession.topicId,
+            roundId: activeRound.id,
+          });
+
+        if (
+          !roundSubmissions.some(
+            (eligibleSubmission) =>
+              eligibleSubmission.id === resolvedSubmission.id,
+          )
+        ) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Submission is not eligible in the active voting round",
+            }),
+          );
+        }
 
         if (
           votingSession.connectedParticipantId !== null &&
@@ -1663,82 +2040,87 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           return {
             success: false as const,
             error: "cannot_vote_for_self" as const,
-          }
+          };
         }
 
-        const updatedSession = yield* db.votingQueries.recordVote({
-          token,
+        const recordedVote = yield* db.votingQueries.recordVote({
+          roundId: activeRound.id,
+          sessionId: votingSession.id,
           submissionId,
-        })
+        });
 
-        if (!updatedSession) {
+        if (!recordedVote) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to record vote",
             }),
-          )
+          );
         }
 
         const voteRealtimePayloadResult =
           yield* db.submissionsQueries.getSubmissionVoteRealtimePayloadById({
             id: submissionId,
-          })
+          });
 
         yield* Option.match(voteRealtimePayloadResult, {
           onSome: (voteRealtimePayload) =>
-            realtimeEvents.emitVotingVoteCast({
-              environment,
-              domain,
-              topicId: votingSession.topicId,
-              sessionId: updatedSession.id,
-              submissionId,
-              votedAt: updatedSession.votedAt ?? new Date().toISOString(),
-              participantReference: voteRealtimePayload.participantReference,
-              participantFirstName: voteRealtimePayload.participantFirstName,
-              participantLastName: voteRealtimePayload.participantLastName,
-              submissionCreatedAt: voteRealtimePayload.submissionCreatedAt,
-              submissionKey: voteRealtimePayload.submissionKey,
-              submissionThumbnailKey: voteRealtimePayload.submissionThumbnailKey,
-            }).pipe(
-              Effect.catch((error) =>
-                Effect.logWarning(
-                  `[VotingApiService.submitVote] Failed to publish realtime vote update for ${domain}:${votingSession.topicId}:${updatedSession.id} - ${error.message}`,
+            realtimeEvents
+              .emitVotingVoteCast({
+                environment,
+                domain,
+                topicId: votingSession.topicId,
+                sessionId: votingSession.id,
+                submissionId,
+                votedAt: recordedVote.votedAt,
+                participantReference: voteRealtimePayload.participantReference,
+                participantFirstName: voteRealtimePayload.participantFirstName,
+                participantLastName: voteRealtimePayload.participantLastName,
+                submissionCreatedAt: voteRealtimePayload.submissionCreatedAt,
+                submissionKey: voteRealtimePayload.submissionKey,
+                submissionThumbnailKey:
+                  voteRealtimePayload.submissionThumbnailKey,
+              })
+              .pipe(
+                Effect.catch((error) =>
+                  Effect.logWarning(
+                    `[VotingApiService.submitVote] Failed to publish realtime vote update for ${domain}:${votingSession.topicId}:${votingSession.id} - ${error.message}`,
+                  ),
                 ),
               ),
-            ),
           onNone: () =>
             Effect.logWarning(
-              `[VotingApiService.submitVote] Skipped realtime vote update for ${domain}:${votingSession.topicId}:${updatedSession.id} because the payload could not be loaded`,
+              `[VotingApiService.submitVote] Skipped realtime vote update for ${domain}:${votingSession.topicId}:${votingSession.id} because the payload could not be loaded`,
             ),
-        })
+        });
 
         return {
           success: true as const,
-          votedAt: updatedSession.votedAt,
-          submissionId: updatedSession.voteSubmissionId,
-        }
-      })
+          votedAt: recordedVote.votedAt,
+          submissionId: recordedVote.submissionId,
+          roundId: activeRound.id,
+        };
+      });
 
       const clearVote = Effect.fn("VotingApiService.clearVote")(function* ({
         domain,
         topicId,
         sessionId,
       }: {
-        domain: string
-        topicId: number
-        sessionId: number
+        domain: string;
+        topicId: number;
+        sessionId: number;
       }) {
         const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
-        })
+        });
 
         const sessionResult =
           yield* db.votingQueries.getVotingSessionByIdForTopic({
             marathonId: marathon.id,
             topicId,
             sessionId,
-          })
+          });
 
         const session = yield* Option.match(sessionResult, {
           onSome: (s) => Effect.succeed(s),
@@ -1748,24 +2130,37 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: "Voting session not found",
               }),
             ),
-        })
+        });
 
-        yield* ensureSessionDomain(session, domain)
+        yield* ensureSessionDomain(session, domain);
+        const latestRound = yield* getLatestVotingRoundForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
 
-        const updatedSession = yield* db.votingQueries.clearVote({
+        if (!latestRound) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No voting round found for this topic",
+            }),
+          );
+        }
+
+        const deletedVote = yield* db.votingQueries.clearVote({
+          roundId: latestRound.id,
           sessionId,
-        })
+        });
 
-        if (!updatedSession) {
+        if (!deletedVote) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to clear vote",
             }),
-          )
+          );
         }
 
-        return { success: true as const }
-      })
+        return { success: true as const };
+      });
 
       const deleteVotingSession = Effect.fn(
         "VotingApiService.deleteVotingSession",
@@ -1774,21 +2169,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         topicId,
         sessionId,
       }: {
-        domain: string
-        topicId: number
-        sessionId: number
+        domain: string;
+        topicId: number;
+        sessionId: number;
       }) {
         const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
           topicId,
-        })
+        });
 
         const sessionResult =
           yield* db.votingQueries.getVotingSessionByIdForTopic({
             marathonId: marathon.id,
             topicId,
             sessionId,
-          })
+          });
 
         const session = yield* Option.match(sessionResult, {
           onSome: (s) => Effect.succeed(s),
@@ -1798,30 +2193,31 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
                 message: "Voting session not found",
               }),
             ),
-        })
+        });
 
-        yield* ensureSessionDomain(session, domain)
+        yield* ensureSessionDomain(session, domain);
 
         const deletedSession = yield* db.votingQueries.deleteVotingSession({
           sessionId,
-        })
+        });
 
         if (!deletedSession) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to delete voting session",
             }),
-          )
+          );
         }
 
-        return { success: true as const }
-      })
+        return { success: true as const };
+      });
 
       return {
         getVotingSession,
         setTopicVotingWindow,
         closeTopicVotingWindow,
         reopenTopicVotingWindow,
+        startTiebreakRound,
         startVotingSessions,
         getParticipantsWithoutVotingSession,
         startVotingSessionsForParticipants,
@@ -1837,7 +2233,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         submitVote,
         clearVote,
         deleteVotingSession,
-      } as const
+      } as const;
     }),
   },
 ) {
@@ -1851,5 +2247,5 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         PhoneNumberEncryptionService.layer,
       ),
     ),
-  )
+  );
 }

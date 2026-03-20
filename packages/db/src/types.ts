@@ -15,6 +15,9 @@ import {
   sponsors,
   contactSheets,
   votingSession,
+  votingRound,
+  votingRoundSubmission,
+  votingRoundVote,
 } from "./schema";
 
 export type Participant = typeof participants.$inferSelect;
@@ -66,3 +69,13 @@ export type NewContactSheet = typeof contactSheets.$inferInsert;
 
 export type VotingSession = typeof votingSession.$inferSelect;
 export type NewVotingSession = typeof votingSession.$inferInsert;
+
+export type VotingRound = typeof votingRound.$inferSelect;
+export type NewVotingRound = typeof votingRound.$inferInsert;
+
+export type VotingRoundSubmission = typeof votingRoundSubmission.$inferSelect;
+export type NewVotingRoundSubmission =
+  typeof votingRoundSubmission.$inferInsert;
+
+export type VotingRoundVote = typeof votingRoundVote.$inferSelect;
+export type NewVotingRoundVote = typeof votingRoundVote.$inferInsert;

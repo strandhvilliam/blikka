@@ -7,6 +7,7 @@ import {
   SetTopicVotingWindowSchema,
   CloseTopicVotingWindowSchema,
   ReopenTopicVotingWindowSchema,
+  StartTiebreakRoundSchema,
   StartVotingSessionsForParticipantsSchema,
   GetSubmissionVoteStatsSchema,
   CreateOrUpdateVotingSessionSchema,
@@ -32,7 +33,6 @@ import {
 import { VotingApiService } from "./service";
 
 export const votingRouter = createTRPCRouter({
-
   getVotingSession: publicProcedure.input(GetVotingSessionSchema).query(
     trpcEffect(
       Effect.fn("VotingRouter.getVotingSession")(function* ({ input }) {
@@ -90,6 +90,19 @@ export const votingRouter = createTRPCRouter({
         }) {
           return yield* VotingApiService.use((s) =>
             s.reopenTopicVotingWindow(input),
+          );
+        }),
+      ),
+    ),
+
+  startTiebreakRound: domainProcedure
+    .input(StartTiebreakRoundSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn("VotingRouter.startTiebreakRound")(function* ({ input }) {
+          return yield* VotingApiService.use((s) =>
+            s.startTiebreakRound(input),
           );
         }),
       ),

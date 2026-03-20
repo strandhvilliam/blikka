@@ -4,6 +4,8 @@ import {
   participants,
   submissions,
   validationResults,
+  votingRound,
+  votingRoundVote,
   votingSession,
 } from "../schema";
 import {
@@ -17,6 +19,7 @@ import {
   notInArray,
   isNotNull,
   count,
+  sql,
 } from "drizzle-orm";
 import type { NewParticipant } from "../types";
 import { DbError } from "../utils";
@@ -269,16 +272,33 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
               .selectDistinct({
                 participantId: votingSession.connectedParticipantId,
               })
-              .from(votingSession)
+              .from(votingRoundVote)
+              .innerJoin(
+                votingSession,
+                eq(votingSession.id, votingRoundVote.sessionId),
+              )
               .innerJoin(
                 participants,
                 eq(participants.id, votingSession.connectedParticipantId),
+              )
+              .innerJoin(
+                votingRound,
+                eq(votingRound.id, votingRoundVote.roundId),
               )
               .where(
                 and(
                   eq(participants.domain, domain),
                   eq(votingSession.topicId, topicId),
-                  isNotNull(votingSession.votedAt),
+                  eq(
+                    votingRoundVote.roundId,
+                    sql`(
+                      select vr.id
+                      from voting_round vr
+                      where vr.topic_id = ${topicId}
+                      order by vr.round_number desc, vr.id desc
+                      limit 1
+                    )`,
+                  ),
                 ),
               ),
           );
@@ -334,10 +354,23 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
               votingSessions: {
                 columns: {
                   token: true,
-                  voteSubmissionId: true,
-                  votedAt: true,
                   topicId: true,
                   createdAt: true,
+                },
+                with: {
+                  roundVotes: {
+                    columns: {
+                      votedAt: true,
+                    },
+                    with: {
+                      round: {
+                        columns: {
+                          topicId: true,
+                          roundNumber: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
               zippedSubmissions: {
@@ -413,7 +446,27 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
                     (left, right) =>
                       new Date(right.createdAt).getTime() -
                       new Date(left.createdAt).getTime(),
-                  )[0] ?? null,
+                  )
+                  .map((session) => {
+                    const latestRoundVote =
+                      session.roundVotes
+                        .filter((roundVote) =>
+                          topicId !== undefined
+                            ? roundVote.round?.topicId === topicId
+                            : true,
+                        )
+                        .sort((left, right) => {
+                          const leftRoundNumber = left.round?.roundNumber ?? 0;
+                          const rightRoundNumber =
+                            right.round?.roundNumber ?? 0;
+                          return rightRoundNumber - leftRoundNumber;
+                        })[0] ?? null;
+
+                    return {
+                      ...session,
+                      votedAt: latestRoundVote?.votedAt ?? null,
+                    };
+                  })[0] ?? null,
               zipKeys: zippedSubmissions.map((zs) => zs.key),
               contactSheetKeys: contactSheets.map((cs) => cs.key),
               failedValidationResults: countValidationResults(
@@ -439,68 +492,71 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
       const getDashboardOverview = Effect.fn(
         "ParticipantsQueries.getDashboardOverview",
       )(function* ({ domain }: { domain: string }) {
-        const [statusRows, participantsWithValidationIssues, recentParticipants] =
-          yield* Effect.all([
-            use((db) =>
-              db
-                .select({
-                  status: participants.status,
-                  count: count(),
-                })
-                .from(participants)
-                .where(eq(participants.domain, domain))
-                .groupBy(participants.status),
-            ),
-            use((db) =>
-              db
-                .selectDistinct({
-                  participantId: validationResults.participantId,
-                })
-                .from(validationResults)
-                .innerJoin(
-                  participants,
-                  eq(participants.id, validationResults.participantId),
-                )
-                .where(
-                  and(
-                    eq(participants.domain, domain),
-                    eq(validationResults.outcome, VALIDATION_OUTCOME.FAILED),
-                    or(
-                      eq(validationResults.severity, "error"),
-                      eq(validationResults.severity, "warning"),
-                    ),
+        const [
+          statusRows,
+          participantsWithValidationIssues,
+          recentParticipants,
+        ] = yield* Effect.all([
+          use((db) =>
+            db
+              .select({
+                status: participants.status,
+                count: count(),
+              })
+              .from(participants)
+              .where(eq(participants.domain, domain))
+              .groupBy(participants.status),
+          ),
+          use((db) =>
+            db
+              .selectDistinct({
+                participantId: validationResults.participantId,
+              })
+              .from(validationResults)
+              .innerJoin(
+                participants,
+                eq(participants.id, validationResults.participantId),
+              )
+              .where(
+                and(
+                  eq(participants.domain, domain),
+                  eq(validationResults.outcome, VALIDATION_OUTCOME.FAILED),
+                  or(
+                    eq(validationResults.severity, "error"),
+                    eq(validationResults.severity, "warning"),
                   ),
                 ),
-            ),
-            use((db) =>
-              db.query.participants.findMany({
-                where: (table, operators) => operators.eq(table.domain, domain),
-                columns: {
-                  id: true,
-                  reference: true,
-                  firstname: true,
-                  lastname: true,
-                  status: true,
-                  createdAt: true,
-                  updatedAt: true,
-                },
-                with: {
-                  validationResults: {
-                    columns: {
-                      outcome: true,
-                      severity: true,
-                    },
+              ),
+          ),
+          use((db) =>
+            db.query.participants.findMany({
+              where: (table, operators) => operators.eq(table.domain, domain),
+              columns: {
+                id: true,
+                reference: true,
+                firstname: true,
+                lastname: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+              with: {
+                validationResults: {
+                  columns: {
+                    outcome: true,
+                    severity: true,
                   },
                 },
-                orderBy: (table, operators) => [
-                  operators.desc(table.updatedAt),
-                  operators.desc(table.createdAt),
-                  operators.desc(table.id),
-                ],
-                limit: 6,
-              }),
-            ),
-          ]);
+              },
+              orderBy: (table, operators) => [
+                operators.desc(table.updatedAt),
+                operators.desc(table.createdAt),
+                operators.desc(table.id),
+              ],
+              limit: 6,
+            }),
+          ),
+        ]);
 
         const statusCounts = {
           prepared: 0,
@@ -511,13 +567,17 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
 
         for (const row of statusRows) {
           if (row.status === "prepared") statusCounts.prepared = row.count;
-          if (row.status === "initialized") statusCounts.initialized = row.count;
+          if (row.status === "initialized")
+            statusCounts.initialized = row.count;
           if (row.status === "completed") statusCounts.completed = row.count;
           if (row.status === "verified") statusCounts.verified = row.count;
         }
 
         return {
-          totalParticipants: statusRows.reduce((total, row) => total + row.count, 0),
+          totalParticipants: statusRows.reduce(
+            (total, row) => total + row.count,
+            0,
+          ),
           statusCounts,
           uploadedCount: statusCounts.completed + statusCounts.verified,
           validationIssueCount: participantsWithValidationIssues.length,

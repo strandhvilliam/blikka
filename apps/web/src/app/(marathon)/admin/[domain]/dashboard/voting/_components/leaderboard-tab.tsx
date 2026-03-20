@@ -1,16 +1,16 @@
-import { useEffect } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { Medal, RefreshCw } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useEffect } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Medal, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
   CardDescription,
   CardTitle,
-} from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -18,50 +18,47 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { useTRPC } from "@/lib/trpc/client"
+} from "@/components/ui/table";
+import { useTRPC } from "@/lib/trpc/client";
 import {
   formatDateTime,
   getSubmissionImageUrl,
   VOTING_PAGE_SIZE,
-} from "../_lib/utils"
-import { useDomain } from "@/lib/domain-provider"
-import { useVotingUiState } from "../_hooks/use-voting-ui-state"
+} from "../_lib/utils";
+import { useDomain } from "@/lib/domain-provider";
+import { useVotingUiState } from "../_hooks/use-voting-ui-state";
 
 interface LeaderboardEntry {
-  submissionId: number
-  participantId: number
-  participantFirstName: string
-  participantLastName: string
-  participantReference: string
-  rank: number
-  voteCount: number
-  isTie: boolean
-  tieSize: number
-  submissionCreatedAt: string
-  submissionThumbnailKey?: string | null
-  submissionKey?: string | null
+  submissionId: number;
+  participantId: number;
+  participantFirstName: string;
+  participantLastName: string;
+  participantReference: string;
+  rank: number;
+  voteCount: number;
+  isTie: boolean;
+  tieSize: number;
+  submissionCreatedAt: string;
+  submissionThumbnailKey?: string | null;
+  submissionKey?: string | null;
 }
-
 
 interface LeaderboardTabProps {
-  activeTopic: { id: number }
+  activeTopic: { id: number };
 }
 
-export function LeaderboardTab({
-  activeTopic,
-}: LeaderboardTabProps) {
-  const router = useRouter()
-  const trpc = useTRPC()
-  const domain = useDomain()
-  const { leaderboardPage, setLeaderboardPage } = useVotingUiState()
+export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
+  const router = useRouter();
+  const trpc = useTRPC();
+  const domain = useDomain();
+  const { leaderboardPage, setLeaderboardPage } = useVotingUiState();
 
   const { data: summary } = useSuspenseQuery(
     trpc.voting.getVotingAdminSummary.queryOptions({
       domain,
       topicId: activeTopic.id,
     }),
-  )
+  );
 
   const { data: leaderboardPageData } = useSuspenseQuery(
     trpc.voting.getVotingLeaderboardPage.queryOptions({
@@ -70,83 +67,96 @@ export function LeaderboardTab({
       page: leaderboardPage,
       limit: VOTING_PAGE_SIZE,
     }),
-  )
+  );
 
-  const leaderboard = leaderboardPageData?.items ?? []
-  const pageCount = leaderboardPageData?.pageCount ?? 0
-  const total = leaderboardPageData?.total ?? 0
+  const leaderboard = leaderboardPageData?.items ?? [];
+  const pageCount = leaderboardPageData?.pageCount ?? 0;
+  const total = leaderboardPageData?.total ?? 0;
 
   useEffect(() => {
     if (pageCount > 0 && leaderboardPage > pageCount) {
-      setLeaderboardPage(pageCount)
+      setLeaderboardPage(pageCount);
     }
-  }, [pageCount, leaderboardPage, setLeaderboardPage])
+  }, [pageCount, leaderboardPage, setLeaderboardPage]);
 
   const handleRowClick = (entry: LeaderboardEntry) => {
     router.push(
       `/admin/${domain}/dashboard/submissions/${entry.participantReference}/${entry.submissionId}`,
-    )
-  }
+    );
+  };
 
   const topCardEntries = summary.topRanks
     .flatMap((rankGroup) =>
       [...rankGroup.entries].sort((entryA, entryB) => {
         const timeDiff =
           new Date(entryA.submissionCreatedAt).getTime() -
-          new Date(entryB.submissionCreatedAt).getTime()
-        if (timeDiff !== 0) return timeDiff
-        return entryA.submissionId - entryB.submissionId
+          new Date(entryB.submissionCreatedAt).getTime();
+        if (timeDiff !== 0) return timeDiff;
+        return entryA.submissionId - entryB.submissionId;
       }),
     )
     .sort((entryA, entryB) => {
-      if (entryA.rank !== entryB.rank) return entryA.rank - entryB.rank
+      if (entryA.rank !== entryB.rank) return entryA.rank - entryB.rank;
       if (entryA.voteCount !== entryB.voteCount) {
-        return entryB.voteCount - entryA.voteCount
+        return entryB.voteCount - entryA.voteCount;
       }
       const timeDiff =
         new Date(entryA.submissionCreatedAt).getTime() -
-        new Date(entryB.submissionCreatedAt).getTime()
-      if (timeDiff !== 0) return timeDiff
-      return entryA.submissionId - entryB.submissionId
+        new Date(entryB.submissionCreatedAt).getTime();
+      if (timeDiff !== 0) return timeDiff;
+      return entryA.submissionId - entryB.submissionId;
     })
-    .slice(0, 3)
+    .slice(0, 3);
 
   const maxVotes = leaderboard.reduce((max, entry) => {
-    return Math.max(max, entry.voteCount)
-  }, 0)
+    return Math.max(max, entry.voteCount);
+  }, 0);
 
   const getDisplayName = (entry: LeaderboardEntry) =>
-    `${entry.participantFirstName} ${entry.participantLastName}`.trim()
-
+    `${entry.participantFirstName} ${entry.participantLastName}`.trim();
 
   const getMedalTone = (rank: number) => {
     switch (rank) {
       case 1:
-        return "text-amber-500"
+        return "text-amber-500";
       case 2:
-        return "text-slate-500"
+        return "text-slate-500";
       case 3:
-        return "text-orange-500"
+        return "text-orange-500";
       default:
-        return "text-muted-foreground"
+        return "text-muted-foreground";
     }
-  }
+  };
 
   const getRankBadgeClass = (rank: number) => {
     switch (rank) {
       case 1:
-        return "border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 text-amber-800 shadow-amber-200/80"
+        return "border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 text-amber-800 shadow-amber-200/80";
       case 2:
-        return "border-slate-300 bg-gradient-to-b from-slate-100 to-slate-50 text-slate-700 shadow-slate-200/80"
+        return "border-slate-300 bg-gradient-to-b from-slate-100 to-slate-50 text-slate-700 shadow-slate-200/80";
       case 3:
-        return "border-orange-300 bg-gradient-to-b from-orange-100 to-orange-50 text-orange-800 shadow-orange-200/80"
+        return "border-orange-300 bg-gradient-to-b from-orange-100 to-orange-50 text-orange-800 shadow-orange-200/80";
       default:
-        return "border-zinc-300 bg-gradient-to-b from-zinc-100 to-zinc-50 text-zinc-700 shadow-zinc-200/70"
+        return "border-zinc-300 bg-gradient-to-b from-zinc-100 to-zinc-50 text-zinc-700 shadow-zinc-200/70";
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
+      {summary.currentRound ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <Badge variant="outline">
+            {summary.currentRound.kind === "tiebreak"
+              ? `Tie-break ${summary.currentRound.roundNumber}`
+              : `Round ${summary.currentRound.roundNumber}`}
+          </Badge>
+          {summary.currentRound.kind === "tiebreak" ? (
+            <span>
+              Only the tied leading submissions are shown in this round.
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <Card className="overflow-hidden border-border/80 shadow-sm">
         <CardContent className="p-3 sm:p-4 md:p-5">
           {summary.voteStats.totalVotes === 0 ? (
@@ -163,21 +173,24 @@ export function LeaderboardTab({
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {[0, 1, 2].map((cardIndex) => {
-                  const entry = topCardEntries[cardIndex]
-                  const displayRank = entry?.rank ?? cardIndex + 1
-                  const tone = getMedalTone(displayRank)
+                  const entry = topCardEntries[cardIndex];
+                  const displayRank = entry?.rank ?? cardIndex + 1;
+                  const tone = getMedalTone(displayRank);
                   const imageUrl = entry
                     ? getSubmissionImageUrl(
-                      entry.submissionThumbnailKey,
-                      entry.submissionKey,
-                    )
-                    : null
+                        entry.submissionThumbnailKey,
+                        entry.submissionKey,
+                      )
+                    : null;
 
                   return (
                     <div
                       key={`top-card-${cardIndex}`}
-                      className={`relative overflow-hidden rounded-2xl border border-border/70 bg-white p-4 ${entry ? "cursor-pointer hover:shadow-md transition-shadow" : ""
-                        }`}
+                      className={`relative overflow-hidden rounded-2xl border border-border/70 bg-white p-4 ${
+                        entry
+                          ? "cursor-pointer hover:shadow-md transition-shadow"
+                          : ""
+                      }`}
                       onClick={entry ? () => handleRowClick(entry) : undefined}
                     >
                       {entry ? (
@@ -257,12 +270,11 @@ export function LeaderboardTab({
                         </div>
                       )}
                     </div>
-                  )
+                  );
                 })}
               </div>
 
-              <div className="flex items-start justify-between gap-4">
-              </div>
+              <div className="flex items-start justify-between gap-4"></div>
 
               <div className="overflow-hidden rounded-2xl border border-border/80 bg-white">
                 <Table className="min-w-[760px]">
@@ -290,7 +302,7 @@ export function LeaderboardTab({
                     {leaderboard.length > 0 ? (
                       leaderboard.map((entry) => {
                         const voteProgress =
-                          maxVotes > 0 ? (entry.voteCount / maxVotes) * 100 : 0
+                          maxVotes > 0 ? (entry.voteCount / maxVotes) * 100 : 0;
 
                         return (
                           <TableRow
@@ -341,7 +353,7 @@ export function LeaderboardTab({
                               </div>
                             </TableCell>
                           </TableRow>
-                        )
+                        );
                       })
                     ) : (
                       <TableRow>
@@ -383,7 +395,7 @@ export function LeaderboardTab({
                       setLeaderboardPage(
                         pageCount > 0
                           ? Math.min(pageCount, leaderboardPage + 1)
-                          : leaderboardPage + 1
+                          : leaderboardPage + 1,
                       )
                     }
                     disabled={pageCount === 0 || leaderboardPage >= pageCount}
@@ -398,5 +410,5 @@ export function LeaderboardTab({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

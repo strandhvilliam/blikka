@@ -1,24 +1,136 @@
 import { Effect, Layer, Option, ServiceMap } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import {
-  votingSession,
   marathons,
   participants,
   submissions,
   topics,
+  votingRound,
+  votingRoundSubmission,
+  votingRoundVote,
+  votingSession,
 } from "../schema";
-import { eq, inArray, sql, count, and, desc, asc, isNull } from "drizzle-orm";
-import type { NewVotingSession, VotingSession } from "../types";
+import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import type {
+  NewVotingRound,
+  NewVotingRoundSubmission,
+  NewVotingRoundVote,
+  NewVotingSession,
+  VotingRound,
+  VotingSession,
+} from "../types";
+
+type ResolveRoundInput = {
+  marathonId: number;
+  topicId: number;
+  roundId?: number | null;
+};
+
+type LeaderboardEntry = {
+  submissionId: number;
+  submissionCreatedAt: string;
+  submissionKey: string | null;
+  submissionThumbnailKey: string | null;
+  participantId: number;
+  participantFirstName: string;
+  participantLastName: string;
+  participantReference: string;
+  voteCount: number;
+  rank: number;
+  tieSize: number;
+};
+
+type ParticipantVoteInfo = {
+  hasVoted: boolean;
+  votedAt: string | null;
+  votedSubmissionId: number | null;
+  votedTopicName: string | null;
+  roundId: number | null;
+  roundNumber: number | null;
+  roundKind: string | null;
+};
+
 export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
   "@blikka/db/voting-queries",
   {
     make: Effect.gen(function* () {
       const { client: db, use } = yield* DrizzleClient;
+
+      const buildLeaderboardBase = (roundId: number) =>
+        db
+          .select({
+            submissionId: sql<number>`${submissions.id}`.as("submission_id"),
+            submissionCreatedAt: submissions.createdAt,
+            submissionKey: submissions.key,
+            submissionThumbnailKey: submissions.thumbnailKey,
+            participantId: sql<number>`${participants.id}`.as("participant_id"),
+            participantFirstName: participants.firstname,
+            participantLastName: participants.lastname,
+            participantReference: participants.reference,
+            voteCount: sql<number>`count(${votingRoundVote.id})`.as(
+              "vote_count",
+            ),
+          })
+          .from(votingRoundSubmission)
+          .innerJoin(
+            submissions,
+            eq(submissions.id, votingRoundSubmission.submissionId),
+          )
+          .innerJoin(
+            participants,
+            eq(participants.id, submissions.participantId),
+          )
+          .leftJoin(
+            votingRoundVote,
+            and(
+              eq(votingRoundVote.roundId, votingRoundSubmission.roundId),
+              eq(votingRoundVote.submissionId, submissions.id),
+            ),
+          )
+          .where(eq(votingRoundSubmission.roundId, roundId))
+          .groupBy(
+            submissions.id,
+            submissions.createdAt,
+            submissions.key,
+            submissions.thumbnailKey,
+            participants.id,
+            participants.firstname,
+            participants.lastname,
+            participants.reference,
+          )
+          .as("leaderboard_base");
+
+      const buildRankedLeaderboard = (roundId: number) => {
+        const leaderboardBase = buildLeaderboardBase(roundId);
+
+        return db
+          .select({
+            submissionId: leaderboardBase.submissionId,
+            submissionCreatedAt: leaderboardBase.submissionCreatedAt,
+            submissionKey: leaderboardBase.submissionKey,
+            submissionThumbnailKey: leaderboardBase.submissionThumbnailKey,
+            participantId: leaderboardBase.participantId,
+            participantFirstName: leaderboardBase.participantFirstName,
+            participantLastName: leaderboardBase.participantLastName,
+            participantReference: leaderboardBase.participantReference,
+            voteCount: leaderboardBase.voteCount,
+            rank: sql<number>`rank() over (
+              order by ${leaderboardBase.voteCount} desc
+            )`.as("rank"),
+            tieSize:
+              sql<number>`count(*) over (partition by ${leaderboardBase.voteCount})`.as(
+                "tie_size",
+              ),
+          })
+          .from(leaderboardBase)
+          .as("ranked_leaderboard");
+      };
+
       const getVotingSessionByToken = Effect.fn(
         "VotingQueries.getVotingSessionByToken",
       )(function* ({ token }: { token: string }) {
-        const result = yield* use((db) =>
-          db.query.votingSession.findFirst({
+        const result = yield* use((database) =>
+          database.query.votingSession.findFirst({
             where: (table, operators) => operators.eq(table.token, token),
             with: {
               marathon: true,
@@ -26,16 +138,19 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             },
           }),
         );
+
         return Option.fromNullishOr(result);
       });
+
       const getVotingSessionsByIdsWithMarathon = Effect.fn(
         "VotingQueries.getVotingSessionsByIdsWithMarathon",
       )(function* ({ ids }: { ids: number[] }) {
         if (ids.length === 0) {
           return [];
         }
-        return yield* use((db) =>
-          db.query.votingSession.findMany({
+
+        return yield* use((database) =>
+          database.query.votingSession.findMany({
             where: (table, operators) => inArray(table.id, ids),
             columns: {
               id: true,
@@ -54,11 +169,12 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
           }),
         );
       });
+
       const getPublicMarathonByDomain = Effect.fn(
         "VotingQueries.getPublicMarathonByDomain",
       )(function* ({ domain }: { domain: string }) {
-        const result = yield* use((db) =>
-          db.query.marathons.findFirst({
+        const result = yield* use((database) =>
+          database.query.marathons.findFirst({
             where: (table, operators) => operators.eq(table.domain, domain),
             columns: {
               id: true,
@@ -71,10 +187,12 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             },
           }),
         );
+
         return Option.fromNullishOr(result);
       });
+
       const getParticipantsWithSubmissionsByTopicId = Effect.fn(
-        "VotingQueries.getParticipantsWithSubmissionsByMarathonId",
+        "VotingQueries.getParticipantsWithSubmissionsByTopicId",
       )(function* ({
         marathonId,
         topicId,
@@ -82,8 +200,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        const result = yield* use((db) =>
-          db.query.participants.findMany({
+        const result = yield* use((database) =>
+          database.query.participants.findMany({
             where: (table, operators) =>
               operators.eq(table.marathonId, marathonId),
             with: {
@@ -91,13 +209,21 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             },
           }),
         );
+
         return result
-          .filter((p) => p.submissions.some((s) => s.topicId === topicId))
-          .map((p) => ({
-            ...p,
-            submissions: p.submissions.filter((s) => s.topicId === topicId),
+          .filter((participant) =>
+            participant.submissions.some(
+              (submission) => submission.topicId === topicId,
+            ),
+          )
+          .map((participant) => ({
+            ...participant,
+            submissions: participant.submissions.filter(
+              (submission) => submission.topicId === topicId,
+            ),
           }));
       });
+
       const getParticipantsWithSubmissionsButNoVotingSession = Effect.fn(
         "VotingQueries.getParticipantsWithSubmissionsButNoVotingSession",
       )(function* ({
@@ -107,8 +233,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        const result = yield* use((db) =>
-          db
+        return yield* use((database) =>
+          database
             .selectDistinct({
               id: participants.id,
               firstname: participants.firstname,
@@ -134,19 +260,20 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             )
             .where(isNull(votingSession.id)),
         );
-        return result;
       });
+
       const createVotingSessions = Effect.fn(
         "VotingQueries.createVotingSessions",
       )(function* ({ sessions }: { sessions: NewVotingSession[] }) {
         if (sessions.length === 0) {
           return [];
         }
-        const result = yield* use((db) =>
-          db.insert(votingSession).values(sessions).returning(),
+
+        return yield* use((database) =>
+          database.insert(votingSession).values(sessions).returning(),
         );
-        return result;
       });
+
       const updateMultipleLastNotificationSentAt = Effect.fn(
         "VotingQueries.updateLastNotificationSentAt",
       )(function* ({
@@ -156,13 +283,18 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         ids: number[];
         notificationLastSentAt: string | null;
       }) {
-        yield* use((db) =>
-          db
+        if (ids.length === 0) {
+          return;
+        }
+
+        yield* use((database) =>
+          database
             .update(votingSession)
             .set({ notificationLastSentAt })
             .where(inArray(votingSession.id, ids)),
         );
       });
+
       const countVotingSessionsForTopic = Effect.fn(
         "VotingQueries.countVotingSessionsForTopic",
       )(function* ({
@@ -172,8 +304,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        const result = yield* use((db) =>
-          db
+        const result = yield* use((database) =>
+          database
             .select({ value: count() })
             .from(votingSession)
             .where(
@@ -183,8 +315,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               ),
             ),
         );
+
         return result[0]?.value ?? 0;
       });
+
       const getVotingSessionsForTopic = Effect.fn(
         "VotingQueries.getVotingSessionsForTopic",
       )(function* ({
@@ -194,8 +328,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        return yield* use((db) =>
-          db.query.votingSession.findMany({
+        return yield* use((database) =>
+          database.query.votingSession.findMany({
             where: (table, operators) =>
               operators.and(
                 operators.eq(table.marathonId, marathonId),
@@ -210,30 +344,86 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
                   reference: true,
                 },
               },
-              submissions: {
-                columns: {
-                  id: true,
-                  participantId: true,
-                  topicId: true,
-                },
-                with: {
-                  participant: {
-                    columns: {
-                      id: true,
-                      firstname: true,
-                      lastname: true,
-                      reference: true,
-                    },
-                  },
-                },
-              },
             },
             orderBy: (table, operators) => operators.desc(table.createdAt),
           }),
         );
       });
-      const getSubmissionVoteLeaderboardForTopic = Effect.fn(
-        "VotingQueries.getSubmissionVoteLeaderboardForTopic",
+
+      const createVotingRound = Effect.fn("VotingQueries.createVotingRound")(
+        function* (roundData: NewVotingRound) {
+          const [result] = yield* use((database) =>
+            database.insert(votingRound).values(roundData).returning(),
+          );
+
+          return result as VotingRound | undefined;
+        },
+      );
+
+      const createVotingRoundSubmissions = Effect.fn(
+        "VotingQueries.createVotingRoundSubmissions",
+      )(function* ({
+        roundId,
+        submissionIds,
+      }: {
+        roundId: number;
+        submissionIds: readonly number[];
+      }) {
+        if (submissionIds.length === 0) {
+          return [];
+        }
+
+        const values: NewVotingRoundSubmission[] = submissionIds.map(
+          (submissionId) => ({
+            roundId,
+            submissionId,
+          }),
+        );
+
+        return yield* use((database) =>
+          database.insert(votingRoundSubmission).values(values).returning(),
+        );
+      });
+
+      const createVotingRoundVotes = Effect.fn(
+        "VotingQueries.createVotingRoundVotes",
+      )(function* ({ votes }: { votes: NewVotingRoundVote[] }) {
+        if (votes.length === 0) {
+          return [];
+        }
+
+        return yield* use((database) =>
+          database.insert(votingRoundVote).values(votes).returning(),
+        );
+      });
+
+      const getVotingRoundById = Effect.fn("VotingQueries.getVotingRoundById")(
+        function* ({
+          marathonId,
+          topicId,
+          roundId,
+        }: {
+          marathonId: number;
+          topicId: number;
+          roundId: number;
+        }) {
+          const result = yield* use((database) =>
+            database.query.votingRound.findFirst({
+              where: (table, operators) =>
+                operators.and(
+                  operators.eq(table.id, roundId),
+                  operators.eq(table.marathonId, marathonId),
+                  operators.eq(table.topicId, topicId),
+                ),
+            }),
+          );
+
+          return Option.fromNullishOr(result);
+        },
+      );
+
+      const getLatestVotingRoundForTopic = Effect.fn(
+        "VotingQueries.getLatestVotingRoundForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -241,57 +431,67 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        return yield* use((db) =>
-          db
-            .select({
-              submissionId: submissions.id,
-              submissionCreatedAt: submissions.createdAt,
-              submissionKey: submissions.key,
-              submissionThumbnailKey: submissions.thumbnailKey,
-              participantId: participants.id,
-              participantFirstName: participants.firstname,
-              participantLastName: participants.lastname,
-              participantReference: participants.reference,
-              voteCount: sql<number>`count(${votingSession.id})`.as(
-                "vote_count",
+        const result = yield* use((database) =>
+          database.query.votingRound.findFirst({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.marathonId, marathonId),
+                operators.eq(table.topicId, topicId),
               ),
-            })
-            .from(submissions)
-            .innerJoin(
-              participants,
-              eq(participants.id, submissions.participantId),
-            )
-            .leftJoin(
-              votingSession,
-              and(
-                eq(votingSession.voteSubmissionId, submissions.id),
-                eq(votingSession.marathonId, marathonId),
-                eq(votingSession.topicId, topicId),
-              ),
-            )
-            .where(
-              and(
-                eq(submissions.marathonId, marathonId),
-                eq(submissions.topicId, topicId),
-              ),
-            )
-            .groupBy(
-              submissions.id,
-              submissions.createdAt,
-              submissions.key,
-              submissions.thumbnailKey,
-              participants.id,
-              participants.firstname,
-              participants.lastname,
-              participants.reference,
-            )
-            .orderBy(
-              desc(sql<number>`count(${votingSession.id})`),
-              asc(submissions.createdAt),
-              asc(submissions.id),
-            ),
+            orderBy: (table, operators) => [
+              operators.desc(table.roundNumber),
+              operators.desc(table.id),
+            ],
+          }),
         );
+
+        return Option.fromNullishOr(result);
       });
+
+      const getActiveVotingRoundForTopic = Effect.fn(
+        "VotingQueries.getActiveVotingRoundForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        const result = yield* use((database) =>
+          database.query.votingRound.findFirst({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.marathonId, marathonId),
+                operators.eq(table.topicId, topicId),
+                operators.isNull(table.endsAt),
+              ),
+            orderBy: (table, operators) => [
+              operators.desc(table.roundNumber),
+              operators.desc(table.id),
+            ],
+          }),
+        );
+
+        return Option.fromNullishOr(result);
+      });
+
+      const resolveRoundForTopic = Effect.fn(
+        "VotingQueries.resolveRoundForTopic",
+      )(function* ({ marathonId, topicId, roundId }: ResolveRoundInput) {
+        if (roundId !== undefined && roundId !== null) {
+          return yield* getVotingRoundById({
+            marathonId,
+            topicId,
+            roundId,
+          });
+        }
+
+        return yield* getLatestVotingRoundForTopic({
+          marathonId,
+          topicId,
+        });
+      });
+
       const getVotingSessionStatsForTopic = Effect.fn(
         "VotingQueries.getVotingSessionStatsForTopic",
       )(function* ({
@@ -301,39 +501,59 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        const result = yield* use((db) =>
-          db
-            .select({
-              total: sql<number>`count(*)`.as("total"),
-              completed: sql<number>`count(${votingSession.votedAt})`.as(
-                "completed",
-              ),
-              participantSessions:
-                sql<number>`count(${votingSession.connectedParticipantId})`.as(
-                  "participant_sessions",
+        const [sessionStatsResult, latestRoundOpt] = yield* Effect.all([
+          use((database) =>
+            database
+              .select({
+                total: sql<number>`count(*)`.as("total"),
+                participantSessions:
+                  sql<number>`count(${votingSession.connectedParticipantId})`.as(
+                    "participant_sessions",
+                  ),
+                manualSessions:
+                  sql<number>`count(*) - count(${votingSession.connectedParticipantId})`.as(
+                    "manual_sessions",
+                  ),
+              })
+              .from(votingSession)
+              .where(
+                and(
+                  eq(votingSession.marathonId, marathonId),
+                  eq(votingSession.topicId, topicId),
                 ),
-              manualSessions:
-                sql<number>`count(*) - count(${votingSession.connectedParticipantId})`.as(
-                  "manual_sessions",
-                ),
-            })
-            .from(votingSession)
-            .where(
-              and(
-                eq(votingSession.marathonId, marathonId),
-                eq(votingSession.topicId, topicId),
               ),
-            ),
-        );
-        return (
-          result[0] ?? {
-            total: 0,
+          ),
+          getLatestVotingRoundForTopic({ marathonId, topicId }),
+        ]);
+
+        const latestRound = Option.getOrUndefined(latestRoundOpt);
+        if (!latestRound) {
+          const sessionStats = sessionStatsResult[0];
+          return {
+            total: sessionStats?.total ?? 0,
             completed: 0,
-            participantSessions: 0,
-            manualSessions: 0,
-          }
+            participantSessions: sessionStats?.participantSessions ?? 0,
+            manualSessions: sessionStats?.manualSessions ?? 0,
+          };
+        }
+
+        const completedResult = yield* use((database) =>
+          database
+            .select({ value: count() })
+            .from(votingRoundVote)
+            .where(eq(votingRoundVote.roundId, latestRound.id)),
         );
+
+        const sessionStats = sessionStatsResult[0];
+
+        return {
+          total: sessionStats?.total ?? 0,
+          completed: completedResult[0]?.value ?? 0,
+          participantSessions: sessionStats?.participantSessions ?? 0,
+          manualSessions: sessionStats?.manualSessions ?? 0,
+        };
       });
+
       const getVotingWindowForTopic = Effect.fn(
         "VotingQueries.getVotingWindowForTopic",
       )(function* ({
@@ -343,8 +563,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        const result = yield* use((db) =>
-          db.query.topics.findFirst({
+        const result = yield* use((database) =>
+          database.query.topics.findFirst({
             where: (table, operators) =>
               operators.and(
                 operators.eq(table.marathonId, marathonId),
@@ -356,14 +576,17 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             },
           }),
         );
+
         if (!result) {
           return undefined;
         }
+
         return {
           startsAt: result.votingStartsAt,
           endsAt: result.votingEndsAt,
         };
       });
+
       const upsertTopicVotingWindow = Effect.fn(
         "VotingQueries.upsertTopicVotingWindow",
       )(function* ({
@@ -377,8 +600,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         startsAt: string;
         endsAt: string | null;
       }) {
-        const result = yield* use((db) =>
-          db
+        const result = yield* use((database) =>
+          database
             .update(topics)
             .set({
               votingStartsAt: startsAt,
@@ -393,8 +616,38 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               endsAt: topics.votingEndsAt,
             }),
         );
+
         return result[0];
       });
+
+      const updateVotingRoundWindow = Effect.fn(
+        "VotingQueries.updateVotingRoundWindow",
+      )(function* ({
+        roundId,
+        startedAt,
+        endsAt,
+        updatedAt,
+      }: {
+        roundId: number;
+        startedAt?: string;
+        endsAt: string | null;
+        updatedAt: string;
+      }) {
+        const result = yield* use((database) =>
+          database
+            .update(votingRound)
+            .set({
+              ...(startedAt ? { startedAt } : {}),
+              endsAt,
+              updatedAt,
+            })
+            .where(eq(votingRound.id, roundId))
+            .returning(),
+        );
+
+        return result[0] as VotingRound | undefined;
+      });
+
       const closeTopicVotingWindow = Effect.fn(
         "VotingQueries.closeTopicVotingWindow",
       )(function* ({
@@ -406,17 +659,17 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number;
         nowIso: string;
       }) {
-        const result = yield* use((db) =>
-          db
+        const result = yield* use((database) =>
+          database
             .update(topics)
             .set({
               votingStartsAt: sql`case
-              when ${topics.votingStartsAt} is null
-                then ${nowIso}::timestamptz - interval '1 second'
-              when ${topics.votingStartsAt} >= ${nowIso}::timestamptz
-                then ${nowIso}::timestamptz - interval '1 second'
-              else ${topics.votingStartsAt}
-            end`,
+                when ${topics.votingStartsAt} is null
+                  then ${nowIso}::timestamptz - interval '1 second'
+                when ${topics.votingStartsAt} >= ${nowIso}::timestamptz
+                  then ${nowIso}::timestamptz - interval '1 second'
+                else ${topics.votingStartsAt}
+              end`,
               votingEndsAt: sql`${nowIso}::timestamptz`,
               updatedAt: nowIso,
             })
@@ -428,8 +681,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               endsAt: topics.votingEndsAt,
             }),
         );
+
         return result[0];
       });
+
       const reopenTopicVotingWindow = Effect.fn(
         "VotingQueries.reopenTopicVotingWindow",
       )(function* ({
@@ -441,8 +696,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number;
         nowIso: string;
       }) {
-        const result = yield* use((db) =>
-          db
+        const result = yield* use((database) =>
+          database
             .update(topics)
             .set({
               votingEndsAt: null,
@@ -456,8 +711,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               endsAt: topics.votingEndsAt,
             }),
         );
+
         return result[0];
       });
+
       const closeVotingWindowsForTopics = Effect.fn(
         "VotingQueries.closeVotingWindowsForTopics",
       )(function* ({
@@ -472,17 +729,18 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         if (topicIds.length === 0) {
           return [];
         }
-        return yield* use((db) =>
-          db
+
+        return yield* use((database) =>
+          database
             .update(topics)
             .set({
               votingStartsAt: sql`case
-              when ${topics.votingStartsAt} is null
-                then ${nowIso}::timestamptz - interval '1 second'
-              when ${topics.votingStartsAt} >= ${nowIso}::timestamptz
-                then ${nowIso}::timestamptz - interval '1 second'
-              else ${topics.votingStartsAt}
-            end`,
+                when ${topics.votingStartsAt} is null
+                  then ${nowIso}::timestamptz - interval '1 second'
+                when ${topics.votingStartsAt} >= ${nowIso}::timestamptz
+                  then ${nowIso}::timestamptz - interval '1 second'
+                else ${topics.votingStartsAt}
+              end`,
               votingEndsAt: sql`${nowIso}::timestamptz`,
               updatedAt: nowIso,
             })
@@ -499,6 +757,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             }),
         );
       });
+
       const countSubmissionsForTopic = Effect.fn(
         "VotingQueries.countSubmissionsForTopic",
       )(function* ({
@@ -508,8 +767,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        const result = yield* use((db) =>
-          db
+        const result = yield* use((database) =>
+          database
             .select({ value: count() })
             .from(submissions)
             .where(
@@ -519,8 +778,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               ),
             ),
         );
+
         return result[0]?.value ?? 0;
       });
+
       const countParticipantsWithSubmissionsForTopic = Effect.fn(
         "VotingQueries.countParticipantsWithSubmissionsForTopic",
       )(function* ({
@@ -530,8 +791,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        const result = yield* use((db) =>
-          db
+        const result = yield* use((database) =>
+          database
             .select({
               value:
                 sql<number>`count(distinct ${submissions.participantId})`.as(
@@ -546,8 +807,34 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               ),
             ),
         );
+
         return result[0]?.value ?? 0;
       });
+
+      const countVotingRoundSubmissionsForTopic = Effect.fn(
+        "VotingQueries.countVotingRoundSubmissionsForTopic",
+      )(function* ({ marathonId, topicId, roundId }: ResolveRoundInput) {
+        const roundOpt = yield* resolveRoundForTopic({
+          marathonId,
+          topicId,
+          roundId,
+        });
+
+        const round = Option.getOrUndefined(roundOpt);
+        if (!round) {
+          return 0;
+        }
+
+        const result = yield* use((database) =>
+          database
+            .select({ value: count() })
+            .from(votingRoundSubmission)
+            .where(eq(votingRoundSubmission.roundId, round.id)),
+        );
+
+        return result[0]?.value ?? 0;
+      });
+
       const getLeaderboardPageForTopic = Effect.fn(
         "VotingQueries.getLeaderboardPageForTopic",
       )(function* ({
@@ -555,78 +842,30 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId,
         page,
         limit,
+        roundId,
       }: {
         marathonId: number;
         topicId: number;
         page: number;
         limit: number;
+        roundId?: number | null;
       }) {
+        const roundOpt = yield* resolveRoundForTopic({
+          marathonId,
+          topicId,
+          roundId,
+        });
+        const round = Option.getOrUndefined(roundOpt);
+
+        if (!round) {
+          return [];
+        }
+
         const offset = (page - 1) * limit;
-        const leaderboardBase = db
-          .select({
-            submissionId: sql<number>`${submissions.id}`.as("submission_id"),
-            submissionCreatedAt: submissions.createdAt,
-            submissionKey: submissions.key,
-            submissionThumbnailKey: submissions.thumbnailKey,
-            participantId: sql<number>`${participants.id}`.as("participant_id"),
-            participantFirstName: participants.firstname,
-            participantLastName: participants.lastname,
-            participantReference: participants.reference,
-            voteCount: sql<number>`count(${votingSession.id})`.as("vote_count"),
-          })
-          .from(submissions)
-          .innerJoin(
-            participants,
-            eq(participants.id, submissions.participantId),
-          )
-          .leftJoin(
-            votingSession,
-            and(
-              eq(votingSession.voteSubmissionId, submissions.id),
-              eq(votingSession.marathonId, marathonId),
-              eq(votingSession.topicId, topicId),
-            ),
-          )
-          .where(
-            and(
-              eq(submissions.marathonId, marathonId),
-              eq(submissions.topicId, topicId),
-            ),
-          )
-          .groupBy(
-            submissions.id,
-            submissions.createdAt,
-            submissions.key,
-            submissions.thumbnailKey,
-            participants.id,
-            participants.firstname,
-            participants.lastname,
-            participants.reference,
-          )
-          .as("leaderboard_base");
-        const rankedLeaderboard = db
-          .select({
-            submissionId: leaderboardBase.submissionId,
-            submissionCreatedAt: leaderboardBase.submissionCreatedAt,
-            submissionKey: leaderboardBase.submissionKey,
-            submissionThumbnailKey: leaderboardBase.submissionThumbnailKey,
-            participantId: leaderboardBase.participantId,
-            participantFirstName: leaderboardBase.participantFirstName,
-            participantLastName: leaderboardBase.participantLastName,
-            participantReference: leaderboardBase.participantReference,
-            voteCount: leaderboardBase.voteCount,
-            rank: sql<number>`rank() over (
-              order by ${leaderboardBase.voteCount} desc
-            )`.as("rank"),
-            tieSize:
-              sql<number>`count(*) over (partition by ${leaderboardBase.voteCount})`.as(
-                "tie_size",
-              ),
-          })
-          .from(leaderboardBase)
-          .as("ranked_leaderboard");
-        return yield* use((db) =>
-          db
+        const rankedLeaderboard = buildRankedLeaderboard(round.id);
+
+        return yield* use((database) =>
+          database
             .select({
               submissionId: rankedLeaderboard.submissionId,
               submissionCreatedAt: rankedLeaderboard.submissionCreatedAt,
@@ -650,78 +889,22 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             .offset(offset),
         );
       });
+
       const getTopRanksPreviewForTopic = Effect.fn(
         "VotingQueries.getTopRanksPreviewForTopic",
-      )(function* ({
-        marathonId,
-        topicId,
-      }: {
-        marathonId: number;
-        topicId: number;
-      }) {
-        const leaderboardBase = db
-          .select({
-            submissionId: sql<number>`${submissions.id}`.as("submission_id"),
-            submissionCreatedAt: submissions.createdAt,
-            submissionKey: submissions.key,
-            submissionThumbnailKey: submissions.thumbnailKey,
-            participantId: sql<number>`${participants.id}`.as("participant_id"),
-            participantFirstName: participants.firstname,
-            participantLastName: participants.lastname,
-            participantReference: participants.reference,
-            voteCount: sql<number>`count(${votingSession.id})`.as("vote_count"),
-          })
-          .from(submissions)
-          .innerJoin(
-            participants,
-            eq(participants.id, submissions.participantId),
-          )
-          .leftJoin(
-            votingSession,
-            and(
-              eq(votingSession.voteSubmissionId, submissions.id),
-              eq(votingSession.marathonId, marathonId),
-              eq(votingSession.topicId, topicId),
-            ),
-          )
-          .where(
-            and(
-              eq(submissions.marathonId, marathonId),
-              eq(submissions.topicId, topicId),
-            ),
-          )
-          .groupBy(
-            submissions.id,
-            submissions.createdAt,
-            submissions.key,
-            submissions.thumbnailKey,
-            participants.id,
-            participants.firstname,
-            participants.lastname,
-            participants.reference,
-          )
-          .as("leaderboard_base");
-        const rankedLeaderboard = db
-          .select({
-            submissionId: leaderboardBase.submissionId,
-            submissionCreatedAt: leaderboardBase.submissionCreatedAt,
-            submissionKey: leaderboardBase.submissionKey,
-            submissionThumbnailKey: leaderboardBase.submissionThumbnailKey,
-            participantId: leaderboardBase.participantId,
-            participantFirstName: leaderboardBase.participantFirstName,
-            participantLastName: leaderboardBase.participantLastName,
-            participantReference: leaderboardBase.participantReference,
-            voteCount: leaderboardBase.voteCount,
-            rank: sql<number>`rank() over (
-              order by ${leaderboardBase.voteCount} desc
-            )`.as("rank"),
-            tieSize:
-              sql<number>`count(*) over (partition by ${leaderboardBase.voteCount})`.as(
-                "tie_size",
-              ),
-          })
-          .from(leaderboardBase)
-          .as("ranked_leaderboard");
+      )(function* ({ marathonId, topicId, roundId }: ResolveRoundInput) {
+        const roundOpt = yield* resolveRoundForTopic({
+          marathonId,
+          topicId,
+          roundId,
+        });
+        const round = Option.getOrUndefined(roundOpt);
+
+        if (!round) {
+          return [];
+        }
+
+        const rankedLeaderboard = buildRankedLeaderboard(round.id);
         const rankedPreview = db
           .select({
             submissionId: rankedLeaderboard.submissionId,
@@ -737,13 +920,14 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             tieSize: rankedLeaderboard.tieSize,
             rankEntryOrder: sql<number>`row_number() over (
               partition by ${rankedLeaderboard.rank}
-              order by ${rankedLeaderboard.submissionCreatedAt} asc, ${rankedLeaderboard.submissionKey} asc
+              order by ${rankedLeaderboard.submissionCreatedAt} asc, ${rankedLeaderboard.submissionId} asc
             )`.as("rank_entry_order"),
           })
           .from(rankedLeaderboard)
           .as("ranked_preview");
-        return yield* use((db) =>
-          db
+
+        return yield* use((database) =>
+          database
             .select({
               submissionId: rankedPreview.submissionId,
               submissionCreatedAt: rankedPreview.submissionCreatedAt,
@@ -771,6 +955,65 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             ),
         );
       });
+
+      const getLeadingTieForTopic = Effect.fn(
+        "VotingQueries.getLeadingTieForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        const roundOpt = yield* getLatestVotingRoundForTopic({
+          marathonId,
+          topicId,
+        });
+        const round = Option.getOrUndefined(roundOpt);
+
+        if (!round) {
+          return Option.none<{
+            roundId: number;
+            roundNumber: number;
+            roundKind: string;
+            voteCount: number;
+            tieSize: number;
+            submissionIds: number[];
+          }>();
+        }
+
+        const rankedLeaderboard = buildRankedLeaderboard(round.id);
+        const firstRankRows = yield* use((database) =>
+          database
+            .select({
+              submissionId: rankedLeaderboard.submissionId,
+              voteCount: rankedLeaderboard.voteCount,
+              rank: rankedLeaderboard.rank,
+              tieSize: rankedLeaderboard.tieSize,
+            })
+            .from(rankedLeaderboard)
+            .where(sql`${rankedLeaderboard.rank} = 1`)
+            .orderBy(
+              asc(rankedLeaderboard.submissionCreatedAt),
+              asc(rankedLeaderboard.submissionId),
+            ),
+        );
+
+        const leadingRow = firstRankRows[0];
+        if (!leadingRow || leadingRow.tieSize <= 1) {
+          return Option.none();
+        }
+
+        return Option.some({
+          roundId: round.id,
+          roundNumber: round.roundNumber,
+          roundKind: round.kind,
+          voteCount: leadingRow.voteCount,
+          tieSize: leadingRow.tieSize,
+          submissionIds: firstRankRows.map((row) => row.submissionId),
+        });
+      });
+
       const getVotersPageForTopic = Effect.fn(
         "VotingQueries.getVotersPageForTopic",
       )(function* ({
@@ -778,61 +1021,79 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId,
         page,
         limit,
+        roundId,
       }: {
         marathonId: number;
         topicId: number;
         page: number;
         limit: number;
+        roundId?: number | null;
       }) {
+        const roundOpt = yield* resolveRoundForTopic({
+          marathonId,
+          topicId,
+          roundId,
+        });
+        const round = Option.getOrUndefined(roundOpt);
         const offset = (page - 1) * limit;
-        return yield* use((db) =>
-          db.query.votingSession.findMany({
-            where: (table, operators) =>
-              operators.and(
-                operators.eq(table.marathonId, marathonId),
-                operators.eq(table.topicId, topicId),
+
+        return yield* use((database) =>
+          database
+            .select({
+              id: votingSession.id,
+              firstName: votingSession.firstName,
+              lastName: votingSession.lastName,
+              email: votingSession.email,
+              token: votingSession.token,
+              phoneEncrypted: votingSession.phoneEncrypted,
+              notificationLastSentAt: votingSession.notificationLastSentAt,
+              connectedParticipantId: votingSession.connectedParticipantId,
+              votedAt: round
+                ? sql<string | null>`${votingRoundVote.votedAt}`.as("voted_at")
+                : sql<string | null>`null`.as("voted_at"),
+              voteSubmissionId: round
+                ? sql<number | null>`${votingRoundVote.submissionId}`.as(
+                    "vote_submission_id",
+                  )
+                : sql<number | null>`null`.as("vote_submission_id"),
+              voteSubmissionKey: submissions.key,
+              voteSubmissionThumbnailKey: submissions.thumbnailKey,
+              voteSubmissionCreatedAt: submissions.createdAt,
+              voteParticipantId: participants.id,
+              voteParticipantReference: participants.reference,
+              voteParticipantFirstName: participants.firstname,
+              voteParticipantLastName: participants.lastname,
+            })
+            .from(votingSession)
+            .leftJoin(
+              votingRoundVote,
+              round
+                ? and(
+                    eq(votingRoundVote.sessionId, votingSession.id),
+                    eq(votingRoundVote.roundId, round.id),
+                  )
+                : sql`false`,
+            )
+            .leftJoin(
+              submissions,
+              eq(submissions.id, votingRoundVote.submissionId),
+            )
+            .leftJoin(
+              participants,
+              eq(participants.id, submissions.participantId),
+            )
+            .where(
+              and(
+                eq(votingSession.marathonId, marathonId),
+                eq(votingSession.topicId, topicId),
               ),
-            columns: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              token: true,
-              phoneEncrypted: true,
-              notificationLastSentAt: true,
-              connectedParticipantId: true,
-              votedAt: true,
-              voteSubmissionId: true,
-            },
-            with: {
-              submissions: {
-                columns: {
-                  id: true,
-                  key: true,
-                  thumbnailKey: true,
-                  createdAt: true,
-                },
-                with: {
-                  participant: {
-                    columns: {
-                      id: true,
-                      reference: true,
-                      firstname: true,
-                      lastname: true,
-                    },
-                  },
-                },
-              },
-            },
-            orderBy: (table, { desc }) => [
-              desc(table.createdAt),
-              desc(table.id),
-            ],
-            limit,
-            offset,
-          }),
+            )
+            .orderBy(desc(votingSession.createdAt), desc(votingSession.id))
+            .limit(limit)
+            .offset(offset),
         );
       });
+
       const getVotingSessionByIdForTopic = Effect.fn(
         "VotingQueries.getVotingSessionByIdForTopic",
       )(function* ({
@@ -844,8 +1105,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number;
         sessionId: number;
       }) {
-        const result = yield* use((db) =>
-          db.query.votingSession.findFirst({
+        const result = yield* use((database) =>
+          database.query.votingSession.findFirst({
             where: (table, operators) =>
               operators.and(
                 operators.eq(table.id, sessionId),
@@ -857,8 +1118,10 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             },
           }),
         );
+
         return Option.fromNullishOr(result);
       });
+
       const getSubmissionVoteStats = Effect.fn(
         "VotingQueries.getSubmissionVoteStats",
       )(function* ({
@@ -868,51 +1131,95 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         submissionId: number;
         domain: string;
       }) {
-        const marathonResult = yield* use((db) =>
-          db.query.marathons.findFirst({
+        const marathonResult = yield* use((database) =>
+          database.query.marathons.findFirst({
             where: (table, operators) => operators.eq(table.domain, domain),
-            columns: {
-              id: true,
-            },
+            columns: { id: true },
           }),
         );
+
         if (!marathonResult) {
           return Option.none();
         }
-        const marathonId = marathonResult.id;
-        const voteCountResult = yield* use((db) =>
-          db
-            .select({ count: count() })
-            .from(votingSession)
-            .where(eq(votingSession.voteSubmissionId, submissionId)),
+
+        const submissionResult = yield* use((database) =>
+          database.query.submissions.findFirst({
+            where: (table, operators) => operators.eq(table.id, submissionId),
+            columns: {
+              id: true,
+              marathonId: true,
+              topicId: true,
+            },
+          }),
         );
-        const voteCount = voteCountResult[0]?.count ?? 0;
-        const allSubmissionsWithVotes = yield* use((db) =>
-          db
+
+        if (
+          !submissionResult ||
+          submissionResult.marathonId !== marathonResult.id
+        ) {
+          return Option.none();
+        }
+
+        const roundResult = yield* use((database) =>
+          database
             .select({
-              submissionId: submissions.id,
-              voteCount: sql<number>`count(${votingSession.id})`.as(
-                "vote_count",
-              ),
+              roundId: votingRound.id,
+              roundNumber: votingRound.roundNumber,
+              roundKind: votingRound.kind,
             })
-            .from(submissions)
-            .leftJoin(
-              votingSession,
-              eq(submissions.id, votingSession.voteSubmissionId),
+            .from(votingRoundSubmission)
+            .innerJoin(
+              votingRound,
+              eq(votingRound.id, votingRoundSubmission.roundId),
             )
-            .where(eq(submissions.marathonId, marathonId))
-            .groupBy(submissions.id),
+            .where(
+              and(
+                eq(votingRoundSubmission.submissionId, submissionId),
+                eq(votingRound.marathonId, marathonResult.id),
+                eq(votingRound.topicId, submissionResult.topicId),
+              ),
+            )
+            .orderBy(desc(votingRound.roundNumber), desc(votingRound.id))
+            .limit(1),
         );
-        const position =
-          allSubmissionsWithVotes.filter((s) => s.voteCount > voteCount)
-            .length + 1;
-        const totalSubmissions = allSubmissionsWithVotes.length;
+
+        const resolvedRound = roundResult[0];
+        if (!resolvedRound) {
+          return Option.none();
+        }
+
+        const rankedLeaderboard = buildRankedLeaderboard(resolvedRound.roundId);
+        const leaderboardRows = yield* use((database) =>
+          database
+            .select({
+              submissionId: rankedLeaderboard.submissionId,
+              voteCount: rankedLeaderboard.voteCount,
+              rank: rankedLeaderboard.rank,
+            })
+            .from(rankedLeaderboard)
+            .orderBy(
+              asc(rankedLeaderboard.rank),
+              asc(rankedLeaderboard.submissionId),
+            ),
+        );
+
+        const entry = leaderboardRows.find(
+          (row) => row.submissionId === submissionId,
+        );
+        if (!entry) {
+          return Option.none();
+        }
+
         return Option.some({
-          voteCount,
-          position,
-          totalSubmissions,
+          voteCount: entry.voteCount,
+          position: entry.rank,
+          totalSubmissions: leaderboardRows.length,
+          roundId: resolvedRound.roundId,
+          roundNumber: resolvedRound.roundNumber,
+          roundKind: resolvedRound.roundKind,
         });
       });
+
       const getParticipantVoteInfo = Effect.fn(
         "VotingQueries.getParticipantVoteInfo",
       )(function* ({
@@ -922,44 +1229,91 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         participantId: number;
         topicId: number;
       }) {
-        const votingSessionResult = yield* use((db) =>
-          db.query.votingSession.findFirst({
+        const votingSessionResult = yield* use((database) =>
+          database.query.votingSession.findFirst({
             where: (table, operators) =>
               operators.and(
                 operators.eq(table.connectedParticipantId, participantId),
                 operators.eq(table.topicId, topicId),
               ),
-            with: {
-              submissions: {
-                with: {
-                  topic: true,
-                },
-              },
-            },
           }),
         );
+
         if (!votingSessionResult) {
           return Option.none();
         }
-        return Option.some({
-          hasVoted: votingSessionResult.votedAt !== null,
-          votedAt: votingSessionResult.votedAt,
-          votedSubmissionId: votingSessionResult.voteSubmissionId,
-          votedTopicName: votingSessionResult.submissions?.topic?.name ?? null,
+
+        const latestRoundOpt = yield* getLatestVotingRoundForTopic({
+          marathonId: votingSessionResult.marathonId,
+          topicId,
         });
+        const latestRound = Option.getOrUndefined(latestRoundOpt);
+
+        if (!latestRound) {
+          const emptyVoteInfo: ParticipantVoteInfo = {
+            hasVoted: false,
+            votedAt: null,
+            votedSubmissionId: null,
+            votedTopicName: null,
+            roundId: null,
+            roundNumber: null,
+            roundKind: null,
+          };
+
+          return Option.some(emptyVoteInfo);
+        }
+
+        const voteResult = yield* use((database) =>
+          database
+            .select({
+              votedAt: votingRoundVote.votedAt,
+              votedSubmissionId: votingRoundVote.submissionId,
+              votedTopicName: topics.name,
+            })
+            .from(votingRoundVote)
+            .innerJoin(
+              submissions,
+              eq(submissions.id, votingRoundVote.submissionId),
+            )
+            .innerJoin(topics, eq(topics.id, submissions.topicId))
+            .where(
+              and(
+                eq(votingRoundVote.roundId, latestRound.id),
+                eq(votingRoundVote.sessionId, votingSessionResult.id),
+              ),
+            )
+            .limit(1),
+        );
+
+        const vote = voteResult[0];
+
+        const participantVoteInfo: ParticipantVoteInfo = {
+          hasVoted: !!vote,
+          votedAt: vote?.votedAt ?? null,
+          votedSubmissionId: vote?.votedSubmissionId ?? null,
+          votedTopicName: vote?.votedTopicName ?? null,
+          roundId: latestRound.id,
+          roundNumber: latestRound.roundNumber,
+          roundKind: latestRound.kind,
+        };
+
+        return Option.some(participantVoteInfo);
       });
+
       const getVotingSessionByParticipantId = Effect.fn(
         "VotingQueries.getVotingSessionByParticipantId",
       )(function* ({ participantId }: { participantId: number }) {
-        const result = yield* use((db) =>
-          db.query.votingSession.findFirst({
+        const result = yield* use((database) =>
+          database.query.votingSession.findFirst({
             where: (table, operators) =>
               operators.eq(table.connectedParticipantId, participantId),
             orderBy: (table, operators) => operators.desc(table.createdAt),
           }),
         );
+
         return Option.fromNullishOr(result);
       });
+
       const getVotingSessionByParticipantAndTopicId = Effect.fn(
         "VotingQueries.getVotingSessionByParticipantAndTopicId",
       )(function* ({
@@ -969,8 +1323,8 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         participantId: number;
         topicId: number;
       }) {
-        const result = yield* use((db) =>
-          db.query.votingSession.findFirst({
+        const result = yield* use((database) =>
+          database.query.votingSession.findFirst({
             where: (table, operators) =>
               operators.and(
                 operators.eq(table.connectedParticipantId, participantId),
@@ -979,13 +1333,37 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             orderBy: (table, operators) => operators.desc(table.createdAt),
           }),
         );
+
         return Option.fromNullishOr(result);
       });
+
+      const getVotingRoundVoteForSession = Effect.fn(
+        "VotingQueries.getVotingRoundVoteForSession",
+      )(function* ({
+        roundId,
+        sessionId,
+      }: {
+        roundId: number;
+        sessionId: number;
+      }) {
+        const result = yield* use((database) =>
+          database.query.votingRoundVote.findFirst({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.roundId, roundId),
+                operators.eq(table.sessionId, sessionId),
+              ),
+          }),
+        );
+
+        return Option.fromNullishOr(result);
+      });
+
       const upsertVotingSession = Effect.fn(
         "VotingQueries.upsertVotingSession",
       )(function* (sessionData: NewVotingSession) {
-        const result = yield* use((db) =>
-          db
+        const result = yield* use((database) =>
+          database
             .insert(votingSession)
             .values(sessionData)
             .onConflictDoUpdate({
@@ -1007,95 +1385,117 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
             })
             .returning(),
         );
+
         return result[0] as VotingSession;
       });
+
       const getSubmissionsForVoting = Effect.fn(
         "VotingQueries.getSubmissionsForVoting",
-      )(function* ({
-        marathonId,
-        topicId,
-      }: {
-        marathonId: number;
-        topicId: number;
-      }) {
-        const result = yield* use((db) =>
-          db.query.submissions.findMany({
-            where: (table, operators) =>
-              operators.and(
-                operators.eq(table.marathonId, marathonId),
-                operators.eq(table.topicId, topicId),
-              ),
-            orderBy: (table, operators) => operators.asc(table.id),
-            with: {
+      )(function* ({ marathonId, topicId, roundId }: ResolveRoundInput) {
+        const roundOpt = yield* resolveRoundForTopic({
+          marathonId,
+          topicId,
+          roundId,
+        });
+        const round = Option.getOrUndefined(roundOpt);
+
+        if (!round) {
+          return [];
+        }
+
+        return yield* use((database) =>
+          database
+            .select({
+              id: submissions.id,
+              participantId: submissions.participantId,
+              key: submissions.key,
+              thumbnailKey: submissions.thumbnailKey,
+              previewKey: submissions.previewKey,
+              topicId: submissions.topicId,
               participant: {
-                columns: {
-                  id: true,
-                  firstname: true,
-                  lastname: true,
-                },
+                id: participants.id,
+                firstname: participants.firstname,
+                lastname: participants.lastname,
               },
               topic: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
+                id: topics.id,
+                name: topics.name,
               },
-            },
-          }),
+            })
+            .from(votingRoundSubmission)
+            .innerJoin(
+              submissions,
+              eq(submissions.id, votingRoundSubmission.submissionId),
+            )
+            .innerJoin(
+              participants,
+              eq(participants.id, submissions.participantId),
+            )
+            .innerJoin(topics, eq(topics.id, submissions.topicId))
+            .where(eq(votingRoundSubmission.roundId, round.id))
+            .orderBy(asc(submissions.id)),
         );
-        return result;
       });
+
       const recordVote = Effect.fn("VotingQueries.recordVote")(function* ({
-        token,
+        roundId,
+        sessionId,
         submissionId,
       }: {
-        token: string;
+        roundId: number;
+        sessionId: number;
         submissionId: number;
       }) {
         const now = new Date().toISOString();
-        const result = yield* use((db) =>
-          db
-            .update(votingSession)
-            .set({
-              voteSubmissionId: submissionId,
-              votedAt: now,
-              updatedAt: now,
-            })
-            .where(eq(votingSession.token, token))
-            .returning(),
+        const values: NewVotingRoundVote = {
+          roundId,
+          sessionId,
+          submissionId,
+          votedAt: now,
+        };
+
+        const result = yield* use((database) =>
+          database.insert(votingRoundVote).values(values).returning(),
         );
-        return result[0] as VotingSession | undefined;
+
+        return result[0];
       });
+
       const clearVote = Effect.fn("VotingQueries.clearVote")(function* ({
+        roundId,
         sessionId,
       }: {
+        roundId: number;
         sessionId: number;
       }) {
-        const now = new Date().toISOString();
-        const result = yield* use((db) =>
-          db
-            .update(votingSession)
-            .set({
-              voteSubmissionId: null,
-              votedAt: null,
-              updatedAt: now,
-            })
-            .where(eq(votingSession.id, sessionId))
+        const result = yield* use((database) =>
+          database
+            .delete(votingRoundVote)
+            .where(
+              and(
+                eq(votingRoundVote.roundId, roundId),
+                eq(votingRoundVote.sessionId, sessionId),
+              ),
+            )
             .returning(),
         );
-        return result[0] as VotingSession | undefined;
+
+        return result[0];
       });
+
       const deleteVotingSession = Effect.fn(
         "VotingQueries.deleteVotingSession",
       )(function* ({ sessionId }: { sessionId: number }) {
-        const result = yield* use((db) =>
-          db
+        const result = yield* use((database) =>
+          database
             .delete(votingSession)
             .where(eq(votingSession.id, sessionId))
             .returning(),
         );
+
         return result[0] as VotingSession | undefined;
       });
+
       return {
         getVotingSessionByToken,
         getVotingSessionsByIdsWithMarathon,
@@ -1106,23 +1506,32 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         updateMultipleLastNotificationSentAt,
         countVotingSessionsForTopic,
         getVotingSessionsForTopic,
-        getSubmissionVoteLeaderboardForTopic,
+        createVotingRound,
+        createVotingRoundSubmissions,
+        createVotingRoundVotes,
+        getVotingRoundById,
+        getLatestVotingRoundForTopic,
+        getActiveVotingRoundForTopic,
         getVotingSessionStatsForTopic,
         getVotingWindowForTopic,
         upsertTopicVotingWindow,
+        updateVotingRoundWindow,
         closeTopicVotingWindow,
         reopenTopicVotingWindow,
         closeVotingWindowsForTopics,
         countSubmissionsForTopic,
         countParticipantsWithSubmissionsForTopic,
+        countVotingRoundSubmissionsForTopic,
         getLeaderboardPageForTopic,
         getTopRanksPreviewForTopic,
+        getLeadingTieForTopic,
         getVotersPageForTopic,
         getVotingSessionByIdForTopic,
         getSubmissionVoteStats,
         getParticipantVoteInfo,
         getVotingSessionByParticipantId,
         getVotingSessionByParticipantAndTopicId,
+        getVotingRoundVoteForSession,
         upsertVotingSession,
         getSubmissionsForVoting,
         recordVote,

@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type {
   CompetitionClass,
   DeviceGroup,
@@ -10,8 +10,8 @@ import type {
   Topic,
   ValidationResult,
   VotingSession,
-} from "@blikka/db"
-import { format } from "date-fns"
+} from "@blikka/db";
+import { format } from "date-fns";
 import {
   AlertTriangle,
   Camera,
@@ -29,48 +29,50 @@ import {
   Link2,
   Send,
   Plus,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
-import Link from "next/link"
-import { formatDomainPathname } from "@/lib/utils"
-import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { formatDomainPathname } from "@/lib/utils";
+import { useTRPC } from "@/lib/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface VoteStats {
-  voteCount: number
-  position: number
-  totalSubmissions: number
+  voteCount: number;
+  position: number;
+  totalSubmissions: number;
+  roundNumber?: number | null;
+  roundKind?: string | null;
   participantVoteInfo: {
-    hasVoted: boolean
-    votedAt: string | null
-    votedSubmissionId: number | null
-    votedTopicName: string | null
-  } | null
+    hasVoted: boolean;
+    votedAt: string | null;
+    votedSubmissionId: number | null;
+    votedTopicName: string | null;
+  } | null;
 }
 
 interface VotingSessionData {
-  hasSession: boolean
-  session?: VotingSession
-  hasVoted?: boolean
-  notificationLastSentAt?: string | null
+  hasSession: boolean;
+  session?: VotingSession;
+  hasVoted?: boolean;
+  notificationLastSentAt?: string | null;
 }
 
 interface SubmissionMetadataPanelProps {
-  submission: Submission
+  submission: Submission;
   participant: Participant & {
-    competitionClass: CompetitionClass | null
-    deviceGroup: DeviceGroup | null
-  }
-  hasIssues: boolean
-  validationResults: ValidationResult[]
-  marathonMode?: string
-  voteStats?: VoteStats
-  votingSessionData?: VotingSessionData
-  domain: string
-  topics: Topic[]
+    competitionClass: CompetitionClass | null;
+    deviceGroup: DeviceGroup | null;
+  };
+  hasIssues: boolean;
+  validationResults: ValidationResult[];
+  marathonMode?: string;
+  voteStats?: VoteStats;
+  votingSessionData?: VotingSessionData;
+  domain: string;
+  topics: Topic[];
 }
 
 export function SubmissionMetadataPanel({
@@ -84,21 +86,21 @@ export function SubmissionMetadataPanel({
   votingSessionData,
   domain,
 }: SubmissionMetadataPanelProps) {
-  const isByCameraMode = marathonMode === "by-camera"
-  const trpc = useTRPC()
-  const queryClient = useQueryClient()
+  const isByCameraMode = marathonMode === "by-camera";
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  const activeByCameraTopic = topics.find((t) => t.visibility === "active")
+  const activeByCameraTopic = topics.find((t) => t.visibility === "active");
 
   const createOrUpdateVotingSessionMutation = useMutation(
     trpc.voting.createOrUpdateVotingSession.mutationOptions({
       onSuccess: (data) => {
         if (data.action === "created") {
-          toast.success("Voting session created and invite sent")
+          toast.success("Voting session created and invite sent");
         } else if (data.action === "resent") {
-          toast.success("Vote invite resent")
+          toast.success("Vote invite resent");
         } else if (data.action === "already_voted") {
-          toast.info("Participant has already voted")
+          toast.info("Participant has already voted");
         }
         queryClient.invalidateQueries({
           queryKey: trpc.voting.getVotingSessionByParticipant.queryKey({
@@ -106,26 +108,26 @@ export function SubmissionMetadataPanel({
             topicId: activeByCameraTopic?.id ?? 0,
             domain,
           }),
-        })
+        });
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to create voting session")
+        toast.error(error.message || "Failed to create voting session");
       },
     }),
-  )
+  );
 
   const handleCreateOrUpdateVotingSession = () => {
     if (!activeByCameraTopic) {
-      toast.error("No active by-camera topic found")
-      return
+      toast.error("No active by-camera topic found");
+      return;
     }
 
     createOrUpdateVotingSessionMutation.mutate({
       participantId: participant.id,
       topicId: activeByCameraTopic.id,
       domain,
-    })
-  }
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -185,7 +187,8 @@ export function SubmissionMetadataPanel({
 
                 <div className="flex items-start gap-2.5">
                   <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center min-w-[28px]">
-                    {participant.competitionClass?.numberOfPhotos !== undefined ? (
+                    {participant.competitionClass?.numberOfPhotos !==
+                    undefined ? (
                       <span className="text-xs font-semibold">
                         {participant.competitionClass.numberOfPhotos}
                       </span>
@@ -231,6 +234,13 @@ export function SubmissionMetadataPanel({
                 <p className="text-xs text-muted-foreground">
                   of {voteStats.totalSubmissions} submissions
                 </p>
+                {voteStats.roundNumber ? (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {voteStats.roundKind === "tiebreak"
+                      ? `Tie-break ${voteStats.roundNumber}`
+                      : `Round ${voteStats.roundNumber}`}
+                  </p>
+                ) : null}
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
@@ -262,19 +272,25 @@ export function SubmissionMetadataPanel({
                 {voteStats.participantVoteInfo.votedAt && (
                   <p className="text-xs text-muted-foreground">
                     Voted on{" "}
-                    {format(new Date(voteStats.participantVoteInfo.votedAt), "MMM d, yyyy HH:mm")}
+                    {format(
+                      new Date(voteStats.participantVoteInfo.votedAt),
+                      "MMM d, yyyy HH:mm",
+                    )}
                   </p>
                 )}
                 {voteStats.participantVoteInfo.votedTopicName && (
                   <div className="p-2.5 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">Voted for:</p>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Voted for:
+                    </p>
                     <p className="text-sm font-medium">
                       {voteStats.participantVoteInfo.votedTopicName}
                     </p>
                   </div>
                 )}
                 {voteStats.participantVoteInfo.votedSubmissionId &&
-                  voteStats.participantVoteInfo.votedSubmissionId !== submission.id && (
+                  voteStats.participantVoteInfo.votedSubmissionId !==
+                    submission.id && (
                     <Link
                       href={formatDomainPathname(
                         `/admin/dashboard/submissions/${participant.reference}/${voteStats.participantVoteInfo.votedSubmissionId}`,
@@ -308,15 +324,21 @@ export function SubmissionMetadataPanel({
                     ) : (
                       <Plus className="h-4 w-4" />
                     )}
-                    {votingSessionData?.hasSession ? "Resend Vote Invite" : "Start Voting Session"}
+                    {votingSessionData?.hasSession
+                      ? "Resend Vote Invite"
+                      : "Start Voting Session"}
                   </Button>
                 )}
-                {votingSessionData?.hasSession && votingSessionData.notificationLastSentAt && (
-                  <p className="text-xs text-muted-foreground">
-                    Invite last sent:{" "}
-                    {format(new Date(votingSessionData.notificationLastSentAt), "MMM d, HH:mm")}
-                  </p>
-                )}
+                {votingSessionData?.hasSession &&
+                  votingSessionData.notificationLastSentAt && (
+                    <p className="text-xs text-muted-foreground">
+                      Invite last sent:{" "}
+                      {format(
+                        new Date(votingSessionData.notificationLastSentAt),
+                        "MMM d, HH:mm",
+                      )}
+                    </p>
+                  )}
               </div>
             )}
           </CardContent>
@@ -335,9 +357,14 @@ export function SubmissionMetadataPanel({
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="p-2 rounded-lg bg-green-500/10 border border-green-200">
                 <div className="text-xl font-bold text-green-600">
-                  {validationResults.filter((r) => r.outcome === "passed").length}
+                  {
+                    validationResults.filter((r) => r.outcome === "passed")
+                      .length
+                  }
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Passed</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Passed
+                </div>
               </div>
               <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-200">
                 <div className="text-xl font-bold text-yellow-600">
@@ -347,7 +374,9 @@ export function SubmissionMetadataPanel({
                     ).length
                   }
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Warnings</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Warnings
+                </div>
               </div>
               <div className="p-2 rounded-lg bg-destructive/10 border border-destructive/20">
                 <div className="text-xl font-bold text-destructive">
@@ -357,7 +386,9 @@ export function SubmissionMetadataPanel({
                     ).length
                   }
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Errors</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Errors
+                </div>
               </div>
             </div>
 
@@ -409,7 +440,10 @@ export function SubmissionMetadataPanel({
                   Available
                 </Badge>
               ) : (
-                <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-200 h-5">
+                <Badge
+                  variant="outline"
+                  className="bg-red-500/10 text-red-600 border-red-200 h-5"
+                >
                   Missing
                 </Badge>
               )}
@@ -427,7 +461,10 @@ export function SubmissionMetadataPanel({
                   {Object.keys(submission.exif).length} fields
                 </Badge>
               ) : (
-                <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-200 h-5">
+                <Badge
+                  variant="outline"
+                  className="bg-red-500/10 text-red-600 border-red-200 h-5"
+                >
                   Not available
                 </Badge>
               )}
@@ -436,5 +473,5 @@ export function SubmissionMetadataPanel({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -58,8 +58,19 @@ function makeSummary(): VotingAdminSummaryData {
     },
     submissionStats: {
       submissionCount: 12,
+      eligibleSubmissionCount: 12,
       participantWithSubmissionCount: 10,
     },
+    currentRound: {
+      id: 1,
+      roundNumber: 1,
+      kind: "initial",
+      startedAt: "2026-03-17T10:00:00.000Z",
+      endsAt: null,
+      sourceRoundId: null,
+    },
+    leadingTie: null,
+    canStartTiebreak: false,
     topRanks: [
       {
         rank: 1,
