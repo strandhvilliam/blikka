@@ -1,6 +1,7 @@
 import { Inter, Geist, Special_Gothic_Expanded_One, Special_Gothic } from "next/font/google"
 import { ReactNode, Suspense } from "react"
 import "../app/globals.css"
+import Head from "next/head"
 
 const geist = Geist({
   subsets: ["latin"],
@@ -27,7 +28,13 @@ type Props = {
 
 export default function Document({ children, locale }: Props) {
   return (
-    <html className={`${geist.className} ${specialGothic.variable} ${gothic.variable} relative`} lang={locale}>
+    <html
+      className={`${geist.className} ${specialGothic.variable} ${gothic.variable} relative`}
+      lang={locale}
+    >
+      <Head>
+        <meta name="apple-mobile-web-app-title" content="MyWebSite" />
+      </Head>
       <body>{children}</body>
     </html>
   )
