@@ -2,8 +2,8 @@ import type { ValidationResult } from "@blikka/validation"
 import {
   createParticipantFormSchema,
   type ParticipantFormValues,
-} from "@/lib/participant-upload/participant-form-schema"
-import { hasBlockingValidationErrors } from "@/lib/participant-upload/validation"
+} from "@/lib/participant-form-schema"
+import { hasBlockingValidationErrors } from "@/lib/participant-photo-validation"
 
 export const STAFF_UPLOAD_DEFAULT_FORM_VALUES: ParticipantFormValues = {
   reference: "",

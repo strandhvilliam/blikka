@@ -1,41 +1,30 @@
-"use client";
+"use client"
 
-import { useEffect } from "react";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ArrowRight,
-  Loader2,
-  UploadIcon,
-} from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { motion } from "motion/react";
+import { useEffect } from "react"
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, UploadIcon } from "lucide-react"
+import Link from "next/link"
+import { toast } from "sonner"
+import { motion } from "motion/react"
 
-import { useDomain } from "@/lib/domain-provider";
-import { useTRPC } from "@/lib/trpc/client";
-import { cn, formatDomainPathname } from "@/lib/utils";
-import { getExpectedPhotoCount } from "@/lib/upload-mapping";
+import { useDomain } from "@/lib/domain-provider"
+import { useTRPC } from "@/lib/trpc/client"
+import { cn, formatDomainPathname } from "@/lib/utils"
+import { getExpectedPhotoCount } from "@/lib/upload-utils"
 import {
   resolveStaffLaptopUploadLookupOutcome,
   type ParticipantExistenceStatus,
-} from "@/lib/participant-upload/flow-helpers";
+} from "@/lib/flow-helpers"
 import {
   PARTICIPANT_UPLOAD_PHASE,
   type ParticipantPreparedUpload,
   type ParticipantSelectedPhoto,
   type ParticipantUploadFileState,
-} from "@/lib/participant-upload/types";
-import { uploadPreparedFiles } from "@/lib/participant-upload/upload-runner";
-import { Button } from "@/components/ui/button";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+} from "@/lib/participant-upload-types"
+import { uploadManualFiles } from "@/lib/manual-upload"
+import { Button } from "@/components/ui/button"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,54 +34,48 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { normalizeParticipantReference } from "../../_lib/staff-utils";
-import type { StaffParticipant } from "../../_lib/staff-types";
-import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary";
-import { useStaffUploadStep } from "../_hooks/use-staff-upload-step";
-import { useStaffPhotoValidation } from "../_hooks/use-staff-photo-validation";
-import { useUploadStatusSync } from "../_hooks/use-upload-status-sync";
-import {
-  validateStaffUploadFiles,
-  validateStaffUploadForm,
-} from "../_lib/staff-upload-form";
-import {
-  useStaffUploadStore,
-  selectRequiresOverwriteWarning,
-} from "../_lib/staff-upload-store";
-import { ParticipantDetailsStep } from "./participant-details-step";
-import { ReferenceStep } from "./reference-step";
-import { StepIndicator } from "./step-indicator";
-import { UploadCompletePanel } from "./upload-complete-panel";
-import { UploadProgressPanel } from "./upload-progress-panel";
-import { UploadStep } from "./upload-step";
+} from "@/components/ui/alert-dialog"
+import { normalizeParticipantReference } from "../../_lib/staff-utils"
+import type { StaffParticipant } from "../../_lib/staff-types"
+import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary"
+import { useStaffUploadStep } from "../_hooks/use-staff-upload-step"
+import { useStaffPhotoValidation } from "../_hooks/use-staff-photo-validation"
+import { useStaffUploadStatusSync } from "../_hooks/use-staff-upload-status-sync"
+import { validateStaffUploadFiles, validateStaffUploadForm } from "../_lib/staff-upload-form"
+import { useStaffUploadStore, selectRequiresOverwriteWarning } from "../_lib/staff-upload-store"
+import { ParticipantDetailsStep } from "./participant-details-step"
+import { ReferenceStep } from "./reference-step"
+import { StepIndicator } from "./step-indicator"
+import { UploadCompletePanel } from "./upload-complete-panel"
+import { UploadProgressPanel } from "./upload-progress-panel"
+import { UploadStep } from "./upload-step"
 
-const POLLING_INTERVAL_MS = 3000;
+const POLLING_INTERVAL_MS = 3000
 
 interface StaffLaptopUploadClientProps {
-  staffEmail?: string | null;
-  staffImage?: string | null;
-  staffName?: string | null;
+  staffEmail?: string | null
+  staffImage?: string | null
+  staffName?: string | null
 }
 
 function getStaffInitials(name?: string | null, email?: string | null) {
-  const source = (name || email || "Staff").trim();
-  const words = source.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "ST";
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  const source = (name || email || "Staff").trim()
+  const words = source.split(/\s+/).filter(Boolean)
+  if (words.length === 0) return "ST"
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
   return words
     .slice(0, 2)
     .map((w) => w[0] ?? "")
     .join("")
-    .toUpperCase();
+    .toUpperCase()
 }
 
 function getBlockedMessage(status: ParticipantExistenceStatus) {
   if (status === "verified") {
-    return "This participant has already been verified and cannot be uploaded again from the staff laptop flow.";
+    return "This participant has already been verified and cannot be uploaded again from the staff laptop flow."
   }
 
-  return "This participant has already completed the upload flow and cannot be uploaded again from the staff laptop flow.";
+  return "This participant has already completed the upload flow and cannot be uploaded again from the staff laptop flow."
 }
 
 export function StaffLaptopUploadClient({
@@ -100,87 +83,74 @@ export function StaffLaptopUploadClient({
   staffImage,
   staffName,
 }: StaffLaptopUploadClientProps) {
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
 
-  const [step, setStep] = useStaffUploadStep();
+  const [step, setStep] = useStaffUploadStep()
 
   // -- participant state ----------------------------------------------------
-  const formValues = useStaffUploadStore((s) => s.formValues);
-  const existingParticipant = useStaffUploadStore((s) => s.existingParticipant);
-  const showOverwriteDialog = useStaffUploadStore((s) => s.showOverwriteDialog);
-  const requiresOverwriteWarning = useStaffUploadStore(
-    selectRequiresOverwriteWarning,
-  );
+  const formValues = useStaffUploadStore((s) => s.formValues)
+  const existingParticipant = useStaffUploadStore((s) => s.existingParticipant)
+  const showOverwriteDialog = useStaffUploadStore((s) => s.showOverwriteDialog)
+  const requiresOverwriteWarning = useStaffUploadStore(selectRequiresOverwriteWarning)
 
-  const resetForm = useStaffUploadStore((s) => s.resetForm);
-  const setFormField = useStaffUploadStore((s) => s.setFormField);
-  const setFormErrors = useStaffUploadStore((s) => s.setFormErrors);
-  const clearFormErrors = useStaffUploadStore((s) => s.clearFormErrors);
-  const patchParticipant = useStaffUploadStore((s) => s.patchParticipant);
+  const resetForm = useStaffUploadStore((s) => s.resetForm)
+  const setFormField = useStaffUploadStore((s) => s.setFormField)
+  const setFormErrors = useStaffUploadStore((s) => s.setFormErrors)
+  const clearFormErrors = useStaffUploadStore((s) => s.clearFormErrors)
+  const patchParticipant = useStaffUploadStore((s) => s.patchParticipant)
 
   // -- photo state ----------------------------------------------------------
-  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
-  const validationResults = useStaffUploadStore((s) => s.validationResults);
-  const validationRunError = useStaffUploadStore((s) => s.validationRunError);
+  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos)
+  const validationResults = useStaffUploadStore((s) => s.validationResults)
+  const validationRunError = useStaffUploadStore((s) => s.validationRunError)
 
-  const resetPhotoSelection = useStaffUploadStore((s) => s.resetPhotoSelection);
-  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos);
+  const resetPhotoSelection = useStaffUploadStore((s) => s.resetPhotoSelection)
+  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos)
 
   // -- upload state ---------------------------------------------------------
-  const uploadFiles = useStaffUploadStore((s) => s.uploadFiles);
-  const submittedReference = useStaffUploadStore((s) => s.submittedReference);
-  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles);
-  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus);
-  const uploadComplete = useStaffUploadStore((s) => s.uploadComplete);
+  const uploadFiles = useStaffUploadStore((s) => s.uploadFiles)
+  const submittedReference = useStaffUploadStore((s) => s.submittedReference)
+  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles)
+  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus)
+  const uploadComplete = useStaffUploadStore((s) => s.uploadComplete)
 
-  const updateUploadFileState = useStaffUploadStore(
-    (s) => s.updateUploadFileState,
-  );
-  const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow);
-  const patchUpload = useStaffUploadStore((s) => s.patchUpload);
+  const updateUploadFileState = useStaffUploadStore((s) => s.updateUploadFileState)
+  const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow)
+  const patchUpload = useStaffUploadStore((s) => s.patchUpload)
 
   // -- global ---------------------------------------------------------------
-  const resetAllState = useStaffUploadStore((s) => s.resetAllState);
+  const resetAllState = useStaffUploadStore((s) => s.resetAllState)
 
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain }),
-  );
-  const marathonMode = marathon.mode as "marathon" | "by-camera";
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
+  const marathonMode = marathon.mode as "marathon" | "by-camera"
 
   const lookupParticipantMutation = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
-  );
+  )
   const initializeUploadFlowMutation = useMutation(
     trpc.uploadFlow.initializeUploadFlow.mutationOptions(),
-  );
+  )
   const initializeByCameraUploadMutation = useMutation(
     trpc.uploadFlow.initializeByCameraUpload.mutationOptions(),
-  );
+  )
 
   const activeCompetitionClassId = existingParticipant
     ? String(existingParticipant.competitionClassId)
-    : formValues.competitionClassId;
+    : formValues.competitionClassId
   const activeDeviceGroupId = existingParticipant
     ? String(existingParticipant.deviceGroupId)
-    : formValues.deviceGroupId;
+    : formValues.deviceGroupId
 
   const selectedCompetitionClass =
-    marathon.competitionClasses.find(
-      (cc) => cc.id === Number(activeCompetitionClassId),
-    ) ?? null;
+    marathon.competitionClasses.find((cc) => cc.id === Number(activeCompetitionClassId)) ?? null
   const selectedDeviceGroup =
-    marathon.deviceGroups.find((dg) => dg.id === Number(activeDeviceGroupId)) ??
-    null;
+    marathon.deviceGroups.find((dg) => dg.id === Number(activeDeviceGroupId)) ?? null
 
-  const expectedPhotoCount = getExpectedPhotoCount(
-    marathonMode,
-    null,
-    selectedCompetitionClass,
-  );
+  const expectedPhotoCount = getExpectedPhotoCount(marathonMode, null, selectedCompetitionClass)
 
-  const participantSummary = useStaffUploadParticipantSummary();
+  const participantSummary = useStaffUploadParticipantSummary()
 
   const uploadStatusQuery = useQuery(
     trpc.uploadFlow.getUploadStatus.queryOptions(
@@ -190,91 +160,81 @@ export function StaffLaptopUploadClient({
         orderIndexes: uploadFiles.map((file) => file.orderIndex),
       },
       {
-        enabled:
-          isPollingStatus &&
-          submittedReference.length > 0 &&
-          uploadFiles.length > 0,
+        enabled: isPollingStatus && submittedReference.length > 0 && uploadFiles.length > 0,
         refetchInterval: POLLING_INTERVAL_MS,
         refetchIntervalInBackground: false,
       },
     ),
-  );
+  )
 
   const isUploadBusy =
     isUploadingFiles ||
     isPollingStatus ||
     initializeUploadFlowMutation.isPending ||
-    initializeByCameraUploadMutation.isPending;
-  const isBusy = lookupParticipantMutation.isPending || isUploadBusy;
-  const canSelectFiles = Boolean(
-    selectedCompetitionClass && selectedDeviceGroup,
-  );
-  const isMaxImagesReached =
-    selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0;
-  const isDropzoneDisabled =
-    !canSelectFiles || isBusy || uploadComplete || isMaxImagesReached;
+    initializeByCameraUploadMutation.isPending
+  const isBusy = lookupParticipantMutation.isPending || isUploadBusy
+  const canSelectFiles = Boolean(selectedCompetitionClass && selectedDeviceGroup)
+  const isMaxImagesReached = selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0
+  const isDropzoneDisabled = !canSelectFiles || isBusy || uploadComplete || isMaxImagesReached
 
   useEffect(() => {
-    resetAllState();
-    void setStep("reference");
+    resetAllState()
+    void setStep("reference")
 
     return () => {
-      resetAllState();
-    };
-  }, [resetAllState, setStep]);
+      resetAllState()
+    }
+  }, [resetAllState, setStep])
 
   useEffect(() => {
-    if (step === "reference") return;
+    if (step === "reference") return
 
     if (step === "details" && !formValues.reference) {
-      void setStep("reference");
-      return;
+      void setStep("reference")
+      return
     }
 
-    if (
-      (step === "upload" || step === "progress" || step === "complete") &&
-      !participantSummary
-    ) {
-      void setStep(formValues.reference ? "details" : "reference");
+    if ((step === "upload" || step === "progress" || step === "complete") && !participantSummary) {
+      void setStep(formValues.reference ? "details" : "reference")
     }
-  }, [formValues.reference, participantSummary, setStep, step]);
+  }, [formValues.reference, participantSummary, setStep, step])
 
   useStaffPhotoValidation({
     step,
     ruleConfigs: marathon.ruleConfigs,
     marathonStartDate: marathon.startDate,
     marathonEndDate: marathon.endDate,
-  });
+  })
 
-  const { resetCompletion } = useUploadStatusSync({
+  const { resetCompletion } = useStaffUploadStatusSync({
     domain,
     uploadStatusData: uploadStatusQuery.data,
     refetchUploadStatus: async () => {
-      await uploadStatusQuery.refetch();
+      await uploadStatusQuery.refetch()
     },
     setStep,
-  });
+  })
 
   async function runUpload(
     reference: string,
     photos: ParticipantSelectedPhoto[],
     participantDraft?: Partial<typeof formValues>,
   ) {
-    if (photos.length === 0) return;
+    if (photos.length === 0) return
 
     const resolvedFormValues = {
       ...formValues,
       ...participantDraft,
       reference,
-    };
+    }
 
     patchUpload({
       uploadErrorMessage: null,
       uploadComplete: false,
       isUploadingFiles: true,
       isPollingStatus: false,
-    });
-    resetCompletion();
+    })
+    resetCompletion()
 
     try {
       const commonPayload = {
@@ -284,9 +244,9 @@ export function StaffLaptopUploadClient({
         email: resolvedFormValues.email.trim(),
         deviceGroupId: Number(resolvedFormValues.deviceGroupId),
         phoneNumber: resolvedFormValues.phone.trim(),
-      };
+      }
 
-      const orderedPhotos = [...photos].sort((a, b) => a.orderIndex - b.orderIndex);
+      const orderedPhotos = [...photos].sort((a, b) => a.orderIndex - b.orderIndex)
 
       const initialization =
         marathonMode === "marathon"
@@ -295,126 +255,116 @@ export function StaffLaptopUploadClient({
               reference,
               phoneNumber: commonPayload.phoneNumber || null,
               competitionClassId: Number(resolvedFormValues.competitionClassId),
-              uploadContentTypes: orderedPhotos.map(
-                (photo) => photo.file.type || "image/jpeg",
-              ),
+              uploadContentTypes: orderedPhotos.map((photo) => photo.file.type || "image/jpeg"),
             })
-          : await initializeByCameraUploadMutation.mutateAsync(commonPayload);
+          : await initializeByCameraUploadMutation.mutateAsync(commonPayload)
 
       const resolvedReference =
         marathonMode === "marathon" || Array.isArray(initialization)
           ? reference
-          : initialization.reference;
-      const presignedUrls = Array.isArray(initialization)
-        ? initialization
-        : initialization.uploads;
+          : initialization.reference
+      const presignedUrls = Array.isArray(initialization) ? initialization : initialization.uploads
 
       if (!presignedUrls.length) {
-        throw new Error("Failed to initialize upload URLs");
+        throw new Error("Failed to initialize upload URLs")
       }
 
-      const preparedUploads: ParticipantPreparedUpload[] = orderedPhotos.map(
-        (photo, index) => {
-          const urlData = presignedUrls[index];
+      const preparedUploads: ParticipantPreparedUpload[] = orderedPhotos.map((photo, index) => {
+        const urlData = presignedUrls[index]
 
-          if (!urlData) {
-            throw new Error(`Missing upload URL for image #${index + 1}`);
-          }
+        if (!urlData) {
+          throw new Error(`Missing upload URL for image #${index + 1}`)
+        }
 
-          const contentTypeFromApi =
-            "contentType" in urlData && typeof urlData.contentType === "string"
-              ? urlData.contentType
-              : undefined;
+        const contentTypeFromApi =
+          "contentType" in urlData && typeof urlData.contentType === "string"
+            ? urlData.contentType
+            : undefined
 
-          return {
-            ...photo,
-            key: urlData.key,
-            presignedUrl: urlData.url,
-            ...(contentTypeFromApi !== undefined
-              ? { contentType: contentTypeFromApi }
-              : {}),
-          };
-        },
-      );
-
-      const initialUploadState: ParticipantUploadFileState[] =
-        preparedUploads.map((photo) => ({
+        return {
           ...photo,
-          phase: PARTICIPANT_UPLOAD_PHASE.PRESIGNED,
-          progress: 0,
-          error: undefined,
-        }));
+          key: urlData.key,
+          presignedUrl: urlData.url,
+          ...(contentTypeFromApi !== undefined ? { contentType: contentTypeFromApi } : {}),
+        }
+      })
+
+      const initialUploadState: ParticipantUploadFileState[] = preparedUploads.map((photo) => ({
+        ...photo,
+        phase: PARTICIPANT_UPLOAD_PHASE.PRESIGNED,
+        progress: 0,
+        error: undefined,
+      }))
 
       patchUpload({
         uploadFiles: initialUploadState,
         submittedReference: resolvedReference,
-      });
+      })
 
-      const { successKeys, failedKeys } = await uploadPreparedFiles({
+      const { successKeys, failedKeys } = await uploadManualFiles({
         files: preparedUploads,
         onFileStateChange: updateUploadFileState,
-      });
+      })
 
       if (successKeys.length > 0) {
-        patchUpload({ isPollingStatus: true });
+        patchUpload({ isPollingStatus: true })
       }
 
-      if (failedKeys.length === 0) return;
+      if (failedKeys.length === 0) return
 
       const message = `${failedKeys.length} photo${
         failedKeys.length === 1 ? "" : "s"
-      } failed to upload`;
-      patchUpload({ uploadErrorMessage: message });
-      toast.error(message);
+      } failed to upload`
+      patchUpload({ uploadErrorMessage: message })
+      toast.error(message)
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to initialize upload";
-      patchUpload({ uploadErrorMessage: message });
-      toast.error(message);
+      const message = error instanceof Error ? error.message : "Failed to initialize upload"
+      patchUpload({ uploadErrorMessage: message })
+      toast.error(message)
     } finally {
-      patchUpload({ isUploadingFiles: false });
+      patchUpload({ isUploadingFiles: false })
     }
   }
 
   const handleLookup = async (reference: string) => {
-    const normalizedReference = normalizeParticipantReference(reference);
+    const normalizedReference = normalizeParticipantReference(reference)
 
-    setFormField("reference", normalizedReference);
-    patchParticipant({ lookupErrorMessage: null, showOverwriteDialog: false });
-    patchPhotos({ filesError: null });
-    resetPhotoSelection();
-    resetUploadFlow();
+    setFormField("reference", normalizedReference)
+    patchParticipant({ lookupErrorMessage: null, showOverwriteDialog: false })
+    patchPhotos({ filesError: null })
+    resetPhotoSelection()
+    resetUploadFlow()
 
     try {
       const result = await lookupParticipantMutation.mutateAsync({
         domain,
         reference: normalizedReference,
-      });
+      })
 
-      const resolvedStatus = result.status as ParticipantExistenceStatus;
+      const resolvedStatus = result.status as ParticipantExistenceStatus
       const outcome = resolveStaffLaptopUploadLookupOutcome({
         exists: result.exists,
         status: resolvedStatus,
-      });
+      })
 
-      patchParticipant({ participantStatus: resolvedStatus });
+      patchParticipant({ participantStatus: resolvedStatus })
 
       if (outcome.kind === "blocked") {
         patchParticipant({
           existingParticipant: null,
           lookupErrorMessage: getBlockedMessage(resolvedStatus),
-        });
-        resetForm(normalizedReference);
-        void setStep("reference");
-        return;
+        })
+        resetForm(normalizedReference)
+        void setStep("reference")
+        return
       }
 
       if (outcome.kind === "manual-entry") {
-        patchParticipant({ existingParticipant: null });
-        resetForm(normalizedReference);
-        clearFormErrors();
-        void setStep("details");
-        return;
+        patchParticipant({ existingParticipant: null })
+        resetForm(normalizedReference)
+        clearFormErrors()
+        void setStep("details")
+        return
       }
 
       const participant = await queryClient.fetchQuery(
@@ -422,40 +372,38 @@ export function StaffLaptopUploadClient({
           domain,
           reference: normalizedReference,
         }),
-      );
+      )
 
       patchParticipant({
         existingParticipant: participant as StaffParticipant,
-      });
-      void setStep("upload");
+      })
+      void setStep("upload")
     } catch (error) {
-      console.error(error);
+      console.error(error)
       patchParticipant({
         lookupErrorMessage:
-          error instanceof Error
-            ? error.message
-            : "Failed to find participant for this reference.",
-      });
+          error instanceof Error ? error.message : "Failed to find participant for this reference.",
+      })
     }
-  };
+  }
 
   const handleContinueFromDetails = () => {
-    const errors = validateStaffUploadForm(marathonMode, formValues);
+    const errors = validateStaffUploadForm(marathonMode, formValues)
 
     if (errors) {
-      setFormErrors(errors);
-      return;
+      setFormErrors(errors)
+      return
     }
 
-    clearFormErrors();
-    patchParticipant({ lookupErrorMessage: null });
-    void setStep("upload");
-  };
+    clearFormErrors()
+    patchParticipant({ lookupErrorMessage: null })
+    void setStep("upload")
+  }
 
   const handleSubmitUpload = async () => {
     if (!participantSummary) {
-      toast.error("Participant details are missing.");
-      return;
+      toast.error("Participant details are missing.")
+      return
     }
 
     const filesValidationError = validateStaffUploadFiles({
@@ -463,11 +411,11 @@ export function StaffLaptopUploadClient({
       selectedPhotosCount: selectedPhotos.length,
       validationResults,
       validationRunError,
-    });
+    })
 
     if (filesValidationError) {
-      patchPhotos({ filesError: filesValidationError });
-      return;
+      patchPhotos({ filesError: filesValidationError })
+      return
     }
 
     const participantPayload = existingParticipant
@@ -479,26 +427,22 @@ export function StaffLaptopUploadClient({
           competitionClassId: String(existingParticipant.competitionClassId),
           deviceGroupId: String(existingParticipant.deviceGroupId),
         }
-      : formValues;
+      : formValues
 
     if (requiresOverwriteWarning) {
-      patchParticipant({ showOverwriteDialog: true });
-      return;
+      patchParticipant({ showOverwriteDialog: true })
+      return
     }
 
-    void setStep("progress");
-    await runUpload(
-      participantSummary.reference,
-      selectedPhotos,
-      participantPayload,
-    );
-  };
+    void setStep("progress")
+    await runUpload(participantSummary.reference, selectedPhotos, participantPayload)
+  }
 
   const handleConfirmOverwrite = async () => {
-    if (!participantSummary || !existingParticipant) return;
+    if (!participantSummary || !existingParticipant) return
 
-    patchParticipant({ showOverwriteDialog: false });
-    void setStep("progress");
+    patchParticipant({ showOverwriteDialog: false })
+    void setStep("progress")
     await runUpload(participantSummary.reference, selectedPhotos, {
       firstName: existingParticipant.firstname,
       lastName: existingParticipant.lastname,
@@ -506,17 +450,15 @@ export function StaffLaptopUploadClient({
       phone: "",
       competitionClassId: String(existingParticipant.competitionClassId),
       deviceGroupId: String(existingParticipant.deviceGroupId),
-    });
-  };
+    })
+  }
 
-  const backUrl = formatDomainPathname("/staff", domain, "staff");
-  const showFloatingBar = step === "details" || step === "upload";
+  const backUrl = formatDomainPathname("/staff", domain, "staff")
+  const showFloatingBar = step === "details" || step === "upload"
   const submitDisabled =
     isBusy ||
     selectedPhotos.length !== expectedPhotoCount ||
-    validationResults.some(
-      (result) => result.outcome === "failed" && result.severity === "error",
-    );
+    validationResults.some((result) => result.outcome === "failed" && result.severity === "error")
 
   if (marathon.mode !== "marathon") {
     return (
@@ -534,9 +476,7 @@ export function StaffLaptopUploadClient({
                 {marathon.name}
               </span>
               <Avatar className="h-7 w-7 ring-1 ring-border">
-                {staffImage ? (
-                  <AvatarImage src={staffImage} alt={staffName ?? ""} />
-                ) : null}
+                {staffImage ? <AvatarImage src={staffImage} alt={staffName ?? ""} /> : null}
                 <AvatarFallback className="bg-muted text-[10px] font-semibold">
                   {getStaffInitials(staffName, staffEmail)}
                 </AvatarFallback>
@@ -555,15 +495,15 @@ export function StaffLaptopUploadClient({
                   Staff upload unavailable
                 </h1>
                 <p className="mt-2 text-sm text-amber-800">
-                  This staff tool is only available for marathon mode events.
-                  By-camera events are not supported.
+                  This staff tool is only available for marathon mode events. By-camera events are
+                  not supported.
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -571,12 +511,7 @@ export function StaffLaptopUploadClient({
       <div className="relative min-h-screen">
         <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-lg">
           <div className="relative mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="relative z-10 rounded-full"
-            >
+            <Button asChild variant="ghost" size="sm" className="relative z-10 rounded-full">
               <Link href={backUrl}>
                 <ArrowLeft className="mr-1.5 h-4 w-4" />
                 <span className="hidden sm:inline">Back</span>
@@ -592,9 +527,7 @@ export function StaffLaptopUploadClient({
                 {marathon.name}
               </span>
               <Avatar className="h-7 w-7 ring-1 ring-border">
-                {staffImage ? (
-                  <AvatarImage src={staffImage} alt={staffName ?? ""} />
-                ) : null}
+                {staffImage ? <AvatarImage src={staffImage} alt={staffName ?? ""} /> : null}
                 <AvatarFallback className="bg-muted text-[10px] font-semibold">
                   {getStaffInitials(staffName, staffEmail)}
                 </AvatarFallback>
@@ -603,12 +536,7 @@ export function StaffLaptopUploadClient({
           </div>
         </header>
 
-        <div
-          className={cn(
-            "mx-auto max-w-3xl px-6 py-6",
-            showFloatingBar && "pb-28",
-          )}
-        >
+        <div className={cn("mx-auto max-w-3xl px-6 py-6", showFloatingBar && "pb-28")}>
           <motion.div
             key={step}
             initial={{ opacity: 0, y: 6 }}
@@ -622,15 +550,10 @@ export function StaffLaptopUploadClient({
               />
             ) : null}
 
-            {step === "details" ? (
-              <ParticipantDetailsStep isBusy={isBusy} />
-            ) : null}
+            {step === "details" ? <ParticipantDetailsStep isBusy={isBusy} /> : null}
 
             {step === "upload" ? (
-              <UploadStep
-                isBusy={isBusy}
-                dropzoneDisabled={isDropzoneDisabled}
-              />
+              <UploadStep isBusy={isBusy} dropzoneDisabled={isDropzoneDisabled} />
             ) : null}
 
             {step === "progress" ? <UploadProgressPanel /> : null}
@@ -650,14 +573,14 @@ export function StaffLaptopUploadClient({
                   variant="outline"
                   className="rounded-full"
                   onClick={() => {
-                    resetForm(formValues.reference);
+                    resetForm(formValues.reference)
                     patchParticipant({
                       lookupErrorMessage: null,
                       existingParticipant: null,
                       participantStatus: null,
-                    });
-                    patchPhotos({ filesError: null });
-                    void setStep("reference");
+                    })
+                    patchPhotos({ filesError: null })
+                    void setStep("reference")
                   }}
                   disabled={isBusy}
                 >
@@ -683,21 +606,21 @@ export function StaffLaptopUploadClient({
                   variant="outline"
                   className="rounded-full"
                   onClick={() => {
-                    patchPhotos({ filesError: null });
+                    patchPhotos({ filesError: null })
 
                     if (existingParticipant) {
-                      resetPhotoSelection();
-                      resetUploadFlow();
+                      resetPhotoSelection()
+                      resetUploadFlow()
                       patchParticipant({
                         existingParticipant: null,
                         participantStatus: null,
                         showOverwriteDialog: false,
-                      });
-                      void setStep("reference");
-                      return;
+                      })
+                      void setStep("reference")
+                      return
                     }
 
-                    void setStep("details");
+                    void setStep("details")
                   }}
                   disabled={isBusy}
                 >
@@ -731,19 +654,17 @@ export function StaffLaptopUploadClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Replace existing upload?</AlertDialogTitle>
             <AlertDialogDescription>
-              This participant already has an upload in progress. Starting again
-              will replace that upload.
+              This participant already has an upload in progress. Starting again will replace that
+              upload.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isUploadBusy}>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={isUploadBusy}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               disabled={isUploadBusy}
               onClick={(event) => {
-                event.preventDefault();
-                void handleConfirmOverwrite();
+                event.preventDefault()
+                void handleConfirmOverwrite()
               }}
             >
               Replace and upload
@@ -752,5 +673,5 @@ export function StaffLaptopUploadClient({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }

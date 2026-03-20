@@ -23,7 +23,7 @@ import {
   UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS,
 } from "../_lib/constants"
 import { chunk } from "../_lib/utils"
-import { useUploadStatusRealtime } from "@/lib/participant-upload/use-upload-status-realtime"
+import { useUploadStatusRealtime } from "@/lib/use-upload-status-realtime"
 
 interface UseFileUploadOptions {
   domain: string

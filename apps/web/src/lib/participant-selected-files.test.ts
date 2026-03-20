@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-async function importParticipantFileProcessing() {
+async function importParticipantSelectedFiles() {
   const parseExifData = vi.fn(async (file: File) => {
     if (file.name === "third.jpg") {
       return { DateTimeOriginal: "2024-03-01T11:00:00.000Z" };
@@ -20,7 +20,7 @@ async function importParticipantFileProcessing() {
     .mockReturnValue("generated-next");
   const generateThumbnailUrl = vi.fn(async (file: File) => `blob:${file.name}`);
 
-  vi.doMock("../exif-parsing", () => ({
+  vi.doMock("./exif-parsing", () => ({
     getExifDate: (exif?: Record<string, unknown> | null) => {
       if (!exif) return null;
       const dateValue = exif.DateTimeOriginal || exif.CreateDate;
@@ -33,9 +33,9 @@ async function importParticipantFileProcessing() {
     },
     parseExifData,
   }));
-  vi.doMock("../file-processing", async () => {
-    const actual = await vi.importActual<typeof import("../file-processing")>(
-      "../file-processing",
+  vi.doMock("./file-processing", async () => {
+    const actual = await vi.importActual<typeof import("./file-processing")>(
+      "./file-processing",
     );
 
     return {
@@ -45,10 +45,10 @@ async function importParticipantFileProcessing() {
     };
   });
 
-  const participantFileProcessingModule = await import("./file-processing");
+  const participantSelectedFilesModule = await import("./participant-selected-files");
 
   return {
-    ...participantFileProcessingModule,
+    ...participantSelectedFilesModule,
     mocks: {
       parseExifData,
       createClientPhotoId,
@@ -60,14 +60,14 @@ async function importParticipantFileProcessing() {
 afterEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
-  vi.doUnmock("../exif-parsing");
-  vi.doUnmock("../file-processing");
+  vi.doUnmock("./exif-parsing");
+  vi.doUnmock("./file-processing");
 });
 
-describe("participant-upload/file-processing", () => {
+describe("participant-upload/participant-selected-files", () => {
   it("prepares selected photos with thumbnails, preserved EXIF, and sorted order indexes", async () => {
     const { prepareParticipantSelectedPhotos, mocks } =
-      await importParticipantFileProcessing();
+      await importParticipantSelectedFiles();
 
     const existingPhoto = {
       id: "existing",
@@ -127,7 +127,7 @@ describe("participant-upload/file-processing", () => {
   });
 
   it("preserves normalization warnings and enforces duplicate and max-count rules", async () => {
-    const { processSelectedFiles, mocks } = await importParticipantFileProcessing();
+    const { processSelectedFiles, mocks } = await importParticipantSelectedFiles();
 
     const result = await processSelectedFiles({
       fileList: [

@@ -9,4 +9,4 @@
 //   type UploadRealtimeEventData,
 //   type UploadRealtimeFileSnapshot,
 //   type UploadStatusSubmissionSnapshot,
-// } from "@/lib/participant-upload/upload-status-realtime";
+// } from "@/lib/upload-status-realtime";

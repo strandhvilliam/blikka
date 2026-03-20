@@ -14,11 +14,7 @@ interface ManualEntryDialogProps {
   onEnterAction: (args: { reference: string }) => void
 }
 
-export function ManualEntryDialog({
-  open,
-  onOpenChange,
-  onEnterAction,
-}: ManualEntryDialogProps) {
+export function ManualEntryDialog({ open, onOpenChange, onEnterAction }: ManualEntryDialogProps) {
   const [reference, setReference] = useState("")
 
   useEffect(() => {
@@ -56,7 +52,12 @@ export function ManualEntryDialog({
             className="h-16 text-center font-mono text-4xl tracking-[0.25em]"
           />
           <div className="flex gap-3">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <PrimaryButton type="submit" className="flex-1" disabled={!reference.trim()}>

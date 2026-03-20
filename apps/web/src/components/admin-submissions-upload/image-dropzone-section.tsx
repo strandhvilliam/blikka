@@ -6,7 +6,7 @@ import { pluralizePhotos } from "@/hooks/use-participant-upload-form";
 import {
   DropzoneStatusBadge,
   type DropzoneVariant,
-} from "@/components/participant-upload/dropzone-status-badge";
+} from "@/components/admin-submissions-upload/dropzone-status-badge";
 
 export interface ImageDropzoneSectionDropzoneProps {
   getRootProps: () => Record<string, unknown>;

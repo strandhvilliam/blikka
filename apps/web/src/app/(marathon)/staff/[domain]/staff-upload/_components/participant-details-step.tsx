@@ -1,19 +1,22 @@
-"use client";
+"use client"
 
-import { CheckCircle2 } from "lucide-react";
-import { motion } from "motion/react";
-import { Icon } from "@iconify/react";
-import type { CompetitionClass, DeviceGroup } from "@blikka/db";
+import { CheckCircle2 } from "lucide-react"
+import { motion } from "motion/react"
+import { Icon } from "@iconify/react"
+import type { CompetitionClass, DeviceGroup } from "@blikka/db"
 
-import { Input } from "@/components/ui/input";
-import { Card, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { getSelectedTopics } from "@/lib/upload-mapping";
-import { useStaffUploadStore } from "../_lib/staff-upload-store";
-import { useStaffUploadMarathon } from "../_hooks/use-staff-upload-marathon";
+import { Input } from "@/components/ui/input"
+import { Card, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import { getSelectedTopics } from "@/lib/upload-utils"
+import { useStaffUploadStore } from "../_lib/staff-upload-store"
+import { useDomain } from "@/lib/domain-provider"
+import { useTRPC } from "@/lib/trpc/client"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { UploadMarathonMode } from "@/lib/types"
 
 interface ParticipantDetailsStepProps {
-  isBusy: boolean;
+  isBusy: boolean
 }
 
 function CompetitionClassCard({
@@ -22,10 +25,10 @@ function CompetitionClassCard({
   disabled,
   onSelect,
 }: {
-  competitionClass: CompetitionClass;
-  isSelected: boolean;
-  disabled: boolean;
-  onSelect: () => void;
+  competitionClass: CompetitionClass
+  isSelected: boolean
+  disabled: boolean
+  onSelect: () => void
 }) {
   return (
     <motion.div whileTap={disabled ? undefined : { scale: 0.97 }}>
@@ -37,12 +40,7 @@ function CompetitionClassCard({
         )}
         onClick={onSelect}
       >
-        <div
-          className={cn(
-            "flex items-center gap-4 px-4 py-3",
-            isSelected && "bg-foreground/3",
-          )}
-        >
+        <div className={cn("flex items-center gap-4 px-4 py-3", isSelected && "bg-foreground/3")}>
           <div
             className={cn(
               "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-colors duration-200",
@@ -77,15 +75,13 @@ function CompetitionClassCard({
               {competitionClass.numberOfPhotos === 1
                 ? "1 photo"
                 : `${competitionClass.numberOfPhotos} photos`}
-              {competitionClass.description
-                ? ` · ${competitionClass.description}`
-                : ""}
+              {competitionClass.description ? ` · ${competitionClass.description}` : ""}
             </p>
           </div>
         </div>
       </Card>
     </motion.div>
-  );
+  )
 }
 
 function DeviceGroupCard({
@@ -94,10 +90,10 @@ function DeviceGroupCard({
   disabled,
   onSelect,
 }: {
-  deviceGroup: DeviceGroup;
-  isSelected: boolean;
-  disabled: boolean;
-  onSelect: () => void;
+  deviceGroup: DeviceGroup
+  isSelected: boolean
+  disabled: boolean
+  onSelect: () => void
 }) {
   return (
     <motion.div whileTap={disabled ? undefined : { scale: 0.97 }}>
@@ -109,12 +105,7 @@ function DeviceGroupCard({
         )}
         onClick={onSelect}
       >
-        <div
-          className={cn(
-            "flex items-center gap-4 px-4 py-3",
-            isSelected && "bg-foreground/3",
-          )}
-        >
+        <div className={cn("flex items-center gap-4 px-4 py-3", isSelected && "bg-foreground/3")}>
           <div
             className={cn(
               "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-colors duration-200",
@@ -130,10 +121,7 @@ function DeviceGroupCard({
               {deviceGroup.icon === "smartphone" ? (
                 <Icon icon="solar:smartphone-broken" className="h-8 w-8" />
               ) : (
-                <Icon
-                  icon="solar:camera-minimalistic-broken"
-                  className="h-8 w-8"
-                />
+                <Icon icon="solar:camera-minimalistic-broken" className="h-8 w-8" />
               )}
             </span>
           </div>
@@ -153,31 +141,35 @@ function DeviceGroupCard({
               </motion.div>
             </CardTitle>
             {deviceGroup.description ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {deviceGroup.description}
-              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{deviceGroup.description}</p>
             ) : null}
           </div>
         </div>
       </Card>
     </motion.div>
-  );
+  )
 }
 
 export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) {
-  const marathon = useStaffUploadMarathon();
-  const reference = useStaffUploadStore((state) => state.formValues.reference);
-  const values = useStaffUploadStore((state) => state.formValues);
-  const errors = useStaffUploadStore((state) => state.formErrors);
-  const setFormField = useStaffUploadStore((state) => state.setFormField);
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
-  const marathonMode = marathon.mode as "marathon" | "by-camera";
-  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex);
+  const reference = useStaffUploadStore((state) => state.formValues.reference)
+  const values = useStaffUploadStore((state) => state.formValues)
+  const errors = useStaffUploadStore((state) => state.formErrors)
+  const setFormField = useStaffUploadStore((state) => state.setFormField)
+
+  const marathonMode = marathon.mode as UploadMarathonMode
+  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
   const selectedCompetitionClass =
-    marathon.competitionClasses.find(
-      (cc) => cc.id === Number(values.competitionClassId),
-    ) ?? null;
-  const selectedTopics = getSelectedTopics(marathonMode, null, selectedCompetitionClass, sortedTopics);
+    marathon.competitionClasses.find((cc) => cc.id === Number(values.competitionClassId)) ?? null
+  const selectedTopics = getSelectedTopics(
+    marathonMode,
+    null,
+    selectedCompetitionClass,
+    sortedTopics,
+  )
 
   return (
     <div className="space-y-8">
@@ -189,17 +181,15 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
           Fill in details
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This participant wasn&apos;t prepared beforehand. Enter their name,
-          email, and select class and device below.
+          This participant wasn&apos;t prepared beforehand. Enter their name, email, and select
+          class and device below.
         </p>
       </div>
 
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              First name
-            </label>
+            <label className="text-sm font-medium text-foreground">First name</label>
             <Input
               value={values.firstName}
               onChange={(event) => setFormField("firstName", event.target.value)}
@@ -211,15 +201,11 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
                 errors.firstName && "border-rose-400 focus-visible:ring-rose-400",
               )}
             />
-            {errors.firstName ? (
-              <p className="text-sm text-rose-600">{errors.firstName}</p>
-            ) : null}
+            {errors.firstName ? <p className="text-sm text-rose-600">{errors.firstName}</p> : null}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Last name
-            </label>
+            <label className="text-sm font-medium text-foreground">Last name</label>
             <Input
               value={values.lastName}
               onChange={(event) => setFormField("lastName", event.target.value)}
@@ -231,9 +217,7 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
                 errors.lastName && "border-rose-400 focus-visible:ring-rose-400",
               )}
             />
-            {errors.lastName ? (
-              <p className="text-sm text-rose-600">{errors.lastName}</p>
-            ) : null}
+            {errors.lastName ? <p className="text-sm text-rose-600">{errors.lastName}</p> : null}
           </div>
         </div>
 
@@ -254,17 +238,13 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
               errors.email && "border-rose-400 focus-visible:ring-rose-400",
             )}
           />
-          {errors.email ? (
-            <p className="text-sm text-rose-600">{errors.email}</p>
-          ) : null}
+          {errors.email ? <p className="text-sm text-rose-600">{errors.email}</p> : null}
         </div>
       </div>
 
       <div className="space-y-3">
         <div>
-          <p className="text-sm font-medium text-foreground">
-            Competition class
-          </p>
+          <p className="text-sm font-medium text-foreground">Competition class</p>
           <p className="mt-0.5 text-sm text-muted-foreground">
             How many photos is this participant submitting?
           </p>
@@ -290,9 +270,7 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
       <div className="space-y-3">
         <div>
           <p className="text-sm font-medium text-foreground">Device</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            What did they shoot with?
-          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">What did they shoot with?</p>
         </div>
         <div className="space-y-2">
           <div className="grid gap-2 sm:grid-cols-2">
@@ -315,8 +293,7 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
       {selectedTopics.length > 0 ? (
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">
-            Photo order ({selectedTopics.length}{" "}
-            {selectedTopics.length === 1 ? "topic" : "topics"})
+            Photo order ({selectedTopics.length} {selectedTopics.length === 1 ? "topic" : "topics"})
           </p>
           <div className="flex flex-wrap gap-2">
             {selectedTopics.map((topic) => (
@@ -331,5 +308,5 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
         </div>
       ) : null}
     </div>
-  );
+  )
 }

@@ -1,11 +1,11 @@
 "use client"
 
-import { Plus, RefreshCw, Upload } from "lucide-react"
+import { RefreshCw, Upload } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useQueryStates } from "nuqs"
 import { submissionSearchParams } from "../_lib/search-params"
 import { useEffect, useState } from "react"
-import { AdminParticipantUploadDialog } from "./admin-participant-upload-dialog"
+import { ManualUploadDialog } from "./manual-upload-dialog"
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
@@ -171,7 +171,7 @@ export function SubmissionsHeader() {
         </div>
       </Tabs>
 
-      <AdminParticipantUploadDialog
+      <ManualUploadDialog
         open={isCreateUploadDialogOpen}
         onOpenChange={setIsCreateUploadDialogOpen}
       />

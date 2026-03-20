@@ -1,36 +1,36 @@
-"use client";
+"use client"
 
-import { useCallback, useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { useTRPC } from "@/lib/trpc/client";
+import { useCallback, useEffect, useRef } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import { useTRPC } from "@/lib/trpc/client"
 import {
   getPollingCompletionKeys,
   getRealtimeSubmissionCompletion,
   shouldCompleteUploadFlow,
   shouldReconcileUploadStatus,
   type UploadRealtimeFileSnapshot,
-} from "@/lib/participant-upload/upload-status-realtime";
-import { useUploadStatusRealtime } from "@/lib/participant-upload/use-upload-status-realtime";
-import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload/types";
-import { useStaffUploadStore } from "../_lib/staff-upload-store";
-import type { StaffUploadStep } from "./use-staff-upload-step";
+} from "@/lib/upload-status-realtime"
+import { useUploadStatusRealtime } from "@/lib/use-upload-status-realtime"
+import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload-types"
+import { useStaffUploadStore } from "../_lib/staff-upload-store"
+import type { StaffUploadStep } from "./use-staff-upload-step"
 
 type UploadStatusData = {
-  submissions: { key: string; uploaded: boolean }[];
+  submissions: { key: string; uploaded: boolean }[]
   participant?: {
-    errors: readonly string[];
-    finalized: boolean;
-  } | null;
-};
+    errors: readonly string[]
+    finalized: boolean
+  } | null
+}
 
-type SetStepFn = (step: StaffUploadStep) => unknown;
+type SetStepFn = (step: StaffUploadStep) => unknown
 
-interface UseUploadStatusSyncOptions {
-  domain: string;
-  uploadStatusData: UploadStatusData | undefined;
-  refetchUploadStatus: () => Promise<unknown>;
-  setStep: SetStepFn;
+interface UseStaffUploadStatusSyncOptions {
+  domain: string
+  uploadStatusData: UploadStatusData | undefined
+  refetchUploadStatus: () => Promise<unknown>
+  setStep: SetStepFn
 }
 
 /**
@@ -40,30 +40,28 @@ interface UseUploadStatusSyncOptions {
  * Returns `resetCompletion` which must be called before each new upload run
  * to prevent the completion toast from being suppressed.
  */
-export function useUploadStatusSync({
+export function useStaffUploadStatusSync({
   domain,
   uploadStatusData,
   refetchUploadStatus,
   setStep,
-}: UseUploadStatusSyncOptions) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const completionHandledRef = useRef(false);
-  const participantFinalizedRef = useRef(false);
+}: UseStaffUploadStatusSyncOptions) {
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const completionHandledRef = useRef(false)
+  const participantFinalizedRef = useRef(false)
 
-  const uploadFiles = useStaffUploadStore((s) => s.uploadFiles);
-  const submittedReference = useStaffUploadStore((s) => s.submittedReference);
-  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles);
-  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus);
-  const updateUploadFileState = useStaffUploadStore(
-    (s) => s.updateUploadFileState,
-  );
-  const patchUpload = useStaffUploadStore((s) => s.patchUpload);
-  const filesRef = useRef(uploadFiles);
+  const uploadFiles = useStaffUploadStore((s) => s.uploadFiles)
+  const submittedReference = useStaffUploadStore((s) => s.submittedReference)
+  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles)
+  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus)
+  const updateUploadFileState = useStaffUploadStore((s) => s.updateUploadFileState)
+  const patchUpload = useStaffUploadStore((s) => s.patchUpload)
+  const filesRef = useRef(uploadFiles)
 
   useEffect(() => {
-    filesRef.current = uploadFiles;
-  }, [uploadFiles]);
+    filesRef.current = uploadFiles
+  }, [uploadFiles])
 
   const getFileSnapshots = useCallback(
     (): UploadRealtimeFileSnapshot[] =>
@@ -73,26 +71,26 @@ export function useUploadStatusSync({
         phase: file.phase,
       })),
     [],
-  );
+  )
 
   const completeUploadFlow = useCallback(() => {
     if (completionHandledRef.current) {
-      return;
+      return
     }
 
-    completionHandledRef.current = true;
+    completionHandledRef.current = true
     patchUpload({
       isPollingStatus: false,
       isUploadingFiles: false,
       uploadComplete: true,
       uploadErrorMessage: null,
-    });
-    void setStep("complete");
-    toast.success("Participant created and upload completed");
+    })
+    void setStep("complete")
+    toast.success("Participant created and upload completed")
     void queryClient.invalidateQueries({
       queryKey: trpc.participants.getByDomainInfinite.pathKey(),
-    });
-  }, [patchUpload, queryClient, setStep, trpc.participants]);
+    })
+  }, [patchUpload, queryClient, setStep, trpc.participants])
 
   const maybeHandleCompletion = useCallback(
     (participantFinalized: boolean) => {
@@ -103,31 +101,31 @@ export function useUploadStatusSync({
           PARTICIPANT_UPLOAD_PHASE.COMPLETED,
         )
       ) {
-        return false;
+        return false
       }
 
-      completeUploadFlow();
-      return true;
+      completeUploadFlow()
+      return true
     },
     [completeUploadFlow, getFileSnapshots],
-  );
+  )
 
   const markFileCompletedByKey = useCallback(
     (key: string) => {
-      const file = filesRef.current.find((candidate) => candidate.key === key);
+      const file = filesRef.current.find((candidate) => candidate.key === key)
       if (!file || file.phase === PARTICIPANT_UPLOAD_PHASE.COMPLETED) {
-        return Boolean(file);
+        return Boolean(file)
       }
 
       updateUploadFileState(key, {
         phase: PARTICIPANT_UPLOAD_PHASE.COMPLETED,
         progress: 100,
         error: undefined,
-      });
-      return true;
+      })
+      return true
     },
     [updateUploadFileState],
-  );
+  )
 
   const markFileCompletedByOrderIndex = useCallback(
     (orderIndex: number | null | undefined) => {
@@ -135,9 +133,9 @@ export function useUploadStatusSync({
         getFileSnapshots(),
         orderIndex,
         PARTICIPANT_UPLOAD_PHASE.COMPLETED,
-      );
+      )
       if (!completion) {
-        return false;
+        return false
       }
 
       if (completion.shouldUpdate) {
@@ -145,13 +143,13 @@ export function useUploadStatusSync({
           phase: PARTICIPANT_UPLOAD_PHASE.COMPLETED,
           progress: 100,
           error: undefined,
-        });
+        })
       }
 
-      return true;
+      return true
     },
     [getFileSnapshots, updateUploadFileState],
-  );
+  )
 
   useUploadStatusRealtime({
     domain,
@@ -161,53 +159,53 @@ export function useUploadStatusSync({
       uploadFiles.length > 0 &&
       (isUploadingFiles || isPollingStatus),
     onSubmissionProcessed: ({ orderIndex }) => {
-      const wasHandled = markFileCompletedByOrderIndex(orderIndex);
+      const wasHandled = markFileCompletedByOrderIndex(orderIndex)
       if (!wasHandled) {
-        void refetchUploadStatus();
-        return;
+        void refetchUploadStatus()
+        return
       }
 
       if (participantFinalizedRef.current) {
-        maybeHandleCompletion(true);
+        maybeHandleCompletion(true)
       }
     },
     onParticipantFinalized: () => {
-      participantFinalizedRef.current = true;
+      participantFinalizedRef.current = true
 
       if (!maybeHandleCompletion(true)) {
-        void refetchUploadStatus();
+        void refetchUploadStatus()
       }
     },
     onEventError: (_event, data) => {
       if (shouldReconcileUploadStatus(data.outcome)) {
-        void refetchUploadStatus();
+        void refetchUploadStatus()
       }
     },
-  });
+  })
 
   useEffect(() => {
-    if (!uploadStatusData || uploadFiles.length === 0) return;
+    if (!uploadStatusData || uploadFiles.length === 0) return
 
     const keysToComplete = getPollingCompletionKeys(
       getFileSnapshots(),
       uploadStatusData.submissions,
       PARTICIPANT_UPLOAD_PHASE.COMPLETED,
-    );
+    )
 
     keysToComplete.forEach((key) => {
-      markFileCompletedByKey(key);
-    });
+      markFileCompletedByKey(key)
+    })
 
     if (uploadStatusData.participant?.errors.length) {
       patchUpload({
         uploadErrorMessage: uploadStatusData.participant.errors.join(", "),
-      });
+      })
     }
 
-    if (!uploadStatusData.participant?.finalized) return;
+    if (!uploadStatusData.participant?.finalized) return
 
-    participantFinalizedRef.current = true;
-    maybeHandleCompletion(true);
+    participantFinalizedRef.current = true
+    maybeHandleCompletion(true)
   }, [
     getFileSnapshots,
     markFileCompletedByKey,
@@ -215,20 +213,20 @@ export function useUploadStatusSync({
     patchUpload,
     uploadFiles,
     uploadStatusData,
-  ]);
+  ])
 
   useEffect(() => {
     if (completionHandledRef.current || !participantFinalizedRef.current) {
-      return;
+      return
     }
 
-    maybeHandleCompletion(true);
-  }, [maybeHandleCompletion, uploadFiles]);
+    maybeHandleCompletion(true)
+  }, [maybeHandleCompletion, uploadFiles])
 
   const resetCompletion = () => {
-    completionHandledRef.current = false;
-    participantFinalizedRef.current = false;
-  };
+    completionHandledRef.current = false
+    participantFinalizedRef.current = false
+  }
 
-  return { resetCompletion };
+  return { resetCompletion }
 }

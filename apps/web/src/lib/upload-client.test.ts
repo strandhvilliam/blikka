@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  attachPresignedUrls,
   classifyUploadError,
   createUploadError,
   uploadFileToPresignedUrl,
@@ -88,21 +87,6 @@ describe("upload-client", () => {
         presignedUrl: "https://example.com/upload",
       }),
     ).resolves.toEqual({ ok: true });
-  });
-
-  it("attaches presigned urls to items", () => {
-    expect(
-      attachPresignedUrls(
-        [{ id: "a" }, { id: "b" }],
-        [
-          { key: "one", url: "https://example.com/one" },
-          { key: "two", url: "https://example.com/two" },
-        ],
-      ),
-    ).toEqual([
-      { id: "a", key: "one", presignedUrl: "https://example.com/one" },
-      { id: "b", key: "two", presignedUrl: "https://example.com/two" },
-    ]);
   });
 
   it("creates upload errors with timestamps", () => {

@@ -31,20 +31,17 @@ import {
 
 import { formatDomainPathname } from "@/lib/utils"
 import { useTRPC } from "@/lib/trpc/client"
-import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping"
-import { revokePhotoPreviewUrls } from "@/lib/participant-upload/file-processing"
-import {
-  getDropzoneDisabledReason,
-  getDropzoneVariant,
-} from "@/lib/participant-upload/upload-utils"
-import { pluralizePhotos, useParticipantUploadForm } from "@/hooks/use-participant-upload-form"
-import { useParticipantPhotoSelection } from "@/hooks/use-participant-photo-selection"
-import { useParticipantUploadFlow } from "@/hooks/use-participant-upload-flow"
-import { ParticipantDetailsForm } from "@/components/participant-upload/participant-details-form"
-import { UploadMappingSection } from "@/components/participant-upload/upload-mapping-section"
-import { ImageDropzoneSection } from "@/components/participant-upload/image-dropzone-section"
-import { SelectedImagesSection } from "@/components/participant-upload/selected-images-section"
-import { UploadStatusSection } from "@/components/participant-upload/upload-status-section"
+import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-utils"
+import { revokePreviewUrls } from "@/lib/file-processing"
+import { getDropzoneDisabledReason, getDropzoneVariant } from "@/lib/upload-utils"
+import { pluralizePhotos, useManualUploadForm } from "@/hooks/use-manual-upload-form"
+import { useManualPhotoSelection } from "@/hooks/use-manual-photo-selection"
+import { useManualUploadFlow } from "@/hooks/use-manual-upload-flow"
+import { ParticipantDetailsForm } from "@/components/admin-submissions-upload/participant-details-form"
+import { UploadMappingSection } from "@/components/admin-submissions-upload/upload-mapping-section"
+import { ImageDropzoneSection } from "@/components/admin-submissions-upload/image-dropzone-section"
+import { SelectedImagesSection } from "@/components/admin-submissions-upload/selected-images-section"
+import { UploadStatusSection } from "@/components/admin-submissions-upload/upload-status-section"
 import { useDomain } from "@/lib/domain-provider"
 
 const DROPZONE_ACCEPT: Accept = {
@@ -56,15 +53,12 @@ const DROPZONE_ACCEPT: Accept = {
   "image/heif": [".heif"],
 }
 
-interface AdminParticipantUploadDialogProps {
+interface ManualUploadDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function AdminParticipantUploadDialog({
-  open,
-  onOpenChange,
-}: AdminParticipantUploadDialogProps) {
+export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const router = useRouter()
@@ -84,7 +78,7 @@ export function AdminParticipantUploadDialog({
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
   )
 
-  const { form, formValues, validateFiles, resetForm } = useParticipantUploadForm(marathonMode, {
+  const { form, formValues, validateFiles, resetForm } = useManualUploadForm(marathonMode, {
     onSubmit: async (value) => {
       await submitLogicRef.current?.(value)
     },
@@ -125,7 +119,7 @@ export function AdminParticipantUploadDialog({
 
   const canSelectFiles = isMappingReady && expectedPhotoCount > 0
 
-  const uploadFlow = useParticipantUploadFlow({
+  const uploadFlow = useManualUploadFlow({
     domain,
     marathonMode,
     formValues,
@@ -138,7 +132,7 @@ export function AdminParticipantUploadDialog({
     uploadFlow.initializeUploadFlowMutation.isPending ||
     uploadFlow.initializeByCameraUploadMutation.isPending
 
-  const photoSelection = useParticipantPhotoSelection({
+  const photoSelection = useManualPhotoSelection({
     open,
     topicOrderIndexes,
     expectedPhotoCount,
@@ -250,7 +244,7 @@ export function AdminParticipantUploadDialog({
     }
 
     if (signatureRef.current !== signature && photoSelection.selectedPhotos.length > 0) {
-      revokePhotoPreviewUrls(photoSelection.selectedPhotos)
+      revokePreviewUrls(photoSelection.selectedPhotos, (photo) => photo.previewUrl)
       photoSelection.setSelectedPhotos([])
       uploadFlow.resetUploadFlow()
       toast.message("Image selection cleared because class/topic mapping changed")

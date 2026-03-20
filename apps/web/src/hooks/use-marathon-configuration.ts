@@ -1,11 +1,6 @@
 import { useMemo } from "react"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import type {
-  CompetitionClass,
-  DeviceGroup,
-  Marathon,
-  Topic,
-} from "@blikka/db"
+import type { CompetitionClass, DeviceGroup, Marathon, Topic } from "@blikka/db"
 
 import { useTRPC } from "@/lib/trpc/client"
 
@@ -103,9 +98,7 @@ function checkConfiguration({
   }
 
   if (
-    competitionClasses.some(
-      (competitionClass) => competitionClass.numberOfPhotos > topics.length,
-    )
+    competitionClasses.some((competitionClass) => competitionClass.numberOfPhotos > topics.length)
   ) {
     return {
       marathon: marathon as MarathonWithRelations,
@@ -129,9 +122,7 @@ function checkConfiguration({
 
 export function useMarathonConfiguration(domain: string): MarathonConfigurationResult {
   const trpc = useTRPC()
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain }),
-  )
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   return useMemo(() => {
     if (!marathon) {

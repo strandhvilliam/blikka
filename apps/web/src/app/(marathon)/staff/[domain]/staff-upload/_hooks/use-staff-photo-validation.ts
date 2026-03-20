@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { RuleConfig } from "@blikka/db";
-import { runParticipantPhotoValidation } from "@/lib/participant-upload/validation";
+import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation";
 import { useStaffUploadStore } from "../_lib/staff-upload-store";
 import type { StaffUploadStep } from "./use-staff-upload-step";
 

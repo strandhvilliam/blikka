@@ -64,11 +64,17 @@ export function QrScanDrawer({
           </div>
           <div>
             <p className="font-rocgrotesk text-2xl">Scan participant QR code</p>
-            <p className="text-sm text-white/70">Align the code inside the frame to open the record.</p>
+            <p className="text-sm text-white/70">
+              Align the code inside the frame to open the record.
+            </p>
           </div>
         </div>
         <div className="absolute inset-x-0 bottom-8 flex justify-center px-6">
-          <Button variant="secondary" className="pointer-events-auto w-full max-w-xs" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="secondary"
+            className="pointer-events-auto w-full max-w-xs"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel scan
           </Button>
         </div>

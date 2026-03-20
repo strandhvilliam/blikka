@@ -9,14 +9,14 @@ import {
   type ParticipantPreparedUpload,
   type ParticipantSelectedPhoto,
   type ParticipantUploadFileState,
-} from "@/lib/participant-upload/types"
-import { uploadPreparedFiles } from "@/lib/participant-upload/upload-runner"
-import { pluralizePhotos, type FormState } from "@/hooks/use-participant-upload-form"
+} from "@/lib/participant-upload-types"
+import { uploadManualFiles } from "@/lib/manual-upload"
+import { pluralizePhotos, type FormState } from "@/hooks/use-manual-upload-form"
 import { useTRPC } from "@/lib/trpc/client"
 
 const POLLING_INTERVAL_MS = 3000
 
-interface UseParticipantUploadFlowInput {
+interface UseManualUploadFlowInput {
   domain: string
   marathonMode: string
   formValues: FormState
@@ -25,12 +25,12 @@ interface UseParticipantUploadFlowInput {
 
 type ParticipantUploadDraft = Partial<FormState>
 
-export function useParticipantUploadFlow({
+export function useManualUploadFlow({
   domain,
   marathonMode,
   formValues,
   queryClient,
-}: UseParticipantUploadFlowInput) {
+}: UseManualUploadFlowInput) {
   const trpc = useTRPC()
   const completionHandledRef = useRef(false)
 
@@ -155,9 +155,7 @@ export function useParticipantUploadFlow({
         phoneNumber: resolvedFormValues.phone.trim(),
       }
 
-      const orderedPhotos = [...selectedPhotos].sort(
-        (a, b) => a.orderIndex - b.orderIndex,
-      )
+      const orderedPhotos = [...selectedPhotos].sort((a, b) => a.orderIndex - b.orderIndex)
 
       const initialization =
         marathonMode === "marathon"
@@ -166,9 +164,7 @@ export function useParticipantUploadFlow({
               reference,
               phoneNumber: resolvedFormValues.phone.trim() ? resolvedFormValues.phone.trim() : null,
               competitionClassId: Number(resolvedFormValues.competitionClassId),
-              uploadContentTypes: orderedPhotos.map(
-                (photo) => photo.file.type || "image/jpeg",
-              ),
+              uploadContentTypes: orderedPhotos.map((photo) => photo.file.type || "image/jpeg"),
             })
           : await initializeByCameraUploadMutation.mutateAsync(commonPayload)
 
@@ -211,7 +207,7 @@ export function useParticipantUploadFlow({
       setUploadFiles(initialUploadState)
       setSubmittedReference(resolvedReference)
 
-      const { successKeys, failedKeys } = await uploadPreparedFiles({
+      const { successKeys, failedKeys } = await uploadManualFiles({
         files: preparedUploads,
         onFileStateChange: updateUploadFileState,
       })
@@ -247,7 +243,7 @@ export function useParticipantUploadFlow({
     setIsUploadingFiles(true)
 
     try {
-      const { successKeys, failedKeys } = await uploadPreparedFiles({
+      const { successKeys, failedKeys } = await uploadManualFiles({
         files: failedUploads,
         onFileStateChange: updateUploadFileState,
       })

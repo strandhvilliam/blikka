@@ -11,13 +11,13 @@ import {
 } from "@/components/ui/collapsible";
 import { VALIDATION_OUTCOME } from "@blikka/validation";
 import type { ValidationResult } from "@blikka/validation";
-import type { ParticipantSelectedPhoto } from "@/lib/participant-upload/types";
+import type { ParticipantSelectedPhoto } from "@/lib/participant-upload-types";
 import { cn } from "@/lib/utils";
 import { createValidationResultKey } from "@/lib/validation";
 import {
   formatRuleKey,
   getValidationRowClass,
-} from "@/lib/participant-upload/upload-utils";
+} from "@/lib/upload-utils";
 
 export interface SelectedImagesSectionPhotoSelection {
   selectedPhotos: ParticipantSelectedPhoto[];

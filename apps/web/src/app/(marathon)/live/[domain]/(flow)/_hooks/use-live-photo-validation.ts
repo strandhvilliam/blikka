@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { RuleConfig } from "@blikka/db";
-import { runParticipantPhotoValidation } from "@/lib/participant-upload/validation";
+import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation";
 import { usePhotoStore } from "../_lib/photo-store";
 
 interface UseLivePhotoValidationOptions {

@@ -27,7 +27,7 @@ export function getByCameraExportAccessState(
 ): ByCameraExportAccessResult {
   const activeTopic =
     marathon.mode === "by-camera"
-      ? marathon.topics.find((topic) => topic.visibility === "active") ?? null
+      ? (marathon.topics.find((topic) => topic.visibility === "active") ?? null)
       : null
 
   const state = getByCameraSubmissionWindowState(activeTopic, now)
@@ -39,8 +39,7 @@ export function getByCameraExportAccessState(
         isExportAllowed: false,
         message: {
           title: "Exports unavailable",
-          description:
-            "Activate a topic in Topics before downloading by-camera exports.",
+          description: "Activate a topic in Topics before downloading by-camera exports.",
         },
         state,
       }
@@ -61,8 +60,7 @@ export function getByCameraExportAccessState(
         isExportAllowed: false,
         message: {
           title: "Exports unavailable",
-          description:
-            "Exports are disabled while the active topic is open for submissions.",
+          description: "Exports are disabled while the active topic is open for submissions.",
         },
         state,
       }

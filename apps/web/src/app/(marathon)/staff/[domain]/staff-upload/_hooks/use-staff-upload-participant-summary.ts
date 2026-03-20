@@ -2,14 +2,17 @@
 
 import { useMemo } from "react"
 import { useStaffUploadStore } from "../_lib/staff-upload-store"
-import { useStaffUploadMarathon } from "./use-staff-upload-marathon"
 import { normalizeParticipantReference } from "../../_lib/staff-utils"
+import { useDomain } from "@/lib/domain-provider"
+import { useTRPC } from "@/lib/trpc/client"
+import { useSuspenseQuery } from "@tanstack/react-query"
 
 export function useStaffUploadParticipantSummary() {
-  const marathon = useStaffUploadMarathon()
-  const existingParticipant = useStaffUploadStore(
-    (state) => state.existingParticipant,
-  )
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
+
+  const existingParticipant = useStaffUploadStore((state) => state.existingParticipant)
   const formValues = useStaffUploadStore((state) => state.formValues)
   const participantStatus = useStaffUploadStore((state) => state.participantStatus)
 
@@ -22,13 +25,9 @@ export function useStaffUploadParticipantSummary() {
       : formValues.deviceGroupId
 
     const selectedCompetitionClass =
-      marathon.competitionClasses.find(
-        (cc) => cc.id === Number(activeCompetitionClassId),
-      ) ?? null
+      marathon.competitionClasses.find((cc) => cc.id === Number(activeCompetitionClassId)) ?? null
     const selectedDeviceGroup =
-      marathon.deviceGroups.find(
-        (dg) => dg.id === Number(activeDeviceGroupId),
-      ) ?? null
+      marathon.deviceGroups.find((dg) => dg.id === Number(activeDeviceGroupId)) ?? null
 
     if (existingParticipant && selectedCompetitionClass && selectedDeviceGroup) {
       return {
@@ -43,9 +42,7 @@ export function useStaffUploadParticipantSummary() {
             ? "Existing in-progress upload"
             : "Prepared participant",
         statusTone:
-          participantStatus === "initialized"
-            ? ("warning" as const)
-            : ("default" as const),
+          participantStatus === "initialized" ? ("warning" as const) : ("default" as const),
       }
     }
 

@@ -1,106 +1,99 @@
-"use client";
+"use client"
 
-import { DownloadIcon, Loader2, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { useDomain } from "@/lib/domain-provider";
-import {
-  getUploadPhaseClassName,
-  getUploadPhaseLabel,
-} from "@/lib/participant-upload/upload-utils";
-import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload/types";
-import { uploadPreparedFiles } from "@/lib/participant-upload/upload-runner";
-import { saveParticipantPhotosLocally } from "@/lib/participant-upload/local-save";
-import { cn } from "@/lib/utils";
-import { StaffParticipantCard } from "./staff-participant-card";
-import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary";
-import { useStaffUploadStep } from "../_hooks/use-staff-upload-step";
-import { useStaffUploadStore } from "../_lib/staff-upload-store";
+import { DownloadIcon, Loader2, RefreshCw } from "lucide-react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { useDomain } from "@/lib/domain-provider"
+import { getUploadPhaseClassName, getUploadPhaseLabel } from "@/lib/upload-utils"
+import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload-types"
+import { uploadManualFiles } from "@/lib/manual-upload"
+import { saveParticipantPhotosLocally } from "@/lib/local-save"
+import { cn } from "@/lib/utils"
+import { StaffParticipantCard } from "./staff-participant-card"
+import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary"
+import { useStaffUploadStep } from "../_hooks/use-staff-upload-step"
+import { useStaffUploadStore } from "../_lib/staff-upload-store"
 
 export function UploadProgressPanel() {
-  const domain = useDomain();
-  const [, setStep] = useStaffUploadStep();
-  const participantSummary = useStaffUploadParticipantSummary();
+  const domain = useDomain()
+  const [, setStep] = useStaffUploadStep()
+  const participantSummary = useStaffUploadParticipantSummary()
 
-  const files = useStaffUploadStore((s) => s.uploadFiles);
-  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles);
-  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus);
-  const uploadErrorMessage = useStaffUploadStore((s) => s.uploadErrorMessage);
-  const isSavingLocally = useStaffUploadStore((s) => s.isSavingLocally);
-  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
+  const files = useStaffUploadStore((s) => s.uploadFiles)
+  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles)
+  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus)
+  const uploadErrorMessage = useStaffUploadStore((s) => s.uploadErrorMessage)
+  const isSavingLocally = useStaffUploadStore((s) => s.isSavingLocally)
+  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos)
 
-  const updateUploadFileState = useStaffUploadStore((s) => s.updateUploadFileState);
-  const patchUpload = useStaffUploadStore((s) => s.patchUpload);
+  const updateUploadFileState = useStaffUploadStore((s) => s.updateUploadFileState)
+  const patchUpload = useStaffUploadStore((s) => s.patchUpload)
 
-  const completed = files.filter((file) => file.phase === "completed").length;
-  const total = files.length;
-  const isWorking = isUploadingFiles || isPollingStatus;
-  const canRetryFailedUploads = files.some((file) => file.phase === "error");
+  const completed = files.filter((file) => file.phase === "completed").length
+  const total = files.length
+  const isWorking = isUploadingFiles || isPollingStatus
+  const canRetryFailedUploads = files.some((file) => file.phase === "error")
   const canSaveLocally =
     (Boolean(uploadErrorMessage) || canRetryFailedUploads) &&
     !isSavingLocally &&
-    selectedPhotos.length > 0;
-  const progressPercent = total > 0 ? (completed / total) * 100 : 0;
+    selectedPhotos.length > 0
+  const progressPercent = total > 0 ? (completed / total) * 100 : 0
 
   const handleRetryFailed = async () => {
-    const failedUploads = files.filter(
-      (file) => file.phase === PARTICIPANT_UPLOAD_PHASE.ERROR,
-    );
+    const failedUploads = files.filter((file) => file.phase === PARTICIPANT_UPLOAD_PHASE.ERROR)
 
-    if (failedUploads.length === 0) return;
+    if (failedUploads.length === 0) return
 
-    patchUpload({ uploadErrorMessage: null, isUploadingFiles: true });
+    patchUpload({ uploadErrorMessage: null, isUploadingFiles: true })
 
     try {
-      const { successKeys, failedKeys } = await uploadPreparedFiles({
+      const { successKeys, failedKeys } = await uploadManualFiles({
         files: failedUploads,
         onFileStateChange: updateUploadFileState,
-      });
+      })
 
       if (successKeys.length > 0) {
-        patchUpload({ isPollingStatus: true });
+        patchUpload({ isPollingStatus: true })
       }
 
-      if (failedKeys.length === 0) return;
+      if (failedKeys.length === 0) return
 
-      const message = `${failedKeys.length} photo${failedKeys.length === 1 ? "" : "s"} still failing`;
-      patchUpload({ uploadErrorMessage: message });
-      toast.error(message);
+      const message = `${failedKeys.length} photo${failedKeys.length === 1 ? "" : "s"} still failing`
+      patchUpload({ uploadErrorMessage: message })
+      toast.error(message)
     } finally {
-      patchUpload({ isUploadingFiles: false });
+      patchUpload({ isUploadingFiles: false })
     }
-  };
+  }
 
   const handleSaveLocally = async () => {
-    if (!participantSummary || selectedPhotos.length === 0) return;
+    if (!participantSummary || selectedPhotos.length === 0) return
 
     try {
-      patchUpload({ isSavingLocally: true });
+      patchUpload({ isSavingLocally: true })
       const result = await saveParticipantPhotosLocally({
         domain,
         participantReference: participantSummary.reference,
         photos: selectedPhotos,
-      });
+      })
 
       toast.success(
         result.mode === "directory"
           ? "Files saved to the selected folder."
           : "Backup zip downloaded.",
-      );
+      )
     } catch (error) {
-      console.error(error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to save files locally.",
-      );
+      console.error(error)
+      toast.error(error instanceof Error ? error.message : "Failed to save files locally.")
     } finally {
-      patchUpload({ isSavingLocally: false });
+      patchUpload({ isSavingLocally: false })
     }
-  };
+  }
 
   if (!participantSummary) {
-    return null;
+    return null
   }
 
   return (
@@ -117,10 +110,7 @@ export function UploadProgressPanel() {
               <span className="font-rocgrotesk text-3xl leading-none text-foreground">
                 {completed}/{total || files.length || 0}
               </span>
-              <Badge
-                variant="outline"
-                className="border-border bg-muted text-muted-foreground"
-              >
+              <Badge variant="outline" className="border-border bg-muted text-muted-foreground">
                 {isWorking ? "In progress" : "Paused"}
               </Badge>
             </div>
@@ -188,25 +178,15 @@ export function UploadProgressPanel() {
             Files
           </p>
           {files.map((file) => (
-            <div
-              key={file.key}
-              className="rounded-xl border border-border bg-card px-4 py-3"
-            >
+            <div key={file.key} className="rounded-xl border border-border bg-card px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {file.file.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Photo #{file.orderIndex + 1}
-                  </p>
+                  <p className="truncate text-sm font-medium text-foreground">{file.file.name}</p>
+                  <p className="text-xs text-muted-foreground">Photo #{file.orderIndex + 1}</p>
                 </div>
                 <Badge
                   variant="outline"
-                  className={cn(
-                    "shrink-0 text-xs",
-                    getUploadPhaseClassName(file.phase),
-                  )}
+                  className={cn("shrink-0 text-xs", getUploadPhaseClassName(file.phase))}
                 >
                   {file.phase === "uploading" ? (
                     <Loader2 className="mr-1 h-3 w-3 animate-spin" />
@@ -215,9 +195,7 @@ export function UploadProgressPanel() {
                 </Badge>
               </div>
               {file.error ? (
-                <p className="mt-2 text-xs text-rose-600">
-                  {file.error.message}
-                </p>
+                <p className="mt-2 text-xs text-rose-600">{file.error.message}</p>
               ) : null}
             </div>
           ))}
@@ -228,5 +206,5 @@ export function UploadProgressPanel() {
         </div>
       )}
     </div>
-  );
+  )
 }

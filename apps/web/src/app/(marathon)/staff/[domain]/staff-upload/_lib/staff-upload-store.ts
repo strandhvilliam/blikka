@@ -2,18 +2,15 @@
 
 import { create, type StateCreator } from "zustand"
 import type { ValidationResult } from "@blikka/validation"
-import type { ParticipantFormValues } from "@/lib/participant-upload/participant-form-schema"
+import type { ParticipantFormValues } from "@/lib/participant-form-schema"
 import type {
   ParticipantSelectedPhoto,
   ParticipantUploadError,
   ParticipantUploadFileState,
   ParticipantUploadPhase,
-} from "@/lib/participant-upload/types"
-import {
-  reassignPhotoOrderIndexes,
-  revokePhotoPreviewUrls,
-} from "@/lib/participant-upload/file-processing"
-import { type ParticipantExistenceStatus } from "@/lib/participant-upload/flow-helpers"
+} from "@/lib/participant-upload-types"
+import { reassignOrderIndexes, revokePreviewUrls } from "@/lib/file-processing"
+import { type ParticipantExistenceStatus } from "@/lib/flow-helpers"
 import type { StaffParticipant } from "../../_lib/staff-types"
 import { STAFF_UPLOAD_DEFAULT_FORM_VALUES, type StaffUploadFormErrors } from "./staff-upload-form"
 
@@ -69,7 +66,7 @@ const createParticipantSlice: StateCreator<StaffUploadStore, [], [], Participant
       state.selectedPhotos.length > 0
 
     if (shouldResetPhotoSession) {
-      revokePhotoPreviewUrls(state.selectedPhotos)
+      revokePreviewUrls(state.selectedPhotos, (photo) => photo.previewUrl)
     }
 
     set((prev) => ({
@@ -119,15 +116,19 @@ const createPhotoSlice: StateCreator<StaffUploadStore, [], [], PhotoSlice> = (se
       if (target) URL.revokeObjectURL(target.previewUrl)
 
       return {
-        selectedPhotos: reassignPhotoOrderIndexes(
+        selectedPhotos: reassignOrderIndexes(
           state.selectedPhotos.filter((p) => p.id !== photoId),
           topicOrderIndexes,
+          (photo, orderIndex) => ({
+            ...photo,
+            orderIndex,
+          }),
         ),
       }
     })
   },
   resetPhotoSelection: () => {
-    revokePhotoPreviewUrls(get().selectedPhotos)
+    revokePreviewUrls(get().selectedPhotos, (photo) => photo.previewUrl)
     set(initialPhotoState())
   },
   patchPhotos: (patch) => set(patch),
@@ -197,7 +198,7 @@ interface SharedSlice {
 
 const createSharedSlice: StateCreator<StaffUploadStore, [], [], SharedSlice> = (set, get) => ({
   resetAllState: () => {
-    revokePhotoPreviewUrls(get().selectedPhotos)
+    revokePreviewUrls(get().selectedPhotos, (photo) => photo.previewUrl)
     set({
       ...initialParticipantState(),
       ...initialPhotoState(),

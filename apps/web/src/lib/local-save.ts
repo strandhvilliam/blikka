@@ -1,4 +1,4 @@
-import type { ParticipantSelectedPhoto } from "./types";
+import type { ParticipantSelectedPhoto } from "./participant-upload-types";
 
 export interface LocalSaveEntry<TFile = File> {
   path: string;

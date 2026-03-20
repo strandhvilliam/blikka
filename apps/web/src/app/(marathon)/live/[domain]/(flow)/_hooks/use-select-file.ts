@@ -2,12 +2,12 @@
 
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { prepareParticipantSelectedPhotos } from "@/lib/participant-upload/file-processing";
+import { prepareParticipantSelectedPhotos } from "@/lib/participant-selected-files";
 import { isSupportedImageFile } from "@/lib/file-processing";
 import { usePhotoStore } from "../_lib/photo-store";
 import { useHeicStore } from "../_lib/heic-store";
 import type { SelectedPhoto } from "../_lib/types";
-import type { ParticipantSelectedPhoto } from "@/lib/participant-upload/types";
+import type { ParticipantSelectedPhoto } from "@/lib/participant-upload-types";
 
 interface UseSelectFileOptions {
   maxPhotos: number;

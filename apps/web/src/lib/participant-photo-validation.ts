@@ -7,7 +7,7 @@ import {
   mapRuleConfigsToValidationRules,
   prepareValidationRules,
   runClientValidation,
-} from "../validation";
+} from "./validation";
 
 export { hasBlockingValidationErrors };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PARTICIPANT_UPLOAD_PHASE } from "./types";
+import { PARTICIPANT_UPLOAD_PHASE } from "./participant-upload-types";
 import {
   getPollingCompletionKeys,
   getRealtimeSubmissionCompletion,

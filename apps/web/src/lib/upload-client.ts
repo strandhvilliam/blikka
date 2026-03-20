@@ -115,25 +115,3 @@ export async function uploadFileToPresignedUrl({
     };
   }
 }
-
-export function attachPresignedUrls<
-  T extends object,
-  TPresignedUrl extends { key: string; url: string },
->(
-  items: T[],
-  presignedUrls: TPresignedUrl[],
-): Array<T & { key: string; presignedUrl: string }> {
-  return items.map((item, index) => {
-    const urlInfo = presignedUrls[index];
-
-    if (!urlInfo) {
-      throw new Error(`Missing presigned URL for item ${index}`);
-    }
-
-    return {
-      ...item,
-      key: urlInfo.key,
-      presignedUrl: urlInfo.url,
-    };
-  });
-}

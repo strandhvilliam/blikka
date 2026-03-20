@@ -13,7 +13,7 @@ export interface UseDesktopCountdownRedirectResult {
 }
 
 export function useDesktopCountdownRedirect(
-  options: UseDesktopCountdownRedirectOptions
+  options: UseDesktopCountdownRedirectOptions,
 ): UseDesktopCountdownRedirectResult {
   const { initialSeconds = 15, isEnabled = true, onRedirect } = options
   const [remainingSeconds, setRemainingSeconds] = useState<number>(initialSeconds)

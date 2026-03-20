@@ -10,7 +10,7 @@ export function getSubmissionThumbnailUrl(submission?: StaffSubmission | null) {
 
   const thumbnailUrl = buildS3Url(
     process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME,
-    submission.thumbnailKey
+    submission.thumbnailKey,
   )
 
   if (thumbnailUrl) {

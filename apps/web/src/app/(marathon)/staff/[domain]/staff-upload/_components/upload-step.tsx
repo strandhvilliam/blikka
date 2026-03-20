@@ -1,73 +1,78 @@
-"use client";
+"use client"
 
-import { AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
-import { buildPhotoValidationMap, splitValidationResultsBySeverity } from "@/lib/validation";
-import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-mapping";
-import { processSelectedFiles } from "@/lib/participant-upload/file-processing";
-import { StaffParticipantCard } from "./staff-participant-card";
-import { StaffDropzone } from "./staff-dropzone";
-import { StaffPhotoList } from "./staff-photo-grid";
-import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary";
-import { useStaffUploadMarathon } from "../_hooks/use-staff-upload-marathon";
-import {
-  useStaffUploadStore,
-  selectRequiresOverwriteWarning,
-} from "../_lib/staff-upload-store";
+import { AlertTriangle } from "lucide-react"
+import { toast } from "sonner"
+import { buildPhotoValidationMap, splitValidationResultsBySeverity } from "@/lib/validation"
+import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-utils"
+import { processSelectedFiles } from "@/lib/participant-selected-files"
+import { StaffParticipantCard } from "./staff-participant-card"
+import { StaffDropzone } from "./staff-dropzone"
+import { StaffPhotoList } from "./staff-photo-grid"
+import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary"
+import { useStaffUploadStore, selectRequiresOverwriteWarning } from "../_lib/staff-upload-store"
+import { useTRPC } from "@/lib/trpc/client"
+import { useDomain } from "@/lib/domain-provider"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { UploadMarathonMode } from "@/lib/types"
 
 interface UploadStepProps {
-  isBusy: boolean;
-  dropzoneDisabled: boolean;
+  isBusy: boolean
+  dropzoneDisabled: boolean
 }
 
 export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
-  const marathon = useStaffUploadMarathon();
-  const participantSummary = useStaffUploadParticipantSummary();
-  const requiresOverwriteWarning = useStaffUploadStore(selectRequiresOverwriteWarning);
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
-  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
-  const validationResults = useStaffUploadStore((s) => s.validationResults);
-  const isProcessingFiles = useStaffUploadStore((s) => s.isProcessingFiles);
-  const filesError = useStaffUploadStore((s) => s.filesError);
-  const existingParticipant = useStaffUploadStore((s) => s.existingParticipant);
-  const formValues = useStaffUploadStore((s) => s.formValues);
-  const uploadComplete = useStaffUploadStore((s) => s.uploadComplete);
+  const participantSummary = useStaffUploadParticipantSummary()
+  const requiresOverwriteWarning = useStaffUploadStore(selectRequiresOverwriteWarning)
 
-  const removeSelectedPhoto = useStaffUploadStore((s) => s.removeSelectedPhoto);
-  const setSelectedPhotos = useStaffUploadStore((s) => s.setSelectedPhotos);
-  const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow);
-  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos);
+  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos)
+  const validationResults = useStaffUploadStore((s) => s.validationResults)
+  const isProcessingFiles = useStaffUploadStore((s) => s.isProcessingFiles)
+  const filesError = useStaffUploadStore((s) => s.filesError)
+  const existingParticipant = useStaffUploadStore((s) => s.existingParticipant)
+  const formValues = useStaffUploadStore((s) => s.formValues)
+  const uploadComplete = useStaffUploadStore((s) => s.uploadComplete)
 
-  const marathonMode = marathon.mode as "marathon" | "by-camera";
-  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex);
+  const removeSelectedPhoto = useStaffUploadStore((s) => s.removeSelectedPhoto)
+  const setSelectedPhotos = useStaffUploadStore((s) => s.setSelectedPhotos)
+  const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow)
+  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos)
+
+  const marathonMode = marathon.mode as UploadMarathonMode
+  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
   const activeCompetitionClassId = existingParticipant
     ? String(existingParticipant.competitionClassId)
-    : formValues.competitionClassId;
+    : formValues.competitionClassId
   const selectedCompetitionClass =
-    marathon.competitionClasses.find(
-      (cc) => cc.id === Number(activeCompetitionClassId),
-    ) ?? null;
-  const selectedTopics = getSelectedTopics(marathonMode, null, selectedCompetitionClass, sortedTopics);
-  const expectedPhotoCount = getExpectedPhotoCount(marathonMode, null, selectedCompetitionClass);
-  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex);
+    marathon.competitionClasses.find((cc) => cc.id === Number(activeCompetitionClassId)) ?? null
 
-  const {
-    blocking: blockingValidationErrors,
-    warnings: warningValidationResults,
-  } = splitValidationResultsBySeverity(validationResults);
-  const photoValidationMap = buildPhotoValidationMap(selectedPhotos, validationResults);
-  const selectedCount = selectedPhotos.length;
-  const blockingErrorCount = blockingValidationErrors.length;
-  const warningCount = warningValidationResults.length;
-  const isComplete = selectedCount >= expectedPhotoCount && expectedPhotoCount > 0;
+  const selectedTopics = getSelectedTopics(
+    marathonMode,
+    null,
+    selectedCompetitionClass,
+    sortedTopics,
+  )
+  const expectedPhotoCount = getExpectedPhotoCount(marathonMode, null, selectedCompetitionClass)
+  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex)
+
+  const { blocking: blockingValidationErrors, warnings: warningValidationResults } =
+    splitValidationResultsBySeverity(validationResults)
+  const photoValidationMap = buildPhotoValidationMap(selectedPhotos, validationResults)
+  const selectedCount = selectedPhotos.length
+  const blockingErrorCount = blockingValidationErrors.length
+  const warningCount = warningValidationResults.length
+  const isComplete = selectedCount >= expectedPhotoCount && expectedPhotoCount > 0
 
   const handleFilesSelected = async (files: File[]) => {
     if (isBusy || uploadComplete || !selectedCompetitionClass) {
-      return;
+      return
     }
 
-    patchPhotos({ isProcessingFiles: true });
-    resetUploadFlow();
+    patchPhotos({ isProcessingFiles: true })
+    resetUploadFlow()
 
     try {
       const result = await processSelectedFiles({
@@ -75,27 +80,27 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
         existingPhotos: selectedPhotos,
         maxPhotos: expectedPhotoCount,
         topicOrderIndexes,
-      });
+      })
 
       if (result.errors.length > 0) {
-        result.errors.forEach((message) => toast.error(message));
+        result.errors.forEach((message) => toast.error(message))
       }
 
       if (result.warnings.length > 0) {
-        result.warnings.forEach((message) => toast.message(message));
+        result.warnings.forEach((message) => toast.message(message))
       }
 
       if (result.photos !== selectedPhotos) {
-        setSelectedPhotos(result.photos);
-        patchPhotos({ filesError: null });
+        setSelectedPhotos(result.photos)
+        patchPhotos({ filesError: null })
       }
     } finally {
-      patchPhotos({ isProcessingFiles: false });
+      patchPhotos({ isProcessingFiles: false })
     }
-  };
+  }
 
   if (!participantSummary) {
-    return null;
+    return null
   }
 
   return (
@@ -105,10 +110,7 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
       {requiresOverwriteWarning ? (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            This participant already has an upload in progress. Starting again
-            will replace it.
-          </p>
+          <p>This participant already has an upload in progress. Starting again will replace it.</p>
         </div>
       ) : null}
 
@@ -128,8 +130,8 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
         photoValidationMap={photoValidationMap}
         isBusy={isBusy}
         onRemove={(photoId) => {
-          resetUploadFlow();
-          removeSelectedPhoto(photoId, topicOrderIndexes);
+          resetUploadFlow()
+          removeSelectedPhoto(photoId, topicOrderIndexes)
         }}
       />
 
@@ -156,5 +158,5 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
         </div>
       ) : null}
     </div>
-  );
+  )
 }
