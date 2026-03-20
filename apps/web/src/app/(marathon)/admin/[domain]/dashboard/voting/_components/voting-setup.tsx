@@ -1,16 +1,19 @@
 "use client"
 
 import type { Topic } from "@blikka/db"
-import { Fragment, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import {
   AlertTriangle,
   Check,
+  Clock,
+  Flag,
   ImageIcon,
   Loader2,
+  Lock,
   Play,
   RotateCcw,
-  TimerOff,
+  Send,
   Users,
   Vote,
 } from "lucide-react"
@@ -28,9 +31,11 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { Button } from "@/components/ui/button"
+import { PrimaryButton } from "@/components/ui/primary-button"
 import { getSubmissionLifecycleState, getVotingLifecycleState } from "@/lib/voting-lifecycle"
 import { formatDateTime, toDateTimeLocalValue, toIsoFromLocal } from "../_lib/utils"
 
@@ -51,65 +56,101 @@ function getLifecyclePhase(
   return "complete"
 }
 
-const STEPS = [
-  { id: "end-submissions", label: "End submissions" },
-  { id: "start-voting", label: "Start voting" },
-  { id: "close-voting", label: "Close voting" },
-] as const
+type StepStatus = "completed" | "active" | "upcoming"
 
-type StepStatus = "completed" | "current" | "upcoming"
-
-function getStepStatus(stepId: string, currentPhase: LifecyclePhase): StepStatus {
-  const order = ["end-submissions", "start-voting", "close-voting"]
-  const phaseIdx = order.indexOf(currentPhase)
-  const currentIdx = currentPhase === "complete" ? 3 : currentPhase === "waiting" ? -1 : phaseIdx
-  const stepIdx = order.indexOf(stepId)
-  if (stepIdx < currentIdx) return "completed"
-  if (stepIdx === currentIdx) return "current"
+function getCardStatus(stepNumber: number, phase: LifecyclePhase): StepStatus {
+  const phaseToActiveStep: Record<LifecyclePhase, number> = {
+    waiting: 1,
+    "end-submissions": 2,
+    "start-voting": 3,
+    "close-voting": 4,
+    complete: 5,
+  }
+  const activeStep = phaseToActiveStep[phase]
+  if (stepNumber < activeStep) return "completed"
+  if (stepNumber === activeStep) return "active"
   return "upcoming"
 }
 
-function StepIndicator({ currentPhase }: { currentPhase: LifecyclePhase }) {
+function StepCard({
+  stepNumber,
+  title,
+  description,
+  status,
+  detail,
+  extraContent,
+  children,
+}: {
+  stepNumber: number
+  title: string
+  description: string
+  status: StepStatus
+  detail?: string | null
+  extraContent?: React.ReactNode
+  children?: React.ReactNode
+}) {
   return (
-    <div className="flex items-center justify-center px-6 py-4">
-      {STEPS.map((step, i) => {
-        const status = getStepStatus(step.id, currentPhase)
-        return (
-          <Fragment key={step.id}>
-            <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                  status === "completed" && "bg-emerald-500 text-white",
-                  status === "current" &&
-                    "bg-[#FF5D4B] text-white ring-2 ring-[#FF5D4B]/25 ring-offset-1",
-                  status === "upcoming" && "bg-slate-200 text-slate-400",
-                )}
-              >
-                {status === "completed" ? <Check className="h-3 w-3" strokeWidth={3} /> : i + 1}
-              </div>
-              <span
-                className={cn(
-                  "hidden text-[13px] font-medium sm:inline",
-                  status === "completed" && "text-emerald-700",
-                  status === "current" && "text-slate-900",
-                  status === "upcoming" && "text-slate-400",
-                )}
-              >
-                {step.label}
-              </span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div
-                className={cn(
-                  "mx-2 h-px w-8 sm:mx-4 sm:w-14",
-                  status === "completed" ? "bg-emerald-300" : "bg-slate-200",
-                )}
-              />
+    <div
+      className={cn(
+        "relative flex flex-col rounded-2xl p-6 transition-all duration-300",
+        status === "completed" && "border border-emerald-200/60 bg-emerald-50/30",
+        status === "active" && "border-2 border-brand-primary/25 bg-white shadow-sm",
+        status === "upcoming" && "border border-border/40 bg-muted/20",
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+          status === "completed" && "bg-emerald-500 text-white",
+          status === "active" &&
+            "border-2 border-brand-primary bg-brand-primary/5 text-brand-primary",
+          status === "upcoming" && "border-2 border-border bg-muted/40 text-muted-foreground/40",
+        )}
+      >
+        {status === "completed" ? (
+          <Check className="h-4.5 w-4.5" strokeWidth={2.5} />
+        ) : (
+          String(stepNumber).padStart(2, "0")
+        )}
+      </div>
+
+      <div className="mt-5">
+        <h3
+          className={cn(
+            "text-[15px] font-semibold tracking-tight",
+            status === "completed" && "text-emerald-900",
+            status === "active" && "text-foreground",
+            status === "upcoming" && "text-muted-foreground/40",
+          )}
+        >
+          {title}
+        </h3>
+        <p
+          className={cn(
+            "mt-1.5 text-[13px] leading-relaxed",
+            status === "completed" && "text-emerald-700/60",
+            status === "active" && "text-muted-foreground",
+            status === "upcoming" && "text-muted-foreground/30",
+          )}
+        >
+          {description}
+        </p>
+        {detail && (
+          <p
+            className={cn(
+              "mt-2.5 text-xs",
+              status === "completed" && "text-emerald-600/60",
+              status === "active" && "text-muted-foreground/70",
             )}
-          </Fragment>
-        )
-      })}
+          >
+            {detail}
+          </p>
+        )}
+      </div>
+
+      {extraContent && <div className="mt-2">{extraContent}</div>}
+
+      <div className="mt-auto pt-3">{children}</div>
     </div>
   )
 }
@@ -146,26 +187,26 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     ])
   }
 
-  const endSubmissionsMutation = useMutation(
+  const startSubmissionsMutation = useMutation(
     trpc.topics.update.mutationOptions({
       onSuccess: async () => {
-        toast.success("Submissions ended")
+        toast.success("Submissions opened")
         await invalidateVotingData()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to end submissions")
+        toast.error(error.message || "Failed to open submissions")
       },
     }),
   )
 
-  const startSubmissionsMutation = useMutation(
+  const endSubmissionsMutation = useMutation(
     trpc.topics.update.mutationOptions({
       onSuccess: async () => {
-        toast.success("Submissions started")
+        toast.success("Submissions closed")
         await invalidateVotingData()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to start submissions")
+        toast.error(error.message || "Failed to close submissions")
       },
     }),
   )
@@ -185,11 +226,11 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
   const closeVotingMutation = useMutation(
     trpc.voting.closeTopicVotingWindow.mutationOptions({
       onSuccess: async () => {
-        toast.success("Voting closed")
+        toast.success("Voting finished")
         await invalidateVotingData()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to close voting")
+        toast.error(error.message || "Failed to finish voting")
       },
     }),
   )
@@ -230,16 +271,16 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
 
   const startBlockedMessage = useMemo(() => {
     if (submissionState !== "ended") {
-      return "Voting cannot start until the active topic submission window has ended."
+      return "Voting cannot start until submissions have ended."
     }
     if (submissionCount === 0) {
-      return "This topic needs at least one submission before voting can start."
+      return "At least one submission is needed before voting can start."
     }
     if (hasScheduledVotingStart) {
-      return "Voting already has a recorded start timestamp for this topic."
+      return "Voting already has a recorded start timestamp."
     }
     if (!hasValidPlannedEnd) {
-      return "Choose a valid planned end timestamp or leave it empty."
+      return "Choose a valid end time or leave it empty."
     }
     return null
   }, [hasScheduledVotingStart, hasValidPlannedEnd, submissionCount, submissionState])
@@ -250,9 +291,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     startSubmissionsMutation.mutate({
       domain,
       id: activeTopic.id,
-      data: {
-        scheduledStart: new Date().toISOString(),
-      },
+      data: { scheduledStart: new Date().toISOString() },
     })
   }
 
@@ -260,9 +299,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     endSubmissionsMutation.mutate({
       domain,
       id: activeTopic.id,
-      data: {
-        scheduledEnd: new Date().toISOString(),
-      },
+      data: { scheduledEnd: new Date().toISOString() },
     })
   }
 
@@ -271,353 +308,411 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       toast.error(startBlockedMessage)
       return
     }
-
     if (plannedEndIso && new Date(plannedEndIso).getTime() <= Date.now()) {
       toast.error("The planned voting end must be in the future.")
       return
     }
-
     setIsStartVotingDialogOpen(true)
   }
 
   const handleConfirmStartVoting = () => {
     startVotingMutation.mutate(
-      {
-        domain,
-        topicId: activeTopic.id,
-        endsAt: plannedEndIso,
-      },
-      {
-        onSuccess: () => setIsStartVotingDialogOpen(false),
-      },
+      { domain, topicId: activeTopic.id, endsAt: plannedEndIso },
+      { onSuccess: () => setIsStartVotingDialogOpen(false) },
     )
   }
 
-  const handleCloseVotingClick = () => {
-    setIsCloseVotingDialogOpen(true)
-  }
+  const handleCloseVotingClick = () => setIsCloseVotingDialogOpen(true)
 
   const handleConfirmCloseVoting = () => {
     closeVotingMutation.mutate(
-      {
-        domain,
-        topicId: activeTopic.id,
-      },
-      {
-        onSuccess: () => setIsCloseVotingDialogOpen(false),
-      },
+      { domain, topicId: activeTopic.id },
+      { onSuccess: () => setIsCloseVotingDialogOpen(false) },
     )
   }
 
-  const handleReopenVotingClick = () => {
-    setIsReopenVotingDialogOpen(true)
-  }
+  const handleReopenVotingClick = () => setIsReopenVotingDialogOpen(true)
 
   const handleConfirmReopenVoting = () => {
     reopenVotingMutation.mutate(
-      {
-        domain,
-        topicId: activeTopic.id,
-      },
-      {
-        onSuccess: () => setIsReopenVotingDialogOpen(false),
-      },
+      { domain, topicId: activeTopic.id },
+      { onSuccess: () => setIsReopenVotingDialogOpen(false) },
     )
   }
 
-  return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <StepIndicator currentPhase={currentPhase} />
+  const step1Status = getCardStatus(1, currentPhase)
+  const step2Status = getCardStatus(2, currentPhase)
+  const step3Status = getCardStatus(3, currentPhase)
+  const step4Status = getCardStatus(4, currentPhase)
 
-      <div className="border-t border-slate-100 px-6 py-5">
-        {currentPhase === "waiting" && (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                Waiting for submissions to begin
-              </p>
-              <p className="mt-0.5 text-sm text-slate-500">
-                {activeTopic.scheduledStart
-                  ? `Submissions scheduled to start ${formatDateTime(activeTopic.scheduledStart)}`
-                  : "No submission start time has been scheduled yet."}
-              </p>
-            </div>
-            <Button
+  return (
+    <>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Step 1: Open Submissions */}
+        <StepCard
+          stepNumber={1}
+          title="Open Submissions"
+          description="Let your participants upload their photo submissions."
+          status={step1Status}
+          detail={
+            step1Status === "active" && activeTopic.scheduledStart
+              ? `Scheduled: ${formatDateTime(activeTopic.scheduledStart)}`
+              : step1Status === "completed" && activeTopic.scheduledStart
+                ? `Opened ${formatDateTime(activeTopic.scheduledStart)}`
+                : null
+          }
+        >
+          {step1Status === "active" ? (
+            <PrimaryButton
               onClick={handleStartSubmissionsNow}
               disabled={startSubmissionsMutation.isPending}
-              className="shrink-0"
+              className="w-full"
             >
               {startSubmissionsMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Starting...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Opening…
                 </>
               ) : (
                 <>
-                  <Play className="mr-2 h-4 w-4" />
-                  Start submissions now
+                  <Play className="h-4 w-4" />
+                  Open
                 </>
               )}
+            </PrimaryButton>
+          ) : step1Status === "completed" ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+              <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Completed
+            </span>
+          ) : (
+            <Button disabled variant="outline" className="w-full">
+              <Play className="h-4 w-4" />
+              Open
             </Button>
-          </div>
-        )}
+          )}
+        </StepCard>
 
-        {currentPhase === "end-submissions" && (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Submissions are still open</p>
-              <p className="mt-0.5 text-sm text-slate-500">
-                {activeTopic.scheduledEnd
-                  ? `Scheduled to end ${formatDateTime(activeTopic.scheduledEnd)}`
-                  : "No scheduled end time set"}
-              </p>
-            </div>
-            <Button
-              variant="outline"
+        {/* Step 2: Close Submissions */}
+        <StepCard
+          stepNumber={2}
+          title="Close Submissions"
+          description="End the upload window so voting can begin."
+          status={step2Status}
+          detail={
+            step2Status === "active" && activeTopic.scheduledEnd
+              ? `Scheduled end: ${formatDateTime(activeTopic.scheduledEnd)}`
+              : step2Status === "completed" && activeTopic.scheduledEnd
+                ? `Closed ${formatDateTime(activeTopic.scheduledEnd)}`
+                : null
+          }
+        >
+          {step2Status === "active" ? (
+            <PrimaryButton
               onClick={handleEndSubmissionsNow}
               disabled={endSubmissionsMutation.isPending}
-              className="shrink-0"
+              className="w-full"
             >
               {endSubmissionsMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Ending...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Closing…
                 </>
               ) : (
                 <>
-                  <TimerOff className="mr-2 h-4 w-4" />
-                  End submissions now
+                  <Lock className="h-4 w-4" />
+                  Close
                 </>
               )}
+            </PrimaryButton>
+          ) : step2Status === "completed" ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+              <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Completed
+            </span>
+          ) : (
+            <Button disabled variant="outline" className="w-full">
+              <Lock className="h-4 w-4" />
+              Close
             </Button>
-          </div>
-        )}
+          )}
+        </StepCard>
 
-        {currentPhase === "start-voting" && (
-          <div className="space-y-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div className="space-y-1.5">
-                <Label
-                  htmlFor="planned-voting-end"
-                  className="text-[13px] font-medium text-slate-700"
-                >
-                  Voting end time <span className="font-normal text-slate-400">(optional)</span>
-                </Label>
-                <Input
-                  id="planned-voting-end"
-                  type="datetime-local"
-                  value={endsAtInput}
-                  onChange={(event) => setEndsAtInput(event.target.value)}
-                  disabled={hasScheduledVotingStart}
-                  className="max-w-64"
-                />
-                <p className="text-xs text-slate-400">Leave empty to close voting manually.</p>
-              </div>
-              <AlertDialog open={isStartVotingDialogOpen} onOpenChange={setIsStartVotingDialogOpen}>
-                <Button
-                  onClick={handleStartVotingClick}
-                  disabled={!canStartVoting || startVotingMutation.isPending}
-                  className="shrink-0"
-                >
-                  {startVotingMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Starting...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-2 h-4 w-4" />
-                      Start voting
-                    </>
-                  )}
-                </Button>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Start voting?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will open the voting window and create voting sessions for all{" "}
-                      {participantWithSubmissionCount} participants with submissions. An SMS with a
-                      voting link will be sent to each participant who has a phone number on file.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={startVotingMutation.isPending}>
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={(e) => {
-                        e.preventDefault()
-                        handleConfirmStartVoting()
-                      }}
-                      disabled={startVotingMutation.isPending}
+        {/* Step 3: Start Voting */}
+        <StepCard
+          stepNumber={3}
+          title="Start Voting"
+          description="Sends an SMS with a voting link to all participants."
+          status={step3Status}
+          detail={
+            step3Status === "completed" && summary.votingWindow.startsAt
+              ? `Started ${formatDateTime(summary.votingWindow.startsAt)}`
+              : null
+          }
+          extraContent={
+            step3Status === "active" ? (
+              <div className="space-y-3">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      disabled={hasScheduledVotingStart}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                     >
-                      {startVotingMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Starting...
-                        </>
-                      ) : (
-                        "Start voting"
-                      )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+                      <Clock className="h-3 w-3" />
+                      {endsAtInput
+                        ? formatDateTime(toIsoFromLocal(endsAtInput))
+                        : "Set Voing End Time"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-64 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="planned-voting-end"
+                        className="text-[12px] font-medium text-foreground"
+                      >
+                        Voting end time
+                      </Label>
+                      <Input
+                        id="planned-voting-end"
+                        type="datetime-local"
+                        value={endsAtInput}
+                        onChange={(event) => setEndsAtInput(event.target.value)}
+                        disabled={hasScheduledVotingStart}
+                        className="h-8 text-[13px]"
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground/60">
+                      Optional. Leave empty to close manually.
+                    </p>
+                  </PopoverContent>
+                </Popover>
 
-            {startBlockedMessage && (
-              <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-800">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                {startBlockedMessage}
-              </div>
-            )}
-          </div>
-        )}
-
-        {currentPhase === "close-voting" && (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Voting is live</p>
-              <div className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-slate-500">
-                <span>Started {formatDateTime(summary.votingWindow.startsAt)}</span>
-                {summary.votingWindow.endsAt && (
-                  <span>Ends {formatDateTime(summary.votingWindow.endsAt)}</span>
+                {startBlockedMessage && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-[12px] leading-relaxed text-amber-800">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    {startBlockedMessage}
+                  </div>
                 )}
               </div>
-            </div>
-            <AlertDialog open={isCloseVotingDialogOpen} onOpenChange={setIsCloseVotingDialogOpen}>
-              <Button
-                variant="destructive"
-                onClick={handleCloseVotingClick}
-                disabled={closeVotingMutation.isPending}
-                className="shrink-0"
-              >
-                {closeVotingMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Closing...
-                  </>
-                ) : (
-                  <>
-                    <TimerOff className="mr-2 h-4 w-4" />
-                    Close voting
-                  </>
-                )}
-              </Button>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Close voting?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will close the voting window. Participants will no longer be able to submit
-                    votes. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={closeVotingMutation.isPending}>
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleConfirmCloseVoting()
-                    }}
-                    disabled={closeVotingMutation.isPending}
-                    className="bg-destructive text-white hover:bg-destructive/90"
-                  >
-                    {closeVotingMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Closing...
-                      </>
-                    ) : (
-                      "Close voting"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        )}
+            ) : null
+          }
+        >
+          {step3Status === "active" ? (
+            <PrimaryButton
+              onClick={handleStartVotingClick}
+              disabled={!canStartVoting || startVotingMutation.isPending}
+              className="w-full"
+            >
+              {startVotingMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Starting…
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Start
+                </>
+              )}
+            </PrimaryButton>
+          ) : step3Status === "completed" ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+              <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Completed
+            </span>
+          ) : (
+            <Button disabled variant="outline" className="w-full">
+              <Send className="h-4 w-4" />
+              Start
+            </Button>
+          )}
+        </StepCard>
 
-        {currentPhase === "complete" && (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Voting complete</p>
-              <p className="mt-0.5 text-sm text-slate-500">
-                Results and completed votes are available in the tabs below.
-              </p>
-            </div>
-            <AlertDialog open={isReopenVotingDialogOpen} onOpenChange={setIsReopenVotingDialogOpen}>
-              <Button
-                variant="outline"
+        {/* Step 4: Finish Voting */}
+        <StepCard
+          stepNumber={4}
+          title="Finish Voting"
+          description="Close the voting window and reveal the leaderboard."
+          status={step4Status}
+          detail={
+            step4Status === "active"
+              ? [
+                  summary.votingWindow.startsAt &&
+                    `Started ${formatDateTime(summary.votingWindow.startsAt)}`,
+                  summary.votingWindow.endsAt &&
+                    `Ends ${formatDateTime(summary.votingWindow.endsAt)}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || null
+              : step4Status === "completed" && summary.votingWindow.endsAt
+                ? `Ended ${formatDateTime(summary.votingWindow.endsAt)}`
+                : null
+          }
+        >
+          {step4Status === "active" ? (
+            <PrimaryButton
+              onClick={handleCloseVotingClick}
+              disabled={closeVotingMutation.isPending}
+              className="w-full"
+            >
+              {closeVotingMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Finishing…
+                </>
+              ) : (
+                <>
+                  <Flag className="h-4 w-4" />
+                  Finish
+                </>
+              )}
+            </PrimaryButton>
+          ) : step4Status === "completed" && currentPhase === "complete" ? (
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                Completed
+              </span>
+              <button
+                type="button"
                 onClick={handleReopenVotingClick}
                 disabled={reopenVotingMutation.isPending}
-                className="shrink-0"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 {reopenVotingMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Reopening...
-                  </>
+                  <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <>
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Reopen voting
-                  </>
+                  <RotateCcw className="h-3 w-3" />
                 )}
-              </Button>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reopen voting?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will reopen the voting window. Participants will be able to submit votes
-                    again. Votes already cast will remain.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={reopenVotingMutation.isPending}>
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleConfirmReopenVoting()
-                    }}
-                    disabled={reopenVotingMutation.isPending}
-                  >
-                    {reopenVotingMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Reopening...
-                      </>
-                    ) : (
-                      "Reopen voting"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        )}
+                Reopen
+              </button>
+            </div>
+          ) : (
+            <Button disabled variant="outline" className="w-full">
+              <Flag className="h-4 w-4" />
+              Finish
+            </Button>
+          )}
+        </StepCard>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-slate-100 px-6 py-3">
-        <span className="inline-flex items-center gap-1.5 text-[13px] text-slate-500">
-          <ImageIcon className="h-3.5 w-3.5 text-slate-400" />
-          <span className="font-semibold text-slate-700">{submissionCount}</span> submissions
+      {/* Stats */}
+      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+        <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <ImageIcon className="h-3.5 w-3.5" />
+          <span className="font-semibold tabular-nums text-foreground">{submissionCount}</span>{" "}
+          submissions
         </span>
-        <span className="inline-flex items-center gap-1.5 text-[13px] text-slate-500">
-          <Users className="h-3.5 w-3.5 text-slate-400" />
-          <span className="font-semibold text-slate-700">
+        <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <Users className="h-3.5 w-3.5" />
+          <span className="font-semibold tabular-nums text-foreground">
             {participantWithSubmissionCount}
           </span>{" "}
           participants
         </span>
-        <span className="inline-flex items-center gap-1.5 text-[13px] text-slate-500">
-          <Vote className="h-3.5 w-3.5 text-slate-400" />
-          <span className="font-semibold text-slate-700">{totalSessions}</span> sessions
+        <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <Vote className="h-3.5 w-3.5" />
+          <span className="font-semibold tabular-nums text-foreground">{totalSessions}</span> voting
+          sessions
         </span>
       </div>
-    </div>
+
+      {/* Confirmation dialogs */}
+      <AlertDialog open={isStartVotingDialogOpen} onOpenChange={setIsStartVotingDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start voting?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will open the voting window and create voting sessions for all{" "}
+              {participantWithSubmissionCount} participants with submissions. An SMS with a voting
+              link will be sent to each participant who has a phone number on file.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={startVotingMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleConfirmStartVoting()
+              }}
+              disabled={startVotingMutation.isPending}
+            >
+              {startVotingMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Starting…
+                </>
+              ) : (
+                "Start voting"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isCloseVotingDialogOpen} onOpenChange={setIsCloseVotingDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finish voting?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will close the voting window. Participants will no longer be able to submit
+              votes. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={closeVotingMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleConfirmCloseVoting()
+              }}
+              disabled={closeVotingMutation.isPending}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {closeVotingMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Finishing…
+                </>
+              ) : (
+                "Finish voting"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isReopenVotingDialogOpen} onOpenChange={setIsReopenVotingDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reopen voting?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reopen the voting window. Participants will be able to submit votes again.
+              Votes already cast will remain.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reopenVotingMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleConfirmReopenVoting()
+              }}
+              disabled={reopenVotingMutation.isPending}
+            >
+              {reopenVotingMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Reopening…
+                </>
+              ) : (
+                "Reopen voting"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

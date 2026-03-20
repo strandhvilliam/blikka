@@ -61,57 +61,60 @@ function VotingSummaryContent({
     }
   }, [hasSessions, setLeaderboardPage, setVotersPage])
 
-
-  if (!hasSessions) {
-    return (
-      <>
-        <VotingHeader activeTopic={activeTopic} />
-        <VotingSetup key={activeTopic.id} activeTopic={activeTopic} />
-      </>
-    )
-  }
-
   return (
     <>
       <VotingHeader activeTopic={activeTopic} />
       <VotingSetup key={activeTopic.id} activeTopic={activeTopic} />
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as 'leaderboard' | 'voters')}
-        className="space-y-0"
-      >
-        <div className="border-b border-border">
-          <TabsList className="bg-transparent rounded-none p-0 h-auto flex gap-8 -mb-px">
-            <TabsTrigger value="leaderboard" className={tabTriggerClassName}>
-              Leaderboard
-            </TabsTrigger>
-            <TabsTrigger value="voters" className={tabTriggerClassName}>
-              Voters
-            </TabsTrigger>
-          </TabsList>
+      <div className="relative">
+        {!hasSessions && (
+          <div className="absolute inset-0 z-10 flex items-start justify-center pt-16">
+            <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-[13px] font-medium text-muted-foreground shadow-sm">
+              Available after voting has started
+            </span>
+          </div>
+        )}
+        <div className={hasSessions ? "" : "opacity-50 pointer-events-none blur-[2px]"}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as 'leaderboard' | 'voters')}
+          className="space-y-0"
+        >
+          <div className="border-b border-border">
+            <TabsList className="bg-transparent rounded-none p-0 h-auto flex gap-8 -mb-px">
+              <TabsTrigger value="leaderboard" className={tabTriggerClassName}>
+                Leaderboard
+              </TabsTrigger>
+              <TabsTrigger value="voters" className={tabTriggerClassName}>
+                Voters
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="leaderboard" className="mt-6 space-y-6">
+            {activeTab === "leaderboard" && hasSessions && (
+              <Suspense fallback={<LeaderboardTabSkeleton />}>
+                <LeaderboardTab
+                  activeTopic={activeTopic}
+                />
+              </Suspense>
+            )}
+            {!hasSessions && <LeaderboardTabSkeleton />}
+          </TabsContent>
+
+          <TabsContent value="voters" className="mt-6">
+            {activeTab === "voters" && hasSessions && (
+              <Suspense fallback={<VotersTabSkeleton />}>
+                <VotersTab
+                  activeTopic={activeTopic}
+                />
+              </Suspense>
+            )}
+            {!hasSessions && <VotersTabSkeleton />}
+          </TabsContent>
+        </Tabs>
         </div>
-
-        <TabsContent value="leaderboard" className="mt-6 space-y-6">
-          {activeTab === "leaderboard" && (
-            <Suspense fallback={<LeaderboardTabSkeleton />}>
-              <LeaderboardTab
-                activeTopic={activeTopic}
-              />
-            </Suspense>
-          )}
-        </TabsContent>
-
-        <TabsContent value="voters" className="mt-6">
-          {activeTab === "voters" && (
-            <Suspense fallback={<VotersTabSkeleton />}>
-              <VotersTab
-                activeTopic={activeTopic}
-              />
-            </Suspense>
-          )}
-        </TabsContent>
-      </Tabs>
+      </div>
     </>
   )
 }
