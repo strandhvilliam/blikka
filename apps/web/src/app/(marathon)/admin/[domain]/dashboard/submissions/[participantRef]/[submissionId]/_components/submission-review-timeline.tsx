@@ -20,7 +20,7 @@ interface ReviewStep {
   title: string
   description: string
   timestamp?: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
   isPending?: boolean
 }
 
@@ -176,15 +176,14 @@ export function SubmissionReviewTimeline({
                 <div
                   className={cn(
                     "relative z-[1] flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-border bg-background",
-                    step.status === "completed" &&
-                      step.icon !== XCircle &&
-                      "text-foreground",
+                    step.status === "completed" && step.icon !== XCircle && "text-foreground",
                     step.status === "completed" &&
                       step.icon === XCircle &&
                       "border-destructive/35 text-destructive",
                     step.status === "pending" &&
                       "border-blue-500/80 bg-blue-500/10 text-blue-600 animate-pulse dark:text-blue-400",
-                    step.status === "upcoming" && "border-muted-foreground/30 text-muted-foreground",
+                    step.status === "upcoming" &&
+                      "border-muted-foreground/30 text-muted-foreground",
                   )}
                 >
                   {step.status === "completed" ? (
@@ -206,9 +205,7 @@ export function SubmissionReviewTimeline({
                   <p
                     className={cn(
                       "text-sm font-medium leading-tight",
-                      step.status === "completed" &&
-                        step.icon === XCircle &&
-                        "text-destructive",
+                      step.status === "completed" && step.icon === XCircle && "text-destructive",
                       step.status === "pending" && "text-blue-600 dark:text-blue-400",
                       step.status === "upcoming" && "text-muted-foreground",
                     )}

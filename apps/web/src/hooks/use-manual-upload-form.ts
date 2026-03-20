@@ -11,7 +11,7 @@ import {
 export type FormState = ParticipantFormValues
 export type FormErrors = Partial<Record<keyof FormState | "files", string>>
 
-export type ParticipantUploadFormApi = ReturnType<typeof useManualUploadForm>["form"]
+export type ManualUploadFormApi = ReturnType<typeof useManualUploadForm>["form"]
 
 export const DEFAULT_FORM_VALUES: FormState = {
   reference: "",

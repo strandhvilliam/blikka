@@ -1,11 +1,7 @@
-"use client";
+"use client"
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  useInfiniteQuery,
-  useQuery,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react"
+import { useInfiniteQuery, useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import {
   ChevronDownIcon,
   LogOutIcon,
@@ -14,51 +10,47 @@ import {
   ShieldCheckIcon,
   UploadIcon,
   UsersIcon,
-} from "lucide-react";
-import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs";
-import { useDebounce } from "use-debounce";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+} from "lucide-react"
+import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs"
+import { useDebounce } from "use-debounce"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
-import { useDomain } from "@/lib/domain-provider";
-import { useTRPC } from "@/lib/trpc/client";
-import { authClient } from "@/lib/auth/client";
-import { formatDomainPathname } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { DotPattern } from "@/components/dot-pattern";
+import { useDomain } from "@/lib/domain-provider"
+import { useTRPC } from "@/lib/trpc/client"
+import { authClient } from "@/lib/auth/client"
+import { formatDomainPathname } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DotPattern } from "@/components/dot-pattern"
 
-import { normalizeParticipantReference } from "../_lib/staff-utils";
-import { ManualEntryDialog } from "./manual-entry-dialog";
-import { ParticipantInfoDrawer } from "./participant-info-drawer";
-import { QrScanDrawer } from "./qr-scan-drawer";
-import { VerifiedParticipantsDrawer } from "./verified-participants-drawer";
+import { normalizeParticipantReference } from "../_lib/staff-utils"
+import { StaffManualEntryDialog } from "./manual-entry-dialog"
+import { ParticipantInfoDrawer } from "./participant-info-drawer"
+import { QrScanDrawer } from "./qr-scan-drawer"
+import { VerifiedParticipantsDrawer } from "./verified-participants-drawer"
 
 function getInitials(name?: string | null, email?: string | null) {
-  const source = (name || email || "Staff").trim();
-  const words = source.split(/\s+/).filter(Boolean);
+  const source = (name || email || "Staff").trim()
+  const words = source.split(/\s+/).filter(Boolean)
 
-  if (words.length === 0) return "ST";
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  if (words.length === 0) return "ST"
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
 
   return words
     .slice(0, 2)
     .map((word) => word[0] ?? "")
     .join("")
-    .toUpperCase();
+    .toUpperCase()
 }
 
 interface StaffHomeClientProps {
-  staffEmail?: string | null;
-  staffId: string;
-  staffImage?: string | null;
-  staffName?: string | null;
+  staffEmail?: string | null
+  staffId: string
+  staffImage?: string | null
+  staffName?: string | null
 }
 
 export function StaffHomeClient({
@@ -67,34 +59,28 @@ export function StaffHomeClient({
   staffImage,
   staffName,
 }: StaffHomeClientProps) {
-  const domain = useDomain();
-  const router = useRouter();
-  const trpc = useTRPC();
-  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
+  const domain = useDomain()
+  const router = useRouter()
+  const trpc = useTRPC()
+  const [isLogoutLoading, setIsLogoutLoading] = useState(false)
 
-  const [activeParticipantReference, setActiveParticipantReference] =
-    useQueryState("reference", parseAsString);
-  const [searchQuery, setSearchQuery] = useQueryState(
-    "vpg",
-    parseAsString.withDefault(""),
-  );
+  const [activeParticipantReference, setActiveParticipantReference] = useQueryState(
+    "reference",
+    parseAsString,
+  )
+  const [searchQuery, setSearchQuery] = useQueryState("vpg", parseAsString.withDefault(""))
   const [openSheet, setOpenSheet] = useQueryState(
     "sheet",
-    parseAsStringEnum([
-      "participant-info",
-      "qr-scan",
-      "manual-entry",
-      "verified-list",
-    ]),
-  );
+    parseAsStringEnum(["participant-info", "qr-scan", "manual-entry", "verified-list"]),
+  )
 
-  const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 300)
 
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({
       domain,
     }),
-  );
+  )
 
   const ownVerificationsQuery = useInfiniteQuery(
     trpc.users.getVerificationsByStaffId.infiniteQueryOptions(
@@ -107,12 +93,12 @@ export function StaffHomeClient({
         getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
       },
     ),
-  );
+  )
 
   const ownVerifications = useMemo(
     () => ownVerificationsQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [ownVerificationsQuery.data],
-  );
+  )
 
   const participantQuery = useQuery(
     trpc.participants.getByReference.queryOptions(
@@ -124,11 +110,11 @@ export function StaffHomeClient({
         enabled: Boolean(activeParticipantReference),
       },
     ),
-  );
+  )
 
   const normalizedSearchQuery = debouncedSearchQuery.trim()
     ? normalizeParticipantReference(debouncedSearchQuery)
-    : "";
+    : ""
 
   const searchResultQuery = useQuery(
     trpc.validations.getParticipantVerificationByReference.queryOptions(
@@ -140,45 +126,44 @@ export function StaffHomeClient({
         enabled: normalizedSearchQuery.length > 0,
       },
     ),
-  );
+  )
 
   useEffect(() => {
     if (openSheet === "participant-info" && !activeParticipantReference) {
-      void setOpenSheet(null);
+      void setOpenSheet(null)
     }
-  }, [activeParticipantReference, openSheet, setOpenSheet]);
+  }, [activeParticipantReference, openSheet, setOpenSheet])
 
   const openSheetSafely = async (
     target: "participant-info" | "qr-scan" | "manual-entry" | "verified-list",
   ) => {
     if (openSheet && openSheet !== target) {
-      await setOpenSheet(null);
+      await setOpenSheet(null)
       window.setTimeout(() => {
-        void setOpenSheet(target);
-      }, 120);
-      return;
+        void setOpenSheet(target)
+      }, 120)
+      return
     }
 
-    await setOpenSheet(target);
-  };
+    await setOpenSheet(target)
+  }
 
   const handleLogout = async () => {
     try {
-      setIsLogoutLoading(true);
-      await authClient.signOut();
+      setIsLogoutLoading(true)
+      await authClient.signOut()
       router.push(
         `/auth/login?next=${encodeURIComponent(formatDomainPathname("/staff", domain, "staff"))}`,
-      );
+      )
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to sign out");
+      console.error(error)
+      toast.error("Failed to sign out")
     } finally {
-      setIsLogoutLoading(false);
+      setIsLogoutLoading(false)
     }
-  };
+  }
 
-  const resolvedName =
-    staffName?.trim() || staffEmail?.trim() || "Staff operator";
+  const resolvedName = staffName?.trim() || staffEmail?.trim() || "Staff operator"
 
   return (
     <>
@@ -194,9 +179,7 @@ export function StaffHomeClient({
               <p className="truncate text-sm font-semibold leading-tight text-foreground">
                 {marathon.name}
               </p>
-              <p className="text-[11px] tracking-wide text-muted-foreground">
-                Staff panel
-              </p>
+              <p className="text-[11px] tracking-wide text-muted-foreground">Staff panel</p>
             </div>
           </div>
 
@@ -207,9 +190,7 @@ export function StaffHomeClient({
                 className="flex items-center gap-2 rounded-full border border-border bg-white/90 py-1.5 pl-1.5 pr-3 shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
               >
                 <Avatar className="h-7 w-7 ring-1 ring-border">
-                  {staffImage ? (
-                    <AvatarImage src={staffImage} alt={resolvedName} />
-                  ) : null}
+                  {staffImage ? <AvatarImage src={staffImage} alt={resolvedName} /> : null}
                   <AvatarFallback className="bg-muted text-[10px] font-semibold">
                     {getInitials(staffName, staffEmail)}
                   </AvatarFallback>
@@ -223,21 +204,15 @@ export function StaffHomeClient({
             <PopoverContent align="end" className="w-64 p-3">
               <div className="flex items-center gap-3 pb-3">
                 <Avatar className="h-9 w-9 ring-1 ring-border">
-                  {staffImage ? (
-                    <AvatarImage src={staffImage} alt={resolvedName} />
-                  ) : null}
+                  {staffImage ? <AvatarImage src={staffImage} alt={resolvedName} /> : null}
                   <AvatarFallback className="bg-muted text-xs font-semibold">
                     {getInitials(staffName, staffEmail)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {resolvedName}
-                  </p>
+                  <p className="truncate text-sm font-semibold text-foreground">{resolvedName}</p>
                   {staffEmail && staffEmail !== resolvedName ? (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {staffEmail}
-                    </p>
+                    <p className="truncate text-xs text-muted-foreground">{staffEmail}</p>
                   ) : null}
                 </div>
               </div>
@@ -272,8 +247,7 @@ export function StaffHomeClient({
               Verify arrivals
             </h1>
             <p className="mt-2 max-w-xs text-sm text-muted-foreground text-balance">
-              Scan a QR code or enter a participant number to review and approve
-              uploads.
+              Scan a QR code or enter a participant number to review and approve uploads.
             </p>
           </div>
 
@@ -284,9 +258,7 @@ export function StaffHomeClient({
             >
               <QrCodeIcon className="h-20 w-20 sm:h-24 sm:w-24" />
             </PrimaryButton>
-            <span className="text-base font-semibold text-foreground">
-              Scan participant QR
-            </span>
+            <span className="text-base font-semibold text-foreground">Scan participant QR</span>
           </div>
 
           <div className="w-full max-w-md">
@@ -301,13 +273,7 @@ export function StaffHomeClient({
                   icon={<UploadIcon className="h-5 w-5" />}
                   label="Laptop upload"
                   onClick={() =>
-                    router.push(
-                      formatDomainPathname(
-                        "/staff/staff-upload",
-                        domain,
-                        "staff",
-                      ),
-                    )
+                    router.push(formatDomainPathname("/staff/staff-upload", domain, "staff"))
                   }
                 />
                 <ActionTile
@@ -325,26 +291,26 @@ export function StaffHomeClient({
         open={openSheet === "qr-scan"}
         onOpenChange={(open) => {
           if (!open) {
-            void setOpenSheet(null);
+            void setOpenSheet(null)
           }
         }}
         currentDomain={domain}
         onScanAction={(args) => {
-          void setActiveParticipantReference(args.reference);
-          void openSheetSafely("participant-info");
+          void setActiveParticipantReference(args.reference)
+          void openSheetSafely("participant-info")
         }}
       />
 
-      <ManualEntryDialog
+      <StaffManualEntryDialog
         open={openSheet === "manual-entry"}
         onOpenChange={(open) => {
           if (!open) {
-            void setOpenSheet(null);
+            void setOpenSheet(null)
           }
         }}
         onEnterAction={(args) => {
-          void setActiveParticipantReference(args.reference);
-          void openSheetSafely("participant-info");
+          void setActiveParticipantReference(args.reference)
+          void openSheetSafely("participant-info")
         }}
       />
 
@@ -352,7 +318,7 @@ export function StaffHomeClient({
         open={openSheet === "verified-list"}
         onOpenChange={(open) => {
           if (!open) {
-            void setOpenSheet(null);
+            void setOpenSheet(null)
           }
         }}
         ownVerifications={ownVerifications}
@@ -371,7 +337,7 @@ export function StaffHomeClient({
         open={openSheet === "participant-info"}
         onOpenChange={(open) => {
           if (!open) {
-            void setOpenSheet(null);
+            void setOpenSheet(null)
           }
         }}
         participant={participantQuery.data ?? null}
@@ -379,14 +345,14 @@ export function StaffHomeClient({
         topics={marathon.topics}
         currentStaffId={staffId}
         onParticipantVerified={() => {
-          void ownVerificationsQuery.refetch();
+          void ownVerificationsQuery.refetch()
         }}
         onParticipantRejected={() => {
-          void setActiveParticipantReference(null);
+          void setActiveParticipantReference(null)
         }}
       />
     </>
-  );
+  )
 }
 
 function ActionTile({
@@ -394,9 +360,9 @@ function ActionTile({
   label,
   onClick,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
+  icon: React.ReactNode
+  label: string
+  onClick: () => void
 }) {
   return (
     <button
@@ -409,5 +375,5 @@ function ActionTile({
       </div>
       <span className="text-xs font-medium text-foreground">{label}</span>
     </button>
-  );
+  )
 }

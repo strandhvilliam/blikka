@@ -1,40 +1,40 @@
-"use client";
+"use client"
 
-import { cn } from "@/lib/utils";
-import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing";
-import { pluralizePhotos } from "@/hooks/use-participant-upload-form";
+import { cn } from "@/lib/utils"
+import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
+import { pluralizePhotos } from "@/hooks/use-manual-upload-form"
 import {
-  DropzoneStatusBadge,
-  type DropzoneVariant,
-} from "@/components/admin-submissions-upload/dropzone-status-badge";
+  ManualDropzoneStatusBadge,
+  type ManualDropzoneVariant,
+} from "@/components/manual-upload/manual-dropzone-status-badge"
 
-export interface ImageDropzoneSectionDropzoneProps {
-  getRootProps: () => Record<string, unknown>;
-  getInputProps: () => Record<string, unknown>;
-  isDragActive: boolean;
+export interface ManualImageDropzoneSectionDropzoneProps {
+  getRootProps: () => Record<string, unknown>
+  getInputProps: () => Record<string, unknown>
+  isDragActive: boolean
 }
 
-export interface ImageDropzoneSectionDropzoneState {
-  isDropzoneDisabled: boolean;
-  variant: DropzoneVariant;
-  isProcessingFiles: boolean;
-  expectedPhotoCount: number;
-  selectedPhotosCount: number;
-  isMaxImagesReached: boolean;
-  dropzoneDisabledReason: string | null;
-  formErrorsFiles?: string;
+export interface ManualImageDropzoneSectionDropzoneState {
+  isDropzoneDisabled: boolean
+  variant: ManualDropzoneVariant
+  isProcessingFiles: boolean
+  expectedPhotoCount: number
+  selectedPhotosCount: number
+  isMaxImagesReached: boolean
+  dropzoneDisabledReason: string | null
+  formErrorsFiles?: string
 }
 
-interface ImageDropzoneSectionProps {
-  dropzoneProps: ImageDropzoneSectionDropzoneProps;
-  dropzoneState: ImageDropzoneSectionDropzoneState;
+interface ManualImageDropzoneSectionProps {
+  dropzoneProps: ManualImageDropzoneSectionDropzoneProps
+  dropzoneState: ManualImageDropzoneSectionDropzoneState
 }
 
-export function ImageDropzoneSection({
+export function ManualImageDropzoneSection({
   dropzoneProps,
   dropzoneState,
-}: ImageDropzoneSectionProps) {
-  const { getRootProps, getInputProps, isDragActive } = dropzoneProps;
+}: ManualImageDropzoneSectionProps) {
+  const { getRootProps, getInputProps, isDragActive } = dropzoneProps
   const {
     isDropzoneDisabled,
     variant,
@@ -44,7 +44,7 @@ export function ImageDropzoneSection({
     isMaxImagesReached,
     dropzoneDisabledReason,
     formErrorsFiles,
-  } = dropzoneState;
+  } = dropzoneState
 
   return (
     <section>
@@ -76,28 +76,18 @@ export function ImageDropzoneSection({
             </p>
           </div>
           <div className="inline-flex items-center rounded-full border border-[#d8d8ce] bg-white px-3 py-1.5 text-xs font-medium">
-            <DropzoneStatusBadge
-              variant={variant}
-              isProcessing={isProcessingFiles}
-            />
+            <ManualDropzoneStatusBadge variant={variant} isProcessing={isProcessingFiles} />
           </div>
         </div>
 
         <p className="mt-3 text-xs text-[#6a6a63]">
           Accepted types: {COMMON_IMAGE_EXTENSIONS.join(", ")}
         </p>
-        {isDropzoneDisabled &&
-        variant !== "complete" &&
-        dropzoneDisabledReason ? (
-          <p className="mt-2 text-xs text-[#7a7a72]">
-            {dropzoneDisabledReason}
-          </p>
+        {isDropzoneDisabled && variant !== "complete" && dropzoneDisabledReason ? (
+          <p className="mt-2 text-xs text-[#7a7a72]">{dropzoneDisabledReason}</p>
         ) : null}
-        {formErrorsFiles ? (
-          <p className="mt-2 text-xs text-rose-600">{formErrorsFiles}</p>
-        ) : null}
+        {formErrorsFiles ? <p className="mt-2 text-xs text-rose-600">{formErrorsFiles}</p> : null}
       </div>
     </section>
-  );
+  )
 }
-

@@ -10,7 +10,7 @@ import {
 } from "@blikka/api/trpc"
 
 import { sanitizeFilenameSegment } from "@/app/(marathon)/admin/[domain]/dashboard/export/_lib/sanitize-filename-segment"
-import { getByCameraExportAccessState } from "@/lib/topics/by-camera-export-access-state"
+import { getByCameraExportAccessState } from "@/lib/by-camera/by-camera-export-access-state"
 import { Route } from "@/lib/next-utils"
 import { serverRuntime, type RuntimeDependencies } from "@/lib/server-runtime"
 
@@ -18,12 +18,9 @@ const EXPORT_KEYS = {
   XLSX_PARTICIPANTS: "xlsx_participants",
   XLSX_SUBMISSIONS: "xlsx_submissions",
   TXT_VALIDATION_RESULTS: "txt_validation_results",
-  XLSX_PARTICIPANTS_BY_CAMERA_ACTIVE_TOPIC:
-    "xlsx_participants_by_camera_active_topic",
-  XLSX_SUBMISSIONS_BY_CAMERA_ACTIVE_TOPIC:
-    "xlsx_submissions_by_camera_active_topic",
-  TXT_VALIDATION_RESULTS_BY_CAMERA_ACTIVE_TOPIC:
-    "txt_validation_results_by_camera_active_topic",
+  XLSX_PARTICIPANTS_BY_CAMERA_ACTIVE_TOPIC: "xlsx_participants_by_camera_active_topic",
+  XLSX_SUBMISSIONS_BY_CAMERA_ACTIVE_TOPIC: "xlsx_submissions_by_camera_active_topic",
+  TXT_VALIDATION_RESULTS_BY_CAMERA_ACTIVE_TOPIC: "txt_validation_results_by_camera_active_topic",
   BY_CAMERA_TOPIC_IMAGES: "by_camera_topic_images",
 } as const
 
@@ -48,8 +45,7 @@ function createWorkbookResponse(
 
   return new NextResponse(buffer, {
     headers: {
-      "Content-Type":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filenameBase}-${getDateStamp()}.xlsx"`,
     },
   })
@@ -95,9 +91,7 @@ const handleParticipantsExport = Effect.fn("export/xlsx-participants")(function*
     Status: participant.status ?? "",
     "Competition Class": participant.competitionClassName,
     "Device Group": participant.deviceGroupName,
-    "Created At": participant.createdAt
-      ? new Date(participant.createdAt).toLocaleDateString()
-      : "",
+    "Created At": participant.createdAt ? new Date(participant.createdAt).toLocaleDateString() : "",
     "Upload Count": participant.uploadCount,
   }))
 
@@ -119,17 +113,11 @@ const handleParticipantsExportByCameraActiveTopic = Effect.fn(
     Status: participant.status ?? "",
     "Competition Class": participant.competitionClassName,
     "Device Group": participant.deviceGroupName,
-    "Created At": participant.createdAt
-      ? new Date(participant.createdAt).toLocaleDateString()
-      : "",
+    "Created At": participant.createdAt ? new Date(participant.createdAt).toLocaleDateString() : "",
     "Upload Count": participant.uploadCount,
   }))
 
-  return createWorkbookResponse(
-    formattedData,
-    "participants-active-topic-export",
-    "Participants",
-  )
+  return createWorkbookResponse(formattedData, "participants-active-topic-export", "Participants")
 })
 
 const handleSubmissionsExport = Effect.fn("export/xlsx-submissions")(function* (
@@ -149,9 +137,7 @@ const handleSubmissionsExport = Effect.fn("export/xlsx-submissions")(function* (
     "Device Group": submission.deviceGroupName,
     Topic: submission.topicName,
     Status: submission.submissionStatus,
-    "Upload Date": submission.uploadDate
-      ? new Date(submission.uploadDate).toLocaleString()
-      : "N/A",
+    "Upload Date": submission.uploadDate ? new Date(submission.uploadDate).toLocaleString() : "N/A",
     "Last Modified": submission.lastModified
       ? new Date(submission.lastModified).toLocaleString()
       : "N/A",
@@ -184,9 +170,7 @@ const handleSubmissionsExportByCameraActiveTopic = Effect.fn(
     "Device Group": submission.deviceGroupName,
     Topic: submission.topicName,
     Status: submission.submissionStatus,
-    "Upload Date": submission.uploadDate
-      ? new Date(submission.uploadDate).toLocaleString()
-      : "N/A",
+    "Upload Date": submission.uploadDate ? new Date(submission.uploadDate).toLocaleString() : "N/A",
     "Last Modified": submission.lastModified
       ? new Date(submission.lastModified).toLocaleString()
       : "N/A",
@@ -200,11 +184,7 @@ const handleSubmissionsExportByCameraActiveTopic = Effect.fn(
     "Thumbnail S3 Key": submission.thumbnailKey,
   }))
 
-  return createWorkbookResponse(
-    formattedData,
-    "submissions-active-topic-export",
-    "Submissions",
-  )
+  return createWorkbookResponse(formattedData, "submissions-active-topic-export", "Submissions")
 })
 
 function groupValidationResults<T extends { participantReference: string }>(
@@ -223,106 +203,102 @@ function groupValidationResults<T extends { participantReference: string }>(
   )
 }
 
-const handleValidationResultsExport = Effect.fn("export/txt-validation-results")(
-  function* (caller: Caller, domain: string, onlyFailed: boolean, fileFormat: string) {
-    const validationResults = yield* Effect.promise(() =>
-      caller.exports.getValidationResultsExportData({
-        domain,
-        onlyFailed,
-      }),
-    )
-
-    if (fileFormat === "single") {
-      let textContent = `Validation Results Export - ${new Date().toLocaleDateString()}\n`
-      textContent += `Domain: ${domain}\n`
-      textContent += `Filter: ${onlyFailed ? "Only Failed Results" : "All Results"}\n`
-      textContent += `Total Results: ${validationResults.length}\n\n`
-
-      const resultsByParticipant = groupValidationResults(validationResults)
-
-      Object.entries(resultsByParticipant).forEach(([participantRef, results]) => {
-        textContent += `=== PARTICIPANT: ${participantRef} ===\n`
-        textContent += `Name: ${results[0]?.participantName}\n`
-        textContent += `Total Validation Results: ${results.length}\n\n`
-
-        results.forEach((result, index) => {
-          textContent += `--- Result ${index + 1} ---\n`
-          textContent += `Rule: ${result.ruleKey}\n`
-          textContent += `Severity: ${result.severity.toUpperCase()}\n`
-          textContent += `Outcome: ${result.outcome}\n`
-          textContent += `Message: ${result.message}\n`
-          if (result.fileName) {
-            textContent += `File: ${result.fileName}\n`
-          }
-          textContent += `Date: ${result.createdAt}\n`
-          if (result.overruled) {
-            textContent += `Status: OVERRULED\n`
-          }
-          textContent += `\n`
-        })
-        textContent += `\n`
-      })
-
-      return new NextResponse(textContent, {
-        headers: {
-          "Content-Type": "text/plain",
-          "Content-Disposition": `attachment; filename="validation-results-export-${getDateStamp()}.txt"`,
-        },
-      })
-    }
-
-    const JSZip = (yield* Effect.promise(() => import("jszip"))).default
-    const zip = new JSZip()
-
-    const resultsByParticipant = groupValidationResults(validationResults)
-
-    Object.entries(resultsByParticipant).forEach(([participantRef, results]) => {
-      let fileContent = `Validation Results for ${participantRef}\n`
-      fileContent += `Export Date: ${new Date().toLocaleDateString()}\n`
-      fileContent += `Participant Name: ${results[0]?.participantName}\n`
-      fileContent += `Filter: ${onlyFailed ? "Only Failed Results" : "All Results"}\n`
-      fileContent += `Total Results: ${results.length}\n\n`
-
-      results.forEach((result, index) => {
-        fileContent += `--- Result ${index + 1} ---\n`
-        fileContent += `Rule: ${result.ruleKey}\n`
-        fileContent += `Severity: ${result.severity.toUpperCase()}\n`
-        fileContent += `Outcome: ${result.outcome}\n`
-        fileContent += `Message: ${result.message}\n`
-        if (result.fileName) {
-          fileContent += `File: ${result.fileName}\n`
-        }
-        fileContent += `Date: ${result.createdAt}\n`
-        if (result.overruled) {
-          fileContent += `Status: OVERRULED\n`
-        }
-        fileContent += `\n`
-      })
-
-      zip.file(`${participantRef}-validation-results.txt`, fileContent)
-    })
-
-    const zipBuffer = yield* Effect.promise(() =>
-      zip.generateAsync({ type: "nodebuffer" }),
-    )
-
-    return new NextResponse(new Uint8Array(zipBuffer), {
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="validation-results-export-${getDateStamp()}.zip"`,
-      },
-    })
-  },
-)
-
-const handleValidationResultsExportByCameraActiveTopic = Effect.fn(
-  "export/txt-validation-results-by-camera-active-topic",
-)(function* (
+const handleValidationResultsExport = Effect.fn("export/txt-validation-results")(function* (
   caller: Caller,
   domain: string,
   onlyFailed: boolean,
   fileFormat: string,
 ) {
+  const validationResults = yield* Effect.promise(() =>
+    caller.exports.getValidationResultsExportData({
+      domain,
+      onlyFailed,
+    }),
+  )
+
+  if (fileFormat === "single") {
+    let textContent = `Validation Results Export - ${new Date().toLocaleDateString()}\n`
+    textContent += `Domain: ${domain}\n`
+    textContent += `Filter: ${onlyFailed ? "Only Failed Results" : "All Results"}\n`
+    textContent += `Total Results: ${validationResults.length}\n\n`
+
+    const resultsByParticipant = groupValidationResults(validationResults)
+
+    Object.entries(resultsByParticipant).forEach(([participantRef, results]) => {
+      textContent += `=== PARTICIPANT: ${participantRef} ===\n`
+      textContent += `Name: ${results[0]?.participantName}\n`
+      textContent += `Total Validation Results: ${results.length}\n\n`
+
+      results.forEach((result, index) => {
+        textContent += `--- Result ${index + 1} ---\n`
+        textContent += `Rule: ${result.ruleKey}\n`
+        textContent += `Severity: ${result.severity.toUpperCase()}\n`
+        textContent += `Outcome: ${result.outcome}\n`
+        textContent += `Message: ${result.message}\n`
+        if (result.fileName) {
+          textContent += `File: ${result.fileName}\n`
+        }
+        textContent += `Date: ${result.createdAt}\n`
+        if (result.overruled) {
+          textContent += `Status: OVERRULED\n`
+        }
+        textContent += `\n`
+      })
+      textContent += `\n`
+    })
+
+    return new NextResponse(textContent, {
+      headers: {
+        "Content-Type": "text/plain",
+        "Content-Disposition": `attachment; filename="validation-results-export-${getDateStamp()}.txt"`,
+      },
+    })
+  }
+
+  const JSZip = (yield* Effect.promise(() => import("jszip"))).default
+  const zip = new JSZip()
+
+  const resultsByParticipant = groupValidationResults(validationResults)
+
+  Object.entries(resultsByParticipant).forEach(([participantRef, results]) => {
+    let fileContent = `Validation Results for ${participantRef}\n`
+    fileContent += `Export Date: ${new Date().toLocaleDateString()}\n`
+    fileContent += `Participant Name: ${results[0]?.participantName}\n`
+    fileContent += `Filter: ${onlyFailed ? "Only Failed Results" : "All Results"}\n`
+    fileContent += `Total Results: ${results.length}\n\n`
+
+    results.forEach((result, index) => {
+      fileContent += `--- Result ${index + 1} ---\n`
+      fileContent += `Rule: ${result.ruleKey}\n`
+      fileContent += `Severity: ${result.severity.toUpperCase()}\n`
+      fileContent += `Outcome: ${result.outcome}\n`
+      fileContent += `Message: ${result.message}\n`
+      if (result.fileName) {
+        fileContent += `File: ${result.fileName}\n`
+      }
+      fileContent += `Date: ${result.createdAt}\n`
+      if (result.overruled) {
+        fileContent += `Status: OVERRULED\n`
+      }
+      fileContent += `\n`
+    })
+
+    zip.file(`${participantRef}-validation-results.txt`, fileContent)
+  })
+
+  const zipBuffer = yield* Effect.promise(() => zip.generateAsync({ type: "nodebuffer" }))
+
+  return new NextResponse(new Uint8Array(zipBuffer), {
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="validation-results-export-${getDateStamp()}.zip"`,
+    },
+  })
+})
+
+const handleValidationResultsExportByCameraActiveTopic = Effect.fn(
+  "export/txt-validation-results-by-camera-active-topic",
+)(function* (caller: Caller, domain: string, onlyFailed: boolean, fileFormat: string) {
   const validationResults = yield* Effect.promise(() =>
     caller.exports.getValidationResultsExportDataByCameraActiveTopic({
       domain,
@@ -402,9 +378,7 @@ const handleValidationResultsExportByCameraActiveTopic = Effect.fn(
     zip.file(`${participantRef}-validation-results.txt`, fileContent)
   })
 
-  const zipBuffer = yield* Effect.promise(() =>
-    zip.generateAsync({ type: "nodebuffer" }),
-  )
+  const zipBuffer = yield* Effect.promise(() => zip.generateAsync({ type: "nodebuffer" }))
 
   return new NextResponse(new Uint8Array(zipBuffer), {
     headers: {
@@ -414,24 +388,24 @@ const handleValidationResultsExportByCameraActiveTopic = Effect.fn(
   })
 })
 
-const handleByCameraTopicImagesExport = Effect.fn("export/by-camera-topic-images")(
-  function* (domain: string) {
-    const { topicName, zipBuffer } = yield* ExportsApiService.use((service) =>
-      service.buildByCameraActiveTopicImagesZip({
-        domain,
-      }),
-    )
+const handleByCameraTopicImagesExport = Effect.fn("export/by-camera-topic-images")(function* (
+  domain: string,
+) {
+  const { topicName, zipBuffer } = yield* ExportsApiService.use((service) =>
+    service.buildByCameraActiveTopicImagesZip({
+      domain,
+    }),
+  )
 
-    return new NextResponse(new Uint8Array(zipBuffer), {
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="${sanitizeFilenameSegment(
-          topicName,
-        )}-images-${getDateStamp()}.zip"`,
-      },
-    })
-  },
-)
+  return new NextResponse(new Uint8Array(zipBuffer), {
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${sanitizeFilenameSegment(
+        topicName,
+      )}-images-${getDateStamp()}.zip"`,
+    },
+  })
+})
 
 const exportGetImpl = Effect.fn("@blikka/web/exportGET")(function* (
   request: NextRequest,

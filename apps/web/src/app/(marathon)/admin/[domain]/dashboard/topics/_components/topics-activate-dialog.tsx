@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import type { Topic } from "@blikka/db";
-import { Loader2, Zap } from "lucide-react";
+import type { Topic } from "@blikka/db"
+import { Loader2, Zap } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,48 +11,47 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { getByCameraSubmissionWindowState } from "@/lib/topics/by-camera-submission-window-state";
-import { getVotingLifecycleState } from "@/lib/voting/voting-lifecycle";
+} from "@/components/ui/alert-dialog"
+import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
+import { getVotingLifecycleState } from "@/lib/voting/voting-lifecycle"
 
 interface TopicsActivateDialogProps {
-  topicToActivate: Topic | null;
-  activeTopic: Topic | null;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: (topic: Topic) => void;
-  isPending: boolean;
+  topicToActivate: Topic | null
+  activeTopic: Topic | null
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: (topic: Topic) => void
+  isPending: boolean
 }
 
 function getActivateDialogMessage(
   topicToActivate: Topic,
   activeTopic: Topic | null,
 ): { title: string; description: string } {
-  const topicName = topicToActivate.name;
+  const topicName = topicToActivate.name
 
   if (!activeTopic) {
     return {
       title: `Activate topic "${topicName}"?`,
-      description:
-        "This topic will become the active topic for by-camera submissions.",
-    };
+      description: "This topic will become the active topic for by-camera submissions.",
+    }
   }
 
-  const submissionState = getByCameraSubmissionWindowState(activeTopic);
+  const submissionState = getByCameraSubmissionWindowState(activeTopic)
   const votingState = getVotingLifecycleState({
     startsAt: activeTopic.votingStartsAt,
     endsAt: activeTopic.votingEndsAt,
-  });
+  })
 
-  const submissionsOngoing = submissionState === "open";
-  const votingActive = votingState === "active";
+  const submissionsOngoing = submissionState === "open"
+  const votingActive = votingState === "active"
 
   if (submissionsOngoing && votingActive) {
     return {
       title: `Switch to topic "${topicName}"?`,
       description:
         "The current topic has submissions ongoing and voting in progress. Participants may be uploading or voting. Switching will affect them.",
-    };
+    }
   }
 
   if (submissionsOngoing) {
@@ -60,7 +59,7 @@ function getActivateDialogMessage(
       title: `Switch to topic "${topicName}"?`,
       description:
         "The current topic has submissions ongoing. Participants may be uploading. Switching will affect them.",
-    };
+    }
   }
 
   if (votingActive) {
@@ -68,13 +67,13 @@ function getActivateDialogMessage(
       title: `Switch to topic "${topicName}"?`,
       description:
         "The current topic has voting in progress. Participants may be voting. Switching will affect them.",
-    };
+    }
   }
 
   return {
     title: `Switch to topic "${topicName}"?`,
     description: "The current topic will be deactivated.",
-  };
+  }
 }
 
 export function TopicsActivateDialog({
@@ -86,14 +85,12 @@ export function TopicsActivateDialog({
   isPending,
 }: TopicsActivateDialogProps) {
   const handleConfirm = () => {
-    if (!topicToActivate) return;
-    onConfirm(topicToActivate);
-  };
+    if (!topicToActivate) return
+    onConfirm(topicToActivate)
+  }
 
   const message =
-    topicToActivate != null
-      ? getActivateDialogMessage(topicToActivate, activeTopic)
-      : null;
+    topicToActivate != null ? getActivateDialogMessage(topicToActivate, activeTopic) : null
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
@@ -109,8 +106,8 @@ export function TopicsActivateDialog({
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
-              e.preventDefault();
-              handleConfirm();
+              e.preventDefault()
+              handleConfirm()
             }}
             disabled={!topicToActivate || isPending}
           >
@@ -129,5 +126,5 @@ export function TopicsActivateDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  );
+  )
 }

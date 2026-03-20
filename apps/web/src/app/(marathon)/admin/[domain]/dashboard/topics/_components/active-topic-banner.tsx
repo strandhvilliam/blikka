@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import type { Topic } from "@blikka/db";
+import type { Topic } from "@blikka/db"
 import {
   AlarmClockCheck,
   CheckCircle2,
@@ -11,28 +11,28 @@ import {
   TagIcon,
   TimerOff,
   Zap,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import type { ByCameraSubmissionWindowState } from "../_lib/by-camera-submission-window-state";
-import { formatTimestamp } from "../_lib/formatting";
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import type { ByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
+import { formatTimestamp } from "../_lib/formatting"
 
 type ActiveTopicBannerProps = {
-  activeTopic: Topic | null;
-  submissionState: ByCameraSubmissionWindowState;
-  submissionCount: number;
-  onEdit: (topic: Topic) => void;
-  onEditSubmissionWindow: (topic: Topic) => void;
-  onCreate: () => void;
-  isLoading: boolean;
-};
+  activeTopic: Topic | null
+  submissionState: ByCameraSubmissionWindowState
+  submissionCount: number
+  onEdit: (topic: Topic) => void
+  onEditSubmissionWindow: (topic: Topic) => void
+  onCreate: () => void
+  isLoading: boolean
+}
 
 const BADGE_STYLES: Record<
   Exclude<ByCameraSubmissionWindowState, "no-active-topic">,
   {
-    label: string;
-    className: string;
-    icon: typeof Clock3;
+    label: string
+    className: string
+    icon: typeof Clock3
   }
 > = {
   "not-opened": {
@@ -59,7 +59,7 @@ const BADGE_STYLES: Record<
       "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
     icon: TimerOff,
   },
-};
+}
 
 export function ActiveTopicBanner({
   activeTopic,
@@ -72,13 +72,11 @@ export function ActiveTopicBanner({
 }: ActiveTopicBannerProps) {
   if (activeTopic) {
     const resolvedSubmissionState =
-      submissionState === "no-active-topic" ? "not-opened" : submissionState;
-    const badge = BADGE_STYLES[resolvedSubmissionState];
-    const BadgeIcon = badge.icon;
+      submissionState === "no-active-topic" ? "not-opened" : submissionState
+    const badge = BADGE_STYLES[resolvedSubmissionState]
+    const BadgeIcon = badge.icon
     const submissionWindowActionLabel =
-      resolvedSubmissionState === "not-opened"
-        ? "Start submissions"
-        : "Edit submission window";
+      resolvedSubmissionState === "not-opened" ? "Start submissions" : "Edit submission window"
 
     return (
       <div
@@ -106,10 +104,7 @@ export function ActiveTopicBanner({
                 </Badge>
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Active since{" "}
-                {formatTimestamp(
-                  activeTopic.activatedAt ?? activeTopic.createdAt,
-                )}
+                Active since {formatTimestamp(activeTopic.activatedAt ?? activeTopic.createdAt)}
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                 <div className="rounded-full border border-border/70 bg-background/80 px-3 py-1.5">
@@ -167,7 +162,7 @@ export function ActiveTopicBanner({
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -180,8 +175,7 @@ export function ActiveTopicBanner({
           <div>
             <h3 className="font-medium text-foreground">No active topic</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Step 1: activate a topic below. Step 2: start submissions from the
-              active topic panel.
+              Step 1: activate a topic below. Step 2: start submissions from the active topic panel.
             </p>
           </div>
         </div>
@@ -191,5 +185,5 @@ export function ActiveTopicBanner({
         </Button>
       </div>
     </div>
-  );
+  )
 }

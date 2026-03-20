@@ -1,26 +1,21 @@
-"use client";
+"use client"
 
-import { Input } from "@/components/ui/input";
-import { PhoneInput } from "@/components/ui/phone-input";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import type { ParticipantUploadFormApi } from "@/hooks/use-participant-upload-form";
+import { Input } from "@/components/ui/input"
+import { PhoneInput } from "@/components/ui/phone-input"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import type { ManualUploadFormApi } from "@/hooks/use-manual-upload-form"
 
-interface ParticipantDetailsFormProps {
-  form: ParticipantUploadFormApi;
-  marathonMode: string;
+interface ManualDetailsFormProps {
+  form: ManualUploadFormApi
+  marathonMode: string
 }
 
-export function ParticipantDetailsForm({
-  form,
-  marathonMode,
-}: ParticipantDetailsFormProps) {
+export function ManualDetailsForm({ form, marathonMode }: ManualDetailsFormProps) {
   return (
     <section className="rounded-xl border border-[#e2e2d8] bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-gothic text-lg text-[#1f1f1f]">
-          Participant Details
-        </h3>
+        <h3 className="font-gothic text-lg text-[#1f1f1f]">Participant Details</h3>
         <Badge variant="outline" className="border-[#deded4] text-[#717169]">
           Required
         </Badge>
@@ -31,11 +26,11 @@ export function ParticipantDetailsForm({
           name="reference"
           validators={{
             onChange: ({ value }) => {
-              if (!/^\d{0,4}$/.test(value)) return undefined;
+              if (!/^\d{0,4}$/.test(value)) return undefined
               if (value.length > 0 && !/^\d{1,4}$/.test(value)) {
-                return "Participant reference must be 1-4 digits";
+                return "Participant reference must be 1-4 digits"
               }
-              return undefined;
+              return undefined
             },
           }}
         >
@@ -47,14 +42,14 @@ export function ParticipantDetailsForm({
               <Input
                 value={field.state.value}
                 onChange={(event) => {
-                  const value = event.target.value.replace(/\D/g, "").slice(0, 4);
-                  field.handleChange(value);
+                  const value = event.target.value.replace(/\D/g, "").slice(0, 4)
+                  field.handleChange(value)
                 }}
                 onBlur={() => {
                   if (field.state.value.length > 0) {
-                    field.handleChange(field.state.value.padStart(4, "0"));
+                    field.handleChange(field.state.value.padStart(4, "0"))
                   }
-                  field.handleBlur();
+                  field.handleBlur()
                 }}
                 placeholder="0001"
                 inputMode="numeric"
@@ -69,9 +64,7 @@ export function ParticipantDetailsForm({
               {!field.state.meta.isValid &&
               field.state.meta.isTouched &&
               field.state.meta.errors.length > 0 ? (
-                <p className="text-xs text-rose-600">
-                  {field.state.meta.errors.join(", ")}
-                </p>
+                <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
               ) : null}
             </div>
           )}
@@ -98,9 +91,7 @@ export function ParticipantDetailsForm({
                 {!field.state.meta.isValid &&
                 field.state.meta.isTouched &&
                 field.state.meta.errors.length > 0 ? (
-                  <p className="text-xs text-rose-600">
-                    {field.state.meta.errors.join(", ")}
-                  </p>
+                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
                 ) : null}
               </div>
             )}
@@ -126,9 +117,7 @@ export function ParticipantDetailsForm({
                 {!field.state.meta.isValid &&
                 field.state.meta.isTouched &&
                 field.state.meta.errors.length > 0 ? (
-                  <p className="text-xs text-rose-600">
-                    {field.state.meta.errors.join(", ")}
-                  </p>
+                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
                 ) : null}
               </div>
             )}
@@ -156,9 +145,7 @@ export function ParticipantDetailsForm({
                 {!field.state.meta.isValid &&
                 field.state.meta.isTouched &&
                 field.state.meta.errors.length > 0 ? (
-                  <p className="text-xs text-rose-600">
-                    {field.state.meta.errors.join(", ")}
-                  </p>
+                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
                 ) : null}
               </div>
             )}
@@ -185,9 +172,7 @@ export function ParticipantDetailsForm({
                   {!field.state.meta.isValid &&
                   field.state.meta.isTouched &&
                   field.state.meta.errors.length > 0 ? (
-                    <p className="text-xs text-rose-600">
-                      {field.state.meta.errors.join(", ")}
-                    </p>
+                    <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
                   ) : null}
                 </div>
               )}
@@ -208,6 +193,5 @@ export function ParticipantDetailsForm({
         </div>
       </div>
     </section>
-  );
+  )
 }
-

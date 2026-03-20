@@ -37,11 +37,11 @@ import { getDropzoneDisabledReason, getDropzoneVariant } from "@/lib/upload-util
 import { pluralizePhotos, useManualUploadForm } from "@/hooks/use-manual-upload-form"
 import { useManualPhotoSelection } from "@/hooks/use-manual-photo-selection"
 import { useManualUploadFlow } from "@/hooks/use-manual-upload-flow"
-import { ParticipantDetailsForm } from "@/components/admin-submissions-upload/participant-details-form"
-import { UploadMappingSection } from "@/components/admin-submissions-upload/upload-mapping-section"
-import { ImageDropzoneSection } from "@/components/admin-submissions-upload/image-dropzone-section"
-import { SelectedImagesSection } from "@/components/admin-submissions-upload/selected-images-section"
-import { UploadStatusSection } from "@/components/admin-submissions-upload/upload-status-section"
+import { ManualDetailsForm } from "@/components/manual-upload/manual-details-form"
+import { ManualUploadMappingSection } from "@/components/manual-upload/manual-upload-mapping-section"
+import { ManualImageDropzoneSection } from "@/components/manual-upload/manual-image-dropzone-section"
+import { ManualSelectedImagesSection } from "@/components/manual-upload/manual-selected-images-section"
+import { ManualUploadStatusSection } from "@/components/manual-upload/manual-upload-status-section"
 import { useDomain } from "@/lib/domain-provider"
 
 const DROPZONE_ACCEPT: Accept = {
@@ -329,8 +329,8 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
           <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1.2fr_1fr]">
             <div className="min-h-0 overflow-y-auto px-6 py-6">
               <div className="space-y-6">
-                <ParticipantDetailsForm form={form} marathonMode={marathonMode} />
-                <UploadMappingSection
+                <ManualDetailsForm form={form} marathonMode={marathonMode} />
+                <ManualUploadMappingSection
                   form={form}
                   marathonMode={marathonMode}
                   competitionClasses={marathon.competitionClasses}
@@ -343,7 +343,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
 
             <div className="min-h-0 overflow-y-auto border-l border-[#e2e2d8] bg-[#fcfcf8] px-6 py-6">
               <div className="space-y-5">
-                <ImageDropzoneSection
+                <ManualImageDropzoneSection
                   dropzoneProps={{ getRootProps, getInputProps, isDragActive }}
                   dropzoneState={{
                     isDropzoneDisabled: isDropzoneDisabled,
@@ -357,14 +357,14 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
                   }}
                 />
 
-                <SelectedImagesSection
+                <ManualSelectedImagesSection
                   photoSelection={photoSelection}
                   uploadFlow={{ uploadComplete: uploadFlow.uploadComplete }}
                   expectedPhotoCount={expectedPhotoCount}
                   isBusy={isBusy}
                 />
 
-                <UploadStatusSection uploadFlow={uploadFlow} isBusy={isBusy} />
+                <ManualUploadStatusSection uploadFlow={uploadFlow} isBusy={isBusy} />
               </div>
             </div>
           </div>

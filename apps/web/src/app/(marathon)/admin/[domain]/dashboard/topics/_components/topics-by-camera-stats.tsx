@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import type { ByCameraSubmissionWindowState } from "../_lib/by-camera-submission-window-state";
+import type { ByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
 
 type TopicsByCameraStatsProps = {
-  topicsCount: number;
-  totalSubmissions: number;
-  submissionState: ByCameraSubmissionWindowState;
-};
+  topicsCount: number
+  totalSubmissions: number
+  submissionState: ByCameraSubmissionWindowState
+}
 
 const STATUS_COPY: Record<ByCameraSubmissionWindowState, string> = {
   "no-active-topic": "No active topic",
@@ -14,22 +14,20 @@ const STATUS_COPY: Record<ByCameraSubmissionWindowState, string> = {
   scheduled: "Submissions scheduled",
   open: "Accepting submissions",
   closed: "Submission window closed",
-};
+}
 
 export function TopicsByCameraStats({
   topicsCount,
   totalSubmissions,
   submissionState,
 }: TopicsByCameraStatsProps) {
-  const isOpen = submissionState === "open";
+  const isOpen = submissionState === "open"
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <div className="rounded-xl border border-border bg-card p-4">
         <p className="font-gothic text-xs text-muted-foreground">Topics</p>
-        <p className="mt-1.5 text-2xl font-semibold tabular-nums text-foreground">
-          {topicsCount}
-        </p>
+        <p className="mt-1.5 text-2xl font-semibold tabular-nums text-foreground">{topicsCount}</p>
       </div>
       <div className="rounded-xl border border-border bg-card p-4">
         <p className="font-gothic text-xs text-muted-foreground">Submissions</p>
@@ -70,5 +68,5 @@ export function TopicsByCameraStats({
         </p>
       </div>
     </div>
-  );
+  )
 }

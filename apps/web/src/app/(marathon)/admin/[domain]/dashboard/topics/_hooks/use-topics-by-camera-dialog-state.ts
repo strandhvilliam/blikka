@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs";
+import { parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs"
 
 const dialogParser = parseAsStringEnum([
   "create",
@@ -8,37 +8,37 @@ const dialogParser = parseAsStringEnum([
   "delete",
   "submission-window",
   "activate",
-]);
+])
 
 export function useTopicsByCameraDialogState() {
   const [params, setParams] = useQueryStates({
     dialog: dialogParser,
     topicId: parseAsInteger,
-  });
+  })
 
   const closeDialog = () => {
-    setParams({ dialog: null, topicId: null });
-  };
+    setParams({ dialog: null, topicId: null })
+  }
 
   const openCreate = () => {
-    setParams({ dialog: "create", topicId: null });
-  };
+    setParams({ dialog: "create", topicId: null })
+  }
 
   const openEdit = (topicId: number) => {
-    setParams({ dialog: "edit", topicId });
-  };
+    setParams({ dialog: "edit", topicId })
+  }
 
   const openDelete = (topicId: number) => {
-    setParams({ dialog: "delete", topicId });
-  };
+    setParams({ dialog: "delete", topicId })
+  }
 
   const openSubmissionWindow = (topicId: number) => {
-    setParams({ dialog: "submission-window", topicId });
-  };
+    setParams({ dialog: "submission-window", topicId })
+  }
 
   const openActivate = (topicId: number) => {
-    setParams({ dialog: "activate", topicId });
-  };
+    setParams({ dialog: "activate", topicId })
+  }
 
   return {
     dialog: params.dialog,
@@ -50,5 +50,5 @@ export function useTopicsByCameraDialogState() {
     openSubmissionWindow,
     openActivate,
     setParams,
-  };
+  }
 }

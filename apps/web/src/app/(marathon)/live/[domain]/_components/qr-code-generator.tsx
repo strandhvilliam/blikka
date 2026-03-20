@@ -8,11 +8,7 @@ interface QrCodeGeneratorProps {
   level?: "L" | "M" | "Q" | "H"
 }
 
-export function QrCodeGenerator({
-  value,
-  size = 256,
-  level = "L",
-}: QrCodeGeneratorProps) {
+export function QrCodeGenerator({ value, size = 256, level = "L" }: QrCodeGeneratorProps) {
   if (!value) {
     return null
   }

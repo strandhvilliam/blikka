@@ -1,57 +1,50 @@
-"use client";
+"use client"
 /* eslint-disable @next/next/no-img-element */
 
-import { ChevronDown, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { VALIDATION_OUTCOME } from "@blikka/validation";
-import type { ValidationResult } from "@blikka/validation";
-import type { ParticipantSelectedPhoto } from "@/lib/participant-upload-types";
-import { cn } from "@/lib/utils";
-import { createValidationResultKey } from "@/lib/validation";
-import {
-  formatRuleKey,
-  getValidationRowClass,
-} from "@/lib/upload-utils";
+import { ChevronDown, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { VALIDATION_OUTCOME } from "@blikka/validation"
+import type { ValidationResult } from "@blikka/validation"
+import type { ParticipantSelectedPhoto } from "@/lib/participant-upload-types"
+import { cn } from "@/lib/utils"
+import { createValidationResultKey } from "@/lib/validation"
+import { formatRuleKey, getValidationRowClass } from "@/lib/upload-utils"
 
-export interface SelectedImagesSectionPhotoSelection {
-  selectedPhotos: ParticipantSelectedPhoto[];
-  photoValidationMap: Map<string, ValidationResult[]>;
-  generalValidationResults: ValidationResult[];
-  blockingValidationErrors: ValidationResult[];
-  warningValidationResults: ValidationResult[];
-  validationRunError: string | null;
-  handleRemovePhoto: (photoId: string) => void;
+export interface ManualSelectedImagesSectionPhotoSelection {
+  selectedPhotos: ParticipantSelectedPhoto[]
+  photoValidationMap: Map<string, ValidationResult[]>
+  generalValidationResults: ValidationResult[]
+  blockingValidationErrors: ValidationResult[]
+  warningValidationResults: ValidationResult[]
+  validationRunError: string | null
+  handleRemovePhoto: (photoId: string) => void
 }
 
-interface SelectedImagesSectionUploadFlow {
-  uploadComplete: boolean;
+interface ManualSelectedImagesSectionUploadFlow {
+  uploadComplete: boolean
 }
 
-interface SelectedImagesSectionProps {
-  photoSelection: SelectedImagesSectionPhotoSelection;
-  uploadFlow: SelectedImagesSectionUploadFlow;
-  expectedPhotoCount: number;
-  isBusy: boolean;
+interface ManualSelectedImagesSectionProps {
+  photoSelection: ManualSelectedImagesSectionPhotoSelection
+  uploadFlow: ManualSelectedImagesSectionUploadFlow
+  expectedPhotoCount: number
+  isBusy: boolean
 }
 
 const EMPTY_STATE = (
   <div className="rounded-lg border border-dashed border-[#d7d7ce] bg-white px-4 py-6 text-center">
     <p className="text-sm text-[#6f6f66]">No images selected yet.</p>
   </div>
-);
+)
 
-export function SelectedImagesSection({
+export function ManualSelectedImagesSection({
   photoSelection,
   uploadFlow,
   expectedPhotoCount,
   isBusy,
-}: SelectedImagesSectionProps) {
+}: ManualSelectedImagesSectionProps) {
   const {
     selectedPhotos,
     photoValidationMap,
@@ -60,8 +53,8 @@ export function SelectedImagesSection({
     warningValidationResults,
     validationRunError,
     handleRemovePhoto,
-  } = photoSelection;
-  const { uploadComplete } = uploadFlow;
+  } = photoSelection
+  const { uploadComplete } = uploadFlow
 
   return (
     <section>
@@ -93,10 +86,7 @@ export function SelectedImagesSection({
             {generalValidationResults.map((result, index) => (
               <div
                 key={`${createValidationResultKey(result)}-${index}`}
-                className={cn(
-                  "rounded-md border px-3 py-2 text-xs",
-                  getValidationRowClass(result),
-                )}
+                className={cn("rounded-md border px-3 py-2 text-xs", getValidationRowClass(result))}
               >
                 <p className="font-semibold">{formatRuleKey(result.ruleKey)}</p>
                 <p className="mt-1">{result.message}</p>
@@ -117,17 +107,15 @@ export function SelectedImagesSection({
       ) : (
         <div className="space-y-2">
           {selectedPhotos.map((photo) => {
-            const photoValidationResults = photoValidationMap.get(photo.id) ?? [];
+            const photoValidationResults = photoValidationMap.get(photo.id) ?? []
             const photoErrorCount = photoValidationResults.filter(
               (result) =>
-                result.outcome === VALIDATION_OUTCOME.FAILED &&
-                result.severity === "error",
-            ).length;
+                result.outcome === VALIDATION_OUTCOME.FAILED && result.severity === "error",
+            ).length
             const photoWarningCount = photoValidationResults.filter(
               (result) =>
-                result.outcome === VALIDATION_OUTCOME.FAILED &&
-                result.severity === "warning",
-            ).length;
+                result.outcome === VALIDATION_OUTCOME.FAILED && result.severity === "warning",
+            ).length
 
             return (
               <div
@@ -204,9 +192,7 @@ export function SelectedImagesSection({
                                 getValidationRowClass(result),
                               )}
                             >
-                              <p className="font-semibold">
-                                {formatRuleKey(result.ruleKey)}
-                              </p>
+                              <p className="font-semibold">{formatRuleKey(result.ruleKey)}</p>
                               <p className="mt-1">{result.message}</p>
                             </div>
                           ))
@@ -216,10 +202,10 @@ export function SelectedImagesSection({
                   </div>
                 </div>
               </div>
-            );
+            )
           })}
         </div>
       )}
     </section>
-  );
+  )
 }

@@ -21,7 +21,7 @@ const _DomainPage = Effect.fn("@blikka/web/DomainPage")(
 
     return redirect(formatDomainPathname(`/admin/dashboard`, domain))
   },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Page(_DomainPage)

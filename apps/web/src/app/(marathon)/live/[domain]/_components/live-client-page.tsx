@@ -26,7 +26,7 @@ import { useDomain } from "@/lib/domain-provider"
 import {
   getByCameraLiveAccessState,
   type ByCameraLiveAccessResult,
-} from "@/lib/topics/by-camera-live-access-state"
+} from "@/lib/by-camera/by-camera-live-access-state"
 
 const BUCKET_NAME = process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
 
@@ -97,7 +97,7 @@ export function LiveClientPage() {
             mode={marathon.mode as "marathon" | "by-camera"}
             activeTopicName={
               marathon.mode === "by-camera"
-                ? byCameraAccessState?.activeTopic?.name ?? null
+                ? (byCameraAccessState?.activeTopic?.name ?? null)
                 : null
             }
           />
@@ -150,7 +150,7 @@ function LogoAndEventInfo({
   const t = useTranslations("LivePage")
   const subtitle =
     mode === "by-camera"
-      ? activeTopicName ?? t("datesToBeAnnounced")
+      ? (activeTopicName ?? t("datesToBeAnnounced"))
       : marathon.startDate && marathon.endDate
         ? `${format(new Date(marathon.startDate), "dd MMMM yyyy")} - ${format(new Date(marathon.endDate), "dd MMMM yyyy")}`
         : t("datesToBeAnnounced")
@@ -169,9 +169,7 @@ function LogoAndEventInfo({
       <h1 className="text-2xl font-rocgrotesk font-extrabold text-gray-900 text-center mt-2">
         {marathon.name}
       </h1>
-      <p className="text-center text-lg mt-1 font-medium tracking-wide">
-        {subtitle}
-      </p>
+      <p className="text-center text-lg mt-1 font-medium tracking-wide">{subtitle}</p>
     </div>
   )
 }

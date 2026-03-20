@@ -117,11 +117,6 @@ export function ParticipantSubmissionClientPage({
 
   const hasIssues = submissionValidationResults.some((result) => result.outcome === "failed")
 
-  const previewImageUrl = getSubmissionPreviewImageUrl(submission)
-  const originalImageUrl = getSubmissionOriginalImageUrl(submission)
-  const submissionDownloadFileName = getSubmissionDownloadFileName(submission)
-  const submissionDownloadUrl = originalImageUrl ?? previewImageUrl
-
   const allSubmissions = participant?.submissions
     .filter((s) => s.topic)
     .sort((a, b) => (a.topic?.orderIndex || 0) - (b.topic?.orderIndex || 0))
@@ -131,6 +126,11 @@ export function ParticipantSubmissionClientPage({
   if (!submission || !topic || !participant) {
     notFound()
   }
+
+  const previewImageUrl = getSubmissionPreviewImageUrl(submission)
+  const originalImageUrl = getSubmissionOriginalImageUrl(submission)
+  const submissionDownloadFileName = getSubmissionDownloadFileName(submission)
+  const submissionDownloadUrl = originalImageUrl ?? previewImageUrl
 
   return (
     <div className="space-y-6">
@@ -173,7 +173,9 @@ export function ParticipantSubmissionClientPage({
           <Card className="p-4" role="tabpanel">
             {detailTab === "validation" ? (
               <>
-                <h3 className="font-gothic mb-3 text-base font-normal tracking-tight">Validation Results</h3>
+                <h3 className="font-gothic mb-3 text-base font-normal tracking-tight">
+                  Validation Results
+                </h3>
                 <SubmissionValidationSteps validationResults={submissionValidationResults} />
               </>
             ) : (
@@ -217,7 +219,11 @@ export function ParticipantSubmissionClientPage({
             />
           )}
 
-          <SubmissionReviewTimeline submission={submission} participant={participant} marathonMode={marathon?.mode} />
+          <SubmissionReviewTimeline
+            submission={submission}
+            participant={participant}
+            marathonMode={marathon?.mode}
+          />
         </div>
       </div>
     </div>

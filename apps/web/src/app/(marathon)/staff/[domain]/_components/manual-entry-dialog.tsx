@@ -8,13 +8,17 @@ import { Input } from "@/components/ui/input"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { normalizeParticipantReference } from "../_lib/staff-utils"
 
-interface ManualEntryDialogProps {
+interface StaffManualEntryDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onEnterAction: (args: { reference: string }) => void
 }
 
-export function ManualEntryDialog({ open, onOpenChange, onEnterAction }: ManualEntryDialogProps) {
+export function StaffManualEntryDialog({
+  open,
+  onOpenChange,
+  onEnterAction,
+}: StaffManualEntryDialogProps) {
   const [reference, setReference] = useState("")
 
   useEffect(() => {
