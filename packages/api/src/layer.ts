@@ -14,6 +14,7 @@ import { JuryApiService } from "./trpc/routers/jury/service";
 import { SponsorsApiService } from "./trpc/routers/sponsors/service";
 import { ZipFilesApiService } from "./trpc/routers/zip-files/service";
 import { VotingApiService } from "./trpc/routers/voting/service";
+import { SubmissionsApiService } from "./trpc/routers/submissions/service";
 
 export const ApiLayer = Layer.mergeAll(
   UploadFlowApiService.layer,
@@ -31,4 +32,5 @@ export const ApiLayer = Layer.mergeAll(
   SponsorsApiService.layer,
   ZipFilesApiService.layer,
   VotingApiService.layer,
+  SubmissionsApiService.layer,
 );

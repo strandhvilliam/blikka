@@ -13,6 +13,57 @@ class S3ClientError extends Schema.TaggedErrorClass<S3ClientError>()("S3ClientEr
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
+const DEFAULT_SUBMISSION_CONTENT_TYPE = "image/jpeg"
+
+const SUBMISSION_CONTENT_TYPE_EXTENSION_MAP = {
+  "image/gif": "gif",
+  "image/heic": "heic",
+  "image/heif": "heif",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+} as const
+
+type SupportedSubmissionContentType = keyof typeof SUBMISSION_CONTENT_TYPE_EXTENSION_MAP
+
+export function resolveSubmissionContentType(contentType?: string): SupportedSubmissionContentType {
+  if (!contentType) {
+    return DEFAULT_SUBMISSION_CONTENT_TYPE
+  }
+
+  if (contentType in SUBMISSION_CONTENT_TYPE_EXTENSION_MAP) {
+    return contentType as SupportedSubmissionContentType
+  }
+
+  return DEFAULT_SUBMISSION_CONTENT_TYPE
+}
+
+export function resolveSubmissionExtension(contentType?: string): string {
+  const normalizedContentType = resolveSubmissionContentType(contentType)
+  return SUBMISSION_CONTENT_TYPE_EXTENSION_MAP[normalizedContentType]
+}
+
+export function createSubmissionObjectKey({
+  domain,
+  reference,
+  orderIndex,
+  filenamePrefix,
+  contentType,
+}: {
+  domain: string
+  reference: string
+  orderIndex: number
+  filenamePrefix?: string
+  contentType?: string
+}): string {
+  const dateTime = new Date().toISOString().replace(/[:.]/g, "-")
+  const formattedOrderIndex = (orderIndex + 1).toString().padStart(2, "0")
+  const prefix = filenamePrefix ? `${filenamePrefix}_` : ""
+  const extension = resolveSubmissionExtension(contentType)
+
+  return `${domain}/${reference}/${formattedOrderIndex}/${prefix}${reference}_${formattedOrderIndex}_${dateTime}.${extension}`
+}
+
 export class S3Service extends ServiceMap.Service<S3Service>()("@blikka/aws/s3-service", {
   make: Effect.gen(function* () {
     const s3Client = yield* S3EffectClient
@@ -77,7 +128,7 @@ export class S3Service extends ServiceMap.Service<S3Service>()("@blikka/aws/s3-s
             : new PutObjectCommand({
                 Bucket: bucket,
                 Key: key,
-                ContentType: options?.contentType ?? "image/jpeg",
+                ContentType: resolveSubmissionContentType(options?.contentType),
               })
 
         return yield* s3Client.use((client) =>
@@ -137,12 +188,18 @@ export class S3Service extends ServiceMap.Service<S3Service>()("@blikka/aws/s3-s
       domain: string,
       reference: string,
       orderIndex: number,
-      filenamePrefix?: string,
+      options?: {
+        filenamePrefix?: string
+        contentType?: string
+      },
     ) {
-      const dateTime = new Date().toISOString().replace(/[:.]/g, "-")
-      const formattedOrderIndex = (orderIndex + 1).toString().padStart(2, "0")
-      const prefix = filenamePrefix ? `${filenamePrefix}_` : ""
-      return `${domain}/${reference}/${formattedOrderIndex}/${prefix}${reference}_${formattedOrderIndex}_${dateTime}.jpg`
+      return createSubmissionObjectKey({
+        domain,
+        reference,
+        orderIndex,
+        filenamePrefix: options?.filenamePrefix,
+        contentType: options?.contentType,
+      })
     })
 
     return {

@@ -8,7 +8,6 @@ import {
   Download,
   FileCode,
   RefreshCw,
-  ReplaceIcon,
   ShieldCheck,
   UserCheck,
 } from "lucide-react"
@@ -30,6 +29,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { downloadRemoteUrl } from "../_lib/download-remote-url"
+import { SubmissionReplaceDialog } from "./submission-replace-dialog"
 
 export type SubmissionDetailTab = "exif" | "validation"
 
@@ -188,10 +188,7 @@ export function SubmissionQuickActions({
             />
             Rerun Validations
           </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <ReplaceIcon className="h-4 w-4" />
-            Replace
-          </Button>
+          <SubmissionReplaceDialog submissionId={submission.id} participantRef={participantRef} />
           <Button
             variant="outline"
             size="sm"
