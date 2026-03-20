@@ -2,15 +2,13 @@ import { describe, expect, it } from "vitest"
 
 import type { UploadFlowStateSnapshot } from "./upload-flow-state"
 import {
-  buildInitializeByCameraUploadInput,
   buildInitializeByCameraUploadInputResult,
-  buildInitializeUploadFlowInput,
   buildInitializeUploadFlowInputResult,
   buildPrepareCompletedSearchParamsResult,
   buildPrepareUploadFlowInputResult,
   getUploadFlowIssueMessageKeys,
-  hasMarathonUploadRequirements,
   toParticipantFlowStatePatch,
+  validateMarathonUploadRequirements,
 } from "./upload-flow-state"
 
 function createValidMarathonState(
@@ -102,19 +100,19 @@ describe("upload-flow-state", () => {
     })
   })
 
-  it("keeps legacy wrappers compatible with null-on-invalid behavior", () => {
+  it("reports validation ok for marathon initialize and not ok for invalid by-camera", () => {
     const invalidByCamera = createValidMarathonState({
       participantPhone: null,
     })
 
     expect(
-      buildInitializeByCameraUploadInput("demo-domain", invalidByCamera),
-    ).toBeNull()
+      buildInitializeByCameraUploadInputResult("demo-domain", invalidByCamera).ok,
+    ).toBe(false)
 
     expect(
-      buildInitializeUploadFlowInput("demo-domain", createValidMarathonState()),
-    ).not.toBeNull()
-    expect(hasMarathonUploadRequirements(createValidMarathonState())).toBe(true)
+      buildInitializeUploadFlowInputResult("demo-domain", createValidMarathonState()).ok,
+    ).toBe(true)
+    expect(validateMarathonUploadRequirements(createValidMarathonState()).ok).toBe(true)
   })
 
   it("trims phone and converts empty values to null in participant patch", () => {

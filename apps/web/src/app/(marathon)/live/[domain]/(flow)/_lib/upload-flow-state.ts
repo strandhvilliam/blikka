@@ -409,38 +409,3 @@ export function buildPrepareCompletedSearchParamsResult(
     },
   }
 }
-
-export function hasParticipantIdentity(state: UploadFlowStateSnapshot) {
-  return validateParticipantIdentity(state).ok
-}
-
-export function hasDeviceSelectionRequirements(
-  state: UploadFlowStateSnapshot,
-  isByCameraMode: boolean,
-) {
-  return validateDeviceSelectionRequirements(state, isByCameraMode).ok
-}
-
-export function hasMarathonUploadRequirements(state: UploadFlowStateSnapshot) {
-  return validateMarathonUploadRequirements(state).ok
-}
-
-export function buildInitializeUploadFlowInput(domain: string, state: UploadFlowStateSnapshot) {
-  const result = buildInitializeUploadFlowInputResult(domain, state)
-  return result.ok ? result.data : null
-}
-
-export function buildInitializeByCameraUploadInput(domain: string, state: UploadFlowStateSnapshot) {
-  const result = buildInitializeByCameraUploadInputResult(domain, state)
-  return result.ok ? result.data : null
-}
-
-export function buildPrepareUploadFlowInput(domain: string, state: UploadFlowStateSnapshot) {
-  const result = buildPrepareUploadFlowInputResult(domain, state)
-  return result.ok ? result.data : null
-}
-
-export function buildPrepareCompletedSearchParams(state: UploadFlowStateSnapshot) {
-  const result = buildPrepareCompletedSearchParamsResult(state)
-  return result.ok ? result.data : null
-}
