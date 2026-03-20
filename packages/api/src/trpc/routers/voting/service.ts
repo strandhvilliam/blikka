@@ -3,7 +3,7 @@ import "server-only"
 import { Config, Effect, Layer, Option, ServiceMap } from "effect"
 import { Database, type VotingSession, type NewVotingSession } from "@blikka/db"
 import { VotingApiError } from "./schemas"
-import { SMSService } from "@blikka/aws"
+import { SMSService, SQSService } from "@blikka/aws"
 import {
   RealtimeEventsService,
   getRealtimeChannelEnvironmentFromNodeEnv,
@@ -20,6 +20,13 @@ import {
 } from "./lifecycle"
 
 const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
+const VOTING_SMS_CHUNK_SIZE = 30
+const VOTING_SMS_ENQUEUE_CONCURRENCY = 10
+
+interface VotingSmsQueueMessage {
+  votingSessionIds: number[]
+  forceResend?: boolean
+}
 
 function buildS3Url(
   bucketName: string,
@@ -27,6 +34,28 @@ function buildS3Url(
 ): string | undefined {
   if (!key) return undefined
   return `${AWS_S3_BASE_URL}/${bucketName}/${key}`
+}
+
+function buildVotingInviteMessage({
+  marathonName,
+  domain,
+  token,
+}: {
+  marathonName: string
+  domain: string
+  token: string
+}) {
+  return `Voting is starting for ${marathonName}! Vote here: https://${domain}.blikka.app/live/vote/${token}`
+}
+
+function chunkItems<T>(items: readonly T[], size: number): T[][] {
+  const chunks: T[][] = []
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+
+  return chunks
 }
 
 function parseVotingWindow({
@@ -132,6 +161,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
     make: Effect.gen(function* () {
       const db = yield* Database
       const smsService = yield* SMSService
+      const sqs = yield* SQSService
       const realtimeEvents = yield* RealtimeEventsService
       const phoneEncryption = yield* PhoneNumberEncryptionService
 
@@ -144,6 +174,51 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
       const environment = yield* Config.string("NODE_ENV").pipe(
         Config.map(getRealtimeChannelEnvironmentFromNodeEnv),
       )
+      const shouldSendVotingSms = environment === "prod"
+
+      const enqueueVotingSmsNotifications = Effect.fn(
+        "VotingApiService.enqueueVotingSmsNotifications",
+      )(function* ({
+        sessionIds,
+        forceResend = false,
+      }: {
+        sessionIds: readonly number[]
+        forceResend?: boolean
+      }) {
+        if (!shouldSendVotingSms) {
+          return {
+            smsChunksEnqueued: 0,
+            smsSessionsQueued: 0,
+          }
+        }
+
+        const uniqueSessionIds = Array.from(new Set(sessionIds))
+        if (uniqueSessionIds.length === 0) {
+          return {
+            smsChunksEnqueued: 0,
+            smsSessionsQueued: 0,
+          }
+        }
+
+        const queueUrl = yield* Config.string("VOTING_SMS_QUEUE_URL")
+        const queueChunks = chunkItems(uniqueSessionIds, VOTING_SMS_CHUNK_SIZE)
+
+        yield* Effect.all(
+          queueChunks.map((votingSessionIds) => {
+            const message: VotingSmsQueueMessage = forceResend
+              ? { votingSessionIds, forceResend: true }
+              : { votingSessionIds }
+
+            return sqs.sendMessage(queueUrl, JSON.stringify(message))
+          }),
+          { concurrency: VOTING_SMS_ENQUEUE_CONCURRENCY },
+        )
+
+        return {
+          smsChunksEnqueued: queueChunks.length,
+          smsSessionsQueued: uniqueSessionIds.length,
+        }
+      })
 
       const generateUniqueToken = Effect.fn(
         "VotingApiService.generateUniqueToken",
@@ -576,53 +651,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           sessions: sessionsToCreate,
         })
 
-        const smsResults = yield* Effect.all(
-          createdSessions
-            .filter((session) => session.phoneEncrypted)
-            .map((session) =>
-              Effect.gen(function* () {
-                const phoneNumber = yield* phoneEncryption.decrypt({
-                  encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
-                })
-
-                const message = `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`
-
-                const result = yield* smsService.sendWithOptOutCheck({
-                  phoneNumber,
-                  message,
-                })
-
-                return {
-                  sessionId: session.id,
-                  phoneNumber,
-                  smsResult: result,
-                }
-              }).pipe(
-                Effect.catch((error) =>
-                  Effect.succeed({
-                    sessionId: session.id,
-                    phoneNumber: null,
-                    error: String(error),
-                  }),
-                ),
-              ),
-            ),
-          { concurrency: 5 },
-        )
-
-        if (createdSessions.length > 0) {
-          yield* db.votingQueries.updateMultipleLastNotificationSentAt({
-            ids: createdSessions.map((session) => session.id),
-            notificationLastSentAt: new Date().toISOString(),
+        const { smsChunksEnqueued, smsSessionsQueued } =
+          yield* enqueueVotingSmsNotifications({
+            sessionIds: createdSessions
+              .filter((session) => session.phoneEncrypted)
+              .map((session) => session.id),
           })
-        }
 
         return {
           topicId,
           votingWindow,
           sessionsCreated: createdSessions.length,
-          smsSent: smsResults.filter((result) => !("error" in result)).length,
-          smsResults,
+          smsSent: 0,
+          smsResults: [],
+          smsChunksEnqueued,
+          smsSessionsQueued,
           existingSessions: existingCount,
         }
       })
@@ -763,53 +806,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           sessions: sessionsToCreate,
         })
 
-        const smsResults = yield* Effect.all(
-          createdSessions
-            .filter((session) => session.phoneEncrypted)
-            .map((session) =>
-              Effect.gen(function* () {
-                const phoneNumber = yield* phoneEncryption.decrypt({
-                  encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
-                })
-
-                const message = `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`
-
-                const result = yield* smsService.sendWithOptOutCheck({
-                  phoneNumber,
-                  message,
-                })
-
-                return {
-                  sessionId: session.id,
-                  phoneNumber,
-                  smsResult: result,
-                }
-              }).pipe(
-                Effect.catch((error) =>
-                  Effect.succeed({
-                    sessionId: session.id,
-                    phoneNumber: null,
-                    error: String(error),
-                  }),
-                ),
-              ),
-            ),
-          { concurrency: 5 },
-        )
-
-        if (createdSessions.length > 0) {
-          yield* db.votingQueries.updateMultipleLastNotificationSentAt({
-            ids: createdSessions.map((session) => session.id),
-            notificationLastSentAt: new Date().toISOString(),
+        const { smsChunksEnqueued, smsSessionsQueued } =
+          yield* enqueueVotingSmsNotifications({
+            sessionIds: createdSessions
+              .filter((session) => session.phoneEncrypted)
+              .map((session) => session.id),
           })
-        }
 
         return {
           topicId,
           votingWindow,
           sessionsCreated: createdSessions.length,
-          smsSent: smsResults.filter((result) => !("error" in result)).length,
-          smsResults,
+          smsSent: 0,
+          smsResults: [],
+          smsChunksEnqueued,
+          smsSessionsQueued,
         }
       })
 
@@ -960,20 +971,26 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           marathonId: marathon.id,
           voteSubmissionId: null,
           connectedParticipantId: participantId,
-          notificationLastSentAt: nowIso,
+          notificationLastSentAt: Option.isSome(existingSessionOpt)
+            ? existingSessionOpt.value.notificationLastSentAt
+            : null,
           topicId,
         }
 
         const session = yield* db.votingQueries.upsertVotingSession(sessionData)
 
         let smsResult = null
-        if (session.phoneEncrypted) {
+        if (session.phoneEncrypted && shouldSendVotingSms) {
           const smsResult_ = yield* Effect.gen(function* () {
             const phoneNumber = yield* phoneEncryption.decrypt({
               encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
             })
 
-            const message = `Voting is starting for ${marathon.name}! Vote here: https://${domain}.blikka.app/live/vote/${session.token}`
+            const message = buildVotingInviteMessage({
+              marathonName: marathon.name,
+              domain,
+              token: session.token,
+            })
 
             const result = yield* smsService.sendWithOptOutCheck({
               phoneNumber,
@@ -995,12 +1012,25 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           smsResult = smsResult_
         }
 
+        const notificationLastSentAt =
+          smsResult && !("error" in smsResult) ? nowIso : session.notificationLastSentAt
+
+        if (notificationLastSentAt !== session.notificationLastSentAt) {
+          yield* db.votingQueries.updateMultipleLastNotificationSentAt({
+            ids: [session.id],
+            notificationLastSentAt,
+          })
+        }
+
         const action = Option.isSome(existingSessionOpt) ? "resent" : "created"
 
         return {
           action,
-          session,
-          smsSent: smsResult && !("error" in smsResult),
+          session: {
+            ...session,
+            notificationLastSentAt,
+          },
+          smsSent: smsResult !== null && !("error" in smsResult),
           smsError: smsResult && "error" in smsResult ? smsResult.error : null,
         }
       })
@@ -1816,6 +1846,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
       Layer.mergeAll(
         Database.layer,
         SMSService.layer,
+        SQSService.layer,
         RealtimeEventsService.layer,
         PhoneNumberEncryptionService.layer,
       ),

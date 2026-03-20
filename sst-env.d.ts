@@ -74,6 +74,14 @@ declare module "sst" {
       "type": "sst.aws.Queue"
       "url": string
     }
+    "VotingSmsDLQ": {
+      "type": "sst.aws.Queue"
+      "url": string
+    }
+    "VotingSmsQueue": {
+      "type": "sst.aws.Queue"
+      "url": string
+    }
     "ZipDownloaderTask": {
       "assignPublicIp": boolean
       "cluster": string

@@ -90,6 +90,7 @@ export default $config({
     const sheetGeneratorDlq = new sst.aws.Queue("SheetGeneratorDLQ")
     const zipWorkerDlq = new sst.aws.Queue("ZipWorkerDLQ")
     const uploadFinalizerDlq = new sst.aws.Queue("UploadFinalizerDLQ")
+    const votingSmsDlq = new sst.aws.Queue("VotingSmsDLQ")
     const busTargetDlq = new sst.aws.Queue("BusTargetDLQ")
 
     const uploadProcessorQueue = new sst.aws.Queue("UploadProcessorQueue", {
@@ -111,6 +112,10 @@ export default $config({
     const zipWorkerQueue = new sst.aws.Queue("ZipGeneratorQueue", {
       dlq: { queue: zipWorkerDlq.arn, retry: 5 },
       visibilityTimeout: "10 minutes",
+    })
+    const votingSmsQueue = new sst.aws.Queue("VotingSmsQueue", {
+      dlq: { queue: votingSmsDlq.arn, retry: 5 },
+      visibilityTimeout: "5 minutes",
     })
 
     /* BUCKET NOTIFICATIONS */
@@ -217,6 +222,16 @@ export default $config({
       ],
     })
 
+    votingSmsQueue.subscribe({
+      handler: "./tasks/voting-sms-notifier/src/index.handler",
+      timeout: "5 minutes",
+      environment: env,
+      batch: {
+        size: 1,
+      },
+      link: [votingSmsQueue],
+    })
+
     /* BUS SUBSCRIPTIONS */
 
     const busTargetTransform = {
@@ -286,6 +301,7 @@ export default $config({
       sponsorBucket: sponsorBucket.name,
       zipsBucket: zipsBucket.name,
       marathonSettingsBucket: marathonSettingsBucket.name,
+      votingSmsQueueUrl: votingSmsQueue.url,
     }
   },
 })

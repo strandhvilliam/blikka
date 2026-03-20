@@ -524,6 +524,25 @@
         "typescript": "^5",
       },
     },
+    "tasks/voting-sms-notifier": {
+      "name": "@blikka/voting-sms-notifier",
+      "dependencies": {
+        "@blikka/api": "workspace:*",
+        "@blikka/aws": "workspace:*",
+        "@blikka/db": "workspace:*",
+        "@blikka/pubsub": "workspace:*",
+        "@blikka/realtime": "workspace:*",
+        "@blikka/telemetry": "workspace:*",
+        "@effect-aws/lambda": "catalog:",
+        "effect": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
     "tasks/zip-downloader": {
       "name": "@blikka/zip-downloader",
       "dependencies": {
@@ -763,6 +782,8 @@
     "@blikka/upload-processor": ["@blikka/upload-processor@workspace:tasks/upload-processor"],
 
     "@blikka/validation": ["@blikka/validation@workspace:packages/validation"],
+
+    "@blikka/voting-sms-notifier": ["@blikka/voting-sms-notifier@workspace:tasks/voting-sms-notifier"],
 
     "@blikka/web": ["@blikka/web@workspace:apps/web"],
 

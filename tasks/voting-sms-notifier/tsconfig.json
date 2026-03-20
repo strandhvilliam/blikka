@@ -1,0 +1,23 @@
+{
+  "extends": "../../packages/typescript-config/base.json",
+  "include": ["src", "."],
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ESNext",
+    "noEmit": true,
+    "allowJs": true,
+    "paths": {
+      "@/*": ["src/*"],
+      "@blikka/api/*": ["../../packages/api/src/*"],
+      "@blikka/aws": ["../../packages/aws/src"],
+      "@blikka/db": ["../../packages/db/src"],
+      "@blikka/pubsub": ["../../packages/pubsub/src"],
+      "@blikka/realtime": ["../../packages/realtime/src"],
+      "@blikka/telemetry": ["../../packages/telemetry/src"],
+      "@blikka/validation": ["../../packages/validation/src"]
+    },
+    "strict": true
+  },
+  "exclude": ["node_modules"]
+}

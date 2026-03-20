@@ -1,0 +1,22 @@
+{
+  "name": "@blikka/voting-sms-notifier",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@blikka/api": "workspace:*",
+    "@blikka/aws": "workspace:*",
+    "@blikka/db": "workspace:*",
+    "@blikka/pubsub": "workspace:*",
+    "@blikka/realtime": "workspace:*",
+    "@blikka/telemetry": "workspace:*",
+    "@effect-aws/lambda": "catalog:",
+    "effect": "catalog:"
+  }
+}

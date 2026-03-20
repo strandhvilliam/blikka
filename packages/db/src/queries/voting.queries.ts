@@ -28,6 +28,32 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         );
         return Option.fromNullishOr(result);
       });
+      const getVotingSessionsByIdsWithMarathon = Effect.fn(
+        "VotingQueries.getVotingSessionsByIdsWithMarathon",
+      )(function* ({ ids }: { ids: number[] }) {
+        if (ids.length === 0) {
+          return [];
+        }
+        return yield* use((db) =>
+          db.query.votingSession.findMany({
+            where: (table, operators) => inArray(table.id, ids),
+            columns: {
+              id: true,
+              token: true,
+              phoneEncrypted: true,
+              notificationLastSentAt: true,
+            },
+            with: {
+              marathon: {
+                columns: {
+                  domain: true,
+                  name: true,
+                },
+              },
+            },
+          }),
+        );
+      });
       const getPublicMarathonByDomain = Effect.fn(
         "VotingQueries.getPublicMarathonByDomain",
       )(function* ({ domain }: { domain: string }) {
@@ -1072,6 +1098,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
       });
       return {
         getVotingSessionByToken,
+        getVotingSessionsByIdsWithMarathon,
         getPublicMarathonByDomain,
         getParticipantsWithSubmissionsByTopicId,
         getParticipantsWithSubmissionsButNoVotingSession,
