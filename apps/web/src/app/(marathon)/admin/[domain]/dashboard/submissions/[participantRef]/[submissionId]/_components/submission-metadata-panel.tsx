@@ -1,22 +1,18 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import type {
   CompetitionClass,
   DeviceGroup,
   Participant,
   Submission,
-  Topic,
   ValidationResult,
-  VotingSession,
 } from "@blikka/db";
 import { format } from "date-fns";
 import {
   AlertTriangle,
   Camera,
   CheckCircle2,
-  Clock,
   Image,
   Info,
   Smartphone,
@@ -27,21 +23,16 @@ import {
   CheckCircle,
   Clock3,
   Link2,
-  Send,
-  Plus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { formatDomainPathname } from "@/lib/utils";
-import { useTRPC } from "@/lib/trpc/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 interface VoteStats {
   voteCount: number;
-  position: number;
+  position: number | null;
   totalSubmissions: number;
   roundNumber?: number | null;
   roundKind?: string | null;
@@ -51,13 +42,6 @@ interface VoteStats {
     votedSubmissionId: number | null;
     votedTopicName: string | null;
   } | null;
-}
-
-interface VotingSessionData {
-  hasSession: boolean;
-  session?: VotingSession;
-  hasVoted?: boolean;
-  notificationLastSentAt?: string | null;
 }
 
 interface SubmissionMetadataPanelProps {
@@ -70,64 +54,19 @@ interface SubmissionMetadataPanelProps {
   validationResults: ValidationResult[];
   marathonMode?: string;
   voteStats?: VoteStats;
-  votingSessionData?: VotingSessionData;
   domain: string;
-  topics: Topic[];
 }
 
 export function SubmissionMetadataPanel({
-  topics,
   submission,
   participant,
   hasIssues,
   validationResults,
   marathonMode,
   voteStats,
-  votingSessionData,
   domain,
 }: SubmissionMetadataPanelProps) {
   const isByCameraMode = marathonMode === "by-camera";
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-
-  const activeByCameraTopic = topics.find((t) => t.visibility === "active");
-
-  const createOrUpdateVotingSessionMutation = useMutation(
-    trpc.voting.createOrUpdateVotingSession.mutationOptions({
-      onSuccess: (data) => {
-        if (data.action === "created") {
-          toast.success("Voting session created and invite sent");
-        } else if (data.action === "resent") {
-          toast.success("Vote invite resent");
-        } else if (data.action === "already_voted") {
-          toast.info("Participant has already voted");
-        }
-        queryClient.invalidateQueries({
-          queryKey: trpc.voting.getVotingSessionByParticipant.queryKey({
-            participantId: participant.id,
-            topicId: activeByCameraTopic?.id ?? 0,
-            domain,
-          }),
-        });
-      },
-      onError: (error) => {
-        toast.error(error.message || "Failed to create voting session");
-      },
-    }),
-  );
-
-  const handleCreateOrUpdateVotingSession = () => {
-    if (!activeByCameraTopic) {
-      toast.error("No active by-camera topic found");
-      return;
-    }
-
-    createOrUpdateVotingSessionMutation.mutate({
-      participantId: participant.id,
-      topicId: activeByCameraTopic.id,
-      domain,
-    });
-  };
 
   return (
     <div className="space-y-4">
@@ -228,12 +167,21 @@ export function SubmissionMetadataPanel({
           <CardContent className="pb-4 px-4 pt-2">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
-                  #{voteStats.position}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  of {voteStats.totalSubmissions} submissions
-                </p>
+                {voteStats.position != null ? (
+                  <>
+                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                      #{voteStats.position}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      of {voteStats.totalSubmissions} submissions
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground leading-snug">
+                    Not ranked in the current voting round (e.g. tie-break
+                    shortlist).
+                  </p>
+                )}
                 {voteStats.roundNumber ? (
                   <p className="text-xs text-muted-foreground mt-1">
                     {voteStats.roundKind === "tiebreak"
@@ -304,41 +252,9 @@ export function SubmissionMetadataPanel({
                   )}
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock3 className="h-4 w-4" />
-                  <span className="text-sm">Not voted yet</span>
-                </div>
-                {!voteStats?.participantVoteInfo?.hasVoted && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={handleCreateOrUpdateVotingSession}
-                    disabled={createOrUpdateVotingSessionMutation.isPending}
-                  >
-                    {createOrUpdateVotingSessionMutation.isPending ? (
-                      <Clock className="h-4 w-4 animate-spin" />
-                    ) : votingSessionData?.hasSession ? (
-                      <Send className="h-4 w-4" />
-                    ) : (
-                      <Plus className="h-4 w-4" />
-                    )}
-                    {votingSessionData?.hasSession
-                      ? "Resend Vote Invite"
-                      : "Start Voting Session"}
-                  </Button>
-                )}
-                {votingSessionData?.hasSession &&
-                  votingSessionData.notificationLastSentAt && (
-                    <p className="text-xs text-muted-foreground">
-                      Invite last sent:{" "}
-                      {format(
-                        new Date(votingSessionData.notificationLastSentAt),
-                        "MMM d, HH:mm",
-                      )}
-                    </p>
-                  )}
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock3 className="h-4 w-4" />
+                <span className="text-sm">Not voted yet</span>
               </div>
             )}
           </CardContent>

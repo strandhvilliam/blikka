@@ -5,9 +5,11 @@ import {
   AlarmClockCheck,
   CheckCircle2,
   Clock3,
+  Lock,
   Pencil,
   Play,
   Plus,
+  RotateCcw,
   TagIcon,
   TimerOff,
   Zap,
@@ -75,8 +77,17 @@ export function ActiveTopicBanner({
       submissionState === "no-active-topic" ? "not-opened" : submissionState
     const badge = BADGE_STYLES[resolvedSubmissionState]
     const BadgeIcon = badge.icon
+    const submissionWindowLockedAfterVote =
+      resolvedSubmissionState === "closed" &&
+      Boolean(activeTopic.votingStartsAt)
     const submissionWindowActionLabel =
-      resolvedSubmissionState === "not-opened" ? "Start submissions" : "Edit submission window"
+      resolvedSubmissionState === "not-opened"
+        ? "Start submissions"
+        : resolvedSubmissionState === "closed"
+          ? submissionWindowLockedAfterVote
+            ? "Submission window closed"
+            : "Reopen submissions"
+          : "Edit submission window"
 
     return (
       <div
@@ -143,6 +154,12 @@ export function ActiveTopicBanner({
               >
                 {resolvedSubmissionState === "not-opened" ? (
                   <Play className="size-3" />
+                ) : resolvedSubmissionState === "closed" ? (
+                  submissionWindowLockedAfterVote ? (
+                    <Lock className="size-3" />
+                  ) : (
+                    <RotateCcw className="size-3" />
+                  )
                 ) : (
                   <AlarmClockCheck className="size-3" />
                 )}

@@ -50,6 +50,15 @@ type ParticipantVoteInfo = {
   roundKind: string | null;
 };
 
+type SubmissionVoteStatsRow = {
+  voteCount: number;
+  position: number | null;
+  totalSubmissions: number;
+  roundId: number | null;
+  roundNumber: number | null;
+  roundKind: string | null;
+};
+
 export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
   "@blikka/db/voting-queries",
   {
@@ -1139,7 +1148,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         );
 
         if (!marathonResult) {
-          return Option.none();
+          return Option.none<SubmissionVoteStatsRow>();
         }
 
         const submissionResult = yield* use((database) =>
@@ -1157,66 +1166,63 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
           !submissionResult ||
           submissionResult.marathonId !== marathonResult.id
         ) {
-          return Option.none();
+          return Option.none<SubmissionVoteStatsRow>();
         }
 
-        const roundResult = yield* use((database) =>
-          database
-            .select({
-              roundId: votingRound.id,
-              roundNumber: votingRound.roundNumber,
-              roundKind: votingRound.kind,
-            })
-            .from(votingRoundSubmission)
-            .innerJoin(
-              votingRound,
-              eq(votingRound.id, votingRoundSubmission.roundId),
-            )
-            .where(
-              and(
-                eq(votingRoundSubmission.submissionId, submissionId),
-                eq(votingRound.marathonId, marathonResult.id),
-                eq(votingRound.topicId, submissionResult.topicId),
-              ),
-            )
-            .orderBy(desc(votingRound.roundNumber), desc(votingRound.id))
-            .limit(1),
-        );
+        const roundOpt = yield* resolveRoundForTopic({
+          marathonId: marathonResult.id,
+          topicId: submissionResult.topicId,
+        });
+        const round = Option.getOrUndefined(roundOpt);
 
-        const resolvedRound = roundResult[0];
-        if (!resolvedRound) {
-          return Option.none();
+        if (!round) {
+          return Option.some<SubmissionVoteStatsRow>({
+            voteCount: 0,
+            position: null,
+            totalSubmissions: 0,
+            roundId: null,
+            roundNumber: null,
+            roundKind: null,
+          });
         }
 
-        const rankedLeaderboard = buildRankedLeaderboard(resolvedRound.roundId);
-        const leaderboardRows = yield* use((database) =>
+        const totalSubmissions = yield* countVotingRoundSubmissionsForTopic({
+          marathonId: marathonResult.id,
+          topicId: submissionResult.topicId,
+          roundId: round.id,
+        });
+
+        const rankedLeaderboard = buildRankedLeaderboard(round.id);
+        const entryRow = yield* use((database) =>
           database
             .select({
-              submissionId: rankedLeaderboard.submissionId,
               voteCount: rankedLeaderboard.voteCount,
               rank: rankedLeaderboard.rank,
             })
             .from(rankedLeaderboard)
-            .orderBy(
-              asc(rankedLeaderboard.rank),
-              asc(rankedLeaderboard.submissionId),
-            ),
+            .where(eq(rankedLeaderboard.submissionId, submissionId))
+            .limit(1),
         );
 
-        const entry = leaderboardRows.find(
-          (row) => row.submissionId === submissionId,
-        );
+        const entry = entryRow[0];
         if (!entry) {
-          return Option.none();
+          return Option.some<SubmissionVoteStatsRow>({
+            voteCount: 0,
+            position: null,
+            totalSubmissions,
+            roundId: round.id,
+            roundNumber: round.roundNumber,
+            roundKind: round.kind,
+          });
         }
 
-        return Option.some({
+        return Option.some<SubmissionVoteStatsRow>({
           voteCount: entry.voteCount,
           position: entry.rank,
-          totalSubmissions: leaderboardRows.length,
-          roundId: resolvedRound.roundId,
-          roundNumber: resolvedRound.roundNumber,
-          roundKind: resolvedRound.roundKind,
+          totalSubmissions,
+          roundId: round.id,
+          roundNumber: round.roundNumber,
+          roundKind: round.kind,
         });
       });
 

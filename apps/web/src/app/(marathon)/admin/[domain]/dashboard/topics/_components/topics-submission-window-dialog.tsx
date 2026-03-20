@@ -4,7 +4,14 @@ import { useEffect } from "react";
 import { useForm, useStore } from "@tanstack/react-form";
 import type { Topic } from "@blikka/db";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Clock3, Play } from "lucide-react";
+import {
+  AlertCircle,
+  Clock3,
+  Lock,
+  Play,
+  RotateCcw,
+  TimerOff,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -23,7 +30,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useDomain } from "@/lib/domain-provider";
 import { useTRPC } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { toDateTimeLocalValue, toIsoFromLocal } from "../_lib/formatting";
+import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state";
+import {
+  formatTimestamp,
+  toDateTimeLocalValue,
+  toIsoFromLocal,
+} from "../_lib/formatting";
 
 type SubmissionWindowMode = "now" | "schedule";
 
@@ -95,16 +107,28 @@ export function TopicsSubmissionWindowDialog({
         return;
       }
 
+      const submissionClosed =
+        getByCameraSubmissionWindowState(topic) === "closed";
+
+      if (submissionClosed && topic.votingStartsAt) {
+        toast.error("Voting has already started; submissions cannot be reopened");
+        return;
+      }
+
       const existingStart =
         topic.scheduledStart && new Date(topic.scheduledStart) <= new Date()
           ? topic.scheduledStart
           : null;
-      const scheduledStartIso =
-        value.mode === "now"
-          ? (existingStart ?? new Date().toISOString())
-          : toIsoFromLocal(value.scheduledStart);
+      let scheduledStartIso: string | null;
+      if (submissionClosed && topic.scheduledStart) {
+        scheduledStartIso = topic.scheduledStart;
+      } else if (value.mode === "now") {
+        scheduledStartIso = existingStart ?? new Date().toISOString();
+      } else {
+        scheduledStartIso = toIsoFromLocal(value.scheduledStart);
+      }
 
-      if (value.mode === "schedule" && !scheduledStartIso) {
+      if (!submissionClosed && value.mode === "schedule" && !scheduledStartIso) {
         toast.error("Choose when submissions should open");
         return;
       }
@@ -152,14 +176,40 @@ export function TopicsSubmissionWindowDialog({
   }, [form, isOpen, topic]);
 
   const isActiveTopic = topic?.visibility === "active";
+  const submissionState = topic
+    ? getByCameraSubmissionWindowState(topic)
+    : null;
+  const isSubmissionClosed = submissionState === "closed";
+  const votingHasStarted = Boolean(topic?.votingStartsAt);
+  const submissionClosedReadOnly = isSubmissionClosed && votingHasStarted;
+  const canReopenAfterClose =
+    isActiveTopic && isSubmissionClosed && !votingHasStarted;
   const isCurrentlyOpen =
     isActiveTopic &&
+    topic &&
     topic.scheduledStart != null &&
     new Date(topic.scheduledStart) <= new Date() &&
     (topic.scheduledEnd == null || new Date(topic.scheduledEnd) > new Date());
-  const dialogTitle = topic?.scheduledStart
-    ? "Edit submission window"
-    : "Start submissions";
+
+  const dialogTitle = submissionClosedReadOnly
+    ? "Submission window closed"
+    : canReopenAfterClose
+      ? "Reopen submissions"
+      : topic?.scheduledStart
+        ? "Edit submission window"
+        : "Start submissions";
+
+  const handleReopenOpenEnded = () => {
+    if (!topic || !canReopenAfterClose) {
+      return;
+    }
+
+    updateTopic({
+      domain,
+      id: topic.id,
+      data: { scheduledEnd: null },
+    });
+  };
 
   const handleCloseNow = () => {
     if (!topic || !isCurrentlyOpen) {
@@ -181,156 +231,249 @@ export function TopicsSubmissionWindowDialog({
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            Open submissions immediately or schedule when uploads should start
-            for {topic?.name ?? "this topic"}.
+            {submissionClosedReadOnly
+              ? `Voting is underway for ${topic?.name ?? "this topic"}. Submissions cannot be reopened from here.`
+              : canReopenAfterClose
+                ? `Submissions have ended for ${topic?.name ?? "this topic"}. You can open them again until voting starts.`
+                : `Open submissions immediately or schedule when uploads should start for ${topic?.name ?? "this topic"}.`}
           </DialogDescription>
         </DialogHeader>
 
         {!isActiveTopic ? (
-          <Alert variant="destructive">
-            <AlertCircle />
-            <AlertTitle>Active topic required</AlertTitle>
-            <AlertDescription>
-              Submission timing can only be edited for the current active topic.
+          <>
+            <Alert variant="destructive">
+              <AlertCircle />
+              <AlertTitle>Active topic required</AlertTitle>
+              <AlertDescription>
+                Submission timing can only be edited for the current active topic.
+              </AlertDescription>
+            </Alert>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </>
+        ) : null}
+
+        {isActiveTopic && submissionClosedReadOnly ? (
+          <>
+            <Alert variant="destructive">
+              <Lock />
+              <AlertTitle>Voting has started</AlertTitle>
+              <AlertDescription>
+                The submission window cannot be reopened because voting is
+                already underway for this topic. Manage deadlines from the
+                voting page if you need to adjust voting.
+              </AlertDescription>
+            </Alert>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </>
+        ) : null}
+
+        {isActiveTopic && canReopenAfterClose ? (
+          <Alert>
+            <TimerOff />
+            <AlertTitle>Window ended</AlertTitle>
+            <AlertDescription className="space-y-1">
+              <p>
+                Submissions closed at{" "}
+                <span className="font-medium text-foreground">
+                  {topic?.scheduledEnd
+                    ? formatTimestamp(topic.scheduledEnd)
+                    : "—"}
+                </span>
+                .
+              </p>
+              <p>
+                Use <span className="font-medium text-foreground">Reopen</span>{" "}
+                to allow uploads again with no fixed closing time, or set a new
+                closing time below.
+              </p>
             </AlertDescription>
           </Alert>
         ) : null}
 
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            form.handleSubmit();
-          }}
-          className="space-y-5"
-        >
-          <form.Field name="mode">
-            {(field) => (
-              <div className="space-y-3">
-                <Label>How should submissions open?</Label>
-                <RadioGroup
-                  value={field.state.value}
-                  onValueChange={(value) =>
-                    field.handleChange(value as SubmissionWindowMode)
-                  }
-                  className="gap-3"
-                  disabled={!isActiveTopic || isUpdatingTopic}
+        {isActiveTopic && !submissionClosedReadOnly ? (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="space-y-5"
+          >
+            {canReopenAfterClose ? (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={handleReopenOpenEnded}
+                  disabled={isUpdatingTopic}
                 >
-                  <label
-                    htmlFor="submission-mode-now"
-                    className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
-                      field.state.value === "now"
-                        ? "border-brand-primary bg-brand-primary/5"
-                        : "border-border bg-card",
-                    )}
-                  >
-                    <RadioGroupItem id="submission-mode-now" value="now" />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <Play className="size-4" />
-                        Open for submissions now
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Save the current time as the submission start.
-                      </p>
-                    </div>
-                  </label>
-
-                  <label
-                    htmlFor="submission-mode-schedule"
-                    className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
-                      field.state.value === "schedule"
-                        ? "border-brand-primary bg-brand-primary/5"
-                        : "border-border bg-card",
-                    )}
-                  >
-                    <RadioGroupItem
-                      id="submission-mode-schedule"
-                      value="schedule"
-                    />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <Clock3 className="size-4" />
-                        Set a scheduled start
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Keep uploads closed until the selected time.
-                      </p>
-                    </div>
-                  </label>
-                </RadioGroup>
+                  <RotateCcw className="size-3.5" />
+                  Reopen (no closing time)
+                </Button>
               </div>
-            )}
-          </form.Field>
+            ) : null}
 
-          {formValues.mode === "schedule" ? (
-            <form.Field name="scheduledStart">
+            {!canReopenAfterClose ? (
+              <form.Field name="mode">
+                {(field) => (
+                  <div className="space-y-3">
+                    <Label>How should submissions open?</Label>
+                    <RadioGroup
+                      value={field.state.value}
+                      onValueChange={(value) =>
+                        field.handleChange(value as SubmissionWindowMode)
+                      }
+                      className="gap-3"
+                      disabled={!isActiveTopic || isUpdatingTopic}
+                    >
+                      <label
+                        htmlFor="submission-mode-now"
+                        className={cn(
+                          "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
+                          field.state.value === "now"
+                            ? "border-brand-primary bg-brand-primary/5"
+                            : "border-border bg-card",
+                        )}
+                      >
+                        <RadioGroupItem id="submission-mode-now" value="now" />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                            <Play className="size-4" />
+                            Open for submissions now
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Save the current time as the submission start.
+                          </p>
+                        </div>
+                      </label>
+
+                      <label
+                        htmlFor="submission-mode-schedule"
+                        className={cn(
+                          "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
+                          field.state.value === "schedule"
+                            ? "border-brand-primary bg-brand-primary/5"
+                            : "border-border bg-card",
+                        )}
+                      >
+                        <RadioGroupItem
+                          id="submission-mode-schedule"
+                          value="schedule"
+                        />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                            <Clock3 className="size-4" />
+                            Set a scheduled start
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Keep uploads closed until the selected time.
+                          </p>
+                        </div>
+                      </label>
+                    </RadioGroup>
+                  </div>
+                )}
+              </form.Field>
+            ) : null}
+
+            {!canReopenAfterClose && formValues.mode === "schedule" ? (
+              <form.Field name="scheduledStart">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="scheduled-start">Submissions open at</Label>
+                    <Input
+                      id="scheduled-start"
+                      type="datetime-local"
+                      value={field.state.value}
+                      onChange={(event) =>
+                        field.handleChange(event.target.value)
+                      }
+                      disabled={!isActiveTopic || isUpdatingTopic}
+                    />
+                  </div>
+                )}
+              </form.Field>
+            ) : null}
+
+            <form.Field name="scheduledEnd">
               {(field) => (
                 <div className="space-y-2">
-                  <Label htmlFor="scheduled-start">Submissions open at</Label>
+                  <Label htmlFor="scheduled-end">
+                    {canReopenAfterClose
+                      ? "New submissions close at"
+                      : "Submissions end at"}
+                  </Label>
                   <Input
-                    id="scheduled-start"
+                    id="scheduled-end"
                     type="datetime-local"
                     value={field.state.value}
                     onChange={(event) => field.handleChange(event.target.value)}
                     disabled={!isActiveTopic || isUpdatingTopic}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {canReopenAfterClose
+                      ? "Optional. Leave empty to keep submissions open until you close them again."
+                      : "Optional. Leave empty to keep submissions open until you set an end time later."}
+                  </p>
                 </div>
               )}
             </form.Field>
-          ) : null}
 
-          <form.Field name="scheduledEnd">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="scheduled-end">Submissions end at</Label>
-                <Input
-                  id="scheduled-end"
-                  type="datetime-local"
-                  value={field.state.value}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  disabled={!isActiveTopic || isUpdatingTopic}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Optional. Leave empty to keep submissions open until you set
-                  an end time later.
-                </p>
-              </div>
-            )}
-          </form.Field>
-
-          <DialogFooter>
-            {isCurrentlyOpen ? (
+            <DialogFooter>
+              {isCurrentlyOpen ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCloseNow}
+                  disabled={isUpdatingTopic}
+                  className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  Close now
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleCloseNow}
+                onClick={() => onOpenChange(false)}
                 disabled={isUpdatingTopic}
-                className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
-                Close now
+                Cancel
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              disabled={isUpdatingTopic}
-            >
-              Cancel
-            </Button>
-            <PrimaryButton
-              type="submit"
-              disabled={!isActiveTopic || isUpdatingTopic}
-            >
-              {isUpdatingTopic ? "Saving..." : "Save submission window"}
-            </PrimaryButton>
-          </DialogFooter>
-        </form>
+              <PrimaryButton
+                type="submit"
+                disabled={!isActiveTopic || isUpdatingTopic}
+              >
+                {isUpdatingTopic
+                  ? "Saving..."
+                  : canReopenAfterClose
+                    ? "Save closing time"
+                    : "Save submission window"}
+              </PrimaryButton>
+            </DialogFooter>
+          </form>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

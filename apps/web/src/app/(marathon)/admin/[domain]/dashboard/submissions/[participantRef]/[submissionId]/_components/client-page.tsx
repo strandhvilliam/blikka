@@ -11,7 +11,6 @@ import type {
   Participant,
   Submission,
   ValidationResult,
-  Topic,
   CompetitionClass,
   DeviceGroup,
 } from "@blikka/db"
@@ -38,7 +37,6 @@ interface VotingDataPanelProps {
   hasIssues: boolean
   validationResults: ValidationResult[]
   domain: string
-  topics: Topic[]
 }
 
 function VotingDataPanel({
@@ -47,21 +45,12 @@ function VotingDataPanel({
   hasIssues,
   validationResults,
   domain,
-  topics,
 }: VotingDataPanelProps) {
   const trpc = useTRPC()
 
   const voteStats = useSuspenseQuery(
     trpc.voting.getSubmissionVoteStats.queryOptions({
       submissionId: submission.id,
-      domain,
-    }),
-  ).data
-
-  const votingSessionData = useSuspenseQuery(
-    trpc.voting.getVotingSessionByParticipant.queryOptions({
-      participantId: participant.id,
-      topicId: submission.topicId,
       domain,
     }),
   ).data
@@ -74,9 +63,7 @@ function VotingDataPanel({
       validationResults={validationResults}
       marathonMode="by-camera"
       voteStats={voteStats}
-      votingSessionData={votingSessionData}
       domain={domain}
-      topics={topics}
     />
   )
 }
@@ -202,7 +189,6 @@ export function ParticipantSubmissionClientPage({
                 hasIssues={hasIssues}
                 validationResults={submissionValidationResults}
                 domain={domain}
-                topics={marathon.topics}
               />
             </Suspense>
           ) : (
@@ -213,9 +199,7 @@ export function ParticipantSubmissionClientPage({
               validationResults={submissionValidationResults}
               marathonMode={marathon.mode}
               voteStats={undefined}
-              votingSessionData={undefined}
               domain={domain}
-              topics={marathon.topics}
             />
           )}
 

@@ -187,6 +187,19 @@ export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
             ? topic.scheduledEnd
             : data.scheduledEnd;
 
+        if (topic.votingStartsAt) {
+          const startChanged = nextScheduledStart !== topic.scheduledStart;
+          const endChanged = nextScheduledEnd !== topic.scheduledEnd;
+          if (startChanged || endChanged) {
+            return yield* Effect.fail(
+              new TopicApiError({
+                message:
+                  "Submission window cannot be changed after voting has started for this topic",
+              }),
+            );
+          }
+        }
+
         validateSubmissionWindow({
           scheduledStart: nextScheduledStart,
           scheduledEnd: nextScheduledEnd,

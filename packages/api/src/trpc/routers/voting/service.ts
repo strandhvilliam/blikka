@@ -1115,15 +1115,15 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           domain,
         });
 
-        const stats = yield* Option.match(statsResult, {
-          onSome: (s) => Effect.succeed(s),
-          onNone: () =>
-            Effect.fail(
-              new VotingApiError({
-                message: "Failed to get vote stats",
-              }),
-            ),
-        });
+        if (Option.isNone(statsResult)) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to get vote stats",
+            }),
+          );
+        }
+
+        const stats = statsResult.value;
 
         const submission = yield* db.submissionsQueries.getSubmissionById({
           id: submissionId,
