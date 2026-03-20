@@ -123,7 +123,8 @@ export function StaffAddDialog() {
             validators={{
               onChange: ({ value }) => (!value ? "Name is required" : undefined),
             }}
-            children={(field) => (
+          >
+            {(field) => (
               <div className="space-y-2">
                 <label
                   htmlFor={field.name}
@@ -144,7 +145,7 @@ export function StaffAddDialog() {
                 )}
               </div>
             )}
-          />
+          </form.Field>
 
           <form.Field
             name="email"
@@ -157,7 +158,8 @@ export function StaffAddDialog() {
                 return undefined
               },
             }}
-            children={(field) => (
+          >
+            {(field) => (
               <div className="space-y-2">
                 <label
                   htmlFor={field.name}
@@ -179,7 +181,7 @@ export function StaffAddDialog() {
                 )}
               </div>
             )}
-          />
+          </form.Field>
 
           <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3 text-sm text-muted-foreground">
             Staff members sign in on the standalone staff page with this email address:
@@ -193,7 +195,8 @@ export function StaffAddDialog() {
             validators={{
               onChange: ({ value }) => (!value ? "Role is required" : undefined),
             }}
-            children={(field) => (
+          >
+            {(field) => (
               <div className="space-y-2">
                 <label
                   htmlFor={field.name}
@@ -255,7 +258,7 @@ export function StaffAddDialog() {
                 )}
               </div>
             )}
-          />
+          </form.Field>
 
           <div className="flex justify-end gap-2">
             <Button

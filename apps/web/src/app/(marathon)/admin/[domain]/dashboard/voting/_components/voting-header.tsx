@@ -6,13 +6,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { InviteDialog } from "./invite-dialog"
 import { useTRPC } from "@/lib/trpc/client"
-import {
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { useDomain } from "@/lib/domain-provider"
-import { getVotingLifecycleState } from "@/lib/voting/voting-lifecycle"
+import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
 
 interface VotingHeaderProps {
   activeTopic: Topic
@@ -30,9 +27,7 @@ const STATE_LABELS = {
   ended: "Ended",
 } as const
 
-export function VotingHeader({
-  activeTopic,
-}: VotingHeaderProps) {
+export function VotingHeader({ activeTopic }: VotingHeaderProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const domain = useDomain()
@@ -76,9 +71,7 @@ export function VotingHeader({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-gothic text-3xl font-bold tracking-tight">
-                Voting
-              </h1>
+              <h1 className="font-gothic text-3xl font-bold tracking-tight">Voting</h1>
               <Badge variant="secondary">
                 <Vote className="mr-1 h-3 w-3" />
                 Topic {activeTopic.orderIndex + 1}
@@ -92,21 +85,14 @@ export function VotingHeader({
             </div>
             <p className="text-sm text-muted-foreground">
               Manage voting for{" "}
-              <span className="font-medium text-foreground">
-                {activeTopic.name}
-              </span>
-              .
+              <span className="font-medium text-foreground">{activeTopic.name}</span>.
             </p>
             <p className="text-xs text-muted-foreground">
               Manual invites are available only while voting is active.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={handleRefetch}
-              disabled={isRefreshing}
-            >
+            <Button variant="outline" onClick={handleRefetch} disabled={isRefreshing}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
             </Button>

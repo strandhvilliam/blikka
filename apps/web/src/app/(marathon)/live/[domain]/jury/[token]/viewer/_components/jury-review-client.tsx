@@ -42,11 +42,7 @@ import {
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { getJuryCompletedPath } from "../../_lib/jury-paths"
-import type {
-  JuryInvitation,
-  JuryParticipant,
-  JuryRatingsResponse,
-} from "../../_lib/jury-types"
+import type { JuryInvitation, JuryParticipant, JuryRatingsResponse } from "../../_lib/jury-types"
 
 const THUMBNAILS_BUCKET = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
 const SUBMISSIONS_BUCKET = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
@@ -202,9 +198,7 @@ function JuryParticipantList({
   if (error) {
     return (
       <div className="rounded-3xl border bg-white/90 px-6 py-12 text-center shadow-sm">
-        <h2 className="mb-2 text-xl font-semibold text-foreground">
-          Failed to load participants
-        </h2>
+        <h2 className="mb-2 text-xl font-semibold text-foreground">Failed to load participants</h2>
         <p className="text-sm text-muted-foreground">
           {error.message || "An unknown error occurred"}
         </p>
@@ -215,9 +209,7 @@ function JuryParticipantList({
   if (participants.length === 0) {
     return (
       <div className="rounded-3xl border bg-white/90 px-6 py-12 text-center shadow-sm">
-        <h2 className="mb-2 text-xl font-semibold text-foreground">
-          No participants found
-        </h2>
+        <h2 className="mb-2 text-xl font-semibold text-foreground">No participants found</h2>
         <p className="text-sm text-muted-foreground">
           {selectedRatings.length > 0
             ? "Try adjusting the rating filters."
@@ -336,16 +328,14 @@ function JuryReviewHeader({
               <Trophy className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="font-rocgrotesk text-2xl font-bold text-foreground">
-                Jury review
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {invitation.marathon.name}
-              </p>
+              <h1 className="font-rocgrotesk text-2xl font-bold text-foreground">Jury review</h1>
+              <p className="text-sm text-muted-foreground">{invitation.marathon.name}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
-            {invitation.topic?.name ? <Badge variant="secondary">{invitation.topic.name}</Badge> : null}
+            {invitation.topic?.name ? (
+              <Badge variant="secondary">{invitation.topic.name}</Badge>
+            ) : null}
             {invitation.competitionClass?.name ? (
               <Badge variant="secondary">{invitation.competitionClass.name}</Badge>
             ) : null}
@@ -362,9 +352,7 @@ function JuryReviewHeader({
                 <UserIcon className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">
-                  {invitation.displayName}
-                </p>
+                <p className="text-sm font-medium text-foreground">{invitation.displayName}</p>
                 <p className="text-xs text-muted-foreground">
                   {ratedCount} of {totalParticipants} participants rated
                 </p>
@@ -383,8 +371,7 @@ function JuryReviewHeader({
               <AlertDialogHeader>
                 <AlertDialogTitle>Complete review</AlertDialogTitle>
                 <AlertDialogDescription>
-                  You will no longer be able to edit ratings after marking this
-                  review as completed.
+                  You will no longer be able to edit ratings after marking this review as completed.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -431,9 +418,7 @@ function JurySidebar({
     <div className="w-full max-w-sm space-y-4 xl:sticky xl:top-6">
       <Card className="border-border/70 bg-white/95 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="font-rocgrotesk text-3xl">
-            #{participant.reference}
-          </CardTitle>
+          <CardTitle className="font-rocgrotesk text-3xl">#{participant.reference}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
@@ -461,9 +446,7 @@ function JurySidebar({
             <Star className="h-4 w-4" />
             Rating
             {isSaving ? (
-              <span className="ml-auto text-xs font-normal text-muted-foreground">
-                Saving...
-              </span>
+              <span className="ml-auto text-xs font-normal text-muted-foreground">Saving...</span>
             ) : null}
           </CardTitle>
         </CardHeader>
@@ -669,10 +652,7 @@ function JurySubmissionViewer({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.target instanceof HTMLTextAreaElement ||
-        event.target instanceof HTMLInputElement
-      ) {
+      if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLInputElement) {
         return
       }
 
@@ -683,9 +663,7 @@ function JurySubmissionViewer({
 
       if (event.key === "ArrowRight") {
         event.preventDefault()
-        setCurrentParticipantIndex(
-          Math.min(participants.length - 1, currentParticipantIndex + 1),
-        )
+        setCurrentParticipantIndex(Math.min(participants.length - 1, currentParticipantIndex + 1))
       }
 
       if (event.key === "Escape") {
@@ -804,9 +782,7 @@ function JurySubmissionViewer({
               variant="ghost"
               className="absolute left-4 top-1/2 h-11 w-11 -translate-y-1/2 rounded-full bg-black/40 text-white hover:bg-black/60"
               disabled={currentParticipantIndex === 0}
-              onClick={() =>
-                setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))
-              }
+              onClick={() => setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))}
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -848,13 +824,7 @@ function JurySubmissionViewer({
   )
 }
 
-export function JuryReviewClient({
-  domain,
-  token,
-}: {
-  domain: string
-  token: string
-}) {
+export function JuryReviewClient({ domain, token }: { domain: string; token: string }) {
   const trpc = useTRPC()
   const [selectedParticipantId, setSelectedParticipantId] = useQueryState(
     "participant",

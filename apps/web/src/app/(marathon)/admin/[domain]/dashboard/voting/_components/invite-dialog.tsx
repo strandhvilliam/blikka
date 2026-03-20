@@ -141,7 +141,8 @@ export function InviteDialog({
                   onChange: ({ value }) =>
                     !value ? "First name is required" : undefined,
                 }}
-                children={(field) => (
+              >
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor={field.name}>First name</Label>
                     <Input
@@ -160,7 +161,7 @@ export function InviteDialog({
                       )}
                   </div>
                 )}
-              />
+              </form.Field>
 
               <form.Field
                 name="lastName"
@@ -168,7 +169,8 @@ export function InviteDialog({
                   onChange: ({ value }) =>
                     !value ? "Last name is required" : undefined,
                 }}
-                children={(field) => (
+              >
+                {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor={field.name}>Last name</Label>
                     <Input
@@ -187,7 +189,7 @@ export function InviteDialog({
                       )}
                   </div>
                 )}
-              />
+              </form.Field>
             </div>
 
             <form.Field
@@ -201,7 +203,8 @@ export function InviteDialog({
                   return undefined
                 },
               }}
-              children={(field) => (
+            >
+              {(field) => (
                 <div className="space-y-2">
                   <Label htmlFor={field.name}>Email</Label>
                   <Input
@@ -221,7 +224,7 @@ export function InviteDialog({
                     )}
                 </div>
               )}
-            />
+            </form.Field>
 
             <DialogFooter>
               <Button type="submit" disabled={createManualVotingMutation.isPending}>

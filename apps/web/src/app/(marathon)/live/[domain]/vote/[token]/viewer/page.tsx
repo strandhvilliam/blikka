@@ -1,48 +1,42 @@
-import { decodeParams, Page } from "@/lib/next-utils";
-import { Effect, Schema } from "effect";
-import {
-  batchPrefetch,
-  HydrateClient, fetchEffectQuery, trpc } from "@/lib/trpc/server";
-import { Suspense } from "react";
-import { Splash } from "@/components/splash";
-import { VotingClient } from "./_components/voting-client";
-import { notFound, redirect } from "next/navigation";
-import { formatDomainPathname } from "@/lib/utils";
-import { getVotingUnavailableReason } from "@/lib/voting/voting-lifecycle";
+import { decodeParams, Page } from "@/lib/next-utils"
+import { Effect, Schema } from "effect"
+import { batchPrefetch, HydrateClient, fetchEffectQuery, trpc } from "@/lib/trpc/server"
+import { Suspense } from "react"
+import { Splash } from "@/components/splash"
+import { VotingClient } from "./_components/voting-client"
+import { notFound, redirect } from "next/navigation"
+import { formatDomainPathname } from "@/lib/utils"
+import { getVotingUnavailableReason } from "@/lib/voting-lifecycle"
 
 const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
   function* ({ params }: PageProps<"/live/[domain]/vote/[token]/viewer">) {
     const { domain, token } = yield* decodeParams(
       Schema.Struct({ domain: Schema.String, token: Schema.String }),
-    )(params);
-
+    )(params)
 
     const votingSession = yield* fetchEffectQuery(
       trpc.voting.getVotingSession.queryOptions({ token }),
     ).pipe(
       Effect.catch((error) => {
-        console.error("Failed to fetch voting session:", error);
-        return Effect.fail(notFound());
+        console.error("Failed to fetch voting session:", error)
+        return Effect.fail(notFound())
       }),
-    );
+    )
 
-    const sessionDomain = votingSession.marathon?.domain;
+    const sessionDomain = votingSession.marathon?.domain
 
     if (sessionDomain && sessionDomain !== domain) {
-      return redirect(
-        formatDomainPathname(`/live/vote/${token}/viewer`, sessionDomain, "live"),
-      );
+      return redirect(formatDomainPathname(`/live/vote/${token}/viewer`, sessionDomain, "live"))
     }
 
-
     if (votingSession.voteSubmissionId && votingSession.votedAt) {
-      return redirect(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'));
+      return redirect(formatDomainPathname(`/live/vote/${token}/completed`, domain, "live"))
     }
 
     const unavailableReason = getVotingUnavailableReason({
       startsAt: votingSession.startsAt,
       endsAt: votingSession.endsAt,
-    });
+    })
 
     if (unavailableReason) {
       return redirect(
@@ -51,14 +45,13 @@ const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
           domain,
           "live",
         ),
-      );
+      )
     }
 
     batchPrefetch([
       trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
-      trpc.voting.getVotingSubmissions.queryOptions({ token })
-    ]);
-
+      trpc.voting.getVotingSubmissions.queryOptions({ token }),
+    ])
 
     return (
       <HydrateClient>
@@ -66,15 +59,11 @@ const _VoteViewerPage = Effect.fn("@blikka/web/VoteViewerPage")(
           <VotingClient domain={domain} token={token} />
         </Suspense>
       </HydrateClient>
-    );
+    )
   },
   Effect.catch((error) =>
-    Effect.succeed(
-      <div>
-        Error: {error instanceof Error ? error.message : String(error)}
-      </div>,
-    ),
+    Effect.succeed(<div>Error: {error instanceof Error ? error.message : String(error)}</div>),
   ),
-);
+)
 
-export default Page(_VoteViewerPage);
+export default Page(_VoteViewerPage)

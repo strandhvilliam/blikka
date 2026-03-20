@@ -3,7 +3,17 @@
 import type { Topic } from "@blikka/db"
 import { Fragment, useMemo, useState } from "react"
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { AlertTriangle, Check, ImageIcon, Loader2, Play, RotateCcw, TimerOff, Users, Vote } from "lucide-react"
+import {
+  AlertTriangle,
+  Check,
+  ImageIcon,
+  Loader2,
+  Play,
+  RotateCcw,
+  TimerOff,
+  Users,
+  Vote,
+} from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
@@ -21,19 +31,14 @@ import { Label } from "@/components/ui/label"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { Button } from "@/components/ui/button"
-import { getSubmissionLifecycleState, getVotingLifecycleState } from "@/lib/voting/voting-lifecycle"
+import { getSubmissionLifecycleState, getVotingLifecycleState } from "@/lib/voting-lifecycle"
 import { formatDateTime, toDateTimeLocalValue, toIsoFromLocal } from "../_lib/utils"
 
 interface VotingSetupProps {
   activeTopic: Topic
 }
 
-type LifecyclePhase =
-  | "waiting"
-  | "end-submissions"
-  | "start-voting"
-  | "close-voting"
-  | "complete"
+type LifecyclePhase = "waiting" | "end-submissions" | "start-voting" | "close-voting" | "complete"
 
 function getLifecyclePhase(
   submissionState: "not-started" | "open" | "ended",
@@ -57,8 +62,7 @@ type StepStatus = "completed" | "current" | "upcoming"
 function getStepStatus(stepId: string, currentPhase: LifecyclePhase): StepStatus {
   const order = ["end-submissions", "start-voting", "close-voting"]
   const phaseIdx = order.indexOf(currentPhase)
-  const currentIdx =
-    currentPhase === "complete" ? 3 : currentPhase === "waiting" ? -1 : phaseIdx
+  const currentIdx = currentPhase === "complete" ? 3 : currentPhase === "waiting" ? -1 : phaseIdx
   const stepIdx = order.indexOf(stepId)
   if (stepIdx < currentIdx) return "completed"
   if (stepIdx === currentIdx) return "current"
@@ -210,7 +214,10 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
   const [isCloseVotingDialogOpen, setIsCloseVotingDialogOpen] = useState(false)
   const [isReopenVotingDialogOpen, setIsReopenVotingDialogOpen] = useState(false)
 
-  const submissionState = getSubmissionLifecycleState(activeTopic.scheduledStart, activeTopic.scheduledEnd)
+  const submissionState = getSubmissionLifecycleState(
+    activeTopic.scheduledStart,
+    activeTopic.scheduledEnd,
+  )
   const votingState = getVotingLifecycleState(summary.votingWindow)
   const currentPhase = getLifecyclePhase(submissionState, votingState)
   const submissionCount = summary?.submissionStats.submissionCount ?? 0
@@ -406,10 +413,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 />
                 <p className="text-xs text-slate-400">Leave empty to close voting manually.</p>
               </div>
-              <AlertDialog
-                open={isStartVotingDialogOpen}
-                onOpenChange={setIsStartVotingDialogOpen}
-              >
+              <AlertDialog open={isStartVotingDialogOpen} onOpenChange={setIsStartVotingDialogOpen}>
                 <Button
                   onClick={handleStartVotingClick}
                   disabled={!canStartVoting || startVotingMutation.isPending}
@@ -431,10 +435,9 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Start voting?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will open the voting window and create voting sessions
-                      for all {participantWithSubmissionCount} participants with
-                      submissions. An SMS with a voting link will be sent to each
-                      participant who has a phone number on file.
+                      This will open the voting window and create voting sessions for all{" "}
+                      {participantWithSubmissionCount} participants with submissions. An SMS with a
+                      voting link will be sent to each participant who has a phone number on file.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -482,10 +485,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 )}
               </div>
             </div>
-            <AlertDialog
-              open={isCloseVotingDialogOpen}
-              onOpenChange={setIsCloseVotingDialogOpen}
-            >
+            <AlertDialog open={isCloseVotingDialogOpen} onOpenChange={setIsCloseVotingDialogOpen}>
               <Button
                 variant="destructive"
                 onClick={handleCloseVotingClick}
@@ -508,8 +508,8 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Close voting?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will close the voting window. Participants will no longer
-                    be able to submit votes. This action cannot be undone.
+                    This will close the voting window. Participants will no longer be able to submit
+                    votes. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -547,10 +547,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 Results and completed votes are available in the tabs below.
               </p>
             </div>
-            <AlertDialog
-              open={isReopenVotingDialogOpen}
-              onOpenChange={setIsReopenVotingDialogOpen}
-            >
+            <AlertDialog open={isReopenVotingDialogOpen} onOpenChange={setIsReopenVotingDialogOpen}>
               <Button
                 variant="outline"
                 onClick={handleReopenVotingClick}
@@ -573,8 +570,8 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Reopen voting?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will reopen the voting window. Participants will be able
-                    to submit votes again. Votes already cast will remain.
+                    This will reopen the voting window. Participants will be able to submit votes
+                    again. Votes already cast will remain.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

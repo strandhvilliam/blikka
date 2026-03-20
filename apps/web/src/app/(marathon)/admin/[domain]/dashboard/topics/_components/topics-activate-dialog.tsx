@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
-import { getVotingLifecycleState } from "@/lib/voting/voting-lifecycle"
+import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
 
 interface TopicsActivateDialogProps {
   topicToActivate: Topic | null

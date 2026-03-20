@@ -25,11 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,12 +37,8 @@ import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { PrimaryButton } from "@/components/ui/primary-button"
-import { getVotingLifecycleState } from "@/lib/voting/voting-lifecycle"
-import {
-  formatDateTime,
-  getSubmissionImageUrl,
-  VOTING_PAGE_SIZE,
-} from "../_lib/utils"
+import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
+import { formatDateTime, getSubmissionImageUrl, VOTING_PAGE_SIZE } from "../_lib/utils"
 import { useVotingUiState } from "../_hooks/use-voting-ui-state"
 import { formatDomainLink } from "@/lib/utils"
 import { VotingProgress } from "./voting-progress"
@@ -55,9 +47,7 @@ interface VotersTabProps {
   activeTopic: { id: number; name: string; orderIndex: number }
 }
 
-export function VotersTab({
-  activeTopic,
-}: VotersTabProps) {
+export function VotersTab({ activeTopic }: VotersTabProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const domain = useDomain()
@@ -154,9 +144,7 @@ export function VotersTab({
         ])
       },
       onError: (error) => {
-        toast.error(
-          error.message || "Failed to start voting sessions for participants",
-        )
+        toast.error(error.message || "Failed to start voting sessions for participants")
       },
     }),
   )
@@ -171,9 +159,7 @@ export function VotersTab({
 
   const handleDeleteSession = (sessionId: number) => {
     if (
-      !confirm(
-        "Are you sure you want to delete this voting session? This action cannot be undone.",
-      )
+      !confirm("Are you sure you want to delete this voting session? This action cannot be undone.")
     ) {
       return
     }
@@ -193,22 +179,19 @@ export function VotersTab({
     })
   }
 
-  const pendingClearVoteSessionId =
-    clearVoteMutation.isPending
-      ? clearVoteMutation.variables?.sessionId ?? null
-      : null
+  const pendingClearVoteSessionId = clearVoteMutation.isPending
+    ? (clearVoteMutation.variables?.sessionId ?? null)
+    : null
   const isClearingVote = clearVoteMutation.isPending
 
-  const pendingDeleteSessionId =
-    deleteVotingSessionMutation.isPending
-      ? deleteVotingSessionMutation.variables?.sessionId ?? null
-      : null
+  const pendingDeleteSessionId = deleteVotingSessionMutation.isPending
+    ? (deleteVotingSessionMutation.variables?.sessionId ?? null)
+    : null
   const isDeletingSession = deleteVotingSessionMutation.isPending
 
-  const pendingResendSessionId =
-    resendVotingSessionNotificationMutation.isPending
-      ? resendVotingSessionNotificationMutation.variables?.sessionId
-      : null
+  const pendingResendSessionId = resendVotingSessionNotificationMutation.isPending
+    ? resendVotingSessionNotificationMutation.variables?.sessionId
+    : null
   const isResending = resendVotingSessionNotificationMutation.isPending
 
   const { data: votersPageData } = useSuspenseQuery(
@@ -255,9 +238,8 @@ export function VotersTab({
             <div className="space-y-3 mt-2">
               <p>
                 {participantsWithoutSession.length} participant
-                {participantsWithoutSession.length === 1 ? "" : "s"} have
-                uploaded for this topic but don&apos;t have voting sessions yet
-                (voting was started before they uploaded).
+                {participantsWithoutSession.length === 1 ? "" : "s"} have uploaded for this topic
+                but don&apos;t have voting sessions yet (voting was started before they uploaded).
               </p>
               <ul className="list-disc list-inside text-sm space-y-1">
                 {participantsWithoutSession.map((p) => (
@@ -286,8 +268,7 @@ export function VotersTab({
                   })
                 }
                 disabled={
-                  startVotingSessionsForParticipantsMutation.isPending ||
-                  votingState !== "active"
+                  startVotingSessionsForParticipantsMutation.isPending || votingState !== "active"
                 }
               >
                 {startVotingSessionsForParticipantsMutation.isPending ? (
@@ -304,8 +285,7 @@ export function VotersTab({
               </PrimaryButton>
               {votingState !== "active" ? (
                 <p className="text-sm">
-                  Late participant sessions can only be started while voting is
-                  active.
+                  Late participant sessions can only be started while voting is active.
                 </p>
               ) : null}
             </div>
@@ -351,21 +331,15 @@ export function VotersTab({
                             {voter.firstName} {voter.lastName}
                           </p>
                           <Badge variant="outline" className="text-xs">
-                            {voter.connectedParticipantId
-                              ? "Participant"
-                              : "Manual"}
+                            {voter.connectedParticipantId ? "Participant" : "Manual"}
                           </Badge>
                         </div>
                       </TableCell>
                       <TableCell className="py-2">
                         <code className="font-mono text-xs">{voter.token}</code>
                       </TableCell>
-                      <TableCell className="py-2">
-                        {voter.email || "-"}
-                      </TableCell>
-                      <TableCell className="py-2">
-                        {voter.phoneNumber || "-"}
-                      </TableCell>
+                      <TableCell className="py-2">{voter.email || "-"}</TableCell>
+                      <TableCell className="py-2">{voter.phoneNumber || "-"}</TableCell>
                       <TableCell className="py-2">
                         {voter.voteSubmission ? (
                           <Popover>
@@ -376,45 +350,30 @@ export function VotersTab({
                                   className="cursor-pointer hover:bg-emerald-600/90 bg-emerald-600 text-white border-0 shadow-sm"
                                 >
                                   <Check className="mr-1.5 size-3.5 shrink-0" />
-                                  {voter.voteSubmission.participantReference ||
-                                    "Unknown"}
+                                  {voter.voteSubmission.participantReference || "Unknown"}
                                 </Badge>
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-80 p-4" align="start">
                               <div className="space-y-3">
                                 <div className="space-y-1">
-                                  <h4 className="font-semibold text-sm">
-                                    Voted Submission
-                                  </h4>
+                                  <h4 className="font-semibold text-sm">Voted Submission</h4>
                                   <p className="text-xs text-muted-foreground">
                                     Participant:{" "}
-                                    {voter.voteSubmission
-                                      .participantReference || "Unknown"}
+                                    {voter.voteSubmission.participantReference || "Unknown"}
                                   </p>
                                   {voter.voteSubmission.participantFirstName &&
-                                    voter.voteSubmission
-                                      .participantLastName && (
+                                    voter.voteSubmission.participantLastName && (
                                       <p className="text-xs text-muted-foreground">
-                                        {
-                                          voter.voteSubmission
-                                            .participantFirstName
-                                        }{" "}
-                                        {
-                                          voter.voteSubmission
-                                            .participantLastName
-                                        }
+                                        {voter.voteSubmission.participantFirstName}{" "}
+                                        {voter.voteSubmission.participantLastName}
                                       </p>
                                     )}
                                   <p className="text-xs text-muted-foreground">
-                                    Submitted:{" "}
-                                    {formatDateTime(
-                                      voter.voteSubmission.createdAt,
-                                    )}
+                                    Submitted: {formatDateTime(voter.voteSubmission.createdAt)}
                                   </p>
                                 </div>
-                                {voter.voteSubmission.thumbnailKey ||
-                                  voter.voteSubmission.key ? (
+                                {voter.voteSubmission.thumbnailKey || voter.voteSubmission.key ? (
                                   <div className="rounded-lg overflow-hidden border bg-muted">
                                     <img
                                       src={getSubmissionImageUrl(
@@ -436,11 +395,7 @@ export function VotersTab({
                                   <Link
                                     href={`/admin/${domain}/dashboard/submissions/${voter.voteSubmission.participantReference}/${voter.voteSubmission.submissionId}`}
                                   >
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full"
-                                    >
+                                    <Button variant="outline" size="sm" className="w-full">
                                       <ExternalLink className="mr-2 size-4" />
                                       View Submission
                                     </Button>
@@ -450,9 +405,7 @@ export function VotersTab({
                             </PopoverContent>
                           </Popover>
                         ) : (
-                          <span className="text-muted-foreground text-sm">
-                            Not voted
-                          </span>
+                          <span className="text-muted-foreground text-sm">Not voted</span>
                         )}
                       </TableCell>
                       <TableCell className="py-2">
@@ -486,33 +439,26 @@ export function VotersTab({
                             <PopoverContent className="w-56 p-3" align="end">
                               <div className="space-y-3">
                                 <div className="text-xs text-muted-foreground">
-                                  Last sent:{" "}
-                                  {formatDateTime(voter.notificationLastSentAt)}
+                                  Last sent: {formatDateTime(voter.notificationLastSentAt)}
                                 </div>
                                 <div className="space-y-2">
                                   <button
                                     className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                     disabled={
                                       !voter.phoneNumber ||
-                                      (isResending &&
-                                        pendingResendSessionId ===
-                                        voter.sessionId)
+                                      (isResending && pendingResendSessionId === voter.sessionId)
                                     }
                                     onClick={() => {
                                       handleResendSessionNotification(voter.sessionId)
                                     }}
                                   >
                                     <div className="flex items-center gap-2">
-                                      {isResending &&
-                                        pendingResendSessionId ===
-                                        voter.sessionId ? (
+                                      {isResending && pendingResendSessionId === voter.sessionId ? (
                                         <Loader2 className="size-4 animate-spin" />
                                       ) : (
                                         <MessageSquare className="size-4" />
                                       )}
-                                      <span className="text-sm font-medium">
-                                        Send by SMS
-                                      </span>
+                                      <span className="text-sm font-medium">Send by SMS</span>
                                     </div>
                                   </button>
                                   <button
@@ -524,9 +470,7 @@ export function VotersTab({
                                   >
                                     <div className="flex items-center gap-2">
                                       <Mail className="size-4" />
-                                      <span className="text-sm font-medium">
-                                        Send by Email
-                                      </span>
+                                      <span className="text-sm font-medium">Send by Email</span>
                                     </div>
                                   </button>
                                 </div>
@@ -543,14 +487,12 @@ export function VotersTab({
                                 disabled={
                                   isClearingVote ||
                                   isDeletingSession ||
-                                  pendingClearVoteSessionId ===
-                                  voter.sessionId ||
+                                  pendingClearVoteSessionId === voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
-                                {pendingClearVoteSessionId ===
-                                  voter.sessionId ||
-                                  pendingDeleteSessionId === voter.sessionId ? (
+                                {pendingClearVoteSessionId === voter.sessionId ||
+                                pendingDeleteSessionId === voter.sessionId ? (
                                   <Loader2 className="size-3.5 animate-spin" />
                                 ) : (
                                   <MoreVertical className="size-3.5" />
@@ -564,8 +506,7 @@ export function VotersTab({
                                   !voter.voteSubmission ||
                                   isClearingVote ||
                                   isDeletingSession ||
-                                  pendingClearVoteSessionId ===
-                                  voter.sessionId ||
+                                  pendingClearVoteSessionId === voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
@@ -579,8 +520,7 @@ export function VotersTab({
                                 disabled={
                                   isClearingVote ||
                                   isDeletingSession ||
-                                  pendingClearVoteSessionId ===
-                                  voter.sessionId ||
+                                  pendingClearVoteSessionId === voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
@@ -595,10 +535,7 @@ export function VotersTab({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="h-24 text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                       No voting sessions found for this topic.
                     </TableCell>
                   </TableRow>
@@ -627,11 +564,7 @@ export function VotersTab({
               variant="outline"
               size="sm"
               onClick={() =>
-                setVotersPage(
-                  pageCount > 0
-                    ? Math.min(pageCount, votersPage + 1)
-                    : votersPage + 1
-                )
+                setVotersPage(pageCount > 0 ? Math.min(pageCount, votersPage + 1) : votersPage + 1)
               }
               disabled={pageCount === 0 || votersPage >= pageCount}
             >

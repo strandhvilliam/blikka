@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, use, useContext } from "react"
+import { createContext, useContext } from "react"
 
 const DomainProviderContext = createContext<string | null>(null)
 

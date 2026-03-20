@@ -1,17 +1,12 @@
 import { decodeParams, Page } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
-import {
-  HydrateClient,
-  prefetch,
-  trpc,
-  fetchEffectQuery,
-} from "@/lib/trpc/server"
+import { HydrateClient, prefetch, trpc, fetchEffectQuery } from "@/lib/trpc/server"
 import { Suspense } from "react"
 import { Splash } from "@/components/splash"
 import { VoteInitialClient } from "./_components/vote-initial-client"
 import { notFound, redirect } from "next/navigation"
 import { formatDomainPathname } from "@/lib/utils"
-import { getVotingUnavailableReason } from "@/lib/voting/voting-lifecycle"
+import { getVotingUnavailableReason } from "@/lib/voting-lifecycle"
 
 const _VotePage = Effect.fn("@blikka/web/VotePage")(
   function* ({ params }: PageProps<"/live/[domain]/vote/[token]">) {
@@ -37,7 +32,7 @@ const _VotePage = Effect.fn("@blikka/web/VotePage")(
     }
 
     if (votingSession.voteSubmissionId && votingSession.votedAt) {
-      return redirect(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'))
+      return redirect(formatDomainPathname(`/live/vote/${token}/completed`, domain, "live"))
     }
 
     const unavailableReason = getVotingUnavailableReason({
@@ -64,11 +59,7 @@ const _VotePage = Effect.fn("@blikka/web/VotePage")(
     )
   },
   Effect.catch((error) =>
-    Effect.succeed(
-      <div>
-        Error: {error instanceof Error ? error.message : String(error)}
-      </div>,
-    ),
+    Effect.succeed(<div>Error: {error instanceof Error ? error.message : String(error)}</div>),
   ),
 )
 

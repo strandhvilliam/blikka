@@ -12,32 +12,32 @@ type NextBaseSearchParams = Promise<Record<string, string | Array<string> | unde
 
 export type ActionResponse<T> = T extends void
   ? {
-    data: undefined
-    error: string | null
-  }
+      data: undefined
+      error: string | null
+    }
   : {
-    data: T
-    error: string | null
-  }
+      data: T
+      error: string | null
+    }
 
 export const decodeParams =
   <S extends Schema.Top>(schema: S) =>
-    <P extends NextBaseParams>(p: P) =>
-      Effect.gen(function* () {
-        const params = yield* Effect.promise(() => p)
-        return yield* Schema.decodeUnknownEffect(schema)(params)
-      })
+  <P extends NextBaseParams>(p: P) =>
+    Effect.gen(function* () {
+      const params = yield* Effect.promise(() => p)
+      return yield* Schema.decodeUnknownEffect(schema)(params)
+    })
 
 export const decodeSearchParams =
   <S extends Schema.Top>(schema: S) =>
-    <P extends NextBaseSearchParams>(search: P) =>
-      Effect.gen(function* () {
-        const searchParams = yield* Effect.promise(() => search)
-        return yield* Schema.decodeUnknownEffect(schema)(searchParams)
-      })
+  <P extends NextBaseSearchParams>(search: P) =>
+    Effect.gen(function* () {
+      const searchParams = yield* Effect.promise(() => search)
+      return yield* Schema.decodeUnknownEffect(schema)(searchParams)
+    })
 
 export function toActionResponse<T>(
-  effect: Effect.Effect<T, unknown, RuntimeDependencies>
+  effect: Effect.Effect<T, unknown, RuntimeDependencies>,
 ): Effect.Effect<ActionResponse<T>, never, RuntimeDependencies> {
   return effect.pipe(
     Effect.map((data) => ({ data, error: null as string | null }) as ActionResponse<T>),
@@ -46,13 +46,13 @@ export function toActionResponse<T>(
       Effect.succeed({
         data: undefined as T extends void ? undefined : T,
         error: error instanceof Error ? error.message : String(error),
-      } as ActionResponse<T>)
-    )
+      } as ActionResponse<T>),
+    ),
   )
 }
 
 function Next<I extends Array<unknown>, A, E>(
-  effectFn: (...args: I) => Effect.Effect<A, E, RuntimeDependencies>
+  effectFn: (...args: I) => Effect.Effect<A, E, RuntimeDependencies>,
 ) {
   return async (...args: I): Promise<A> => {
     return serverRuntime.runPromiseExit(effectFn(...args)).then((res) => {
@@ -73,7 +73,7 @@ function Next<I extends Array<unknown>, A, E>(
 }
 
 function NextSuspense<I extends Array<unknown>, A, E>(
-  effectFn: (...args: I) => Effect.Effect<A, E, RuntimeDependencies>
+  effectFn: (...args: I) => Effect.Effect<A, E, RuntimeDependencies>,
 ) {
   return (...args: I): A =>
     use(
@@ -92,16 +92,16 @@ function NextSuspense<I extends Array<unknown>, A, E>(
         }
 
         return res.value
-      })()
+      })(),
     )
 }
 
 function LayoutSuspense<I extends Array<unknown>, A, E>(
-  effectFn: (...args: I) => Effect.Effect<A, E, RuntimeDependencies>
+  effectFn: (...args: I) => Effect.Effect<A, E, RuntimeDependencies>,
 ) {
   const ComponentWithData = NextSuspense(effectFn)
   return function SuspenseLayout(
-    props: I extends [] ? { children?: unknown } : I extends [infer P] ? P : unknown
+    props: I extends [] ? { children?: unknown } : I extends [infer P] ? P : unknown,
   ) {
     return (
       <Suspense fallback={null}>

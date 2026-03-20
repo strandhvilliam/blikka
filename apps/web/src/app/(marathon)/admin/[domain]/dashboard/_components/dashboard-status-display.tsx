@@ -44,7 +44,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { getVotingLifecycleState, getSubmissionLifecycleState } from "@/lib/voting/voting-lifecycle"
+import { getVotingLifecycleState, getSubmissionLifecycleState } from "@/lib/voting-lifecycle"
 import { type ByCameraPhase, useByCameraLifecycle } from "../_hooks/use-by-camera-lifecycle"
 
 interface DashboardStatusDisplayProps {

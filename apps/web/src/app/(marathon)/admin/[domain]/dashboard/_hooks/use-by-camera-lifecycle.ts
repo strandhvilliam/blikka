@@ -1,9 +1,6 @@
 import type { Topic } from "@blikka/db"
 import { useEffect, useState } from "react"
-import {
-  getSubmissionLifecycleState,
-  getVotingLifecycleState,
-} from "@/lib/voting/voting-lifecycle"
+import { getSubmissionLifecycleState, getVotingLifecycleState } from "@/lib/voting-lifecycle"
 
 export type ByCameraPhase =
   | "no-active-topic"
@@ -16,11 +13,7 @@ export type ByCameraPhase =
 export function getByCameraPhase(topic: Topic | null, now = new Date()): ByCameraPhase {
   if (!topic || topic.visibility !== "active") return "no-active-topic"
 
-  const submissionState = getSubmissionLifecycleState(
-    topic.scheduledStart,
-    topic.scheduledEnd,
-    now,
-  )
+  const submissionState = getSubmissionLifecycleState(topic.scheduledStart, topic.scheduledEnd, now)
   if (submissionState === "not-started") return "submissions-not-started"
   if (submissionState === "open") return "submissions-ongoing"
 

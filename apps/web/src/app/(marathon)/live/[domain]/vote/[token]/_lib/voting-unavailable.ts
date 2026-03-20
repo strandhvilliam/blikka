@@ -1,4 +1,4 @@
-import type { VotingUnavailableReason } from "@/lib/voting/voting-lifecycle"
+import type { VotingUnavailableReason } from "@/lib/voting-lifecycle"
 
 export function getVotingUnavailableContent(reason: string | null) {
   const resolvedReason: VotingUnavailableReason | "unknown" =
@@ -16,8 +16,7 @@ export function getVotingUnavailableContent(reason: string | null) {
   if (resolvedReason === "ended") {
     return {
       title: "Voting Has Ended",
-      description:
-        "The voting period for this session has ended. Thank you for your interest.",
+      description: "The voting period for this session has ended. Thank you for your interest.",
       hint: "The voting window has closed for this topic.",
     }
   }
