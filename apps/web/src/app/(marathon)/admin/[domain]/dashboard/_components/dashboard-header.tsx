@@ -2,6 +2,7 @@
 
 import { DashboardStatusDisplay, DashboardStatusDisplaySkeleton } from "./dashboard-status-display"
 import { DomainSwitchDropdown } from "./domain-switch-dropdown"
+import { LiveUploadQrDialog } from "./live-upload-qr-dialog"
 import Link from "next/link"
 import { ExternalLink, Users, Shield, Upload } from "lucide-react"
 import { Suspense } from "react"
@@ -56,6 +57,7 @@ export function DashboardHeader() {
         <div className="flex items-center gap-2 ml-auto mr-4">
           <QuickNavLink href={staffSiteUrl} icon={Shield} label="Staff" />
           <QuickNavLink href={participantSiteUrl} icon={Users} label="Upload" />
+          <LiveUploadQrDialog uploadUrl={participantSiteUrl} />
           <QuickNavLink href={computerUploadSiteUrl} icon={Upload} label="Computer Upload" />
         </div>
         <Suspense fallback={<DashboardStatusDisplaySkeleton />}>
