@@ -11,6 +11,10 @@ export class DbError extends Schema.TaggedErrorClass<DbError>()("DbError", {
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 export function getDefaultRuleConfigs(
   marathonId: number,
   { startDate, endDate }: { startDate: string | null; endDate: string | null },

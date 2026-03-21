@@ -15,7 +15,7 @@ export const GetStaffMembersByDomainInputSchema = Schema.toStandardSchemaV1(
 
 export const GetStaffMemberByIdInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
-    staffId: Schema.String,
+    accessId: Schema.String,
     domain: Schema.String,
   })
 )
@@ -34,7 +34,7 @@ export const CreateStaffMemberInputSchema = Schema.toStandardSchemaV1(
 export const DeleteUserMarathonRelationInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
-    userId: Schema.String,
+    accessId: Schema.String,
   })
 )
 
@@ -49,7 +49,7 @@ export const GetVerificationsByStaffIdInputSchema = Schema.toStandardSchemaV1(
 
 export const UpdateStaffMemberInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
-    staffId: Schema.String,
+    accessId: Schema.String,
     domain: Schema.String,
     data: Schema.Struct({
       name: Schema.String,

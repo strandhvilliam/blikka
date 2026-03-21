@@ -12,7 +12,7 @@ const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
     const params = yield* decodeSearchParams(
       Schema.Struct({
         next: Schema.optional(Schema.String),
-      })
+      }),
     )(searchParams).pipe(Effect.catch(() => Effect.succeed({ next: undefined })))
 
     if (Option.isSome(session)) {
@@ -76,7 +76,7 @@ const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
                 <div className="mt-10 grid gap-4 lg:grid-cols-[1.25fr_0.9fr]">
                   <article className="relative min-h-56 overflow-hidden rounded-3xl border border-brand-black/16 shadow-[0_14px_38px_rgba(0,0,0,0.14)]">
                     <Image
-                      src="/photo-event-8.jpg"
+                      src="/photo-event-1.jpg"
                       alt="Event crowd at a photography marathon"
                       fill
                       sizes="(max-width: 1024px) 100vw, 45vw"
@@ -133,7 +133,7 @@ const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
       </div>
     )
   },
-  Effect.catch(() => Effect.succeed(<div />))
+  Effect.catch(() => Effect.succeed(<div />)),
 )
 
 export default Page(_LoginPage)

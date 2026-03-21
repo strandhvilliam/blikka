@@ -7,6 +7,7 @@ import {
   marathons,
   topics,
   userMarathons,
+  pendingUserMarathons,
   ruleConfigs,
   juryInvitations,
   user,
@@ -43,6 +44,9 @@ export type NewTopic = typeof topics.$inferInsert;
 
 export type UserMarathonRelation = typeof userMarathons.$inferSelect;
 export type NewUserMarathonRelation = typeof userMarathons.$inferInsert;
+
+export type PendingUserMarathonRelation = typeof pendingUserMarathons.$inferSelect;
+export type NewPendingUserMarathonRelation = typeof pendingUserMarathons.$inferInsert;
 
 export type RuleConfig = typeof ruleConfigs.$inferSelect;
 export type NewRuleConfig = typeof ruleConfigs.$inferInsert;

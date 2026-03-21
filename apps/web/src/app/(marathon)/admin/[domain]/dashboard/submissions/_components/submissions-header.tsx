@@ -164,11 +164,7 @@ export function SubmissionsHeader() {
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <PrimaryButton
-            size="sm"
-            onClick={() => setIsCreateUploadDialogOpen(true)}
-            className="text-xs"
-          >
+          <PrimaryButton onClick={() => setIsCreateUploadDialogOpen(true)} className="text-xs">
             <Upload className="h-3.5 w-3.5 mr-1.5" />
             Manual Upload
           </PrimaryButton>

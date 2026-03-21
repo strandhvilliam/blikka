@@ -48,6 +48,7 @@ export const marathonsRelations = relations(schema.marathons, ({ many }) => ({
   juryInvitations: many(schema.juryInvitations),
   participants: many(schema.participants),
   userMarathons: many(schema.userMarathons),
+  pendingUserMarathons: many(schema.pendingUserMarathons),
   competitionClasses: many(schema.competitionClasses),
   deviceGroups: many(schema.deviceGroups),
   submissions: many(schema.submissions),
@@ -137,6 +138,7 @@ export const userRelations = relations(schema.user, ({ many }) => ({
   accounts: many(schema.account),
   sessions: many(schema.session),
   userMarathons: many(schema.userMarathons),
+  pendingUserMarathonsInvited: many(schema.pendingUserMarathons),
   participantVerifications: many(schema.participantVerifications),
 }));
 
@@ -156,6 +158,20 @@ export const userMarathonsRelations = relations(
     }),
     user: one(schema.user, {
       fields: [schema.userMarathons.userId],
+      references: [schema.user.id],
+    }),
+  }),
+);
+
+export const pendingUserMarathonsRelations = relations(
+  schema.pendingUserMarathons,
+  ({ one }) => ({
+    marathon: one(schema.marathons, {
+      fields: [schema.pendingUserMarathons.marathonId],
+      references: [schema.marathons.id],
+    }),
+    invitedByUser: one(schema.user, {
+      fields: [schema.pendingUserMarathons.invitedByUserId],
       references: [schema.user.id],
     }),
   }),

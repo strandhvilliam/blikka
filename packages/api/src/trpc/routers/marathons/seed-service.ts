@@ -59,9 +59,7 @@ type SubmissionSeedPlan = {
 
 type SeedStaffMember = {
   userId: string;
-  user: {
-    name: string;
-  };
+  name: string;
 };
 
 type SeedSubmissionRecord = {
@@ -350,9 +348,12 @@ const getSortedStaffMembers = Effect.fn("SeedService.getSortedStaffMembers")(
     });
 
     return staffMembers
-      .filter((staffMember) => staffMember.role === "staff")
+      .filter(
+        (staffMember): staffMember is Extract<typeof staffMembers[number], { kind: "active" }> =>
+          staffMember.kind === "active" && staffMember.role === "staff",
+      )
       .toSorted((left, right) => {
-        const nameCompare = left.user.name.localeCompare(right.user.name);
+        const nameCompare = left.name.localeCompare(right.name);
         if (nameCompare !== 0) {
           return nameCompare;
         }
@@ -997,7 +998,7 @@ const createParticipantVerifications = Effect.fn(
           data: {
             participantId: participant.id,
             staffId: staffMember.userId,
-            notes: `Seed verification by ${staffMember.user.name}`,
+            notes: `Seed verification by ${staffMember.name}`,
           },
         });
         yield* db.participantsQueries.updateParticipantById({

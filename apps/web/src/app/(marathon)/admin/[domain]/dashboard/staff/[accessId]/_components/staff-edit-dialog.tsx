@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "@tanstack/react-form"
 import { AlertTriangle, HardHat, Shield, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -12,13 +12,13 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { PrimaryButton } from "@/components/ui/primary-button"
 import { useTRPC } from "@/lib/trpc/client"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useDomain } from "@/lib/domain-provider"
-import { cn } from "@/lib/utils"
+import { cn, formatDomainPathname } from "@/lib/utils"
 import { motion, AnimatePresence } from "motion/react"
+import { useRouter } from "next/navigation"
 
 const roleTypes = [
   {
@@ -34,7 +34,7 @@ const roleTypes = [
 ] as const
 
 interface StaffEditDialogProps {
-  staffId: string
+  accessId: string
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   initialData: {
@@ -45,7 +45,7 @@ interface StaffEditDialogProps {
 }
 
 export function StaffEditDialog({
-  staffId,
+  accessId,
   isOpen,
   onOpenChange,
   initialData,
@@ -53,6 +53,7 @@ export function StaffEditDialog({
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const domain = useDomain()
+  const router = useRouter()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const form = useForm({
@@ -63,8 +64,8 @@ export function StaffEditDialog({
     },
     onSubmit: async ({ value }) => {
       setErrorMessage(null)
-      updateStaffMember({
-        staffId,
+      updateStaffAccess({
+        accessId,
         domain,
         data: {
           name: value.name,
@@ -75,40 +76,47 @@ export function StaffEditDialog({
     },
   })
 
-  // Update form values when initialData changes or dialog opens
   useEffect(() => {
-    if (isOpen) {
-      form.setFieldValue("name", initialData.name)
-      form.setFieldValue("email", initialData.email)
-      form.setFieldValue("role", initialData.role)
+    if (!isOpen) {
+      return
     }
-  }, [initialData, isOpen, form])
 
-  const { mutate: updateStaffMember, isPending: isUpdatingStaffMember } =
-    useMutation(
-      trpc.users.updateStaffMember.mutationOptions({
-        onError: (error) => {
-          console.error("Failed to update staff member:", error)
-          setErrorMessage(error.message || "Failed to update staff member")
-        },
-        onSuccess: () => {
-          toast.success("Staff member updated successfully")
-          onOpenChange(false)
-          setErrorMessage(null)
-        },
-        onSettled: () => {
-          queryClient.invalidateQueries({
-            queryKey: trpc.users.getStaffMemberById.queryKey({
-              staffId,
-              domain,
-            }),
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.users.getStaffMembersByDomain.queryKey({ domain }),
-          })
-        },
-      })
-    )
+    form.setFieldValue("name", initialData.name)
+    form.setFieldValue("email", initialData.email)
+    form.setFieldValue("role", initialData.role)
+  }, [form, initialData, isOpen])
+
+  const { mutate: updateStaffAccess, isPending: isUpdatingStaffAccess } = useMutation(
+    trpc.users.updateStaffAccess.mutationOptions({
+      onError: (error) => {
+        console.error("Failed to update staff access:", error)
+        setErrorMessage(error.message || "Failed to update staff member")
+      },
+      onSuccess: (data) => {
+        toast.success(
+          data.kind === "pending"
+            ? "Pending access updated successfully"
+            : "Staff member updated successfully",
+        )
+        if (data.id !== accessId) {
+          router.replace(formatDomainPathname(`/admin/dashboard/staff/${data.id}`, domain))
+        }
+        onOpenChange(false)
+        setErrorMessage(null)
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.users.getStaffAccessById.queryKey({
+            accessId,
+            domain,
+          }),
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.users.getStaffMembersByDomain.queryKey({ domain }),
+        })
+      },
+    }),
+  )
 
   const handleOpenChange = (open: boolean) => {
     onOpenChange(open)
@@ -125,28 +133,27 @@ export function StaffEditDialog({
           <DialogTitle className="font-gothic">Edit Staff Member</DialogTitle>
         </DialogHeader>
         <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
+          onSubmit={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
             form.handleSubmit()
           }}
           className="space-y-4"
         >
-          {errorMessage && (
+          {errorMessage ? (
             <Alert variant="destructive" className="flex items-center gap-2 bg-red-50">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="leading-none mt-1">
-                {errorMessage}
-              </AlertDescription>
+              <AlertDescription className="mt-1 leading-none">{errorMessage}</AlertDescription>
             </Alert>
-          )}
+          ) : null}
 
           <form.Field
             name="name"
             validators={{
               onChange: ({ value }) => (!value ? "Name is required" : undefined),
             }}
-            children={(field) => (
+          >
+            {(field) => (
               <div className="space-y-2">
                 <label
                   htmlFor={field.name}
@@ -159,18 +166,15 @@ export function StaffEditDialog({
                   name={field.name}
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(event) => field.handleChange(event.target.value)}
                   placeholder="Anna Johnson"
                 />
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors.length > 0 && (
-                    <em className="text-sm text-red-600">
-                      {field.state.meta.errors.join(", ")}
-                    </em>
-                  )}
+                {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
+                  <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>
+                ) : null}
               </div>
             )}
-          />
+          </form.Field>
 
           <form.Field
             name="email"
@@ -183,7 +187,8 @@ export function StaffEditDialog({
                 return undefined
               },
             }}
-            children={(field) => (
+          >
+            {(field) => (
               <div className="space-y-2">
                 <label
                   htmlFor={field.name}
@@ -197,25 +202,23 @@ export function StaffEditDialog({
                   type="email"
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(event) => field.handleChange(event.target.value)}
                   placeholder="anna.johnson@example.com"
                 />
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors.length > 0 && (
-                    <em className="text-sm text-red-600">
-                      {field.state.meta.errors.join(", ")}
-                    </em>
-                  )}
+                {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
+                  <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>
+                ) : null}
               </div>
             )}
-          />
+          </form.Field>
 
           <form.Field
             name="role"
             validators={{
               onChange: ({ value }) => (!value ? "Role is required" : undefined),
             }}
-            children={(field) => (
+          >
+            {(field) => (
               <div className="space-y-2">
                 <label
                   htmlFor={field.name}
@@ -223,7 +226,7 @@ export function StaffEditDialog({
                 >
                   Role
                 </label>
-                <div className="flex gap-3 mt-2">
+                <div className="mt-2 flex gap-3">
                   {roleTypes.map((role) => {
                     const Icon = role.icon
                     return (
@@ -232,9 +235,8 @@ export function StaffEditDialog({
                         type="button"
                         variant="outline"
                         className={cn(
-                          "h-40 w-40 p-0 relative overflow-hidden",
-                          field.state.value === role.value &&
-                            "ring-2 ring-primary ring-offset-2"
+                          "relative h-40 w-40 overflow-hidden p-0",
+                          field.state.value === role.value && "ring-2 ring-primary ring-offset-2",
                         )}
                         onClick={() => field.handleChange(role.value)}
                       >
@@ -249,55 +251,47 @@ export function StaffEditDialog({
                           }}
                           className="flex flex-col items-center gap-2"
                         >
-                          <Icon className="h-12 w-12" />
+                          <Icon className="size-8" />
                           <span className="text-sm font-medium">{role.label}</span>
                         </motion.div>
                         <AnimatePresence>
-                          {field.state.value === role.value && (
+                          {field.state.value === role.value ? (
                             <motion.div
                               initial={{ opacity: 0, scale: 0.5 }}
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.5 }}
                               transition={{ duration: 0.2 }}
-                              className="absolute top-1 right-1 bg-primary rounded-full p-0.5"
+                              className="absolute top-1 right-1 rounded-full bg-primary p-0.5"
                             >
                               <Check className="h-3 w-3 text-primary-foreground" />
                             </motion.div>
-                          )}
+                          ) : null}
                         </AnimatePresence>
                       </Button>
                     )
                   })}
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Select the role for this staff member.
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Staff can use the verification desk. Admins keep dashboard access and can also
+                  use the staff page.
                 </p>
-                {field.state.meta.isTouched &&
-                  field.state.meta.errors.length > 0 && (
-                    <em className="text-sm text-red-600">
-                      {field.state.meta.errors.join(", ")}
-                    </em>
-                  )}
+                {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
+                  <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>
+                ) : null}
               </div>
             )}
-          />
+          </form.Field>
 
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isUpdatingStaffMember}
-            >
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
-            <PrimaryButton type="submit" disabled={isUpdatingStaffMember}>
-              {isUpdatingStaffMember ? "Updating..." : "Update Staff Member"}
-            </PrimaryButton>
+            <Button type="submit" disabled={isUpdatingStaffAccess}>
+              {isUpdatingStaffAccess ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   )
 }
-

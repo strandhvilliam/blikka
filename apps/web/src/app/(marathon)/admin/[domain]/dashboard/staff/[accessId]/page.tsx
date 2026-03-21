@@ -6,29 +6,16 @@ import { StaffDetailsContent } from "./_components/staff-details-content"
 import { StaffDetailsSkeleton } from "./_components/staff-details-skeleton"
 
 const _StaffDetailsPage = Effect.fn("@blikka/web/StaffDetailsPage")(
-  function* ({ params }: PageProps<"/admin/[domain]/dashboard/staff/[staffId]">) {
-    const { domain, staffId } = yield* decodeParams(
-      Schema.Struct({ domain: Schema.String, staffId: Schema.String })
+  function* ({ params }: PageProps<"/admin/[domain]/dashboard/staff/[accessId]">) {
+    const { domain, accessId } = yield* decodeParams(
+      Schema.Struct({ domain: Schema.String, accessId: Schema.String })
     )(params)
 
     prefetch(
-      trpc.users.getStaffMemberById.queryOptions({
-        staffId,
+      trpc.users.getStaffAccessById.queryOptions({
+        accessId,
         domain,
       })
-    )
-
-    prefetch(
-      trpc.users.getVerificationsByStaffId.infiniteQueryOptions(
-        {
-          staffId,
-          domain,
-          limit: 20,
-        },
-        {
-          getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
-        }
-      )
     )
 
     prefetch(
@@ -40,7 +27,7 @@ const _StaffDetailsPage = Effect.fn("@blikka/web/StaffDetailsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<StaffDetailsSkeleton />}>
-          <StaffDetailsContent staffId={staffId} />
+          <StaffDetailsContent accessId={accessId} />
         </Suspense>
       </HydrateClient>
     )

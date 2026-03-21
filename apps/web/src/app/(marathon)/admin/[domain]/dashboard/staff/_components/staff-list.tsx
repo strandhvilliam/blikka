@@ -17,7 +17,7 @@ export function StaffList() {
   const domain = useDomain()
   const router = useRouter()
   const params = useParams()
-  const staffId = params.staffId as string | undefined
+  const accessId = params.accessId as string | undefined
   const trpc = useTRPC()
   const { data: staffMembers } = useSuspenseQuery(
     trpc.users.getStaffMembersByDomain.queryOptions({
@@ -31,8 +31,8 @@ export function StaffList() {
     const searchLower = search.toLowerCase()
     return staffMembers.filter(
       (staff) =>
-        staff.user.name.toLowerCase().includes(searchLower) ||
-        staff.user.email.toLowerCase().includes(searchLower)
+        staff.name.toLowerCase().includes(searchLower) ||
+        staff.email.toLowerCase().includes(searchLower)
     )
   }, [search, staffMembers])
 
@@ -65,11 +65,11 @@ export function StaffList() {
             </div>
           ) : (
             filteredStaff.map((staff) => {
-              const href = formatDomainPathname(`/admin/dashboard/staff/${staff.userId}`, domain)
-              const isActive = staffId === staff.userId
+              const href = formatDomainPathname(`/admin/dashboard/staff/${staff.id}`, domain)
+              const isActive = accessId === staff.id
               return (
                 <button
-                  key={staff.userId}
+                  key={staff.id}
                   onClick={() => router.push(href)}
                   className={cn(
                     "block w-full px-3 py-2.5 text-left transition-all hover:bg-muted/50",
@@ -79,7 +79,7 @@ export function StaffList() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9 ring-2 ring-primary/10 ring-offset-1 ring-offset-background">
                       <AvatarFallback className="bg-muted">
-                        {staff.user.name
+                        {staff.name
                           .split(" ")
                           .map((n) => n[0])
                           .join("")
@@ -89,18 +89,31 @@ export function StaffList() {
                     </Avatar>
                     <div className="flex-1 space-y-0.5 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium truncate">{staff.user.name}</p>
+                        <p className="text-sm font-medium truncate">{staff.name}</p>
                         <Badge
-                          variant={staff.role === "admin" ? "default" : "secondary"}
+                          variant={
+                            staff.kind === "pending"
+                              ? "outline"
+                              : staff.role === "admin"
+                                ? "default"
+                                : "secondary"
+                          }
                           className={cn(
                             "text-[10px] h-4 px-1.5 shrink-0",
-                            isActive && staff.role === "staff" && "bg-primary/10 text-primary"
+                            isActive &&
+                              staff.kind === "active" &&
+                              staff.role === "staff" &&
+                              "bg-primary/10 text-primary",
+                            staff.kind === "pending" &&
+                              "border-amber-200 bg-amber-50 text-amber-700"
                           )}
                         >
-                          {staff.role.charAt(0).toUpperCase() + staff.role.slice(1)}
+                          {staff.kind === "pending"
+                            ? "Pending"
+                            : staff.role.charAt(0).toUpperCase() + staff.role.slice(1)}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{staff.user.email}</p>
+                      <p className="text-xs text-muted-foreground truncate">{staff.email}</p>
                     </div>
                   </div>
                 </button>

@@ -67,10 +67,16 @@ export function StaffAddDialog() {
         console.error("Failed to add staff member:", error)
         setErrorMessage(error.message || "Failed to add staff member")
       },
-      onSuccess: () => {
-        toast.success("Staff member added successfully", {
-          description: "They can now sign in on the staff page with the email you added.",
-        })
+      onSuccess: (result) => {
+        toast.success(
+          result.kind === "pending" ? "Invitation saved" : "Access granted",
+          {
+            description:
+              result.kind === "pending"
+                ? "Access will activate automatically the first time they sign in."
+                : "They can now sign in on the staff page with the email you added.",
+          }
+        )
         setIsOpen(false)
         setErrorMessage(null)
         form.reset()

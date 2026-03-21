@@ -1,6 +1,6 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth"
 import { ServiceMap, Effect, Layer } from "effect"
-import { DrizzleClient, schema } from "@blikka/db"
+import { Database, DrizzleClient, schema } from "@blikka/db"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { EmailService, OTPEmail } from "@blikka/email"
 import { nextCookies } from "better-auth/next-js"
@@ -30,6 +30,7 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
     make: Effect.gen(function* () {
       const authConfig = yield* AuthConfig
       const { client } = yield* DrizzleClient
+      const db = yield* Database
       const emailService = yield* EmailService
       const redis = yield* RedisClient
 
@@ -49,12 +50,21 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
 
         hooks: {
           after: createAuthMiddleware(async (ctx) => {
-            if (ctx.path.startsWith("/sign-in")) {
-              const userId = ctx.context.session?.user.id
-              if (userId) {
-                await Effect.runPromise(redis.use((client) => client.del(`permissions:${userId}`)))
-              }
+            const user = ctx.context.session?.user
+            if (!user?.id) {
+              return
             }
+
+            if (user.email) {
+              await Effect.runPromise(
+                db.usersQueries.claimPendingUserMarathonsForUser({
+                  userId: user.id,
+                  email: user.email,
+                }),
+              )
+            }
+
+            await Effect.runPromise(redis.use((client) => client.del(`permissions:${user.id}`)))
           }),
         },
 
@@ -123,7 +133,9 @@ export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(DrizzleClient.layer, EmailService.layer, RedisClient.layer)),
+    Layer.provide(
+      Layer.mergeAll(DrizzleClient.layer, Database.layer, EmailService.layer, RedisClient.layer),
+    ),
   )
 }
 

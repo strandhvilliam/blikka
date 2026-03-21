@@ -31,15 +31,15 @@ export const usersRouter = createTRPCRouter({
       ),
     ),
 
-  getStaffMemberById: domainProcedure
+  getStaffAccessById: domainProcedure
     .input(GetStaffMemberByIdInputSchema)
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("UsersRouter.getStaffMemberById")(function* ({ input }) {
+        Effect.fn("UsersRouter.getStaffAccessById")(function* ({ input }) {
           return yield* UsersApiService.use((s) =>
-            s.getStaffMemberById({
-              staffId: input.staffId,
+            s.getStaffAccessById({
+              accessId: input.accessId,
               domain: input.domain,
             }),
           );
@@ -63,18 +63,18 @@ export const usersRouter = createTRPCRouter({
       ),
     ),
 
-  deleteUserMarathonRelation: domainProcedure
+  deleteStaffAccess: domainProcedure
     .input(DeleteUserMarathonRelationInputSchema)
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("UsersRouter.deleteUserMarathonRelation")(function* ({
+        Effect.fn("UsersRouter.deleteStaffAccess")(function* ({
           input,
         }) {
           return yield* UsersApiService.use((s) =>
-            s.deleteUserMarathonRelation({
+            s.deleteStaffAccess({
               domain: input.domain,
-              userId: input.userId,
+              accessId: input.accessId,
             }),
           );
         }),
@@ -101,15 +101,15 @@ export const usersRouter = createTRPCRouter({
       ),
     ),
 
-  updateStaffMember: domainProcedure
+  updateStaffAccess: domainProcedure
     .input(UpdateStaffMemberInputSchema)
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("UsersRouter.updateStaffMember")(function* ({ input }) {
+        Effect.fn("UsersRouter.updateStaffAccess")(function* ({ input }) {
           return yield* UsersApiService.use((s) =>
-            s.updateStaffMember({
-              staffId: input.staffId,
+            s.updateStaffAccess({
+              accessId: input.accessId,
               domain: input.domain,
               data: input.data,
             }),

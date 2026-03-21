@@ -254,6 +254,7 @@ export const userMarathons = pgTable(
   (table) => [
     index("user_marathons_marathon_id_idx").on(table.marathonId),
     index("user_marathons_user_id_idx").on(table.userId),
+    unique("user_marathons_marathon_user_key").on(table.marathonId, table.userId),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
@@ -264,6 +265,41 @@ export const userMarathons = pgTable(
       foreignColumns: [user.id],
       name: "user_marathons_user_id_fkey",
     }).onDelete("cascade"),
+  ],
+);
+
+export const pendingUserMarathons = pgTable(
+  "pending_user_marathons",
+  {
+    id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
+    marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
+    email: text().notNull(),
+    emailNormalized: text("email_normalized").notNull(),
+    name: text().notNull(),
+    role: text().default("staff").notNull(),
+    invitedByUserId: text("invited_by_user_id"),
+  },
+  (table) => [
+    index("pending_user_marathons_marathon_id_idx").on(table.marathonId),
+    index("pending_user_marathons_email_normalized_idx").on(table.emailNormalized),
+    unique("pending_user_marathons_marathon_email_key").on(
+      table.marathonId,
+      table.emailNormalized,
+    ),
+    foreignKey({
+      columns: [table.marathonId],
+      foreignColumns: [marathons.id],
+      name: "pending_user_marathons_marathon_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.invitedByUserId],
+      foreignColumns: [user.id],
+      name: "pending_user_marathons_invited_by_user_id_fkey",
+    }).onDelete("set null"),
   ],
 );
 
