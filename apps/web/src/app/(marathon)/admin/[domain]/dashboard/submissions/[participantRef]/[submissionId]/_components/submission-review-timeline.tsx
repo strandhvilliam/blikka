@@ -10,7 +10,6 @@ import {
   UserCheck,
   History,
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { format } from "date-fns"
 import type { Participant, Submission } from "@blikka/db"
 import { cn } from "@/lib/utils"
@@ -142,14 +141,14 @@ export function SubmissionReviewTimeline({
   const reviewSteps: ReviewStep[] = [...baseSteps, verificationStep]
 
   return (
-    <Card>
-      <CardHeader className="pb-2 pt-4 px-4">
-        <CardTitle className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="rounded-xl border border-border bg-white">
+      <div className="pb-2 pt-4 px-4">
+        <h3 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
           <History className="h-3.5 w-3.5" />
           Submission timeline
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pb-4 px-4 pt-2">
+        </h3>
+      </div>
+      <div className="pb-4 px-4 pt-2">
         <ol className="relative">
           {reviewSteps.map((step, index) => {
             const next = reviewSteps[index + 1]
@@ -181,7 +180,7 @@ export function SubmissionReviewTimeline({
                       step.icon === XCircle &&
                       "border-destructive/35 text-destructive",
                     step.status === "pending" &&
-                      "border-blue-500/80 bg-blue-500/10 text-blue-600 animate-pulse dark:text-blue-400",
+                      "border-blue-500/80 bg-blue-500/10 text-blue-600 animate-pulse",
                     step.status === "upcoming" &&
                       "border-muted-foreground/30 text-muted-foreground",
                   )}
@@ -206,7 +205,7 @@ export function SubmissionReviewTimeline({
                     className={cn(
                       "text-sm font-medium leading-tight",
                       step.status === "completed" && step.icon === XCircle && "text-destructive",
-                      step.status === "pending" && "text-blue-600 dark:text-blue-400",
+                      step.status === "pending" && "text-blue-600",
                       step.status === "upcoming" && "text-muted-foreground",
                     )}
                   >
@@ -215,7 +214,7 @@ export function SubmissionReviewTimeline({
                   <p
                     className={cn(
                       "mt-0.5 text-xs leading-tight text-muted-foreground",
-                      step.isPending && "text-blue-700/85 dark:text-blue-300/85",
+                      step.isPending && "text-blue-700/85",
                     )}
                   >
                     {step.description}
@@ -230,7 +229,7 @@ export function SubmissionReviewTimeline({
             )
           })}
         </ol>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

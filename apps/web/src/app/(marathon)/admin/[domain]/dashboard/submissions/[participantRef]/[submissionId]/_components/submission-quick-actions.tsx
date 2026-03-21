@@ -203,7 +203,7 @@ export function SubmissionQuickActions({
 
         {/* Detail tabs */}
         <div
-          className="flex flex-wrap gap-0.5 rounded-lg bg-muted/60 p-1 dark:bg-muted/40"
+          className="flex flex-wrap gap-0.5 rounded-lg bg-muted/60 p-1"
           role="tablist"
           aria-label="Submission technical details"
         >
@@ -216,7 +216,7 @@ export function SubmissionQuickActions({
             className={cn(
               "h-8 gap-2 rounded-md shadow-none",
               activeDetailTab === "exif"
-                ? "bg-background font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-background dark:bg-card dark:ring-border"
+                ? "bg-white font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-white"
                 : "text-muted-foreground hover:bg-transparent hover:text-foreground",
             )}
             onClick={() => onDetailTabChange("exif")}
@@ -238,7 +238,7 @@ export function SubmissionQuickActions({
             className={cn(
               "h-8 gap-2 rounded-md shadow-none",
               activeDetailTab === "validation"
-                ? "bg-background font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-background dark:bg-card dark:ring-border"
+                ? "bg-white font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-white"
                 : "text-muted-foreground hover:bg-transparent hover:text-foreground",
             )}
             onClick={() => onDetailTabChange("validation")}

@@ -166,7 +166,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<strin
         if (groupData.length === 0) return null
 
         return (
-          <div key={groupKey} className="border rounded-lg p-3">
+          <div key={groupKey} className="rounded-xl border border-border bg-white p-3">
             <div className="flex items-center gap-2 mb-2.5">
               {group.icon}
               <h4 className="text-sm font-semibold font-gothic">{group.title}</h4>
@@ -186,7 +186,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<strin
       })}
 
       {otherKeys.length > 0 && (
-        <div className="border rounded-lg p-3">
+        <div className="rounded-xl border border-border bg-white p-3">
           <div className="flex items-center gap-2 mb-2.5">
             <ListFilter className="h-4 w-4" />
             <h4 className="text-sm font-semibold font-gothic">Other Metadata</h4>

@@ -20,7 +20,7 @@ import { SubmissionNavigationControls } from "./submission-navigation-controls"
 import { useState } from "react"
 import { SubmissionQuickActions, type SubmissionDetailTab } from "./submission-quick-actions"
 import { SubmissionReviewTimeline } from "./submission-review-timeline"
-import { Card } from "@/components/ui/card"
+
 import { useDomain } from "@/lib/domain-provider"
 import {
   getSubmissionDownloadFileName,
@@ -157,7 +157,7 @@ export function ParticipantSubmissionClientPage({
             downloadFileName={submissionDownloadFileName}
           />
 
-          <Card className="p-4" role="tabpanel">
+          <div className="rounded-xl border border-border bg-white p-4" role="tabpanel">
             {detailTab === "validation" ? (
               <>
                 <h3 className="font-gothic mb-3 text-base font-normal tracking-tight">
@@ -171,16 +171,16 @@ export function ParticipantSubmissionClientPage({
                 <SubmissionExifDataDisplay exifData={submission.exif || {}} />
               </>
             )}
-          </Card>
+          </div>
         </div>
 
         <div className="space-y-6">
           {marathon.mode === "by-camera" ? (
             <Suspense
               fallback={
-                <Card className="p-4 animate-pulse">
-                  <div className="h-32 bg-muted rounded" />
-                </Card>
+                <div className="rounded-xl border border-border bg-white p-4 animate-pulse">
+                  <div className="h-32 bg-muted/30 rounded-lg" />
+                </div>
               }
             >
               <VotingDataPanel

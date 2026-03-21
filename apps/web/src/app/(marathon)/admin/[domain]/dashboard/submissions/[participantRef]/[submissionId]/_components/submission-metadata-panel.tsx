@@ -1,14 +1,13 @@
-"use client";
+"use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   CompetitionClass,
   DeviceGroup,
   Participant,
   Submission,
   ValidationResult,
-} from "@blikka/db";
-import { format } from "date-fns";
+} from "@blikka/db"
+import { format } from "date-fns"
 import {
   AlertTriangle,
   Camera,
@@ -23,38 +22,85 @@ import {
   CheckCircle,
   Clock3,
   Link2,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { formatDomainPathname } from "@/lib/utils";
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { formatDomainPathname } from "@/lib/utils"
 
 interface VoteStats {
-  voteCount: number;
-  position: number | null;
-  totalSubmissions: number;
-  roundNumber?: number | null;
-  roundKind?: string | null;
+  voteCount: number
+  position: number | null
+  totalSubmissions: number
+  roundNumber?: number | null
+  roundKind?: string | null
   participantVoteInfo: {
-    hasVoted: boolean;
-    votedAt: string | null;
-    votedSubmissionId: number | null;
-    votedTopicName: string | null;
-  } | null;
+    hasVoted: boolean
+    votedAt: string | null
+    votedSubmissionId: number | null
+    votedTopicName: string | null
+  } | null
 }
 
 interface SubmissionMetadataPanelProps {
-  submission: Submission;
+  submission: Submission
   participant: Participant & {
-    competitionClass: CompetitionClass | null;
-    deviceGroup: DeviceGroup | null;
-  };
-  hasIssues: boolean;
-  validationResults: ValidationResult[];
-  marathonMode?: string;
-  voteStats?: VoteStats;
-  domain: string;
+    competitionClass: CompetitionClass | null
+    deviceGroup: DeviceGroup | null
+  }
+  hasIssues: boolean
+  validationResults: ValidationResult[]
+  marathonMode?: string
+  voteStats?: VoteStats
+  domain: string
+}
+
+function PanelCard({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn("rounded-xl border border-border bg-white", className)}>
+      {children}
+    </div>
+  )
+}
+
+function PanelHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="pb-2 pt-4 px-4">
+      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+        {children}
+      </h3>
+    </div>
+  )
+}
+
+function PanelHeaderWithIcon({
+  icon,
+  children,
+  className,
+}: {
+  icon: React.ReactNode
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className="pb-2 pt-4 px-4">
+      <h3
+        className={cn(
+          "text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1.5",
+          className ?? "text-muted-foreground/70",
+        )}
+      >
+        {icon}
+        {children}
+      </h3>
+    </div>
+  )
 }
 
 export function SubmissionMetadataPanel({
@@ -66,36 +112,32 @@ export function SubmissionMetadataPanel({
   voteStats,
   domain,
 }: SubmissionMetadataPanelProps) {
-  const isByCameraMode = marathonMode === "by-camera";
+  const isByCameraMode = marathonMode === "by-camera"
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Submission Info
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4 px-4 pt-2">
+      <PanelCard>
+        <PanelHeader>Submission Info</PanelHeader>
+        <div className="pb-4 px-4 pt-2">
           <div className="space-y-2.5">
             <div className="flex items-start gap-2.5">
-              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+              <div className="p-1.5 rounded-lg bg-brand-primary/10 text-brand-primary">
                 <Upload className="h-3.5 w-3.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground leading-tight">
+                <p className="text-[11px] font-medium text-muted-foreground leading-tight">
                   Upload Time
                 </p>
                 <p className="text-sm font-medium leading-tight mt-0.5">
                   {format(new Date(submission.createdAt), "MMM d, yyyy")}
                 </p>
-                <p className="text-xs text-muted-foreground leading-tight">
+                <p className="text-[11px] text-muted-foreground leading-tight">
                   {format(new Date(submission.createdAt), "HH:mm:ss")}
                 </p>
               </div>
             </div>
 
-            <Separator className="my-2" />
+            <div className="border-t border-border my-2" />
 
             <div className="flex items-start gap-2.5">
               <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600">
@@ -106,14 +148,14 @@ export function SubmissionMetadataPanel({
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground leading-tight">
+                <p className="text-[11px] font-medium text-muted-foreground leading-tight">
                   Device Type
                 </p>
                 <p className="text-sm font-medium leading-tight mt-0.5">
                   {participant.deviceGroup?.name || "Not specified"}
                 </p>
                 {participant.deviceGroup?.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 leading-tight mt-0.5">
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight mt-0.5">
                     {participant.deviceGroup.description}
                   </p>
                 )}
@@ -122,7 +164,7 @@ export function SubmissionMetadataPanel({
 
             {!isByCameraMode && (
               <>
-                <Separator className="my-2" />
+                <div className="border-t border-border my-2" />
 
                 <div className="flex items-start gap-2.5">
                   <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center min-w-[28px]">
@@ -136,14 +178,14 @@ export function SubmissionMetadataPanel({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground leading-tight">
+                    <p className="text-[11px] font-medium text-muted-foreground leading-tight">
                       Competition Class
                     </p>
                     <p className="text-sm font-medium leading-tight mt-0.5">
                       {participant.competitionClass?.name || "Not assigned"}
                     </p>
                     {participant.competitionClass?.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-tight mt-0.5">
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight mt-0.5">
                         {participant.competitionClass.description}
                       </p>
                     )}
@@ -152,27 +194,26 @@ export function SubmissionMetadataPanel({
               </>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </PanelCard>
 
-      {/* Voting Results - Only for by-camera mode */}
       {isByCameraMode && voteStats && (
-        <Card className="border-amber-200 bg-amber-50/30 dark:bg-amber-950/10">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
-              <Trophy className="h-3.5 w-3.5" />
-              Voting Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4 px-4 pt-2">
+        <PanelCard className="border-amber-200 bg-amber-50/30">
+          <PanelHeaderWithIcon
+            icon={<Trophy className="h-3.5 w-3.5" />}
+            className="text-amber-700"
+          >
+            Voting Results
+          </PanelHeaderWithIcon>
+          <div className="pb-4 px-4 pt-2">
             <div className="flex items-center justify-between mb-3">
               <div>
                 {voteStats.position != null ? (
                   <>
-                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                    <p className="text-2xl font-bold text-amber-700">
                       #{voteStats.position}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       of {voteStats.totalSubmissions} submissions
                     </p>
                   </>
@@ -183,7 +224,7 @@ export function SubmissionMetadataPanel({
                   </p>
                 )}
                 {voteStats.roundNumber ? (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[11px] text-muted-foreground mt-1">
                     {voteStats.roundKind === "tiebreak"
                       ? `Tie-break ${voteStats.roundNumber}`
                       : `Round ${voteStats.roundNumber}`}
@@ -191,34 +232,30 @@ export function SubmissionMetadataPanel({
                 ) : null}
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                <p className="text-2xl font-bold text-amber-700">
                   {voteStats.voteCount}
                 </p>
-                <p className="text-xs text-muted-foreground">total votes</p>
+                <p className="text-[11px] text-muted-foreground">total votes</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </PanelCard>
       )}
 
-      {/* Participant's Vote Info - Only for by-camera mode */}
       {isByCameraMode && (
-        <Card>
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-              <Vote className="h-3.5 w-3.5" />
-              Participant&apos;s Vote
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4 px-4 pt-2">
+        <PanelCard>
+          <PanelHeaderWithIcon icon={<Vote className="h-3.5 w-3.5" />}>
+            Participant&apos;s Vote
+          </PanelHeaderWithIcon>
+          <div className="pb-4 px-4 pt-2">
             {voteStats?.participantVoteInfo?.hasVoted ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <CheckCircle className="h-4 w-4 text-emerald-600" />
                   <span className="text-sm font-medium">Has voted</span>
                 </div>
                 {voteStats.participantVoteInfo.votedAt && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground">
                     Voted on{" "}
                     {format(
                       new Date(voteStats.participantVoteInfo.votedAt),
@@ -227,8 +264,8 @@ export function SubmissionMetadataPanel({
                   </p>
                 )}
                 {voteStats.participantVoteInfo.votedTopicName && (
-                  <div className="p-2.5 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">
+                  <div className="p-2.5 rounded-lg bg-muted/30">
+                    <p className="text-[11px] text-muted-foreground mb-1">
                       Voted for:
                     </p>
                     <p className="text-sm font-medium">
@@ -244,7 +281,7 @@ export function SubmissionMetadataPanel({
                         `/admin/dashboard/submissions/${participant.reference}/${voteStats.participantVoteInfo.votedSubmissionId}`,
                         domain,
                       )}
-                      className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                      className="inline-flex items-center gap-1.5 text-[11px] text-brand-primary hover:underline"
                     >
                       <Link2 className="h-3 w-3" />
                       View their choice
@@ -257,19 +294,14 @@ export function SubmissionMetadataPanel({
                 <span className="text-sm">Not voted yet</span>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </PanelCard>
       )}
 
-      {/* Validation Summary */}
       {validationResults.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Validation Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4 px-4 pt-2">
+        <PanelCard>
+          <PanelHeader>Validation Summary</PanelHeader>
+          <div className="pb-4 px-4 pt-2">
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="p-2 rounded-lg bg-green-500/10 border border-green-200">
                 <div className="text-xl font-bold text-green-600">
@@ -278,7 +310,7 @@ export function SubmissionMetadataPanel({
                       .length
                   }
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
+                <div className="text-[11px] text-muted-foreground mt-0.5">
                   Passed
                 </div>
               </div>
@@ -290,7 +322,7 @@ export function SubmissionMetadataPanel({
                     ).length
                   }
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
+                <div className="text-[11px] text-muted-foreground mt-0.5">
                   Warnings
                 </div>
               </div>
@@ -302,7 +334,7 @@ export function SubmissionMetadataPanel({
                     ).length
                   }
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
+                <div className="text-[11px] text-muted-foreground mt-0.5">
                   Errors
                 </div>
               </div>
@@ -313,81 +345,76 @@ export function SubmissionMetadataPanel({
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-3.5 w-3.5 text-orange-600 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-orange-900 dark:text-orange-100 leading-tight">
+                    <p className="text-[11px] font-medium text-orange-900 leading-tight">
                       Action Required
                     </p>
-                    <p className="text-xs text-orange-700 dark:text-orange-200 mt-0.5 leading-tight">
+                    <p className="text-[11px] text-orange-700 mt-0.5 leading-tight">
                       This submission has validation issues that need attention.
                     </p>
                   </div>
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </PanelCard>
       )}
 
-      {/* File Information */}
-      <Card>
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            File Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pb-4 px-4 pt-2 space-y-2">
+      <PanelCard>
+        <PanelHeader>File Details</PanelHeader>
+        <div className="pb-4 px-4 pt-2 space-y-2">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground text-xs">File Key</span>
+            <span className="text-muted-foreground text-[11px]">File Key</span>
             <span
-              className="font-mono text-xs truncate max-w-[200px]"
+              className="font-mono text-[11px] truncate max-w-[200px]"
               title={submission.key || "N/A"}
             >
               {submission.key ? `...${submission.key.slice(-20)}` : "N/A"}
             </span>
           </div>
-          <Separator className="my-1.5" />
+          <div className="border-t border-border my-1.5" />
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground text-xs">Thumbnail</span>
-            <span className="text-xs">
+            <span className="text-muted-foreground text-[11px]">Thumbnail</span>
+            <span className="text-[11px]">
               {submission.thumbnailKey ? (
                 <Badge
                   variant="outline"
-                  className="bg-green-500/10 text-green-600 border-green-200 h-5"
+                  className="bg-green-500/10 text-green-600 border-green-200 h-5 text-[10px]"
                 >
                   Available
                 </Badge>
               ) : (
                 <Badge
                   variant="outline"
-                  className="bg-red-500/10 text-red-600 border-red-200 h-5"
+                  className="bg-red-500/10 text-red-600 border-red-200 h-5 text-[10px]"
                 >
                   Missing
                 </Badge>
               )}
             </span>
           </div>
-          <Separator className="my-1.5" />
+          <div className="border-t border-border my-1.5" />
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground text-xs">EXIF Data</span>
-            <span className="text-xs">
+            <span className="text-muted-foreground text-[11px]">EXIF Data</span>
+            <span className="text-[11px]">
               {submission.exif && Object.keys(submission.exif).length > 0 ? (
                 <Badge
                   variant="outline"
-                  className="bg-green-500/10 text-green-600 border-green-200 h-5"
+                  className="bg-green-500/10 text-green-600 border-green-200 h-5 text-[10px]"
                 >
                   {Object.keys(submission.exif).length} fields
                 </Badge>
               ) : (
                 <Badge
                   variant="outline"
-                  className="bg-red-500/10 text-red-600 border-red-200 h-5"
+                  className="bg-red-500/10 text-red-600 border-red-200 h-5 text-[10px]"
                 >
                   Not available
                 </Badge>
               )}
             </span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </PanelCard>
     </div>
-  );
+  )
 }

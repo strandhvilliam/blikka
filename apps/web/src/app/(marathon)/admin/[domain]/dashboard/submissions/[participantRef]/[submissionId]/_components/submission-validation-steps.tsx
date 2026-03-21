@@ -54,7 +54,7 @@ export function SubmissionValidationSteps({
   }
 
   return (
-    <div className="rounded-lg border overflow-hidden">
+    <div className="rounded-xl border border-border bg-white overflow-hidden">
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
