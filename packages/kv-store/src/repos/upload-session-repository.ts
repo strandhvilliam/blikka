@@ -13,6 +13,10 @@ import {
 import { parseKey } from "../utils"
 import { luaIncrement } from "../lua-scripts/lua-increment"
 
+function isMissingHashResult(result: Record<string, unknown> | null | undefined) {
+  return !result || Object.keys(result).length === 0
+}
+
 export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRepository>()(
   "@blikka/packages/kv-store/upload-session-repository",
   {
@@ -139,11 +143,9 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
           const key = keyFactory.participant(domain, ref)
           const result = yield* redis.use((client) => client.hgetall(key))
 
-
-          if (result === null) {
+          if (isMissingHashResult(result)) {
             return Option.none<ParticipantState>()
           }
-
 
           const parsed = Schema.decodeUnknownOption(ParticipantStateSchema)(result)
           return parsed
@@ -158,7 +160,7 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
         const formattedOrderIndex = (Number(orderIndex) + 1).toString().padStart(2, "0")
         const key = keyFactory.submission(domain, ref, formattedOrderIndex)
         const result = yield* redis.use((client) => client.hgetall(key))
-        if (result === null) {
+        if (isMissingHashResult(result)) {
           return Option.none<SubmissionState>()
         }
         const parsed = Schema.decodeUnknownOption(SubmissionStateSchema)(result)
@@ -179,9 +181,20 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
             return multi.exec<([string, Record<string, unknown>] | null)[]>()
           })
 
-          const parsed = Schema.decodeUnknownSync(Schema.Array(SubmissionStateSchema))(result)
+          return result.flatMap((entry) => {
+            const hash = Array.isArray(entry) ? entry[1] : entry
 
-          return parsed
+            if (isMissingHashResult(hash)) {
+              return []
+            }
+
+            const parsed = Schema.decodeUnknownOption(SubmissionStateSchema)(hash)
+
+            return Option.match(parsed, {
+              onSome: (state) => [state],
+              onNone: () => [],
+            })
+          })
         }
       )
 
