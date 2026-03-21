@@ -53,7 +53,7 @@ import { DangerZoneTab } from "./danger-zone-tab"
 import { isDateDifferent, arrayEquals, createStartTimeSetDate, createEndTimeSetDate, createStartDateCalendarOnSelect, createEndDateCalendarOnSelect, getAvailableLanguages } from "../_lib/utils"
 
 const customTabTriggerClassName =
-  "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#FF5D4B] dark:data-[state=active]:text-[#FF7A6B] text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-[#FF5D4B] dark:data-[state=active]:after:bg-[#FF7A6B]"
+  "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-primary text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-brand-primary"
 
 export function SettingsForm() {
   const trpc = useTRPC()
@@ -392,7 +392,7 @@ export function SettingsForm() {
       }}
     >
       <div className="grid grid-cols-5 gap-12">
-        <div className="col-span-3 border-border rounded-lg shadow-sm bg-background py-4 px-6">
+        <div className="col-span-3">
           <Tabs
             value={activeTab}
             onValueChange={(value) =>
@@ -405,9 +405,8 @@ export function SettingsForm() {
                 | "danger",
               )
             }
-            className="space-y-6"
           >
-            <div className="border-b border-border">
+            <div className="border-b border-border mb-6">
               <TabsList className="bg-transparent rounded-none p-0 h-auto flex gap-8 -mb-px">
                 <TabsTrigger
                   value="general"

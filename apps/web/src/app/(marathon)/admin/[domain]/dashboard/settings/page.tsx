@@ -22,7 +22,7 @@ const _SettingsPage = Effect.fn("@blikka/web/SettingsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<SettingsSkeleton />}>
-          <div className="container mx-auto p-6 space-y-4 max-w-[1200px]">
+          <div className="mx-auto max-w-5xl px-6 py-8 lg:py-10">
             <SettingsHeader />
             <SettingsForm />
           </div>
