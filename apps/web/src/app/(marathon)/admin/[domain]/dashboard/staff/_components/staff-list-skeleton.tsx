@@ -5,8 +5,8 @@ import { Search } from "lucide-react"
 export function StaffListSkeleton() {
   return (
     <div className="flex flex-col h-full">
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="relative mb-4 px-2">
+        <Search className="absolute left-6.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search staff..."
           className="pl-9 h-9 bg-muted/50 border-border/40"

@@ -269,11 +269,13 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
 
   if (verifications.length === 0) {
     return (
-      <div className="bg-background rounded-lg border border-border/40 shadow-sm p-12">
+      <div className="rounded-xl border border-dashed border-border bg-white p-12">
         <div className="flex flex-col items-center justify-center text-center">
-          <Shield className="h-12 w-12 mb-3 text-muted-foreground/50" />
-          <p className="text-sm font-medium text-muted-foreground">No verifications yet</p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50 mb-3">
+            <Shield className="h-5 w-5 text-muted-foreground/40" />
+          </div>
+          <p className="text-[13px] font-medium text-foreground">No verifications yet</p>
+          <p className="text-[12px] text-muted-foreground mt-1">
             This staff member hasn&apos;t verified any participants
           </p>
         </div>
@@ -293,7 +295,7 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
         />
       </div>
 
-      <div className="border border-border bg-background rounded-md overflow-hidden">
+      <div className="rounded-xl border border-border bg-white overflow-hidden">
         <Table className="min-w-[970px]">
           <TableHeader className="bg-muted/50 sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
