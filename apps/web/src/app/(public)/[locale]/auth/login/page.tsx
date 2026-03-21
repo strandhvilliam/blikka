@@ -24,7 +24,7 @@ const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
         <DotPattern />
         <div className="pointer-events-none absolute inset-0">
           {/* <div className="absolute inset-0 bg-dot-pattern-light opacity-30" /> */}
-          <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/8 via-transparent to-brand-black/4" />
+          {/* <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/8 via-transparent to-brand-black/4" /> */}
           {/* <div className="absolute -top-24 left-[-10%] h-80 w-80 rounded-full bg-brand-primary/18 blur-3xl" />
           <div className="absolute -right-20 bottom-[-20%] h-96 w-96 rounded-full bg-brand-black/8 blur-3xl" /> */}
         </div>

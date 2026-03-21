@@ -8,6 +8,7 @@ import { SelectDomainList } from "./_components/select-domain-list"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
 import { DotPattern } from "@/components/dot-pattern"
 import { LanguageSwitcher } from "./_components/language-switcher"
+import { SelectDomainLogoutButton } from "./_components/select-domain-logout-button"
 
 const _AdminPage = Effect.fn("@blikka/web/AdminPage")(function* () {
   prefetch(trpc.marathons.getUserMarathons.queryOptions())
@@ -29,7 +30,10 @@ const _AdminPage = Effect.fn("@blikka/web/AdminPage")(function* () {
                 priority
               />
             </div>
-            <LanguageSwitcher />
+            <div className="flex items-center gap-2 md:gap-3">
+              <LanguageSwitcher />
+              <SelectDomainLogoutButton />
+            </div>
           </header>
 
           <div className="flex flex-1 flex-col pb-20">
