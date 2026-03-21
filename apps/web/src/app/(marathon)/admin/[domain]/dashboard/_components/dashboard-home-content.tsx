@@ -5,18 +5,18 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import {
   ArrowRight,
   BookOpen,
-  File,
-  Heart,
+  Download,
+  Gavel,
+  Handshake,
   Images,
-  ListCheck,
+  Layers,
   Settings,
-  Shield,
   Tag,
-  Trophy,
+  Users,
   Vote,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { cn, formatDomainPathname } from "@/lib/utils"
+import { formatDomainPathname } from "@/lib/utils"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 
@@ -25,8 +25,6 @@ type NavCard = {
   url: string
   icon: LucideIcon
   description: string
-  accent: string
-  accentBorder: string
 }
 
 const MARATHON_CARDS: NavCard[] = [
@@ -36,35 +34,27 @@ const MARATHON_CARDS: NavCard[] = [
     icon: Images,
     description:
       "Review incoming photo uploads, verify participants, and manage the submission queue for your event.",
-    accent: "bg-sky-50",
-    accentBorder: "border-sky-200/70",
   },
   {
     name: "Export",
     url: "/dashboard/export",
-    icon: File,
+    icon: Download,
     description:
       "Download contact sheets, participant lists, and photo archives ready for print or sharing.",
-    accent: "bg-violet-50",
-    accentBorder: "border-violet-200/70",
   },
   {
     name: "Staff",
     url: "/dashboard/staff",
-    icon: Shield,
+    icon: Users,
     description:
       "Invite team members who can help verify submissions and manage the event alongside you.",
-    accent: "bg-emerald-50",
-    accentBorder: "border-emerald-200/70",
   },
   {
     name: "Jury",
     url: "/dashboard/jury",
-    icon: Trophy,
+    icon: Gavel,
     description:
       "Set up jury members with scoring links. They can review and rank entries from any device.",
-    accent: "bg-amber-50",
-    accentBorder: "border-amber-200/70",
   },
   {
     name: "Voting",
@@ -72,8 +62,6 @@ const MARATHON_CARDS: NavCard[] = [
     icon: Vote,
     description:
       "Create voting sessions, track progress, and view live results as jury scores come in.",
-    accent: "bg-rose-50",
-    accentBorder: "border-rose-200/70",
   },
 ]
 
@@ -84,17 +72,13 @@ const CONFIGURATION_CARDS: NavCard[] = [
     icon: Tag,
     description:
       "Define the photo themes participants will respond to. Control activation, scheduling, and order.",
-    accent: "bg-teal-50",
-    accentBorder: "border-teal-200/70",
   },
   {
     name: "Classes",
     url: "/dashboard/classes",
-    icon: ListCheck,
+    icon: Layers,
     description:
       "Organize participants into competition classes and device groups for fair judging.",
-    accent: "bg-indigo-50",
-    accentBorder: "border-indigo-200/70",
   },
   {
     name: "Rules",
@@ -102,17 +86,13 @@ const CONFIGURATION_CARDS: NavCard[] = [
     icon: BookOpen,
     description:
       "Set validation rules for uploads — file formats, image dimensions, deadlines, and more.",
-    accent: "bg-orange-50",
-    accentBorder: "border-orange-200/70",
   },
   {
     name: "Sponsors",
     url: "/dashboard/sponsors",
-    icon: Heart,
+    icon: Handshake,
     description:
       "Add sponsor logos that appear in the participant flow. A simple way to give partners visibility.",
-    accent: "bg-pink-50",
-    accentBorder: "border-pink-200/70",
   },
   {
     name: "Settings",
@@ -120,8 +100,6 @@ const CONFIGURATION_CARDS: NavCard[] = [
     icon: Settings,
     description:
       "Configure event dates, branding, participant flow mode, and other core marathon settings.",
-    accent: "bg-slate-50",
-    accentBorder: "border-slate-200/70",
   },
 ]
 
@@ -135,14 +113,8 @@ function NavigationCard({ card, domain }: { card: NavCard; domain: string }) {
       className="group relative flex flex-col rounded-2xl border border-border/60 bg-white p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.06)]"
     >
       <div className="flex items-start justify-between gap-4">
-        <div
-          className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors duration-300",
-            card.accent,
-            card.accentBorder,
-          )}
-        >
-          <Icon className="h-5 w-5 text-foreground/70" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/40 transition-colors duration-300">
+          <Icon className="h-5 w-5 text-muted-foreground" />
         </div>
         <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/40 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-foreground/60" />
       </div>
