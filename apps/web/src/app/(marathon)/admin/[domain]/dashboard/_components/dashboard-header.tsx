@@ -47,12 +47,14 @@ export function DashboardHeader() {
   return (
     <div className="z-50 w-full pr-4 bg-sidebar">
       <div className="flex h-14 items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-64">
-            <Suspense fallback={<Skeleton className="h-10 w-64" />}>
-              <DomainSwitchDropdown />
-            </Suspense>
-          </div>
+        <div className="flex min-w-0 flex-1 items-center gap-3 sm:max-w-xs">
+          <Suspense
+            fallback={
+              <Skeleton className="h-9 w-full max-w-68 shrink-0 rounded-full" />
+            }
+          >
+            <DomainSwitchDropdown />
+          </Suspense>
         </div>
         <div className="flex items-center gap-2 ml-auto mr-4">
           <QuickNavLink href={staffSiteUrl} icon={Shield} label="Staff" />

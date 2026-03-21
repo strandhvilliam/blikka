@@ -1,8 +1,9 @@
 "use client"
 
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { Check, Copy, QrCode, XIcon } from "lucide-react"
-import { useState } from "react"
+import { Check, Copy, Download, QrCode, XIcon } from "lucide-react"
+import { useRef, useState } from "react"
+import { downloadQrPng } from "../_lib/download-qr-png"
 import { QrCodeGenerator } from "@/components/qr-code-generator"
 import { Button } from "@/components/ui/button"
 import {
@@ -86,6 +87,29 @@ export function LiveUploadQrDialogBody({
   onCopy?: () => void | Promise<void>
   copied?: boolean
 }) {
+  const qrCodeRef = useRef<HTMLDivElement>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
+
+  const handleDownload = async () => {
+    setDownloadError(null)
+    setIsDownloading(true)
+
+    try {
+      const svg = qrCodeRef.current?.querySelector("svg")
+
+      await downloadQrPng({
+        filename: "live-upload-qr.png",
+        svg,
+      })
+    } catch (error) {
+      console.error("Failed to download live upload QR code", error)
+      setDownloadError("Could not download the QR code. Please try again.")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
   return (
     <div className="relative flex flex-col gap-8 p-6 sm:gap-10 sm:p-10">
       <header className="pr-10">
@@ -103,34 +127,40 @@ export function LiveUploadQrDialogBody({
       </header>
 
       <div className="relative rounded-2xl border border-brand-black/10 bg-white p-5 shadow-[0_14px_38px_rgba(0,0,0,0.08)] sm:p-8 dark:border-white/10 dark:bg-card/80 dark:shadow-[0_14px_38px_rgba(0,0,0,0.35)]">
-        <div className="mx-auto flex w-full max-w-[min(80vw,34rem)] justify-center [&_svg]:h-auto [&_svg]:max-w-full">
+        <div
+          ref={qrCodeRef}
+          className="mx-auto flex w-full max-w-[min(80vw,34rem)] justify-center [&_svg]:h-auto [&_svg]:max-w-full"
+        >
           <QrCodeGenerator value={uploadUrl} size={512} />
         </div>
       </div>
-
-      <div className="space-y-2">
-        <p className="text-brand-black/45 text-xs font-semibold uppercase tracking-widest dark:text-muted-foreground/80">
-          Live site URL
-        </p>
-        <div className="flex min-h-[3.25rem] flex-col overflow-hidden rounded-2xl border border-brand-black/12 bg-brand-white shadow-[0_6px_24px_rgba(0,0,0,0.05)] sm:flex-row sm:items-stretch dark:border-white/12 dark:bg-card">
-          <a
-            href={uploadUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="flex min-w-0 flex-1 items-center px-4 py-3 font-mono text-sm leading-snug break-all text-brand-black underline-offset-2 hover:underline dark:text-foreground"
-          >
-            {uploadUrl}
-          </a>
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex w-full flex-col justify-center gap-3 sm:flex-row">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="min-w-44 gap-2 rounded-full border-brand-black/15 bg-white text-brand-black shadow-none hover:bg-brand-black/[0.04] dark:border-white/15 dark:bg-card dark:text-foreground dark:hover:bg-white/8"
+          >
+            <Download className="size-4" />
+            <span>{isDownloading ? "Preparing PNG..." : "Download PNG"}</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
             onClick={onCopy}
-            className="h-auto shrink-0 gap-2 rounded-none border-t border-brand-black/10 px-4 py-3 text-brand-black hover:bg-brand-black/[0.06] sm:border-t-0 sm:border-l dark:border-white/10 dark:text-foreground dark:hover:bg-white/8"
+            className="min-w-44 gap-2 rounded-full border-brand-black/15 bg-white text-brand-black shadow-none hover:bg-brand-black/[0.04] dark:border-white/15 dark:bg-card dark:text-foreground dark:hover:bg-white/8"
           >
             {copied ? <Check className="size-4 text-brand-primary" /> : <Copy className="size-4" />}
-            <span className="text-sm font-medium">{copied ? "Copied" : "Copy link"}</span>
+            <span>{copied ? "Copied" : "Copy link"}</span>
           </Button>
         </div>
+        {downloadError ? (
+          <p className="text-center text-sm text-brand-black/60 dark:text-muted-foreground">
+            {downloadError}
+          </p>
+        ) : null}
       </div>
     </div>
   )
