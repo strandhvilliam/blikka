@@ -551,6 +551,7 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()(
         email: string;
       }) {
         const emailNormalized = normalizeEmail(email);
+        const currentUser = yield* getUserById({ id: userId });
         const pendingRelations = yield* use((db) =>
           db.query.pendingUserMarathons.findMany({
             where: (table, operators) =>
@@ -560,6 +561,21 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()(
 
         if (!pendingRelations.length) {
           return [];
+        }
+
+        const claimName = pendingRelations.find((relation) => relation.name.trim().length > 0)?.name;
+        if (
+          claimName &&
+          Option.isSome(currentUser) &&
+          currentUser.value.name.trim().length === 0
+        ) {
+          yield* updateUser({
+            id: userId,
+            data: {
+              name: claimName,
+              updatedAt: new Date().toISOString(),
+            },
+          });
         }
 
         const claimedRelations: typeof pendingRelations = [];
