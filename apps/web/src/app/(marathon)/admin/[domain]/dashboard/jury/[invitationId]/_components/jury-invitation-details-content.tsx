@@ -2,7 +2,16 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
-import { Mail, Trash2, Calendar, Tag, Users, ExternalLink, Copy } from "lucide-react"
+import {
+  Mail,
+  Trash2,
+  Calendar,
+  Tag,
+  Users,
+  ExternalLink,
+  Copy,
+  FileText,
+} from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -23,13 +32,6 @@ import { useDomain } from "@/lib/domain-provider"
 import { formatDomainLink, formatDomainPathname } from "@/lib/utils"
 import { format } from "date-fns"
 import type { JuryInvitation } from "@blikka/db"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 
 interface JuryInvitationDetailsContentProps {
   invitationId: number
@@ -38,11 +40,11 @@ interface JuryInvitationDetailsContentProps {
 function getStatusBadge(status: JuryInvitation["status"]) {
   switch (status) {
     case "completed":
-      return <Badge className="bg-green-600">Completed</Badge>
+      return <Badge className="bg-green-600 text-[10px]">Completed</Badge>
     case "in_progress":
-      return <Badge className="bg-blue-600">In Progress</Badge>
+      return <Badge className="bg-blue-600 text-[10px]">In Progress</Badge>
     default:
-      return <Badge className="bg-yellow-600">Pending</Badge>
+      return <Badge className="bg-yellow-600 text-[10px]">Pending</Badge>
   }
 }
 
@@ -56,7 +58,7 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
   const { data: invitation } = useSuspenseQuery(
     trpc.jury.getJuryInvitationById.queryOptions({
       id: invitationId,
-    })
+    }),
   )
 
   const { mutate: executeDelete, isPending: isDeleting } = useMutation(
@@ -74,7 +76,7 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
           queryKey: trpc.jury.getJuryInvitationsByDomain.queryKey({ domain }),
         })
       },
-    })
+    }),
   )
 
   const handleDelete = () => {
@@ -106,64 +108,81 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 space-y-6 max-w-4xl">
+      <div className="p-6 space-y-6 max-w-3xl">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold font-gothic mb-1">{invitation.displayName}</h1>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              {invitation.email}
-            </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10">
+              <FileText className="h-5 w-5 text-brand-primary" strokeWidth={1.8} />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                Invitation
+              </p>
+              <h1 className="text-xl font-bold tracking-tight font-gothic leading-tight">
+                {invitation.displayName}
+              </h1>
+              <p className="text-[12px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                <Mail className="h-3.5 w-3.5" />
+                {invitation.email}
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleCopyLink}>
-              <Copy className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={handleCopyLink}>
+              <Copy className="h-3.5 w-3.5 mr-1.5" />
               Copy Link
             </Button>
-            <Button variant="outline" size="sm" onClick={handleOpenLink}>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open Link
+            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={handleOpenLink}>
+              <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+              Open
             </Button>
             <Button
               variant="destructive"
               size="sm"
+              className="h-8 px-3 text-xs"
               disabled={isDeleting}
               onClick={() => setIsRemoveDialogOpen(true)}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
               Delete
             </Button>
           </div>
         </div>
 
-        {/* Main Info Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Invitation Details</CardTitle>
-            <CardDescription>Information about this jury invitation</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        {/* Invitation Details */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="h-1 w-1 rounded-full bg-brand-primary" />
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Details
+            </span>
+          </div>
+          <div className="rounded-xl border border-border bg-white p-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Status</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                  Status
+                </p>
                 <div className="flex items-center gap-2">
                   {getStatusBadge(invitation.status)}
-                  {isExpired && <Badge variant="destructive">Expired</Badge>}
+                  {isExpired && <Badge variant="destructive" className="text-[10px]">Expired</Badge>}
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Type</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                  Type
+                </p>
                 <div className="flex items-center gap-2">
                   {invitation.inviteType === "topic" ? (
                     <>
-                      <Tag className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Topic Invite</span>
+                      <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-[13px]">Topic Invite</span>
                     </>
                   ) : (
                     <>
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Class Invite</span>
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-[13px]">Class Invite</span>
                     </>
                   )}
                 </div>
@@ -172,25 +191,31 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Created</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                  Created
+                </p>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{createdDate}</span>
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[13px]">{createdDate}</span>
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Expires</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                  Expires
+                </p>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{expiryDate}</span>
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[13px]">{expiryDate}</span>
                 </div>
               </div>
             </div>
 
             {invitation.inviteType === "topic" && invitation.topic && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Topic</p>
-                <p className="text-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                  Topic
+                </p>
+                <p className="text-[13px]">
                   Topic {invitation.topic.orderIndex + 1}: {invitation.topic.name}
                 </p>
               </div>
@@ -200,16 +225,18 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
               <>
                 {invitation.competitionClass && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
                       Competition Class
                     </p>
-                    <p className="text-sm">{invitation.competitionClass.name}</p>
+                    <p className="text-[13px]">{invitation.competitionClass.name}</p>
                   </div>
                 )}
                 {invitation.deviceGroup && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Device Group</p>
-                    <p className="text-sm">{invitation.deviceGroup.name}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                      Device Group
+                    </p>
+                    <p className="text-[13px]">{invitation.deviceGroup.name}</p>
                   </div>
                 )}
               </>
@@ -217,24 +244,34 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
 
             {invitation.notes && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Notes</p>
-                <p className="text-sm whitespace-pre-wrap">{invitation.notes}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                  Notes
+                </p>
+                <p className="text-[13px] whitespace-pre-wrap">{invitation.notes}</p>
               </div>
             )}
+          </div>
+        </section>
 
-            <div className="pt-2 border-t">
-              <p className="text-xs text-muted-foreground mb-2">Jury Access Link</p>
-              <div className="flex items-center gap-2">
-                <code className="text-xs bg-muted px-2 py-1 rounded flex-1 truncate">
-                  {juryLink}
-                </code>
-                <Button size="sm" variant="ghost" onClick={handleCopyLink}>
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
+        {/* Jury Access Link */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="h-1 w-1 rounded-full bg-brand-primary" />
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Access Link
+            </span>
+          </div>
+          <div className="rounded-xl border border-border bg-white p-4">
+            <div className="flex items-center gap-2">
+              <code className="text-[11px] bg-muted/50 px-2.5 py-1.5 rounded-lg flex-1 truncate font-mono">
+                {juryLink}
+              </code>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleCopyLink}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
         {/* Delete Dialog */}
         <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
