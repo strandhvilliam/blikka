@@ -1,6 +1,6 @@
 "use client"
 
-import { RefreshCw, Upload } from "lucide-react"
+import { FileText, RefreshCw, Upload } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useQueryStates } from "nuqs"
 import { submissionSearchParams } from "../_lib/search-params"
@@ -39,7 +39,7 @@ const TAB = {
 type Tab = (typeof TAB)[keyof typeof TAB]
 
 const customTabTriggerClassName =
-  "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-[#FF5D4B] dark:data-[state=active]:text-[#FF7A6B] text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-[#FF5D4B] dark:data-[state=active]:after:bg-[#FF7A6B]"
+  "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-primary text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-brand-primary"
 
 export function SubmissionsHeader() {
   const domain = useDomain()
@@ -119,13 +119,26 @@ export function SubmissionsHeader() {
       setIsRefreshing(false)
     }
   }
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <h1 className="font-gothic text-3xl font-normal tracking-tight">Submissions</h1>
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10">
+              <FileText className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                Participants
+              </p>
+              <h1 className="text-2xl font-bold tracking-tight font-gothic leading-none">
+                Submissions
+              </h1>
+            </div>
+          </div>
           {marathon.mode === "by-camera" ? (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-sm text-muted-foreground">
               Viewing active topic:{" "}
               <span className="font-medium text-foreground">
                 {getActiveTopicDisplayText({
@@ -135,21 +148,28 @@ export function SubmissionsHeader() {
               </span>
             </p>
           ) : (
-            <p className="text-muted-foreground text-sm">
+            <p className="text-sm text-muted-foreground">
               View and manage photo submissions from participants
             </p>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="text-xs"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <PrimaryButton
+            size="sm"
             onClick={() => setIsCreateUploadDialogOpen(true)}
-            className="bg-[#20201c] hover:bg-[#313129]"
+            className="text-xs"
           >
-            <Upload className="h-4 w-4" />
+            <Upload className="h-3.5 w-3.5 mr-1.5" />
             Manual Upload
           </PrimaryButton>
         </div>
