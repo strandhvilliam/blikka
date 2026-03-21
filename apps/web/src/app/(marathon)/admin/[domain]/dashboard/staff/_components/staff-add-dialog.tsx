@@ -94,9 +94,9 @@ export function StaffAddDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <PrimaryButton>
-          <Plus className="h-4 w-4" />
-          <span className="hidden md:block text-sm">Add Staff</span>
+        <PrimaryButton className="h-8 shrink-0 gap-1.5 px-2.5 py-0 text-xs">
+          <Plus className="h-3.5 w-3.5" />
+          <span>Add Staff</span>
         </PrimaryButton>
       </DialogTrigger>
       <DialogContent>

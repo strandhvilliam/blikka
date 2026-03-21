@@ -81,14 +81,16 @@ export function JuryList() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="relative mb-4 px-2">
-        <Search className="absolute left-5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search invitations..."
-          className="pl-9 h-9 bg-muted/50 border-border/40 focus-visible:ring-1 focus-visible:ring-primary/20"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="mb-4 px-2 pt-4">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search invitations..."
+            className="h-9 bg-muted/50 border-border/40 pl-9 focus-visible:ring-1 focus-visible:ring-primary/20"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
       </div>
       <ScrollArea className="flex-1">
         <div className="space-y-0.5">

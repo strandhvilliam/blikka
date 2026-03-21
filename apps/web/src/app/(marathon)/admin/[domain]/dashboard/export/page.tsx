@@ -23,14 +23,14 @@ const _ExportPage = Effect.fn("@blikka/web/ExportPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<ExportSkeleton />}>
-          <div className="mx-auto max-w-4xl px-6 py-8 lg:py-10">
+          <div className="mx-auto max-w-4xl px-6 py-4">
             <ExportContent />
           </div>
         </Suspense>
       </HydrateClient>
     )
   },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Page(_ExportPage)

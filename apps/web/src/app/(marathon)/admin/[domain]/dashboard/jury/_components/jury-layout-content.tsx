@@ -17,7 +17,7 @@ export function JuryLayoutContent({ children }: JuryLayoutContentProps) {
   const contentComponent = childrenArray[1]
 
   return (
-    <div className="flex h-full gap-5 mx-auto max-w-[1600px] p-6">
+    <div className="flex h-full gap-5 mx-auto max-w-[1600px] px-6 py-4">
       <div className="w-80 shrink-0 flex flex-col rounded-xl border border-border bg-white overflow-hidden">
         <div className="border-b border-border px-4 py-4">
           <div className="flex items-center justify-between">
@@ -34,8 +34,12 @@ export function JuryLayoutContent({ children }: JuryLayoutContentProps) {
                 </h1>
               </div>
             </div>
-            <PrimaryButton onClick={() => setCreateSheetOpen(true)} className="h-8 w-8 p-0">
-              <Plus className="h-4 w-4" />
+            <PrimaryButton
+              onClick={() => setCreateSheetOpen(true)}
+              className="h-8 shrink-0 gap-1.5 px-2.5 py-0 text-xs"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Invite</span>
             </PrimaryButton>
           </div>
         </div>

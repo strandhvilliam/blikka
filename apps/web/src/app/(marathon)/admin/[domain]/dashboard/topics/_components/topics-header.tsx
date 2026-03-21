@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, List, Circle } from "lucide-react"
+import { Plus, List, Circle, Tag } from "lucide-react"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { TopicsCreateDialog } from "./topics-create-dialog"
 import { useTRPC } from "@/lib/trpc/client"
@@ -13,9 +13,7 @@ export function TopicsHeader() {
   const domain = useDomain()
   const trpc = useTRPC()
 
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain })
-  )
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   const topicCount = marathon?.topics?.length ?? 0
 
@@ -23,7 +21,7 @@ export function TopicsHeader() {
     <div className="mb-8">
       <div className="flex items-center gap-3 mb-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10">
-          <List className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
+          <Tag className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
         </div>
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
