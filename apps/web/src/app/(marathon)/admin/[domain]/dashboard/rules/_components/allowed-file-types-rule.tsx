@@ -57,7 +57,7 @@ export function AllowedFileTypesRule({ value, onChange }: AllowedFileTypesRulePr
                   "rounded-lg px-3.5 py-1.5 text-sm font-medium",
                   "border flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none transition-colors duration-150",
                   isSelected
-                    ? "bg-brand-primary text-white border-transparent shadow-sm"
+                    ? "bg-foreground text-background border-transparent shadow-sm"
                     : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/40"
                 )}
                 whileTap={{ scale: 0.97 }}

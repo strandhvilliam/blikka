@@ -75,7 +75,7 @@ export function RuleCard<TParams = null>({
               onCheckedChange={(checked) => {
                 onChange({ ...value, enabled: checked })
               }}
-              className="shrink-0 data-[state=checked]:bg-brand-primary"
+              className="shrink-0 data-[state=checked]:bg-foreground"
               aria-labelledby={`${title}-heading`}
             />
           </div>

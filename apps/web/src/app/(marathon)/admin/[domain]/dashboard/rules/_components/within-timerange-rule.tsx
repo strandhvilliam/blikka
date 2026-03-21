@@ -9,13 +9,36 @@ import type { WithinTimerangeParams } from "../_lib/schemas"
 type WithinTimerangeValue = RuleValue<WithinTimerangeParams>
 
 interface WithinTimerangeRuleProps {
+  marathonMode?: "marathon" | "by-camera"
   value: WithinTimerangeValue
   onChange: (value: WithinTimerangeValue) => void
 }
 
-export function WithinTimerangeRule({ value, onChange }: WithinTimerangeRuleProps) {
+export function WithinTimerangeRule({
+  marathonMode = "marathon",
+  value,
+  onChange,
+}: WithinTimerangeRuleProps) {
   const hasTimeStart = value.params?.start !== ""
   const hasTimeEnd = value.params?.end !== ""
+
+  if (marathonMode === "by-camera") {
+    return (
+      <RuleCard
+        title="Within Time Range"
+        description="Checks that the photo was taken today using the capture time from EXIF metadata."
+        icon={Clock}
+        recommendedSeverity="error"
+        value={value}
+        onChange={onChange}
+      >
+        <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
+          In by-camera mode each participant uploads a single image per topic, so validation uses the
+          photo&apos;s date only: it must have been captured on the current calendar day.
+        </p>
+      </RuleCard>
+    )
+  }
 
   return (
     <RuleCard

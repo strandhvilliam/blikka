@@ -14,7 +14,7 @@ import { StrictTimestampOrderingRule } from "./strict-timestamp-ordering-rule"
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { useAutoSave } from "@/hooks/use-auto-save"
 import type { RulesFormValues } from "../_lib/schemas"
-import { ShieldCheck, Circle } from "lucide-react"
+import { ShieldCheck, Circle, BookOpen } from "lucide-react"
 
 export function RulesForm() {
   const trpc = useTRPC()
@@ -24,13 +24,13 @@ export function RulesForm() {
   const { data: dbRules } = useSuspenseQuery(
     trpc.rules.getByDomain.queryOptions({
       domain,
-    })
+    }),
   )
 
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({
       domain,
-    })
+    }),
   )
 
   const serverRules = useMemo(
@@ -39,17 +39,12 @@ export function RulesForm() {
         startDate: marathon?.startDate ?? undefined,
         endDate: marathon?.endDate ?? undefined,
       }),
-    [dbRules, marathon?.startDate, marathon?.endDate]
+    [dbRules, marathon?.startDate, marathon?.endDate],
   )
 
   const [rules, setRules] = useState<RulesFormValues>(serverRules)
 
-  const isDirty = useMemo(
-    () => JSON.stringify(rules) !== JSON.stringify(serverRules),
-    [rules, serverRules]
-  )
-
-  const { mutate: updateRules, isPending } = useMutation(
+  const { mutate: updateRules } = useMutation(
     trpc.rules.updateMultiple.mutationOptions({
       onSuccess: () => {
         toast.success("Rules updated successfully")
@@ -65,7 +60,7 @@ export function RulesForm() {
           queryKey: trpc.marathons.getByDomain.queryKey({ domain }),
         })
       },
-    })
+    }),
   )
 
   const handleSave = useCallback(
@@ -78,7 +73,7 @@ export function RulesForm() {
         data: mapRulesToDbRules(value),
       })
     },
-    [domain, marathon, updateRules]
+    [domain, marathon, updateRules],
   )
 
   const { cancelPendingSave, resetToValue } = useAutoSave({
@@ -93,38 +88,45 @@ export function RulesForm() {
     resetToValue(serverRules)
   }, [serverRules, resetToValue])
 
-  const handleReset = useCallback(() => {
-    cancelPendingSave()
-    setRules(serverRules)
-    resetToValue(serverRules)
-  }, [cancelPendingSave, serverRules, resetToValue])
-
   const updateRule = useCallback(
     <K extends keyof RulesFormValues>(key: K, value: RulesFormValues[K]) => {
       setRules((prev) => ({ ...prev, [key]: value }))
     },
-    []
+    [],
   )
 
-  const enabledCount = Object.values(rules).filter(
-    (r) => typeof r === "object" && r !== null && "enabled" in r && r.enabled
-  ).length
-  const totalCount = Object.keys(rules).length
+  const isByCamera = marathon?.mode === "by-camera"
+
+  const visibleRuleKeys = useMemo(() => {
+    const all: (keyof RulesFormValues)[] = [
+      "max_file_size",
+      "allowed_file_types",
+      "within_timerange",
+      "same_device",
+      "modified",
+      "strict_timestamp_ordering",
+    ]
+    if (isByCamera) {
+      return all.filter((k) => k !== "same_device" && k !== "strict_timestamp_ordering")
+    }
+    return all
+  }, [isByCamera])
+
+  const enabledCount = visibleRuleKeys.filter((key) => rules[key].enabled).length
+  const totalCount = visibleRuleKeys.length
 
   return (
     <div>
       <div className="mb-10">
         <div className="flex items-center gap-3 mb-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10">
-            <ShieldCheck className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
+            <BookOpen className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
           </div>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
               Validation
             </p>
-            <h1 className="text-2xl font-bold tracking-tight font-gothic leading-none">
-              Rules
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight font-gothic leading-none">Rules</h1>
           </div>
         </div>
         <div className="flex items-center justify-between">
@@ -143,29 +145,34 @@ export function RulesForm() {
       </div>
 
       <div className="space-y-3">
-        <MaxFileSizeRule
-          value={rules.max_file_size}
-          onChange={(value) => updateRule("max_file_size", value)}
-        />
         <AllowedFileTypesRule
           value={rules.allowed_file_types}
           onChange={(value) => updateRule("allowed_file_types", value)}
         />
         <WithinTimerangeRule
+          marathonMode={marathon?.mode as "by-camera" | "marathon" | undefined}
           value={rules.within_timerange}
           onChange={(value) => updateRule("within_timerange", value)}
         />
-        <SameDeviceRule
-          value={rules.same_device}
-          onChange={(value) => updateRule("same_device", value)}
-        />
+        {!isByCamera && (
+          <SameDeviceRule
+            value={rules.same_device}
+            onChange={(value) => updateRule("same_device", value)}
+          />
+        )}
         <NoModificationsRule
           value={rules.modified}
           onChange={(value) => updateRule("modified", value)}
         />
-        <StrictTimestampOrderingRule
-          value={rules.strict_timestamp_ordering}
-          onChange={(value) => updateRule("strict_timestamp_ordering", value)}
+        {!isByCamera && (
+          <StrictTimestampOrderingRule
+            value={rules.strict_timestamp_ordering}
+            onChange={(value) => updateRule("strict_timestamp_ordering", value)}
+          />
+        )}
+        <MaxFileSizeRule
+          value={rules.max_file_size}
+          onChange={(value) => updateRule("max_file_size", value)}
         />
       </div>
     </div>
