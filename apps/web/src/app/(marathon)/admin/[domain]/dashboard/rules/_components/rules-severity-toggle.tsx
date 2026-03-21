@@ -18,73 +18,80 @@ export function RulesSeverityToggle({
   recommendedSeverity,
 }: SeverityToggleProps) {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-1.5">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1 mb-1.5 cursor-pointer">
-              <InfoIcon className="h-3.5 w-3.5 text-muted-foreground" />
-              <p className={cn("text-xs text-muted-foreground")}>
-                Recommended: {recommendedSeverity === "error" ? "Restrict" : "Warning"}
-              </p>
+            <div className="flex items-center gap-1.5 cursor-help w-fit">
+              <InfoIcon className="h-3.5 w-3.5 text-muted-foreground/60" />
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                {recommendedSeverity === "error" ? "Recommended: Restrict" : "Recommended: Warning"}
+              </span>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="top">
-            <div className="flex flex-col gap-2 min-w-[220px]">
+          <TooltipContent side="top" className="max-w-[260px]">
+            <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500" />
+                <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
                 <span className="font-semibold text-xs text-red-600">Restrict</span>
                 <span className="text-xs text-muted-foreground">
-                  Prevents the user from submitting
+                  Prevents submission
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span className="font-semibold text-xs text-amber-500">Warning</span>
+                <span className="inline-block w-2 h-2 rounded-full bg-amber-400" />
+                <span className="font-semibold text-xs text-amber-600">Warning</span>
                 <span className="text-xs text-muted-foreground">
-                  Warns the user, but allows submission
+                  Allows submission with notice
                 </span>
               </div>
             </div>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <motion.div
-        initial={{ opacity: 0.8 }}
-        animate={{ opacity: 1 }}
-        className="flex items-center gap-1 bg-muted/60 rounded-full p-0.5 border border-border/60"
-      >
+
+      <div className="flex items-center rounded-lg bg-muted/50 p-0.5 border border-border/40">
         <motion.button
           type="button"
           onClick={() => onSeverityChange("warning")}
           className={cn(
-            "rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1",
+            "rounded-md px-3 py-1 text-xs font-medium transition-colors duration-150",
             severity === "warning"
-              ? "bg-amber-100 text-amber-800 shadow-sm border border-amber-200"
-              : "text-muted-foreground hover:bg-background/50"
+              ? "bg-white text-amber-700 shadow-sm border border-amber-200/80"
+              : "text-muted-foreground hover:text-foreground/70"
           )}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
+          whileTap={{ scale: 0.97 }}
           aria-pressed={severity === "warning"}
         >
-          Warning
+          <span className="flex items-center gap-1.5">
+            <span className={cn(
+              "inline-block w-1.5 h-1.5 rounded-full",
+              severity === "warning" ? "bg-amber-500" : "bg-muted-foreground/30"
+            )} />
+            Warning
+          </span>
         </motion.button>
         <motion.button
           type="button"
           onClick={() => onSeverityChange("error")}
           className={cn(
-            "rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1",
+            "rounded-md px-3 py-1 text-xs font-medium transition-colors duration-150",
             severity === "error"
-              ? "bg-red-100 text-red-800 shadow-sm border border-red-200"
-              : "text-muted-foreground hover:bg-background/50"
+              ? "bg-white text-red-700 shadow-sm border border-red-200/80"
+              : "text-muted-foreground hover:text-foreground/70"
           )}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
+          whileTap={{ scale: 0.97 }}
           aria-pressed={severity === "error"}
         >
-          Restrict
+          <span className="flex items-center gap-1.5">
+            <span className={cn(
+              "inline-block w-1.5 h-1.5 rounded-full",
+              severity === "error" ? "bg-red-500" : "bg-muted-foreground/30"
+            )} />
+            Restrict
+          </span>
         </motion.button>
-      </motion.div>
+      </div>
     </div>
   )
 }

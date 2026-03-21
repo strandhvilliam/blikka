@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "motion/react"
-import { CheckCircle, AlertCircle } from "lucide-react"
+import { CheckCircle, AlertCircle, FileImage } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { RuleCard, type RuleValue } from "./rule-card"
 import type { AllowedFileTypesParams } from "../_lib/schemas"
@@ -23,6 +23,7 @@ export function AllowedFileTypesRule({ value, onChange }: AllowedFileTypesRulePr
     <RuleCard
       title="Allowed File Types"
       description="Specify permitted image file formats (e.g., JPG, PNG)."
+      icon={FileImage}
       recommendedSeverity="error"
       value={value}
       onChange={onChange}
@@ -53,25 +54,24 @@ export function AllowedFileTypesRule({ value, onChange }: AllowedFileTypesRulePr
                   })
                 }}
                 className={cn(
-                  "rounded-full px-3 py-1 text-sm font-medium",
-                  "border flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none",
+                  "rounded-lg px-3.5 py-1.5 text-sm font-medium",
+                  "border flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none transition-colors duration-150",
                   isSelected
-                    ? "bg-primary text-primary-foreground border-transparent shadow-sm hover:bg-primary/90"
-                    : "bg-secondary/60 hover:bg-secondary text-secondary-foreground border-border/50"
+                    ? "bg-brand-primary text-white border-transparent shadow-sm"
+                    : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/40"
                 )}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                whileTap={{ scale: 0.97 }}
               >
-                {isSelected && <CheckCircle className="h-4 w-4 opacity-80" />}
+                {isSelected && <CheckCircle className="h-3.5 w-3.5 opacity-80" />}
                 {option.label}
               </motion.button>
             )
           })}
         </div>
         {value.params.allowedFileTypes.length === 0 && (
-          <p className="text-sm text-amber-700 bg-amber-50 py-2 px-3 rounded-md border border-amber-200 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
-            Warning: No file types selected. Users won't be able to upload anything.
+          <p className="text-[13px] text-amber-700 bg-amber-50/80 py-2 px-3 rounded-lg border border-amber-200/60 flex items-center gap-2">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            No file types selected. Users won't be able to upload anything.
           </p>
         )}
       </div>

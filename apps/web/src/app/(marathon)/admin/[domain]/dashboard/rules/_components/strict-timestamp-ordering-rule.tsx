@@ -1,5 +1,6 @@
 "use client"
 
+import { ArrowUpDown } from "lucide-react"
 import { RuleCard, type RuleValue } from "./rule-card"
 
 type StrictTimestampOrderingValue = RuleValue<null>
@@ -14,6 +15,7 @@ export function StrictTimestampOrderingRule({ value, onChange }: StrictTimestamp
     <RuleCard
       title="Strict Timestamp Ordering"
       description="Ensure photo timestamps align chronologically with the theme submission order."
+      icon={ArrowUpDown}
       recommendedSeverity="warning"
       value={value}
       onChange={onChange}

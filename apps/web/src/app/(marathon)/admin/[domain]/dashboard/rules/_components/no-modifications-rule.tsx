@@ -1,5 +1,6 @@
 "use client"
 
+import { ShieldBan } from "lucide-react"
 import { RuleCard, type RuleValue } from "./rule-card"
 
 type NoModificationsValue = RuleValue<null>
@@ -14,6 +15,7 @@ export function NoModificationsRule({ value, onChange }: NoModificationsRuleProp
     <RuleCard
       title="No Digital Modifications"
       description="Detect if photos show signs of editing in software like Photoshop, Lightroom, etc."
+      icon={ShieldBan}
       recommendedSeverity="warning"
       value={value}
       onChange={onChange}

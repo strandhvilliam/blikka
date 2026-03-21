@@ -2,6 +2,7 @@
 
 import { format } from "date-fns"
 import Link from "next/link"
+import { Clock } from "lucide-react"
 import { RuleCard, type RuleValue } from "./rule-card"
 import type { WithinTimerangeParams } from "../_lib/schemas"
 
@@ -20,35 +21,40 @@ export function WithinTimerangeRule({ value, onChange }: WithinTimerangeRuleProp
     <RuleCard
       title="Within Time Range"
       description="Verify photos were taken during the specified competition timeframe using EXIF data."
+      icon={Clock}
       recommendedSeverity="error"
       value={value}
       onChange={onChange}
     >
       <div className="flex flex-col">
         <div className="grid sm:grid-cols-2 gap-4 max-w-lg pointer-events-none">
-          <div className="space-y-1.5">
-            <div className="text-xs font-medium">Competition Start Time</div>
-            <div className="text-sm text-foreground">
+          <div className="space-y-1">
+            <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+              Start
+            </div>
+            <div className="text-sm font-medium text-foreground tabular-nums">
               {hasTimeStart && value.params?.start
                 ? format(new Date(value.params.start), "yyyy-MM-dd HH:mm")
                 : "Not set"}
             </div>
           </div>
-          <div className="space-y-1.5 border-l border-border pl-4">
-            <div className="text-xs font-medium">Competition End Time</div>
-            <div className="text-sm text-foreground">
+          <div className="space-y-1 sm:border-l sm:border-border/40 sm:pl-4">
+            <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+              End
+            </div>
+            <div className="text-sm font-medium text-foreground tabular-nums">
               {hasTimeEnd && value.params?.end
                 ? format(new Date(value.params.end), "yyyy-MM-dd HH:mm")
                 : "Not set"}
             </div>
           </div>
         </div>
-        <div className="mt-4 flex justify-end">
-          <span className="text-xs text-muted-foreground">
-            You can configure the start and end time on the
-          </span>
-          <Link href="../settings" className="text-xs text-blue-600 underline hover:text-blue-700">
-            <span className="ml-1 underline">settings page</span>
+        <div className="mt-3">
+          <Link
+            href="../settings"
+            className="text-[12px] text-brand-primary hover:text-brand-primary/80 underline underline-offset-2 decoration-brand-primary/30 hover:decoration-brand-primary/60 transition-colors"
+          >
+            Configure times in settings
           </Link>
         </div>
       </div>
