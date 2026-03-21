@@ -26,7 +26,7 @@ const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
 
     return (
       <HydrateClient>
-        <div className="container mx-auto space-y-6">
+        <div className="mx-auto max-w-5xl px-6 py-8 lg:py-10 space-y-6">
           <Suspense fallback={<ParticipantHeaderSkeleton />}>
             <ParticipantHeader participantRef={participantRef} />
           </Suspense>

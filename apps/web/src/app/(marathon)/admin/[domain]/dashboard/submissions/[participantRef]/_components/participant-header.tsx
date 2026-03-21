@@ -12,6 +12,7 @@ import {
   MoreVertical,
   Archive,
   FileImage,
+  FileText,
   Info,
   Loader2,
   RefreshCw,
@@ -140,7 +141,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
       },
     )
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <ParticipantHeaderInfo participant={participant} />
         <ParticipantHeaderActions
@@ -153,7 +154,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         />
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3">
         <ParticipantStatusIndicator
           participant={participant}
           handleOpenVerifyDialog={() => setIsVerifyDialogOpen(true)}
@@ -226,29 +227,34 @@ function ParticipantHeaderInfo({
 
   return (
     <div className="flex items-center gap-3">
-      <Button variant="ghost" size="icon" asChild className="h-9 w-9">
+      <Button variant="ghost" size="icon" asChild className="h-8 w-8">
         <Link href={formatDomainPathname(`/admin/dashboard/submissions`, domain)}>
           <ArrowLeft className="h-4 w-4" />
         </Link>
       </Button>
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10 shrink-0">
+        <FileText className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
+      </div>
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight font-gothic">
-            {`#${participant.reference} - `}
-            {`${participant.firstname} ${participant.lastname}`}
-          </h1>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+            Participant #{participant.reference}
+          </p>
           {badgeConfig.hasValidations && (
-            <Badge className={cn("ml-2", badgeConfig.badgeColor)}>
-              <badgeConfig.icon className="h-3.5 w-3.5 mr-1" />
+            <Badge className={cn("text-[10px]", badgeConfig.badgeColor)}>
+              <badgeConfig.icon className="h-3 w-3 mr-1" />
               {badgeConfig.label}
             </Badge>
           )}
         </div>
+        <h1 className="text-xl font-bold tracking-tight font-gothic leading-none">
+          {participant.firstname} {participant.lastname}
+        </h1>
         <Link
           href={`mailto:${participant.email}`}
-          className="text-sm text-muted-foreground flex items-center gap-1 hover:underline"
+          className="text-[12px] text-muted-foreground flex items-center gap-1 hover:underline mt-0.5"
         >
-          <Mail className="h-3.5 w-3.5" />
+          <Mail className="h-3 w-3" />
           <span>{participant.email}</span>
         </Link>
       </div>
@@ -285,14 +291,14 @@ function ParticipantHeaderActions({
   return (
     <div className="flex items-center gap-2">
       {hasSubmissions && (
-        <Button variant="default" onClick={handleExport}>
-          <Download className="h-4 w-4" />
+        <Button variant="default" size="sm" onClick={handleExport} className="text-xs">
+          <Download className="h-3.5 w-3.5 mr-1.5" />
           Export
         </Button>
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" className="h-9 w-9">
+          <Button variant="outline" size="icon" className="h-8 w-8">
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>

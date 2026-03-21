@@ -64,8 +64,8 @@ export function ParticipantSubmissionCard({
           ease: [0.2, 0.65, 0.3, 0.9],
         }}
       >
-        <Card className="group gap-2 rounded-lg p-0 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all overflow-hidden">
-          <CardContent className="relative p-0 flex items-center justify-center aspect-4/3 bg-neutral-200/60 border-b overflow-hidden">
+        <Card className="group gap-2 rounded-xl border-border p-0 cursor-pointer hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.06)] transition-all overflow-hidden bg-white">
+          <CardContent className="relative p-0 flex items-center justify-center aspect-4/3 bg-muted/30 border-b border-border overflow-hidden">
             <div className="absolute top-2 left-2 z-10">
               <Badge variant="outline" className="bg-white/80 backdrop-blur-sm">
                 #{submission.topic?.orderIndex.toString() ? submission.topic.orderIndex + 1 : "?"}
