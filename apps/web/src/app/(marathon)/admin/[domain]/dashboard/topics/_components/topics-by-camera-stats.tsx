@@ -25,18 +25,18 @@ export function TopicsByCameraStats({
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <div className="rounded-xl border border-border bg-card p-4">
-        <p className="font-gothic text-xs text-muted-foreground">Topics</p>
+      <div className="rounded-xl border border-border bg-white p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">Topics</p>
         <p className="mt-1.5 text-2xl font-semibold tabular-nums text-foreground">{topicsCount}</p>
       </div>
-      <div className="rounded-xl border border-border bg-card p-4">
-        <p className="font-gothic text-xs text-muted-foreground">Submissions</p>
+      <div className="rounded-xl border border-border bg-white p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">Submissions</p>
         <p className="mt-1.5 text-2xl font-semibold tabular-nums text-foreground">
           {totalSubmissions}
         </p>
       </div>
-      <div className="col-span-2 rounded-xl border border-border bg-card p-4 sm:col-span-1">
-        <p className="font-gothic text-xs text-muted-foreground">Status</p>
+      <div className="col-span-2 rounded-xl border border-border bg-white p-4 sm:col-span-1">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">Status</p>
         <p className="mt-1.5 text-sm font-medium text-foreground">
           <span
             className={
@@ -46,9 +46,9 @@ export function TopicsByCameraStats({
             }
           >
             <span className="relative flex h-2 w-2">
-              {isOpen ? (
+              {isOpen && (
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-              ) : null}
+              )}
               <span
                 className={
                   submissionState === "no-active-topic"

@@ -39,26 +39,22 @@ const BADGE_STYLES: Record<
 > = {
   "not-opened": {
     label: "Awaiting submission start",
-    className:
-      "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200",
+    className: "border-slate-200 bg-slate-50 text-slate-700",
     icon: Play,
   },
   scheduled: {
     label: "Scheduled to open",
-    className:
-      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200",
+    className: "border-blue-200 bg-blue-50 text-blue-700",
     icon: Clock3,
   },
   open: {
     label: "Open for submissions",
-    className:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
     icon: CheckCircle2,
   },
   closed: {
     label: "Submission window ended",
-    className:
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
+    className: "border-amber-200 bg-amber-50 text-amber-700",
     icon: TimerOff,
   },
 }
@@ -90,13 +86,7 @@ export function ActiveTopicBanner({
           : "Edit submission window"
 
     return (
-      <div
-        className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm sm:p-6"
-        style={{
-          background:
-            "linear-gradient(135deg, color-mix(in oklch, var(--brand-primary) 6%, var(--card)) 0%, var(--card) 60%)",
-        }}
-      >
+      <div className="relative overflow-hidden rounded-xl border border-brand-primary/20 bg-white p-5 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.06)] sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
@@ -118,7 +108,7 @@ export function ActiveTopicBanner({
                 Active since {formatTimestamp(activeTopic.activatedAt ?? activeTopic.createdAt)}
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <div className="rounded-full border border-border/70 bg-background/80 px-3 py-1.5">
+                <div className="rounded-full border border-border/70 bg-muted/30 px-3 py-1.5">
                   Starts:{" "}
                   <span className="font-medium text-foreground">
                     {activeTopic.scheduledStart
@@ -126,7 +116,7 @@ export function ActiveTopicBanner({
                       : "Not set"}
                   </span>
                 </div>
-                <div className="rounded-full border border-border/70 bg-background/80 px-3 py-1.5">
+                <div className="rounded-full border border-border/70 bg-muted/30 px-3 py-1.5">
                   Ends:{" "}
                   <span className="font-medium text-foreground">
                     {activeTopic.scheduledEnd
@@ -183,7 +173,7 @@ export function ActiveTopicBanner({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-dashed border-border bg-muted/20 p-5 sm:p-6">
+    <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/20 p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted">

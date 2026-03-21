@@ -17,19 +17,14 @@ export function TopicsContent() {
     })
   )
 
-
   if (marathon?.mode === "by-camera") {
     return <TopicsByCamera />
   }
 
   return (
-    <>
-      <div className="shrink-0 mb-6">
-        <TopicsHeader />
-      </div>
-      <div className="flex-1 min-h-0">
-        <TopicsTable />
-      </div>
-    </>
+    <div>
+      <TopicsHeader />
+      <TopicsTable />
+    </div>
   )
 }

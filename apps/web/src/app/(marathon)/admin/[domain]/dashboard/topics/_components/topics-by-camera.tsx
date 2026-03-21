@@ -125,7 +125,7 @@ export function TopicsByCamera() {
   }
 
   return (
-    <div className="flex flex-col gap-8 max-w-[1000px] mx-auto w-full">
+    <div className="flex flex-col gap-8">
       <TopicsByCameraHeader onCreateClick={openCreate} isLoading={isLoading} />
 
       <TopicsCreateDialog
