@@ -13,7 +13,7 @@ import { cn, formatDomainPathname } from "@/lib/utils"
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
-import { QrCodeGenerator } from "./qr-code-generator"
+import { QrCodeGenerator } from "@/components/qr-code-generator"
 import { useUploadFlowState } from "../(flow)/_hooks/use-upload-flow-state"
 
 interface VerificationClientProps {

@@ -3,7 +3,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Check, Copy, QrCode, XIcon } from "lucide-react"
 import { useState } from "react"
-import { QrCodeGenerator } from "@/app/(marathon)/live/[domain]/_components/qr-code-generator"
+import { QrCodeGenerator } from "@/components/qr-code-generator"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
