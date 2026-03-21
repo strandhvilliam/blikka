@@ -11,7 +11,7 @@ import { ParticipantContentWrapperSkeleton } from "./_components/participant-con
 const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
   function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
     const { domain, participantRef } = yield* decodeParams(
-      Schema.Struct({ domain: Schema.String, participantRef: Schema.String })
+      Schema.Struct({ domain: Schema.String, participantRef: Schema.String }),
     )(params)
 
     batchPrefetch([
@@ -26,7 +26,7 @@ const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
 
     return (
       <HydrateClient>
-        <div className="mx-auto max-w-5xl px-6 py-8 lg:py-10 space-y-6">
+        <div className="mx-auto max-w-5xl px-6 py-4 space-y-6">
           <Suspense fallback={<ParticipantHeaderSkeleton />}>
             <ParticipantHeader participantRef={participantRef} />
           </Suspense>
@@ -37,7 +37,7 @@ const _ParticipantsPage = Effect.fn("@blikka/web/ParticipantSubmissionsPage")(
       </HydrateClient>
     )
   },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Page(_ParticipantsPage)
