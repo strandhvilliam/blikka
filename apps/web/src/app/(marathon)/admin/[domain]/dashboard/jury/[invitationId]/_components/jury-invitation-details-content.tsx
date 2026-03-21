@@ -2,16 +2,7 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
-import {
-  Mail,
-  Trash2,
-  Calendar,
-  Tag,
-  Users,
-  ExternalLink,
-  Copy,
-  FileText,
-} from "lucide-react"
+import { Mail, Trash2, Calendar, Tag, Users, ExternalLink, Copy } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -113,7 +104,7 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10">
-              <FileText className="h-5 w-5 text-brand-primary" strokeWidth={1.8} />
+              <Mail className="h-5 w-5 text-brand-primary" strokeWidth={1.8} />
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
@@ -123,17 +114,26 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
                 {invitation.displayName}
               </h1>
               <p className="text-[12px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                <Mail className="h-3.5 w-3.5" />
                 {invitation.email}
               </p>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={handleCopyLink}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs"
+              onClick={handleCopyLink}
+            >
               <Copy className="h-3.5 w-3.5 mr-1.5" />
               Copy Link
             </Button>
-            <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={handleOpenLink}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs"
+              onClick={handleOpenLink}
+            >
               <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
               Open
             </Button>
@@ -166,7 +166,11 @@ export function JuryInvitationDetailsContent({ invitationId }: JuryInvitationDet
                 </p>
                 <div className="flex items-center gap-2">
                   {getStatusBadge(invitation.status)}
-                  {isExpired && <Badge variant="destructive" className="text-[10px]">Expired</Badge>}
+                  {isExpired && (
+                    <Badge variant="destructive" className="text-[10px]">
+                      Expired
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div>

@@ -7,19 +7,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Handshake, type LucideIcon } from "lucide-react"
+import { Download, Gavel, Handshake, Layers, type LucideIcon } from "lucide-react"
 import {
   BookOpen,
   File,
-  Heart,
   Images,
   LayoutDashboard,
   ListCheck,
   Settings,
-  Shield,
   Tag,
   Trophy,
   Vote,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -42,17 +41,17 @@ export const NAV_LINKS = {
     {
       name: "Export",
       url: "/dashboard/export",
-      icon: File as LucideIcon,
+      icon: Download as LucideIcon,
     },
     {
       name: "Staff",
       url: "/dashboard/staff",
-      icon: Shield as LucideIcon,
+      icon: Users as LucideIcon,
     },
     {
       name: "Jury",
       url: "/dashboard/jury",
-      icon: Trophy as LucideIcon,
+      icon: Gavel as LucideIcon,
     },
     {
       name: "Voting",
@@ -69,7 +68,7 @@ export const NAV_LINKS = {
     {
       name: "Classes",
       url: "/dashboard/classes",
-      icon: ListCheck as LucideIcon,
+      icon: Layers as LucideIcon,
     },
     {
       name: "Rules",

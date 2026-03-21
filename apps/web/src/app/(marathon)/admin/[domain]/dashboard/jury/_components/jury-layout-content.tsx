@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { PrimaryButton } from "@/components/ui/primary-button"
-import { Mail, Plus } from "lucide-react"
+import { Gavel, Plus } from "lucide-react"
 import { JuryInvitationCreateSheet } from "./jury-create-sheet"
 
 interface JuryLayoutContentProps {
@@ -23,7 +23,7 @@ export function JuryLayoutContent({ children }: JuryLayoutContentProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-primary/10">
-                <Mail className="h-4 w-4 text-brand-primary" strokeWidth={1.8} />
+                <Gavel className="h-4 w-4 text-brand-primary" strokeWidth={1.8} />
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">

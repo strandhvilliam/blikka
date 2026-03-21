@@ -61,14 +61,12 @@ export function LiveUploadQrDialog({ uploadUrl }: LiveUploadQrDialogProps) {
               <DialogTitle>QR code for the participant live upload site</DialogTitle>
               <DialogDescription>
                 Opens the public live upload address for this marathon in a browser, where
-                participants enter their details and submit photos. Same URL as the Upload
-                shortcut in the header.
+                participants enter their details and submit photos. Same URL as the Upload shortcut
+                in the header.
               </DialogDescription>
             </DialogHeader>
             <LiveUploadQrDialogBody uploadUrl={uploadUrl} onCopy={handleCopy} copied={copied} />
-            <DialogPrimitive.Close
-              className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 z-10 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-            >
+            <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 z-10 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
               <XIcon />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
@@ -100,7 +98,7 @@ export function LiveUploadQrDialogBody({
 
       await downloadQrPng({
         filename: "live-upload-qr.png",
-        svg,
+        svg: svg ?? null,
       })
     } catch (error) {
       console.error("Failed to download live upload QR code", error)
@@ -121,8 +119,8 @@ export function LiveUploadQrDialogBody({
           <span className="font-medium text-brand-black/85 dark:text-foreground">live</span> site —
           the page participants open in a browser to register and upload their photos during the
           event. Share it on a poster, slide, or chat, or open{" "}
-          <span className="font-medium text-brand-black/85 dark:text-foreground">Upload</span> in the
-          header for the same address.
+          <span className="font-medium text-brand-black/85 dark:text-foreground">Upload</span> in
+          the header for the same address.
         </p>
       </header>
 

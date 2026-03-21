@@ -7,16 +7,16 @@ import { JuryInvitationDetailsSkeleton } from "./_components/jury-invitation-det
 
 const _JuryInvitationDetailsPage = Effect.fn("@blikka/web/JuryInvitationDetailsPage")(
   function* ({ params }: PageProps<"/admin/[domain]/dashboard/jury/[invitationId]">) {
-    const { domain, invitationId } = yield* decodeParams(
-      Schema.Struct({ domain: Schema.String, invitationId: Schema.String })
-    )(params)
+    const { invitationId } = yield* decodeParams(Schema.Struct({ invitationId: Schema.String }))(
+      params,
+    )
 
     const parsedId = parseInt(invitationId)
 
     prefetch(
       trpc.jury.getJuryInvitationById.queryOptions({
         id: parsedId,
-      })
+      }),
     )
 
     return (
@@ -27,8 +27,7 @@ const _JuryInvitationDetailsPage = Effect.fn("@blikka/web/JuryInvitationDetailsP
       </HydrateClient>
     )
   },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Page(_JuryInvitationDetailsPage)
-

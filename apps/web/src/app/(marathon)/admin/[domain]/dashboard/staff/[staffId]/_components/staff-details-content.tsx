@@ -47,7 +47,7 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
     trpc.users.getStaffMemberById.queryOptions({
       staffId,
       domain,
-    })
+    }),
   )
 
   const { data: verificationsData } = useInfiniteQuery(
@@ -59,8 +59,8 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
       },
       {
         getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
-      }
-    )
+      },
+    ),
   )
 
   const totalVerifications =
@@ -83,7 +83,7 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
           queryKey: trpc.users.getStaffMembersByDomain.queryKey({ domain }),
         })
       },
-    })
+    }),
   )
 
   const handleRemove = () => {
@@ -113,7 +113,9 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
               </Avatar>
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5">
-                  <h2 className="text-xl font-bold font-gothic tracking-tight">{staff.user.name}</h2>
+                  <h2 className="text-xl font-medium font-gothic tracking-tight">
+                    {staff.user.name}
+                  </h2>
                   <Badge
                     variant={staff.role === "admin" ? "default" : "secondary"}
                     className="text-[10px]"
@@ -140,7 +142,9 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
                 </div>
                 <div className="flex items-center gap-1.5 text-[12px] pt-0.5">
                   <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
-                  <span className="font-semibold tabular-nums text-foreground">{totalVerifications}</span>
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {totalVerifications}
+                  </span>
                   <span className="text-muted-foreground">
                     {totalVerifications === 1 ? "verification" : "verifications"}
                   </span>
@@ -182,7 +186,9 @@ export function StaffDetailsContent({ staffId }: StaffDetailsContentProps) {
                 Activity
               </p>
             </div>
-            <h3 className="text-base font-semibold font-gothic tracking-tight">Verification Activity</h3>
+            <h3 className="text-base font-semibold font-gothic tracking-tight">
+              Verification Activity
+            </h3>
             <p className="text-[12px] text-muted-foreground mt-0.5 mb-4">
               Participants verified by this staff member
             </p>
