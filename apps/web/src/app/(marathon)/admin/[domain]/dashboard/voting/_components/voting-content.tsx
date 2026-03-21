@@ -2,13 +2,10 @@
 
 import type { Topic } from "@blikka/db"
 import { Suspense, useEffect } from "react"
-import {
-  useSuspenseQuery,
-} from "@tanstack/react-query"
-import { AlertTriangle } from "lucide-react"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { AlertTriangle, Vote } from "lucide-react"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { VotingHeader } from "./voting-header"
 import { VotingSetup } from "./voting-setup"
@@ -66,7 +63,7 @@ function VotingSummaryContent({
       <VotingHeader activeTopic={activeTopic} />
       <VotingSetup key={activeTopic.id} activeTopic={activeTopic} />
 
-      <div className="relative">
+      <div className="relative mt-8">
         {!hasSessions && (
           <div className="absolute inset-0 z-10 flex items-start justify-center pt-16">
             <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-[13px] font-medium text-muted-foreground shadow-sm">
@@ -133,34 +130,35 @@ export function VotingContent() {
     marathon.topics.find((topic) => topic.visibility === "active") ?? null
   const isByCamera = marathon.mode === "by-camera"
 
-
-  // useEffect(() => {
-  //   setActiveTab("leaderboard")
-  //   setLeaderboardPage(1)
-  //   setVotersPage(1)
-  // }, [activeTopic?.id])
-
   if (!isByCamera) {
     return (
       <div className="space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-[900] tracking-tight font-gothic">
-            Voting
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Voting administration is available only for marathons running in
-            by-camera mode.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10">
+            <Vote className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Sessions
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight font-gothic leading-none">Voting</h1>
+          </div>
         </div>
 
-        <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Voting unavailable</AlertTitle>
-          <AlertDescription>
-            Current marathon mode is <strong>{marathon.mode}</strong>. Switch to
-            by-camera mode to enable voting sessions and leaderboard management.
-          </AlertDescription>
-        </Alert>
+        <p className="text-sm text-muted-foreground">
+          Voting administration is available only for marathons running in by-camera mode.
+        </p>
+
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200/60 bg-amber-50/40 px-4 py-3.5">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div>
+            <p className="text-[13px] font-medium text-amber-900">Voting unavailable</p>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-amber-800/70">
+              Current marathon mode is <strong>{marathon.mode}</strong>. Switch to
+              by-camera mode to enable voting sessions and leaderboard management.
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -168,21 +166,31 @@ export function VotingContent() {
   if (!activeTopic) {
     return (
       <div className="space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight font-gothic">
-            Voting
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            No active topic is currently available.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10">
+            <Vote className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              By Camera
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight font-gothic leading-none">Voting</h1>
+          </div>
         </div>
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Missing active topic</AlertTitle>
-          <AlertDescription>
-            Activate a by-camera topic in Topics before starting voting.
-          </AlertDescription>
-        </Alert>
+
+        <p className="text-sm text-muted-foreground">
+          No active topic is currently available.
+        </p>
+
+        <div className="flex items-start gap-3 rounded-xl border border-border bg-white px-4 py-3.5">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <div>
+            <p className="text-[13px] font-medium text-foreground">Missing active topic</p>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
+              Activate a by-camera topic in Topics before starting voting.
+            </p>
+          </div>
+        </div>
       </div>
     )
   }

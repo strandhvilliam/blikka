@@ -260,7 +260,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
       ) : null}
       <VotingProgress activeTopic={activeTopic} />
       {participantsWithoutSession.length > 0 && (
-        <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+        <Alert className="border-amber-300 bg-amber-50 text-amber-900">
           <UserPlus className="h-4 w-4" />
           <AlertTitle>Participants without voting sessions</AlertTitle>
           <AlertDescription>

@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useDomain } from "@/lib/domain-provider"
@@ -34,29 +33,27 @@ export function VotingProgress({
   const pendingSessions = summary?.sessionStats.pending ?? 0
 
   return (
-    <Card className="shadow-sm">
-      <CardContent className="space-y-4 px-4 py-4 sm:px-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center ">
-          <div>
-            <p className="text-sm font-medium">Voting progress</p>
-            <p className="text-xs text-muted-foreground">
-              {completedSessions} of {totalSessions} sessions completed
-            </p>
-          </div>
-          <Badge variant={pendingSessions > 0 ? "outline" : "secondary"} className="ml-auto">
-            {pendingSessions > 0
-              ? `${pendingSessions} pending`
-              : "All sessions completed"}
-          </Badge>
-        </div>
-
-        <div className="space-y-1.5">
-          <Progress value={completionRate} className="h-1.5" />
-          <p className="text-xs font-medium text-muted-foreground">
-            {completionRate}% completion
+    <div className="rounded-xl border border-border bg-white px-4 py-4 transition-shadow duration-200 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] sm:px-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div>
+          <p className="text-sm font-medium">Voting progress</p>
+          <p className="text-xs text-muted-foreground">
+            {completedSessions} of {totalSessions} sessions completed
           </p>
         </div>
-      </CardContent>
-    </Card>
+        <Badge variant={pendingSessions > 0 ? "outline" : "secondary"} className="ml-auto">
+          {pendingSessions > 0
+            ? `${pendingSessions} pending`
+            : "All sessions completed"}
+        </Badge>
+      </div>
+
+      <div className="mt-4 space-y-1.5">
+        <Progress value={completionRate} className="h-1.5" />
+        <p className="text-xs font-medium text-muted-foreground">
+          {completionRate}% completion
+        </p>
+      </div>
+    </div>
   )
 }
