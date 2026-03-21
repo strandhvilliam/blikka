@@ -9,15 +9,14 @@ export class InvalidSheetGenerationData extends Schema.TaggedErrorClass<InvalidS
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
-  }
-) {
-}
+  },
+) {}
 
 export const generateContactSheetKey = (domain: string, reference: string) =>
   `${domain}/${reference}/contact_sheet_${reference}_${new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5)}.jpg`
 
 export const ensureReadyForSheetGeneration = Effect.fn(
-  "contactSheetGenerator.ensureReadyForSheetGeneration"
+  "contactSheetGenerator.ensureReadyForSheetGeneration",
 )(function* (kvData: ParticipantState, reference: string, domain: string) {
   if (!kvData.finalized) {
     yield* Effect.logInfo("Participant state not finalized, skipping")
@@ -31,6 +30,7 @@ export const ensureReadyForSheetGeneration = Effect.fn(
 
   if (kvData.expectedCount === 1) {
     yield* Effect.logInfo("Participant has only one photo, skipping")
+    return yield* Effect.succeed({ shouldSkip: true })
   }
 
   return yield* Effect.succeed({ shouldSkip: false })
@@ -40,13 +40,13 @@ export const validatePhotoCount = Effect.fn("contactSheetGenerator.validatePhoto
   reference: string,
   domain: string,
   keys: string[],
-  competitionClass: CompetitionClass | null
+  competitionClass: CompetitionClass | null,
 ) {
   if (!competitionClass?.numberOfPhotos) {
     return yield* Effect.fail(
       new InvalidSheetGenerationData({
         message: "Missing competition class photo count",
-      })
+      }),
     )
   }
 
@@ -55,7 +55,7 @@ export const validatePhotoCount = Effect.fn("contactSheetGenerator.validatePhoto
     return yield* Effect.fail(
       new InvalidSheetGenerationData({
         message: `Unsupported photo count ${expectedCount} for participant ${reference}`,
-      })
+      }),
     )
   }
 
@@ -63,7 +63,7 @@ export const validatePhotoCount = Effect.fn("contactSheetGenerator.validatePhoto
     return yield* Effect.fail(
       new InvalidSheetGenerationData({
         message: `Photo count mismatch. Expected ${expectedCount}, got ${keys.length}`,
-      })
+      }),
     )
   }
 })
