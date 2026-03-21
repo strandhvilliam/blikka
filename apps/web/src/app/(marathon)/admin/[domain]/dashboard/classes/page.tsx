@@ -6,7 +6,6 @@ import { ClassesHeader } from "./_components/classes-header"
 import { ClassesSkeleton } from "./_components/classes-skeleton"
 import { CompetitionClassSection } from "./_components/competition-class-section"
 import { DeviceGroupSection } from "./_components/device-group-section"
-import { Separator } from "@/components/ui/separator"
 
 const _ClassesPage = Effect.fn("@blikka/web/ClassesPage")(
   function* ({ params }: PageProps<"/admin/[domain]/dashboard">) {
@@ -21,12 +20,12 @@ const _ClassesPage = Effect.fn("@blikka/web/ClassesPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<ClassesSkeleton />}>
-          <div className="container mx-auto p-6 space-y-10 max-w-[1300px]">
+          <div className="mx-auto max-w-4xl px-6 py-8 lg:py-10">
             <ClassesHeader />
-            <Separator className="my-8" />
-            <CompetitionClassSection />
-            <Separator className="my-8" />
-            <DeviceGroupSection />
+            <div className="space-y-10">
+              <CompetitionClassSection />
+              <DeviceGroupSection />
+            </div>
           </div>
         </Suspense>
       </HydrateClient>

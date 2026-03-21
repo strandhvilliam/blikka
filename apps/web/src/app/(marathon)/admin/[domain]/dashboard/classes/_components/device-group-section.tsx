@@ -7,7 +7,6 @@ import { toast } from "sonner"
 import { parseAsInteger, useQueryState } from "nuqs"
 import type { DeviceGroup } from "@blikka/db"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Plus, Trash2, Camera, Smartphone, Zap } from "lucide-react"
 import { useState } from "react"
@@ -18,11 +17,11 @@ import { DeviceGroupDeleteDialog } from "./device-group-delete-dialog"
 function getDeviceIcon(icon: string) {
   switch (icon) {
     case "smartphone":
-      return <Smartphone className="h-6 w-6" />
+      return <Smartphone className="h-[18px] w-[18px]" strokeWidth={1.8} />
     case "action-camera":
-      return <Zap className="h-6 w-6" />
+      return <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} />
     default:
-      return <Camera className="h-6 w-6" />
+      return <Camera className="h-[18px] w-[18px]" strokeWidth={1.8} />
   }
 }
 
@@ -71,16 +70,18 @@ export function DeviceGroupSection() {
   }
 
   return (
-    <section className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold font-gothic">Device Groups</h2>
+    <section>
+      <div className="flex items-center gap-2.5 mb-4">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
+        <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
+          Device Groups
+        </p>
       </div>
-      <p className="text-sm text-muted-foreground pb-4">
-        Here you can add, edit, or remove device groups for the marathon. Each group helps you
-        organize participants by the type of camera or device they use. Use this section to create
-        categories like smartphones, action cameras, or other devices for your event.
+      <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 max-w-lg">
+        Organize participants by the type of camera or device they use. Create categories like
+        smartphones, action cameras, or other devices.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {groups.map((group) => (
           <DeviceGroupCard
             key={group.id}
@@ -90,16 +91,14 @@ export function DeviceGroupSection() {
             isDeleting={isDeleting}
           />
         ))}
-        <Card className="flex items-center justify-center bg-muted/50">
-          <Button
-            variant="ghost"
-            className="w-full transition duration-200 h-full flex flex-col items-center justify-center py-10 text-muted-foreground"
-            onClick={() => setIsCreateDialogOpen(true)}
-          >
-            <Plus className="size-5" />
-            <span>Add Device Group</span>
-          </Button>
-        </Card>
+        <button
+          type="button"
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/60 py-8 text-muted-foreground/60 transition-colors hover:border-border hover:bg-muted/30 hover:text-muted-foreground cursor-pointer"
+        >
+          <Plus className="h-5 w-5" strokeWidth={1.5} />
+          <span className="text-[13px] font-medium">Add Device Group</span>
+        </button>
         <DeviceGroupCreateDialog isOpen={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
         <DeviceGroupEditDialog
           deviceGroupId={editDeviceGroupId}
@@ -129,9 +128,9 @@ function DeviceGroupCard({
   onOpenEdit: () => void
 }) {
   return (
-    <Card key={group.id} className="relative justify-between flex flex-col">
+    <div className="group relative flex flex-col justify-between rounded-xl border border-border bg-white transition-shadow duration-200 hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]">
       <div className="flex flex-col gap-2 p-4">
-        <div className="flex h-fit items-center w-fit justify-center bg-muted rounded-lg shadow-sm border p-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/80 text-muted-foreground/60">
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="flex items-center justify-center">{getDeviceIcon(group.icon)}</span>
@@ -139,12 +138,16 @@ function DeviceGroupCard({
             <TooltipContent>Device type: {group.icon}</TooltipContent>
           </Tooltip>
         </div>
-        <div className="flex flex-col justify-between">
-          <h3 className="text-lg font-semibold">{group.name}</h3>
-          <p className="text-sm text-muted-foreground">{group.description}</p>
+        <div>
+          <h3 className="text-[15px] font-semibold tracking-tight">{group.name}</h3>
+          {group.description && (
+            <p className="text-[13px] text-muted-foreground leading-relaxed mt-0.5">
+              {group.description}
+            </p>
+          )}
         </div>
       </div>
-      <div className="flex items-center px-4 pb-4 gap-2">
+      <div className="flex items-center px-4 pb-4 gap-1.5">
         <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={onOpenEdit}>
           Edit
         </Button>
@@ -156,9 +159,9 @@ function DeviceGroupCard({
           aria-label="Delete device group"
           className="h-8 w-8"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-3.5 h-3.5" />
         </Button>
       </div>
-    </Card>
+    </div>
   )
 }
