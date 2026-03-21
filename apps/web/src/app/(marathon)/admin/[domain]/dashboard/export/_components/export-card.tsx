@@ -1,7 +1,5 @@
 "use client"
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -32,7 +30,6 @@ interface ExportCardProps {
   formatOptions?: SelectOption[]
   validationOptions?: SelectOption[]
   fileFormatOptions?: SelectOption[]
-  accentColor?: string
   disabled?: boolean
 }
 
@@ -42,15 +39,6 @@ function getFileExtension(exportType: string, format: string, fileFormat: string
     return fileFormat === "folder" ? "zip" : "txt"
   }
   return "xlsx"
-}
-
-function hexToRgba(hex: string, alpha: number) {
-  const normalized = hex.replace("#", "").trim()
-  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return null
-  const r = parseInt(normalized.slice(0, 2), 16)
-  const g = parseInt(normalized.slice(2, 4), 16)
-  const b = parseInt(normalized.slice(4, 6), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 function buildExportUrl(
@@ -123,7 +111,6 @@ export function ExportCard({
   formatOptions,
   validationOptions,
   fileFormatOptions,
-  accentColor = "hsl(var(--primary))",
   disabled = false,
 }: ExportCardProps) {
   const domain = useDomain()
@@ -134,11 +121,6 @@ export function ExportCard({
 
   const hasOptions = formatOptions || validationOptions || fileFormatOptions
   const extension = getFileExtension(exportType, format, fileFormat).toUpperCase()
-
-  const accentBg =
-    typeof accentColor === "string" && accentColor.startsWith("#")
-      ? hexToRgba(accentColor, 0.12)
-      : "hsl(var(--muted) / 0.6)"
 
   const handleExport = useCallback(async () => {
     try {
@@ -183,42 +165,40 @@ export function ExportCard({
   ])
 
   return (
-    <Card className={cn(
-      "group relative overflow-hidden transition-all duration-200 py-6!",
-      disabled 
-        ? "opacity-50 cursor-not-allowed" 
-        : "hover:shadow-md"
-    )}>
-      <CardHeader className="space-y-0 pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-                "ring-1 ring-border text-muted-foreground"
-              )}
-              style={{ background: accentBg ? accentBg : undefined }}
-            >
-              {icon}
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-semibold font-gothic leading-none">{title}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+    <div
+      className={cn(
+        "group relative rounded-xl border bg-white transition-shadow duration-200",
+        disabled
+          ? "border-border/60 opacity-60 cursor-not-allowed"
+          : "border-border hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]"
+      )}
+    >
+      <div className="flex items-start gap-4 p-5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/80 text-muted-foreground/60">
+          {icon}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-[15px] font-semibold tracking-tight text-foreground/70">
+                {title}
+              </h3>
+              <p className="text-[13px] text-muted-foreground leading-relaxed mt-0.5">
                 {description}
               </p>
             </div>
+            <span className="inline-flex shrink-0 items-center rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {extension}
+            </span>
           </div>
-
-          <Badge variant="secondary" className="rounded-full">
-            {extension}
-          </Badge>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-4">
-        {hasOptions ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {formatOptions ? (
+      <div className="mx-5 mb-5 pt-4 border-t border-border/50">
+        {hasOptions && (
+          <div className="grid gap-3 sm:grid-cols-2 mb-4">
+            {formatOptions && (
               <div className="space-y-1.5">
                 <Label htmlFor={`${exportType}-format`} className="text-xs text-muted-foreground">
                   Format
@@ -232,9 +212,9 @@ export function ExportCard({
                   disabled={disabled}
                 />
               </div>
-            ) : null}
+            )}
 
-            {validationOptions ? (
+            {validationOptions && (
               <div className="space-y-1.5">
                 <Label htmlFor={`${exportType}-scope`} className="text-xs text-muted-foreground">
                   Scope
@@ -248,9 +228,9 @@ export function ExportCard({
                   disabled={disabled}
                 />
               </div>
-            ) : null}
+            )}
 
-            {fileFormatOptions ? (
+            {fileFormatOptions && (
               <div className="space-y-1.5">
                 <Label htmlFor={`${exportType}-output`} className="text-xs text-muted-foreground">
                   Output
@@ -264,33 +244,33 @@ export function ExportCard({
                   disabled={disabled}
                 />
               </div>
-            ) : null}
+            )}
           </div>
-        ) : null}
+        )}
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            Exports are generated on demand and may take a few seconds.
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] text-muted-foreground/70">
+            Generated on demand. May take a few seconds.
           </p>
           <PrimaryButton
             onClick={handleExport}
             disabled={isLoading || disabled}
-            className="w-full sm:w-auto h-9 px-3 py-1.5"
+            className="shrink-0 h-8 px-3 text-xs"
           >
             {isLoading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Exporting…
               </>
             ) : (
               <>
-                <Download className="h-4 w-4" />
+                <Download className="h-3.5 w-3.5" />
                 Download
               </>
             )}
           </PrimaryButton>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

@@ -1,59 +1,83 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
-function ExportCardSkeleton() {
+function ExportCardSkeleton({ hasOptions = true }: { hasOptions?: boolean }) {
   return (
-    <Card className="relative overflow-hidden">
-      <div className="absolute inset-y-0 left-0 w-1">
-        <Skeleton className="h-full w-full rounded-none" />
+    <div className="rounded-xl border border-border bg-white">
+      <div className="flex items-start gap-4 p-5">
+        <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3.5 w-56" />
+            </div>
+            <Skeleton className="h-5 w-12 rounded-full shrink-0" />
+          </div>
+        </div>
       </div>
-
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <Skeleton className="h-10 w-10 rounded-lg" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-3 w-64 max-w-full" />
+      <div className="mx-5 mb-5 pt-4 border-t border-border/50">
+        {hasOptions && (
+          <div className="grid gap-3 sm:grid-cols-2 mb-4">
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-12" />
+              <Skeleton className="h-9 w-full rounded-md" />
+            </div>
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-12" />
+              <Skeleton className="h-9 w-full rounded-md" />
             </div>
           </div>
-          <Skeleton className="h-5 w-14 rounded-full" />
+        )}
+        <div className="flex items-center justify-between gap-3">
+          <Skeleton className="h-3 w-48" />
+          <Skeleton className="h-8 w-24 rounded-md shrink-0" />
         </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-12" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-3 w-12" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Skeleton className="h-3 w-60 max-w-full" />
-          <Skeleton className="h-9 w-full sm:w-28" />
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
 export function ExportSkeleton() {
   return (
-    <div className="container mx-auto max-w-[1200px] space-y-8 px-4 py-8 sm:px-6">
-      <div className="space-y-1">
-        <Skeleton className="h-9 w-48" />
-        <Skeleton className="h-5 w-80" />
+    <div className="mx-auto max-w-4xl px-6 py-8 lg:py-10">
+      <div className="mb-10">
+        <div className="flex items-center gap-3 mb-3">
+          <Skeleton className="h-9 w-9 rounded-lg" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-6 w-24" />
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-80" />
+          <Skeleton className="h-3.5 w-20" />
+        </div>
       </div>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <ExportCardSkeleton />
-        <ExportCardSkeleton />
-        <ExportCardSkeleton />
-        <ExportCardSkeleton />
+
+      <div className="space-y-10">
+        <section>
+          <div className="flex items-center gap-2.5 mb-4">
+            <Skeleton className="h-1.5 w-1.5 rounded-full" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+          <Skeleton className="h-3.5 w-72 mb-5" />
+          <div className="space-y-3">
+            <ExportCardSkeleton hasOptions={false} />
+            <ExportCardSkeleton hasOptions={false} />
+            <ExportCardSkeleton />
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center gap-2.5 mb-4">
+            <Skeleton className="h-1.5 w-1.5 rounded-full" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <Skeleton className="h-3.5 w-64 mb-5" />
+          <div className="space-y-3">
+            <ExportCardSkeleton hasOptions={false} />
+          </div>
+        </section>
       </div>
     </div>
   )
