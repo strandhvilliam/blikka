@@ -8,7 +8,9 @@ export default function StaffDefaultPage() {
         <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted/50 mb-4">
           <User2Icon className="h-7 w-7 text-muted-foreground/40" />
         </div>
-        <h2 className="mb-1.5 font-gothic text-lg font-semibold text-foreground">No Staff Selected</h2>
+        <h2 className="mb-1.5 font-gothic text-lg font-semibold text-foreground">
+          No Staff Selected
+        </h2>
         <p className="max-w-md text-center text-[13px] leading-relaxed text-muted-foreground/70">
           Select a staff member from the list to view their details, or add a new staff member to
           give them access to the standalone verification desk.

@@ -12,25 +12,25 @@ const _RulesPage = Effect.fn("@blikka/web/RulesPage")(
     prefetch(
       trpc.rules.getByDomain.queryOptions({
         domain,
-      })
+      }),
     )
     prefetch(
       trpc.marathons.getByDomain.queryOptions({
         domain,
-      })
+      }),
     )
 
     return (
       <HydrateClient>
         <Suspense fallback={<RulesSkeleton />}>
-          <div className="mx-auto max-w-3xl px-6 py-8 lg:py-10">
+          <div className="mx-auto max-w-3xl px-6 py-4">
             <RulesForm />
           </div>
         </Suspense>
       </HydrateClient>
     )
   },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Page(_RulesPage)

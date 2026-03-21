@@ -12,20 +12,20 @@ const _SponsorsPage = Effect.fn("@blikka/web/SponsorsPage")(
     prefetch(
       trpc.sponsors.getByMarathon.queryOptions({
         domain,
-      })
+      }),
     )
 
     return (
       <HydrateClient>
         <Suspense fallback={<SponsorsSkeleton />}>
-          <div className="mx-auto max-w-4xl px-6 py-8 lg:py-10">
+          <div className="mx-auto max-w-4xl px-6 py-4">
             <SponsorsContent />
           </div>
         </Suspense>
       </HydrateClient>
     )
   },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Page(_SponsorsPage)

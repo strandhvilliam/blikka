@@ -14,13 +14,13 @@ const _ClassesPage = Effect.fn("@blikka/web/ClassesPage")(
     prefetch(
       trpc.marathons.getByDomain.queryOptions({
         domain,
-      })
+      }),
     )
 
     return (
       <HydrateClient>
         <Suspense fallback={<ClassesSkeleton />}>
-          <div className="mx-auto max-w-4xl px-6 py-8 lg:py-10">
+          <div className="mx-auto max-w-4xl px-6 py-4">
             <ClassesHeader />
             <div className="space-y-10">
               <CompetitionClassSection />
@@ -31,7 +31,7 @@ const _ClassesPage = Effect.fn("@blikka/web/ClassesPage")(
       </HydrateClient>
     )
   },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Page(_ClassesPage)

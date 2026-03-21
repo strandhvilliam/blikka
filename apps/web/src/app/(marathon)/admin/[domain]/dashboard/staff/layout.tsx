@@ -14,12 +14,12 @@ const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
     prefetch(
       trpc.users.getStaffMembersByDomain.queryOptions({
         domain,
-      })
+      }),
     )
 
     return (
       <HydrateClient>
-        <div className="flex h-full gap-5 mx-auto max-w-[1600px] p-6">
+        <div className="flex h-full gap-5 mx-auto max-w-[1600px] px-6 py-4">
           <div className="w-80 shrink-0 flex flex-col rounded-xl border border-border bg-white overflow-hidden">
             <div className="border-b border-border px-4 py-4">
               <div className="flex items-center justify-between">
@@ -31,7 +31,9 @@ const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
                       Team
                     </p>
-                    <h1 className="text-lg font-bold tracking-tight font-gothic leading-none">Staff</h1>
+                    <h1 className="text-lg font-bold tracking-tight font-gothic leading-none">
+                      Staff
+                    </h1>
                   </div>
                 </div>
                 <StaffAddDialog />
@@ -48,7 +50,7 @@ const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(
       </HydrateClient>
     )
   },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
 export default Layout(_StaffLayout)

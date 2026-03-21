@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function SubmissionsSkeleton() {
   return (
-    <div className="mx-auto px-6 py-8 lg:py-10 space-y-6">
+    <div className="mx-auto px-6 py-4 space-y-6">
       {/* Header */}
       <div className="space-y-4">
         <div className="flex items-start justify-between">
