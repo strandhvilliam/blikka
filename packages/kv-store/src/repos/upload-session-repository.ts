@@ -11,7 +11,7 @@ import {
   type SubmissionState,
 } from "../schema"
 import { parseKey } from "../utils"
-import { luaIncrement } from "../lua-scripts/lua-increment"
+import { incrementParticipantScript } from "../lua-scripts/lua-increment"
 
 function isMissingHashResult(result: Record<string, unknown> | null | undefined) {
   return !result || Object.keys(result).length === 0
@@ -97,11 +97,12 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
         "UploadSessionRepository.incrementParticipantState"
       )(function* (domain: string, ref: string, orderIndex: number) {
         const key = keyFactory.participant(domain, ref)
-        const incrementScript = luaIncrement
-        const [result] = yield* redis
-          .use((client) =>
-            client.eval<string[], [string]>(incrementScript, [key], [orderIndex.toString()])
-          )
+        const result = yield* redis.use((client) =>
+          incrementParticipantScript.run(client, {
+            keys: { key },
+            args: { orderIndex },
+          })
+        )
           .pipe(
             Effect.mapError((error) => {
               return new RedisError({
