@@ -621,8 +621,8 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
               )}
             </PrimaryButton>
           ) : step4Status === "completed" && currentPhase === "complete" ? (
-            <div className="space-y-3">
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+            <div className="flex flex-col gap-3">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
                 <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
                 Completed
               </span>
@@ -649,7 +649,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 type="button"
                 onClick={handleReopenVotingClick}
                 disabled={reopenVotingMutation.isPending}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="flex w-fit items-center gap-1 self-start text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 {reopenVotingMutation.isPending ? (
                   <Loader2 className="h-3 w-3 animate-spin" />

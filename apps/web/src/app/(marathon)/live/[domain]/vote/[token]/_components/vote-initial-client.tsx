@@ -65,8 +65,8 @@ export function VoteInitialClient({ domain, token }: { domain: string; token: st
             <div className="bg-gray-50 rounded-xl p-4 mb-6">
               <p className="text-sm text-gray-600 text-center leading-relaxed">
                 Use 1-5 stars as private review notes to shortlist photos for yourself. The stars do
-                not count as your vote. When you have picked one winner, submit that photo as your
-                final vote.
+                not count as your vote. When you know which photo you want to vote for, submit it as
+                your final vote.
               </p>
             </div>
 

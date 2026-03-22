@@ -1,18 +1,53 @@
 "use client"
 
+import { useEffect } from "react"
 import { Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
+import { useTRPC } from "@/lib/trpc/client"
+import { getVotingUnavailableReason } from "@/lib/voting-lifecycle"
+import { formatDomainPathname } from "@/lib/utils"
 import { getVotingUnavailableContent } from "../_lib/voting-unavailable"
 
 export default function UnavailablePage() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
-  const domain = params?.domain as string
+  const trpc = useTRPC()
+  const domain = params?.domain as string | undefined
+  const token = params?.token as string | undefined
   const reason = searchParams.get("reason")
   const content = getVotingUnavailableContent(reason)
+
+  const { data: votingSession } = useQuery({
+    ...trpc.voting.getVotingSession.queryOptions({ token: token ?? "" }),
+    enabled: Boolean(token),
+    refetchOnWindowFocus: true,
+  })
+
+  useEffect(() => {
+    if (!votingSession || !token) return
+
+    const sessionDomain = votingSession.marathon?.domain
+    const pathDomain = sessionDomain && domain && sessionDomain !== domain ? sessionDomain : domain
+    if (!pathDomain) return
+
+    if (votingSession.voteSubmissionId && votingSession.votedAt) {
+      router.replace(formatDomainPathname(`/live/vote/${token}/completed`, pathDomain, "live"))
+      return
+    }
+
+    const unavailableReason = getVotingUnavailableReason({
+      startsAt: votingSession.startsAt,
+      endsAt: votingSession.endsAt,
+    })
+
+    if (!unavailableReason) {
+      router.replace(formatDomainPathname(`/live/vote/${token}`, pathDomain, "live"))
+    }
+  }, [votingSession, domain, token, router])
 
   const handleGoToLanding = () => {
     if (domain) {
@@ -32,23 +67,13 @@ export default function UnavailablePage() {
                 <Clock className="w-10 h-10 text-amber-600" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-center mb-2">
-              {content.title}
-            </h1>
-            <p className="text-muted-foreground text-center mb-6">
-              {content.description}
-            </p>
+            <h1 className="text-2xl font-bold text-center mb-2">{content.title}</h1>
+            <p className="text-muted-foreground text-center mb-6">{content.description}</p>
             <div className="bg-muted rounded-xl p-4 mb-6">
-              <p className="text-sm text-muted-foreground text-center">
-                {content.hint}
-              </p>
+              <p className="text-sm text-muted-foreground text-center">{content.hint}</p>
             </div>
             <div className="flex justify-center">
-              <Button
-                onClick={handleGoToLanding}
-                variant="outline"
-                className="w-full"
-              >
+              <Button onClick={handleGoToLanding} variant="outline" className="w-full">
                 Go to home page
               </Button>
             </div>
@@ -56,19 +81,10 @@ export default function UnavailablePage() {
 
           {/* Powered by Blikka */}
           <div className="mt-6 flex flex-col items-center">
-            <p className="text-xs text-muted-foreground mb-1 italic">
-              Powered by
-            </p>
+            <p className="text-xs text-muted-foreground mb-1 italic">Powered by</p>
             <div className="flex items-center gap-1.5">
-              <Image
-                src="/blikka-logo.svg"
-                alt="Blikka"
-                width={20}
-                height={17}
-              />
-              <span className="font-rocgrotesk font-bold text-base tracking-tight">
-                blikka
-              </span>
+              <Image src="/blikka-logo.svg" alt="Blikka" width={20} height={17} />
+              <span className="font-rocgrotesk font-bold text-base tracking-tight">blikka</span>
             </div>
           </div>
         </main>

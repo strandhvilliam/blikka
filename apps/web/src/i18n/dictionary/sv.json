@@ -300,12 +300,12 @@
         "description": "Använd filtren högst upp för att gå tillbaka till foton du har markerat med ett visst antal stjärnor, jämföra favoriter eller hitta foton du inte har granskat ännu."
       },
       "chooseFinalPhoto": {
-        "title": "Välj en vinnare",
+        "title": "Välj ett foto att rösta på",
         "description": "När du visar fotot du vill välja trycker du på \"{buttonLabel}\". Det är bara detta som räknas som din röst. Du kan inte rösta på ditt eget foto."
       },
       "confirmVote": {
         "title": "Bekräfta din röst",
-        "description": "När du har tryckt på \"{buttonLabel}\" bekräftar du för att skicka in ditt slutliga val av vinnare. Din röst kan inte ändras efteråt."
+        "description": "När du har tryckt på \"{buttonLabel}\" bekräftar du för att skicka in din slutliga röst. Din röst kan inte ändras efteråt."
       },
       "progressTitle": "Granskningsframsteg",
       "progressValue": "{rated} / {total} röstbara foton granskade"
@@ -325,15 +325,15 @@
     },
     "voteButton": {
       "cannotVoteForYourself": "Du kan inte rösta på ditt eget foto",
-      "yourVote": "Din vinnare",
-      "alreadyVoted": "Vinnare vald",
-      "voteForThisPhoto": "Välj som vinnare",
-      "dialogTitle": "Välj det här fotot som vinnare?",
-      "dialogDescription": "Du håller på att skicka in din slutliga röst för fotot du visar just nu. Stjärnmarkeringar är bara privata granskningsanteckningar.",
+      "yourVote": "Din röst",
+      "alreadyVoted": "Röst skickad",
+      "voteForThisPhoto": "Rösta på detta foto",
+      "dialogTitle": "Rösta på detta foto?",
+      "dialogDescription": "Du håller på att skicka in din slutliga röst för fotot du visar just nu.",
       "topicLabel": "Tema",
       "cannotBeChanged": "Detta kan inte ändras senare.",
       "cancel": "Avbryt",
-      "confirm": "Skicka vinnare",
+      "confirm": "Skicka röst",
       "imageAlt": "Fotot du röstar på"
     },
     "emptyState": {

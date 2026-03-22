@@ -300,12 +300,12 @@
         "description": "Use the filters at the top to revisit photos you've marked with a certain number of stars, compare favorites, or find photos you haven't reviewed yet."
       },
       "chooseFinalPhoto": {
-        "title": "Pick one winner",
+        "title": "Pick one photo to vote for",
         "description": "When you're viewing the photo you want to choose, tap \"{buttonLabel}\". This is the only action that counts as your vote. You can't vote for your own photo."
       },
       "confirmVote": {
         "title": "Confirm your vote",
-        "description": "After you tap \"{buttonLabel}\", confirm to submit your final winner. Your vote can't be changed later."
+        "description": "After you tap \"{buttonLabel}\", confirm to submit your final vote. Your vote can't be changed later."
       },
       "progressTitle": "Review progress",
       "progressValue": "{rated} / {total} eligible photos reviewed"
@@ -325,15 +325,15 @@
     },
     "voteButton": {
       "cannotVoteForYourself": "You can't vote for your own photo",
-      "yourVote": "Your winner",
-      "alreadyVoted": "Winner selected",
-      "voteForThisPhoto": "Choose this as winner",
-      "dialogTitle": "Choose this photo as winner?",
-      "dialogDescription": "You're about to submit your final vote for the photo you're viewing now. Star marks are only private review notes.",
+      "yourVote": "Your vote",
+      "alreadyVoted": "Vote submitted",
+      "voteForThisPhoto": "Vote for this photo",
+      "dialogTitle": "Vote for this photo?",
+      "dialogDescription": "You're about to submit your final vote for the photo you're viewing now.",
       "topicLabel": "Topic",
       "cannotBeChanged": "This can't be changed later.",
       "cancel": "Cancel",
-      "confirm": "Submit winner",
+      "confirm": "Submit vote",
       "imageAlt": "Photo you're voting for"
     },
     "emptyState": {
