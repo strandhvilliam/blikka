@@ -1,32 +1,44 @@
 import { SNSClient } from "@aws-sdk/client-sns"
-import { Config, Console, Data, Effect, Layer, Schema, ServiceMap } from "effect"
+import { Config, Console, Data, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 
 export class SNSEffectError extends Schema.TaggedErrorClass<SNSEffectError>()("SNSEffectError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
-}) {
-}
+}) {}
 
 export class SNSEffectClient extends ServiceMap.Service<SNSEffectClient>()(
   "@blikka/sms/sns-client",
   {
     make: Effect.gen(function* () {
       const region = yield* Config.string("AWS_REGION")
-      const accessKeyId = yield* Config.string("AWS_ACCESS_KEY_ID")
-      const secretAccessKey = yield* Config.string("AWS_SECRET_ACCESS_KEY")
+      const accessKeyId = yield* Config.option(Config.string("AWS_ACCESS_KEY_ID"))
+      const secretAccessKey = yield* Config.option(Config.string("AWS_SECRET_ACCESS_KEY"))
+      const sessionToken = yield* Config.option(Config.string("AWS_SESSION_TOKEN"))
+
+      let credentials:
+        | { accessKeyId: string; secretAccessKey: string; sessionToken?: string }
+        | undefined
+      if (Option.isSome(accessKeyId) && Option.isSome(secretAccessKey)) {
+        credentials = {
+          accessKeyId: accessKeyId.value,
+          secretAccessKey: secretAccessKey.value,
+          sessionToken: Option.isSome(sessionToken) ? sessionToken.value : undefined,
+        }
+      }
 
       const client = yield* Effect.acquireRelease(
-        Effect.sync(() => new SNSClient({
-          region, credentials: {
-            accessKeyId,
-            secretAccessKey,
-          }
-        })),
-        (client) => Effect.sync(() => {
-          Console.log("Shutting down SNS client")
-          client.destroy()
-        }
+        Effect.sync(
+          () =>
+            new SNSClient({
+              region,
+              credentials: credentials,
+            }),
         ),
+        (client) =>
+          Effect.sync(() => {
+            Console.log("Shutting down SNS client")
+            client.destroy()
+          }),
       )
       const use = <T>(
         fn: (client: SNSClient) => T,
@@ -38,9 +50,7 @@ export class SNSEffectClient extends ServiceMap.Service<SNSEffectClient>()(
               new SNSEffectError({
                 cause: error,
                 message:
-                  error instanceof Error
-                    ? error.message
-                    : "Unknown error in SNS Effect Client",
+                  error instanceof Error ? error.message : "Unknown error in SNS Effect Client",
               }),
           })
           if (result instanceof Promise) {
@@ -50,15 +60,12 @@ export class SNSEffectClient extends ServiceMap.Service<SNSEffectClient>()(
                 new SNSEffectError({
                   cause: e,
                   message:
-                    e instanceof Error
-                      ? e.message
-                      : "Unknown error in SNS Effect Client (Async)",
+                    e instanceof Error ? e.message : "Unknown error in SNS Effect Client (Async)",
                 }),
             })
           }
           return result
         })
-
 
       return {
         use,

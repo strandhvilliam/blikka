@@ -1,5 +1,5 @@
 import { SNSClient } from "@aws-sdk/client-sns"
-import { Config, Console, Data, Effect, Layer, Schema, ServiceMap } from "effect"
+import { Config, Console, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 
 export class SNSEffectError extends Schema.TaggedErrorClass<SNSEffectError>()("SNSEffectError", {
   message: Schema.String,
@@ -12,16 +12,29 @@ export class SNSEffectClient extends ServiceMap.Service<SNSEffectClient>()(
   {
     make: Effect.gen(function* () {
       const region = yield* Config.string("AWS_REGION")
-      const accessKeyId = yield* Config.string("AWS_ACCESS_KEY_ID")
-      const secretAccessKey = yield* Config.string("AWS_SECRET_ACCESS_KEY")
+      const accessKeyId = yield* Config.option(Config.string("AWS_ACCESS_KEY_ID"))
+      const secretAccessKey = yield* Config.option(Config.string("AWS_SECRET_ACCESS_KEY"))
+      const sessionToken = yield* Config.option(Config.string("AWS_SESSION_TOKEN"))
+
+      let credentials:
+        | { accessKeyId: string; secretAccessKey: string; sessionToken?: string }
+        | undefined
+      if (Option.isSome(accessKeyId) && Option.isSome(secretAccessKey)) {
+        credentials = {
+          accessKeyId: accessKeyId.value,
+          secretAccessKey: secretAccessKey.value,
+          ...(Option.isSome(sessionToken) ? { sessionToken: sessionToken.value } : {}),
+        }
+      }
 
       const client = yield* Effect.acquireRelease(
-        Effect.sync(() => new SNSClient({
-          region, credentials: {
-            accessKeyId,
-            secretAccessKey,
-          }
-        })),
+        Effect.sync(
+          () =>
+            new SNSClient({
+              region,
+              credentials,
+            }),
+        ),
         (client) => Effect.sync(() => {
           Console.log("Shutting down SNS client")
           client.destroy()

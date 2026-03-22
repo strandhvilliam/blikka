@@ -10,11 +10,6 @@ export default $config({
     }
   },
   async run() {
-    const compactEnv = (values: Record<string, string | undefined>) =>
-      Object.fromEntries(
-        Object.entries(values).filter(([, value]) => value !== undefined && value !== ""),
-      ) as Record<string, string>
-
     const env = {
       UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL!,
       UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN!,
@@ -34,6 +29,9 @@ export default $config({
       CONTACT_SHEETS_BUCKET_NAME: process.env.CONTACT_SHEETS_BUCKET_NAME!,
       SPONSORS_BUCKET_NAME: process.env.SPONSORS_BUCKET_NAME!,
       ZIPS_BUCKET_NAME: process.env.ZIPS_BUCKET_NAME!,
+      ENCRYPTION_KEY: process.env.ENCRYPTION_KEY!,
+      HMAC_KEY: process.env.HMAC_KEY!,
+      NODE_ENV: process.env.NODE_ENV!,
     }
 
     const ALLOWED_ORIGINS = [
@@ -226,10 +224,13 @@ export default $config({
       handler: "./tasks/voting-sms-notifier/src/index.handler",
       timeout: "5 minutes",
       environment: env,
-      batch: {
-        size: 1,
-      },
       link: [votingSmsQueue],
+      permissions: [
+        sst.aws.permission({
+          actions: ["sns:Publish"],
+          resources: ["*"],
+        }),
+      ],
     })
 
     /* BUS SUBSCRIPTIONS */

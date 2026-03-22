@@ -174,7 +174,7 @@ const effectHandler = (event: SQSEvent) =>
               )
 
             yield* smsService
-              .sendWithOptOutCheck({
+              .send({
                 phoneNumber,
                 message: buildVotingInviteMessage({
                   marathonName: session.marathon.name,
