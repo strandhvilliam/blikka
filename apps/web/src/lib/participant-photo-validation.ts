@@ -1,5 +1,6 @@
 import type { RuleConfig } from "@blikka/db";
 import type { ValidationResult } from "@blikka/validation";
+import type { UploadMarathonMode } from "./types";
 import {
   type ValidatablePhotoLike,
   buildValidationInputs,
@@ -18,6 +19,7 @@ interface RunParticipantPhotoValidationInput<
   ruleConfigs: RuleConfig[];
   marathonStartDate?: string | Date | null;
   marathonEndDate?: string | Date | null;
+  marathonMode?: UploadMarathonMode;
 }
 
 export async function runParticipantPhotoValidation<
@@ -27,13 +29,14 @@ export async function runParticipantPhotoValidation<
   ruleConfigs,
   marathonStartDate,
   marathonEndDate,
+  marathonMode,
 }: RunParticipantPhotoValidationInput<TPhoto>): Promise<ValidationResult[]> {
   if (photos.length === 0) {
     return [];
   }
 
   const rules = prepareValidationRules(
-    mapRuleConfigsToValidationRules(ruleConfigs),
+    mapRuleConfigsToValidationRules(ruleConfigs, marathonMode),
     { start: marathonStartDate, end: marathonEndDate },
   );
 

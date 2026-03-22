@@ -91,6 +91,7 @@ export function ByCameraUploadStep({
     ruleConfigs,
     validationStartDate,
     validationEndDate,
+    marathonMode: "by-camera",
   });
 
   const {
@@ -157,7 +158,7 @@ export function ByCameraUploadStep({
     );
 
   const validationRules = useMemo(
-    () => mapRuleConfigsToValidationRules(ruleConfigs),
+    () => mapRuleConfigsToValidationRules(ruleConfigs, "by-camera"),
     [ruleConfigs],
   );
 

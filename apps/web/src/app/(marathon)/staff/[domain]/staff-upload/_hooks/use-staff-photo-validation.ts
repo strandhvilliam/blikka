@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import type { RuleConfig } from "@blikka/db";
 import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation";
+import type { UploadMarathonMode } from "@/lib/types";
 import { useStaffUploadStore } from "../_lib/staff-upload-store";
 import type { StaffUploadStep } from "./use-staff-upload-step";
 
@@ -11,6 +12,7 @@ interface UsePhotoValidationOptions {
   ruleConfigs: RuleConfig[];
   marathonStartDate?: string | Date | null;
   marathonEndDate?: string | Date | null;
+  marathonMode: UploadMarathonMode;
 }
 
 /**
@@ -22,6 +24,7 @@ export function useStaffPhotoValidation({
   ruleConfigs,
   marathonStartDate,
   marathonEndDate,
+  marathonMode,
 }: UsePhotoValidationOptions) {
   const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
   const patchPhotos = useStaffUploadStore((s) => s.patchPhotos);
@@ -43,6 +46,7 @@ export function useStaffPhotoValidation({
           ruleConfigs,
           marathonStartDate,
           marathonEndDate,
+          marathonMode,
         });
 
         if (!cancelled) {
@@ -68,6 +72,7 @@ export function useStaffPhotoValidation({
     };
   }, [
     marathonEndDate,
+    marathonMode,
     marathonStartDate,
     ruleConfigs,
     selectedPhotos,

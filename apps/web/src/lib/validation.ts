@@ -12,13 +12,33 @@ import {
 } from "@blikka/validation";
 import { clientRuntime } from "./client-runtime";
 import { Effect } from "effect";
+import type { UploadMarathonMode } from "./types";
+
+const BY_CAMERA_EXCLUDED_RULE_KEYS = new Set<RuleKey>([
+  RULE_KEYS.SAME_DEVICE,
+  RULE_KEYS.STRICT_TIMESTAMP_ORDERING,
+]);
+
+export function filterRuleConfigsByMarathonMode(
+  dbRuleConfigs: RuleConfig[],
+  marathonMode?: UploadMarathonMode,
+): RuleConfig[] {
+  if (marathonMode !== "by-camera") {
+    return dbRuleConfigs;
+  }
+
+  return dbRuleConfigs.filter(
+    (rule) => !BY_CAMERA_EXCLUDED_RULE_KEYS.has(rule.ruleKey as RuleKey),
+  );
+}
 
 export function mapRuleConfigsToValidationRules(
   dbRuleConfigs: RuleConfig[],
+  marathonMode?: UploadMarathonMode,
 ): ValidationRule[] {
   const validRuleKeys = new Set(Object.values(RULE_KEYS));
 
-  return dbRuleConfigs
+  return filterRuleConfigsByMarathonMode(dbRuleConfigs, marathonMode)
     .filter((rule) => rule.enabled)
     .filter((rule) => validRuleKeys.has(rule.ruleKey as RuleKey))
     .map((rule) => ({

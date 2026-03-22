@@ -9,6 +9,8 @@ function mockValidationDependencies() {
   vi.doMock("@blikka/validation", () => ({
     RULE_KEYS: {
       WITHIN_TIMERANGE: "within_timerange",
+      SAME_DEVICE: "same_device",
+      STRICT_TIMESTAMP_ORDERING: "strict_timestamp_ordering",
     },
     VALIDATION_OUTCOME: {
       FAILED: "failed",
@@ -168,5 +170,51 @@ describe("validation helpers", () => {
     expect(map.get("two")?.map((result) => result.message)).toEqual([
       "File match",
     ]);
+  });
+
+  it("filters multi-photo rule configs in by-camera mode", async () => {
+    mockValidationDependencies();
+    const { filterRuleConfigsByMarathonMode } = await import("./validation");
+
+    expect(
+      filterRuleConfigsByMarathonMode(
+        [
+          {
+            ruleKey: "same_device",
+            enabled: true,
+          },
+          {
+            ruleKey: "strict_timestamp_ordering",
+            enabled: true,
+          },
+          {
+            ruleKey: "within_timerange",
+            enabled: true,
+          },
+        ] as never,
+        "by-camera",
+      ).map((rule) => rule.ruleKey),
+    ).toEqual(["within_timerange"]);
+  });
+
+  it("keeps multi-photo rule configs in marathon mode", async () => {
+    mockValidationDependencies();
+    const { filterRuleConfigsByMarathonMode } = await import("./validation");
+
+    expect(
+      filterRuleConfigsByMarathonMode(
+        [
+          {
+            ruleKey: "same_device",
+            enabled: true,
+          },
+          {
+            ruleKey: "strict_timestamp_ordering",
+            enabled: true,
+          },
+        ] as never,
+        "marathon",
+      ).map((rule) => rule.ruleKey),
+    ).toEqual(["same_device", "strict_timestamp_ordering"]);
   });
 });

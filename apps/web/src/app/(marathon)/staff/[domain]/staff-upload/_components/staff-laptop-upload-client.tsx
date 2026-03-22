@@ -204,6 +204,7 @@ export function StaffLaptopUploadClient({
     ruleConfigs: marathon.ruleConfigs,
     marathonStartDate: marathon.startDate,
     marathonEndDate: marathon.endDate,
+    marathonMode,
   })
 
   const { resetCompletion } = useStaffUploadStatusSync({

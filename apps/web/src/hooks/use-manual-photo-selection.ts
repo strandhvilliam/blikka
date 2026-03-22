@@ -9,6 +9,7 @@ import { buildPhotoValidationMap, splitValidationResultsBySeverity } from "@/lib
 import { processSelectedFiles } from "@/lib/participant-selected-files"
 import { reassignOrderIndexes, revokePreviewUrls } from "@/lib/file-processing"
 import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation"
+import type { UploadMarathonMode } from "@/lib/types"
 
 interface UseManualPhotoSelectionInput {
   open: boolean
@@ -17,6 +18,7 @@ interface UseManualPhotoSelectionInput {
   ruleConfigs: RuleConfig[]
   marathonStartDate?: string | null
   marathonEndDate?: string | null
+  marathonMode: UploadMarathonMode
   isUploadBusy: boolean
   uploadComplete: boolean
   canSelectFiles: boolean
@@ -31,6 +33,7 @@ export function useManualPhotoSelection({
   ruleConfigs,
   marathonStartDate,
   marathonEndDate,
+  marathonMode,
   isUploadBusy,
   uploadComplete,
   canSelectFiles,
@@ -71,6 +74,7 @@ export function useManualPhotoSelection({
           ruleConfigs,
           marathonStartDate,
           marathonEndDate,
+          marathonMode,
         })
 
         if (cancelled) {
@@ -95,7 +99,7 @@ export function useManualPhotoSelection({
     return () => {
       cancelled = true
     }
-  }, [open, selectedPhotos, ruleConfigs, marathonStartDate, marathonEndDate])
+  }, [open, selectedPhotos, ruleConfigs, marathonStartDate, marathonEndDate, marathonMode])
 
   const generalValidationResults = validationResults.filter(
     (result) => result.isGeneral || (result.orderIndex === undefined && !result.fileName),

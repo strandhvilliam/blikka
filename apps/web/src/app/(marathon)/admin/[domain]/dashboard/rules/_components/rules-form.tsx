@@ -16,6 +16,27 @@ import { useAutoSave } from "@/hooks/use-auto-save"
 import type { RulesFormValues } from "../_lib/schemas"
 import { ShieldCheck, Circle, BookOpen } from "lucide-react"
 
+function sanitizeRulesForMarathonMode(
+  rules: RulesFormValues,
+  marathonMode?: "marathon" | "by-camera",
+): RulesFormValues {
+  if (marathonMode !== "by-camera") {
+    return rules
+  }
+
+  return {
+    ...rules,
+    same_device: {
+      ...rules.same_device,
+      enabled: false,
+    },
+    strict_timestamp_ordering: {
+      ...rules.strict_timestamp_ordering,
+      enabled: false,
+    },
+  }
+}
+
 export function RulesForm() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -42,7 +63,12 @@ export function RulesForm() {
     [dbRules, marathon?.startDate, marathon?.endDate],
   )
 
-  const [rules, setRules] = useState<RulesFormValues>(serverRules)
+  const normalizedServerRules = useMemo(
+    () => sanitizeRulesForMarathonMode(serverRules, marathon?.mode as "marathon" | "by-camera"),
+    [marathon?.mode, serverRules],
+  )
+
+  const [rules, setRules] = useState<RulesFormValues>(normalizedServerRules)
 
   const { mutate: updateRules } = useMutation(
     trpc.rules.updateMultiple.mutationOptions({
@@ -70,7 +96,7 @@ export function RulesForm() {
       }
       updateRules({
         domain,
-        data: mapRulesToDbRules(value),
+        data: mapRulesToDbRules(sanitizeRulesForMarathonMode(value, marathon.mode)),
       })
     },
     [domain, marathon, updateRules],
@@ -84,9 +110,9 @@ export function RulesForm() {
   })
 
   useEffect(() => {
-    setRules(serverRules)
-    resetToValue(serverRules)
-  }, [serverRules, resetToValue])
+    setRules(normalizedServerRules)
+    resetToValue(normalizedServerRules)
+  }, [normalizedServerRules, resetToValue])
 
   const updateRule = useCallback(
     <K extends keyof RulesFormValues>(key: K, value: RulesFormValues[K]) => {

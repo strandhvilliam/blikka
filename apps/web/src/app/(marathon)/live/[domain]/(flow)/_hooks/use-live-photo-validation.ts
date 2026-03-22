@@ -3,18 +3,21 @@
 import { useEffect } from "react";
 import type { RuleConfig } from "@blikka/db";
 import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation";
+import type { UploadMarathonMode } from "@/lib/types";
 import { usePhotoStore } from "../_lib/photo-store";
 
 interface UseLivePhotoValidationOptions {
   ruleConfigs: RuleConfig[];
   validationStartDate?: string | Date | null;
   validationEndDate?: string | Date | null;
+  marathonMode: UploadMarathonMode;
 }
 
 export function useLivePhotoValidation({
   ruleConfigs,
   validationStartDate,
   validationEndDate,
+  marathonMode,
 }: UseLivePhotoValidationOptions) {
   const photos = usePhotoStore((state) => state.photos);
   const setValidationResults = usePhotoStore(
@@ -36,6 +39,7 @@ export function useLivePhotoValidation({
           ruleConfigs,
           marathonStartDate: validationStartDate,
           marathonEndDate: validationEndDate,
+          marathonMode,
         });
 
         if (!cancelled) {
@@ -58,6 +62,7 @@ export function useLivePhotoValidation({
   }, [
     validationEndDate,
     validationStartDate,
+    marathonMode,
     photos,
     ruleConfigs,
     setValidationResults,

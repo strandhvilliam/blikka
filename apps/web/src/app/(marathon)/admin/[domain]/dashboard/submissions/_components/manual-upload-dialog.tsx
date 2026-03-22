@@ -139,6 +139,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
     ruleConfigs: marathon.ruleConfigs,
     marathonStartDate: marathon.startDate ?? null,
     marathonEndDate: marathon.endDate ?? null,
+    marathonMode,
     isUploadBusy,
     uploadComplete: uploadFlow.uploadComplete,
     canSelectFiles,

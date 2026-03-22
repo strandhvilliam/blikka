@@ -96,6 +96,7 @@ export function UploadSubmissionsStep({
     ruleConfigs,
     validationStartDate,
     validationEndDate,
+    marathonMode: "marathon",
   });
 
   const {
