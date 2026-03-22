@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, ServiceMap } from "effect"
+import { Cause, Effect, Layer, Option, ServiceMap } from "effect"
 import { S3Service } from "@blikka/aws"
 import { ExifKVRepository, ExifState, UploadSessionRepository } from "@blikka/kv-store"
 import { ExifParser } from "@blikka/image-manipulation"
@@ -31,19 +31,6 @@ export class UploadProcessorService extends ServiceMap.Service<UploadProcessorSe
 
       const thumbnailsBucketName = SSTResource.V2ThumbnailsBucket.name
       const submissionsBucketName = SSTResource.V2SubmissionsBucket.name
-
-      const handleParticipantError = Effect.fn("UploadProcessorService.handleParticipantError")(
-        function* (domain: string, reference: string, errorCode: string, error: Error) {
-          yield* Effect.logError(
-            `Failed to set participant error state: ${error.message}`,
-            error.cause,
-          )
-          return yield* uploadKv
-            .setParticipantErrorState(domain, reference, errorCode)
-            .pipe(Effect.andThen(() => Effect.logError(error.message, error.cause)))
-        },
-        Effect.catch((error) => Effect.logError("Failed to set participant error state", error)),
-      )
 
       const generateThumbnail = Effect.fn("UploadProcessorService.generateThumbnail")(function* (
         photo: Uint8Array<ArrayBufferLike>,
@@ -106,18 +93,26 @@ export class UploadProcessorService extends ServiceMap.Service<UploadProcessorSe
               exifParser.parse(photo).pipe(
                 Effect.tap((exif) => exifKv.setExifState(domain, reference, orderIndex, exif)),
                 Effect.map(Option.some),
-                Effect.catch((error) =>
-                  handleParticipantError(domain, reference, "EXIF_ERROR", error).pipe(
-                    Effect.as(Option.none<ExifState>()),
-                  ),
+                Effect.catchCause((cause) =>
+                  Effect.gen(function* () {
+                    yield* Effect.logWarning(
+                      "EXIF parse or persist failed; continuing without EXIF (can retry later)",
+                      { domain, reference, orderIndex, key, cause: Cause.pretty(cause) },
+                    )
+                    return Option.none<ExifState>()
+                  }),
                 ),
               ),
               generateThumbnail(photo, { domain, reference, orderIndex, fileName }).pipe(
                 Effect.map(Option.some),
-                Effect.catch((error) =>
-                  handleParticipantError(domain, reference, "THUMBNAIL_ERROR", error).pipe(
-                    Effect.as(Option.none<string>()),
-                  ),
+                Effect.catchCause((cause) =>
+                  Effect.gen(function* () {
+                    yield* Effect.logWarning(
+                      "Thumbnail generation or upload failed; continuing without thumbnail (can retry later)",
+                      { domain, reference, orderIndex, key, cause: Cause.pretty(cause) },
+                    )
+                    return Option.none<string>()
+                  }),
                 ),
               ),
             ],

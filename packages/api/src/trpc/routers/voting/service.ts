@@ -738,7 +738,20 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           endsAt: endsAtIso,
         });
 
-        if (!createdRound) {
+        const resolvedRound =
+          createdRound ??
+          Option.getOrUndefined(
+            yield* db.votingQueries.getLatestVotingRoundForTopic({
+              marathonId: marathon.id,
+              topicId,
+            }),
+          );
+
+        if (
+          !resolvedRound ||
+          resolvedRound.roundNumber !== latestRound.roundNumber + 1 ||
+          resolvedRound.kind !== "tiebreak"
+        ) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to create a tie-break round",
@@ -747,14 +760,14 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         }
 
         yield* db.votingQueries.createVotingRoundSubmissions({
-          roundId: createdRound.id,
+          roundId: resolvedRound.id,
           submissionIds: leadingTie.submissionIds,
         });
 
         return {
           topicId,
           votingWindow,
-          round: mapRoundSummary(createdRound),
+          round: mapRoundSummary(resolvedRound),
           eligibleSubmissionCount: leadingTie.submissionIds.length,
           tieSize: leadingTie.tieSize,
         };
@@ -869,7 +882,20 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           endsAt: endsAtIso,
         });
 
-        if (!createdRound) {
+        const resolvedRound =
+          createdRound ??
+          Option.getOrUndefined(
+            yield* db.votingQueries.getLatestVotingRoundForTopic({
+              marathonId: marathon.id,
+              topicId,
+            }),
+          );
+
+        if (
+          !resolvedRound ||
+          resolvedRound.roundNumber !== 1 ||
+          resolvedRound.kind !== "initial"
+        ) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to create voting round for this topic",
@@ -878,7 +904,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         }
 
         yield* db.votingQueries.createVotingRoundSubmissions({
-          roundId: createdRound.id,
+          roundId: resolvedRound.id,
           submissionIds,
         });
 

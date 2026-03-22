@@ -279,7 +279,16 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         }
 
         return yield* use((database) =>
-          database.insert(votingSession).values(sessions).returning(),
+          database
+            .insert(votingSession)
+            .values(sessions)
+            .onConflictDoNothing({
+              target: [
+                votingSession.connectedParticipantId,
+                votingSession.topicId,
+              ],
+            })
+            .returning(),
         );
       });
 
@@ -362,7 +371,13 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
       const createVotingRound = Effect.fn("VotingQueries.createVotingRound")(
         function* (roundData: NewVotingRound) {
           const [result] = yield* use((database) =>
-            database.insert(votingRound).values(roundData).returning(),
+            database
+              .insert(votingRound)
+              .values(roundData)
+              .onConflictDoNothing({
+                target: [votingRound.topicId, votingRound.roundNumber],
+              })
+              .returning(),
           );
 
           return result as VotingRound | undefined;
@@ -390,7 +405,16 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         );
 
         return yield* use((database) =>
-          database.insert(votingRoundSubmission).values(values).returning(),
+          database
+            .insert(votingRoundSubmission)
+            .values(values)
+            .onConflictDoNothing({
+              target: [
+                votingRoundSubmission.roundId,
+                votingRoundSubmission.submissionId,
+              ],
+            })
+            .returning(),
         );
       });
 
