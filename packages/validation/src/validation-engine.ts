@@ -23,14 +23,12 @@ export class ValidationEngine extends ServiceMap.Service<ValidationEngine>()(
             case RULE_KEYS.MAX_FILE_SIZE: {
               const params = yield* parseRuleParams(rule.ruleKey, rule.params)
               const results = yield* Effect.forEach(inputs, (input) =>
-                singleValidationService
-                  .validateMaxFileSize(params.max_file_size, input)
-                  .pipe(
-                    Effect.flatMap(() => createPassedResult(rule, input)),
-                    Effect.catchTag("ValidationFailure", (error) =>
-                      createFailureResult(rule, error, input),
-                    ),
+                singleValidationService.validateMaxFileSize(params.max_file_size, input).pipe(
+                  Effect.flatMap(() => createPassedResult(rule, input)),
+                  Effect.catchTag("ValidationFailure", (error) =>
+                    createFailureResult(rule, error, input),
                   ),
+                ),
               )
               return results
             }
@@ -52,39 +50,29 @@ export class ValidationEngine extends ServiceMap.Service<ValidationEngine>()(
               return results
             }
             case RULE_KEYS.WITHIN_TIMERANGE: {
-
               const params = yield* parseRuleParams(rule.ruleKey, rule.params)
 
               const results = yield* Effect.forEach(inputs, (input) =>
-                singleValidationService
-                  .validateTimeframe(params.within_timerange, input)
-                  .pipe(
-                    Effect.flatMap(() => createPassedResult(rule, input)),
-                    Effect.catchTag("ValidationFailure", (error) =>
-                      createFailureResult(rule, error, input),
-                    ),
-                    Effect.catchTag("ValidationSkipped", (error) =>
-                      createSkippedResult(rule, error, input),
-                    ),
+                singleValidationService.validateTimeframe(params.within_timerange, input).pipe(
+                  Effect.flatMap(() => createPassedResult(rule, input)),
+                  Effect.catchTag("ValidationFailure", (error) =>
+                    createFailureResult(rule, error, input),
                   ),
+                  Effect.catchTag("ValidationSkipped", (error) =>
+                    createSkippedResult(rule, error, input),
+                  ),
+                ),
               )
               return results
             }
             case RULE_KEYS.STRICT_TIMESTAMP_ORDERING: {
               const params = yield* parseRuleParams(rule.ruleKey, rule.params)
               const results = yield* multipleValidationService
-                .validateStrictTimestampOrdering(
-                  params.strict_timestamp_ordering,
-                  inputs,
-                )
+                .validateStrictTimestampOrdering(params.strict_timestamp_ordering, inputs)
                 .pipe(
                   Effect.flatMap(() => createPassedResult(rule)),
-                  Effect.catchTag("ValidationFailure", (error) =>
-                    createFailureResult(rule, error),
-                  ),
-                  Effect.catchTag("ValidationSkipped", (error) =>
-                    createSkippedResult(rule, error),
-                  ),
+                  Effect.catchTag("ValidationFailure", (error) => createFailureResult(rule, error)),
+                  Effect.catchTag("ValidationSkipped", (error) => createSkippedResult(rule, error)),
                 )
               return [results]
             }
@@ -94,26 +82,20 @@ export class ValidationEngine extends ServiceMap.Service<ValidationEngine>()(
                 .validateSameDevice(params.same_device, inputs)
                 .pipe(
                   Effect.flatMap(() => createPassedResult(rule)),
-                  Effect.catchTag("ValidationFailure", (error) =>
-                    createFailureResult(rule, error),
-                  ),
-                  Effect.catchTag("ValidationSkipped", (error) =>
-                    createSkippedResult(rule, error),
-                  ),
+                  Effect.catchTag("ValidationFailure", (error) => createFailureResult(rule, error)),
+                  Effect.catchTag("ValidationSkipped", (error) => createSkippedResult(rule, error)),
                 )
               return [results]
             }
             case RULE_KEYS.MODIFIED: {
               const params = yield* parseRuleParams(rule.ruleKey, rule.params)
               const results = yield* Effect.forEach(inputs, (input) =>
-                singleValidationService
-                  .validateModified(params.modified, input)
-                  .pipe(
-                    Effect.flatMap(() => createPassedResult(rule, input)),
-                    Effect.catchTag("ValidationFailure", (error) =>
-                      createFailureResult(rule, error, input),
-                    ),
+                singleValidationService.validateModified(params.modified, input).pipe(
+                  Effect.flatMap(() => createPassedResult(rule, input)),
+                  Effect.catchTag("ValidationFailure", (error) =>
+                    createFailureResult(rule, error, input),
                   ),
+                ),
               )
               return results
             }
@@ -126,17 +108,11 @@ export class ValidationEngine extends ServiceMap.Service<ValidationEngine>()(
           }
         })
 
-      const runValidations = (
-        rules: ValidationRule[],
-        inputs: ValidationInput[],
-      ) =>
+      const runValidations = (rules: ValidationRule[], inputs: ValidationInput[]) =>
         Effect.gen(function* () {
           const enabledRules = rules.filter((rule) => rule.enabled)
 
-          const results = yield* Effect.forEach(enabledRules, (rule) =>
-            executeRule(rule, inputs),
-          )
-          console.log("results", results)
+          const results = yield* Effect.forEach(enabledRules, (rule) => executeRule(rule, inputs))
           return results.flat()
         })
 
@@ -147,9 +123,6 @@ export class ValidationEngine extends ServiceMap.Service<ValidationEngine>()(
   },
 ) {
   static layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(
-      SingleValidationsService.layer,
-      GroupedValidationsService.layer,
-    ))
+    Layer.provide(Layer.mergeAll(SingleValidationsService.layer, GroupedValidationsService.layer)),
   )
 }
