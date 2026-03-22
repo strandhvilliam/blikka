@@ -96,7 +96,9 @@ export function RulesForm() {
       }
       updateRules({
         domain,
-        data: mapRulesToDbRules(sanitizeRulesForMarathonMode(value, marathon.mode)),
+        data: mapRulesToDbRules(
+          sanitizeRulesForMarathonMode(value, marathon.mode as "marathon" | "by-camera"),
+        ),
       })
     },
     [domain, marathon, updateRules],
