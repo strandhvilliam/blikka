@@ -1,6 +1,8 @@
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Config, Effect, Layer, Option, ServiceMap } from "effect";
 import { Database } from "@blikka/db";
+import { RealtimeEventsService } from "@blikka/realtime";
 import { ParticipantApiError, PublicParticipantSchema } from "./schemas";
+import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract";
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption";
 import type { NewParticipant } from "@blikka/db";
 
@@ -10,6 +12,12 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
     make: Effect.gen(function* () {
       const db = yield* Database;
       const phoneEncryption = yield* PhoneNumberEncryptionService;
+      const realtimeEvents = yield* RealtimeEventsService;
+      const environment = getRealtimeChannelEnvironmentFromNodeEnv(
+        yield* Config.string("NODE_ENV").pipe(
+          Config.withDefault("development"),
+        ),
+      );
 
       const getPublicParticipantByReference = Effect.fn(
         "ParticipantsApiService.getPublicParticipantByReference",
@@ -182,10 +190,38 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
           ids: readonly number[];
           domain: string;
         }) {
-          return yield* db.participantsQueries.batchVerifyParticipants({
+          const result = yield* db.participantsQueries.batchVerifyParticipants({
             ids: [...ids],
             domain,
           });
+
+          yield* Effect.forEach(
+            ids,
+            (id) =>
+              Effect.gen(function* () {
+                if (result.failedIds.includes(id)) {
+                  return;
+                }
+
+                const participant = yield* db.participantsQueries.getParticipantById({ id });
+                if (Option.isNone(participant)) {
+                  return;
+                }
+
+                yield* realtimeEvents.emitEventResult({
+                  environment,
+                  domain,
+                  reference: participant.value.reference,
+                  eventKey: "participant-verified",
+                  outcome: "success",
+                  timestamp: Date.now(),
+                  channels: "participant",
+                });
+              }),
+            { concurrency: 10, discard: true },
+          );
+
+          return result;
         },
       );
 
@@ -207,10 +243,28 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
       const verifyParticipant = Effect.fn(
         "ParticipantsApiService.verifyParticipant",
       )(function* ({ id, domain }: { id: number; domain: string }) {
-        return yield* db.participantsQueries.batchVerifyParticipants({
+        const result = yield* db.participantsQueries.batchVerifyParticipants({
           ids: [id],
           domain,
         });
+
+        if (result.updatedCount > 0) {
+          const participant = yield* db.participantsQueries.getParticipantById({ id });
+
+          if (Option.isSome(participant)) {
+            yield* realtimeEvents.emitEventResult({
+              environment,
+              domain,
+              reference: participant.value.reference,
+              eventKey: "participant-verified",
+              outcome: "success",
+              timestamp: Date.now(),
+              channels: "participant",
+            });
+          }
+        }
+
+        return result;
       });
 
       return {
@@ -231,6 +285,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
   static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(Layer.mergeAll(
       Database.layer,
+      RealtimeEventsService.layer,
       PhoneNumberEncryptionService.layer,
     ))
   )

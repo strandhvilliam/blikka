@@ -1,14 +1,21 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { motion } from "motion/react"
 import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
 import { RefreshCcw } from "lucide-react"
-import { notFound } from "next/navigation"
+import { notFound, useRouter } from "next/navigation"
+import {
+  getParticipantRealtimeChannel,
+  getRealtimeChannelEnvironmentFromNodeEnv,
+  getRealtimeResultEventName,
+} from "@blikka/realtime/contract"
+import { z } from "zod"
 
 import { formatDomainPathname } from "@/lib/utils"
 import { useDomain } from "@/lib/domain-provider"
+import { useRealtime } from "@/lib/realtime-client"
 import { useTRPC } from "@/lib/trpc/client"
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
 import { QrCodeGenerator } from "@/components/qr-code-generator"
@@ -20,12 +27,51 @@ interface VerificationClientProps {
   participantId?: number
 }
 
+const realtimeVerificationPayloadSchema = z
+  .object({
+    outcome: z.enum(["success", "error"]).optional(),
+    reference: z.string().nullish(),
+  })
+  .loose()
+
+const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(
+  typeof process !== "undefined" ? process.env.NODE_ENV : undefined,
+)
+const PARTICIPANT_VERIFIED_EVENT = getRealtimeResultEventName("participant-verified")
+const VERIFICATION_POLL_INTERVAL_MS = 60_000
+
+function parseRealtimeVerificationPayload(rawData: unknown) {
+  if (typeof rawData === "string") {
+    try {
+      return realtimeVerificationPayloadSchema.safeParse(JSON.parse(rawData))
+    } catch {
+      return realtimeVerificationPayloadSchema.safeParse(null)
+    }
+  }
+
+  return realtimeVerificationPayloadSchema.safeParse(rawData)
+}
+
 export function VerificationClient({ participantRef, participantId }: VerificationClientProps) {
+  const router = useRouter()
   const domain = useDomain()
   const trpc = useTRPC()
   const t = useTranslations("VerificationPage")
   const { uploadFlowState } = useUploadFlowState()
   const [refreshTimeout, setRefreshTimeout] = useState(0)
+  const confirmationHref = useMemo(() => {
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
+    return formatDomainPathname(`/live/confirmation${serializedParams}`, domain)
+  }, [domain, uploadFlowState])
+  const confirmationHrefRef = useRef(confirmationHref)
+  const participantChannel = useMemo(
+    () => getParticipantRealtimeChannel(REALTIME_CHANNEL_ENV, domain, participantRef),
+    [domain, participantRef],
+  )
+
+  useEffect(() => {
+    confirmationHrefRef.current = confirmationHref
+  }, [confirmationHref])
 
   const {
     data: participant,
@@ -42,19 +88,37 @@ export function VerificationClient({ participantRef, participantId }: Verificati
         refetchOnMount: true,
         refetchOnWindowFocus: true,
         refetchOnReconnect: true,
-        refetchInterval: 15000,
+        refetchInterval: VERIFICATION_POLL_INTERVAL_MS,
       },
     ),
   )
 
   useEffect(() => {
     if (participant?.status === "verified") {
-      const serializedParams = flowStateClientParamSerializer(uploadFlowState)
-      window.location.replace(formatDomainPathname(`/live/confirmation${serializedParams}`, domain))
+      router.replace(confirmationHref)
     }
 
     if (!isLoading && !participant) notFound()
-  }, [participant, isLoading, uploadFlowState, domain])
+  }, [confirmationHref, isLoading, participant, router])
+
+  useRealtime({
+    events: [PARTICIPANT_VERIFIED_EVENT],
+    channels: participantChannel ? [participantChannel] : [],
+    enabled: Boolean(domain) && Boolean(participantRef) && participantChannel.length > 0,
+    onData: ({ data: rawData }) => {
+      try {
+        const parsed = parseRealtimeVerificationPayload(rawData)
+
+        if (!parsed.success || parsed.data.outcome === "error") {
+          return
+        }
+
+        router.replace(confirmationHrefRef.current)
+      } catch {
+        // Ignore realtime transport or payload issues and rely on polling as fallback.
+      }
+    },
+  })
 
   useEffect(() => {
     if (refreshTimeout <= 0) return

@@ -1,6 +1,7 @@
 import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { type RuleConfig, type Submission, Database } from "@blikka/db"
 import { S3Service } from "@blikka/aws"
+import { RealtimeEventsService } from "@blikka/realtime"
 import {
   ValidationEngine,
   ValidationInputSchema,
@@ -9,6 +10,7 @@ import {
   type ValidationResult,
 } from "@blikka/validation"
 import { ValidationsApiError } from "./schemas"
+import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract"
 
 export class ValidationsApiService extends ServiceMap.Service<ValidationsApiService>()(
   "@blikka/api/validations-api-service",
@@ -17,6 +19,10 @@ export class ValidationsApiService extends ServiceMap.Service<ValidationsApiServ
       const db = yield* Database
       const s3 = yield* S3Service
       const validator = yield* ValidationEngine
+      const realtimeEvents = yield* RealtimeEventsService
+      const environment = getRealtimeChannelEnvironmentFromNodeEnv(
+        yield* Config.string("NODE_ENV").pipe(Config.withDefault("development"))
+      )
 
       const runValidations = Effect.fn("ValidationsApiService.runValidations")(function* ({
         domain,
@@ -128,6 +134,18 @@ export class ValidationsApiService extends ServiceMap.Service<ValidationsApiServ
         staffId: string
         notes?: string
       }) {
+        const participant = yield* db.participantsQueries.getParticipantById({
+          id: participantId,
+        })
+
+        if (Option.isNone(participant)) {
+          return yield* Effect.fail(
+            new ValidationsApiError({
+              message: "Participant not found",
+            })
+          )
+        }
+
         const verification = yield* db.validationsQueries.createParticipantVerification({
           data: {
             participantId,
@@ -141,6 +159,16 @@ export class ValidationsApiService extends ServiceMap.Service<ValidationsApiServ
           data: {
             status: "verified",
           },
+        })
+
+        yield* realtimeEvents.emitEventResult({
+          environment,
+          domain: participant.value.domain,
+          reference: participant.value.reference,
+          eventKey: "participant-verified",
+          outcome: "success",
+          timestamp: Date.now(),
+          channels: "participant",
         })
 
         return { id: verification.id }
@@ -190,6 +218,7 @@ export class ValidationsApiService extends ServiceMap.Service<ValidationsApiServ
   static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(Layer.mergeAll(
       Database.layer,
+      RealtimeEventsService.layer,
       S3Service.layer,
       ValidationEngine.layer,
     ))
