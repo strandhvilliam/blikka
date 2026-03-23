@@ -44,7 +44,7 @@ const _VotingPage = Effect.fn("@blikka/web/VotingPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<VotingSkeleton />}>
-          <div className="mx-auto max-w-5xl px-6 py-4">
+          <div className="mx-auto max-w-6xl px-6 py-4">
             <VotingContent />
           </div>
         </Suspense>
