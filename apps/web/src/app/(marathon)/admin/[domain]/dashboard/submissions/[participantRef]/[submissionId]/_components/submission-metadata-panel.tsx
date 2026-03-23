@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { formatDomainPathname } from "@/lib/utils"
+import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
 
 interface VoteStats {
   voteCount: number
@@ -113,6 +114,13 @@ export function SubmissionMetadataPanel({
   domain,
 }: SubmissionMetadataPanelProps) {
   const isByCameraMode = marathonMode === "by-camera"
+  const byCameraVotingRelevant =
+    isByCameraMode &&
+    submission.topic &&
+    getVotingLifecycleState({
+      startsAt: submission.topic.votingStartsAt,
+      endsAt: submission.topic.votingEndsAt,
+    }) !== "not-started"
 
   return (
     <div className="space-y-4">
@@ -197,7 +205,7 @@ export function SubmissionMetadataPanel({
         </div>
       </PanelCard>
 
-      {isByCameraMode && voteStats && (
+      {byCameraVotingRelevant && voteStats && (
         <PanelCard className="border-amber-200 bg-amber-50/30">
           <PanelHeaderWithIcon
             icon={<Trophy className="h-3.5 w-3.5" />}
@@ -242,7 +250,7 @@ export function SubmissionMetadataPanel({
         </PanelCard>
       )}
 
-      {isByCameraMode && (
+      {byCameraVotingRelevant && (
         <PanelCard>
           <PanelHeaderWithIcon icon={<Vote className="h-3.5 w-3.5" />}>
             Participant&apos;s Vote
