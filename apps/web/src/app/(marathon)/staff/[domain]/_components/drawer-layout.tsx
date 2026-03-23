@@ -5,23 +5,41 @@ import { XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
+import { cn } from "@/lib/utils"
 
 interface DrawerLayoutProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   title?: string
+  /** Merged onto DrawerContent; use e.g. `bg-black` so the sheet matches full-bleed camera UIs */
+  contentClassName?: string
+  /** Drag pill above children; merged after defaults (e.g. `bg-white/35 mt-2` on dark sheets) */
+  dragHandleClassName?: string
   children: ReactNode
 }
 
-export function DrawerLayout({ open, onOpenChange, title, children }: DrawerLayoutProps) {
+export function DrawerLayout({
+  open,
+  onOpenChange,
+  title,
+  contentClassName,
+  dragHandleClassName,
+  children,
+}: DrawerLayoutProps) {
   return (
     <Drawer modal={true} open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="flex h-[97dvh] flex-col overflow-hidden rounded-t-[2rem] border-none bg-white p-0 shadow-2xl">
+      <DrawerContent
+        dragHandleClassName={dragHandleClassName}
+        className={cn(
+          "flex h-[97dvh] flex-col overflow-hidden rounded-t-[2rem] border-none bg-white p-0 shadow-2xl",
+          contentClassName
+        )}
+      >
         <Button
           variant="ghost"
           size="icon"
           onClick={() => onOpenChange(false)}
-          className="absolute right-3 top-3 z-20 h-10 w-10 rounded-full border bg-white/90 shadow-sm backdrop-blur-sm"
+          className="absolute right-3 top-3 z-30 h-10 w-10 rounded-full border bg-white/90 shadow-sm backdrop-blur-sm"
         >
           <XIcon className="h-5 w-5" />
         </Button>
