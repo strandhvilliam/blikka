@@ -1,7 +1,7 @@
 "use client"
 
 import { notFound } from "next/navigation"
-import { Suspense } from "react"
+import { Suspense, useEffect } from "react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
@@ -20,8 +20,10 @@ import { SubmissionNavigationControls } from "./submission-navigation-controls"
 import { useState } from "react"
 import { SubmissionQuickActions, type SubmissionDetailTab } from "./submission-quick-actions"
 import { SubmissionReviewTimeline } from "./submission-review-timeline"
+import { useRouter } from "next/navigation"
 
 import { useDomain } from "@/lib/domain-provider"
+import { formatDomainPathname } from "@/lib/utils"
 import {
   getSubmissionDownloadFileName,
   getSubmissionOriginalImageUrl,
@@ -76,6 +78,7 @@ export function ParticipantSubmissionClientPage({
   submissionId: number
 }) {
   const domain = useDomain()
+  const router = useRouter()
 
   const trpc = useTRPC()
   const [detailTab, setDetailTab] = useState<SubmissionDetailTab>("exif")
@@ -109,6 +112,39 @@ export function ParticipantSubmissionClientPage({
     .sort((a, b) => (a.topic?.orderIndex || 0) - (b.topic?.orderIndex || 0))
 
   const currentIndex = allSubmissions.findIndex((s) => s.id === submissionId)
+  const latestSubmission =
+    participant?.submissions
+      .filter((candidate) => candidate.topic)
+      .sort(
+        (left, right) =>
+          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+      )[0] ?? null
+
+  useEffect(() => {
+    if (
+      marathon.mode !== "by-camera" ||
+      !participant ||
+      submission ||
+      !latestSubmission
+    ) {
+      return
+    }
+
+    router.replace(
+      formatDomainPathname(
+        `/admin/dashboard/submissions/${participant.reference}/${latestSubmission.id}`,
+        domain,
+      ),
+    )
+  }, [domain, latestSubmission, marathon.mode, participant, router, submission])
+
+  if (marathon.mode === "by-camera" && participant && !submission && latestSubmission) {
+    return (
+      <div className="rounded-xl border border-border bg-white p-6 text-sm text-muted-foreground">
+        Syncing to the latest submission...
+      </div>
+    )
+  }
 
   if (!submission || !topic || !participant) {
     notFound()
