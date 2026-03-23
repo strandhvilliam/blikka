@@ -58,37 +58,43 @@ export default function UnavailablePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
-      <div className="z-20 flex flex-col flex-1 h-full">
-        <main className="flex-1 px-6 pb-6 max-w-md mx-auto w-full flex flex-col justify-center">
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-border shadow-xl">
-            <div className="flex justify-center mb-6">
-              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
-                <Clock className="w-10 h-10 text-amber-600" />
+    <div className="flex min-h-dvh flex-col pt-4">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-6">
+        <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
+          <div className="p-6">
+            <div className="mb-6 flex justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50">
+                <Clock className="h-7 w-7 text-amber-600" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-center mb-2">{content.title}</h1>
-            <p className="text-muted-foreground text-center mb-6">{content.description}</p>
-            <div className="bg-muted rounded-xl p-4 mb-6">
-              <p className="text-sm text-muted-foreground text-center">{content.hint}</p>
+            <h1 className="text-center font-gothic text-2xl font-medium tracking-tight text-foreground">
+              {content.title}
+            </h1>
+            <p className="mt-2 text-center text-sm text-muted-foreground">{content.description}</p>
+            <div className="mt-6 rounded-xl bg-muted/30 p-4">
+              <p className="text-center text-sm text-muted-foreground">{content.hint}</p>
             </div>
-            <div className="flex justify-center">
-              <Button onClick={handleGoToLanding} variant="outline" className="w-full">
+            <div className="mt-6">
+              <Button
+                onClick={handleGoToLanding}
+                variant="outline"
+                className="w-full rounded-full"
+              >
                 Go to home page
               </Button>
             </div>
           </div>
+        </div>
 
-          {/* Powered by Blikka */}
-          <div className="mt-6 flex flex-col items-center">
-            <p className="text-xs text-muted-foreground mb-1 italic">Powered by</p>
-            <div className="flex items-center gap-1.5">
-              <Image src="/blikka-logo.svg" alt="Blikka" width={20} height={17} />
-              <span className="font-rocgrotesk font-bold text-base tracking-tight">blikka</span>
-            </div>
+        {/* Powered by */}
+        <div className="mt-6 flex flex-col items-center">
+          <p className="mb-1 text-xs italic text-muted-foreground">Powered by</p>
+          <div className="flex items-center gap-1.5">
+            <Image src="/blikka-logo.svg" alt="Blikka" width={20} height={17} />
+            <span className="font-special-gothic text-base tracking-tight">blikka</span>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }
