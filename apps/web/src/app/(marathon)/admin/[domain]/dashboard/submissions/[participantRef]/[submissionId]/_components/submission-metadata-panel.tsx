@@ -5,18 +5,16 @@ import type {
   DeviceGroup,
   Participant,
   Submission,
+  Topic,
   ValidationResult,
 } from "@blikka/db"
 import { format } from "date-fns"
 import {
   AlertTriangle,
   Camera,
-  CheckCircle2,
-  Image,
-  Info,
+  Image as ImageIcon,
   Smartphone,
   Upload,
-  XCircle,
   Trophy,
   Vote,
   CheckCircle,
@@ -45,6 +43,7 @@ interface VoteStats {
 
 interface SubmissionMetadataPanelProps {
   submission: Submission
+  submissionTopic: Pick<Topic, "votingStartsAt" | "votingEndsAt"> | null
   participant: Participant & {
     competitionClass: CompetitionClass | null
     deviceGroup: DeviceGroup | null
@@ -56,18 +55,8 @@ interface SubmissionMetadataPanelProps {
   domain: string
 }
 
-function PanelCard({
-  children,
-  className,
-}: {
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <div className={cn("rounded-xl border border-border bg-white", className)}>
-      {children}
-    </div>
-  )
+function PanelCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cn("rounded-xl border border-border bg-white", className)}>{children}</div>
 }
 
 function PanelHeader({ children }: { children: React.ReactNode }) {
@@ -106,6 +95,7 @@ function PanelHeaderWithIcon({
 
 export function SubmissionMetadataPanel({
   submission,
+  submissionTopic,
   participant,
   hasIssues,
   validationResults,
@@ -116,10 +106,10 @@ export function SubmissionMetadataPanel({
   const isByCameraMode = marathonMode === "by-camera"
   const byCameraVotingRelevant =
     isByCameraMode &&
-    submission.topic &&
+    submissionTopic &&
     getVotingLifecycleState({
-      startsAt: submission.topic.votingStartsAt,
-      endsAt: submission.topic.votingEndsAt,
+      startsAt: submissionTopic.votingStartsAt,
+      endsAt: submissionTopic.votingEndsAt,
     }) !== "not-started"
 
   return (
@@ -176,13 +166,12 @@ export function SubmissionMetadataPanel({
 
                 <div className="flex items-start gap-2.5">
                   <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center min-w-[28px]">
-                    {participant.competitionClass?.numberOfPhotos !==
-                    undefined ? (
+                    {participant.competitionClass?.numberOfPhotos !== undefined ? (
                       <span className="text-xs font-semibold">
                         {participant.competitionClass.numberOfPhotos}
                       </span>
                     ) : (
-                      <Image className="h-3.5 w-3.5" />
+                      <ImageIcon className="h-3.5 w-3.5" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -207,10 +196,7 @@ export function SubmissionMetadataPanel({
 
       {byCameraVotingRelevant && voteStats && (
         <PanelCard className="border-amber-200 bg-amber-50/30">
-          <PanelHeaderWithIcon
-            icon={<Trophy className="h-3.5 w-3.5" />}
-            className="text-amber-700"
-          >
+          <PanelHeaderWithIcon icon={<Trophy className="h-3.5 w-3.5" />} className="text-amber-700">
             Voting Results
           </PanelHeaderWithIcon>
           <div className="pb-4 px-4 pt-2">
@@ -218,17 +204,14 @@ export function SubmissionMetadataPanel({
               <div>
                 {voteStats.position != null ? (
                   <>
-                    <p className="text-2xl font-bold text-amber-700">
-                      #{voteStats.position}
-                    </p>
+                    <p className="text-2xl font-bold text-amber-700">#{voteStats.position}</p>
                     <p className="text-[11px] text-muted-foreground">
                       of {voteStats.totalSubmissions} submissions
                     </p>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground leading-snug">
-                    Not ranked in the current voting round (e.g. tie-break
-                    shortlist).
+                    Not ranked in the current voting round (e.g. tie-break shortlist).
                   </p>
                 )}
                 {voteStats.roundNumber ? (
@@ -240,9 +223,7 @@ export function SubmissionMetadataPanel({
                 ) : null}
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-amber-700">
-                  {voteStats.voteCount}
-                </p>
+                <p className="text-2xl font-bold text-amber-700">{voteStats.voteCount}</p>
                 <p className="text-[11px] text-muted-foreground">total votes</p>
               </div>
             </div>
@@ -265,25 +246,19 @@ export function SubmissionMetadataPanel({
                 {voteStats.participantVoteInfo.votedAt && (
                   <p className="text-[11px] text-muted-foreground">
                     Voted on{" "}
-                    {format(
-                      new Date(voteStats.participantVoteInfo.votedAt),
-                      "MMM d, yyyy HH:mm",
-                    )}
+                    {format(new Date(voteStats.participantVoteInfo.votedAt), "MMM d, yyyy HH:mm")}
                   </p>
                 )}
                 {voteStats.participantVoteInfo.votedTopicName && (
                   <div className="p-2.5 rounded-lg bg-muted/30">
-                    <p className="text-[11px] text-muted-foreground mb-1">
-                      Voted for:
-                    </p>
+                    <p className="text-[11px] text-muted-foreground mb-1">Voted for:</p>
                     <p className="text-sm font-medium">
                       {voteStats.participantVoteInfo.votedTopicName}
                     </p>
                   </div>
                 )}
                 {voteStats.participantVoteInfo.votedSubmissionId &&
-                  voteStats.participantVoteInfo.votedSubmissionId !==
-                    submission.id && (
+                  voteStats.participantVoteInfo.votedSubmissionId !== submission.id && (
                     <Link
                       href={formatDomainPathname(
                         `/admin/dashboard/submissions/${participant.reference}/${voteStats.participantVoteInfo.votedSubmissionId}`,
@@ -313,14 +288,9 @@ export function SubmissionMetadataPanel({
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="p-2 rounded-lg bg-green-500/10 border border-green-200">
                 <div className="text-xl font-bold text-green-600">
-                  {
-                    validationResults.filter((r) => r.outcome === "passed")
-                      .length
-                  }
+                  {validationResults.filter((r) => r.outcome === "passed").length}
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Passed
-                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Passed</div>
               </div>
               <div className="p-2 rounded-lg bg-yellow-500/10 border border-yellow-200">
                 <div className="text-xl font-bold text-yellow-600">
@@ -330,9 +300,7 @@ export function SubmissionMetadataPanel({
                     ).length
                   }
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Warnings
-                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Warnings</div>
               </div>
               <div className="p-2 rounded-lg bg-destructive/10 border border-destructive/20">
                 <div className="text-xl font-bold text-destructive">
@@ -342,9 +310,7 @@ export function SubmissionMetadataPanel({
                     ).length
                   }
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Errors
-                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Errors</div>
               </div>
             </div>
 

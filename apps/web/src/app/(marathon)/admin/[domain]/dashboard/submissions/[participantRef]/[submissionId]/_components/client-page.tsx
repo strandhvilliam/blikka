@@ -8,11 +8,12 @@ import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
 import { SubmissionValidationSteps } from "./submission-validation-steps"
 import { SubmissionHeader } from "./submission-header"
 import type {
-  Participant,
-  Submission,
-  ValidationResult,
   CompetitionClass,
   DeviceGroup,
+  Participant,
+  Submission,
+  Topic,
+  ValidationResult,
 } from "@blikka/db"
 import { SubmissionImageViewer } from "./submission-image-viewer"
 import { SubmissionMetadataPanel } from "./submission-metadata-panel"
@@ -33,6 +34,7 @@ import {
 
 interface VotingDataPanelProps {
   submission: Submission
+  submissionTopic: Pick<Topic, "votingStartsAt" | "votingEndsAt">
   participant: Participant & {
     competitionClass: CompetitionClass | null
     deviceGroup: DeviceGroup | null
@@ -44,6 +46,7 @@ interface VotingDataPanelProps {
 
 function VotingDataPanel({
   submission,
+  submissionTopic,
   participant,
   hasIssues,
   validationResults,
@@ -61,6 +64,7 @@ function VotingDataPanel({
   return (
     <SubmissionMetadataPanel
       submission={submission}
+      submissionTopic={submissionTopic}
       participant={participant}
       hasIssues={hasIssues}
       validationResults={validationResults}
@@ -230,6 +234,7 @@ export function ParticipantSubmissionClientPage({
               >
                 <VotingDataPanel
                   submission={submission}
+                  submissionTopic={topic}
                   participant={participant}
                   hasIssues={hasIssues}
                   validationResults={submissionValidationResults}
@@ -239,6 +244,7 @@ export function ParticipantSubmissionClientPage({
             ) : (
               <SubmissionMetadataPanel
                 submission={submission}
+                submissionTopic={topic}
                 participant={participant}
                 hasIssues={hasIssues}
                 validationResults={submissionValidationResults}
@@ -250,6 +256,7 @@ export function ParticipantSubmissionClientPage({
           ) : (
             <SubmissionMetadataPanel
               submission={submission}
+              submissionTopic={topic}
               participant={participant}
               hasIssues={hasIssues}
               validationResults={submissionValidationResults}
