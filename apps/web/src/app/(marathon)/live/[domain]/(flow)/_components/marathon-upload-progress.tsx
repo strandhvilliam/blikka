@@ -90,61 +90,85 @@ export function MarathonUploadProgress({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const stepIndicator = (
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {allUploadsComplete ? (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-foreground">
+            <Check className="h-3 w-3 text-background" strokeWidth={3} />
+          </span>
+        ) : (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-foreground">
+            <Loader2 className="h-3 w-3 animate-spin text-foreground" />
+          </span>
+        )}
+        <span
+          className={`text-[11px] font-semibold uppercase tracking-widest ${allUploadsComplete ? "text-foreground" : "text-foreground"}`}
+        >
+          {allUploadsComplete ? t("stepUploaded") : t("stepUploading")}
+        </span>
+      </div>
+      <div
+        className={`h-px w-5 ${allUploadsComplete ? "bg-border" : "bg-border/50"}`}
+      />
+      <div className="flex items-center gap-2">
+        {allUploadsComplete ? (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-foreground/20">
+            <Loader2 className="h-3 w-3 animate-spin text-foreground/50" />
+          </span>
+        ) : (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/20">
+            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
+          </span>
+        )}
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          {t("stepFinalizing")}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="w-full flex items-center justify-center min-h-[60dvh]">
       <Card className="w-full max-w-lg">
-        <CardHeader className="pt-6">
-          <div className="flex flex-col items-center text-center">
-            {!allUploadsComplete && !hasFailures && (
-              <p className="mb-1 text-sm text-muted-foreground font-mono tabular-nums">
+        <CardHeader className="relative pt-8 pb-2">
+          {!allUploadsComplete && !hasFailures && (
+            <div className="absolute top-3 right-4">
+              <p className="text-xs text-muted-foreground/60 font-mono tabular-nums">
                 {formatTime(elapsedTime)}
               </p>
-            )}
+            </div>
+          )}
 
-            {allUploadsComplete && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 mb-3"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-foreground">
-                    <Check className="h-3 w-3 text-background" strokeWidth={3} />
-                  </span>
-                  <span className="text-[11px] font-semibold uppercase tracking-widest text-foreground">
-                    {t("stepUploaded")}
-                  </span>
-                </div>
-                <div className="h-px w-5 bg-border" />
-                <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-foreground/20">
-                    <Loader2 className="h-3 w-3 animate-spin text-foreground/50" />
-                  </span>
-                  <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {t("stepFinalizing")}
-                  </span>
-                </div>
-              </motion.div>
-            )}
+          <div className="flex flex-col items-center text-center gap-4">
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              key={allUploadsComplete ? "complete" : "uploading"}
+            >
+              {stepIndicator}
+            </motion.div>
 
-            <CardTitle className="text-xl font-semibold">
-              {allUploadsComplete
-                ? t("titleReceived")
-                : hasFailures
-                  ? t("titleIssues")
-                  : t("titleUploading")}
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1 max-w-md">
-              {allUploadsComplete
-                ? t("descriptionFinalizing")
-                : hasFailures
-                  ? t("clickToRetry")
-                  : t("thisMayTakeSeveralMinutes")}
-            </p>
+            <div className="space-y-2">
+              <CardTitle className="text-2xl font-semibold">
+                {allUploadsComplete
+                  ? t("titleReceived")
+                  : hasFailures
+                    ? t("titleIssues")
+                    : t("titleUploading")}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                {allUploadsComplete
+                  ? t("descriptionFinalizing")
+                  : hasFailures
+                    ? t("clickToRetry")
+                    : t("thisMayTakeSeveralMinutes")}
+              </p>
+            </div>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-4">
           {!allUploadsComplete && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -217,13 +241,13 @@ export function MarathonUploadProgress({
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center"
+              className="flex items-center justify-center py-2"
             >
-              <div className="px-5 py-3 rounded-lg border border-border bg-muted/30 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">
+              <div className="px-8 py-4 rounded-xl border border-border bg-muted/30 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
                   {t("participantNumber")}
                 </p>
-                <p className="text-xl font-mono font-bold text-foreground tracking-widest">
+                <p className="text-2xl font-mono font-bold text-foreground tracking-widest">
                   {participantReference}
                 </p>
               </div>
@@ -231,7 +255,7 @@ export function MarathonUploadProgress({
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-3 pb-6">
+        <CardFooter className="flex flex-col gap-3 pb-8">
           {hasFailures && onRetry && !allUploadsComplete && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
