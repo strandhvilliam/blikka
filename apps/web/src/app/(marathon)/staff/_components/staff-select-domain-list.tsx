@@ -6,8 +6,6 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 
 import { useTRPC } from "@/lib/trpc/client"
 import { formatDomainPathname } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardTitle } from "@/components/ui/card"
 import {
   Empty,
   EmptyDescription,
@@ -37,40 +35,33 @@ export function StaffSelectDomainList() {
   }
 
   return (
-    <div className="flex flex-col w-full gap-3">
+    <div className="flex w-full flex-col gap-3">
       {marathons.map((marathon) => (
         <Link
           key={marathon.id}
           prefetch={true}
           href={formatDomainPathname("/staff", marathon.domain, "staff")}
-          className="block group"
+          className="group block"
         >
-          <Card className="flex flex-row items-center gap-4 p-5 w-full transition-all duration-200 hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5 cursor-pointer bg-white/90 backdrop-blur-sm">
-            <div className="flex items-center justify-center size-10 rounded-full bg-primary/10 text-primary shrink-0 group-hover:bg-primary/20 transition-colors">
+          <div className="flex w-full items-center gap-4 rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-foreground/6 text-foreground transition-colors group-hover:bg-foreground/10">
               <ShieldCheck className="size-5" />
             </div>
-            <div className="flex flex-col flex-1 min-w-0 gap-1">
-              <CardTitle className="text-base font-semibold leading-tight group-hover:text-primary transition-colors">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <p className="text-base font-semibold leading-tight text-foreground">
                 {marathon.name}
-              </CardTitle>
+              </p>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="size-3.5 shrink-0" />
                 <span className="truncate">Staff desk</span>
-                <span className="text-muted-foreground/60">•</span>
+                <span className="text-muted-foreground/60">·</span>
                 <span className="truncate font-mono text-xs">{marathon.domain}</span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 size-9 opacity-0 group-hover:opacity-100 transition-opacity"
-              asChild
-            >
-              <div>
-                <ArrowRight className="size-4" />
-              </div>
-            </Button>
-          </Card>
+            <div className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100">
+              <ArrowRight className="size-4 text-muted-foreground" />
+            </div>
+          </div>
         </Link>
       ))}
     </div>
