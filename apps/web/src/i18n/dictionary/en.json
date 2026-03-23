@@ -167,7 +167,7 @@
       "confirmUploadDescriptionGeneric": "You are about to upload {count} photos. This action cannot be undone.",
       "initializing": "Initializing...",
       "confirmAndUpload": "Confirm & Upload",
-      "noExifData": "No photo metadata found",
+      "noExifData": "No EXIF metadata found. This submission will be flagged.",
       "taken": "Taken:",
       "file": "File:",
       "photoDetails": "Photo Details",

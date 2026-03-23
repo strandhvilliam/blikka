@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import { motion } from "motion/react"
 import { useRef, useState, useMemo } from "react"
 import {
+  AlertTriangle,
   ChevronDown,
   ChevronUp,
   FileImage,
@@ -387,10 +388,16 @@ export function ByCameraUploadInput({
                     )}
                   </Button>
                 ) : (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1 px-2">
-                    <Info className="h-3.5 w-3.5" />
-                    {t("noExifData")}
-                  </span>
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2 rounded-2xl border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                  >
+                    <AlertTriangle
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+                      aria-hidden
+                    />
+                    <span className="leading-snug">{t("noExifData")}</span>
+                  </div>
                 )}
               </div>
 
