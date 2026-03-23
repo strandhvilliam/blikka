@@ -101,7 +101,7 @@ export function SubmissionsBulkToolbar({
           </Button>
         </div>
         <div className="h-4 w-px bg-border mx-1" />
-        {!isByCameraMode && (
+        {isByCameraMode && (
           <Button
             variant="outline"
             size="sm"
