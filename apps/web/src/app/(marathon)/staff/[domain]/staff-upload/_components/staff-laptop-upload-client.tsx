@@ -492,7 +492,7 @@ export function StaffLaptopUploadClient({
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div>
-                <h1 className="font-rocgrotesk text-2xl text-amber-900">
+                <h1 className="font-gothic text-2xl font-medium tracking-tight text-amber-900">
                   Staff upload unavailable
                 </h1>
                 <p className="mt-2 text-sm text-amber-800">
@@ -540,8 +540,8 @@ export function StaffLaptopUploadClient({
         <div className={cn("mx-auto max-w-3xl px-6 py-6", showFloatingBar && "pb-28")}>
           <motion.div
             key={step}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
             {step === "reference" ? (

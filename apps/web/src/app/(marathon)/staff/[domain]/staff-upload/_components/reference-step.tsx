@@ -22,7 +22,7 @@ export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepPro
       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
         Participant lookup
       </p>
-      <h2 className="mt-3 font-rocgrotesk text-4xl leading-none text-foreground">
+      <h2 className="mt-3 font-gothic text-4xl font-medium leading-none tracking-tight text-foreground">
         Enter participant number
       </h2>
       <p className="mt-3 max-w-sm text-sm text-muted-foreground">

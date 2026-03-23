@@ -24,7 +24,7 @@ export function UploadCompletePanel() {
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md">
           <CheckCircle2 className="h-7 w-7" />
         </div>
-        <h2 className="mt-5 font-rocgrotesk text-3xl leading-none text-emerald-950">
+        <h2 className="mt-5 font-gothic text-3xl font-medium leading-none tracking-tight text-emerald-950">
           Upload complete
         </h2>
         <p className="mt-3 max-w-sm text-sm text-emerald-800">

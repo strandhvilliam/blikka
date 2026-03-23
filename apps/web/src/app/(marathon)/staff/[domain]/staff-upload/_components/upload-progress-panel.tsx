@@ -107,7 +107,7 @@ export function UploadProgressPanel() {
               Upload progress
             </p>
             <div className="mt-2 flex items-baseline gap-3">
-              <span className="font-rocgrotesk text-3xl leading-none text-foreground">
+              <span className="font-gothic text-3xl font-medium leading-none tracking-tight text-foreground">
                 {completed}/{total || files.length || 0}
               </span>
               <Badge variant="outline" className="border-border bg-muted text-muted-foreground">

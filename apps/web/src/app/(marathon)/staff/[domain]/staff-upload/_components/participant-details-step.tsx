@@ -177,7 +177,7 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
           Participant #{reference}
         </p>
-        <h2 className="mt-2 font-rocgrotesk text-3xl leading-none text-foreground">
+        <h2 className="mt-2 font-gothic text-3xl font-medium leading-none tracking-tight text-foreground">
           Fill in details
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">

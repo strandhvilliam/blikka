@@ -44,7 +44,7 @@ export function StaffParticipantCard({
         <div className="flex min-w-0 flex-1 flex-col gap-3 px-5 py-4 sm:px-6">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate font-rocgrotesk text-xl font-medium leading-tight text-foreground sm:text-2xl">
+              <p className="truncate font-gothic text-xl font-medium leading-tight tracking-tight text-foreground sm:text-2xl">
                 {firstName} {lastName}
               </p>
               <p className="mt-1 truncate text-sm text-muted-foreground">

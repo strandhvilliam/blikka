@@ -40,7 +40,7 @@ export function ParticipantSummaryCard({
           <span className="shrink-0 font-mono text-lg font-semibold tracking-[0.15em] text-foreground">
             #{reference}
           </span>
-          <span className="truncate font-rocgrotesk text-lg text-foreground">
+          <span className="truncate font-gothic text-lg font-medium tracking-tight text-foreground">
             {firstName} {lastName}
           </span>
         </div>
