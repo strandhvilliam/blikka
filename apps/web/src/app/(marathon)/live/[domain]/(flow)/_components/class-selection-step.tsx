@@ -1,41 +1,36 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import {
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { CompetitionClass } from "@blikka/db";
-import { ClassSelectionItem } from "./class-selection-item";
-import { useTranslations } from "next-intl";
-import { useStepState } from "../_lib/step-state-context";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
+import { Button } from "@/components/ui/button"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { CompetitionClass } from "@blikka/db"
+import { ClassSelectionItem } from "./class-selection-item"
+import { useTranslations } from "next-intl"
+import { useStepState } from "../_lib/step-state-context"
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
 
 export function ClassSelectionStep({
   competitionClasses,
 }: {
-  competitionClasses: CompetitionClass[];
+  competitionClasses: CompetitionClass[]
 }) {
-  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
-  const { handleNextStep, handlePrevStep } = useStepState();
-  const t = useTranslations("FlowPage");
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState()
+  const { handleNextStep, handlePrevStep } = useStepState()
+  const t = useTranslations("FlowPage")
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 min-h-[70dvh] flex flex-col justify-center">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
+    <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col justify-center px-6">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
           {t("classSelection.title")}
-        </CardTitle>
-        <CardDescription className="text-center">
+        </h1>
+        <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
           {t("classSelection.description")}
-        </CardDescription>
-      </CardHeader>
+        </p>
+      </div>
 
-      <CardContent className="flex flex-col justify-center gap-3 sm:gap-4">
+      {/* Options */}
+      <div className="flex flex-col gap-3">
         {competitionClasses.map((cc) => (
           <ClassSelectionItem
             key={cc.id}
@@ -44,13 +39,14 @@ export function ClassSelectionStep({
             onSelect={() => setUploadFlowState({ competitionClassId: cc.id })}
           />
         ))}
-      </CardContent>
+      </div>
 
-      <CardFooter className="w-full px-4 flex flex-col gap-3 items-center justify-center">
+      {/* Actions */}
+      <div className="mt-8 flex flex-col gap-3">
         <PrimaryButton
           onClick={handleNextStep}
           disabled={!uploadFlowState.competitionClassId}
-          className="w-full py-3.5 text-base sm:text-lg rounded-full"
+          className="w-full rounded-full py-3.5 text-base"
         >
           {t("classSelection.continue")}
         </PrimaryButton>
@@ -58,11 +54,11 @@ export function ClassSelectionStep({
           variant="ghost"
           size="lg"
           onClick={handlePrevStep}
-          className="w-full sm:w-[220px]"
+          className="w-full"
         >
           {t("classSelection.back")}
         </Button>
-      </CardFooter>
+      </div>
     </div>
-  );
+  )
 }

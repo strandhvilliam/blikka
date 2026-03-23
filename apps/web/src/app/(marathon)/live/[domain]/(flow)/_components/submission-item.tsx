@@ -1,35 +1,29 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import type { Topic } from "@blikka/db";
-import { format } from "date-fns";
-import {
-  ChevronDown,
-  ChevronUp,
-  ImageIcon,
-  Info,
-  X,
-} from "lucide-react";
-import { useTranslations } from "next-intl";
-import { motion } from "motion/react";
-import { useState } from "react";
-import type { SelectedPhoto } from "../_lib/types";
-import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation";
-import { ValidationStatusBadge } from "./validation-status-badge";
+} from "@/components/ui/dialog"
+import type { Topic } from "@blikka/db"
+import { format } from "date-fns"
+import { ChevronDown, ChevronUp, ImageIcon, Info, X } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { motion } from "motion/react"
+import { useState } from "react"
+import type { SelectedPhoto } from "../_lib/types"
+import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation"
+import { ValidationStatusBadge } from "./validation-status-badge"
 
 interface SubmissionItemProps {
-  photo?: SelectedPhoto;
-  validationResults?: ValidationResult[];
-  topic?: Topic;
-  index: number;
-  onRemove?: (orderIndex: number) => void;
-  onUploadClick?: () => void;
+  photo?: SelectedPhoto
+  validationResults?: ValidationResult[]
+  topic?: Topic
+  index: number
+  onRemove?: (orderIndex: number) => void
+  onUploadClick?: () => void
 }
 
 export function SubmissionItem({
@@ -40,38 +34,35 @@ export function SubmissionItem({
   onRemove,
   onUploadClick,
 }: SubmissionItemProps) {
-  const t = useTranslations("FlowPage.uploadStep");
-  const [expanded, setExpanded] = useState(false);
-  const [showImageDialog, setShowImageDialog] = useState(false);
+  const t = useTranslations("FlowPage.uploadStep")
+  const [expanded, setExpanded] = useState(false)
+  const [showImageDialog, setShowImageDialog] = useState(false)
 
-  const exifData = photo?.exif || {};
-  const relevantExifData = getRelevantExifData(exifData);
-  const hasExifData = Object.keys(relevantExifData).length > 0;
-  const takenAt = getTimeTaken(photo?.exif);
+  const exifData = photo?.exif || {}
+  const relevantExifData = getRelevantExifData(exifData)
+  const hasExifData = Object.keys(relevantExifData).length > 0
+  const takenAt = getTimeTaken(photo?.exif)
 
   const sortedValidationResults = validationResults?.toSorted((a, b) => {
     if (a.outcome !== b.outcome) {
-      if (a.outcome === VALIDATION_OUTCOME.FAILED) return -1;
-      if (b.outcome === VALIDATION_OUTCOME.FAILED) return 1;
-      if (a.outcome === VALIDATION_OUTCOME.SKIPPED) return -1;
-      if (b.outcome === VALIDATION_OUTCOME.SKIPPED) return 1;
+      if (a.outcome === VALIDATION_OUTCOME.FAILED) return -1
+      if (b.outcome === VALIDATION_OUTCOME.FAILED) return 1
+      if (a.outcome === VALIDATION_OUTCOME.SKIPPED) return -1
+      if (b.outcome === VALIDATION_OUTCOME.SKIPPED) return 1
     }
-
     if (a.severity !== b.severity) {
-      if (a.severity === "error") return -1;
-      if (b.severity === "error") return 1;
+      if (a.severity === "error") return -1
+      if (b.severity === "error") return 1
     }
+    return 0
+  })
 
-    return 0;
-  });
-
-  const highestPriorityResult = sortedValidationResults?.[0];
+  const highestPriorityResult = sortedValidationResults?.[0]
   const displayValidation =
     photo?.exif && Object.keys(photo.exif).length === 0
       ? {
           message: t("noExifData"),
-          outcome:
-            VALIDATION_OUTCOME.FAILED as typeof VALIDATION_OUTCOME.FAILED,
+          outcome: VALIDATION_OUTCOME.FAILED as typeof VALIDATION_OUTCOME.FAILED,
           severity: "warning" as const,
         }
       : {
@@ -79,73 +70,85 @@ export function SubmissionItem({
           outcome: highestPriorityResult?.outcome,
           severity: highestPriorityResult?.severity,
           ruleKey: highestPriorityResult?.ruleKey,
-        };
+        }
 
   if (!photo) {
     return (
       <div
-        className={`flex flex-row gap-4 p-4 border rounded-lg bg-background ${onUploadClick
-            ? "cursor-pointer hover:bg-muted/50 transition-colors"
-            : ""
-          }`}
+        className={`flex gap-3 rounded-2xl border-2 border-dashed border-border bg-white p-3 ${
+          onUploadClick ? "cursor-pointer transition-colors hover:border-muted-foreground/40" : ""
+        }`}
         onClick={onUploadClick}
       >
-        <div className="flex-1 space-y-2">
-          <div className="space-y-0">
-            <p className="text-base text-muted-foreground">#{index + 1}</p>
-            <p className="font-medium">{topic?.name}</p>
-          </div>
-          <p className="text-xs text-muted-foreground">
+        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-muted/30">
+          <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+        </div>
+        <div className="min-w-0 flex-1 py-0.5">
+          <p className="text-xs font-semibold text-muted-foreground">#{index + 1}</p>
+          <p className="mt-0.5 text-base font-semibold text-foreground">{topic?.name}</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">
             {onUploadClick ? t("tapToSelect") : t("noPhotoSelected")}
           </p>
         </div>
-        <div className="md:w-[100px] md:h-[100px] w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50 shrink-0">
-          <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
-        </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="flex flex-col border rounded-lg bg-background overflow-hidden">
-      <div className="flex flex-row gap-4 p-4">
-        <div className="flex-1 space-y-2">
-          <div className="space-y-0">
-            <p className="text-base text-muted-foreground">#{index + 1}</p>
-            <p className="font-medium">{topic?.name}</p>
-          </div>
+    <div className="relative overflow-hidden rounded-2xl border-2 border-border bg-white">
+      {/* Remove button */}
+      <button
+        type="button"
+        onClick={() => onRemove?.(photo.orderIndex)}
+        className="absolute top-2.5 right-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-muted transition-colors hover:bg-muted-foreground/20"
+      >
+        <X className="h-3.5 w-3.5 text-muted-foreground" />
+      </button>
 
-          {/* Validation status - show passed badge when no failures */}
+      <div className="flex gap-3 p-3">
+        {/* Thumbnail */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.2 }}
+          className="h-24 w-24 shrink-0 overflow-hidden rounded-xl"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photo.preview}
+            alt={t("uploadPreviewAlt", { index: index + 1 })}
+            className="h-full w-full cursor-pointer object-cover"
+            onClick={() => setShowImageDialog(true)}
+          />
+        </motion.div>
+
+        {/* Info */}
+        <div className="min-w-0 flex-1 py-0.5">
+          <p className="text-xs font-semibold text-muted-foreground">#{index + 1}</p>
+          <p className="mt-0.5 text-base font-semibold text-foreground">{topic?.name}</p>
+
           {validationResults && validationResults.length === 0 && (
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <ValidationStatusBadge
-                  outcome={VALIDATION_OUTCOME.PASSED}
-                  severity="error"
-                />
-              </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <ValidationStatusBadge outcome={VALIDATION_OUTCOME.PASSED} severity="error" />
             </div>
           )}
 
-          {/* Validation status - show failures/warnings */}
           {validationResults && validationResults.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <ValidationStatusBadge
-                  outcome={displayValidation.outcome}
-                  severity={displayValidation.severity}
-                />
-              </div>
-
+            <div className="mt-1.5 space-y-0.5">
+              <ValidationStatusBadge
+                outcome={displayValidation.outcome}
+                severity={displayValidation.severity}
+              />
               {displayValidation.message &&
                 displayValidation.outcome !== VALIDATION_OUTCOME.PASSED && (
                   <p
-                    className={`text-xs ${displayValidation.severity === "error"
+                    className={`text-xs ${
+                      displayValidation.severity === "error"
                         ? "text-destructive"
                         : displayValidation.outcome === VALIDATION_OUTCOME.FAILED
-                          ? "text-amber-700 dark:text-amber-400"
+                          ? "text-amber-700"
                           : "text-muted-foreground"
-                      }`}
+                    }`}
                   >
                     {displayValidation.message}
                   </p>
@@ -153,76 +156,43 @@ export function SubmissionItem({
             </div>
           )}
 
-          <div className="flex flex-col gap-0.5">
-            <p className="text-xs text-muted-foreground">
-              {takenAt && `${t("taken")} ${format(takenAt, "cccc, HH:mm")}`}
-              {takenAt && photo.file.name && " | "}
-              {photo.file.name && `${t("file")} ${photo.file.name}`}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {hasExifData && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-1 px-2 h-7 text-xs"
-                onClick={() => setExpanded(!expanded)}
-              >
-                <Info className="h-3.5 w-3.5" />
-                <span>{t("photoDetails")}</span>
-                {expanded ? (
-                  <ChevronUp className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            )}
-          </div>
-        </div>
-        <div className="relative w-[100px] h-[100px] shrink-0">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className="w-full h-full rounded-lg overflow-hidden"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photo.preview}
-              alt={t("uploadPreviewAlt", { index: index + 1 })}
-              className="object-cover w-full h-full cursor-pointer"
-              onClick={() => setShowImageDialog(true)}
-            />
-          </motion.div>
-          <button
-            type="button"
-            onClick={() => onRemove?.(photo.orderIndex)}
-            className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/75 transition-colors"
-          >
-            <X className="w-4 h-4 text-white" />
-          </button>
+          <p className="mt-1 truncate text-[11px] text-muted-foreground">
+            {takenAt && `${format(takenAt, "cccc, HH:mm")}`}
+            {takenAt && photo.file.name && " · "}
+            {photo.file.name}
+          </p>
         </div>
       </div>
+
+      {/* Details toggle */}
+      {hasExifData && (
+        <div className="border-t border-dashed border-border px-3 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => setExpanded(!expanded)}
+          >
+            <Info className="h-3.5 w-3.5" />
+            <span>{t("photoDetails")}</span>
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </Button>
+        </div>
+      )}
 
       {expanded && hasExifData && (
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          className="px-4 pb-3 border-t"
+          className="border-t border-dashed border-border px-4 pb-3"
         >
-          <table className="w-full text-xs mt-2">
+          <table className="mt-2 w-full text-xs">
             <tbody>
               {Object.entries(relevantExifData).map(([key, value]) => (
-                <tr
-                  key={key}
-                  className="border-b border-gray-100 dark:border-gray-800 last:border-b-0"
-                >
-                  <td className="py-1.5 font-medium text-muted-foreground">
-                    {key}
-                  </td>
-                  <td className="py-1.5 text-right">{value}</td>
+                <tr key={key} className="border-b border-border/50 last:border-b-0">
+                  <td className="py-1.5 font-medium text-muted-foreground">{key}</td>
+                  <td className="py-1.5 text-right text-foreground">{value}</td>
                 </tr>
               ))}
             </tbody>
@@ -232,19 +202,17 @@ export function SubmissionItem({
 
       {showImageDialog && (
         <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
-          <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <DialogContent className="max-h-[90vh] max-w-4xl p-0">
             <DialogHeader className="p-6 pb-0">
-              <DialogTitle>
-                {t("photoPreviewTitle", { topic: topic?.name ?? "" })}
-              </DialogTitle>
+              <DialogTitle>{t("photoPreviewTitle", { topic: topic?.name ?? "" })}</DialogTitle>
             </DialogHeader>
             <div className="p-6 pt-0">
-              <div className="w-full max-h-[70vh] overflow-auto">
+              <div className="max-h-[70vh] w-full overflow-auto">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo.preview}
                   alt={t("fullPreviewAlt", { index: index + 1 })}
-                  className="w-full h-auto object-contain"
+                  className="h-auto w-full object-contain"
                 />
               </div>
             </div>
@@ -252,90 +220,66 @@ export function SubmissionItem({
         </Dialog>
       )}
     </div>
-  );
+  )
 }
 
 function getTimeTaken(exif?: Record<string, unknown>): Date | null {
-  if (!exif?.DateTimeOriginal) return null;
-
+  if (!exif?.DateTimeOriginal) return null
   try {
-    const dateString = String(exif.DateTimeOriginal);
-    const date = new Date(dateString);
-    if (!Number.isNaN(date.getTime())) {
-      return date;
-    }
+    const dateString = String(exif.DateTimeOriginal)
+    const date = new Date(dateString)
+    if (!Number.isNaN(date.getTime())) return date
   } catch {
     // Skip if date parsing fails
   }
-
-  return null;
+  return null
 }
 
 function getRelevantExifData(exif: Record<string, unknown>): Record<string, string> {
-  const relevantData: Record<string, string> = {};
+  const relevantData: Record<string, string> = {}
+  if (!exif) return relevantData
 
-  // Guard against undefined or null exif data
-  if (!exif) return relevantData;
+  if (exif.Make && typeof exif.Make === "string") relevantData["Camera Make"] = exif.Make
+  if (exif.Model && typeof exif.Model === "string") relevantData["Camera Model"] = exif.Model
 
-  // Camera info
-  if (exif.Make && typeof exif.Make === "string")
-    relevantData["Camera Make"] = exif.Make;
-  if (exif.Model && typeof exif.Model === "string")
-    relevantData["Camera Model"] = exif.Model;
-
-  // Exposure settings
   if (exif.ExposureTime && typeof exif.ExposureTime === "number") {
-    const exposureValue = exif.ExposureTime;
+    const exposureValue = exif.ExposureTime
     relevantData["Exposure"] =
-      exposureValue < 1
-        ? `1/${Math.round(1 / exposureValue)}s`
-        : `${exposureValue}s`;
+      exposureValue < 1 ? `1/${Math.round(1 / exposureValue)}s` : `${exposureValue}s`
   }
 
-  if (exif.FNumber && typeof exif.FNumber === "number") {
-    relevantData["Aperture"] = `f/${exif.FNumber}`;
-  }
+  if (exif.FNumber && typeof exif.FNumber === "number")
+    relevantData["Aperture"] = `f/${exif.FNumber}`
 
-  if (
-    exif.ISO &&
-    (typeof exif.ISO === "number" || typeof exif.ISO === "string")
-  ) {
-    relevantData["ISO"] = `ISO ${exif.ISO}`;
-  }
+  if (exif.ISO && (typeof exif.ISO === "number" || typeof exif.ISO === "string"))
+    relevantData["ISO"] = `ISO ${exif.ISO}`
 
-  if (exif.FocalLength && typeof exif.FocalLength === "number") {
-    relevantData["Focal Length"] = `${exif.FocalLength}mm`;
-  }
+  if (exif.FocalLength && typeof exif.FocalLength === "number")
+    relevantData["Focal Length"] = `${exif.FocalLength}mm`
 
-  // Date & time
   if (exif.DateTimeOriginal) {
     try {
-      const dateString = String(exif.DateTimeOriginal);
-      const date = new Date(dateString);
+      const dateString = String(exif.DateTimeOriginal)
+      const date = new Date(dateString)
       if (!Number.isNaN(date.getTime())) {
-        relevantData["Date Taken"] = date.toLocaleDateString();
-        relevantData["Time Taken"] = date.toLocaleTimeString();
+        relevantData["Date Taken"] = date.toLocaleDateString()
+        relevantData["Time Taken"] = date.toLocaleTimeString()
       }
     } catch {
       // Skip if date parsing fails
     }
   }
 
-  // Lens info
-  if (exif.LensModel && typeof exif.LensModel === "string") {
-    relevantData["Lens"] = exif.LensModel;
-  }
+  if (exif.LensModel && typeof exif.LensModel === "string") relevantData["Lens"] = exif.LensModel
 
-  // GPS
   if (
     exif.latitude &&
     exif.longitude &&
     typeof exif.latitude === "number" &&
     typeof exif.longitude === "number"
   ) {
-    relevantData["GPS"] =
-      `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`;
+    relevantData["GPS"] = `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
   }
 
-  return relevantData;
+  return relevantData
 }

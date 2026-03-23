@@ -102,7 +102,7 @@ export function LiveClientPage() {
             }
           />
 
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border border-border shadow-xl">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
             <LanguageSelection locale={locale} setLocale={setLocale} isPending={isPending} />
 
             <RulesAndInformation description={marathon.description} />
@@ -166,7 +166,7 @@ function LogoAndEventInfo({
           <ImageIcon className="w-12 h-12" />
         </div>
       )}
-      <h1 className="text-2xl font-rocgrotesk font-extrabold text-gray-900 text-center mt-2">
+      <h1 className="text-2xl font-gothic font-medium text-foreground text-center mt-2 tracking-tight">
         {marathon.name}
       </h1>
       <p className="text-center text-lg mt-1 font-medium tracking-wide">{subtitle}</p>
@@ -191,7 +191,7 @@ function LanguageSelection({
         <Button
           variant="outline"
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-4 border-2",
+            "flex-1 flex items-center justify-center gap-2 py-3 border-2 rounded-xl",
             locale === "en" && "border-foreground",
           )}
           onClick={() => setLocale("en")}
@@ -203,7 +203,7 @@ function LanguageSelection({
         <Button
           variant="outline"
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-4 border-2",
+            "flex-1 flex items-center justify-center gap-2 py-3 border-2 rounded-xl",
             locale === "sv" && "border-foreground",
           )}
           onClick={() => setLocale("sv")}
@@ -230,17 +230,15 @@ function RulesAndInformation({ description }: { description: string | null }) {
             className="w-full flex gap-2 py-4 justify-start underline underline-offset-1"
           >
             <Info size={16} />
-            {t("rulesAndInformation")}t
+            {t("rulesAndInformation")}
           </Button>
-          t
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Info size={20} />
-              {t("rulesAndInformation")}t
+              {t("rulesAndInformation")}
             </DialogTitle>
-            t
           </DialogHeader>
           <div className="prose prose-sm max-w-none">{description}</div>
         </DialogContent>
@@ -367,7 +365,7 @@ function SponsorsSection({
   if (!sponsorImages || sponsorImages.length === 0) return null
 
   return (
-    <div className="mt-4 pt-6 border-t border-gray-200">
+    <div className="mt-4 pt-6 border-t border-border">
       <p className="text-center text-sm text-muted-foreground mb-2">{t("sponsors")}</p>
       <div className="flex justify-center items-center gap-4 flex-wrap">
         {sponsorImages.map((sponsor) => (
@@ -390,7 +388,7 @@ function PoweredByBlikka() {
       <p className="text-xs text-muted-foreground mb-1 italic">Powered by</p>
       <div className="flex items-center gap-1.5">
         <Image src="/blikka-logo.svg" alt="Blikka" width={20} height={17} />
-        <span className="font-rocgrotesk font-bold text-base tracking-tight">blikka</span>
+        <span className="font-special-gothic text-base tracking-tight">blikka</span>
       </div>
     </div>
   )

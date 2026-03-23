@@ -1,17 +1,17 @@
-"use client";
+"use client"
 
-import type { Topic } from "@blikka/db";
-import { AnimatePresence, motion } from "motion/react";
-import { useMemo } from "react";
-import { buildPhotoValidationMap } from "@/lib/validation";
-import { usePhotoStore } from "../_lib/photo-store";
-import { SubmissionItem } from "./submission-item";
+import type { Topic } from "@blikka/db"
+import { AnimatePresence, motion } from "motion/react"
+import { useMemo } from "react"
+import { buildPhotoValidationMap } from "@/lib/validation"
+import { usePhotoStore } from "../_lib/photo-store"
+import { SubmissionItem } from "./submission-item"
 
 interface SubmissionListProps {
-  topics: Topic[];
-  maxPhotos: number;
-  onUploadClick?: () => void;
-  onRemovePhoto?: (orderIndex: number) => void;
+  topics: Topic[]
+  maxPhotos: number
+  onUploadClick?: () => void
+  onRemovePhoto?: (orderIndex: number) => void
 }
 
 export function SubmissionList({
@@ -20,26 +20,26 @@ export function SubmissionList({
   onUploadClick,
   onRemovePhoto,
 }: SubmissionListProps) {
-  const photos = usePhotoStore((state) => state.photos);
-  const validationResults = usePhotoStore((state) => state.validationResults);
-  const remainingSlots = maxPhotos - photos.length;
+  const photos = usePhotoStore((state) => state.photos)
+  const validationResults = usePhotoStore((state) => state.validationResults)
+  const remainingSlots = maxPhotos - photos.length
   const validationMap = useMemo(
     () => buildPhotoValidationMap(photos, validationResults),
     [photos, validationResults],
-  );
+  )
   const topicsByOrderIndex = useMemo(
     () => new Map(topics.map((topic) => [topic.orderIndex, topic])),
     [topics],
-  );
+  )
 
   return (
     <AnimatePresence>
-      <div className="flex flex-col space-y-2">
+      <div className="flex flex-col gap-2.5">
         {photos.map((photo, index) => (
           <motion.div
             key={photo.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
           >
             <SubmissionItem
@@ -54,8 +54,8 @@ export function SubmissionList({
         {Array.from({ length: remainingSlots }).map((_, index) => (
           <motion.div
             key={`empty-${index}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
           >
             <SubmissionItem
@@ -67,5 +67,5 @@ export function SubmissionList({
         ))}
       </div>
     </AnimatePresence>
-  );
+  )
 }

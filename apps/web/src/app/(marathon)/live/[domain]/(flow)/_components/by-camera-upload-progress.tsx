@@ -1,19 +1,20 @@
-"use client";
+"use client"
 
-import { AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import type { FinalizationState, UploadFileState } from "../_lib/types";
-import { FINALIZATION_STATE, UPLOAD_PHASE } from "../_lib/types";
+import { AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { AnimatePresence, motion } from "motion/react"
+import { useEffect, useMemo, useState } from "react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import type { FinalizationState, UploadFileState } from "../_lib/types"
+import { FINALIZATION_STATE, UPLOAD_PHASE } from "../_lib/types"
 
 interface ByCameraUploadProgressProps {
-  files: UploadFileState[];
-  expectedCount: number;
-  onRetry?: () => void;
-  finalizationState: FinalizationState;
-  participantReference?: string;
+  files: UploadFileState[]
+  expectedCount: number
+  onRetry?: () => void
+  finalizationState: FinalizationState
+  participantReference?: string
 }
 
 const PROCESSING_TEXTS = [
@@ -22,17 +23,17 @@ const PROCESSING_TEXTS = [
   "Mesmerizing...",
   "Admiring...",
   "Making thumbnail...",
-];
+]
 
 function useLoopingText(texts: string[], intervalMs = 2000) {
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(0)
   useEffect(() => {
     const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % texts.length);
-    }, intervalMs);
-    return () => clearInterval(interval);
-  }, [texts, intervalMs]);
-  return texts[index];
+      setIndex((prev) => (prev + 1) % texts.length)
+    }, intervalMs)
+    return () => clearInterval(interval)
+  }, [texts, intervalMs])
+  return texts[index]
 }
 
 export function ByCameraUploadProgress({
@@ -42,94 +43,85 @@ export function ByCameraUploadProgress({
   finalizationState,
   participantReference,
 }: ByCameraUploadProgressProps) {
-  const t = useTranslations("FlowPage.uploadProgress");
-  const finalizingT = useTranslations("FlowPage.uploadFinalizing");
-  const loopingText = useLoopingText(PROCESSING_TEXTS, 2500);
+  const t = useTranslations("FlowPage.uploadProgress")
+  const finalizingT = useTranslations("FlowPage.uploadFinalizing")
+  const loopingText = useLoopingText(PROCESSING_TEXTS, 2500)
 
   const progress = useMemo(() => {
-    const total = files.length || expectedCount;
-    const completed = files.filter(
-      (f) => f.phase === UPLOAD_PHASE.UPLOADED,
-    ).length;
-    const failed = files.filter((f) => f.phase === UPLOAD_PHASE.ERROR).length;
+    const total = files.length || expectedCount
+    const completed = files.filter((f) => f.phase === UPLOAD_PHASE.UPLOADED).length
+    const failed = files.filter((f) => f.phase === UPLOAD_PHASE.ERROR).length
+    return { total, completed, failed }
+  }, [files, expectedCount])
 
-    return {
-      total,
-      completed,
-      failed,
-    };
-  }, [files, expectedCount]);
-
-  const allUploadsComplete = progress.completed === expectedCount;
-  const hasFailures = progress.failed > 0;
+  const allUploadsComplete = progress.completed === expectedCount
+  const hasFailures = progress.failed > 0
   const isFinalizing =
     allUploadsComplete &&
     (finalizationState === FINALIZATION_STATE.FINALIZING ||
-      finalizationState === FINALIZATION_STATE.READY);
+      finalizationState === FINALIZATION_STATE.READY)
   const isTimedOut =
-    allUploadsComplete &&
-    finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED;
+    allUploadsComplete && finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED
 
-  // Step 1: Uploading to Cloud
-  const step1Status = hasFailures
-    ? "error"
-    : allUploadsComplete
-      ? "completed"
-      : "active";
-
-  // Step 2: Processing
+  const step1Status = hasFailures ? "error" : allUploadsComplete ? "completed" : "active"
   const step2Status = isTimedOut
     ? "error"
     : finalizationState === FINALIZATION_STATE.READY
       ? "completed"
       : isFinalizing
         ? "active"
-        : "pending";
+        : "pending"
 
   return (
-    <div className="w-full flex flex-col items-center justify-center min-h-[60dvh] px-4 font-sans">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+    <div className="flex min-h-[60dvh] w-full flex-col items-center justify-center px-6">
+      <div className="w-full max-w-md space-y-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <h2 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
             {allUploadsComplete ? "Processing Photo" : "Uploading Photo"}
           </h2>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="mt-2 text-sm text-muted-foreground">
             {allUploadsComplete
               ? "Your photo is safe in the cloud. We are now preparing it."
               : "Please keep the app open while we upload your photo."}
           </p>
-        </div>
+        </motion.div>
 
-        <div className="space-y-4">
-          {/* Step 1 Card */}
+        {/* Steps */}
+        <div className="space-y-3">
+          {/* Step 1: Upload */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`relative overflow-hidden border-2 rounded-xl p-5 transition-colors duration-300 ${
-              step1Status === "active"
-                ? "border-primary bg-primary/5"
-                : step1Status === "completed"
-                  ? "border-muted bg-muted/20"
-                  : "border-destructive bg-destructive/5"
-            }`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className={cn(
+              "overflow-hidden rounded-2xl border-2 p-5 transition-colors duration-300",
+              step1Status === "active" && "border-foreground/20 bg-white",
+              step1Status === "completed" && "border-border bg-muted/20",
+              step1Status === "error" && "border-destructive/40 bg-destructive/5",
+            )}
           >
             <div className="flex items-center gap-4">
-              <div className="shrink-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground/6">
                 {step1Status === "active" && (
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <Loader2 className="h-5 w-5 animate-spin text-foreground/60" />
                 )}
                 {step1Status === "completed" && (
-                  <CheckCircle2 className="w-6 h-6 text-primary" />
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 )}
                 {step1Status === "error" && (
-                  <AlertTriangle className="w-6 h-6 text-destructive" />
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base">
-                  1. Uploading to Cloud
-                </h3>
-                <p className="text-sm text-muted-foreground truncate">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Step 1
+                </p>
+                <h3 className="text-base font-semibold text-foreground">Uploading to Cloud</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {step1Status === "active" && "Transferring securely..."}
                   {step1Status === "completed" && "Safe and soundly uploaded"}
                   {step1Status === "error" && "Upload failed"}
@@ -138,62 +130,61 @@ export function ByCameraUploadProgress({
             </div>
 
             {step1Status === "error" && onRetry && (
-              <div className="mt-4 pt-4 border-t border-destructive/20">
+              <div className="mt-4 border-t border-dashed border-destructive/20 pt-4">
                 <Button
                   onClick={onRetry}
                   variant="outline"
                   size="sm"
-                  className="w-full border-destructive/50 hover:bg-destructive/10"
+                  className="w-full rounded-full border-destructive/50 hover:bg-destructive/10"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <RefreshCw className="mr-2 h-4 w-4" />
                   Retry Upload
                 </Button>
               </div>
             )}
           </motion.div>
 
-          {/* Step 2 Card */}
+          {/* Step 2: Processing */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className={`relative overflow-hidden border-2 rounded-xl p-5 transition-colors duration-300 ${
-              step2Status === "active"
-                ? "border-primary bg-primary/5"
-                : step2Status === "completed"
-                  ? "border-primary bg-primary/5"
-                  : step2Status === "error"
-                    ? "border-amber-500 bg-amber-50"
-                    : "border-muted bg-transparent opacity-50"
-            }`}
+            className={cn(
+              "overflow-hidden rounded-2xl border-2 p-5 transition-colors duration-300",
+              step2Status === "active" && "border-foreground/20 bg-white",
+              step2Status === "completed" && "border-foreground/20 bg-white",
+              step2Status === "error" && "border-amber-300 bg-amber-50",
+              step2Status === "pending" && "border-border bg-transparent opacity-40",
+            )}
           >
             <div className="flex items-center gap-4">
-              <div className="shrink-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground/6">
                 {step2Status === "pending" && (
-                  <div className="w-6 h-6 rounded-full border-2 border-muted" />
+                  <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30" />
                 )}
                 {step2Status === "active" && (
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <Loader2 className="h-5 w-5 animate-spin text-foreground/60" />
                 )}
                 {step2Status === "completed" && (
-                  <CheckCircle2 className="w-6 h-6 text-primary" />
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 )}
                 {step2Status === "error" && (
-                  <AlertTriangle className="w-6 h-6 text-amber-600" />
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base">
-                  2. Processing in Backend
-                </h3>
-                <div className="text-sm text-muted-foreground h-5 relative overflow-hidden">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Step 2
+                </p>
+                <h3 className="text-base font-semibold text-foreground">Processing in Backend</h3>
+                <div className="relative mt-0.5 h-4 overflow-hidden text-xs text-muted-foreground">
                   <AnimatePresence mode="popLayout">
                     {step2Status === "pending" && (
                       <motion.span
                         key="pending"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                         className="absolute inset-0"
                       >
                         Waiting for upload...
@@ -202,9 +193,9 @@ export function ByCameraUploadProgress({
                     {step2Status === "active" && (
                       <motion.span
                         key={loopingText}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                         className="absolute inset-0 truncate"
                       >
                         {loopingText}
@@ -213,10 +204,10 @@ export function ByCameraUploadProgress({
                     {step2Status === "completed" && (
                       <motion.span
                         key="completed"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute inset-0 text-primary font-medium"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 font-medium text-emerald-600"
                       >
                         Ready!
                       </motion.span>
@@ -224,9 +215,9 @@ export function ByCameraUploadProgress({
                     {step2Status === "error" && (
                       <motion.span
                         key="error"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                         className="absolute inset-0 text-amber-700"
                       >
                         Taking longer than expected
@@ -238,12 +229,10 @@ export function ByCameraUploadProgress({
             </div>
 
             {step2Status === "error" && (
-              <div className="mt-4 pt-4 border-t border-amber-200">
-                <p className="text-sm text-amber-900">
-                  {finalizingT("doNotUploadAgain")}
-                </p>
+              <div className="mt-4 border-t border-dashed border-amber-200 pt-4">
+                <p className="text-xs text-amber-900">{finalizingT("doNotUploadAgain")}</p>
                 {participantReference && (
-                  <p className="mt-2 font-mono text-sm text-amber-950 bg-amber-100/50 p-2 rounded">
+                  <p className="mt-2 rounded-xl bg-amber-100/50 p-2.5 font-mono text-sm font-bold tracking-wider text-amber-950">
                     Ref: {participantReference}
                   </p>
                 )}
@@ -251,7 +240,18 @@ export function ByCameraUploadProgress({
             )}
           </motion.div>
         </div>
+
+        {/* Keep page open notice */}
+        {allUploadsComplete && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-xs text-muted-foreground"
+          >
+            {t("keepPageOpen")}
+          </motion.p>
+        )}
       </div>
     </div>
-  );
+  )
 }

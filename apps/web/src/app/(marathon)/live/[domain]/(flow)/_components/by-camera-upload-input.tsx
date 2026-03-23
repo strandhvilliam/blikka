@@ -10,16 +10,17 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
-  FileImage,
+  CloudUpload,
   Info,
   Loader2,
+  X,
 } from "lucide-react"
 import { format } from "date-fns"
 import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
+import { cn } from "@/lib/utils"
 import { ValidationStatusBadge } from "./validation-status-badge"
 import type { SelectedPhoto } from "../_lib/types"
 import { VALIDATION_OUTCOME } from "@blikka/validation"
-import { Icon } from "@iconify/react"
 
 interface ValidationSummary {
   status: "pending" | "passed" | "warning" | "error"
@@ -37,13 +38,8 @@ function getValidationSummary(
   hasValidationRules: boolean,
 ): ValidationSummary {
   if (validationResults.length === 0) {
-    // If no rules configured, show as passed
     if (!hasValidationRules) {
-      return {
-        status: "passed",
-        outcome: VALIDATION_OUTCOME.PASSED,
-        messages: [],
-      }
+      return { status: "passed", outcome: VALIDATION_OUTCOME.PASSED, messages: [] }
     }
     return { status: "pending", messages: [] }
   }
@@ -62,9 +58,7 @@ function getValidationSummary(
     }
   }
 
-  const warning = validationResults.find(
-    (r) => r.outcome !== VALIDATION_OUTCOME.PASSED,
-  )
+  const warning = validationResults.find((r) => r.outcome !== VALIDATION_OUTCOME.PASSED)
   if (warning) {
     return {
       status: "warning",
@@ -76,11 +70,7 @@ function getValidationSummary(
     }
   }
 
-  return {
-    status: "passed",
-    outcome: VALIDATION_OUTCOME.PASSED,
-    messages: [],
-  }
+  return { status: "passed", outcome: VALIDATION_OUTCOME.PASSED, messages: [] }
 }
 
 function getTimeTaken(exif?: Record<string, unknown>): Date | null {
@@ -97,36 +87,25 @@ function getTimeTaken(exif?: Record<string, unknown>): Date | null {
 
 function getRelevantExifData(exif: Record<string, unknown>): Record<string, string> {
   const relevantData: Record<string, string> = {}
-
   if (!exif) return relevantData
 
-  if (exif.Make && typeof exif.Make === "string")
-    relevantData["Camera Make"] = exif.Make
-  if (exif.Model && typeof exif.Model === "string")
-    relevantData["Camera Model"] = exif.Model
+  if (exif.Make && typeof exif.Make === "string") relevantData["Camera Make"] = exif.Make
+  if (exif.Model && typeof exif.Model === "string") relevantData["Camera Model"] = exif.Model
 
   if (exif.ExposureTime && typeof exif.ExposureTime === "number") {
     const exposureValue = exif.ExposureTime
     relevantData["Exposure"] =
-      exposureValue < 1
-        ? `1/${Math.round(1 / exposureValue)}s`
-        : `${exposureValue}s`
+      exposureValue < 1 ? `1/${Math.round(1 / exposureValue)}s` : `${exposureValue}s`
   }
 
-  if (exif.FNumber && typeof exif.FNumber === "number") {
+  if (exif.FNumber && typeof exif.FNumber === "number")
     relevantData["Aperture"] = `f/${exif.FNumber}`
-  }
 
-  if (
-    exif.ISO &&
-    (typeof exif.ISO === "number" || typeof exif.ISO === "string")
-  ) {
+  if (exif.ISO && (typeof exif.ISO === "number" || typeof exif.ISO === "string"))
     relevantData["ISO"] = `ISO ${exif.ISO}`
-  }
 
-  if (exif.FocalLength && typeof exif.FocalLength === "number") {
+  if (exif.FocalLength && typeof exif.FocalLength === "number")
     relevantData["Focal Length"] = `${exif.FocalLength}mm`
-  }
 
   if (exif.DateTimeOriginal) {
     try {
@@ -137,13 +116,11 @@ function getRelevantExifData(exif: Record<string, unknown>): Record<string, stri
         relevantData["Time Taken"] = date.toLocaleTimeString()
       }
     } catch {
-      // Skip if date parsing fails
+      // Skip
     }
   }
 
-  if (exif.LensModel && typeof exif.LensModel === "string") {
-    relevantData["Lens"] = exif.LensModel
-  }
+  if (exif.LensModel && typeof exif.LensModel === "string") relevantData["Lens"] = exif.LensModel
 
   if (
     exif.latitude &&
@@ -151,8 +128,7 @@ function getRelevantExifData(exif: Record<string, unknown>): Record<string, stri
     typeof exif.latitude === "number" &&
     typeof exif.longitude === "number"
   ) {
-    relevantData["GPS"] =
-      `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
+    relevantData["GPS"] = `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
   }
 
   return relevantData
@@ -199,21 +175,14 @@ export function ByCameraUploadInput({
   const takenAt = photo ? getTimeTaken(photo.exif) : null
 
   const handleChooseClick = () => {
-    if (isProcessing) {
-      return
-    }
-
+    if (isProcessing) return
     inputRef.current?.click()
   }
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
-
-    if (isProcessing) {
-      return
-    }
-
+    if (isProcessing) return
     if (e.dataTransfer.files?.length > 0) {
       await onFileSelect(e.dataTransfer.files)
     }
@@ -223,21 +192,21 @@ export function ByCameraUploadInput({
     <>
       <motion.div
         key={photo ? "preview" : "dropzone"}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="relative"
       >
         {!photo ? (
           <div
-            className={`relative border-2 border-dashed rounded-2xl p-10 sm:p-12 text-center transition-all duration-300 ${isProcessing
-              ? "cursor-progress opacity-70"
-              : "cursor-pointer"
-              } ${isDragOver
-                ? "border-primary bg-primary/5 scale-[1.02]"
-                : "border-muted-foreground/25 bg-background hover:border-muted-foreground/50 hover:bg-muted/50"
-              }`}
+            className={cn(
+              "flex flex-col items-center rounded-2xl border-2 border-dashed bg-white px-6 py-10 text-center transition-all",
+              isProcessing && "cursor-progress opacity-70",
+              !isProcessing && "cursor-pointer",
+              isDragOver
+                ? "border-foreground/40 scale-[1.01]"
+                : "border-foreground/20 hover:border-foreground/40",
+            )}
             onClick={handleChooseClick}
             onDragEnter={(e) => {
               e.preventDefault()
@@ -250,86 +219,74 @@ export function ByCameraUploadInput({
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
           >
-            <motion.div
-              animate={{
-                scale: isDragOver ? 1.1 : 1,
-                rotate: isDragOver ? [0, -5, 5, 0] : 0,
-              }}
-              transition={{ duration: 0.3 }}
-              className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-linear-to-r from-primary/5 to-primary/10 mb-6 shadow border"
-            >
-              {isDragOver ? (
-                <FileImage className="w-12 h-12 text-primary" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-foreground/6">
+              {isProcessing ? (
+                <Loader2 className="h-7 w-7 animate-spin text-foreground/50" />
               ) : (
-                <Icon
-                  icon="solar:cloud-upload-broken"
-                  className="w-13 h-13 text-primary"
-                />
+                <CloudUpload className="h-7 w-7 text-foreground/50" />
               )}
-            </motion.div>
-
-            <div className="space-y-3">
-              <p className="text-xl font-medium text-foreground">
-                {t("selectPhotoPrompt")}
-              </p>
-              {/* <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                {t("clickToSelect")}
-              </p> */}
             </div>
 
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <PrimaryButton
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleChooseClick()
-                }}
-                disabled={isProcessing}
-                className="rounded-full px-8 py-3 text-base font-semibold whitespace-nowrap"
-              >
-                {isProcessing ? (
-                  <Loader2 className="mr-1 h-5 w-5 shrink-0 animate-spin" />
-                ) : (
-                  <Icon
-                    icon="solar:gallery-add-outline"
-                    className="w-5 h-5 mr-1 shrink-0"
-                  />
-                )}
-                <span className="whitespace-nowrap">
-                  {t("chooseFromLibrary")}
-                </span>
-              </PrimaryButton>
-            </div>
+            <p className="mt-4 text-sm font-medium text-foreground">
+              {t("selectPhotoPrompt")}
+            </p>
 
-            <p className="mt-4 text-xs text-muted-foreground">
+            <PrimaryButton
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleChooseClick()
+              }}
+              disabled={isProcessing}
+              className="mt-5 rounded-full px-8"
+            >
+              {t("chooseFromLibrary")}
+            </PrimaryButton>
+
+            <p className="mt-4 text-[11px] text-muted-foreground">
               {t("supportedFormatsShort", {
-                formats: COMMON_IMAGE_EXTENSIONS.map((ext) =>
-                  ext.toUpperCase(),
-                ).join(", "),
+                formats: COMMON_IMAGE_EXTENSIONS.map((ext) => ext.toUpperCase()).join(", "),
               })}
             </p>
           </div>
         ) : (
           <div
-            className={[
-              "rounded-3xl overflow-hidden border bg-background shadow-sm",
-              validationSummary.status === "error" && "border-destructive/40",
-              validationSummary.status === "warning" && "border-amber-300/60",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+            className={cn(
+              "relative overflow-hidden rounded-2xl border-2 bg-white",
+              validationSummary.status === "error"
+                ? "border-destructive/40"
+                : validationSummary.status === "warning"
+                  ? "border-amber-300/60"
+                  : "border-border",
+            )}
           >
-            <div className="relative">
-              <div className="w-full bg-muted">
-                <img
-                  src={photo.preview}
-                  alt={t("photoPreview")}
-                  className="h-full w-full object-contain min-h-[100px]"
-                />
-              </div>
+            {/* Remove button */}
+            <button
+              type="button"
+              onClick={() => onRemovePhoto(photo.orderIndex)}
+              className="absolute top-2.5 right-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-colors hover:bg-white"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+              <span className="sr-only">{t("remove")}</span>
+            </button>
 
-              <div className="absolute left-4 top-4 flex items-center gap-2">
-                <div className="rounded-full bg-background/85 backdrop-blur px-2 py-1">
+            {/* Image */}
+            <div className="w-full bg-muted">
+              <img
+                src={photo.preview}
+                alt={t("photoPreview")}
+                className="min-h-[100px] w-full object-contain"
+              />
+            </div>
+
+            {/* Info section */}
+            <div className="px-4 py-3.5 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-base font-semibold text-foreground">{t("yourPhoto")}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{photo.file.name}</p>
+                </div>
+                <div className="shrink-0">
                   <ValidationStatusBadge
                     outcome={validationSummary.outcome}
                     severity={validationSummary.severity}
@@ -337,113 +294,25 @@ export function ByCameraUploadInput({
                 </div>
               </div>
 
-              <div className="absolute right-4 top-4 flex gap-2">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="secondary"
-                  className="rounded-full bg-background/85 backdrop-blur"
-                  onClick={() => onRemovePhoto(photo.orderIndex)}
-                >
-                  <Icon
-                    icon="solar:trash-bin-trash-outline"
-                    className="h-5 w-5"
-                  />
-                  <span className="sr-only">{t("remove")}</span>
-                </Button>
-              </div>
-            </div>
-
-            <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-medium leading-tight">{t("yourPhoto")}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {photo.file.name}
-                  </p>
-                </div>
-                {takenAt ? (
-                  <div className="shrink-0 text-right">
-                    <p className="text-xs text-muted-foreground">
-                      {t("taken")}
-                    </p>
-                    <p className="text-xs font-medium tabular-nums">
-                      {format(takenAt, "yyyy-MM-dd HH:mm")}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="flex items-center gap-2">
-                {hasExifData ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center gap-1 px-2 h-7 text-xs"
-                    onClick={() => setExifExpanded(!exifExpanded)}
-                  >
-                    <Info className="h-3.5 w-3.5" />
-                    <span>{t("photoDetails")}</span>
-                    {exifExpanded ? (
-                      <ChevronUp className="h-3.5 w-3.5" />
-                    ) : (
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
-                ) : (
-                  <div
-                    role="alert"
-                    className="flex items-start gap-2 rounded-2xl border border-amber-300/50 bg-amber-50 px-3 py-2 text-xs text-amber-900"
-                  >
-                    <AlertTriangle
-                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
-                      aria-hidden
-                    />
-                    <span className="leading-snug">{t("noExifData")}</span>
-                  </div>
-                )}
-              </div>
-
-              {exifExpanded && hasExifData && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="rounded-2xl border border-muted overflow-hidden"
-                >
-                  <table className="w-full text-xs">
-                    <tbody>
-                      {Object.entries(relevantExifData).map(([key, value]) => (
-                        <tr
-                          key={key}
-                          className="border-b border-gray-100 dark:border-gray-800 last:border-b-0"
-                        >
-                          <td className="py-1.5 px-3 font-medium text-muted-foreground">
-                            {key}
-                          </td>
-                          <td className="py-1.5 px-3 text-right">{value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </motion.div>
+              {takenAt && (
+                <p className="text-xs text-muted-foreground">
+                  {t("taken")} {format(takenAt, "yyyy-MM-dd HH:mm")}
+                </p>
               )}
 
-              {validationSummary.messages.length > 0 ? (
+              {validationSummary.messages.length > 0 && (
                 <div
-                  className={[
-                    "rounded-2xl border p-3 text-sm",
+                  className={cn(
+                    "rounded-xl border p-3 text-xs",
                     validationSummary.status === "error" &&
-                    "border-destructive/30 bg-destructive/5 text-destructive",
+                      "border-destructive/30 bg-destructive/5 text-destructive",
                     validationSummary.status === "warning" &&
-                    "border-amber-300/50 bg-amber-50 text-amber-900",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
+                      "border-amber-300/50 bg-amber-50 text-amber-900",
+                  )}
                 >
                   <div className="flex items-start gap-2">
-                    <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                    <ul className="space-y-1">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <ul className="space-y-0.5">
                       {validationSummary.messages.slice(0, 3).map((message) => (
                         <li key={message} className="leading-snug">
                           {message}
@@ -452,8 +321,58 @@ export function ByCameraUploadInput({
                     </ul>
                   </div>
                 </div>
-              ) : null}
+              )}
+
+              {!hasExifData && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                >
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
+                  <span className="leading-snug">{t("noExifData")}</span>
+                </div>
+              )}
             </div>
+
+            {/* EXIF details toggle */}
+            {hasExifData && (
+              <div className="border-t border-dashed border-border px-4 py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setExifExpanded(!exifExpanded)}
+                >
+                  <Info className="h-3.5 w-3.5" />
+                  <span>{t("photoDetails")}</span>
+                  {exifExpanded ? (
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {exifExpanded && hasExifData && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="border-t border-border px-4 pb-3"
+              >
+                <table className="mt-2 w-full text-xs">
+                  <tbody>
+                    {Object.entries(relevantExifData).map(([key, value]) => (
+                      <tr key={key} className="border-b border-border/50 last:border-b-0">
+                        <td className="py-1.5 font-medium text-muted-foreground">{key}</td>
+                        <td className="py-1.5 text-right text-foreground">{value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </motion.div>
+            )}
           </div>
         )}
       </motion.div>

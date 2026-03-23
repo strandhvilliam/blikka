@@ -1,76 +1,68 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import {
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { DeviceGroup } from "@blikka/db";
-import { DeviceSelectionItem } from "./device-selection-item";
-import { useTranslations } from "next-intl";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
-import { useStepState } from "../_lib/step-state-context";
-import { validateDeviceSelectionRequirements } from "../_lib/upload-flow-state";
+import { Button } from "@/components/ui/button"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { DeviceGroup } from "@blikka/db"
+import { DeviceSelectionItem } from "./device-selection-item"
+import { useTranslations } from "next-intl"
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
+import { useStepState } from "../_lib/step-state-context"
+import { validateDeviceSelectionRequirements } from "../_lib/upload-flow-state"
 
 interface DeviceSelectionStepProps {
-  deviceGroups: DeviceGroup[];
-  isByCameraMode?: boolean;
+  deviceGroups: DeviceGroup[]
+  isByCameraMode?: boolean
 }
 
 export function DeviceSelectionStep({
   deviceGroups,
   isByCameraMode = false,
 }: DeviceSelectionStepProps) {
-  const { handleNextStep, handlePrevStep } = useStepState();
-  const t = useTranslations("FlowPage");
-  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
+  const { handleNextStep, handlePrevStep } = useStepState()
+  const t = useTranslations("FlowPage")
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState()
 
-  // For marathon mode, competition class is required
-  // For by-camera mode, it's not needed
   const deviceSelectionValidation = validateDeviceSelectionRequirements(
     uploadFlowState,
     isByCameraMode,
-  );
-  const isValid = deviceSelectionValidation.ok;
+  )
+  const isValid = deviceSelectionValidation.ok
 
   const handleContinue = () => {
-    if (!isValid) return;
-    handleNextStep();
-  };
+    if (!isValid) return
+    handleNextStep()
+  }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 min-h-[70dvh] flex flex-col justify-center">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
+    <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col justify-center px-6">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
           {t("deviceSelection.title")}
-        </CardTitle>
-        <CardDescription className="text-center">
+        </h1>
+        <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
           {t("deviceSelection.description")}
-        </CardDescription>
-      </CardHeader>
+        </p>
+      </div>
 
-      <CardContent className="flex flex-col gap-3 sm:gap-4">
+      {/* Options */}
+      <div className="flex flex-col gap-3">
         {deviceGroups.map((deviceGroup) => (
           <DeviceSelectionItem
             key={deviceGroup.id}
             deviceGroup={deviceGroup}
             isSelected={uploadFlowState.deviceGroupId === deviceGroup.id}
-            onSelect={() =>
-              setUploadFlowState({ deviceGroupId: deviceGroup.id })
-            }
+            onSelect={() => setUploadFlowState({ deviceGroupId: deviceGroup.id })}
           />
         ))}
-      </CardContent>
+      </div>
 
-      <CardFooter className="flex flex-col gap-3 items-center justify-center pt-4 px-4 sm:px-0">
+      {/* Actions */}
+      <div className="mt-8 flex flex-col gap-3">
         <PrimaryButton
           onClick={handleContinue}
           disabled={!isValid}
-          className="w-full py-3.5 text-base sm:text-lg rounded-full"
+          className="w-full rounded-full py-3.5 text-base"
         >
           {t("deviceSelection.continue")}
         </PrimaryButton>
@@ -78,11 +70,11 @@ export function DeviceSelectionStep({
           variant="ghost"
           size="lg"
           onClick={handlePrevStep}
-          className="w-full sm:w-[220px]"
+          className="w-full"
         >
           {t("deviceSelection.back")}
         </Button>
-      </CardFooter>
+      </div>
     </div>
-  );
+  )
 }

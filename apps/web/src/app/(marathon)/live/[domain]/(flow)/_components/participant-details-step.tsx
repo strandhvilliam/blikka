@@ -1,31 +1,18 @@
-"use client";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
-import { useForm } from "@tanstack/react-form";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import {
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { ArrowRight, Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { z } from "zod";
-import { useStepState } from "../_lib/step-state-context";
-import { type FlowMode } from "../_lib/constants";
-import { useEffect, useRef, useState } from "react";
-import {
-  isPossiblePhoneNumber,
-  parsePhoneNumber,
-} from "react-phone-number-input";
-import { PhoneInput } from "@/components/ui/phone-input";
-import { useTRPC } from "@/lib/trpc/client";
-import { useDomain } from "@/lib/domain-provider";
-import { toast } from "sonner";
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import { useForm } from "@tanstack/react-form"
+import { useMutation } from "@tanstack/react-query"
+import { useTranslations } from "next-intl"
+import { ArrowRight, Loader2 } from "lucide-react"
+import { toast } from "sonner"
+import { z } from "zod"
+import { isPossiblePhoneNumber, parsePhoneNumber } from "react-phone-number-input"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { PhoneInput } from "@/components/ui/phone-input"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,22 +22,21 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { toParticipantFlowStatePatch } from "../_lib/upload-flow-state";
+} from "@/components/ui/alert-dialog"
+import { useTRPC } from "@/lib/trpc/client"
+import { useDomain } from "@/lib/domain-provider"
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
+import { useStepState } from "../_lib/step-state-context"
+import { type FlowMode } from "../_lib/constants"
+import { toParticipantFlowStatePatch } from "../_lib/upload-flow-state"
 
 function getCountryFromLocale(): string {
-  if (typeof navigator === "undefined") return "SE";
-
-  const language = navigator.language;
-  if (!language) return "SE";
-
-  // Extract country code from locale (e.g., "en-US" -> "US", "sv-SE" -> "SE")
-  const parts = language.split("-");
-  if (parts.length > 1) {
-    return parts[parts.length - 1].toUpperCase();
-  }
-
-  return "SE";
+  if (typeof navigator === "undefined") return "SE"
+  const language = navigator.language
+  if (!language) return "SE"
+  const parts = language.split("-")
+  if (parts.length > 1) return parts[parts.length - 1].toUpperCase()
+  return "SE"
 }
 
 const createParticipantDetailsSchema = (
@@ -68,23 +54,18 @@ const createParticipantDetailsSchema = (
             .min(1, t("participantDetails.phoneRequired"))
             .refine(isPossiblePhoneNumber, t("participantDetails.invalidPhone"))
         : z.string(),
-  });
+  })
 
 const createParticipantDetailsValidator =
   (t: ReturnType<typeof useTranslations>, mode: FlowMode) =>
   ({
     value,
   }: {
-    value: {
-      firstname: string;
-      lastname: string;
-      email: string;
-      phone: string;
-    };
+    value: { firstname: string; lastname: string; email: string; phone: string }
   }) => {
-    const result = createParticipantDetailsSchema(t, mode).safeParse(value);
-    if (result.success) return undefined;
-    const fieldErrors = result.error.flatten().fieldErrors;
+    const result = createParticipantDetailsSchema(t, mode).safeParse(value)
+    if (result.success) return undefined
+    const fieldErrors = result.error.flatten().fieldErrors
     return {
       fields: {
         firstname: fieldErrors.firstname?.[0],
@@ -92,52 +73,51 @@ const createParticipantDetailsValidator =
         email: fieldErrors.email?.[0],
         phone: fieldErrors.phone?.[0],
       },
-    };
-  };
+    }
+  }
 
 interface ParticipantDetailsStepProps {
-  mode: FlowMode;
+  mode: FlowMode
 }
 
-type ParticipantDetailsFieldName = "firstname" | "lastname" | "email" | "phone";
+type ParticipantDetailsFieldName = "firstname" | "lastname" | "email" | "phone"
 type ParticipantDetailsValues = {
-  firstname: string;
-  lastname: string;
-  email: string;
-  phone: string;
-};
+  firstname: string
+  lastname: string
+  email: string
+  phone: string
+}
 
 export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
-  const t = useTranslations("FlowPage");
-  const { uploadFlowState, setUploadFlowState } = useUploadFlowState();
-  const { handleNextStep, handlePrevStep } = useStepState();
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const [focusedField, setFocusedField] =
-    useState<ParticipantDetailsFieldName | null>(null);
-  const [replaceDialogOpen, setReplaceDialogOpen] = useState(false);
+  const t = useTranslations("FlowPage")
+  const { uploadFlowState, setUploadFlowState } = useUploadFlowState()
+  const { handleNextStep, handlePrevStep } = useStepState()
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const [focusedField, setFocusedField] = useState<ParticipantDetailsFieldName | null>(null)
+  const [replaceDialogOpen, setReplaceDialogOpen] = useState(false)
   const [pendingReplacement, setPendingReplacement] = useState<{
-    values: ParticipantDetailsValues;
-    participantId: number;
-    reference: string;
-  } | null>(null);
-  const [isCheckingParticipant, setIsCheckingParticipant] = useState(false);
-  const isCheckingParticipantRef = useRef(false);
-  const isMountedRef = useRef(true);
+    values: ParticipantDetailsValues
+    participantId: number
+    reference: string
+  } | null>(null)
+  const [isCheckingParticipant, setIsCheckingParticipant] = useState(false)
+  const isCheckingParticipantRef = useRef(false)
+  const isMountedRef = useRef(true)
 
   useEffect(() => {
     return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+      isMountedRef.current = false
+    }
+  }, [])
 
-  const defaultCountry = getCountryFromLocale();
+  const defaultCountry = getCountryFromLocale()
   const resolveByCameraParticipantByPhone = useMutation(
     trpc.uploadFlow.resolveByCameraParticipantByPhone.mutationOptions(),
-  );
+  )
   const isByCameraLookupPending =
     mode === "by-camera" &&
-    (isCheckingParticipant || resolveByCameraParticipantByPhone.isPending);
+    (isCheckingParticipant || resolveByCameraParticipantByPhone.isPending)
 
   const persistByCameraParticipant = async ({
     values,
@@ -145,10 +125,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
     reference,
     replaceExistingActiveTopicUpload,
   }: {
-    values: ParticipantDetailsValues;
-    participantId: number | null;
-    reference: string | null;
-    replaceExistingActiveTopicUpload: boolean | null;
+    values: ParticipantDetailsValues
+    participantId: number | null
+    reference: string | null
+    replaceExistingActiveTopicUpload: boolean | null
   }) => {
     await setUploadFlowState((prev) => ({
       ...prev,
@@ -157,22 +137,21 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
         participantRef: reference,
         replaceExistingActiveTopicUpload,
       }),
-    }));
-  };
+    }))
+  }
 
   const handleConfirmReplacement = async () => {
-    if (!pendingReplacement) return;
-
+    if (!pendingReplacement) return
     await persistByCameraParticipant({
       values: pendingReplacement.values,
       participantId: pendingReplacement.participantId,
       reference: pendingReplacement.reference,
       replaceExistingActiveTopicUpload: true,
-    });
-    setReplaceDialogOpen(false);
-    setPendingReplacement(null);
-    handleNextStep();
-  };
+    })
+    setReplaceDialogOpen(false)
+    setPendingReplacement(null)
+    handleNextStep()
+  }
 
   const form = useForm({
     defaultValues: {
@@ -183,31 +162,25 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
     },
     onSubmit: async ({ value }) => {
       if (mode === "by-camera") {
-        if (isCheckingParticipantRef.current) {
-          return;
-        }
+        if (isCheckingParticipantRef.current) return
 
-        isCheckingParticipantRef.current = true;
-        setIsCheckingParticipant(true);
+        isCheckingParticipantRef.current = true
+        setIsCheckingParticipant(true)
 
         try {
-          const resolution =
-            await resolveByCameraParticipantByPhone.mutateAsync({
-              domain,
-              phoneNumber: value.phone,
-            });
+          const resolution = await resolveByCameraParticipantByPhone.mutateAsync({
+            domain,
+            phoneNumber: value.phone,
+          })
 
-          if (
-            resolution.match &&
-            resolution.activeTopicUploadState === "already-uploaded"
-          ) {
+          if (resolution.match && resolution.activeTopicUploadState === "already-uploaded") {
             setPendingReplacement({
               values: value,
               participantId: resolution.participantId,
               reference: resolution.reference,
-            });
-            setReplaceDialogOpen(true);
-            return;
+            })
+            setReplaceDialogOpen(true)
+            return
           }
 
           await persistByCameraParticipant({
@@ -215,18 +188,17 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
             participantId: resolution.match ? resolution.participantId : null,
             reference: resolution.match ? resolution.reference : null,
             replaceExistingActiveTopicUpload: null,
-          });
-          handleNextStep();
-          return;
+          })
+          handleNextStep()
+          return
         } catch (error) {
-          console.error(error);
-          toast.error(t("participantDetails.resolveError"));
-          return;
+          console.error(error)
+          toast.error(t("participantDetails.resolveError"))
+          return
         } finally {
-          isCheckingParticipantRef.current = false;
-
+          isCheckingParticipantRef.current = false
           if (isMountedRef.current) {
-            setIsCheckingParticipant(false);
+            setIsCheckingParticipant(false)
           }
         }
       }
@@ -234,39 +206,40 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       await setUploadFlowState((prev) => ({
         ...prev,
         ...toParticipantFlowStatePatch(value, { trimPhone: true }),
-      }));
-      handleNextStep();
+      }))
+      handleNextStep()
     },
     validators: {
       onChange: createParticipantDetailsValidator(t, mode),
       onBlur: createParticipantDetailsValidator(t, mode),
     },
-  });
+  })
+
+  const inputClassName = (hasError: boolean) =>
+    `h-12 rounded-xl border-2 bg-white px-4 text-base transition-colors focus-visible:ring-0 ${
+      hasError
+        ? "border-destructive"
+        : "border-border focus-visible:border-foreground"
+    }`
 
   return (
-    <div className="max-w-md mx-auto min-h-[70dvh] space-y-10 flex flex-col justify-center">
+    <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col justify-center px-6">
       <AlertDialog
         open={replaceDialogOpen}
         onOpenChange={(open) => {
-          setReplaceDialogOpen(open);
-          if (!open) {
-            setPendingReplacement(null);
-          }
+          setReplaceDialogOpen(open)
+          if (!open) setPendingReplacement(null)
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("participantDetails.replaceExistingTitle")}
-            </AlertDialogTitle>
+            <AlertDialogTitle>{t("participantDetails.replaceExistingTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {t("participantDetails.replaceExistingDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>
-              {t("participantDetails.replaceExistingCancel")}
-            </AlertDialogCancel>
+            <AlertDialogCancel>{t("participantDetails.replaceExistingCancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => void handleConfirmReplacement()}>
               {t("participantDetails.replaceExistingConfirm")}
             </AlertDialogAction>
@@ -274,182 +247,132 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <CardHeader className="">
-        <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
           {t("participantDetails.title")}
-        </CardTitle>
-        <CardDescription className="text-center">
+        </h1>
+        <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
           {t("participantDetails.description")}
-        </CardDescription>
-      </CardHeader>
-      <form noValidate onSubmit={(e) => e.preventDefault()}>
-        <CardContent className="space-y-6">
+        </p>
+      </div>
+
+      {/* Form */}
+      <form noValidate onSubmit={(e) => e.preventDefault()} className="space-y-8">
+        <div className="space-y-5">
           <form.Subscribe
-            selector={(state: { submissionAttempts: number }) =>
-              state.submissionAttempts
-            }
+            selector={(state: { submissionAttempts: number }) => state.submissionAttempts}
           >
             {(submissionAttempts) => (
               <>
                 <form.Field name="firstname">
                   {(field) => {
-                    const hasValidationError =
-                      field.state.meta.errors.length > 0;
+                    const hasValidationError = field.state.meta.errors.length > 0
                     const showError =
                       hasValidationError &&
                       (field.state.meta.isBlurred ||
                         (submissionAttempts > 0 &&
-                          focusedField !==
-                            (field.name as ParticipantDetailsFieldName)));
+                          focusedField !== (field.name as ParticipantDetailsFieldName)))
 
                     return (
-                      <div className="space-y-2">
-                        <label
-                          htmlFor={field.name}
-                          className="text-sm font-medium leading-none"
-                        >
+                      <div className="space-y-1.5">
+                        <label htmlFor={field.name} className="text-sm font-medium text-foreground">
                           {t("participantDetails.firstName")}
                         </label>
                         <Input
                           id={field.name}
                           name={field.name}
                           value={field.state.value}
-                          onFocus={() =>
-                            setFocusedField(
-                              field.name as ParticipantDetailsFieldName,
-                            )
-                          }
+                          onFocus={() => setFocusedField(field.name as ParticipantDetailsFieldName)}
                           onBlur={() => {
-                            field.handleBlur();
-                            setFocusedField((prev) =>
-                              prev === field.name ? null : prev,
-                            );
+                            field.handleBlur()
+                            setFocusedField((prev) => (prev === field.name ? null : prev))
                           }}
                           onChange={(e) => field.handleChange(e.target.value)}
                           autoComplete="given-name"
                           autoCapitalize="words"
                           enterKeyHint="next"
                           disabled={isByCameraLookupPending}
-                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                            showError
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                          }`}
+                          className={inputClassName(showError)}
                           aria-invalid={showError}
-                          aria-describedby={
-                            showError ? `${field.name}-error` : undefined
-                          }
+                          aria-describedby={showError ? `${field.name}-error` : undefined}
                           placeholder="James"
                         />
                         {showError && (
-                          <span
-                            id={`${field.name}-error`}
-                            className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
-                          >
+                          <p id={`${field.name}-error`} className="text-center text-sm font-medium text-destructive">
                             {field.state.meta.errors[0]}
-                          </span>
+                          </p>
                         )}
                       </div>
-                    );
+                    )
                   }}
                 </form.Field>
 
                 <form.Field name="lastname">
                   {(field) => {
-                    const hasValidationError =
-                      field.state.meta.errors.length > 0;
+                    const hasValidationError = field.state.meta.errors.length > 0
                     const showError =
                       hasValidationError &&
                       (field.state.meta.isBlurred ||
                         (submissionAttempts > 0 &&
-                          focusedField !==
-                            (field.name as ParticipantDetailsFieldName)));
+                          focusedField !== (field.name as ParticipantDetailsFieldName)))
 
                     return (
-                      <div className="space-y-2">
-                        <label
-                          htmlFor={field.name}
-                          className="text-sm font-medium leading-none"
-                        >
+                      <div className="space-y-1.5">
+                        <label htmlFor={field.name} className="text-sm font-medium text-foreground">
                           {t("participantDetails.lastName")}
                         </label>
                         <Input
                           id={field.name}
                           name={field.name}
                           value={field.state.value}
-                          onFocus={() =>
-                            setFocusedField(
-                              field.name as ParticipantDetailsFieldName,
-                            )
-                          }
+                          onFocus={() => setFocusedField(field.name as ParticipantDetailsFieldName)}
                           onBlur={() => {
-                            field.handleBlur();
-                            setFocusedField((prev) =>
-                              prev === field.name ? null : prev,
-                            );
+                            field.handleBlur()
+                            setFocusedField((prev) => (prev === field.name ? null : prev))
                           }}
                           onChange={(e) => field.handleChange(e.target.value)}
                           autoComplete="family-name"
                           autoCapitalize="words"
                           enterKeyHint="next"
                           disabled={isByCameraLookupPending}
-                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                            showError
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                          }`}
+                          className={inputClassName(showError)}
                           aria-invalid={showError}
-                          aria-describedby={
-                            showError ? `${field.name}-error` : undefined
-                          }
+                          aria-describedby={showError ? `${field.name}-error` : undefined}
                           placeholder="Bond"
                         />
                         {showError && (
-                          <span
-                            id={`${field.name}-error`}
-                            className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
-                          >
+                          <p id={`${field.name}-error`} className="text-center text-sm font-medium text-destructive">
                             {field.state.meta.errors[0]}
-                          </span>
+                          </p>
                         )}
                       </div>
-                    );
+                    )
                   }}
                 </form.Field>
 
                 <form.Field name="email">
                   {(field) => {
-                    const hasValidationError =
-                      field.state.meta.errors.length > 0;
+                    const hasValidationError = field.state.meta.errors.length > 0
                     const showError =
                       hasValidationError &&
                       (field.state.meta.isBlurred ||
                         (submissionAttempts > 0 &&
-                          focusedField !==
-                            (field.name as ParticipantDetailsFieldName)));
+                          focusedField !== (field.name as ParticipantDetailsFieldName)))
 
                     return (
-                      <div className="space-y-2">
-                        <label
-                          htmlFor={field.name}
-                          className="text-sm font-medium leading-none"
-                        >
+                      <div className="space-y-1.5">
+                        <label htmlFor={field.name} className="text-sm font-medium text-foreground">
                           {t("participantDetails.email")}
                         </label>
                         <Input
                           id={field.name}
                           name={field.name}
                           value={field.state.value}
-                          onFocus={() =>
-                            setFocusedField(
-                              field.name as ParticipantDetailsFieldName,
-                            )
-                          }
+                          onFocus={() => setFocusedField(field.name as ParticipantDetailsFieldName)}
                           onBlur={() => {
-                            field.handleBlur();
-                            setFocusedField((prev) =>
-                              prev === field.name ? null : prev,
-                            );
+                            field.handleBlur()
+                            setFocusedField((prev) => (prev === field.name ? null : prev))
                           }}
                           onChange={(e) => field.handleChange(e.target.value)}
                           autoComplete="email"
@@ -457,57 +380,42 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           autoCorrect="off"
                           spellCheck={false}
                           disabled={isByCameraLookupPending}
-                          className={`rounded-xl text-base sm:text-lg py-5 bg-background ${
-                            showError
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                          }`}
+                          className={inputClassName(showError)}
                           aria-invalid={showError}
-                          aria-describedby={
-                            showError ? `${field.name}-error` : undefined
-                          }
+                          aria-describedby={showError ? `${field.name}-error` : undefined}
                           type="email"
                           inputMode="email"
                           enterKeyHint={mode === "by-camera" ? "next" : "done"}
                           placeholder="your@email.com"
                         />
                         {showError && (
-                          <span
-                            id={`${field.name}-error`}
-                            className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
-                          >
+                          <p id={`${field.name}-error`} className="text-center text-sm font-medium text-destructive">
                             {field.state.meta.errors[0]}
-                          </span>
+                          </p>
                         )}
                       </div>
-                    );
+                    )
                   }}
                 </form.Field>
 
                 {mode === "by-camera" && (
                   <form.Field name="phone">
                     {(field) => {
-                      const hasValidationError =
-                        field.state.meta.errors.length > 0;
+                      const hasValidationError = field.state.meta.errors.length > 0
                       const isPhoneFieldFocused =
-                        focusedField ===
-                        (field.name as ParticipantDetailsFieldName);
+                        focusedField === (field.name as ParticipantDetailsFieldName)
                       const hasEnteredNationalDigits = !!parsePhoneNumber(
                         field.state.value,
-                      )?.nationalNumber;
+                      )?.nationalNumber
                       const showError =
                         hasValidationError &&
                         !isPhoneFieldFocused &&
                         (submissionAttempts > 0 ||
-                          (field.state.meta.isBlurred &&
-                            hasEnteredNationalDigits));
+                          (field.state.meta.isBlurred && hasEnteredNationalDigits))
 
                       return (
-                        <div className="space-y-2">
-                          <label
-                            htmlFor={field.name}
-                            className="text-sm font-medium leading-none"
-                          >
+                        <div className="space-y-1.5">
+                          <label htmlFor={field.name} className="text-sm font-medium text-foreground">
                             {t("participantDetails.phone")}
                           </label>
                           <PhoneInput
@@ -515,19 +423,13 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                             name={field.name}
                             defaultCountry={defaultCountry as any}
                             value={field.state.value}
-                            onChange={(value) =>
-                              field.handleChange(value || "")
-                            }
+                            onChange={(value) => field.handleChange(value || "")}
                             onFocus={() =>
-                              setFocusedField(
-                                field.name as ParticipantDetailsFieldName,
-                              )
+                              setFocusedField(field.name as ParticipantDetailsFieldName)
                             }
                             onBlur={() => {
-                              field.handleBlur();
-                              setFocusedField((prev) =>
-                                prev === field.name ? null : prev,
-                              );
+                              field.handleBlur()
+                              setFocusedField((prev) => (prev === field.name ? null : prev))
                             }}
                             autoComplete="tel"
                             inputMode="tel"
@@ -535,48 +437,38 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                             international
                             countryCallingCodeEditable={false}
                             disabled={isByCameraLookupPending}
-                            className={`rounded-xl text-base sm:text-lg bg-background ${
+                            className={`rounded-xl border-2 bg-white text-base transition-colors focus-visible:ring-0 ${
                               showError
-                                ? "border-destructive focus-visible:ring-destructive"
-                                : ""
+                                ? "border-destructive"
+                                : "border-border focus-visible:border-foreground"
                             }`}
                             aria-invalid={showError}
-                            aria-describedby={
-                              showError ? `${field.name}-error` : undefined
-                            }
+                            aria-describedby={showError ? `${field.name}-error` : undefined}
                           />
                           {showError && (
-                            <span
-                              id={`${field.name}-error`}
-                              className="flex flex-1 w-full justify-center text-sm text-center text-destructive font-medium"
-                            >
+                            <p id={`${field.name}-error`} className="text-center text-sm font-medium text-destructive">
                               {field.state.meta.errors[0]}
-                            </span>
+                            </p>
                           )}
                         </div>
-                      );
+                      )
                     }}
                   </form.Field>
                 )}
               </>
             )}
           </form.Subscribe>
-        </CardContent>
+        </div>
 
-        <CardFooter className="flex flex-col gap-3 pt-8">
+        <div className="flex flex-col gap-3">
           <form.Subscribe
-            selector={(state: { isSubmitting: boolean }) => [
-              state.isSubmitting,
-            ]}
+            selector={(state: { isSubmitting: boolean }) => [state.isSubmitting]}
           >
             {([isSubmitting]) => (
               <PrimaryButton
                 type="button"
-                className="w-full py-3.5 text-base sm:text-lg rounded-full"
-                disabled={
-                  isSubmitting || isByCameraLookupPending
-                }
-                // submit mannually to avoid specific bug when navigating back between steps
+                className="w-full rounded-full py-3.5 text-base"
+                disabled={isSubmitting || isByCameraLookupPending}
                 onClick={() => form.handleSubmit()}
               >
                 {isByCameraLookupPending ? (
@@ -603,8 +495,8 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
           >
             {t("participantDetails.back")}
           </Button>
-        </CardFooter>
+        </div>
       </form>
     </div>
-  );
+  )
 }

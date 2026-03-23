@@ -1,50 +1,42 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
-import {
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { useDomain } from "@/lib/domain-provider";
-import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing";
-import { useTRPC } from "@/lib/trpc/client";
-import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client";
-import { formatDomainPathname } from "@/lib/utils";
-import type {
-  CompetitionClass,
-  RuleConfig as DbRuleConfig,
-  Topic,
-} from "@blikka/db";
-import { useMutation } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
-import { useFileUpload } from "../_hooks/use-file-upload";
-import { useLivePhotoValidation } from "../_hooks/use-live-photo-validation";
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state";
-import { useSelectFile } from "../_hooks/use-select-file";
-import { usePhotoStore } from "../_lib/photo-store";
-import { useHeicStore } from "../_lib/heic-store";
-import { useStepState } from "../_lib/step-state-context";
-import type { PhotoWithPresignedUrl } from "../_lib/types";
-import { useUploadStore } from "../_lib/upload-store";
-import { SubmissionList } from "./submission-list";
-import { UploadProgress } from "./upload-progress";
-import { UploadSection } from "./upload-section";
-import { HeicConversionDialog } from "./heic-conversion-dialog";
-import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
-import { VALIDATION_OUTCOME } from "@blikka/validation";
-import { FINALIZATION_STATE } from "../_lib/types";
+import { useEffect, useMemo, useRef, useState } from "react"
+import { motion, AnimatePresence } from "motion/react"
+import { useTranslations } from "next-intl"
+import { useRouter } from "next/navigation"
+import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
+import type { CompetitionClass, RuleConfig as DbRuleConfig, Topic } from "@blikka/db"
+import { VALIDATION_OUTCOME } from "@blikka/validation"
+
+import { Button } from "@/components/ui/button"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { useDomain } from "@/lib/domain-provider"
+import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
+import { useTRPC } from "@/lib/trpc/client"
+import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
+import { formatDomainPathname } from "@/lib/utils"
+
+import { useFileUpload } from "../_hooks/use-file-upload"
+import { useLivePhotoValidation } from "../_hooks/use-live-photo-validation"
+import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
+import { useSelectFile } from "../_hooks/use-select-file"
+import { usePhotoStore } from "../_lib/photo-store"
+import { useHeicStore } from "../_lib/heic-store"
+import { useStepState } from "../_lib/step-state-context"
+import type { PhotoWithPresignedUrl } from "../_lib/types"
+import { useUploadStore } from "../_lib/upload-store"
+import { FINALIZATION_STATE } from "../_lib/types"
 import {
   buildInitializeUploadFlowInputResult,
   getUploadFlowIssueMessageKeys,
-} from "../_lib/upload-flow-state";
+} from "../_lib/upload-flow-state"
+
+import { SubmissionList } from "./submission-list"
+import { UploadProgress } from "./upload-progress"
+import { UploadSection } from "./upload-section"
+import { HeicConversionDialog } from "./heic-conversion-dialog"
+import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog"
 
 export function UploadSubmissionsStep({
   ruleConfigs,
@@ -53,51 +45,51 @@ export function UploadSubmissionsStep({
   validationStartDate,
   validationEndDate,
 }: {
-  ruleConfigs: DbRuleConfig[];
-  topics: Topic[];
-  competitionClass: CompetitionClass;
-  validationStartDate: string;
-  validationEndDate: string;
+  ruleConfigs: DbRuleConfig[]
+  topics: Topic[]
+  competitionClass: CompetitionClass
+  validationStartDate: string
+  validationEndDate: string
 }) {
-  const t = useTranslations("FlowPage.uploadStep");
-  const trpc = useTRPC();
-  const domain = useDomain();
-  const { handlePrevStep } = useStepState();
-  const router = useRouter();
-  const { uploadFlowState } = useUploadFlowState();
+  const t = useTranslations("FlowPage.uploadStep")
+  const trpc = useTRPC()
+  const domain = useDomain()
+  const { handlePrevStep } = useStepState()
+  const router = useRouter()
+  const { uploadFlowState } = useUploadFlowState()
 
-  const initializeStore = usePhotoStore((state) => state.initialize);
-  const cleanup = usePhotoStore((state) => state.cleanup);
-  const clearPhotos = usePhotoStore((state) => state.clearPhotos);
-  const photos = usePhotoStore((state) => state.photos);
-  const removePhoto = usePhotoStore((state) => state.removePhoto);
-  const validationResults = usePhotoStore((state) => state.validationResults);
-  const isProcessingFiles = usePhotoStore((state) => state.isProcessingFiles);
+  const initializeStore = usePhotoStore((state) => state.initialize)
+  const cleanup = usePhotoStore((state) => state.cleanup)
+  const clearPhotos = usePhotoStore((state) => state.clearPhotos)
+  const photos = usePhotoStore((state) => state.photos)
+  const removePhoto = usePhotoStore((state) => state.removePhoto)
+  const validationResults = usePhotoStore((state) => state.validationResults)
+  const isProcessingFiles = usePhotoStore((state) => state.isProcessingFiles)
 
-  const isUploading = useUploadStore((state) => state.isUploading);
-  const setIsUploading = useUploadStore((state) => state.setIsUploading);
+  const isUploading = useUploadStore((state) => state.isUploading)
+  const setIsUploading = useUploadStore((state) => state.setIsUploading)
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const hasRedirectedRef = useRef(false);
-  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const hasRedirectedRef = useRef(false)
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
 
-  const heicIsConverting = useHeicStore((state) => state.isConverting);
-  const heicIsCancelling = useHeicStore((state) => state.isCancelling);
-  const heicProgress = useHeicStore((state) => state.progress);
-  const heicCurrentFileName = useHeicStore((state) => state.currentFileName);
-  const cancelHeicConversion = useHeicStore((state) => state.cancel);
+  const heicIsConverting = useHeicStore((state) => state.isConverting)
+  const heicIsCancelling = useHeicStore((state) => state.isCancelling)
+  const heicProgress = useHeicStore((state) => state.progress)
+  const heicCurrentFileName = useHeicStore((state) => state.currentFileName)
+  const cancelHeicConversion = useHeicStore((state) => state.cancel)
 
   const { handleFileSelect } = useSelectFile({
     maxPhotos: competitionClass.numberOfPhotos,
     t,
-  });
+  })
 
   useLivePhotoValidation({
     ruleConfigs,
     validationStartDate,
     validationEndDate,
     marathonMode: "marathon",
-  });
+  })
 
   const {
     files: uploadFiles,
@@ -110,177 +102,139 @@ export function UploadSubmissionsStep({
   } = useFileUpload({
     domain,
     reference: uploadFlowState.participantRef || "",
-  });
+  })
 
   useEffect(() => {
     return () => {
       if (hasRedirectedRef.current) {
-        clearFiles();
+        clearFiles()
       }
-    };
-  }, [clearFiles]);
+    }
+  }, [clearFiles])
 
   const shouldNavigate =
     finalizationState === FINALIZATION_STATE.READY ||
-    finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED;
+    finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED
 
   useEffect(() => {
-    if (
-      !shouldNavigate ||
-      !minimumProgressDisplayReached ||
-      hasRedirectedRef.current ||
-      !domain
-    ) {
-      return;
+    if (!shouldNavigate || !minimumProgressDisplayReached || hasRedirectedRef.current || !domain) {
+      return
     }
 
-    hasRedirectedRef.current = true;
-    const serializedParams = flowStateClientParamSerializer(uploadFlowState);
-    router.push(
-      formatDomainPathname(`/live/verification${serializedParams}`, domain),
-    );
-  }, [
-    domain,
-    shouldNavigate,
-    minimumProgressDisplayReached,
-    router,
-    uploadFlowState,
-  ]);
+    hasRedirectedRef.current = true
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
+    router.push(formatDomainPathname(`/live/verification${serializedParams}`, domain))
+  }, [domain, shouldNavigate, minimumProgressDisplayReached, router, uploadFlowState])
 
   const handleResetAndGoBack = () => {
-    const confirmed = window.confirm(t("confirmGoBack"));
+    const confirmed = window.confirm(t("confirmGoBack"))
+    if (!confirmed) return
 
-    if (!confirmed) {
-      return;
-    }
-
-    clearPhotos();
-    clearFiles();
-    setIsUploading(false);
-    setShowConfirmationDialog(false);
-    handlePrevStep();
-  };
+    clearPhotos()
+    clearFiles()
+    setIsUploading(false)
+    setShowConfirmationDialog(false)
+    handlePrevStep()
+  }
 
   const { mutateAsync: initializeUploadFlow } = useMutation(
     trpc.uploadFlow.initializeUploadFlow.mutationOptions({
       onError: (error) => {
-        toast.error(error.message || t("initializationFailed"));
+        toast.error(error.message || t("initializationFailed"))
       },
     }),
-  );
+  )
 
-  const topicOrderIndexes = useMemo(
-    () => topics.map((topic) => topic.orderIndex),
-    [topics],
-  );
+  const topicOrderIndexes = useMemo(() => topics.map((topic) => topic.orderIndex), [topics])
 
   useEffect(() => {
-    initializeStore({
-      topicOrderIndexes,
-    });
-
+    initializeStore({ topicOrderIndexes })
     return () => {
-      cleanup();
-    };
-  }, [initializeStore, cleanup, topicOrderIndexes]);
+      cleanup()
+    }
+  }, [initializeStore, cleanup, topicOrderIndexes])
 
   const handleUploadClick = () => {
-    if (isProcessingFiles) {
-      return;
-    }
-
+    if (isProcessingFiles) return
     if (photos.length >= competitionClass.numberOfPhotos) {
-      toast.error(t("maxPhotosReached"));
-      return;
+      toast.error(t("maxPhotosReached"))
+      return
     }
-    fileInputRef.current?.click();
-  };
+    fileInputRef.current?.click()
+  }
 
   const handleSubmit = () => {
     if (photos.length !== competitionClass.numberOfPhotos) {
-      toast.error(
-        t("selectAllPhotos", { count: competitionClass.numberOfPhotos }),
-      );
-      return;
+      toast.error(t("selectAllPhotos", { count: competitionClass.numberOfPhotos }))
+      return
     }
-    setShowConfirmationDialog(true);
-  };
+    setShowConfirmationDialog(true)
+  }
 
   const handleConfirmedUpload = async () => {
-    setShowConfirmationDialog(false);
+    setShowConfirmationDialog(false)
 
     const initializeUploadFlowResult = domain
       ? buildInitializeUploadFlowInputResult(domain, uploadFlowState)
-      : null;
+      : null
 
     if (!initializeUploadFlowResult?.ok) {
       const issueLabels = initializeUploadFlowResult
-        ? getUploadFlowIssueMessageKeys(initializeUploadFlowResult.issues).map(
-            (messageKey) => t(messageKey),
+        ? getUploadFlowIssueMessageKeys(initializeUploadFlowResult.issues).map((messageKey) =>
+            t(messageKey),
           )
-        : [];
+        : []
       toast.error(
         issueLabels.length > 0
           ? t("missingRequiredInfoDetailed", { fields: issueLabels.join(", ") })
           : t("missingRequiredInfo"),
-      );
-      return;
+      )
+      return
     }
 
     try {
-      setIsUploading(true);
+      setIsUploading(true)
 
-      const photosInTopicOrder = [...photos].sort(
-        (a, b) => a.orderIndex - b.orderIndex,
-      );
+      const photosInTopicOrder = [...photos].sort((a, b) => a.orderIndex - b.orderIndex)
 
       const presignedUrls = await initializeUploadFlow({
         ...initializeUploadFlowResult.data,
-        uploadContentTypes: photosInTopicOrder.map(
-          (photo) => photo.file.type || "image/jpeg",
-        ),
-      });
+        uploadContentTypes: photosInTopicOrder.map((photo) => photo.file.type || "image/jpeg"),
+      })
 
       if (!presignedUrls || presignedUrls.length === 0) {
-        setIsUploading(false);
-        toast.error(t("failedToGetPresignedUrls"));
-        return;
+        setIsUploading(false)
+        toast.error(t("failedToGetPresignedUrls"))
+        return
       }
 
-      const photosWithUrls: PhotoWithPresignedUrl[] = photosInTopicOrder.map(
-        (photo, index) => {
-          const urlInfo = presignedUrls[index];
-          if (!urlInfo) {
-            throw new Error(`Missing presigned URL for photo ${index}`);
-          }
-          return {
-            ...photo,
-            presignedUrl: urlInfo.url,
-            key: urlInfo.key,
-            contentType: urlInfo.contentType,
-          };
-        },
-      );
+      const photosWithUrls: PhotoWithPresignedUrl[] = photosInTopicOrder.map((photo, index) => {
+        const urlInfo = presignedUrls[index]
+        if (!urlInfo) throw new Error(`Missing presigned URL for photo ${index}`)
+        return {
+          ...photo,
+          presignedUrl: urlInfo.url,
+          key: urlInfo.key,
+          contentType: urlInfo.contentType,
+        }
+      })
 
-      await executeUpload(photosWithUrls);
+      await executeUpload(photosWithUrls)
     } catch (error) {
-      console.error("Upload failed:", error);
-      setIsUploading(false);
-      toast.error(t("uploadFailed"));
+      console.error("Upload failed:", error)
+      setIsUploading(false)
+      toast.error(t("uploadFailed"))
     }
-  };
+  }
 
   const allPhotosSelected =
-    photos.length === competitionClass.numberOfPhotos && photos.length > 0;
+    photos.length === competitionClass.numberOfPhotos && photos.length > 0
 
   const hasValidationErrors = validationResults.some(
-    (result) =>
-      result.outcome === VALIDATION_OUTCOME.FAILED &&
-      result.severity === "error",
-  );
+    (result) => result.outcome === VALIDATION_OUTCOME.FAILED && result.severity === "error",
+  )
 
-  const canSubmit =
-    allPhotosSelected && !hasValidationErrors && !isProcessingFiles;
+  const canSubmit = allPhotosSelected && !hasValidationErrors && !isProcessingFiles
 
   return (
     <>
@@ -304,10 +258,10 @@ export function UploadSubmissionsStep({
         {isUploading ? (
           <motion.div
             key="upload-progress"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="max-w-4xl mx-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="mx-auto max-w-md px-6"
           >
             <UploadProgress
               files={uploadFiles}
@@ -321,21 +275,23 @@ export function UploadSubmissionsStep({
         ) : (
           <motion.div
             key="upload-content"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="max-w-4xl mx-auto space-y-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="mx-auto max-w-md px-6"
           >
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
+            {/* Header */}
+            <div className="mb-8 text-center">
+              <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
                 {t("title")}
-              </CardTitle>
-              <CardDescription className="text-center">
+              </h1>
+              <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
                 {t("description")}
-              </CardDescription>
-            </CardHeader>
+              </p>
+            </div>
 
-            <CardContent className="space-y-6">
+            {/* Content */}
+            <div className="space-y-6">
               <UploadSection
                 maxPhotos={competitionClass.numberOfPhotos}
                 onUploadClick={handleUploadClick}
@@ -351,28 +307,27 @@ export function UploadSubmissionsStep({
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(
-                  ",",
-                )}
+                accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
                 onChange={async (e) => {
-                  const target = e.currentTarget;
-                  await handleFileSelect(target.files);
-                  target.value = "";
+                  const target = e.currentTarget
+                  await handleFileSelect(target.files)
+                  target.value = ""
                 }}
                 className="hidden"
               />
-            </CardContent>
+            </div>
 
-            <CardFooter className="flex flex-col gap-3 items-center justify-center">
+            {/* Back */}
+            <div className="mt-6 flex justify-center">
               <Button
                 variant="ghost"
                 size="lg"
                 onClick={handleResetAndGoBack}
-                className="w-[200px]"
+                className="w-full"
               >
                 {t("back")}
               </Button>
-            </CardFooter>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -382,9 +337,9 @@ export function UploadSubmissionsStep({
           initial={{ opacity: 0, y: 100 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 100 }}
-          className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 backdrop-blur-sm border-t border-border shadow-lg"
+          className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-white/95 p-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur-sm"
         >
-          <div className="max-w-4xl mx-auto">
+          <div className="mx-auto max-w-md">
             <PrimaryButton
               onClick={handleSubmit}
               className="w-full rounded-full py-4 text-lg font-semibold"
@@ -395,5 +350,5 @@ export function UploadSubmissionsStep({
         </motion.div>
       )}
     </>
-  );
+  )
 }

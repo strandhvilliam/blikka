@@ -1,30 +1,24 @@
-"use client";
+"use client"
 
-import { Card, CardContent } from "@/components/ui/card";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { CloudUpload, Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { AnimatePresence, motion } from "motion/react";
-import { usePhotoStore } from "../_lib/photo-store";
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { cn } from "@/lib/utils"
+import { Check, CloudUpload, Loader2 } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { AnimatePresence, motion } from "motion/react"
+import { usePhotoStore } from "../_lib/photo-store"
 
 interface UploadSectionProps {
-  maxPhotos: number;
-  onUploadClick: () => void;
-  isProcessingFiles: boolean;
+  maxPhotos: number
+  onUploadClick: () => void
+  isProcessingFiles: boolean
 }
 
-export function UploadSection({
-  maxPhotos,
-  onUploadClick,
-  isProcessingFiles,
-}: UploadSectionProps) {
-  const t = useTranslations("FlowPage.uploadStep");
-  const photos = usePhotoStore((state) => state.photos);
+export function UploadSection({ maxPhotos, onUploadClick, isProcessingFiles }: UploadSectionProps) {
+  const t = useTranslations("FlowPage.uploadStep")
+  const photos = usePhotoStore((state) => state.photos)
 
-  const allPhotosSelected = photos.length === maxPhotos && photos.length > 0;
-  const isDisabled = photos.length >= maxPhotos || isProcessingFiles;
+  const allPhotosSelected = photos.length === maxPhotos && photos.length > 0
+  const isDisabled = photos.length >= maxPhotos || isProcessingFiles
 
   return (
     <AnimatePresence mode="popLayout">
@@ -36,26 +30,19 @@ export function UploadSection({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="border-2 border-dashed border-green-200 bg-green-50/50 backdrop-blur-sm rounded-lg p-8 mb-6 transition-colors">
-            <CardContent className="flex flex-col items-center justify-center space-y-6 p-0">
-              <div className="relative">
-                <CloudUpload className="h-20 w-20 text-green-600" />
-                <div className="absolute -top-2 -right-2 bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
-                  ✓
-                </div>
-              </div>
-              <div className="text-center space-y-2">
-                <p className="text-lg font-semibold text-green-800">
-                  {t("allPhotosSelected")}
-                </p>
-                <p className="text-sm text-green-700 max-w-md">
-                  {t("readyToSubmit", { count: maxPhotos })}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 px-5 py-5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-600">
+              <Check className="h-6 w-6 text-white" strokeWidth={3} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-emerald-800">{t("allPhotosSelected")}</p>
+              <p className="mt-0.5 text-xs text-emerald-700">
+                {t("readyToSubmit", { count: maxPhotos })}
+              </p>
+            </div>
+          </div>
         </motion.div>
-      ) : photos.length < maxPhotos ? (
+      ) : (
         <motion.div
           key="upload-zone"
           initial={{ opacity: 0 }}
@@ -65,73 +52,34 @@ export function UploadSection({
         >
           <div
             className={cn(
-              "border-2 border-dashed border-muted-foreground/40 bg-background/60 backdrop-blur-sm rounded-lg p-8 mb-6 transition-colors cursor-pointer hover:border-primary hover:bg-muted",
-              isDisabled && "opacity-50 pointer-events-none",
+              "flex flex-col items-center rounded-2xl border-2 border-dashed border-foreground/20 bg-white px-6 py-10 transition-all",
+              !isDisabled && "cursor-pointer hover:border-foreground/40",
+              isDisabled && "pointer-events-none opacity-50",
             )}
             onClick={(e) => {
-              e.preventDefault();
-              onUploadClick();
+              e.preventDefault()
+              onUploadClick()
             }}
           >
-            <div className="text-center flex flex-col justify-center items-center">
-              <PrimaryButton
-                className="flex items-center justify-center p-4 rounded-full mb-4"
-                disabled={isDisabled}
-              >
-                {isProcessingFiles ? (
-                  <Loader2 className="w-10 h-10 animate-spin text-white" />
-                ) : (
-                  <CloudUpload className="w-10 h-10 text-white" />
-                )}
-              </PrimaryButton>
-
-              <p className="text-muted-foreground mb-2">
-                {isProcessingFiles ? "Preparing previews..." : t("clickToSelect")}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {t("photoCount", { current: photos.length, max: maxPhotos })}
-              </p>
-              <PrimaryButton disabled={isDisabled} className="mt-4">
-                {t("selectPhotos")}
-              </PrimaryButton>
-            </div>
-          </div>
-        </motion.div>
-      ) : (
-        <motion.div
-          key="processing-state"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="border-2 border-dashed border-muted-foreground/40 bg-background/60 backdrop-blur-sm rounded-lg p-8 mb-6">
-            <div className="text-center flex flex-col justify-center items-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-foreground/[0.06]">
               {isProcessingFiles ? (
-                <>
-                  <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    <Loader2 className="h-10 w-10 animate-spin" />
-                  </div>
-                  <p className="mb-2 text-base font-medium text-foreground">
-                    Preparing previews...
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {t("photoCount", { current: photos.length, max: maxPhotos })}
-                  </p>
-                </>
+                <Loader2 className="h-7 w-7 animate-spin text-foreground/50" />
               ) : (
-                <>
-                  <Skeleton className="h-20 w-20 rounded-full mb-4" />
-                  <Skeleton className="h-5 w-64 mb-2" />
-                  <Skeleton className="h-4 w-40 mb-2" />
-                  <Skeleton className="h-4 w-20 mb-4" />
-                  <Skeleton className="h-10 w-32" />
-                </>
+                <CloudUpload className="h-7 w-7 text-foreground/50" />
               )}
             </div>
+            <p className="mt-4 text-sm font-medium text-foreground">
+              {isProcessingFiles ? "Preparing previews..." : t("clickToSelect")}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("photoCount", { current: photos.length, max: maxPhotos })}
+            </p>
+            <PrimaryButton disabled={isDisabled} className="mt-5 rounded-full px-8">
+              {t("selectPhotos")}
+            </PrimaryButton>
           </div>
         </motion.div>
       )}
     </AnimatePresence>
-  );
+  )
 }
