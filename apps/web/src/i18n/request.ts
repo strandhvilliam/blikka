@@ -1,6 +1,6 @@
 import { hasLocale } from "next-intl"
 import { getRequestConfig } from "next-intl/server"
-import { LOCALE_COOKIE_NAME, DEFAULT_LOCALE, LOCALES } from "../config"
+import { APP_TIME_ZONE, LOCALE_COOKIE_NAME, DEFAULT_LOCALE, LOCALES } from "../config"
 import { cookies } from "next/headers"
 
 export default getRequestConfig(async ({ requestLocale }) => {
@@ -18,6 +18,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
   return {
     locale,
     messages: (await import(`./dictionary/${locale}.json`)).default,
-    timeZone: "Europe/Stockholm",
+    timeZone: APP_TIME_ZONE,
   }
 })

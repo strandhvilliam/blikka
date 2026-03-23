@@ -1,6 +1,7 @@
 "use client"
 
 import { TRPCReactProvider } from "@/lib/trpc/client"
+import { APP_TIME_ZONE } from "@/config"
 import { NextIntlClientProvider } from "next-intl"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
@@ -19,7 +20,7 @@ export function Providers({
 }) {
   return (
     <NuqsAdapter>
-      <NextIntlClientProvider locale={locale} messages={messages}>
+      <NextIntlClientProvider locale={locale} messages={messages} timeZone={APP_TIME_ZONE}>
         <TRPCReactProvider domain={domain}>
           {/* <ReactQueryDevtools initialIsOpen={false} /> */}
           <RealtimeProvider>{children}</RealtimeProvider>

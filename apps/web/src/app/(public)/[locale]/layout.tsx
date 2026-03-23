@@ -3,7 +3,7 @@ import { NextIntlClientProvider } from "next-intl"
 import { notFound } from "next/navigation"
 import Document from "@/components/document"
 import { SmoothScrollProvider } from "@/components/smooth-scroll-provider"
-import { LOCALES } from "@/config"
+import { APP_TIME_ZONE, LOCALES } from "@/config"
 import { Suspense } from "react"
 import { DotPattern } from "@/components/dot-pattern"
 
@@ -28,7 +28,7 @@ export default async function PublicLocaleLayout({ children, params }: LayoutPro
           <img src="/blikka-logo-dark.svg" alt="blikka" width={48} height={40} className="h-10 w-auto animate-pulse" />
         </div>
       }>
-        <NextIntlClientProvider>
+        <NextIntlClientProvider timeZone={APP_TIME_ZONE}>
           <SmoothScrollProvider>{children}</SmoothScrollProvider>
         </NextIntlClientProvider>
       </Suspense>
