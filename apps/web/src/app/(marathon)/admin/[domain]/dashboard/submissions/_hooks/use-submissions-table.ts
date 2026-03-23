@@ -69,6 +69,10 @@ export type TableData = Omit<Participant, "phoneEncrypted" | "phoneHash"> & {
   competitionClass: CompetitionClass | null;
   deviceGroup: DeviceGroup | null;
   activeTopicSubmissionId: number | null;
+  submissionHealth: {
+    hasExif: boolean;
+    hasThumbnail: boolean;
+  } | null;
   failedValidationResults: { errors: number; warnings: number };
   passedValidationResults: { errors: number; warnings: number };
   skippedValidationResults: { errors: number; warnings: number };

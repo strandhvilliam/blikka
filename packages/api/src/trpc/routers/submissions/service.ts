@@ -198,6 +198,116 @@ export class SubmissionsApiService extends ServiceMap.Service<SubmissionsApiServ
         },
       );
 
+      const regenerateSubmissionAssets = Effect.fn(
+        "SubmissionsApiService.regenerateSubmissionAssets",
+      )(function* ({
+        domain,
+        submissionId,
+        regenerateExif,
+        regenerateThumbnail,
+        rerunValidations,
+        isAdminForDomain,
+      }: {
+        domain: string;
+        submissionId: number;
+        regenerateExif: boolean;
+        regenerateThumbnail: boolean;
+        rerunValidations: boolean;
+        isAdminForDomain: boolean;
+      }) {
+        yield* requireAdminForDomain({ domain, isAdminForDomain });
+
+        const shouldProcessAssets = regenerateExif || regenerateThumbnail;
+        const { submission, participant, topic } = yield* getSubmissionContext({
+          domain,
+          submissionId,
+        });
+
+        let nextExif = (submission.exif as Record<string, unknown> | null) ?? {};
+        let nextThumbnailKey = submission.thumbnailKey;
+
+        if (shouldProcessAssets) {
+          const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME");
+          const thumbnailsBucketName = yield* Config.string("THUMBNAILS_BUCKET_NAME");
+          const bytes = yield* getReplacementBytes({
+            bucketName: submissionsBucketName,
+            key: submission.key,
+          });
+          const parsedKey = parseSubmissionStorageKey(submission.key);
+          const generatedThumbnailKey = makeThumbnailKey(parsedKey);
+
+          if (parsedKey.domain !== domain) {
+            return yield* Effect.fail(
+              new AdminReplaceSubmissionError({
+                message: "Submission does not belong to this domain",
+              }),
+            );
+          }
+
+          const [regeneratedExif, regeneratedThumbnailKey] = yield* Effect.all(
+            [
+              regenerateExif
+                ? exifParser.parse(bytes).pipe(
+                    Effect.catch(() =>
+                      Effect.logWarning(
+                        `Failed to regenerate EXIF for submission: ${submission.key}`,
+                      ).pipe(Effect.andThen(Effect.succeed<Record<string, unknown>>({}))),
+                    ),
+                  )
+                : Effect.succeed(nextExif),
+              regenerateThumbnail
+                ? sharp.resize(bytes, { width: THUMBNAIL_WIDTH }).pipe(
+                    Effect.andThen((thumbnailBuffer) =>
+                      s3
+                        .putFile(thumbnailsBucketName, generatedThumbnailKey, thumbnailBuffer)
+                        .pipe(Effect.as<string | null>(generatedThumbnailKey)),
+                    ),
+                    Effect.catch(() =>
+                      Effect.logWarning(
+                        `Failed to regenerate thumbnail for submission: ${submission.key}`,
+                      ).pipe(Effect.andThen(Effect.succeed<string | null>(nextThumbnailKey))),
+                    ),
+                  )
+                : Effect.succeed(nextThumbnailKey),
+            ],
+            { concurrency: 2 },
+          );
+
+          nextExif = regeneratedExif;
+          nextThumbnailKey = regeneratedThumbnailKey;
+
+          yield* db.submissionsQueries.updateSubmissionById({
+            id: submission.id,
+            data: {
+              exif: nextExif,
+              thumbnailKey: nextThumbnailKey,
+              updatedAt: new Date().toISOString(),
+            },
+          });
+        }
+
+        const validationResult = rerunValidations
+          ? yield* ValidationsApiService.use((service) =>
+              service.runValidations({
+                domain,
+                reference: participant.reference,
+              }),
+            )
+          : null;
+
+        return {
+          success: true,
+          exifFieldCount: Object.keys(nextExif).length,
+          thumbnailKey: nextThumbnailKey,
+          validationResultsCount: validationResult?.resultsCount ?? 0,
+          regeneratedExif: regenerateExif,
+          regeneratedThumbnail: regenerateThumbnail,
+          reranValidations: rerunValidations,
+          participantReference: participant.reference,
+          topicOrderIndex: topic.orderIndex,
+        };
+      });
+
       const deleteFileBestEffort = Effect.fn("SubmissionsApiService.deleteFileBestEffort")(
         function* ({
           bucketName,
@@ -374,6 +484,7 @@ export class SubmissionsApiService extends ServiceMap.Service<SubmissionsApiServ
       return {
         beginAdminReplaceUpload,
         completeAdminReplaceUpload,
+        regenerateSubmissionAssets,
       } as const;
     }),
   },

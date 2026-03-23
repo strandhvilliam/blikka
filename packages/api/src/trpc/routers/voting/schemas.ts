@@ -19,6 +19,7 @@ export const StartVotingSessionsSchema = Schema.toStandardSchemaV1(
     domain: Schema.String,
     topicId: Schema.Number,
     endsAt: Schema.optional(Schema.NullishOr(Schema.String)),
+    sendInitialSms: Schema.optional(Schema.Boolean),
   }),
 );
 

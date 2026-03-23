@@ -120,10 +120,24 @@ export class ValidationRunner extends ServiceMap.Service<ValidationRunner>()(
             { concurrency: 2 },
           )
 
-          if (exifStates.length === 0 || submissionStates.length === 0) {
+          if (submissionStates.length === 0) {
             return yield* new InvalidDataFoundError({
-              message: "Exif states or submission states not found",
+              message: "Submission states not found",
             })
+          }
+
+          const exifStatesByOrderIndex = new Set(exifStates.map((state) => state.orderIndex))
+          const missingExifOrderIndexes = submissionStates
+            .filter((state) => !exifStatesByOrderIndex.has(state.orderIndex))
+            .map((state) => state.orderIndex)
+
+          if (missingExifOrderIndexes.length > 0) {
+            yield* Effect.logWarning(
+              "Missing EXIF state during validation; continuing with empty EXIF data",
+              {
+                missingExifOrderIndexes,
+              },
+            )
           }
 
           const validationInputs = yield* makeValidationInputs(exifStates, submissionStates)

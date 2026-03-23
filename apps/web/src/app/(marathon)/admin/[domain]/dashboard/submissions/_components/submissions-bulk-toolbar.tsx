@@ -9,33 +9,52 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Trash2, CheckCircle, X, Loader2, RefreshCw } from "lucide-react"
+import { Trash2, CheckCircle, X, Loader2, RefreshCw, FileCode, FileImage } from "lucide-react"
 import { useState } from "react"
 
 interface SubmissionsBulkToolbarProps {
+  marathonMode?: string
   selectedCount: number
   canVerify: boolean
   isDeleting: boolean
   isVerifying: boolean
   isReTriggering: boolean
+  isRerunningValidations: boolean
+  isRegeneratingExif: boolean
+  isGeneratingThumbnails: boolean
+  missingExifCount: number
+  missingThumbnailCount: number
   onClearSelection: () => void
   onDelete: () => void
   onVerify: () => void
   onReTriggerUploadFlow: () => void
+  onRerunValidations: () => void
+  onRegenerateExif: () => void
+  onGenerateThumbnails: () => void
 }
 
 export function SubmissionsBulkToolbar({
+  marathonMode,
   selectedCount,
   canVerify,
   isDeleting,
   isVerifying,
   isReTriggering,
+  isRerunningValidations,
+  isRegeneratingExif,
+  isGeneratingThumbnails,
+  missingExifCount,
+  missingThumbnailCount,
   onClearSelection,
   onDelete,
   onVerify,
   onReTriggerUploadFlow,
+  onRerunValidations,
+  onRegenerateExif,
+  onGenerateThumbnails,
 }: SubmissionsBulkToolbarProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const isByCameraMode = marathonMode === "by-camera"
 
   const handleDeleteClick = () => {
     setShowDeleteDialog(true)
@@ -61,20 +80,68 @@ export function SubmissionsBulkToolbar({
           </Button>
         </div>
         <div className="h-4 w-px bg-border mx-1" />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onVerify}
-          disabled={!canVerify || isVerifying}
-          className="h-9"
-        >
-          {isVerifying ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-          ) : (
-            <CheckCircle className="h-4 w-4 mr-1" />
-          )}
-          Verify
-        </Button>
+        {!isByCameraMode && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onVerify}
+            disabled={!canVerify || isVerifying}
+            className="h-9"
+          >
+            {isVerifying ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <CheckCircle className="h-4 w-4 mr-1" />
+            )}
+            Verify
+          </Button>
+        )}
+        {isByCameraMode && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRerunValidations}
+              disabled={isRerunningValidations}
+              className="h-9"
+            >
+              {isRerunningValidations ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-1" />
+              )}
+              Rerun Validations
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRegenerateExif}
+              disabled={missingExifCount === 0 || isRegeneratingExif}
+              className="h-9"
+            >
+              {isRegeneratingExif ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <FileCode className="h-4 w-4 mr-1" />
+              )}
+              Regenerate EXIF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGenerateThumbnails}
+              disabled={missingThumbnailCount === 0 || isGeneratingThumbnails}
+              className="h-9"
+            >
+              {isGeneratingThumbnails ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <FileImage className="h-4 w-4 mr-1" />
+              )}
+              Generate Thumbnails
+            </Button>
+          </>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -112,7 +179,7 @@ export function SubmissionsBulkToolbar({
             <DialogDescription>
               Are you sure you want to delete {selectedCount} participant
               {selectedCount === 1 ? "" : "s"}? This action cannot be undone.
-              {canVerify === false && selectedCount > 0 && (
+              {!isByCameraMode && canVerify === false && selectedCount > 0 && (
                 <span className="block mt-2 text-destructive">
                   Note: Some selected participants are not in &quot;completed&quot; status and
                   cannot be verified, but they can still be deleted.

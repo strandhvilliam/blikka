@@ -779,10 +779,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         domain,
         topicId,
         endsAt,
+        sendInitialSms,
       }: {
         domain: string;
         topicId: number;
         endsAt?: string | null;
+        sendInitialSms?: boolean;
       }) {
         const { marathon, topic, activeTopic } =
           yield* getByCameraMarathonWithTopic({
@@ -955,11 +957,16 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         });
 
         const { smsChunksEnqueued, smsSessionsQueued } =
-          yield* enqueueVotingSmsNotifications({
-            sessionIds: createdSessions
-              .filter((session) => session.phoneEncrypted)
-              .map((session) => session.id),
-          });
+          sendInitialSms === false
+            ? {
+                smsChunksEnqueued: 0,
+                smsSessionsQueued: 0,
+              }
+            : yield* enqueueVotingSmsNotifications({
+                sessionIds: createdSessions
+                  .filter((session) => session.phoneEncrypted)
+                  .map((session) => session.id),
+              });
 
         return {
           topicId,

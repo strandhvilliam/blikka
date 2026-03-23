@@ -18,3 +18,13 @@ export const CompleteAdminReplaceUploadInputSchema = Schema.toStandardSchemaV1(
     previousKey: Schema.String,
   }),
 );
+
+export const RegenerateSubmissionAssetsInputSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    submissionId: Schema.Number,
+    regenerateExif: Schema.Boolean,
+    regenerateThumbnail: Schema.Boolean,
+    rerunValidations: Schema.Boolean,
+  }),
+);

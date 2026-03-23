@@ -66,16 +66,16 @@ export class UploadFinalizerService extends ServiceMap.Service<UploadFinalizerSe
             )
 
             const missingExifOrderIndexes = submissionStates
-              .filter(
-                (state) =>
-                  state.exifProcessed && !exifStatesByOrderIndex.has(state.orderIndex),
-              )
+              .filter((state) => !exifStatesByOrderIndex.has(state.orderIndex))
               .map((state) => state.orderIndex)
 
             if (missingExifOrderIndexes.length > 0) {
-              yield* Effect.logWarning("Missing EXIF state during upload finalization", {
-                missingExifOrderIndexes,
-              })
+              yield* Effect.logWarning(
+                "Missing EXIF state during upload finalization; continuing without EXIF",
+                {
+                  missingExifOrderIndexes,
+                },
+              )
             }
 
             const updates = submissionStates.map((state) => {
@@ -86,7 +86,7 @@ export class UploadFinalizerService extends ServiceMap.Service<UploadFinalizerSe
                 data: {
                   status: "uploaded" as const,
                   thumbnailKey: state.thumbnailKey,
-                  exif: state.exifProcessed ? exif : {},
+                  exif,
                   uploaded: state.uploaded,
                 },
               }

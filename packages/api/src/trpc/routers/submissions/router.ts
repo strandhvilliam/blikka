@@ -11,6 +11,7 @@ import { trpcEffect } from "../../utils";
 import {
   BeginAdminReplaceUploadInputSchema,
   CompleteAdminReplaceUploadInputSchema,
+  RegenerateSubmissionAssetsInputSchema,
 } from "./schemas";
 import { SubmissionsApiService } from "./service";
 
@@ -60,6 +61,33 @@ export const submissionsRouter = createTRPCRouter({
               submissionId: input.submissionId,
               newKey: input.newKey,
               previousKey: input.previousKey,
+              isAdminForDomain,
+            }),
+          );
+        }),
+      ),
+    ),
+  regenerateSubmissionAssets: domainProcedure
+    .input(RegenerateSubmissionAssetsInputSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn("SubmissionsRouter.regenerateSubmissionAssets")(function* ({
+          input,
+          ctx,
+        }) {
+          const isAdminForDomain = ctx.permissions.some(
+            (permission) =>
+              permission.domain === input.domain && permission.role === "admin",
+          );
+
+          return yield* SubmissionsApiService.use((service) =>
+            service.regenerateSubmissionAssets({
+              domain: input.domain,
+              submissionId: input.submissionId,
+              regenerateExif: input.regenerateExif,
+              regenerateThumbnail: input.regenerateThumbnail,
+              rerunValidations: input.rerunValidations,
               isAdminForDomain,
             }),
           );

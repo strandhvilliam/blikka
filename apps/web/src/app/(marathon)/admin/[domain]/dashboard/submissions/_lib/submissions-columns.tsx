@@ -1,7 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, AlertCircle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RealtimeEnrichedTableData } from "../_hooks/use-submissions-table-realtime";
 
@@ -272,6 +272,8 @@ export const getSubmissionsColumns = ({
       id: "validationResults",
       header: "Validation Results",
       cell: ({ row }) => {
+        const submissionHealth = row.original.submissionHealth;
+        const hasMissingExif = submissionHealth !== null && !submissionHealth.hasExif;
         const failed = row.original.failedValidationResults;
         const passed = row.original.passedValidationResults;
         const skipped = row.original.skippedValidationResults;
@@ -305,6 +307,16 @@ export const getSubmissionsColumns = ({
               >
                 <AlertCircle className="size-2.5" />
                 {skippedCount}
+              </Badge>
+            )}
+            {hasMissingExif && (
+              <Badge
+                variant="outline"
+                className="gap-1 text-xs font-medium h-5 px-1.5 border-amber-200 bg-amber-50 text-amber-700"
+                title="Active submission is missing EXIF"
+              >
+                <Info className="size-2.5" />
+                No EXIF
               </Badge>
             )}
             {failedCount === 0 && passedCount === 0 && skippedCount === 0 && (

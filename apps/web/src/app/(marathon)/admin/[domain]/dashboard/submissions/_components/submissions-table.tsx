@@ -111,6 +111,31 @@ export function SubmissionsTable() {
   )
 
   const reTriggerMutation = useMutation(trpc.uploadFlow.reTriggerUploadFlow.mutationOptions())
+  const rerunValidationsMutation = useMutation(trpc.validations.runValidations.mutationOptions())
+  const regenerateAssetsMutation = useMutation(
+    trpc.submissions.regenerateSubmissionAssets.mutationOptions(),
+  )
+
+  const selectedParticipants = participants.filter((participant) => selectedIds.has(participant.id))
+  const selectedReferences = selectedParticipants.map((participant) => participant.reference)
+  const selectedSubmissionIdsMissingExif = selectedParticipants
+    .filter(
+      (participant) =>
+        participant.activeTopicSubmissionId !== null &&
+        participant.submissionHealth !== null &&
+        !participant.submissionHealth.hasExif,
+    )
+    .map((participant) => participant.activeTopicSubmissionId)
+    .filter((submissionId): submissionId is number => submissionId !== null)
+  const selectedSubmissionIdsMissingThumbnail = selectedParticipants
+    .filter(
+      (participant) =>
+        participant.activeTopicSubmissionId !== null &&
+        participant.submissionHealth !== null &&
+        !participant.submissionHealth.hasThumbnail,
+    )
+    .map((participant) => participant.activeTopicSubmissionId)
+    .filter((submissionId): submissionId is number => submissionId !== null)
 
   const handleBatchDelete = () => {
     if (selectedCount === 0) return
@@ -130,9 +155,6 @@ export function SubmissionsTable() {
 
   const handleReTriggerUploadFlow = async () => {
     if (selectedCount === 0 || !participants.length) return
-    const selectedReferences = participants
-      .filter((p) => selectedIds.has(p.id))
-      .map((p) => p.reference)
     try {
       await Promise.all(
         selectedReferences.map((reference) => reTriggerMutation.mutateAsync({ domain, reference })),
@@ -147,6 +169,87 @@ export function SubmissionsTable() {
     } catch (error) {
       toast.error(
         `Failed to re-trigger: ${error instanceof Error ? error.message : "Unknown error"}`,
+      )
+    }
+  }
+
+  const handleBatchRerunValidations = async () => {
+    if (selectedReferences.length === 0) return
+
+    try {
+      await Promise.all(
+        selectedReferences.map((reference) =>
+          rerunValidationsMutation.mutateAsync({ domain, reference }),
+        ),
+      )
+      toast.success(
+        `Reran validations for ${selectedReferences.length} participant${selectedReferences.length === 1 ? "" : "s"}`,
+      )
+      await queryClient.invalidateQueries({
+        queryKey: trpc.participants.getByDomainInfinite.pathKey(),
+      })
+      clearSelection()
+    } catch (error) {
+      toast.error(
+        `Failed to rerun validations: ${error instanceof Error ? error.message : "Unknown error"}`,
+      )
+    }
+  }
+
+  const handleBatchRegenerateExif = async () => {
+    if (selectedSubmissionIdsMissingExif.length === 0) return
+
+    try {
+      await Promise.all(
+        selectedSubmissionIdsMissingExif.map((submissionId) =>
+          regenerateAssetsMutation.mutateAsync({
+            domain,
+            submissionId,
+            regenerateExif: true,
+            regenerateThumbnail: false,
+            rerunValidations: true,
+          }),
+        ),
+      )
+      toast.success(
+        `Regenerated EXIF for ${selectedSubmissionIdsMissingExif.length} submission${selectedSubmissionIdsMissingExif.length === 1 ? "" : "s"}`,
+      )
+      await queryClient.invalidateQueries({
+        queryKey: trpc.participants.getByDomainInfinite.pathKey(),
+      })
+      clearSelection()
+    } catch (error) {
+      toast.error(
+        `Failed to regenerate EXIF: ${error instanceof Error ? error.message : "Unknown error"}`,
+      )
+    }
+  }
+
+  const handleBatchGenerateThumbnails = async () => {
+    if (selectedSubmissionIdsMissingThumbnail.length === 0) return
+
+    try {
+      await Promise.all(
+        selectedSubmissionIdsMissingThumbnail.map((submissionId) =>
+          regenerateAssetsMutation.mutateAsync({
+            domain,
+            submissionId,
+            regenerateExif: false,
+            regenerateThumbnail: true,
+            rerunValidations: false,
+          }),
+        ),
+      )
+      toast.success(
+        `Generated thumbnails for ${selectedSubmissionIdsMissingThumbnail.length} submission${selectedSubmissionIdsMissingThumbnail.length === 1 ? "" : "s"}`,
+      )
+      await queryClient.invalidateQueries({
+        queryKey: trpc.participants.getByDomainInfinite.pathKey(),
+      })
+      clearSelection()
+    } catch (error) {
+      toast.error(
+        `Failed to generate thumbnails: ${error instanceof Error ? error.message : "Unknown error"}`,
       )
     }
   }
@@ -180,15 +283,30 @@ export function SubmissionsTable() {
       <div className="space-y-4 shrink-0">
         {hasSelection ? (
           <SubmissionsBulkToolbar
+            marathonMode={marathon?.mode}
             selectedCount={selectedCount}
             canVerify={canVerifySelected}
             isDeleting={batchDeleteMutation.isPending}
             isVerifying={batchVerifyMutation.isPending}
             isReTriggering={reTriggerMutation.isPending}
+            isRerunningValidations={rerunValidationsMutation.isPending}
+            isRegeneratingExif={
+              regenerateAssetsMutation.isPending &&
+              regenerateAssetsMutation.variables?.regenerateExif === true
+            }
+            isGeneratingThumbnails={
+              regenerateAssetsMutation.isPending &&
+              regenerateAssetsMutation.variables?.regenerateThumbnail === true
+            }
+            missingExifCount={selectedSubmissionIdsMissingExif.length}
+            missingThumbnailCount={selectedSubmissionIdsMissingThumbnail.length}
             onClearSelection={clearSelection}
             onDelete={handleBatchDelete}
             onVerify={handleBatchVerify}
             onReTriggerUploadFlow={handleReTriggerUploadFlow}
+            onRerunValidations={handleBatchRerunValidations}
+            onRegenerateExif={handleBatchRegenerateExif}
+            onGenerateThumbnails={handleBatchGenerateThumbnails}
           />
         ) : (
           <SubmissionsFilters

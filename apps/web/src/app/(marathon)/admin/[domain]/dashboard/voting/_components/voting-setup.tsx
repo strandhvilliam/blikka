@@ -33,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -287,6 +288,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     return endsAt ? toDateTimeLocalValue(new Date(endsAt)) : "";
   });
   const [isStartVotingDialogOpen, setIsStartVotingDialogOpen] = useState(false);
+  const [sendInitialSms, setSendInitialSms] = useState(true);
   const [isCloseVotingDialogOpen, setIsCloseVotingDialogOpen] = useState(false);
   const [isReopenVotingDialogOpen, setIsReopenVotingDialogOpen] =
     useState(false);
@@ -360,9 +362,21 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
 
   const handleConfirmStartVoting = () => {
     startVotingMutation.mutate(
-      { domain, topicId: activeTopic.id, endsAt: plannedEndIso },
-      { onSuccess: () => setIsStartVotingDialogOpen(false) },
+      {
+        domain,
+        topicId: activeTopic.id,
+        endsAt: plannedEndIso,
+        sendInitialSms,
+      },
+      { onSuccess: () => handleStartVotingDialogOpenChange(false) },
     );
+  };
+
+  const handleStartVotingDialogOpenChange = (open: boolean) => {
+    setIsStartVotingDialogOpen(open);
+    if (!open) {
+      setSendInitialSms(true);
+    }
   };
 
   const handleCloseVotingClick = () => setIsCloseVotingDialogOpen(true);
@@ -494,7 +508,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
         <StepCard
           stepNumber={3}
           title="Start Voting"
-          description="Sends an SMS with a voting link to all participants."
+          description="Open voting and optionally send an SMS with a voting link."
           status={step3Status}
           detail={
             step3Status === "completed" && summary.votingWindow.startsAt
@@ -696,18 +710,38 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       {/* Confirmation dialogs */}
       <AlertDialog
         open={isStartVotingDialogOpen}
-        onOpenChange={setIsStartVotingDialogOpen}
+        onOpenChange={handleStartVotingDialogOpenChange}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Start voting?</AlertDialogTitle>
             <AlertDialogDescription>
               This will open the voting window and create voting sessions for
-              all {participantWithSubmissionCount} participants with
-              submissions. An SMS with a voting link will be sent to each
-              participant who has a phone number on file.
+              all {participantWithSubmissionCount} participants with submissions.
+              Initial SMS invites are only sent if you keep the box checked.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+            <Checkbox
+              id="send-initial-voting-sms"
+              checked={sendInitialSms}
+              onCheckedChange={(checked) => setSendInitialSms(checked === true)}
+              disabled={startVotingMutation.isPending}
+              className="mt-0.5"
+            />
+            <div className="space-y-1">
+              <Label
+                htmlFor="send-initial-voting-sms"
+                className="text-sm font-medium leading-none"
+              >
+                Send initial SMS invites
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Send a voting link to participants who have a phone number on
+                file.
+              </p>
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={startVotingMutation.isPending}>
               Cancel

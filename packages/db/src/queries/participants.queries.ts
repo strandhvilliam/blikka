@@ -344,6 +344,8 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
                         id: true,
                         topicId: true,
                         createdAt: true,
+                        thumbnailKey: true,
+                        exif: true,
                       },
                       where: (table, operators) =>
                         operators.eq(table.topicId, topicId),
@@ -426,17 +428,32 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
             submissions: participantSubmissions = [],
             ...rest
           }) => {
+            const latestTopicSubmission =
+              topicId === undefined
+                ? null
+                : (participantSubmissions
+                    .sort(
+                      (left, right) =>
+                        new Date(right.createdAt).getTime() -
+                        new Date(left.createdAt).getTime(),
+                    )[0] ?? null);
             const activeTopicSubmissionId =
               topicId === undefined
                 ? null
-                : (participantSubmissions.sort(
-                    (left, right) =>
-                      new Date(right.createdAt).getTime() -
-                      new Date(left.createdAt).getTime(),
-                  )[0]?.id ?? null);
+                : (latestTopicSubmission?.id ?? null);
             return {
               ...rest,
               activeTopicSubmissionId,
+              submissionHealth:
+                topicId === undefined
+                  ? null
+                  : {
+                      hasExif:
+                        latestTopicSubmission?.exif !== null &&
+                        latestTopicSubmission?.exif !== undefined &&
+                        Object.keys(latestTopicSubmission.exif).length > 0,
+                      hasThumbnail: latestTopicSubmission?.thumbnailKey !== null,
+                    },
               votingSession:
                 votingSessions
                   .filter((session) =>

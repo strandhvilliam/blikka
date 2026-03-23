@@ -33,16 +33,25 @@ export class ExifKVRepository extends ServiceMap.Service<ExifKVRepository>()(
             keyFactory.exif(domain, ref, formattedOrderIndex)
           )
           const data = yield* redis.use((client) => client.mget(keys))
-          const parsed = Schema.decodeUnknownSync(Schema.Array(ExifStateSchema))(data)
+          const decodeExifState = Schema.decodeUnknownOption(ExifStateSchema)
 
-          const result = formattedOrderIndexes.map((formattedOrderIndex, index) => {
-            return {
-              orderIndex: Number(formattedOrderIndex) - 1,
-              exif: parsed.at(index) ?? {},
+          return data.flatMap((item, index) => {
+            if (item === null) {
+              return []
             }
-          })
 
-          return result
+            const parsed = decodeExifState(item)
+            if (Option.isNone(parsed)) {
+              return []
+            }
+
+            return [
+              {
+                orderIndex: Number(formattedOrderIndexes[index]) - 1,
+                exif: parsed.value,
+              },
+            ]
+          })
         },
         Effect.orElseSucceed(() =>
           [] as {
