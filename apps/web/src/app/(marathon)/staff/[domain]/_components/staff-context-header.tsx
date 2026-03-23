@@ -48,7 +48,7 @@ export function StaffContextHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-2xl border border-black/10 bg-white/75 px-4 py-3 shadow-sm backdrop-blur-md md:flex-row md:items-center md:justify-between",
+        "flex flex-col gap-3 rounded-2xl border border-border bg-white px-4 py-3 shadow-sm md:flex-row md:items-center md:justify-between",
         className,
       )}
     >

@@ -6,20 +6,19 @@ import { AlertTriangle, CheckCircle2, Loader2, Trash2, XCircle } from "lucide-re
 import { toast } from "sonner"
 import type { Topic } from "@blikka/db"
 
+import { cn } from "@/lib/utils"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 import type { StaffParticipant } from "../_lib/staff-types"
 import { DrawerLayout } from "./drawer-layout"
@@ -181,64 +180,64 @@ export function ParticipantInfoDrawer({
             </div>
           </div>
         ) : (
-          <div className="flex h-full flex-col">
-            <div className="border-b bg-white/70 px-5 pb-4 pt-8 backdrop-blur-sm">
-              <div className="mx-auto flex max-w-sm flex-col items-center gap-3 text-center">
-                <div className="rounded-full border bg-background px-5 py-2 shadow-sm">
-                  <span className="font-mono text-3xl font-semibold tracking-[0.2em]">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="shrink-0 border-b bg-white px-5 pb-4 pt-6">
+              <div className="flex items-center gap-4">
+                <div className="shrink-0 rounded-xl bg-foreground/6 px-3.5 py-2">
+                  <span className="font-mono text-lg font-semibold tracking-wider text-foreground">
                     #{participant.reference}
                   </span>
                 </div>
-                <div>
-                  <h2 className="font-rocgrotesk text-3xl">
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate font-gothic text-xl font-medium tracking-tight text-foreground">
                     {participant.firstname} {participant.lastname}
                   </h2>
-                  {participant.email ? (
-                    <p className="mt-1 text-sm text-muted-foreground">{participant.email}</p>
-                  ) : null}
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                        participant.status === "verified"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-700",
+                      )}
+                    >
+                      {participant.status === "verified" ? (
+                        <CheckCircle2 className="h-3 w-3" />
+                      ) : (
+                        <AlertTriangle className="h-3 w-3" />
+                      )}
+                      {participant.status === "verified" ? "Verified" : "Pending"}
+                    </span>
+                    {participant.competitionClass ? (
+                      <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        {participant.competitionClass.name}
+                      </span>
+                    ) : null}
+                    {participant.deviceGroup ? (
+                      <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        {participant.deviceGroup.name}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex flex-wrap justify-center gap-2">
+              </div>
+              {participant.email ? (
+                <p className="mt-2 text-xs text-muted-foreground">{participant.email}</p>
+              ) : null}
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+              {!readOnly ? (
+                <div className="mb-3 flex justify-end px-1">
                   <Button
                     variant="outline"
                     size="sm"
-                    className={
-                      participant.status === "verified"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-amber-200 bg-amber-50 text-amber-700"
-                    }
-                  >
-                    {participant.status === "verified" ? (
-                      <CheckCircle2 className="mr-1 h-4 w-4" />
-                    ) : (
-                      <AlertTriangle className="mr-1 h-4 w-4" />
-                    )}
-                    {participant.status === "verified" ? "Verified" : "Not verified"}
-                  </Button>
-                  {participant.competitionClass ? (
-                    <Button variant="outline" size="sm">
-                      {participant.competitionClass.name}
-                    </Button>
-                  ) : null}
-                  {participant.deviceGroup ? (
-                    <Button variant="outline" size="sm">
-                      {participant.deviceGroup.name}
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-4">
-              {!readOnly ? (
-                <div className="mb-4 flex justify-center gap-2">
-                  <Button
-                    variant="outline"
                     onClick={() => setRejectOpen(true)}
                     disabled={isBusy}
-                    className="rounded-full"
+                    className="rounded-full text-xs"
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Reject participant
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    Reject
                   </Button>
                 </div>
               ) : null}
@@ -266,9 +265,9 @@ export function ParticipantInfoDrawer({
             </div>
 
             {!readOnly ? (
-              <div className="border-t bg-white/80 px-4 py-4 backdrop-blur-sm">
+              <div className="shrink-0 border-t bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
                 <PrimaryButton
-                  className="w-full rounded-full"
+                  className="w-full rounded-full py-3.5"
                   disabled={participant.status === "verified" || isBusy}
                   onClick={() => void handleVerify()}
                 >
@@ -288,60 +287,85 @@ export function ParticipantInfoDrawer({
         )}
       </DrawerLayout>
 
-      <AlertDialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reject participant</AlertDialogTitle>
-            <AlertDialogDescription>
-              Enter the participant number to confirm rejection. This removes the submission and the
-              participant must start over.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-3">
+      <Dialog open={rejectOpen} onOpenChange={(isOpen) => { if (!isOpen) setRejectOpen(false) }}>
+        <DialogContent
+          showCloseButton={false}
+          className="top-[40%] border-none bg-transparent shadow-none"
+        >
+          <DialogHeader className="flex flex-col items-center text-center">
+            <DialogTitle className="text-lg font-bold text-foreground drop-shadow-sm">
+              Reject participant
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm font-medium text-foreground/90 drop-shadow-sm">
+              Enter the participant number to confirm. This removes their submission entirely.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 py-4">
             <Input
               autoFocus
+              type="text"
+              inputMode="numeric"
               placeholder={participant?.reference ?? "0000"}
               value={confirmReference}
               onChange={(event) => {
                 setConfirmReference(event.target.value)
-                if (showRejectError) {
-                  setShowRejectError(false)
-                }
+                if (showRejectError) setShowRejectError(false)
               }}
-            />
-            {showRejectError ? (
-              <p className="text-sm text-destructive">Participant number does not match.</p>
-            ) : null}
-          </div>
-          <div className="flex justify-end gap-2">
-            <AlertDialogCancel disabled={rejectParticipantMutation.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={rejectParticipantMutation.isPending}
-              onClick={(event) => {
-                event.preventDefault()
-
-                if (!participant) return
-
-                if (confirmReference.trim() !== participant.reference.trim()) {
-                  setShowRejectError(true)
-                  return
-                }
-
-                rejectParticipantMutation.mutate({
-                  reference: participant.reference,
-                  domain,
-                })
-              }}
-            >
-              {rejectParticipantMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Reject participant"
+              className={cn(
+                "h-16 bg-background text-center font-mono text-4xl! font-bold tracking-widest",
+                showRejectError && "border-red-500 focus-visible:ring-red-500",
               )}
-            </AlertDialogAction>
+              maxLength={6}
+              enterKeyHint="done"
+            />
+
+            {showRejectError ? (
+              <div className="flex items-center justify-center gap-2 text-sm text-red-600">
+                <AlertTriangle className="h-4 w-4" />
+                <span>Participant number does not match.</span>
+              </div>
+            ) : null}
+
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setRejectOpen(false)}
+                disabled={rejectParticipantMutation.isPending}
+                className="h-12 flex-1 rounded-full"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={!confirmReference.trim() || rejectParticipantMutation.isPending}
+                onClick={() => {
+                  if (!participant) return
+
+                  if (confirmReference.trim() !== participant.reference.trim()) {
+                    setShowRejectError(true)
+                    return
+                  }
+
+                  rejectParticipantMutation.mutate({
+                    reference: participant.reference,
+                    domain,
+                  })
+                }}
+                className="h-12 flex-1 rounded-full"
+              >
+                {rejectParticipantMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Reject"
+                )}
+              </Button>
+            </div>
           </div>
-        </AlertDialogContent>
-      </AlertDialog>
+        </DialogContent>
+      </Dialog>
 
       <PreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} imageUrl={previewUrl} />
     </>

@@ -1,14 +1,11 @@
 "use client"
 
+import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import { AlertTriangle, CheckCircle2, ChevronRight, Hammer, ImageIcon, XCircle } from "lucide-react"
 import type { CompetitionClass, Topic, ValidationResult } from "@blikka/db"
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
+import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
@@ -63,69 +60,81 @@ function ValidationSummary({
 }) {
   const thumbnailUrl = getSubmissionThumbnailUrl(submission)
   const counts = countsFor(validations)
+  const thumbnailPreviewUrl = getSubmissionPreviewUrl(submission)
+  const thumbnailIsInteractive = Boolean(onThumbnailClick && submission)
+
+  const thumbnailInner = thumbnailUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={thumbnailUrl} alt={title} className="h-full w-full object-cover" />
+  ) : (
+    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+  )
+
+  const thumbnailClassName =
+    "flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted"
 
   return (
-    <AccordionTrigger className="hover:no-underline px-4 py-3">
-      <div className="flex w-full items-center gap-3 text-left">
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            onThumbnailClick?.(getSubmissionPreviewUrl(submission))
-          }}
-          className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-muted"
-        >
-          {thumbnailUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={thumbnailUrl} alt={title} className="h-full w-full object-cover" />
-          ) : (
-            <ImageIcon className="h-6 w-6 text-muted-foreground" />
-          )}
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            {typeof orderIndex === "number" ? (
-              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-2 text-xs font-semibold text-primary">
-                {orderIndex + 1}
-              </span>
-            ) : null}
-            <p className="truncate font-medium">{title}</p>
-          </div>
-          {submission ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Captured {getCaptureDateLabel(submission) ?? "Unknown time"}
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-muted-foreground">No submission uploaded</p>
-          )}
-          <div className="mt-2 flex flex-wrap gap-2">
-            {counts.errors > 0 ? (
-              <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
-                <XCircle className="mr-1 h-3.5 w-3.5" />
-                {counts.errors}
-              </Badge>
-            ) : null}
-            {counts.warnings > 0 ? (
-              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-                <AlertTriangle className="mr-1 h-3.5 w-3.5" />
-                {counts.warnings}
-              </Badge>
-            ) : null}
-            {counts.passed > 0 ? (
-              <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                {counts.passed}
-              </Badge>
-            ) : null}
-            {counts.errors === 0 && counts.warnings === 0 && counts.passed === 0 ? (
-              <Badge variant="outline">No validations</Badge>
-            ) : null}
-          </div>
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
+    <div className="flex w-full items-stretch">
+      <div className="flex shrink-0 items-center pl-3 py-2.5">
+        {thumbnailIsInteractive ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              onThumbnailClick?.(thumbnailPreviewUrl)
+            }}
+            className={thumbnailClassName}
+          >
+            {thumbnailInner}
+          </button>
+        ) : (
+          <div className={cn(thumbnailClassName, "pointer-events-none")}>{thumbnailInner}</div>
+        )}
       </div>
-    </AccordionTrigger>
+      <AccordionPrimitive.Header className="flex min-w-0 flex-1">
+        <AccordionPrimitive.Trigger
+          className={cn(
+            "focus-visible:border-ring focus-visible:ring-ring/50 group flex flex-1 items-center gap-3 px-3 py-2.5 text-left text-sm font-medium outline-none transition-all hover:no-underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              {typeof orderIndex === "number" ? (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground/8 px-1.5 text-[10px] font-bold text-foreground/60">
+                  {orderIndex + 1}
+                </span>
+              ) : null}
+              <p className="truncate text-sm font-medium">{title}</p>
+            </div>
+            <div className="mt-0.5 flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">
+                {submission ? (getCaptureDateLabel(submission) ?? "Unknown time") : "No upload"}
+              </span>
+              {counts.errors > 0 ? (
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-red-600">
+                  <XCircle className="h-3 w-3" />
+                  {counts.errors}
+                </span>
+              ) : null}
+              {counts.warnings > 0 ? (
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-amber-600">
+                  <AlertTriangle className="h-3 w-3" />
+                  {counts.warnings}
+                </span>
+              ) : null}
+              {counts.errors === 0 && counts.warnings === 0 && counts.passed > 0 ? (
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-emerald-600">
+                  <CheckCircle2 className="h-3 w-3" />
+                  OK
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-90" />
+        </AccordionPrimitive.Trigger>
+      </AccordionPrimitive.Header>
+    </div>
   )
 }
 
@@ -146,9 +155,9 @@ export function ValidationAccordion({
   const globalValidations = validationResults.filter((result) => !result.fileName)
 
   return (
-    <Accordion type="multiple" className="space-y-3">
+    <Accordion type="multiple" className="space-y-2">
       {globalValidations.length > 0 ? (
-        <AccordionItem value="global" className="overflow-hidden rounded-3xl border bg-white/80 shadow-sm">
+        <AccordionItem value="global" className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
           <ValidationSummary title="General validations" validations={globalValidations} />
           <AccordionContent className="border-t bg-muted/20 p-0">
             {globalValidations.map((validation) => (
@@ -189,7 +198,7 @@ export function ValidationAccordion({
           <AccordionItem
             key={topic.id}
             value={`submission-${topic.id}`}
-            className="overflow-hidden rounded-3xl border bg-white/80 shadow-sm"
+            className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm"
           >
             <ValidationSummary
               title={topic.name}

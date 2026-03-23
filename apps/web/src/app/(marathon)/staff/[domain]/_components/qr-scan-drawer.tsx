@@ -63,7 +63,7 @@ export function QrScanDrawer({
             <QrCodeIcon className="h-8 w-8" />
           </div>
           <div>
-            <p className="font-rocgrotesk text-2xl">Scan participant QR code</p>
+            <p className="font-gothic text-2xl font-medium">Scan participant QR code</p>
             <p className="text-sm text-white/70">
               Align the code inside the frame to open the record.
             </p>

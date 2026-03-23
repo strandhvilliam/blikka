@@ -16,7 +16,7 @@ interface DrawerLayoutProps {
 export function DrawerLayout({ open, onOpenChange, title, children }: DrawerLayoutProps) {
   return (
     <Drawer modal={true} open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="h-[94dvh] rounded-t-[2rem] border-none bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,244,239,0.94))] p-0 shadow-2xl">
+      <DrawerContent className="flex h-[97dvh] flex-col overflow-hidden rounded-t-[2rem] border-none bg-white p-0 shadow-2xl">
         <Button
           variant="ghost"
           size="icon"

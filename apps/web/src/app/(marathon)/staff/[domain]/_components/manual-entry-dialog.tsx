@@ -42,7 +42,7 @@ export function StaffManualEntryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="top-[40%] max-w-sm border-none bg-[#fbfaf7]">
         <DialogHeader className="text-center">
-          <DialogTitle className="font-rocgrotesk text-xl">Enter participant number</DialogTitle>
+          <DialogTitle className="font-gothic text-xl font-medium tracking-tight">Enter participant number</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-4">

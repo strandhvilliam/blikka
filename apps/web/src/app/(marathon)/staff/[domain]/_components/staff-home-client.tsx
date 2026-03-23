@@ -8,7 +8,6 @@ import {
   PenIcon,
   QrCodeIcon,
   ShieldCheckIcon,
-  UploadIcon,
   UsersIcon,
 } from "lucide-react"
 import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs"
@@ -167,7 +166,7 @@ export function StaffHomeClient({
 
   return (
     <>
-      <div className="relative flex h-dvh flex-col overflow-hidden bg-background">
+      <div className="relative flex h-dvh flex-col overflow-hidden ">
         <DotPattern />
 
         <header className="relative z-10 flex items-center justify-between px-5 pt-4 pb-2">
@@ -243,7 +242,7 @@ export function StaffHomeClient({
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Staff verification
             </p>
-            <h1 className="mt-2 font-rocgrotesk text-4xl font-extrabold leading-none tracking-tight text-foreground sm:text-5xl">
+            <h1 className="mt-2 font-gothic text-4xl font-medium leading-none tracking-tight text-foreground sm:text-5xl">
               Verify arrivals
             </h1>
             <p className="mt-2 max-w-xs text-sm text-muted-foreground text-balance">
@@ -252,37 +251,42 @@ export function StaffHomeClient({
           </div>
 
           <div className="flex flex-col items-center gap-4 py-8">
-            <PrimaryButton
+            <div
+              className="group relative cursor-pointer"
               onClick={() => void openSheetSafely("qr-scan")}
-              className="relative flex h-44 w-44 items-center justify-center rounded-full shadow-[0_16px_60px_rgba(254,57,35,0.18)] sm:h-52 sm:w-52"
             >
-              <QrCodeIcon className="h-20 w-20 sm:h-24 sm:w-24" />
-            </PrimaryButton>
+              <div className="absolute -inset-4 rounded-full bg-[#FE3923]/8 transition-all duration-200 group-hover:bg-[#FE3923]/12 group-active:scale-95" />
+              <PrimaryButton
+                onClick={() => void openSheetSafely("qr-scan")}
+                className="relative flex h-44 w-44 items-center justify-center rounded-full shadow-[0_16px_60px_rgba(254,57,35,0.22)] sm:h-52 sm:w-52"
+              >
+                <QrCodeIcon className="h-20 w-20 sm:h-24 sm:w-24" />
+              </PrimaryButton>
+            </div>
             <span className="text-base font-semibold text-foreground">Scan participant QR</span>
           </div>
 
-          <div className="w-full max-w-md">
-            <div className="rounded-2xl border border-border bg-white/95 p-4 shadow-lg backdrop-blur-sm">
-              <div className="grid grid-cols-3 gap-3">
-                <ActionTile
-                  icon={<PenIcon className="h-5 w-5" />}
-                  label="Manual entry"
-                  onClick={() => void openSheetSafely("manual-entry")}
-                />
-                <ActionTile
-                  icon={<UploadIcon className="h-5 w-5" />}
-                  label="Laptop upload"
-                  onClick={() =>
-                    router.push(formatDomainPathname("/staff/staff-upload", domain, "staff"))
-                  }
-                />
-                <ActionTile
-                  icon={<UsersIcon className="h-5 w-5" />}
-                  label="Verified list"
-                  onClick={() => void openSheetSafely("verified-list")}
-                />
+          <div className="flex w-full max-w-md gap-3">
+            <button
+              type="button"
+              onClick={() => void openSheetSafely("manual-entry")}
+              className="flex flex-1 items-center justify-center gap-3 rounded-full border border-border bg-white px-5 py-4 shadow-sm transition-all hover:bg-muted/30 active:scale-[0.98]"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/6 text-foreground">
+                <PenIcon className="h-4 w-4" />
               </div>
-            </div>
+              <span className="text-sm font-semibold text-foreground">Manual entry</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void openSheetSafely("verified-list")}
+              className="flex flex-1 items-center justify-center gap-3 rounded-full border border-border bg-white px-5 py-4 shadow-sm transition-all hover:bg-muted/30 active:scale-[0.98]"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/6 text-foreground">
+                <UsersIcon className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-semibold text-foreground">Verified list</span>
+            </button>
           </div>
         </main>
       </div>
@@ -352,28 +356,5 @@ export function StaffHomeClient({
         }}
       />
     </>
-  )
-}
-
-function ActionTile({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-center gap-2.5 rounded-xl border border-transparent px-2 py-4 transition-all hover:border-border hover:bg-muted/50 active:scale-[0.97]"
-    >
-      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-foreground/6 text-foreground">
-        {icon}
-      </div>
-      <span className="text-xs font-medium text-foreground">{label}</span>
-    </button>
   )
 }
