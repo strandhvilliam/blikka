@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { useTranslations } from "next-intl"
 import { motion } from "motion/react"
-import { useRef, useState, useMemo } from "react"
+import { useRef, useState, useMemo, type RefObject } from "react"
 import {
   AlertTriangle,
   ChevronDown,
@@ -167,6 +167,7 @@ interface UploadInputProps {
   }>
   hasValidationRules: boolean
   isProcessing: boolean
+  fileInputRef?: RefObject<HTMLInputElement | null>
   onFileSelect: (files: FileList | null) => Promise<void>
   onRemovePhoto: (orderIndex: number) => void
 }
@@ -176,11 +177,13 @@ export function ByCameraUploadInput({
   validationResults,
   hasValidationRules,
   isProcessing,
+  fileInputRef,
   onFileSelect,
   onRemovePhoto,
 }: UploadInputProps) {
   const t = useTranslations("FlowPage.uploadStep")
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const internalFileInputRef = useRef<HTMLInputElement>(null)
+  const inputRef = fileInputRef ?? internalFileInputRef
   const [isDragOver, setIsDragOver] = useState(false)
   const [exifExpanded, setExifExpanded] = useState(false)
 
@@ -200,7 +203,7 @@ export function ByCameraUploadInput({
       return
     }
 
-    fileInputRef.current?.click()
+    inputRef.current?.click()
   }
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -456,7 +459,7 @@ export function ByCameraUploadInput({
       </motion.div>
 
       <input
-        ref={fileInputRef}
+        ref={inputRef}
         type="file"
         accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
         onChange={async (e) => {

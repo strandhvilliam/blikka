@@ -75,6 +75,7 @@ export function ByCameraUploadStep({
 
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const hasRedirectedRef = useRef(false);
+  const selectAnotherFileInputRef = useRef<HTMLInputElement>(null);
 
   const heicIsConverting = useHeicStore((state) => state.isConverting);
   const heicIsCancelling = useHeicStore((state) => state.isCancelling);
@@ -336,6 +337,7 @@ export function ByCameraUploadStep({
                 validationResults={validationResults}
                 hasValidationRules={hasValidationRules}
                 isProcessing={isProcessingFiles}
+                fileInputRef={selectAnotherFileInputRef}
                 onFileSelect={handleSelectFiles}
                 onRemovePhoto={removePhoto}
               />
@@ -356,8 +358,12 @@ export function ByCameraUploadStep({
                   variant="secondary"
                   size="lg"
                   className="w-[140px] rounded-full"
+                  disabled={isProcessingFiles}
+                  onClick={() => selectAnotherFileInputRef.current?.click()}
                 >
-                  <span className="whitespace-nowrap">Select another</span>
+                  <span className="whitespace-nowrap">
+                    {t("selectAnother")}
+                  </span>
                 </Button>
               )}
             </CardFooter>
