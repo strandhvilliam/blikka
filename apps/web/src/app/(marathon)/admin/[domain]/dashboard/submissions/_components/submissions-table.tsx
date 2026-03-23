@@ -109,6 +109,27 @@ export function SubmissionsTable() {
       },
     }),
   )
+  const batchMarkCompletedMutation = useMutation(
+    trpc.participants.batchMarkCompleted.mutationOptions({
+      onSuccess: async (data) => {
+        toast.success(
+          `Marked ${data.updatedCount} participant${data.updatedCount === 1 ? "" : "s"} as completed`,
+        )
+        if (data.failedIds.length > 0) {
+          toast.error(
+            `Skipped ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"} already in a final status`,
+          )
+        }
+        await queryClient.invalidateQueries({
+          queryKey: trpc.participants.getByDomainInfinite.pathKey(),
+        })
+        clearSelection()
+      },
+      onError: (error) => {
+        toast.error(`Failed to mark participants completed: ${error.message}`)
+      },
+    }),
+  )
 
   const reTriggerMutation = useMutation(trpc.uploadFlow.reTriggerUploadFlow.mutationOptions())
   const rerunValidationsMutation = useMutation(trpc.validations.runValidations.mutationOptions())
@@ -118,6 +139,9 @@ export function SubmissionsTable() {
 
   const selectedParticipants = participants.filter((participant) => selectedIds.has(participant.id))
   const selectedReferences = selectedParticipants.map((participant) => participant.reference)
+  const completableParticipantIds = selectedParticipants
+    .filter((participant) => participant.status !== "completed" && participant.status !== "verified")
+    .map((participant) => participant.id)
   const selectedSubmissionIdsMissingExif = selectedParticipants
     .filter(
       (participant) =>
@@ -149,6 +173,14 @@ export function SubmissionsTable() {
     if (selectedCount === 0 || !canVerifySelected) return
     batchVerifyMutation.mutate({
       ids: Array.from(selectedIds),
+      domain,
+    })
+  }
+
+  const handleBatchMarkCompleted = () => {
+    if (completableParticipantIds.length === 0) return
+    batchMarkCompletedMutation.mutate({
+      ids: completableParticipantIds,
       domain,
     })
   }
@@ -286,8 +318,10 @@ export function SubmissionsTable() {
             marathonMode={marathon?.mode}
             selectedCount={selectedCount}
             canVerify={canVerifySelected}
+            completableCount={completableParticipantIds.length}
             isDeleting={batchDeleteMutation.isPending}
             isVerifying={batchVerifyMutation.isPending}
+            isMarkingCompleted={batchMarkCompletedMutation.isPending}
             isReTriggering={reTriggerMutation.isPending}
             isRerunningValidations={rerunValidationsMutation.isPending}
             isRegeneratingExif={
@@ -303,6 +337,7 @@ export function SubmissionsTable() {
             onClearSelection={clearSelection}
             onDelete={handleBatchDelete}
             onVerify={handleBatchVerify}
+            onMarkCompleted={handleBatchMarkCompleted}
             onReTriggerUploadFlow={handleReTriggerUploadFlow}
             onRerunValidations={handleBatchRerunValidations}
             onRegenerateExif={handleBatchRegenerateExif}

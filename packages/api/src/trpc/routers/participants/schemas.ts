@@ -66,6 +66,13 @@ export const BatchVerifyInputSchema = Schema.toStandardSchemaV1(
   }),
 );
 
+export const BatchMarkCompletedInputSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    ids: Schema.Array(Schema.Number),
+    domain: Schema.String,
+  }),
+);
+
 export const VerifyParticipantInputSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     id: Schema.Number,

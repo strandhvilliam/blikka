@@ -758,6 +758,32 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
           failedIds,
         };
       });
+      const batchMarkParticipantsCompleted = Effect.fn(
+        "ParticipantsQueries.batchMarkParticipantsCompleted",
+      )(function* ({ ids, domain }: { ids: number[]; domain: string }) {
+        if (ids.length === 0) {
+          return { updatedCount: 0, failedIds: [] };
+        }
+        const results = yield* use((db) =>
+          db
+            .update(participants)
+            .set({ status: "completed" })
+            .where(
+              and(
+                eq(participants.domain, domain),
+                inArray(participants.id, ids),
+                notInArray(participants.status, ["completed", "verified"]),
+              ),
+            )
+            .returning({ id: participants.id }),
+        );
+        const updatedIds = results.map((r) => r.id);
+        const failedIds = ids.filter((id) => !updatedIds.includes(id));
+        return {
+          updatedCount: updatedIds.length,
+          failedIds,
+        };
+      });
       return {
         getParticipantById,
         getParticipantByReference,
@@ -770,6 +796,7 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
         deleteParticipant,
         batchDeleteParticipants,
         batchVerifyParticipants,
+        batchMarkParticipantsCompleted,
       } as const;
     }),
   },

@@ -9,15 +9,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Trash2, CheckCircle, X, Loader2, RefreshCw, FileCode, FileImage } from "lucide-react"
+import {
+  Trash2,
+  CheckCircle,
+  X,
+  Loader2,
+  RefreshCw,
+  FileCode,
+  FileImage,
+  ClipboardCheck,
+} from "lucide-react"
 import { useState } from "react"
 
 interface SubmissionsBulkToolbarProps {
   marathonMode?: string
   selectedCount: number
   canVerify: boolean
+  completableCount: number
   isDeleting: boolean
   isVerifying: boolean
+  isMarkingCompleted: boolean
   isReTriggering: boolean
   isRerunningValidations: boolean
   isRegeneratingExif: boolean
@@ -27,6 +38,7 @@ interface SubmissionsBulkToolbarProps {
   onClearSelection: () => void
   onDelete: () => void
   onVerify: () => void
+  onMarkCompleted: () => void
   onReTriggerUploadFlow: () => void
   onRerunValidations: () => void
   onRegenerateExif: () => void
@@ -37,8 +49,10 @@ export function SubmissionsBulkToolbar({
   marathonMode,
   selectedCount,
   canVerify,
+  completableCount,
   isDeleting,
   isVerifying,
+  isMarkingCompleted,
   isReTriggering,
   isRerunningValidations,
   isRegeneratingExif,
@@ -48,12 +62,14 @@ export function SubmissionsBulkToolbar({
   onClearSelection,
   onDelete,
   onVerify,
+  onMarkCompleted,
   onReTriggerUploadFlow,
   onRerunValidations,
   onRegenerateExif,
   onGenerateThumbnails,
 }: SubmissionsBulkToolbarProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showMarkCompletedDialog, setShowMarkCompletedDialog] = useState(false)
   const isByCameraMode = marathonMode === "by-camera"
 
   const handleDeleteClick = () => {
@@ -63,6 +79,11 @@ export function SubmissionsBulkToolbar({
   const handleConfirmDelete = () => {
     onDelete()
     setShowDeleteDialog(false)
+  }
+
+  const handleConfirmMarkCompleted = () => {
+    onMarkCompleted()
+    setShowMarkCompletedDialog(false)
   }
 
   return (
@@ -80,6 +101,22 @@ export function SubmissionsBulkToolbar({
           </Button>
         </div>
         <div className="h-4 w-px bg-border mx-1" />
+        {!isByCameraMode && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowMarkCompletedDialog(true)}
+            disabled={completableCount === 0 || isMarkingCompleted}
+            className="h-9"
+          >
+            {isMarkingCompleted ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <ClipboardCheck className="h-4 w-4 mr-1" />
+            )}
+            Mark Completed
+          </Button>
+        )}
         {!isByCameraMode && (
           <Button
             variant="outline"
@@ -199,6 +236,32 @@ export function SubmissionsBulkToolbar({
               {isDeleting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Delete {selectedCount} Participant
               {selectedCount === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showMarkCompletedDialog} onOpenChange={setShowMarkCompletedDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark Participants Completed</DialogTitle>
+            <DialogDescription>
+              This will set {completableCount} selected participant
+              {completableCount === 1 ? "" : "s"} to completed. Only do this when you are sure
+              their uploads are actually complete.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowMarkCompletedDialog(false)}
+              disabled={isMarkingCompleted}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmMarkCompleted} disabled={isMarkingCompleted}>
+              {isMarkingCompleted && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Mark Completed
             </Button>
           </DialogFooter>
         </DialogContent>

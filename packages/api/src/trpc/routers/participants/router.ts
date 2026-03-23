@@ -12,6 +12,7 @@ import {
   GetDashboardOverviewInputSchema,
   GetPublicParticipantByReferenceInputSchema,
   BatchDeleteInputSchema,
+  BatchMarkCompletedInputSchema,
   BatchVerifyInputSchema,
   VerifyParticipantInputSchema,
 } from "./schemas";
@@ -141,6 +142,21 @@ export const participantRouter = createTRPCRouter({
         Effect.fn("ParticipantRouter.batchVerify")(function* ({ input }) {
           return yield* ParticipantsApiService.use((s) =>
             s.batchVerify({
+              ids: input.ids,
+              domain: input.domain,
+            }),
+          );
+        }),
+      ),
+    ),
+  batchMarkCompleted: domainProcedure
+    .input(BatchMarkCompletedInputSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn("ParticipantRouter.batchMarkCompleted")(function* ({ input }) {
+          return yield* ParticipantsApiService.use((s) =>
+            s.batchMarkCompleted({
               ids: input.ids,
               domain: input.domain,
             }),

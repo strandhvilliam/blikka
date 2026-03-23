@@ -189,6 +189,21 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
         },
       );
 
+      const batchMarkCompleted = Effect.fn(
+        "ParticipantsApiService.batchMarkCompleted",
+      )(function* ({
+        ids,
+        domain,
+      }: {
+        ids: readonly number[];
+        domain: string;
+      }) {
+        return yield* db.participantsQueries.batchMarkParticipantsCompleted({
+          ids: [...ids],
+          domain,
+        });
+      });
+
       const verifyParticipant = Effect.fn(
         "ParticipantsApiService.verifyParticipant",
       )(function* ({ id, domain }: { id: number; domain: string }) {
@@ -207,6 +222,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
         createParticipant,
         batchDelete,
         batchVerify,
+        batchMarkCompleted,
         verifyParticipant,
       } as const;
     }),
