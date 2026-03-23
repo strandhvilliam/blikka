@@ -72,7 +72,7 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
   if (marathon.mode === "by-camera") {
     return (
       <>
-        <Confetti recycle={false} numberOfPieces={200} />
+        <Confetti recycle={false} numberOfPieces={400} />
         <ConfirmationByCameraClient
           params={params}
           participant={{
@@ -91,7 +91,7 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
 
   return (
     <>
-      <Confetti recycle={false} numberOfPieces={200} />
+      <Confetti recycle={false} numberOfPieces={400} />
       <ConfirmationMarathonClient
         params={params}
         participant={{

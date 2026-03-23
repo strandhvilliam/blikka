@@ -9,9 +9,9 @@ export function PrimaryButton({
   disabled,
   onClick,
   type = "button",
-  primaryColor = "#FF5D4B",
+  primaryColor = "#FE4D3A",
   secondaryColor = "#FE3923",
-  hoverPrimaryColor = "#E32D18",
+  hoverPrimaryColor = "#FE3923",
   ref,
 }: {
   className?: string

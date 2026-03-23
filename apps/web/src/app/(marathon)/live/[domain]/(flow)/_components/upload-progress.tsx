@@ -42,7 +42,6 @@ export function UploadProgress({
       topics={topics}
       expectedCount={expectedCount}
       onRetry={onRetry}
-      finalizationState={finalizationState}
       participantReference={participantReference}
     />
   );

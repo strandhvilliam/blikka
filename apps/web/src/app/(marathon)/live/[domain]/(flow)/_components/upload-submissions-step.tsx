@@ -120,9 +120,13 @@ export function UploadSubmissionsStep({
     };
   }, [clearFiles]);
 
+  const shouldNavigate =
+    finalizationState === FINALIZATION_STATE.READY ||
+    finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED;
+
   useEffect(() => {
     if (
-      finalizationState !== FINALIZATION_STATE.READY ||
+      !shouldNavigate ||
       !minimumProgressDisplayReached ||
       hasRedirectedRef.current ||
       !domain
@@ -137,7 +141,7 @@ export function UploadSubmissionsStep({
     );
   }, [
     domain,
-    finalizationState,
+    shouldNavigate,
     minimumProgressDisplayReached,
     router,
     uploadFlowState,

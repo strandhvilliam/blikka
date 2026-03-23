@@ -6,7 +6,6 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Loader2,
   Upload,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -25,11 +24,7 @@ export function FileProgressItem({ file, topic }: FileProgressItemProps) {
   const getStatusIcon = () => {
     switch (file.phase) {
       case UPLOAD_PHASE.UPLOADED:
-        return file.isProcessingComplete ? (
-          <CheckCircle className="w-5 h-5 text-green-600" />
-        ) : (
-          <Loader2 className="w-5 h-5 animate-spin text-green-600" />
-        );
+        return <CheckCircle className="w-5 h-5 text-green-600" />;
       case UPLOAD_PHASE.ERROR:
         return <AlertCircle className="w-5 h-5 text-destructive" />;
       case UPLOAD_PHASE.UPLOADING:
@@ -42,9 +37,7 @@ export function FileProgressItem({ file, topic }: FileProgressItemProps) {
   const getStatusText = () => {
     switch (file.phase) {
       case UPLOAD_PHASE.UPLOADED:
-        return file.isProcessingComplete
-          ? t("statusUploadedComplete")
-          : t("statusUploadedProcessing");
+        return t("statusUploaded");
       case UPLOAD_PHASE.ERROR:
         return file.error?.message || t("statusError");
       case UPLOAD_PHASE.UPLOADING:

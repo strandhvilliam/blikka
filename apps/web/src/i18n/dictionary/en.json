@@ -199,7 +199,13 @@
       "statusUploadedProcessing": "Uploaded! Processing...",
       "statusUploading": "Uploading",
       "statusWaiting": "Waiting...",
-      "statusError": "Upload failed"
+      "statusError": "Upload failed",
+      "titleReceived": "Photos received safely",
+      "descriptionFinalizing": "Your photos are stored. We're finishing your submission — this page will continue automatically.",
+      "participantNumber": "Participant number",
+      "stepUploaded": "Uploaded",
+      "stepFinalizing": "Finalizing",
+      "keepPageOpen": "Please keep this page open"
     },
     "uploadFinalizing": {
       "title": "Finalizing your submission",
@@ -259,7 +265,9 @@
     "showQrCode": "Show this QR code to a crew member to verify your submission.",
     "refreshAvailable": "Refresh available in {seconds}s",
     "refresh": "Refresh",
-    "participant": "Participant"
+    "participant": "Participant",
+    "waitingForVerification": "Waiting for verification",
+    "yourCode": "Your code"
   },
   "ConfirmationPage": {
     "congratulations": "Congratulations!",

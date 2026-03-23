@@ -3,10 +3,9 @@
 import { useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { useTranslations } from "next-intl"
-import { ArrowRight, CheckCircle2, Clock, MoreVertical, Recycle, Trophy } from "lucide-react"
+import { ArrowRight, Check, Clock, MoreVertical, Recycle } from "lucide-react"
 import { Icon } from "@iconify/react"
 
-import { Card, CardContent } from "@/components/ui/card"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { Button } from "@/components/ui/button"
 import {
@@ -53,18 +52,13 @@ export function ConfirmationMarathonClient({
 }: ConfirmationMarathonClientProps) {
   const t = useTranslations("ConfirmationPage")
   const [selectedImage, setSelectedImage] = useState<ConfirmationImage | null>(null)
-  const [previewImage, setPreviewImage] = useState<{
-    imageUrl: string
-    name: string
-  } | null>(null)
-
   return (
-    <div className="min-h-[100dvh] px-4 py-6 max-w-[800px] mx-auto flex flex-col">
+    <div className="mx-auto flex min-h-dvh max-w-[540px] flex-col px-6 py-8">
       {/* Header Menu */}
-      <div className="md:hidden absolute top-2 right-2 z-10">
+      <div className="absolute top-3 right-3 z-10 md:hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground">
               <MoreVertical className="h-4 w-4" />
               <span className="sr-only">{t("menu")}</span>
             </Button>
@@ -72,7 +66,7 @@ export function ConfirmationMarathonClient({
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
               <button onClick={handleRedirect}>
-                <Recycle className="w-4 h-4" />
+                <Recycle className="h-4 w-4" />
                 {t("startAgain")}
               </button>
             </DropdownMenuItem>
@@ -81,117 +75,91 @@ export function ConfirmationMarathonClient({
       </div>
 
       <AnimatePresence mode="sync">
-        {/* Large Success Header */}
+        {/* Success Header */}
         <motion.div
           key="confirmation"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05, duration: 0.5 }}
-          className="text-center pt-8"
+          className="flex flex-col items-center pt-10"
         >
-          <div className="relative inline-block">
+          <div className="relative">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 150 }}
-              className="w-28 h-28 bg-green-500 rounded-full flex items-center justify-center relative shadow-xl shadow-green-500/30"
+              transition={{ delay: 0.15, type: "spring", stiffness: 180, damping: 14 }}
+              className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-600"
             >
-              <CheckCircle2 className="h-16 w-16 text-white" />
-              <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-                className="absolute -top-1 -right-1 w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg"
-              >
-                <Trophy className="h-5 w-5 text-yellow-800" />
-              </motion.div>
+              <Check className="h-10 w-10 text-white" strokeWidth={3} />
             </motion.div>
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [1, 1.035, 1], opacity: [1, 0.72, 1] }}
+              transition={{ delay: 0.4, duration: 3.8, ease: "easeInOut", repeat: Infinity }}
+              className="absolute inset-0 scale-[1.35] rounded-full border-2 border-emerald-600/30"
+            />
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [1, 1.025, 1], opacity: [1, 0.7, 1] }}
+              transition={{ delay: 0.75, duration: 4.6, ease: "easeInOut", repeat: Infinity }}
+              className="absolute inset-0 scale-[1.7] rounded-full border border-emerald-600/15"
+            />
           </div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-3xl font-rocgrotesk font-bold text-foreground mt-4"
+            className="mt-8 font-gothic text-3xl font-medium tracking-tight text-foreground"
           >
             {t("congratulations")}
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="text-muted-foreground mt-2"
+            className="mt-2 text-sm text-muted-foreground"
           >
             {t("photosUploaded", { count: submissionsCount })}
           </motion.p>
         </motion.div>
 
-        {/* Combined Participant Info & Thumbnail Card */}
+        {/* Participant credential card */}
         <motion.div
           key="participant-info"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-6"
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, duration: 0.5, type: "spring", stiffness: 200, damping: 24 }}
+          className="mt-8"
         >
-          <Card className="bg-green-50/60 border-green-200 dark:bg-green-950/20 dark:border-green-800 overflow-hidden">
-            <CardContent className="p-3">
-              <div className="flex gap-3">
-                {/* Thumbnail Image */}
-                <div
-                  className="w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-muted shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() =>
-                    images[0]?.imageUrl &&
-                    setPreviewImage({
-                      imageUrl: images[0].imageUrl ?? "",
-                      name: images[0].name,
-                    })
-                  }
-                >
-                  {images[0]?.imageUrl ? (
-                    <img
-                      src={images[0].imageUrl}
-                      alt={images[0].name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Icon
-                        icon="solar:camera-minimalistic-broken"
-                        className="w-8 h-8 text-green-300"
-                      />
-                    </div>
-                  )}
-                </div>
+          <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
+            <div className="px-4 py-4">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {params.participantFirstName} {params.participantLastName}
+              </p>
+              <p className="mt-0.5 font-mono text-2xl font-bold tracking-wider text-foreground">
+                #{participant.reference}
+              </p>
+            </div>
 
-                {/* Participant Info */}
-                <div className="flex-1 flex flex-col justify-center min-w-0">
-                  <p className="text-3xl font-bold text-green-700 dark:text-green-300 font-mono">
-                    #{participant.reference}
-                  </p>
-                  <p className="font-semibold text-green-900 dark:text-green-100 truncate mt-1">
-                    {params.participantFirstName} {params.participantLastName}
-                  </p>
-                  {(participant.deviceGroup?.name || participant.competitionClass?.name) && (
-                    <div className="flex flex-wrap gap-3 mt-2">
-                      {participant.deviceGroup?.name && (
-                        <span className="text-xs text-green-700 dark:text-green-300 flex items-center gap-1 bg-green-100/50 dark:bg-green-900/30 px-2 py-1 rounded-full">
-                          <Icon icon="solar:bookmark-broken" className="w-3 h-3" />
-                          {participant.deviceGroup.name}
-                        </span>
-                      )}
-                      {participant.competitionClass?.name && (
-                        <span className="text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1 bg-emerald-100/50 dark:bg-emerald-900/30 px-2 py-1 rounded-full">
-                          <Icon icon="solar:camera-minimalistic-broken" className="w-3 h-3" />
-                          {participant.competitionClass.name}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+            {/* Tags */}
+            {(participant.deviceGroup?.name || participant.competitionClass?.name) && (
+              <div className="flex flex-wrap gap-2 border-t border-dashed border-border px-4 py-3">
+                {participant.deviceGroup?.name && (
+                  <span className="flex items-center gap-1 rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    <Icon icon="solar:bookmark-broken" className="h-3 w-3" />
+                    {participant.deviceGroup.name}
+                  </span>
+                )}
+                {participant.competitionClass?.name && (
+                  <span className="flex items-center gap-1 rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    <Icon icon="solar:camera-minimalistic-broken" className="h-3 w-3" />
+                    {participant.competitionClass.name}
+                  </span>
+                )}
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
         </motion.div>
 
         {/* Photo Grid */}
@@ -201,15 +169,15 @@ export function ConfirmationMarathonClient({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="mt-4"
+            className="mt-5"
           >
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              {t("yourPhotos")}
+            </p>
             <motion.div
               variants={{
                 hidden: { opacity: 0 },
-                show: {
-                  opacity: 1,
-                  transition: { staggerChildren: 0.08 },
-                },
+                show: { opacity: 1, transition: { staggerChildren: 0.06 } },
               }}
               initial="hidden"
               animate="show"
@@ -219,30 +187,30 @@ export function ConfirmationMarathonClient({
                 <motion.div
                   key={image.orderIndex}
                   variants={{
-                    hidden: { opacity: 0, scale: 0.9 },
+                    hidden: { opacity: 0, scale: 0.92 },
                     show: { opacity: 1, scale: 1 },
                   }}
-                  className="relative rounded-lg overflow-hidden border bg-card cursor-pointer group aspect-square"
+                  className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl border border-border bg-muted"
                   onClick={() => setSelectedImage(image)}
                 >
                   {image.imageUrl ? (
                     <img
                       src={image.imageUrl}
                       alt={image.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted">
-                      <span className="text-xs text-muted-foreground">No image</span>
+                    <div className="flex h-full w-full items-center justify-center">
+                      <span className="text-xs text-muted-foreground">—</span>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute bottom-1 left-1 right-1">
-                    <p className="text-white text-[10px] font-medium truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/20" />
+                  <div className="absolute bottom-1.5 left-1.5 right-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <p className="truncate text-[10px] font-medium text-white drop-shadow-sm">
                       {image.name}
                     </p>
                   </div>
-                  <div className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                     <ArrowRight className="h-3 w-3 text-white" />
                   </div>
                 </motion.div>
@@ -257,70 +225,53 @@ export function ConfirmationMarathonClient({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="hidden md:flex gap-3 mt-6"
+          className="mt-6 hidden gap-3 md:flex"
         >
-          <PrimaryButton onClick={handleRedirect} className="flex-1 py-3 text-base rounded-full">
+          <PrimaryButton onClick={handleRedirect} className="flex-1 rounded-xl py-3 text-base">
             {t("newParticipant")}
-            <span className="text-white/80 text-sm ml-2">
+            <span className="ml-2 text-sm text-white/80">
               {t("secondsSuffix", { seconds: remainingSeconds })}
             </span>
           </PrimaryButton>
           <Button
             variant="outline"
-            className="rounded-full text-base px-6 py-3 h-auto"
+            className="h-auto rounded-xl px-6 py-3 text-base"
             onClick={() => addSeconds(30)}
           >
-            <Clock className="w-4 h-4 mr-2" />
+            <Clock className="mr-2 h-4 w-4" />
             {t("waitSeconds", { seconds: 30 })}
           </Button>
         </motion.div>
 
-        {/* Next Steps Info Section */}
+        {/* What's Next */}
         <motion.div
           key="next-steps"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="mt-4"
+          transition={{ delay: 0.75 }}
+          className="mt-5"
         >
-          <Card className="bg-slate-50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Trophy className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                <h3 className="font-semibold">{t("whatsNext")}</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex gap-2 items-start">
-                  <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">1</span>
-                  </div>
-                  <p className="text-sm text-foreground leading-snug">{t("steps.1")}</p>
-                </div>
-                <div className="flex gap-2 items-start">
-                  <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">2</span>
-                  </div>
-                  <p className="text-sm text-foreground leading-snug">{t("steps.2")}</p>
-                </div>
-                <div className="flex gap-2 items-start">
-                  <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">3</span>
-                  </div>
-                  <p className="text-sm text-foreground leading-snug">
-                    {t("steps.3", { juryDate: "31/8", resultsDate: "1/9" })}
+          <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              {t("whatsNext")}
+            </p>
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3, 4].map((step) => (
+                <div key={step} className="flex items-start gap-3">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border text-[10px] font-bold text-muted-foreground">
+                    {step}
+                  </span>
+                  <p className="text-sm leading-snug text-foreground">
+                    {step === 3
+                      ? t("steps.3", { juryDate: "31/8", resultsDate: "1/9" })
+                      : step === 4
+                        ? t("steps.4", { prizeDate: "20/8" })
+                        : t(`steps.${step}`)}
                   </p>
                 </div>
-                <div className="flex gap-2 items-start">
-                  <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">4</span>
-                  </div>
-                  <p className="text-sm text-foreground leading-snug">
-                    {t("steps.4", { prizeDate: "20/8" })}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+          </div>
         </motion.div>
       </AnimatePresence>
 
@@ -334,41 +285,6 @@ export function ConfirmationMarathonClient({
         onOpenChange={(open) => !open && setSelectedImage(null)}
       />
 
-      {/* Full Page Image Preview */}
-      {previewImage && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
-          onClick={() => setPreviewImage(null)}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative max-w-full max-h-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={previewImage.imageUrl}
-              alt={previewImage.name}
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-            />
-            <div className="absolute -bottom-12 left-0 right-0 text-center">
-              <p className="text-white/80 text-sm">{previewImage.name}</p>
-              <p className="text-white/50 text-xs mt-1">Tap anywhere to close</p>
-            </div>
-            <button
-              onClick={() => setPreviewImage(null)}
-              className="absolute -top-12 right-0 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
-            >
-              <Icon icon="solar:close-circle-broken" className="w-6 h-6 text-white" />
-            </button>
-          </motion.div>
-        </motion.div>
-      )}
     </div>
   )
 }

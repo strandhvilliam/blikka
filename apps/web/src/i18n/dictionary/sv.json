@@ -199,7 +199,13 @@
       "statusUploadedProcessing": "Uppladdad! Bearbetar...",
       "statusUploading": "Laddar upp",
       "statusWaiting": "Väntar...",
-      "statusError": "Uppladdning misslyckades"
+      "statusError": "Uppladdning misslyckades",
+      "titleReceived": "Foton mottagna",
+      "descriptionFinalizing": "Dina foton är sparade. Vi slutför din inlämning — sidan fortsätter automatiskt.",
+      "participantNumber": "Deltagarnummer",
+      "stepUploaded": "Uppladdat",
+      "stepFinalizing": "Slutförs",
+      "keepPageOpen": "Lämna sidan öppen"
     },
     "uploadFinalizing": {
       "title": "Slutför din inlämning",
@@ -259,7 +265,9 @@
     "showQrCode": "Visa denna QR-kod för en crew-medlem för att verifiera ditt bidrag.",
     "refreshAvailable": "Uppdatering tillgänglig om {seconds}s",
     "refresh": "Uppdatera",
-    "participant": "Deltagare"
+    "participant": "Deltagare",
+    "waitingForVerification": "Väntar på verifiering",
+    "yourCode": "Din kod"
   },
   "ConfirmationPage": {
     "congratulations": "Grattis!",

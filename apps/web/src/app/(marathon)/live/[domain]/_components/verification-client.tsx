@@ -1,19 +1,18 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "motion/react"
 import { useTranslations } from "next-intl"
 import { useQuery } from "@tanstack/react-query"
 import { RefreshCcw } from "lucide-react"
 import { notFound } from "next/navigation"
 
-import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { cn, formatDomainPathname } from "@/lib/utils"
+import { formatDomainPathname } from "@/lib/utils"
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
 import { QrCodeGenerator } from "@/components/qr-code-generator"
+import { PrimaryButton } from "@/components/ui/primary-button"
 import { useUploadFlowState } from "../(flow)/_hooks/use-upload-flow-state"
 
 interface VerificationClientProps {
@@ -75,69 +74,86 @@ export function VerificationClient({ participantRef, participantId }: Verificati
   const qrCodeValue = `${domain}-${participantId ?? ""}-${participantRef}`
 
   return (
-    <div className="flex flex-col items-center justify-center h-[100dvh] p-4 space-y-8">
-      <CardHeader className="space-y-2 w-full">
-        <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
-          {t("almostThere")}
-        </CardTitle>
-        <CardDescription className="text-center">{t("showQrCode")}</CardDescription>
-      </CardHeader>
-
-      <div className="flex flex-col items-center space-y-4">
-        <motion.div
-          className="flex flex-col justify-center items-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            duration: 0.2,
-            delay: 0.2,
-          }}
-        >
-          <div className="relative qr-perspective">
-            <motion.div
-              className="shadow-lg p-12 md:p-20 rounded-xl bg-white cursor-pointer relative qr-backface-hidden w-full max-w-xs md:max-w-lg lg:max-w-2xl min-h-[420px] md:min-h-[520px] flex flex-col items-center justify-center"
-              animate={{
-                rotateY: 0,
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 20,
-              }}
-              style={{
-                transformStyle: "preserve-3d",
-              }}
-            >
-              <QrCodeGenerator value={qrCodeValue} size={212} />
-              {participantRef && (
-                <div className="flex flex-col items-center mt-8">
-                  <span className="text-xl md:text-2xl font-rocgrotesk font-semibold text-gray-700">
-                    {t("participant")}
-                  </span>
-                  <span
-                    className="font-mono font-bold text-4xl md:text-5xl text-gray-900 select-all tracking-wider mt-2"
-                    style={{
-                      fontFamily:
-                        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                    }}
-                  >
-                    {participantRef}
-                  </span>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        </motion.div>
-      </div>
-
-      <PrimaryButton
-        className="mt-4 py-3 w-full max-w-xs md:max-w-lg lg:max-w-2xl"
-        onClick={handleRefresh}
-        disabled={refreshTimeout > 0}
+    <div className="flex min-h-dvh flex-col items-center px-6 py-10">
+      {/* Top status pill */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.4 }}
+        className="mb-10 flex items-center gap-2.5 rounded-full border border-amber-200 bg-amber-50 px-4 py-2"
       >
-        <RefreshCcw className={cn("h-4 w-4")} />
-        {refreshTimeout > 0 ? t("refreshAvailable", { seconds: refreshTimeout }) : t("refresh")}
-      </PrimaryButton>
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+        </span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+          {t("waitingForVerification")}
+        </span>
+      </motion.div>
+
+      {/* Heading */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.45 }}
+        className="mb-10 text-center"
+      >
+        <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground md:text-4xl">
+          {t("almostThere")}
+        </h1>
+        <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
+          {t("showQrCode")}
+        </p>
+      </motion.div>
+
+      {/* Credential card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.25, duration: 0.5, type: "spring", stiffness: 200, damping: 24 }}
+        className="w-full max-w-[320px]"
+      >
+        <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
+          {/* QR area */}
+          <div className="flex flex-col items-center px-8 pt-8 pb-6">
+            <QrCodeGenerator value={qrCodeValue} size={200} />
+          </div>
+
+          {/* Divider with notch cutouts */}
+          <div className="relative flex items-center px-6">
+            <div className="absolute -left-3 h-6 w-6 rounded-full bg-white shadow-[inset_-1px_0_0_var(--border)]" />
+            <div className="h-px w-full border-t border-dashed border-border" />
+            <div className="absolute -right-3 h-6 w-6 rounded-full bg-white shadow-[inset_1px_0_0_var(--border)]" />
+          </div>
+
+          {/* Participant info */}
+          <div className="flex flex-col items-center px-8 pt-6 pb-8">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              {t("participant")}
+            </span>
+            <span className="mt-2 font-mono text-4xl font-bold tracking-widest text-foreground">
+              {participantRef}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Refresh button */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45, duration: 0.4 }}
+        className="mt-8 w-full max-w-[320px]"
+      >
+        <PrimaryButton
+          className="w-full py-3.5 rounded-xl"
+          onClick={handleRefresh}
+          disabled={refreshTimeout > 0}
+        >
+          <RefreshCcw className="h-4 w-4" />
+          {refreshTimeout > 0 ? t("refreshAvailable", { seconds: refreshTimeout }) : t("refresh")}
+        </PrimaryButton>
+      </motion.div>
     </div>
   )
 }
