@@ -300,15 +300,14 @@ export function SettingsForm() {
         currentKey: marathon.logoUrl ?? null,
       })
 
-      const { key, url } = result
+      const { publicUrl, url } = result
 
       await fetch(url as string, {
         method: "PUT",
         body: file,
       })
 
-      // Construct the logo URL - might need to adjust based on how URLs are served
-      const logoUrl = key // Or construct full URL if needed
+      const logoUrl = publicUrl
       form.setFieldValue("logoUrl", logoUrl)
       return logoUrl
     } catch (error) {

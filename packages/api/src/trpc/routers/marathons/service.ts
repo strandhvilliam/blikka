@@ -9,6 +9,25 @@ import { RULE_KEYS } from "@blikka/validation"
 import { JuryApiService } from "../jury/service"
 import { getSeedScenarioStatus, seedFinishedScenario } from "./seed-service"
 
+function encodeS3ObjectKeyForUrl(key: string) {
+  return key
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")
+}
+
+function extractLogoVersion(currentKey?: string | null) {
+  if (!currentKey) return undefined
+
+  try {
+    const url = new URL(currentKey)
+    const decodedPath = decodeURIComponent(url.pathname)
+    return decodedPath.split("?")[1]?.split("=")[1]
+  } catch {
+    return currentKey.split("?")[1]?.split("=")[1]
+  }
+}
+
 export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()(
   "@blikka/api/MarathonApiService",
   {
@@ -133,7 +152,7 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
       }) {
         const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
 
-        const version = currentKey ? currentKey.split("?")[1]?.split("=")[1] : undefined
+        const version = extractLogoVersion(currentKey)
         const newVersion = version ? parseInt(version) + 1 : 1
 
         const key = `${domain}/logo?v=${newVersion}`
@@ -141,7 +160,9 @@ export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()
           expiresIn: 60 * 5,
         })
 
-        return { url, key }
+        const publicUrl = `https://${bucketName}.s3.eu-north-1.amazonaws.com/${encodeS3ObjectKeyForUrl(key)}`
+
+        return { url, key, publicUrl }
       })
 
       const getTermsUploadUrl = Effect.fn("MarathonApiService.getTermsUploadUrl")(function* ({
