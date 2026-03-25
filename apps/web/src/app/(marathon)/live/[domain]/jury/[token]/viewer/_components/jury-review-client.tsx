@@ -70,6 +70,7 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
     hasNextPage = false,
     isFetching,
     isFetchingNextPage,
+    isPending,
     error,
   } = useInfiniteQuery(
     trpc.jury.getJurySubmissionsFromToken.infiniteQueryOptions(
@@ -184,6 +185,7 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
             fetchNextPage={fetchNextPage}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
+            isPendingParticipants={isPending}
             isRefreshingResults={isRefreshingResults}
             totalParticipants={totalParticipants}
             error={error as Error | null}

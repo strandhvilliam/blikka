@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { Loader2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { JuryRatingsResponse } from "../../_lib/jury-types"
 import type { JuryListParticipant } from "../_lib/jury-list-participant"
 import { JuryParticipantCard } from "./jury-participant-card"
@@ -17,6 +18,7 @@ export function JuryParticipantList({
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
+  isPendingParticipants,
   isRefreshingResults,
   totalParticipants,
   error,
@@ -30,6 +32,7 @@ export function JuryParticipantList({
   fetchNextPage: () => void
   hasNextPage: boolean
   isFetchingNextPage: boolean
+  isPendingParticipants: boolean
   isRefreshingResults: boolean
   totalParticipants?: { value: number }
   error: Error | null
@@ -73,6 +76,47 @@ export function JuryParticipantList({
         <p className="mt-2 text-sm text-brand-gray">
           {error.message || "An unknown error occurred"}
         </p>
+      </div>
+    )
+  }
+
+  if (isPendingParticipants && participants.length === 0) {
+    return (
+      <div className="space-y-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <Skeleton className="h-4 w-48 max-w-full" />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {selectedRatings.length > 0 ? (
+              <Skeleton className="h-8 w-24 rounded-full" />
+            ) : null}
+            <RatingFilterBar
+              selectedRatings={selectedRatings}
+              onToggle={toggleRatingFilter}
+              isPending
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div
+              key={index}
+              className="flex w-full overflow-hidden rounded-xl border border-border/60 bg-white"
+            >
+              <Skeleton className="h-auto min-h-24 w-24 shrink-0 rounded-none sm:w-28" />
+              <div className="flex flex-1 flex-col justify-center gap-2 px-4 py-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-6 w-28" />
+                  <Skeleton className="h-3.5 w-20" />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Skeleton className="h-5 w-14 rounded-full" />
+                  <Skeleton className="h-5 w-24 rounded-full" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
