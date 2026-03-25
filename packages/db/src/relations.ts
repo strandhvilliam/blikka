@@ -19,10 +19,29 @@ export const juryRatingsRelations = relations(
   }),
 );
 
+export const juryFinalRankingsRelations = relations(
+  schema.juryFinalRankings,
+  ({ one }) => ({
+    juryInvitation: one(schema.juryInvitations, {
+      fields: [schema.juryFinalRankings.invitationId],
+      references: [schema.juryInvitations.id],
+    }),
+    marathon: one(schema.marathons, {
+      fields: [schema.juryFinalRankings.marathonId],
+      references: [schema.marathons.id],
+    }),
+    participant: one(schema.participants, {
+      fields: [schema.juryFinalRankings.participantId],
+      references: [schema.participants.id],
+    }),
+  }),
+);
+
 export const juryInvitationsRelations = relations(
   schema.juryInvitations,
   ({ one, many }) => ({
     juryRatings: many(schema.juryRatings),
+    juryFinalRankings: many(schema.juryFinalRankings),
     competitionClass: one(schema.competitionClasses, {
       fields: [schema.juryInvitations.competitionClassId],
       references: [schema.competitionClasses.id],
@@ -44,6 +63,7 @@ export const juryInvitationsRelations = relations(
 
 export const marathonsRelations = relations(schema.marathons, ({ many }) => ({
   juryRatings: many(schema.juryRatings),
+  juryFinalRankings: many(schema.juryFinalRankings),
   ruleConfigs: many(schema.ruleConfigs),
   juryInvitations: many(schema.juryInvitations),
   participants: many(schema.participants),
@@ -62,6 +82,7 @@ export const participantsRelations = relations(
   schema.participants,
   ({ one, many }) => ({
     juryRatings: many(schema.juryRatings),
+    juryFinalRankings: many(schema.juryFinalRankings),
     competitionClass: one(schema.competitionClasses, {
       fields: [schema.participants.competitionClassId],
       references: [schema.competitionClasses.id],

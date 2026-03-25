@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { Textarea } from "@/components/ui/textarea"
-import { Loader2, MessageSquare, Star } from "lucide-react"
-import type { ChangeEvent } from "react"
-import type { JuryInvitation } from "../../_lib/jury-types"
-import type { JuryListParticipant } from "../_lib/jury-list-participant"
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, MessageSquare, Star } from "lucide-react";
+import type { ChangeEvent } from "react";
+import type { JuryInvitation } from "../../_lib/jury-types";
+import type { JuryListParticipant } from "../_lib/jury-list-participant";
 
 export function JurySidebar({
   participant,
@@ -15,13 +15,13 @@ export function JurySidebar({
   onRatingClick,
   onNotesChange,
 }: {
-  participant: JuryListParticipant
-  invitation: JuryInvitation
-  rating: number
-  notes: string
-  isSaving: boolean
-  onRatingClick: (star: number) => void
-  onNotesChange: (event: ChangeEvent<HTMLTextAreaElement>) => void
+  participant: JuryListParticipant;
+  invitation: JuryInvitation;
+  rating: number;
+  notes: string;
+  isSaving: boolean;
+  onRatingClick: (star: number) => void;
+  onNotesChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
 }) {
   return (
     <div className="w-full space-y-3 xl:sticky xl:top-6">
@@ -105,5 +105,5 @@ export function JurySidebar({
         />
       </div>
     </div>
-  )
+  );
 }

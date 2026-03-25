@@ -27,9 +27,12 @@ export const juryRatings = pgTable(
     participantId: bigint("participant_id", { mode: "number" }).notNull(),
     notes: text(),
     marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
-    finalRanking: smallint("final_ranking"),
   },
   (table) => [
+    unique("jury_ratings_invitation_participant_key").on(
+      table.invitationId,
+      table.participantId,
+    ),
     index("jury_ratings_invitation_id_idx").on(table.invitationId),
     index("jury_ratings_participant_id_idx").on(table.participantId),
     index("jury_ratings_marathon_id_idx").on(table.marathonId),
@@ -47,6 +50,49 @@ export const juryRatings = pgTable(
       columns: [table.participantId],
       foreignColumns: [participants.id],
       name: "jury_ratings_participant_id_fkey",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const juryFinalRankings = pgTable(
+  "jury_final_rankings",
+  {
+    id: bigint({ mode: "number" }).primaryKey().generatedByDefaultAsIdentity(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
+    invitationId: bigint("invitation_id", { mode: "number" }).notNull(),
+    participantId: bigint("participant_id", { mode: "number" }).notNull(),
+    rank: smallint().notNull(),
+    marathonId: bigint("marathon_id", { mode: "number" }).notNull(),
+  },
+  (table) => [
+    unique("jury_final_rankings_invitation_participant_key").on(
+      table.invitationId,
+      table.participantId,
+    ),
+    unique("jury_final_rankings_invitation_rank_key").on(
+      table.invitationId,
+      table.rank,
+    ),
+    index("jury_final_rankings_invitation_id_idx").on(table.invitationId),
+    index("jury_final_rankings_participant_id_idx").on(table.participantId),
+    index("jury_final_rankings_marathon_id_idx").on(table.marathonId),
+    check("jury_final_rankings_rank_check", sql`${table.rank} in (1, 2, 3)`),
+    foreignKey({
+      columns: [table.invitationId],
+      foreignColumns: [juryInvitations.id],
+      name: "jury_final_rankings_invitation_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.marathonId],
+      foreignColumns: [marathons.id],
+      name: "jury_final_rankings_marathon_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.participantId],
+      foreignColumns: [participants.id],
+      name: "jury_final_rankings_participant_id_fkey",
     }).onDelete("cascade"),
   ],
 );
@@ -254,7 +300,10 @@ export const userMarathons = pgTable(
   (table) => [
     index("user_marathons_marathon_id_idx").on(table.marathonId),
     index("user_marathons_user_id_idx").on(table.userId),
-    unique("user_marathons_marathon_user_key").on(table.marathonId, table.userId),
+    unique("user_marathons_marathon_user_key").on(
+      table.marathonId,
+      table.userId,
+    ),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
@@ -285,7 +334,9 @@ export const pendingUserMarathons = pgTable(
   },
   (table) => [
     index("pending_user_marathons_marathon_id_idx").on(table.marathonId),
-    index("pending_user_marathons_email_normalized_idx").on(table.emailNormalized),
+    index("pending_user_marathons_email_normalized_idx").on(
+      table.emailNormalized,
+    ),
     unique("pending_user_marathons_marathon_email_key").on(
       table.marathonId,
       table.emailNormalized,

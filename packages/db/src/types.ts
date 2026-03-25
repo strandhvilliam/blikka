@@ -10,6 +10,8 @@ import {
   pendingUserMarathons,
   ruleConfigs,
   juryInvitations,
+  juryRatings,
+  juryFinalRankings,
   user,
   zippedSubmissions,
   participantVerifications,
@@ -45,14 +47,22 @@ export type NewTopic = typeof topics.$inferInsert;
 export type UserMarathonRelation = typeof userMarathons.$inferSelect;
 export type NewUserMarathonRelation = typeof userMarathons.$inferInsert;
 
-export type PendingUserMarathonRelation = typeof pendingUserMarathons.$inferSelect;
-export type NewPendingUserMarathonRelation = typeof pendingUserMarathons.$inferInsert;
+export type PendingUserMarathonRelation =
+  typeof pendingUserMarathons.$inferSelect;
+export type NewPendingUserMarathonRelation =
+  typeof pendingUserMarathons.$inferInsert;
 
 export type RuleConfig = typeof ruleConfigs.$inferSelect;
 export type NewRuleConfig = typeof ruleConfigs.$inferInsert;
 
 export type JuryInvitation = typeof juryInvitations.$inferSelect;
 export type NewJuryInvitation = typeof juryInvitations.$inferInsert;
+
+export type JuryRating = typeof juryRatings.$inferSelect;
+export type NewJuryRating = typeof juryRatings.$inferInsert;
+
+export type JuryFinalRanking = typeof juryFinalRankings.$inferSelect;
+export type NewJuryFinalRanking = typeof juryFinalRankings.$inferInsert;
 
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;

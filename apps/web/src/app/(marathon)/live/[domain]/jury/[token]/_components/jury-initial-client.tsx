@@ -1,57 +1,61 @@
-"use client"
+"use client";
 
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { motion } from "motion/react"
-import { CheckCircle2, ImageIcon, PlayIcon, Tag, UserIcon } from "lucide-react"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { useTRPC } from "@/lib/trpc/client"
-import { PrimaryButton } from "@/components/ui/primary-button"
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
+import { motion } from "motion/react";
+import { CheckCircle2, ImageIcon, PlayIcon, Tag, UserIcon } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useTRPC } from "@/lib/trpc/client";
+import { PrimaryButton } from "@/components/ui/primary-button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { getJuryViewerPath } from "../_lib/jury-paths"
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { getJuryViewerPath } from "../_lib/jury-paths";
 
 export function JuryInitialClient({
   domain,
   token,
 }: {
-  domain: string
-  token: string
+  domain: string;
+  token: string;
 }) {
-  const trpc = useTRPC()
-  const router = useRouter()
-  const queryClient = useQueryClient()
+  const trpc = useTRPC();
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: invitation } = useSuspenseQuery(
     trpc.jury.verifyTokenAndGetInitialData.queryOptions({ domain, token }),
-  )
+  );
 
   const startReviewMutation = useMutation(
     trpc.jury.updateInvitationStatusByToken.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({
           queryKey: trpc.jury.pathKey(),
-        })
-        toast.success("Review started")
-        router.push(getJuryViewerPath(domain, token))
+        });
+        toast.success("Review started");
+        router.push(getJuryViewerPath(domain, token));
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to start review")
+        toast.error(error.message || "Failed to start review");
       },
     }),
-  )
+  );
 
   const inviteLabel =
     invitation.inviteType === "topic"
-      ? invitation.topic?.name ?? "Topic review"
-      : invitation.competitionClass?.name ?? "Class review"
+      ? (invitation.topic?.name ?? "Topic review")
+      : (invitation.competitionClass?.name ?? "Class review");
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
@@ -159,8 +163,9 @@ export function JuryInitialClient({
                 ) : null}
 
                 <div className="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-4 text-sm text-muted-foreground">
-                  Rate each participant from 1 to 5 stars and leave notes if
-                  needed. When you are done, mark the review as completed.
+                  Stars and notes are private review aids. Before you complete
+                  the review, you must also choose your ranked winners: 1st,
+                  2nd, and 3rd place.
                 </div>
 
                 <PrimaryButton
@@ -174,7 +179,9 @@ export function JuryInitialClient({
                     })
                   }
                 >
-                  {startReviewMutation.isPending ? "Starting..." : "Start review"}
+                  {startReviewMutation.isPending
+                    ? "Starting..."
+                    : "Start review"}
                   <PlayIcon className="h-4 w-4" />
                 </PrimaryButton>
               </CardContent>
@@ -200,5 +207,5 @@ export function JuryInitialClient({
         </main>
       </div>
     </div>
-  )
+  );
 }

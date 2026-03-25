@@ -349,8 +349,12 @@ const getSortedStaffMembers = Effect.fn("SeedService.getSortedStaffMembers")(
 
     return staffMembers
       .filter(
-        (staffMember): staffMember is Extract<typeof staffMembers[number], { kind: "active" }> =>
-          staffMember.kind === "active" && staffMember.role === "staff",
+        (
+          staffMember,
+        ): staffMember is Extract<
+          (typeof staffMembers)[number],
+          { kind: "active" }
+        > => staffMember.kind === "active" && staffMember.role === "staff",
       )
       .toSorted((left, right) => {
         const nameCompare = left.name.localeCompare(right.name);
@@ -1167,12 +1171,18 @@ const createJuryInvitationsAndRatings = Effect.fn(
           yield* Effect.forEach(
             rankingOrder,
             ({ participant, rating }, rankingIndex) =>
-              db.juryQueries.updateJuryRating({
-                invitationId: invitation.id,
-                participantId: participant.id,
-                rating,
-                notes: "Seeded jury rating",
-                finalRanking: rankingIndex + 1,
+              Effect.gen(function* () {
+                yield* db.juryQueries.updateJuryRating({
+                  invitationId: invitation.id,
+                  participantId: participant.id,
+                  rating,
+                  notes: "Seeded jury rating",
+                });
+                yield* db.juryQueries.createJuryFinalRanking({
+                  invitationId: invitation.id,
+                  participantId: participant.id,
+                  rank: rankingIndex + 1,
+                });
               }),
             { concurrency: 4 },
           );

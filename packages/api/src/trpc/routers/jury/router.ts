@@ -11,6 +11,7 @@ import { trpcEffect } from "../../utils";
 import {
   GetJuryInvitationsByDomainInputSchema,
   GetJuryInvitationByIdInputSchema,
+  GetJuryReviewResultsByInvitationIdInputSchema,
   CreateJuryInvitationInputSchema,
   UpdateJuryInvitationInputSchema,
   DeleteJuryInvitationInputSchema,
@@ -49,6 +50,22 @@ export const juryRouter = createTRPCRouter({
         Effect.fn("JuryRouter.getJuryInvitationById")(function* ({ input }) {
           return yield* JuryApiService.use((s) =>
             s.getJuryInvitationById({ id: input.id }),
+          );
+        }),
+      ),
+    ),
+
+  getJuryReviewResultsByInvitationId: domainProcedure
+    .input(GetJuryReviewResultsByInvitationIdInputSchema)
+    .query(
+      trpcEffect(
+        Effect.fn("JuryRouter.getJuryReviewResultsByInvitationId")(function* ({
+          input,
+        }) {
+          return yield* JuryApiService.use((s) =>
+            s.getJuryReviewResultsByInvitationId({
+              id: input.id,
+            }),
           );
         }),
       ),

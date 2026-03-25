@@ -2,6 +2,7 @@ import { DrizzleClient } from "../drizzle-client";
 import { Effect, Layer, Option, ServiceMap } from "effect";
 import { eq, and } from "drizzle-orm";
 import {
+  juryFinalRankings,
   juryInvitations,
   juryRatings,
   marathons,
@@ -9,6 +10,7 @@ import {
   submissions,
 } from "../schema";
 import type {
+  JuryFinalRanking,
   NewJuryInvitation,
   Participant,
   Submission,
@@ -318,21 +320,18 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
           participantId,
           rating,
           notes,
-          finalRanking,
         }: {
           invitationId: number;
           participantId: number;
           rating: number;
           notes?: string;
-          finalRanking?: number;
         }) {
-          const result = yield* use((db) =>
+          const [result] = yield* use((db) =>
             db
               .update(juryRatings)
               .set({
                 rating,
                 notes: notes || "",
-                finalRanking,
               })
               .where(
                 and(
@@ -342,9 +341,158 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
               )
               .returning(),
           );
+          if (!result) {
+            return yield* Effect.fail(
+              new DbError({
+                message: "Jury rating not found",
+              }),
+            );
+          }
           return result;
         },
       );
+      const getJuryFinalRankingByParticipant = Effect.fn(
+        "JuryQueries.getJuryFinalRankingByParticipant",
+      )(function* ({
+        invitationId,
+        participantId,
+      }: {
+        invitationId: number;
+        participantId: number;
+      }) {
+        const existing = yield* use((db) =>
+          db.query.juryFinalRankings.findFirst({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.invitationId, invitationId),
+                operators.eq(table.participantId, participantId),
+              ),
+          }),
+        );
+        return existing ?? null;
+      });
+      const getJuryFinalRankingByRank = Effect.fn(
+        "JuryQueries.getJuryFinalRankingByRank",
+      )(function* ({
+        invitationId,
+        rank,
+        excludeParticipantId,
+      }: {
+        invitationId: number;
+        rank: number;
+        excludeParticipantId?: number;
+      }) {
+        const existing = yield* use((db) =>
+          db.query.juryFinalRankings.findFirst({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.invitationId, invitationId),
+                operators.eq(table.rank, rank),
+                ...(excludeParticipantId === undefined
+                  ? []
+                  : [operators.ne(table.participantId, excludeParticipantId)]),
+              ),
+          }),
+        );
+        return existing ?? null;
+      });
+      const createJuryFinalRanking = Effect.fn(
+        "JuryQueries.createJuryFinalRanking",
+      )(function* ({
+        invitationId,
+        participantId,
+        rank,
+      }: {
+        invitationId: number;
+        participantId: number;
+        rank: number;
+      }) {
+        const invitation = yield* use((db) =>
+          db.query.juryInvitations.findFirst({
+            where: (table, operators) => operators.eq(table.id, invitationId),
+          }),
+        );
+        if (!invitation) {
+          return yield* Effect.fail(
+            new DbError({
+              message: "Invitation not found",
+            }),
+          );
+        }
+        const [result] = yield* use((db) =>
+          db
+            .insert(juryFinalRankings)
+            .values({
+              invitationId,
+              participantId,
+              rank,
+              marathonId: invitation.marathonId,
+            })
+            .returning(),
+        );
+        if (!result) {
+          return yield* Effect.fail(
+            new DbError({
+              message: "Failed to create jury final ranking",
+            }),
+          );
+        }
+        return result;
+      });
+      const updateJuryFinalRanking = Effect.fn(
+        "JuryQueries.updateJuryFinalRanking",
+      )(function* ({
+        invitationId,
+        participantId,
+        rank,
+      }: {
+        invitationId: number;
+        participantId: number;
+        rank: number;
+      }) {
+        const [result] = yield* use((db) =>
+          db
+            .update(juryFinalRankings)
+            .set({ rank })
+            .where(
+              and(
+                eq(juryFinalRankings.invitationId, invitationId),
+                eq(juryFinalRankings.participantId, participantId),
+              ),
+            )
+            .returning(),
+        );
+        if (!result) {
+          return yield* Effect.fail(
+            new DbError({
+              message: "Jury final ranking not found",
+            }),
+          );
+        }
+        return result;
+      });
+      const deleteJuryFinalRankingByParticipant = Effect.fn(
+        "JuryQueries.deleteJuryFinalRankingByParticipant",
+      )(function* ({
+        invitationId,
+        participantId,
+      }: {
+        invitationId: number;
+        participantId: number;
+      }) {
+        const result = yield* use((db) =>
+          db
+            .delete(juryFinalRankings)
+            .where(
+              and(
+                eq(juryFinalRankings.invitationId, invitationId),
+                eq(juryFinalRankings.participantId, participantId),
+              ),
+            )
+            .returning(),
+        );
+        return result;
+      });
       const getJuryRating = Effect.fn("JuryQueries.getJuryRating")(function* ({
         invitationId,
         participantId,
@@ -374,6 +522,108 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
           }),
         );
         return Option.fromNullishOr(result);
+      });
+      const getJuryRatingsWithRankingsByInvitation = Effect.fn(
+        "JuryQueries.getJuryRatingsWithRankingsByInvitation",
+      )(function* ({ invitationId }: { invitationId: number }) {
+        const invitation = yield* use((db) =>
+          db.query.juryInvitations.findFirst({
+            where: (table, operators) => operators.eq(table.id, invitationId),
+          }),
+        );
+        if (!invitation) {
+          return yield* Effect.fail(
+            new DbError({
+              message: "Invitation not found",
+            }),
+          );
+        }
+        const ratings = yield* use((db) =>
+          db.query.juryRatings.findMany({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.invitationId, invitation.id),
+                operators.eq(table.marathonId, invitation.marathonId),
+              ),
+            with: {
+              participant: {
+                columns: {
+                  id: true,
+                  reference: true,
+                  firstname: true,
+                  lastname: true,
+                },
+              },
+            },
+            orderBy: (table, operators) => operators.desc(table.createdAt),
+          }),
+        );
+        const finalRankings = yield* use((db) =>
+          db.query.juryFinalRankings.findMany({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.invitationId, invitation.id),
+                operators.eq(table.marathonId, invitation.marathonId),
+              ),
+            with: {
+              participant: {
+                columns: {
+                  id: true,
+                  reference: true,
+                  firstname: true,
+                  lastname: true,
+                },
+              },
+            },
+            orderBy: (table, operators) => operators.asc(table.rank),
+          }),
+        );
+
+        const rankingByParticipantId = new Map<number, JuryFinalRanking>();
+        for (const ranking of finalRankings) {
+          rankingByParticipantId.set(ranking.participantId, ranking);
+        }
+
+        const merged = ratings.map((rating) => ({
+          ...rating,
+          finalRanking:
+            rankingByParticipantId.get(rating.participantId)?.rank ?? null,
+        }));
+
+        const ratingsByParticipantId = new Set(
+          ratings.map((rating) => rating.participantId),
+        );
+
+        for (const ranking of finalRankings) {
+          if (ratingsByParticipantId.has(ranking.participantId)) {
+            continue;
+          }
+
+          merged.push({
+            id: 0,
+            createdAt: ranking.createdAt,
+            invitationId: ranking.invitationId,
+            rating: 0,
+            participantId: ranking.participantId,
+            notes: "",
+            marathonId: ranking.marathonId,
+            participant: ranking.participant,
+            finalRanking: ranking.rank,
+          });
+        }
+
+        return merged.toSorted((left, right) => {
+          const rankDiff =
+            (left.finalRanking ?? 99) - (right.finalRanking ?? 99);
+          if (rankDiff !== 0) {
+            return rankDiff;
+          }
+
+          return (
+            new Date(right.createdAt).getTime() -
+            new Date(left.createdAt).getTime()
+          );
+        });
       });
       const deleteJuryRating = Effect.fn("JuryQueries.deleteJuryRating")(
         function* ({
@@ -420,7 +670,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
       }) {
         const limit = 50;
         if (invitation.inviteType === "topic") {
-          const topicId = invitation.topicId;
+          const topicId = invitation.topicId!;
           if (!topicId) {
             return yield* Effect.fail(
               new DbError({
@@ -528,6 +778,15 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
                     table.competitionClassId,
                     invitation.competitionClassId,
                   ),
+                  ...(invitation.deviceGroupId === null ||
+                  invitation.deviceGroupId === undefined
+                    ? []
+                    : [
+                        operators.eq(
+                          table.deviceGroupId,
+                          invitation.deviceGroupId,
+                        ),
+                      ]),
                   ...(cursorParticipant
                     ? [
                         operators.lt(
@@ -728,6 +987,15 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
                     table.competitionClassId,
                     invitation.competitionClassId,
                   ),
+                  ...(invitation.deviceGroupId === null ||
+                  invitation.deviceGroupId === undefined
+                    ? []
+                    : [
+                        operators.eq(
+                          table.deviceGroupId,
+                          invitation.deviceGroupId,
+                        ),
+                      ]),
                 ),
               with: {
                 competitionClass: true,
@@ -807,6 +1075,14 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
       const getJuryRatingsByInvitation = Effect.fn(
         "JuryQueries.getJuryRatingsByInvitation",
       )(function* ({ invitationId }: { invitationId: number }) {
+        const ratings = yield* getJuryRatingsWithRankingsByInvitation({
+          invitationId,
+        });
+        return ratings;
+      });
+      const getJuryAssignedFinalRankings = Effect.fn(
+        "JuryQueries.getJuryAssignedFinalRankings",
+      )(function* ({ invitationId }: { invitationId: number }) {
         const invitation = yield* use((db) =>
           db.query.juryInvitations.findFirst({
             where: (table, operators) => operators.eq(table.id, invitationId),
@@ -819,21 +1095,107 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
             }),
           );
         }
-        const ratings = yield* use((db) =>
-          db.query.juryRatings.findMany({
+        return yield* use((db) =>
+          db.query.juryFinalRankings.findMany({
             where: (table, operators) =>
               operators.and(
                 operators.eq(table.invitationId, invitation.id),
                 operators.eq(table.marathonId, invitation.marathonId),
               ),
-            columns: {
-              participantId: true,
-              rating: true,
-              notes: true,
+            with: {
+              participant: {
+                columns: {
+                  id: true,
+                  reference: true,
+                  firstname: true,
+                  lastname: true,
+                },
+              },
             },
+            orderBy: (table, operators) => operators.asc(table.rank),
           }),
         );
-        return ratings;
+      });
+      const participantMatchesInvitationScope = Effect.fn(
+        "JuryQueries.participantMatchesInvitationScope",
+      )(function* ({
+        invitationId,
+        participantId,
+      }: {
+        invitationId: number;
+        participantId: number;
+      }) {
+        const invitation = yield* use((db) =>
+          db.query.juryInvitations.findFirst({
+            where: (table, operators) => operators.eq(table.id, invitationId),
+          }),
+        );
+        if (!invitation) {
+          return yield* Effect.fail(
+            new DbError({
+              message: "Invitation not found",
+            }),
+          );
+        }
+
+        if (invitation.inviteType === "topic") {
+          if (!invitation.topicId) {
+            return yield* Effect.fail(
+              new DbError({
+                message: "Topic not found",
+              }),
+            );
+          }
+
+          const topicId = invitation.topicId;
+
+          const [match] = yield* use((db) =>
+            db
+              .select({ participantId: submissions.participantId })
+              .from(submissions)
+              .where(
+                and(
+                  eq(submissions.marathonId, invitation.marathonId),
+                  eq(submissions.topicId, topicId),
+                  eq(submissions.participantId, participantId),
+                  eq(submissions.status, "uploaded"),
+                ),
+              )
+              .limit(1),
+          );
+
+          return Boolean(match);
+        }
+
+        if (!invitation.competitionClassId) {
+          return yield* Effect.fail(
+            new DbError({
+              message: "Class not found",
+            }),
+          );
+        }
+
+        const competitionClassId = invitation.competitionClassId!;
+
+        const [match] = yield* use((db) =>
+          db
+            .select({ id: participants.id })
+            .from(participants)
+            .where(
+              and(
+                eq(participants.id, participantId),
+                eq(participants.marathonId, invitation.marathonId),
+                eq(participants.competitionClassId, competitionClassId),
+                ...(invitation.deviceGroupId === null ||
+                invitation.deviceGroupId === undefined
+                  ? []
+                  : [eq(participants.deviceGroupId, invitation.deviceGroupId)]),
+              ),
+            )
+            .limit(1),
+        );
+
+        return Boolean(match);
       });
       const getJuryParticipantCount = Effect.fn(
         "JuryQueries.getJuryParticipantCount",
@@ -896,10 +1258,16 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
               .where(
                 and(
                   eq(participants.marathonId, invitation.marathonId),
-                  eq(
-                    participants.competitionClassId,
-                    competitionClassId,
-                  ),
+                  eq(participants.competitionClassId, competitionClassId),
+                  ...(invitation.deviceGroupId === null ||
+                  invitation.deviceGroupId === undefined
+                    ? []
+                    : [
+                        eq(
+                          participants.deviceGroupId,
+                          invitation.deviceGroupId,
+                        ),
+                      ]),
                 ),
               ),
           )) as Array<{ participantId: number }>;
@@ -1045,8 +1413,16 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
         getJuryParticipantCount,
         getJuryRating,
         getJuryRatingsByInvitation,
+        getJuryRatingsWithRankingsByInvitation,
+        getJuryAssignedFinalRankings,
+        participantMatchesInvitationScope,
         createJuryRating,
         updateJuryRating,
+        getJuryFinalRankingByParticipant,
+        getJuryFinalRankingByRank,
+        createJuryFinalRanking,
+        updateJuryFinalRanking,
+        deleteJuryFinalRankingByParticipant,
         deleteJuryRating,
       } as const;
     }),

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   AlertDialog,
@@ -10,16 +10,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { CheckCircle2, UserIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { getJuryCompletedPath } from "../../_lib/jury-paths"
-import type { JuryInvitation } from "../../_lib/jury-types"
-import { ProgressRing } from "./jury-progress-ring"
+} from "@/components/ui/alert-dialog";
+import { PrimaryButton } from "@/components/ui/primary-button";
+import { useTRPC } from "@/lib/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, UserIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { getJuryCompletedPath } from "../../_lib/jury-paths";
+import type { JuryInvitation } from "../../_lib/jury-types";
+import { ProgressRing } from "./jury-progress-ring";
 
 export function JuryReviewHeader({
   domain,
@@ -27,31 +27,35 @@ export function JuryReviewHeader({
   invitation,
   ratedCount,
   totalParticipants,
+  assignedFinalRankingCount,
+  canCompleteReview,
 }: {
-  domain: string
-  token: string
-  invitation: JuryInvitation
-  ratedCount: number
-  totalParticipants: number
+  domain: string;
+  token: string;
+  invitation: JuryInvitation;
+  ratedCount: number;
+  totalParticipants: number;
+  assignedFinalRankingCount: number;
+  canCompleteReview: boolean;
 }) {
-  const trpc = useTRPC()
-  const queryClient = useQueryClient()
-  const router = useRouter()
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   const completeMutation = useMutation(
     trpc.jury.updateInvitationStatusByToken.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({
           queryKey: trpc.jury.pathKey(),
-        })
-        toast.success("Review completed")
-        router.push(getJuryCompletedPath(domain, token))
+        });
+        toast.success("Review completed");
+        router.push(getJuryCompletedPath(domain, token));
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to complete review")
+        toast.error(error.message || "Failed to complete review");
       },
     }),
-  )
+  );
 
   return (
     <header className="rounded-xl border border-border/60 bg-white px-5 py-4">
@@ -62,7 +66,9 @@ export function JuryReviewHeader({
             <h1 className="font-rocgrotesk text-2xl font-bold tracking-tight text-brand-black">
               Jury Review
             </h1>
-            <p className="mt-0.5 text-sm text-brand-gray">{invitation.marathon.name}</p>
+            <p className="mt-0.5 text-sm text-brand-gray">
+              {invitation.marathon.name}
+            </p>
           </div>
           <div className="ml-2 hidden flex-wrap gap-1.5 lg:flex">
             {invitation.topic?.name ? (
@@ -89,16 +95,21 @@ export function JuryReviewHeader({
               <UserIcon className="h-3.5 w-3.5" />
             </div>
             <div>
-              <p className="text-sm font-medium text-brand-black">{invitation.displayName}</p>
+              <p className="text-sm font-medium text-brand-black">
+                {invitation.displayName}
+              </p>
               <p className="text-[11px] text-brand-gray">
                 {ratedCount}/{totalParticipants} rated
+              </p>
+              <p className="text-[11px] text-brand-gray">
+                Top picks: {assignedFinalRankingCount}/3
               </p>
             </div>
           </div>
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <PrimaryButton>
+              <PrimaryButton disabled={!canCompleteReview}>
                 <CheckCircle2 className="h-4 w-4" />
                 Complete
               </PrimaryButton>
@@ -107,7 +118,9 @@ export function JuryReviewHeader({
               <AlertDialogHeader>
                 <AlertDialogTitle>Complete review</AlertDialogTitle>
                 <AlertDialogDescription>
-                  You will no longer be able to edit ratings after marking this review as completed.
+                  You must choose 1st, 2nd, and 3rd place before completing this
+                  review. You will no longer be able to edit ratings after
+                  marking it as completed.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -122,7 +135,9 @@ export function JuryReviewHeader({
                     })
                   }
                 >
-                  {completeMutation.isPending ? "Completing..." : "Complete review"}
+                  {completeMutation.isPending
+                    ? "Completing..."
+                    : "Complete review"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -130,5 +145,5 @@ export function JuryReviewHeader({
         </div>
       </div>
     </header>
-  )
+  );
 }

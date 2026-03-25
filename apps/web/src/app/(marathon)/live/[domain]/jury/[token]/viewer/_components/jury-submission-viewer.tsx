@@ -1,25 +1,36 @@
-"use client"
+"use client";
 
-import { useTRPC } from "@/lib/trpc/client"
-import {
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query"
-import { parseAsInteger, useQueryState } from "nuqs"
+import { useTRPC } from "@/lib/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { parseAsInteger, useQueryState } from "nuqs";
 import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
   ImageOff,
   Loader2,
-} from "lucide-react"
-import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { toast } from "sonner"
-import type { JuryInvitation, JuryRatingsResponse } from "../../_lib/jury-types"
-import type { JuryListParticipant } from "../_lib/jury-list-participant"
-import { getParticipantAssetUrl } from "../_lib/jury-list-participant"
-import { ActiveRatingFilterBadge } from "./rating-filter"
-import { JurySidebar } from "./jury-sidebar"
+} from "lucide-react";
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { toast } from "sonner";
+import type {
+  JuryInvitation,
+  JuryRatingsResponse,
+} from "../../_lib/jury-types";
+import {
+  getFinalRankingLabel,
+  getParticipantFinalRanking,
+} from "../_lib/jury-final-ranking-state";
+import type { JuryListParticipant } from "../_lib/jury-list-participant";
+import { getParticipantAssetUrl } from "../_lib/jury-list-participant";
+import { ActiveRatingFilterBadge } from "./rating-filter";
+import { JurySidebar } from "./jury-sidebar";
 
 export function JurySubmissionViewer({
   domain,
@@ -33,101 +44,136 @@ export function JurySubmissionViewer({
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
+  ratingByParticipantId,
   onBack,
 }: {
-  domain: string
-  token: string
-  invitation: JuryInvitation
-  participants: JuryListParticipant[]
-  initialIndex: number
-  selectedRatings: number[]
-  ratings: JuryRatingsResponse["ratings"]
-  totalParticipants: number
-  fetchNextPage: () => void
-  hasNextPage: boolean
-  isFetchingNextPage: boolean
-  onBack: () => void
+  domain: string;
+  token: string;
+  invitation: JuryInvitation;
+  participants: JuryListParticipant[];
+  initialIndex: number;
+  selectedRatings: number[];
+  ratings: JuryRatingsResponse["ratings"];
+  totalParticipants: number;
+  fetchNextPage: () => void;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  ratingByParticipantId: Map<number, JuryRatingsResponse["ratings"][number]>;
+  onBack: () => void;
 }) {
-  const trpc = useTRPC()
-  const queryClient = useQueryClient()
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const [currentParticipantIndex, setCurrentParticipantIndex] = useQueryState(
     "index",
     parseAsInteger.withDefault(initialIndex),
-  )
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
-  const [isSaving, setIsSaving] = useState(false)
+  );
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
 
-  const currentParticipant = participants[currentParticipantIndex] ?? participants[0] ?? null
+  const currentParticipant =
+    participants[currentParticipantIndex] ?? participants[0] ?? null;
 
-  const currentParticipantId = currentParticipant?.id ?? null
-  const currentAssetUrl = getParticipantAssetUrl(currentParticipant, invitation)
-  const currentAssetId = String(currentParticipant?.submission?.id ?? currentParticipant?.id ?? "")
+  const currentParticipantId = currentParticipant?.id ?? null;
+  const currentAssetUrl = getParticipantAssetUrl(
+    currentParticipant,
+    invitation,
+  );
+  const currentAssetId = String(
+    currentParticipant?.submission?.id ?? currentParticipant?.id ?? "",
+  );
 
   const existingRating = useMemo(
-    () => ratings.find((item) => item.participantId === currentParticipantId),
-    [currentParticipantId, ratings],
-  )
+    () =>
+      currentParticipantId === null
+        ? undefined
+        : ratingByParticipantId.get(currentParticipantId),
+    [currentParticipantId, ratingByParticipantId],
+  );
 
-  const [localRating, setLocalRating] = useState(existingRating?.rating ?? 0)
-  const [localNotes, setLocalNotes] = useState(existingRating?.notes ?? "")
-  const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [localRating, setLocalRating] = useState(existingRating?.rating ?? 0);
+  const [localNotes, setLocalNotes] = useState(existingRating?.notes ?? "");
+  const [localFinalRanking, setLocalFinalRanking] = useState<1 | 2 | 3 | null>(
+    getParticipantFinalRanking(ratings, currentParticipantId ?? -1),
+  );
+  const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setLocalRating(existingRating?.rating ?? 0)
-    setLocalNotes(existingRating?.notes ?? "")
-  }, [existingRating, currentParticipantId])
+    setLocalRating(existingRating?.rating ?? 0);
+    setLocalNotes(existingRating?.notes ?? "");
+    setLocalFinalRanking(
+      getParticipantFinalRanking(ratings, currentParticipantId ?? -1),
+    );
+  }, [existingRating, currentParticipantId]);
 
   useEffect(() => {
-    if (participants.length - currentParticipantIndex <= 4 && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage()
+    if (
+      participants.length - currentParticipantIndex <= 4 &&
+      hasNextPage &&
+      !isFetchingNextPage
+    ) {
+      fetchNextPage();
     }
-  }, [currentParticipantIndex, participants.length, hasNextPage, isFetchingNextPage, fetchNextPage])
+  }, [
+    currentParticipantIndex,
+    participants.length,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ]);
 
   useEffect(() => {
     return () => {
       if (notesTimeoutRef.current) {
-        clearTimeout(notesTimeoutRef.current)
+        clearTimeout(notesTimeoutRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const invalidateJuryQueries = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: trpc.jury.pathKey(),
-    })
-  }, [queryClient, trpc.jury])
+    });
+  }, [queryClient, trpc.jury]);
 
   const createRatingMutation = useMutation(
     trpc.jury.createRating.mutationOptions({
       onSettled: invalidateJuryQueries,
     }),
-  )
+  );
 
   const updateRatingMutation = useMutation(
     trpc.jury.updateRating.mutationOptions({
       onSettled: invalidateJuryQueries,
     }),
-  )
+  );
 
   const deleteRatingMutation = useMutation(
     trpc.jury.deleteRating.mutationOptions({
       onSettled: invalidateJuryQueries,
     }),
-  )
+  );
 
   const saveRating = useCallback(
-    async (nextRating: number, nextNotes: string) => {
-      if (!currentParticipantId) return
+    async (
+      nextRating: number,
+      nextNotes: string,
+      nextFinalRanking: 1 | 2 | 3 | null,
+    ) => {
+      if (!currentParticipantId) return;
 
-      setIsSaving(true)
+      setIsSaving(true);
       try {
         if (existingRating) {
-          if (nextRating === 0 && !nextNotes.trim()) {
+          if (
+            nextRating === 0 &&
+            !nextNotes.trim() &&
+            nextFinalRanking === null
+          ) {
             await deleteRatingMutation.mutateAsync({
               token,
               domain,
               participantId: currentParticipantId,
-            })
+            });
           } else {
             await updateRatingMutation.mutateAsync({
               token,
@@ -135,22 +181,28 @@ export function JurySubmissionViewer({
               participantId: currentParticipantId,
               rating: nextRating,
               notes: nextNotes,
-            })
+              finalRanking: nextFinalRanking,
+            });
           }
-        } else if (nextRating > 0 || nextNotes.trim()) {
+        } else if (
+          nextRating > 0 ||
+          nextNotes.trim() ||
+          nextFinalRanking !== null
+        ) {
           await createRatingMutation.mutateAsync({
             token,
             domain,
             participantId: currentParticipantId,
             rating: nextRating,
             notes: nextNotes,
-          })
+            finalRanking: nextFinalRanking,
+          });
         }
       } catch (error) {
-        console.error("Failed to save rating", error)
-        toast.error("Failed to save review changes")
+        console.error("Failed to save rating", error);
+        toast.error("Failed to save review changes");
       } finally {
-        setIsSaving(false)
+        setIsSaving(false);
       }
     },
     [
@@ -162,71 +214,89 @@ export function JurySubmissionViewer({
       token,
       updateRatingMutation,
     ],
-  )
+  );
 
   const handleRatingClick = useCallback(
     (star: number) => {
-      const nextRating = star === localRating ? 0 : star
-      setLocalRating(nextRating)
-      void saveRating(nextRating, localNotes)
+      const nextRating = star === localRating ? 0 : star;
+      setLocalRating(nextRating);
+      void saveRating(nextRating, localNotes, localFinalRanking);
     },
-    [localNotes, localRating, saveRating],
-  )
+    [localFinalRanking, localNotes, localRating, saveRating],
+  );
+
+  const handleFinalRankingClick = useCallback(
+    (finalRanking: 1 | 2 | 3) => {
+      const nextFinalRanking =
+        localFinalRanking === finalRanking ? null : finalRanking;
+      setLocalFinalRanking(nextFinalRanking);
+      void saveRating(localRating, localNotes, nextFinalRanking);
+    },
+    [localFinalRanking, localNotes, localRating, saveRating],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLInputElement) {
-        return
+      if (
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLInputElement
+      ) {
+        return;
       }
 
       if (event.key === "ArrowLeft") {
-        event.preventDefault()
-        setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))
+        event.preventDefault();
+        setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1));
       }
 
       if (event.key === "ArrowRight") {
-        event.preventDefault()
-        setCurrentParticipantIndex(Math.min(participants.length - 1, currentParticipantIndex + 1))
+        event.preventDefault();
+        setCurrentParticipantIndex(
+          Math.min(participants.length - 1, currentParticipantIndex + 1),
+        );
       }
 
       if (event.key === "Escape") {
-        event.preventDefault()
-        onBack()
+        event.preventDefault();
+        onBack();
       }
 
-      if ((event.metaKey || event.ctrlKey) && ["0", "1", "2", "3", "4", "5"].includes(event.key)) {
-        event.preventDefault()
-        handleRatingClick(Number(event.key))
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        ["0", "1", "2", "3", "4", "5"].includes(event.key)
+      ) {
+        event.preventDefault();
+        handleRatingClick(Number(event.key));
       }
-    }
+    };
 
-    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [
     currentParticipantIndex,
     handleRatingClick,
     onBack,
     participants.length,
     setCurrentParticipantIndex,
-  ])
+  ]);
 
   const handleNotesChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
-      const nextNotes = event.target.value
-      setLocalNotes(nextNotes)
+      const nextNotes = event.target.value;
+      setLocalNotes(nextNotes);
 
       if (notesTimeoutRef.current) {
-        clearTimeout(notesTimeoutRef.current)
+        clearTimeout(notesTimeoutRef.current);
       }
 
       notesTimeoutRef.current = setTimeout(() => {
-        void saveRating(localRating, nextNotes)
-      }, 800)
+        void saveRating(localRating, nextNotes, localFinalRanking);
+      }, 800);
     },
-    [localRating, saveRating],
-  )
+    [localFinalRanking, localRating, saveRating],
+  );
 
   if (!currentParticipant) {
     return (
@@ -249,10 +319,10 @@ export function JurySubmissionViewer({
           <p className="text-sm text-brand-gray">No participant selected.</p>
         </div>
       </div>
-    )
+    );
   }
 
-  const visibleTotal = totalParticipants
+  const visibleTotal = totalParticipants;
 
   return (
     <div className="space-y-3">
@@ -269,8 +339,31 @@ export function JurySubmissionViewer({
           <ActiveRatingFilterBadge selectedRatings={selectedRatings} />
           <span className="font-rocgrotesk text-sm font-bold text-brand-black">
             {currentParticipantIndex + 1}
-            <span className="font-sans font-normal text-brand-gray"> / {visibleTotal}</span>
+            <span className="font-sans font-normal text-brand-gray">
+              {" "}
+              / {visibleTotal}
+            </span>
           </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          {[1, 2, 3].map((rank) => {
+            const isActive = localFinalRanking === rank;
+
+            return (
+              <button
+                key={rank}
+                type="button"
+                className={`inline-flex min-w-20 items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition-all ${
+                  isActive
+                    ? "border-brand-primary bg-brand-primary text-white shadow-[0_10px_26px_rgba(254,77,58,0.24)]"
+                    : "border-border/60 bg-neutral-50 text-brand-black hover:border-brand-primary/30 hover:bg-white"
+                }`}
+                onClick={() => handleFinalRankingClick(rank as 1 | 2 | 3)}
+              >
+                {getFinalRankingLabel(rank as 1 | 2 | 3)}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -282,7 +375,9 @@ export function JurySubmissionViewer({
                 src={currentAssetUrl}
                 alt={currentParticipant.reference}
                 className="max-h-[75vh] max-w-full object-contain"
-                onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
+                onError={() =>
+                  setImageErrors((prev) => new Set(prev).add(currentAssetId))
+                }
               />
             ) : (
               <div className="flex max-w-sm flex-col items-center justify-center px-6 text-center">
@@ -302,7 +397,11 @@ export function JurySubmissionViewer({
               type="button"
               className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70 disabled:opacity-30"
               disabled={currentParticipantIndex === 0}
-              onClick={() => setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))}
+              onClick={() =>
+                setCurrentParticipantIndex(
+                  Math.max(0, currentParticipantIndex - 1),
+                )
+              }
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -313,7 +412,10 @@ export function JurySubmissionViewer({
               disabled={currentParticipantIndex >= participants.length - 1}
               onClick={() =>
                 setCurrentParticipantIndex(
-                  Math.min(participants.length - 1, currentParticipantIndex + 1),
+                  Math.min(
+                    participants.length - 1,
+                    currentParticipantIndex + 1,
+                  ),
                 )
               }
             >
@@ -340,5 +442,5 @@ export function JurySubmissionViewer({
         />
       </div>
     </div>
-  )
+  );
 }

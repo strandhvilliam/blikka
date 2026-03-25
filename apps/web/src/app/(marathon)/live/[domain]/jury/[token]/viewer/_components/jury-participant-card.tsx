@@ -1,19 +1,22 @@
-"use client"
+"use client";
 
-import { ImageIcon, Star } from "lucide-react"
-import type { JuryListParticipant } from "../_lib/jury-list-participant"
-import { getParticipantPreview } from "../_lib/jury-list-participant"
+import { ImageIcon, Star } from "lucide-react";
+import type { JuryListParticipant } from "../_lib/jury-list-participant";
+import { getFinalRankingLabel } from "../_lib/jury-final-ranking-state";
+import { getParticipantPreview } from "../_lib/jury-list-participant";
 
 export function JuryParticipantCard({
   participant,
   rating,
+  finalRanking,
   onClick,
 }: {
-  participant: JuryListParticipant
-  rating: number
-  onClick: () => void
+  participant: JuryListParticipant;
+  rating: number;
+  finalRanking: 1 | 2 | 3 | null;
+  onClick: () => void;
 }) {
-  const previewUrl = getParticipantPreview(participant)
+  const previewUrl = getParticipantPreview(participant);
 
   return (
     <button
@@ -37,9 +40,16 @@ export function JuryParticipantCard({
 
       <div className="flex flex-1 flex-col justify-center gap-2 px-4 py-3.5">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="font-rocgrotesk text-xl font-bold tracking-tight text-brand-black">
-            {participant.reference}
-          </h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-rocgrotesk text-xl font-bold tracking-tight text-brand-black">
+              {participant.reference}
+            </h3>
+            {finalRanking !== null ? (
+              <span className="rounded-full bg-brand-primary/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-brand-primary">
+                {getFinalRankingLabel(finalRanking)}
+              </span>
+            ) : null}
+          </div>
           <div className="flex items-center gap-0.5">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
@@ -73,5 +83,5 @@ export function JuryParticipantCard({
         </div>
       </div>
     </button>
-  )
+  );
 }

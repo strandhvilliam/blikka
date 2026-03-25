@@ -1,104 +1,105 @@
-import "server-only"
+import "server-only";
 
-import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
-import { Database, type NewJuryInvitation } from "@blikka/db"
-import { TRPCError } from "@trpc/server"
-import { SignJWT, jwtVerify } from "jose"
-import { JuryApiError } from "./schemas"
+import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect";
+import { Database, type NewJuryInvitation } from "@blikka/db";
+import { TRPCError } from "@trpc/server";
+import { SignJWT, jwtVerify } from "jose";
+import { JuryApiError } from "./schemas";
+import {
+  hasCompleteJuryTopThree,
+  isValidJuryFinalRanking,
+} from "./final-rankings";
 
-const MAX_EXPIRY_DAYS = 90
+const MAX_EXPIRY_DAYS = 90;
 
 const JuryTokenPayloadSchema = Schema.Struct({
   domain: Schema.String,
   invitationId: Schema.Number,
   iat: Schema.Number,
   exp: Schema.Number,
-})
+});
 
-type JuryTokenPayload = Schema.Schema.Type<typeof JuryTokenPayloadSchema>
+type JuryTokenPayload = Schema.Schema.Type<typeof JuryTokenPayloadSchema>;
 
 function mapTokenError(message: string, code: TRPCError["code"]) {
   return new TRPCError({
     code,
     message,
-  })
+  });
 }
 
 export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
   "@blikka/api/JuryApiService",
   {
     make: Effect.gen(function* () {
-      const db = yield* Database
+      const db = yield* Database;
 
-      const _generateJuryToken = Effect.fn("JuryApiService._generateJuryToken")(function* (
-        domain: string,
-        invitationId: number
-      ) {
-        const secretEnv = yield* Config.string("JURY_JWT_SECRET")
-        const secret = new TextEncoder().encode(secretEnv)
-        const iat = Math.floor(Date.now() / 1000)
-        const exp = iat + 60 * 60 * 24 * MAX_EXPIRY_DAYS
+      const _generateJuryToken = Effect.fn("JuryApiService._generateJuryToken")(
+        function* (domain: string, invitationId: number) {
+          const secretEnv = yield* Config.string("JURY_JWT_SECRET");
+          const secret = new TextEncoder().encode(secretEnv);
+          const iat = Math.floor(Date.now() / 1000);
+          const exp = iat + 60 * 60 * 24 * MAX_EXPIRY_DAYS;
 
-        const payload = {
-          domain,
-          invitationId,
-          iat,
-          exp,
-        }
+          const payload = {
+            domain,
+            invitationId,
+            iat,
+            exp,
+          };
 
-        return yield* Effect.tryPromise({
-          try: () =>
-            new SignJWT(payload)
-              .setProtectedHeader({ alg: "HS256" })
-              .setIssuedAt(iat)
-              .setExpirationTime(exp)
-              .sign(secret),
-          catch: (error) =>
-            new JuryApiError({
-              message: `Failed to generate jury token: ${error instanceof Error ? error.message : String(error)}`,
-              cause: error,
-            }),
-        })
-      })
+          return yield* Effect.tryPromise({
+            try: () =>
+              new SignJWT(payload)
+                .setProtectedHeader({ alg: "HS256" })
+                .setIssuedAt(iat)
+                .setExpirationTime(exp)
+                .sign(secret),
+            catch: (error) =>
+              new JuryApiError({
+                message: `Failed to generate jury token: ${error instanceof Error ? error.message : String(error)}`,
+                cause: error,
+              }),
+          });
+        },
+      );
 
-      const verifyTokenPayload = Effect.fn("JuryApiService.verifyTokenPayload")(function* ({
-        token,
-        domain,
-      }: {
-        token: string
-        domain: string
-      }) {
-        const secretEnv = yield* Config.string("JURY_JWT_SECRET")
+      const verifyTokenPayload = Effect.fn("JuryApiService.verifyTokenPayload")(
+        function* ({ token, domain }: { token: string; domain: string }) {
+          const secretEnv = yield* Config.string("JURY_JWT_SECRET");
 
-        const verified = yield* Effect.tryPromise({
-          try: () => jwtVerify(token, new TextEncoder().encode(secretEnv)),
-          catch: () => mapTokenError("Invalid token", "NOT_FOUND"),
-        })
+          const verified = yield* Effect.tryPromise({
+            try: () => jwtVerify(token, new TextEncoder().encode(secretEnv)),
+            catch: () => mapTokenError("Invalid token", "NOT_FOUND"),
+          });
 
-        const payload = yield* Schema.decodeUnknownEffect(JuryTokenPayloadSchema)(verified.payload).pipe(
-          Effect.mapError(() => mapTokenError("Invalid token", "NOT_FOUND"))
-        )
+          const payload = yield* Schema.decodeUnknownEffect(
+            JuryTokenPayloadSchema,
+          )(verified.payload).pipe(
+            Effect.mapError(() => mapTokenError("Invalid token", "NOT_FOUND")),
+          );
 
-        const now = Math.floor(Date.now() / 1000)
-        if (payload.exp < now) {
-          return yield* Effect.fail(mapTokenError("Invitation expired", "UNAUTHORIZED"))
-        }
+          const now = Math.floor(Date.now() / 1000);
+          if (payload.exp < now) {
+            return yield* Effect.fail(
+              mapTokenError("Invitation expired", "UNAUTHORIZED"),
+            );
+          }
 
-        if (payload.domain !== domain) {
-          return yield* Effect.fail(mapTokenError("Invitation not found", "NOT_FOUND"))
-        }
+          if (payload.domain !== domain) {
+            return yield* Effect.fail(
+              mapTokenError("Invitation not found", "NOT_FOUND"),
+            );
+          }
 
-        return payload satisfies JuryTokenPayload
-      })
+          return payload satisfies JuryTokenPayload;
+        },
+      );
 
-      const getInvitationFromToken = Effect.fn("JuryApiService.getInvitationFromToken")(function* ({
-        token,
-        domain,
-      }: {
-        token: string
-        domain: string
-      }) {
-        const payload = yield* verifyTokenPayload({ token, domain })
+      const getInvitationFromToken = Effect.fn(
+        "JuryApiService.getInvitationFromToken",
+      )(function* ({ token, domain }: { token: string; domain: string }) {
+        const payload = yield* verifyTokenPayload({ token, domain });
 
         const invitation = yield* db.juryQueries
           .getJuryDataByTokenPayload({
@@ -107,100 +108,223 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
           })
           .pipe(
             Effect.mapError((error) => {
-              const message = error instanceof Error ? error.message : String(error)
+              const message =
+                error instanceof Error ? error.message : String(error);
               if (message.includes("Invitation not found")) {
-                return mapTokenError("Invitation not found", "NOT_FOUND")
+                return mapTokenError("Invitation not found", "NOT_FOUND");
               }
               if (message.includes("Marathon not found")) {
-                return mapTokenError("Marathon not found", "NOT_FOUND")
+                return mapTokenError("Marathon not found", "NOT_FOUND");
               }
-              return mapTokenError("Failed to load invitation", "INTERNAL_SERVER_ERROR")
-            })
-          )
+              return mapTokenError(
+                "Failed to load invitation",
+                "INTERNAL_SERVER_ERROR",
+              );
+            }),
+          );
 
-        const invitationExpiry = new Date(invitation.expiresAt)
+        const invitationExpiry = new Date(invitation.expiresAt);
         if (invitationExpiry < new Date()) {
-          return yield* Effect.fail(mapTokenError("Invitation expired", "UNAUTHORIZED"))
+          return yield* Effect.fail(
+            mapTokenError("Invitation expired", "UNAUTHORIZED"),
+          );
         }
 
         if (invitation.marathon?.mode !== "marathon") {
           return yield* Effect.fail(
-            mapTokenError("Unsupported marathon mode", "BAD_REQUEST")
-          )
+            mapTokenError("Unsupported marathon mode", "BAD_REQUEST"),
+          );
         }
 
-        return invitation
-      })
+        return invitation;
+      });
 
       const ensureInvitationEditable = Effect.fn(
-        "JuryApiService.ensureInvitationEditable"
+        "JuryApiService.ensureInvitationEditable",
       )(function* ({
         invitation,
       }: {
         invitation: {
-          status: string | null
-        }
+          status: string | null;
+        };
       }) {
         if (invitation.status === "completed") {
           return yield* Effect.fail(
-            mapTokenError("Review already completed", "BAD_REQUEST")
-          )
+            mapTokenError("Review already completed", "BAD_REQUEST"),
+          );
         }
 
-        return Effect.void
-      })
+        return Effect.void;
+      });
 
-      const getJuryInvitationsByDomain = Effect.fn("JuryApiService.getJuryInvitationsByDomain")(
-        function* ({ domain }: { domain: string }) {
-          return yield* db.juryQueries.getJuryInvitationsByDomain({ domain })
-        }
-      )
+      const getJuryInvitationsByDomain = Effect.fn(
+        "JuryApiService.getJuryInvitationsByDomain",
+      )(function* ({ domain }: { domain: string }) {
+        return yield* db.juryQueries.getJuryInvitationsByDomain({ domain });
+      });
 
-      const getJuryInvitationById = Effect.fn("JuryApiService.getJuryInvitationById")(function* ({
-        id,
-      }: {
-        id: number
-      }) {
-        const result = yield* db.juryQueries.getJuryInvitationById({ id })
+      const getJuryInvitationById = Effect.fn(
+        "JuryApiService.getJuryInvitationById",
+      )(function* ({ id }: { id: number }) {
+        const result = yield* db.juryQueries.getJuryInvitationById({ id });
         return yield* Option.match(result, {
           onSome: (invitation) => Effect.succeed(invitation),
           onNone: () =>
             Effect.fail(
               new JuryApiError({
                 message: `Jury invitation not found for id ${id}`,
-              })
+              }),
             ),
-        })
-      })
+        });
+      });
 
-      const createJuryInvitation = Effect.fn("JuryApiService.createJuryInvitation")(function* ({
+      const getJuryReviewResultsByInvitationId = Effect.fn(
+        "JuryApiService.getJuryReviewResultsByInvitationId",
+      )(function* ({ id }: { id: number }) {
+        const invitation = yield* db.juryQueries.getJuryInvitationById({ id });
+
+        yield* Option.match(invitation, {
+          onSome: () => Effect.void,
+          onNone: () =>
+            Effect.fail(
+              new JuryApiError({
+                message: `Jury invitation not found for id ${id}`,
+              }),
+            ),
+        });
+
+        const ratings =
+          yield* db.juryQueries.getJuryRatingsWithRankingsByInvitation({
+            invitationId: id,
+          });
+
+        return {
+          ratings: ratings.map((rating) => ({
+            participantId: rating.participantId,
+            rating: rating.rating,
+            notes: rating.notes,
+            finalRanking: rating.finalRanking,
+            participant: rating.participant,
+          })),
+        };
+      });
+
+      const ensureParticipantInInvitationScope = Effect.fn(
+        "JuryApiService.ensureParticipantInInvitationScope",
+      )(function* ({
+        invitationId,
+        participantId,
+      }: {
+        invitationId: number;
+        participantId: number;
+      }) {
+        const matchesScope =
+          yield* db.juryQueries.participantMatchesInvitationScope({
+            invitationId,
+            participantId,
+          });
+
+        if (!matchesScope) {
+          return yield* Effect.fail(
+            mapTokenError(
+              "Participant not found in this jury review",
+              "BAD_REQUEST",
+            ),
+          );
+        }
+
+        return Effect.void;
+      });
+
+      const reassignFinalRanking = Effect.fn(
+        "JuryApiService.reassignFinalRanking",
+      )(function* ({
+        invitationId,
+        participantId,
+        finalRanking,
+      }: {
+        invitationId: number;
+        participantId: number;
+        finalRanking: 1 | 2 | 3;
+      }) {
+        const existingRankHolder =
+          yield* db.juryQueries.getJuryFinalRankingByRank({
+            invitationId,
+            rank: finalRanking,
+            excludeParticipantId: participantId,
+          });
+        if (existingRankHolder) {
+          yield* db.juryQueries.deleteJuryFinalRankingByParticipant({
+            invitationId,
+            participantId: existingRankHolder.participantId,
+          });
+        }
+
+        const existingParticipantRanking =
+          yield* db.juryQueries.getJuryFinalRankingByParticipant({
+            invitationId,
+            participantId,
+          });
+
+        return existingParticipantRanking
+          ? yield* db.juryQueries.updateJuryFinalRanking({
+              invitationId,
+              participantId,
+              rank: finalRanking,
+            })
+          : yield* db.juryQueries.createJuryFinalRanking({
+              invitationId,
+              participantId,
+              rank: finalRanking,
+            });
+      });
+
+      const clearFinalRanking = Effect.fn("JuryApiService.clearFinalRanking")(
+        function* ({
+          invitationId,
+          participantId,
+        }: {
+          invitationId: number;
+          participantId: number;
+        }) {
+          return yield* db.juryQueries.deleteJuryFinalRankingByParticipant({
+            invitationId,
+            participantId,
+          });
+        },
+      );
+
+      const createJuryInvitation = Effect.fn(
+        "JuryApiService.createJuryInvitation",
+      )(function* ({
         domain,
         data,
       }: {
-        domain: string
+        domain: string;
         data: {
-          email: string
-          displayName: string
-          inviteType: "topic" | "class"
-          topicId?: number
-          competitionClassId?: number
-          deviceGroupId?: number
-          expiresAt: string
-          notes?: string
-          status?: string
-        }
+          email: string;
+          displayName: string;
+          inviteType: "topic" | "class";
+          topicId?: number;
+          competitionClassId?: number;
+          deviceGroupId?: number;
+          expiresAt: string;
+          notes?: string;
+          status?: string;
+        };
       }) {
-        const hasTopicId = data.topicId !== null && data.topicId !== undefined
+        const hasTopicId = data.topicId !== null && data.topicId !== undefined;
         const hasCompetitionClassId =
-          data.competitionClassId !== null && data.competitionClassId !== undefined
+          data.competitionClassId !== null &&
+          data.competitionClassId !== undefined;
 
         if (hasTopicId && hasCompetitionClassId) {
           return yield* Effect.fail(
             new JuryApiError({
               message:
                 "Cannot create invitation with both topic and competition class. Choose either topic invite or class invite.",
-            })
-          )
+            }),
+          );
         }
 
         if (!hasTopicId && !hasCompetitionClassId) {
@@ -208,24 +332,28 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
             new JuryApiError({
               message:
                 "Must specify either topicId for topic invite or competitionClassId for class invite.",
-            })
-          )
+            }),
+          );
         }
 
         if (hasTopicId) {
-          if (data.competitionClassId !== null && data.competitionClassId !== undefined) {
+          if (
+            data.competitionClassId !== null &&
+            data.competitionClassId !== undefined
+          ) {
             return yield* Effect.fail(
               new JuryApiError({
-                message: "Topic invites cannot have competition class specified.",
-              })
-            )
+                message:
+                  "Topic invites cannot have competition class specified.",
+              }),
+            );
           }
           if (data.deviceGroupId !== null && data.deviceGroupId !== undefined) {
             return yield* Effect.fail(
               new JuryApiError({
                 message: "Topic invites cannot have device group specified.",
-              })
-            )
+              }),
+            );
           }
         }
 
@@ -234,21 +362,23 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
             return yield* Effect.fail(
               new JuryApiError({
                 message: "Class invites cannot have topic specified.",
-              })
-            )
+              }),
+            );
           }
         }
 
-        const marathon = yield* db.marathonsQueries.getMarathonByDomain({ domain })
+        const marathon = yield* db.marathonsQueries.getMarathonByDomain({
+          domain,
+        });
         const marathonId = yield* Option.match(marathon, {
           onSome: (m) => Effect.succeed(m.id),
           onNone: () =>
             Effect.fail(
               new JuryApiError({
                 message: `Marathon not found for domain ${domain}`,
-              })
+              }),
             ),
-        })
+        });
 
         const invitationData: NewJuryInvitation = {
           email: data.email,
@@ -262,111 +392,113 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
           status: data.status ?? "pending",
           marathonId,
           token: "",
-        }
+        };
 
-        const result = yield* db.juryQueries.createJuryInvitation({ data: invitationData })
-        const token = yield* _generateJuryToken(domain, result.id)
+        const result = yield* db.juryQueries.createJuryInvitation({
+          data: invitationData,
+        });
+        const token = yield* _generateJuryToken(domain, result.id);
 
         yield* db.juryQueries.updateJuryInvitation({
           id: result.id,
           data: { token },
-        })
+        });
 
-        const createdInvitation = yield* db.juryQueries.getJuryInvitationById({ id: result.id })
+        const createdInvitation = yield* db.juryQueries.getJuryInvitationById({
+          id: result.id,
+        });
         return yield* Option.match(createdInvitation, {
           onSome: (invitation) => Effect.succeed(invitation),
           onNone: () =>
             Effect.fail(
               new JuryApiError({
                 message: `Failed to retrieve created invitation with id ${result.id}`,
-              })
+              }),
             ),
-        })
-      })
+        });
+      });
 
-      const updateJuryInvitation = Effect.fn("JuryApiService.updateJuryInvitation")(function* ({
+      const updateJuryInvitation = Effect.fn(
+        "JuryApiService.updateJuryInvitation",
+      )(function* ({
         id,
         data,
       }: {
-        id: number
-        data: Partial<NewJuryInvitation>
+        id: number;
+        data: Partial<NewJuryInvitation>;
       }) {
-        const existingInvitation = yield* db.juryQueries.getJuryInvitationById({ id })
+        const existingInvitation = yield* db.juryQueries.getJuryInvitationById({
+          id,
+        });
         yield* Option.match(existingInvitation, {
           onSome: () => Effect.void,
           onNone: () =>
             Effect.fail(
               new JuryApiError({
                 message: `Jury invitation not found for id ${id}`,
-              })
+              }),
             ),
-        })
+        });
 
         const updateData = {
           ...data,
           updatedAt: new Date().toISOString(),
-        } satisfies Partial<NewJuryInvitation>
+        } satisfies Partial<NewJuryInvitation>;
 
         return yield* db.juryQueries.updateJuryInvitation({
           id,
           data: updateData,
-        })
-      })
+        });
+      });
 
-      const deleteJuryInvitation = Effect.fn("JuryApiService.deleteJuryInvitation")(function* ({
-        id,
-      }: {
-        id: number
-      }) {
-        const existingInvitation = yield* db.juryQueries.getJuryInvitationById({ id })
+      const deleteJuryInvitation = Effect.fn(
+        "JuryApiService.deleteJuryInvitation",
+      )(function* ({ id }: { id: number }) {
+        const existingInvitation = yield* db.juryQueries.getJuryInvitationById({
+          id,
+        });
         yield* Option.match(existingInvitation, {
           onSome: () => Effect.void,
           onNone: () =>
             Effect.fail(
               new JuryApiError({
                 message: `Jury invitation not found for id ${id}`,
-              })
+              }),
             ),
-        })
+        });
 
-        return yield* db.juryQueries.deleteJuryInvitation({ id })
-      })
+        return yield* db.juryQueries.deleteJuryInvitation({ id });
+      });
 
       const verifyTokenAndGetInitialData = Effect.fn(
-        "JuryApiService.verifyTokenAndGetInitialData"
-      )(function* ({
-        token,
-        domain,
-      }: {
-        token: string
-        domain: string
-      }) {
-        return yield* getInvitationFromToken({ token, domain })
-      })
+        "JuryApiService.verifyTokenAndGetInitialData",
+      )(function* ({ token, domain }: { token: string; domain: string }) {
+        return yield* getInvitationFromToken({ token, domain });
+      });
 
       const getJurySubmissionsFromToken = Effect.fn(
-        "JuryApiService.getJurySubmissionsFromToken"
+        "JuryApiService.getJurySubmissionsFromToken",
       )(function* ({
         token,
         domain,
         cursor,
         ratingFilter,
       }: {
-        token: string
-        domain: string
-        cursor?: number
-        ratingFilter?: readonly number[]
+        token: string;
+        domain: string;
+        cursor?: number;
+        ratingFilter?: readonly number[];
       }) {
-        const invitation = yield* getInvitationFromToken({ token, domain })
+        const invitation = yield* getInvitationFromToken({ token, domain });
 
         const result = yield* db.juryQueries.getJurySubmissionsFromToken({
           invitationId: invitation.id,
           cursor,
           ratingFilter: ratingFilter ? [...ratingFilter] : undefined,
-        })
+        });
 
         if (invitation.inviteType !== "class") {
-          return result
+          return result;
         }
 
         const participants = yield* Effect.forEach(
@@ -383,7 +515,7 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
                     return {
                       ...participant,
                       contactSheetKey: null,
-                    }
+                    };
                   }
 
                   const latestContactSheet =
@@ -392,55 +524,58 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
                       .sort(
                         (left, right) =>
                           new Date(right.createdAt).getTime() -
-                          new Date(left.createdAt).getTime()
-                      )[0] ?? null
+                          new Date(left.createdAt).getTime(),
+                      )[0] ?? null;
 
                   return {
                     ...participant,
                     contactSheetKey: latestContactSheet?.key ?? null,
-                  }
-                })
+                  };
+                }),
               ),
-          { concurrency: 10 }
-        )
+          { concurrency: 10 },
+        );
 
         return {
           ...result,
           participants,
-        }
-      })
+        };
+      });
 
       const getJuryRatingsByInvitation = Effect.fn(
-        "JuryApiService.getJuryRatingsByInvitation"
-      )(function* ({
-        token,
-        domain,
-      }: {
-        token: string
-        domain: string
-      }) {
-        const invitation = yield* getInvitationFromToken({ token, domain })
+        "JuryApiService.getJuryRatingsByInvitation",
+      )(function* ({ token, domain }: { token: string; domain: string }) {
+        const invitation = yield* getInvitationFromToken({ token, domain });
         const ratings = yield* db.juryQueries.getJuryRatingsByInvitation({
           invitationId: invitation.id,
-        })
-        return { ratings }
-      })
+        });
+        return {
+          ratings: ratings.map((rating) => ({
+            participantId: rating.participantId,
+            rating: rating.rating,
+            notes: rating.notes,
+            finalRanking: rating.finalRanking,
+          })),
+        };
+      });
 
-      const getJuryParticipantCount = Effect.fn("JuryApiService.getJuryParticipantCount")(function* ({
+      const getJuryParticipantCount = Effect.fn(
+        "JuryApiService.getJuryParticipantCount",
+      )(function* ({
         token,
         domain,
         ratingFilter,
       }: {
-        token: string
-        domain: string
-        ratingFilter?: readonly number[]
+        token: string;
+        domain: string;
+        ratingFilter?: readonly number[];
       }) {
-        const invitation = yield* getInvitationFromToken({ token, domain })
+        const invitation = yield* getInvitationFromToken({ token, domain });
         return yield* db.juryQueries.getJuryParticipantCount({
           invitationId: invitation.id,
           ratingFilter: ratingFilter ? [...ratingFilter] : undefined,
-        })
-      })
+        });
+      });
 
       const createRating = Effect.fn("JuryApiService.createRating")(function* ({
         token,
@@ -448,22 +583,50 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
         participantId,
         rating,
         notes,
+        finalRanking,
       }: {
-        token: string
-        domain: string
-        participantId: number
-        rating: number
-        notes?: string
+        token: string;
+        domain: string;
+        participantId: number;
+        rating: number;
+        notes?: string;
+        finalRanking?: number | null;
       }) {
-        const invitation = yield* getInvitationFromToken({ token, domain })
-        yield* ensureInvitationEditable({ invitation })
+        const invitation = yield* getInvitationFromToken({ token, domain });
+        yield* ensureInvitationEditable({ invitation });
+        yield* ensureParticipantInInvitationScope({
+          invitationId: invitation.id,
+          participantId,
+        });
+
+        if (!isValidJuryFinalRanking(finalRanking)) {
+          return yield* Effect.fail(
+            mapTokenError("Invalid final ranking", "BAD_REQUEST"),
+          );
+        }
+
+        if (finalRanking === 1 || finalRanking === 2 || finalRanking === 3) {
+          const createdRating = yield* db.juryQueries.createJuryRating({
+            invitationId: invitation.id,
+            participantId,
+            rating,
+            notes,
+          });
+          yield* reassignFinalRanking({
+            invitationId: invitation.id,
+            participantId,
+            finalRanking,
+          });
+          return createdRating;
+        }
+
         return yield* db.juryQueries.createJuryRating({
           invitationId: invitation.id,
           participantId,
           rating,
           notes,
-        })
-      })
+        });
+      });
 
       const updateRating = Effect.fn("JuryApiService.updateRating")(function* ({
         token,
@@ -473,83 +636,163 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
         notes,
         finalRanking,
       }: {
-        token: string
-        domain: string
-        participantId: number
-        rating: number
-        notes?: string
-        finalRanking?: number
+        token: string;
+        domain: string;
+        participantId: number;
+        rating: number;
+        notes?: string;
+        finalRanking?: number | null;
       }) {
-        const invitation = yield* getInvitationFromToken({ token, domain })
-        yield* ensureInvitationEditable({ invitation })
+        const invitation = yield* getInvitationFromToken({ token, domain });
+        yield* ensureInvitationEditable({ invitation });
+        yield* ensureParticipantInInvitationScope({
+          invitationId: invitation.id,
+          participantId,
+        });
+
+        if (!isValidJuryFinalRanking(finalRanking)) {
+          return yield* Effect.fail(
+            mapTokenError("Invalid final ranking", "BAD_REQUEST"),
+          );
+        }
+
+        if (finalRanking === 1 || finalRanking === 2 || finalRanking === 3) {
+          const existingRating = yield* db.juryQueries.getJuryRating({
+            invitationId: invitation.id,
+            participantId,
+          });
+          const updatedRating = yield* Option.match(existingRating, {
+            onSome: () =>
+              db.juryQueries.updateJuryRating({
+                invitationId: invitation.id,
+                participantId,
+                rating,
+                notes,
+              }),
+            onNone: () =>
+              db.juryQueries.createJuryRating({
+                invitationId: invitation.id,
+                participantId,
+                rating,
+                notes,
+              }),
+          });
+          yield* reassignFinalRanking({
+            invitationId: invitation.id,
+            participantId,
+            finalRanking,
+          });
+          return updatedRating;
+        }
+
+        const shouldDeleteRating =
+          rating === 0 && !notes?.trim() && finalRanking == null;
+
+        if (shouldDeleteRating) {
+          yield* clearFinalRanking({
+            invitationId: invitation.id,
+            participantId,
+          });
+          const deleted = yield* db.juryQueries.deleteJuryRating({
+            invitationId: invitation.id,
+            participantId,
+          });
+
+          return yield* Option.match(deleted, {
+            onSome: (result) => Effect.succeed(result[0] ?? null),
+            onNone: () => Effect.succeed(null),
+          });
+        }
+
+        if (finalRanking == null) {
+          yield* clearFinalRanking({
+            invitationId: invitation.id,
+            participantId,
+          });
+        }
+
         return yield* db.juryQueries.updateJuryRating({
           invitationId: invitation.id,
           participantId,
           rating,
           notes,
-          finalRanking,
-        })
-      })
+        });
+      });
 
       const getRating = Effect.fn("JuryApiService.getRating")(function* ({
         token,
         domain,
         participantId,
       }: {
-        token: string
-        domain: string
-        participantId: number
+        token: string;
+        domain: string;
+        participantId: number;
       }) {
-        const invitation = yield* getInvitationFromToken({ token, domain })
+        const invitation = yield* getInvitationFromToken({ token, domain });
         const result = yield* db.juryQueries.getJuryRating({
           invitationId: invitation.id,
           participantId,
-        })
+        });
 
         return yield* Option.match(result, {
           onSome: (rating) => Effect.succeed(rating),
           onNone: () => Effect.succeed(null),
-        })
-      })
+        });
+      });
 
       const deleteRating = Effect.fn("JuryApiService.deleteRating")(function* ({
         token,
         domain,
         participantId,
       }: {
-        token: string
-        domain: string
-        participantId: number
+        token: string;
+        domain: string;
+        participantId: number;
       }) {
-        const invitation = yield* getInvitationFromToken({ token, domain })
-        yield* ensureInvitationEditable({ invitation })
+        const invitation = yield* getInvitationFromToken({ token, domain });
+        yield* ensureInvitationEditable({ invitation });
         const deleted = yield* db.juryQueries.deleteJuryRating({
           invitationId: invitation.id,
           participantId,
-        })
+        });
 
         return yield* Option.match(deleted, {
           onSome: (result) => Effect.succeed(result[0]?.id ?? null),
           onNone: () => Effect.succeed(null),
-        })
-      })
+        });
+      });
 
       const updateInvitationStatusByToken = Effect.fn(
-        "JuryApiService.updateInvitationStatusByToken"
+        "JuryApiService.updateInvitationStatusByToken",
       )(function* ({
         token,
         domain,
         status,
       }: {
-        token: string
-        domain: string
-        status: "pending" | "in_progress" | "completed"
+        token: string;
+        domain: string;
+        status: "pending" | "in_progress" | "completed";
       }) {
-        const invitation = yield* getInvitationFromToken({ token, domain })
+        const invitation = yield* getInvitationFromToken({ token, domain });
         if (invitation.status === "completed" && status !== "completed") {
           return yield* Effect.fail(
-            mapTokenError("Review already completed", "BAD_REQUEST")
-          )
+            mapTokenError("Review already completed", "BAD_REQUEST"),
+          );
+        }
+
+        if (status === "completed") {
+          const rankings = yield* db.juryQueries.getJuryAssignedFinalRankings({
+            invitationId: invitation.id,
+          });
+
+          if (!hasCompleteJuryTopThree(rankings)) {
+            return yield* Effect.fail(
+              mapTokenError(
+                "You must choose 1st, 2nd, and 3rd place before completing the review",
+                "BAD_REQUEST",
+              ),
+            );
+          }
         }
 
         yield* db.juryQueries.updateJuryInvitation({
@@ -558,14 +801,15 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
             status,
             updatedAt: new Date().toISOString(),
           },
-        })
+        });
 
-        return yield* getInvitationFromToken({ token, domain })
-      })
+        return yield* getInvitationFromToken({ token, domain });
+      });
 
       return {
         getJuryInvitationsByDomain,
         getJuryInvitationById,
+        getJuryReviewResultsByInvitationId,
         createJuryInvitation,
         updateJuryInvitation,
         deleteJuryInvitation,
@@ -579,11 +823,11 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
         getRating,
         deleteRating,
         updateInvitationStatusByToken,
-      } as const
+      } as const;
     }),
-  }
+  },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Database.layer)
-  )
+    Layer.provide(Database.layer),
+  );
 }

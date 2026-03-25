@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useEffect, useRef } from "react"
-import { Loader2 } from "lucide-react"
-import { Skeleton } from "@/components/ui/skeleton"
-import type { JuryRatingsResponse } from "../../_lib/jury-types"
-import type { JuryListParticipant } from "../_lib/jury-list-participant"
-import { JuryParticipantCard } from "./jury-participant-card"
-import { RatingFilterBar } from "./rating-filter"
+import { useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { JuryRatingsResponse } from "../../_lib/jury-types";
+import type { JuryListParticipant } from "../_lib/jury-list-participant";
+import { JuryParticipantCard } from "./jury-participant-card";
+import { RatingFilterBar } from "./rating-filter";
 
 export function JuryParticipantList({
   participants,
@@ -23,49 +23,50 @@ export function JuryParticipantList({
   totalParticipants,
   error,
 }: {
-  participants: JuryListParticipant[]
-  ratingByParticipantId: Map<number, JuryRatingsResponse["ratings"][number]>
-  selectedRatings: number[]
-  toggleRatingFilter: (rating: number) => void
-  clearRatingFilter: () => void
-  onParticipantSelect: (participantId: number, index: number) => void
-  fetchNextPage: () => void
-  hasNextPage: boolean
-  isFetchingNextPage: boolean
-  isPendingParticipants: boolean
-  isRefreshingResults: boolean
-  totalParticipants?: { value: number }
-  error: Error | null
+  participants: JuryListParticipant[];
+  ratingByParticipantId: Map<number, JuryRatingsResponse["ratings"][number]>;
+  selectedRatings: number[];
+  toggleRatingFilter: (rating: number) => void;
+  clearRatingFilter: () => void;
+  onParticipantSelect: (participantId: number, index: number) => void;
+  fetchNextPage: () => void;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  isPendingParticipants: boolean;
+  isRefreshingResults: boolean;
+  totalParticipants?: { value: number };
+  error: Error | null;
 }) {
-  const loadMoreRef = useRef<HTMLDivElement>(null)
-  const totalMatchingParticipants = totalParticipants?.value ?? participants.length
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const totalMatchingParticipants =
+    totalParticipants?.value ?? participants.length;
   const participantSummary =
     participants.length < totalMatchingParticipants
       ? `Showing ${participants.length} of ${totalMatchingParticipants} participants`
-      : `${totalMatchingParticipants} participants`
+      : `${totalMatchingParticipants} participants`;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        const entry = entries[0]
+        const entry = entries[0];
         if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
+          fetchNextPage();
         }
       },
       { threshold: 0.1 },
-    )
+    );
 
-    const target = loadMoreRef.current
+    const target = loadMoreRef.current;
     if (target) {
-      observer.observe(target)
+      observer.observe(target);
     }
 
     return () => {
       if (target) {
-        observer.unobserve(target)
+        observer.unobserve(target);
       }
-    }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
+    };
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (error) {
     return (
@@ -77,7 +78,7 @@ export function JuryParticipantList({
           {error.message || "An unknown error occurred"}
         </p>
       </div>
-    )
+    );
   }
 
   if (isPendingParticipants && participants.length === 0) {
@@ -118,7 +119,7 @@ export function JuryParticipantList({
           ))}
         </div>
       </div>
-    )
+    );
   }
 
   if (participants.length === 0) {
@@ -167,7 +168,7 @@ export function JuryParticipantList({
           </p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -193,16 +194,24 @@ export function JuryParticipantList({
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {participants.map((participant, index) => {
-          const rating = ratingByParticipantId.get(participant.id)?.rating ?? 0
+          const rating = ratingByParticipantId.get(participant.id)?.rating ?? 0;
 
           return (
             <JuryParticipantCard
               key={participant.id}
               participant={participant}
               rating={rating}
+              finalRanking={
+                (ratingByParticipantId.get(participant.id)?.finalRanking as
+                  | 1
+                  | 2
+                  | 3
+                  | null
+                  | undefined) ?? null
+              }
               onClick={() => onParticipantSelect(participant.id, index)}
             />
-          )
+          );
         })}
       </div>
 
@@ -219,5 +228,5 @@ export function JuryParticipantList({
         </div>
       ) : null}
     </div>
-  )
+  );
 }
