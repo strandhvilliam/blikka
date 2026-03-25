@@ -7,6 +7,16 @@ export const RULE_KEYS = {
   MODIFIED: "modified",
 } as const;
 
+/** Short UI labels when a rule fails or is shown in summaries (aligned with validation messages). */
+export const RULE_KEY_DISPLAY_LABELS = {
+  [RULE_KEYS.MAX_FILE_SIZE]: "Exceeds maximum file size",
+  [RULE_KEYS.ALLOWED_FILE_TYPES]: "File type not allowed",
+  [RULE_KEYS.STRICT_TIMESTAMP_ORDERING]: "Not in capture-time order",
+  [RULE_KEYS.SAME_DEVICE]: "Multiple devices used",
+  [RULE_KEYS.WITHIN_TIMERANGE]: "Outside configured timerange",
+  [RULE_KEYS.MODIFIED]: "Possible editing or weak EXIF",
+} as const satisfies Record<(typeof RULE_KEYS)[keyof typeof RULE_KEYS], string>;
+
 export const IMAGE_EXTENSION_TO_MIME_TYPE = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
