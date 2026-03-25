@@ -30,8 +30,6 @@ interface ConfirmationByCameraClientProps {
   }
   image: ConfirmationImage | null
   handleRedirect: () => void
-  remainingSeconds: number
-  addSeconds: (seconds: number) => void
 }
 
 export function ConfirmationByCameraClient({
@@ -39,8 +37,6 @@ export function ConfirmationByCameraClient({
   participant,
   image,
   handleRedirect,
-  remainingSeconds,
-  addSeconds,
 }: ConfirmationByCameraClientProps) {
   const t = useTranslations("ConfirmationPage")
   const [previewImage, setPreviewImage] = useState<{
@@ -233,30 +229,6 @@ export function ConfirmationByCameraClient({
               </div>
             </div>
           </div>
-        </motion.div>
-
-        {/* Desktop Action Buttons */}
-        <motion.div
-          key="restart"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="hidden md:flex gap-3 mt-6"
-        >
-          <PrimaryButton onClick={handleRedirect} className="flex-1 py-3 text-base rounded-full">
-            {t("newParticipant")}
-            <span className="text-white/80 text-sm ml-2">
-              {t("secondsSuffix", { seconds: remainingSeconds })}
-            </span>
-          </PrimaryButton>
-          <Button
-            variant="outline"
-            className="rounded-full text-base px-6 py-3 h-auto"
-            onClick={() => addSeconds(30)}
-          >
-            <Clock className="w-4 h-4 mr-2" />
-            {t("waitSeconds", { seconds: 30 })}
-          </Button>
         </motion.div>
 
         {/* Voting Info */}

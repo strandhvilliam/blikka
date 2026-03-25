@@ -6,7 +6,6 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { buildS3Url, formatDomainPathname } from "@/lib/utils"
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
-import { useDesktopCountdownRedirect } from "@/hooks/use-desktop-countdown-redirect"
 
 import { ConfirmationMarathonClient } from "./confirmation-marathon-client"
 import { ConfirmationByCameraClient } from "./confirmation-by-camera-client"
@@ -52,11 +51,6 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
     }
   }
 
-  const { remainingSeconds, addSeconds } = useDesktopCountdownRedirect({
-    initialSeconds: 15,
-    onRedirect: handleRedirect,
-  })
-
   const submissions = participant?.publicSubmissions ? [...participant.publicSubmissions] : []
 
   const images = submissions
@@ -82,8 +76,6 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
           }}
           image={images[0] ?? null}
           handleRedirect={handleRedirect}
-          remainingSeconds={remainingSeconds}
-          addSeconds={addSeconds}
         />
       </>
     )
@@ -102,8 +94,6 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
         images={images}
         submissionsCount={submissions.length}
         handleRedirect={handleRedirect}
-        remainingSeconds={remainingSeconds}
-        addSeconds={addSeconds}
       />
     </>
   )

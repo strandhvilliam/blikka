@@ -37,8 +37,6 @@ interface ConfirmationMarathonClientProps {
   images: ConfirmationImage[]
   submissionsCount: number
   handleRedirect: () => void
-  remainingSeconds: number
-  addSeconds: (seconds: number) => void
 }
 
 export function ConfirmationMarathonClient({
@@ -47,8 +45,6 @@ export function ConfirmationMarathonClient({
   images,
   submissionsCount,
   handleRedirect,
-  remainingSeconds,
-  addSeconds,
 }: ConfirmationMarathonClientProps) {
   const t = useTranslations("ConfirmationPage")
   const [selectedImage, setSelectedImage] = useState<ConfirmationImage | null>(null)
@@ -58,7 +54,11 @@ export function ConfirmationMarathonClient({
       <div className="absolute top-3 right-3 z-10 md:hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full text-muted-foreground"
+            >
               <MoreVertical className="h-4 w-4" />
               <span className="sr-only">{t("menu")}</span>
             </Button>
@@ -219,30 +219,6 @@ export function ConfirmationMarathonClient({
           </motion.div>
         )}
 
-        {/* Desktop Action Buttons */}
-        <motion.div
-          key="restart"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="mt-6 hidden gap-3 md:flex"
-        >
-          <PrimaryButton onClick={handleRedirect} className="flex-1 rounded-xl py-3 text-base">
-            {t("newParticipant")}
-            <span className="ml-2 text-sm text-white/80">
-              {t("secondsSuffix", { seconds: remainingSeconds })}
-            </span>
-          </PrimaryButton>
-          <Button
-            variant="outline"
-            className="h-auto rounded-xl px-6 py-3 text-base"
-            onClick={() => addSeconds(30)}
-          >
-            <Clock className="mr-2 h-4 w-4" />
-            {t("waitSeconds", { seconds: 30 })}
-          </Button>
-        </motion.div>
-
         {/* What's Next */}
         <motion.div
           key="next-steps"
@@ -284,7 +260,6 @@ export function ConfirmationMarathonClient({
         open={!!selectedImage}
         onOpenChange={(open) => !open && setSelectedImage(null)}
       />
-
     </div>
   )
 }

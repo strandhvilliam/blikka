@@ -109,9 +109,7 @@ export function ManualPhotoOrderDialog({
                             })
                           : t("noCaptureTime")}
                       </span>
-                      <span className="truncate text-muted-foreground/60">
-                        {photo.file.name}
-                      </span>
+                      <span className="truncate text-muted-foreground/60">{photo.file.name}</span>
                     </p>
                   </div>
 
