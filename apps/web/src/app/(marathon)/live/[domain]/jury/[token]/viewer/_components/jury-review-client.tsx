@@ -19,9 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PrimaryButton } from "@/components/ui/primary-button"
 import { Textarea } from "@/components/ui/textarea"
 import { useTRPC } from "@/lib/trpc/client"
 import { buildS3Url } from "@/lib/utils"
@@ -35,8 +33,7 @@ import {
   ImageOff,
   Loader2,
   Star,
-  StickyNote,
-  Trophy,
+  MessageSquare,
   UserIcon,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -92,58 +89,63 @@ function JuryParticipantCard({
   const previewUrl = getParticipantPreview(participant)
 
   return (
-    <Card
-      className="cursor-pointer overflow-hidden border-border/70 bg-white/95 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+    <button
+      type="button"
+      className="group flex w-full cursor-pointer items-stretch gap-0 overflow-hidden rounded-xl border border-border/60 bg-white text-left transition-all duration-200 hover:border-brand-primary/30 hover:shadow-[0_4px_24px_rgba(254,77,58,0.08)]"
       onClick={onClick}
     >
-      <CardContent className="flex items-center gap-4 p-4">
-        <div className="flex-1">
-          <div className="mb-2 flex items-start justify-between gap-3">
-            <div>
-              <h3 className="font-rocgrotesk text-2xl font-bold text-foreground">
-                {participant.reference}
-              </h3>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {participant.competitionClass?.name ? (
-                  <Badge variant="secondary">{participant.competitionClass.name}</Badge>
-                ) : null}
-                {participant.deviceGroup?.name ? (
-                  <Badge variant="outline">{participant.deviceGroup.name}</Badge>
-                ) : null}
-                {participant.submission?.topic?.name ? (
-                  <Badge variant="outline">{participant.submission.topic.name}</Badge>
-                ) : null}
-              </div>
-            </div>
+      <div className="h-auto w-24 shrink-0 overflow-hidden bg-neutral-100 sm:w-28">
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt={`Preview for ${participant.reference}`}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full min-h-24 w-full items-center justify-center text-brand-gray/50">
+            <ImageIcon className="h-6 w-6" />
           </div>
+        )}
+      </div>
 
-          <div className="flex items-center gap-1 text-amber-500">
+      <div className="flex flex-1 flex-col justify-center gap-2 px-4 py-3.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="font-rocgrotesk text-xl font-bold tracking-tight text-brand-black">
+            {participant.reference}
+          </h3>
+          <div className="flex items-center gap-0.5">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
                 className={
-                  star <= rating ? "h-4 w-4 fill-current" : "h-4 w-4 text-muted-foreground/40"
+                  star <= rating
+                    ? "h-3.5 w-3.5 fill-brand-primary text-brand-primary"
+                    : "h-3.5 w-3.5 text-border"
                 }
               />
             ))}
           </div>
         </div>
 
-        <div className="h-20 w-20 overflow-hidden rounded-2xl border bg-muted">
-          {previewUrl ? (
-            <img
-              src={previewUrl}
-              alt={`Preview for ${participant.reference}`}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-              <ImageIcon className="h-6 w-6" />
-            </div>
-          )}
+        <div className="flex flex-wrap gap-1.5">
+          {participant.competitionClass?.name ? (
+            <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-brand-black/70">
+              {participant.competitionClass.name}
+            </span>
+          ) : null}
+          {participant.deviceGroup?.name ? (
+            <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-brand-gray">
+              {participant.deviceGroup.name}
+            </span>
+          ) : null}
+          {participant.submission?.topic?.name ? (
+            <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-brand-gray">
+              {participant.submission.topic.name}
+            </span>
+          ) : null}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </button>
   )
 }
 
@@ -197,9 +199,11 @@ function JuryParticipantList({
 
   if (error) {
     return (
-      <div className="rounded-3xl border bg-white/90 px-6 py-12 text-center shadow-sm">
-        <h2 className="mb-2 text-xl font-semibold text-foreground">Failed to load participants</h2>
-        <p className="text-sm text-muted-foreground">
+      <div className="rounded-xl border border-border/60 bg-white px-6 py-16 text-center">
+        <h2 className="font-rocgrotesk text-xl font-bold text-brand-black">
+          Failed to load participants
+        </h2>
+        <p className="mt-2 text-sm text-brand-gray">
           {error.message || "An unknown error occurred"}
         </p>
       </div>
@@ -208,9 +212,11 @@ function JuryParticipantList({
 
   if (participants.length === 0) {
     return (
-      <div className="rounded-3xl border bg-white/90 px-6 py-12 text-center shadow-sm">
-        <h2 className="mb-2 text-xl font-semibold text-foreground">No participants found</h2>
-        <p className="text-sm text-muted-foreground">
+      <div className="rounded-xl border border-border/60 bg-white px-6 py-16 text-center">
+        <h2 className="font-rocgrotesk text-xl font-bold text-brand-black">
+          No participants found
+        </h2>
+        <p className="mt-2 text-sm text-brand-gray">
           {selectedRatings.length > 0
             ? "Try adjusting the rating filters."
             : "There are no participants to review yet."}
@@ -220,69 +226,110 @@ function JuryParticipantList({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border bg-white/90 p-4 shadow-sm">
-        <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Participants loaded: {participants.length}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Total participants: {totalParticipants?.value ?? participants.length}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">Filter by rating</span>
-            {[0, 1, 2, 3, 4, 5].map((rating) => (
-              <Button
-                key={rating}
-                size="sm"
-                variant={selectedRatings.includes(rating) ? "default" : "outline"}
-                onClick={() => toggleRatingFilter(rating)}
-                className="rounded-full"
-              >
-                {rating === 0 ? (
-                  "Unrated"
-                ) : (
-                  <>
-                    <Star className="mr-1 h-3.5 w-3.5 fill-current" />
-                    {rating}
-                  </>
-                )}
-              </Button>
-            ))}
-          </div>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-sm font-medium text-brand-black">
+            {participants.length} of {totalParticipants?.value ?? participants.length} participants
+          </p>
         </div>
-
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {participants.map((participant, index) => {
-            const rating =
-              ratings.find((item) => item.participantId === participant.id)?.rating ?? 0
-
-            return (
-              <JuryParticipantCard
-                key={participant.id}
-                participant={participant}
-                rating={rating}
-                onClick={() => onParticipantSelect(participant.id, index)}
-              />
-            )
-          })}
-        </div>
-
-        {hasNextPage ? (
-          <div ref={loadMoreRef} className="flex justify-center py-8">
-            {isFetchingNextPage ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading more participants...
-              </div>
-            ) : (
-              <div className="h-8" />
-            )}
-          </div>
-        ) : null}
+        <RatingFilterBar selectedRatings={selectedRatings} onToggle={toggleRatingFilter} />
       </div>
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {participants.map((participant, index) => {
+          const rating =
+            ratings.find((item) => item.participantId === participant.id)?.rating ?? 0
+
+          return (
+            <JuryParticipantCard
+              key={participant.id}
+              participant={participant}
+              rating={rating}
+              onClick={() => onParticipantSelect(participant.id, index)}
+            />
+          )
+        })}
+      </div>
+
+      {hasNextPage ? (
+        <div ref={loadMoreRef} className="flex justify-center py-10">
+          {isFetchingNextPage ? (
+            <div className="flex items-center gap-2 text-sm text-brand-gray">
+              <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
+              Loading more...
+            </div>
+          ) : (
+            <div className="h-8" />
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function RatingFilterBar({
+  selectedRatings,
+  onToggle,
+}: {
+  selectedRatings: number[]
+  onToggle: (rating: number) => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {[0, 1, 2, 3, 4, 5].map((rating) => {
+        const isActive = selectedRatings.includes(rating)
+        return (
+          <button
+            key={rating}
+            type="button"
+            onClick={() => onToggle(rating)}
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+              isActive
+                ? "bg-brand-primary text-white"
+                : "border border-border/60 bg-white text-brand-gray hover:border-brand-primary/30 hover:text-brand-black"
+            }`}
+          >
+            {rating === 0 ? (
+              "Unrated"
+            ) : (
+              <>
+                <Star className={`h-3 w-3 ${isActive ? "fill-white" : "fill-current"}`} />
+                {rating}
+              </>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function ProgressRing({ rated, total }: { rated: number; total: number }) {
+  const pct = total > 0 ? (rated / total) * 100 : 0
+  const circumference = 2 * Math.PI * 18
+  const offset = circumference - (pct / 100) * circumference
+
+  return (
+    <div className="relative flex h-12 w-12 items-center justify-center">
+      <svg className="-rotate-90" width="48" height="48" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r="18" fill="none" stroke="currentColor" strokeWidth="3" className="text-neutral-100" />
+        <circle
+          cx="24"
+          cy="24"
+          r="18"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="text-brand-primary transition-[stroke-dashoffset] duration-500"
+        />
+      </svg>
+      <span className="absolute text-[10px] font-bold text-brand-black">
+        {Math.round(pct)}%
+      </span>
     </div>
   )
 }
@@ -320,52 +367,54 @@ function JuryReviewHeader({
   )
 
   return (
-    <div className="rounded-[28px] border bg-white/90 px-4 py-4 shadow-sm">
+    <header className="rounded-xl border border-border/60 bg-white px-5 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Trophy className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="font-rocgrotesk text-2xl font-bold text-foreground">Jury review</h1>
-              <p className="text-sm text-muted-foreground">{invitation.marathon.name}</p>
-            </div>
+        <div className="flex items-center gap-4">
+          <ProgressRing rated={ratedCount} total={totalParticipants} />
+          <div>
+            <h1 className="font-rocgrotesk text-2xl font-bold tracking-tight text-brand-black">
+              Jury Review
+            </h1>
+            <p className="mt-0.5 text-sm text-brand-gray">{invitation.marathon.name}</p>
           </div>
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="ml-2 hidden flex-wrap gap-1.5 lg:flex">
             {invitation.topic?.name ? (
-              <Badge variant="secondary">{invitation.topic.name}</Badge>
+              <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-brand-black/70">
+                {invitation.topic.name}
+              </span>
             ) : null}
             {invitation.competitionClass?.name ? (
-              <Badge variant="secondary">{invitation.competitionClass.name}</Badge>
+              <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-brand-black/70">
+                {invitation.competitionClass.name}
+              </span>
             ) : null}
             {invitation.deviceGroup?.name ? (
-              <Badge variant="outline">{invitation.deviceGroup.name}</Badge>
+              <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium text-brand-gray">
+                {invitation.deviceGroup.name}
+              </span>
             ) : null}
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="rounded-2xl border bg-background/70 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                <UserIcon className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">{invitation.displayName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {ratedCount} of {totalParticipants} participants rated
-                </p>
-              </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-neutral-50 px-3.5 py-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-brand-black">
+              <UserIcon className="h-3.5 w-3.5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-brand-black">{invitation.displayName}</p>
+              <p className="text-[11px] text-brand-gray">
+                {ratedCount}/{totalParticipants} rated
+              </p>
             </div>
           </div>
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button className="rounded-full">
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Complete review
-              </Button>
+              <PrimaryButton>
+                <CheckCircle2 className="h-4 w-4" />
+                Complete
+              </PrimaryButton>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -393,7 +442,7 @@ function JuryReviewHeader({
           </AlertDialog>
         </div>
       </div>
-    </div>
+    </header>
   )
 }
 
@@ -415,83 +464,86 @@ function JurySidebar({
   onNotesChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void
 }) {
   return (
-    <div className="w-full max-w-sm space-y-4 xl:sticky xl:top-6">
-      <Card className="border-border/70 bg-white/95 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="font-rocgrotesk text-3xl">#{participant.reference}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {participant.submission?.topic?.name ? (
-              <Badge variant="secondary">{participant.submission.topic.name}</Badge>
-            ) : null}
-            {participant.competitionClass?.name ? (
-              <Badge variant="outline">{participant.competitionClass.name}</Badge>
-            ) : null}
-            {participant.deviceGroup?.name ? (
-              <Badge variant="outline">{participant.deviceGroup.name}</Badge>
-            ) : null}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {invitation.inviteType === "class"
-              ? "Review the generated contact sheet for this participant."
-              : "Review the submission for the assigned topic."}
-          </p>
-        </CardContent>
-      </Card>
+    <div className="w-full space-y-3 xl:sticky xl:top-6">
+      <div className="rounded-xl border border-border/60 bg-white p-5">
+        <h2 className="font-rocgrotesk text-3xl font-bold tracking-tight text-brand-black">
+          #{participant.reference}
+        </h2>
 
-      <Card className="border-border/70 bg-white/95 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Star className="h-4 w-4" />
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {participant.submission?.topic?.name ? (
+            <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-brand-black/70">
+              {participant.submission.topic.name}
+            </span>
+          ) : null}
+          {participant.competitionClass?.name ? (
+            <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium text-brand-gray">
+              {participant.competitionClass.name}
+            </span>
+          ) : null}
+          {participant.deviceGroup?.name ? (
+            <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium text-brand-gray">
+              {participant.deviceGroup.name}
+            </span>
+          ) : null}
+        </div>
+
+        <p className="mt-3 text-sm leading-relaxed text-brand-gray">
+          {invitation.inviteType === "class"
+            ? "Review the generated contact sheet for this participant."
+            : "Review the submission for the assigned topic."}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-border/60 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold tracking-wide text-brand-black/60 uppercase">
             Rating
-            {isSaving ? (
-              <span className="ml-auto text-xs font-normal text-muted-foreground">Saving...</span>
-            ) : null}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Button
-                key={star}
-                size="icon"
-                variant="ghost"
-                className="rounded-full"
-                onClick={() => onRatingClick(star)}
-              >
-                <Star
-                  className={
-                    star <= rating
-                      ? "h-5 w-5 fill-amber-500 text-amber-500"
-                      : "h-5 w-5 text-muted-foreground/50"
-                  }
-                />
-              </Button>
-            ))}
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {rating > 0 ? `Rated ${rating} out of 5 stars` : "No rating yet"}
           </p>
-        </CardContent>
-      </Card>
+          {isSaving ? (
+            <span className="flex items-center gap-1 text-[11px] text-brand-gray">
+              <Loader2 className="h-3 w-3 animate-spin" /> Saving
+            </span>
+          ) : null}
+        </div>
 
-      <Card className="border-border/70 bg-white/95 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <StickyNote className="h-4 w-4" />
+        <div className="mt-3 flex items-center gap-0.5">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              className="rounded-full p-1.5 transition-transform duration-100 hover:scale-110 active:scale-95"
+              onClick={() => onRatingClick(star)}
+            >
+              <Star
+                className={`h-6 w-6 transition-colors duration-100 ${
+                  star <= rating
+                    ? "fill-brand-primary text-brand-primary"
+                    : "text-neutral-200 hover:text-neutral-300"
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-brand-gray">
+          {rating > 0 ? `${rating} of 5` : "Tap to rate"}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-border/60 bg-white p-5">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-3.5 w-3.5 text-brand-gray" />
+          <p className="text-xs font-semibold tracking-wide text-brand-black/60 uppercase">
             Notes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            placeholder="Add review notes..."
-            className="min-h-40 resize-none"
-            value={notes}
-            onChange={onNotesChange}
-          />
-        </CardContent>
-      </Card>
+          </p>
+        </div>
+        <Textarea
+          placeholder="Your observations on this submission..."
+          className="mt-3 min-h-36 resize-none border-border/60 bg-neutral-50 text-sm placeholder:text-brand-gray/50 focus-visible:ring-brand-primary/20"
+          value={notes}
+          onChange={onNotesChange}
+        />
+      </div>
     </div>
   )
 }
@@ -707,8 +759,8 @@ function JurySubmissionViewer({
 
   if (!currentParticipant) {
     return (
-      <div className="rounded-3xl border bg-white/90 px-6 py-12 text-center shadow-sm">
-        <p className="text-sm text-muted-foreground">No participant selected.</p>
+      <div className="rounded-xl border border-border/60 bg-white px-6 py-16 text-center">
+        <p className="text-sm text-brand-gray">No participant selected.</p>
       </div>
     )
   }
@@ -716,81 +768,62 @@ function JurySubmissionViewer({
   const visibleTotal = selectedRatings.length > 0 ? participants.length : totalParticipants
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-3xl border bg-white/90 px-4 py-3 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={onBack}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to list
-            </Button>
-            <p className="text-sm text-muted-foreground">
-              {currentParticipantIndex + 1} of {visibleTotal}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">Filter by rating</span>
-            {[0, 1, 2, 3, 4, 5].map((rating) => (
-              <Button
-                key={rating}
-                size="sm"
-                variant={selectedRatings.includes(rating) ? "default" : "outline"}
-                onClick={() => toggleRatingFilter(rating)}
-                className="rounded-full"
-              >
-                {rating === 0 ? (
-                  "Unrated"
-                ) : (
-                  <>
-                    <Star className="mr-1 h-3.5 w-3.5 fill-current" />
-                    {rating}
-                  </>
-                )}
-              </Button>
-            ))}
-          </div>
+    <div className="space-y-3">
+      <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-neutral-50 px-3 py-2 text-sm font-medium text-brand-black transition-colors hover:bg-neutral-100"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            List
+          </button>
+          <span className="font-rocgrotesk text-sm font-bold text-brand-black">
+            {currentParticipantIndex + 1}
+            <span className="font-sans font-normal text-brand-gray"> / {visibleTotal}</span>
+          </span>
         </div>
+
+        <RatingFilterBar selectedRatings={selectedRatings} onToggle={toggleRatingFilter} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-3xl border bg-white/95 p-4 shadow-sm">
-          <div className="relative flex min-h-[60vh] items-center justify-center overflow-hidden rounded-[24px] bg-neutral-950">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="overflow-hidden rounded-xl border border-border/60 bg-neutral-950">
+          <div className="relative flex min-h-[60vh] items-center justify-center">
             {currentAssetUrl && !imageErrors.has(currentAssetId) ? (
               <img
                 src={currentAssetUrl}
                 alt={currentParticipant.reference}
-                className="max-h-[70vh] max-w-full object-contain"
+                className="max-h-[75vh] max-w-full object-contain"
                 onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
               />
             ) : (
-              <div className="flex max-w-md flex-col items-center justify-center px-6 text-center text-white/80">
-                <ImageOff className="mb-4 h-14 w-14" />
-                <p className="text-lg font-semibold">
+              <div className="flex max-w-sm flex-col items-center justify-center px-6 text-center">
+                <ImageOff className="mb-4 h-12 w-12 text-white/30" />
+                <p className="font-rocgrotesk text-lg font-bold text-white/80">
                   {invitation.inviteType === "class"
                     ? "Contact sheet unavailable"
                     : "Image unavailable"}
                 </p>
-                <p className="mt-2 text-sm text-white/60">
-                  The selected asset could not be loaded for this participant.
+                <p className="mt-2 text-sm text-white/40">
+                  The asset could not be loaded for this participant.
                 </p>
               </div>
             )}
 
-            <Button
-              size="icon"
-              variant="ghost"
-              className="absolute left-4 top-1/2 h-11 w-11 -translate-y-1/2 rounded-full bg-black/40 text-white hover:bg-black/60"
+            <button
+              type="button"
+              className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70 disabled:opacity-30"
               disabled={currentParticipantIndex === 0}
               onClick={() => setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))}
             >
               <ChevronLeft className="h-5 w-5" />
-            </Button>
+            </button>
 
-            <Button
-              size="icon"
-              variant="ghost"
-              className="absolute right-4 top-1/2 h-11 w-11 -translate-y-1/2 rounded-full bg-black/40 text-white hover:bg-black/60"
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70 disabled:opacity-30"
               disabled={currentParticipantIndex >= participants.length - 1}
               onClick={() =>
                 setCurrentParticipantIndex(
@@ -799,12 +832,12 @@ function JurySubmissionViewer({
               }
             >
               <ChevronRight className="h-5 w-5" />
-            </Button>
+            </button>
 
             {isFetchingNextPage ? (
-              <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full bg-black/50 px-3 py-1 text-sm text-white">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading...
+              <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Loading
               </div>
             ) : null}
           </div>
@@ -911,8 +944,8 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
   }, [currentParticipantIndex, participants, selectedParticipantId])
 
   return (
-    <main className="min-h-dvh px-4 py-4 md:px-6 md:py-6">
-      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4">
+    <main className="min-h-dvh bg-neutral-50 bg-dot-pattern-light">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 py-5 md:px-6 md:py-6">
         <JuryReviewHeader
           domain={domain}
           token={token}
