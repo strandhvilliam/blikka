@@ -165,4 +165,30 @@ describe("participant-upload/participant-selected-files", () => {
       expect.objectContaining({ name: "first.jpg" }),
     );
   });
+
+  it("places photos without timestamps last during initial automatic sorting", async () => {
+    const { prepareParticipantSelectedPhotos } = await importParticipantSelectedFiles();
+
+    const result = await prepareParticipantSelectedPhotos({
+      candidates: [
+        {
+          file: new File(["known"], "first.jpg", { type: "image/jpeg" }),
+          preconvertedExif: null,
+        },
+        {
+          file: new File(["missing"], "missing.jpg", { type: "image/jpeg" }),
+          preconvertedExif: {},
+        },
+      ],
+      existingPhotos: [],
+      maxPhotos: 2,
+      topicOrderIndexes: [2, 4],
+    });
+
+    expect(result.photos.map((photo) => photo.file.name)).toEqual([
+      "first.jpg",
+      "missing.jpg",
+    ]);
+    expect(result.photos.map((photo) => photo.orderIndex)).toEqual([2, 4]);
+  });
 });

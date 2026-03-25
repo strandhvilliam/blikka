@@ -20,6 +20,20 @@ export async function parseExifData(file: File): Promise<ExifData | null> {
   }
 }
 
+export function getCapturedAtDate(exif?: ExifData | null): Date | null {
+  if (!exif) {
+    return null;
+  }
+
+  const dateValue = exif.DateTimeOriginal ?? exif.DateTimeDigitized ?? exif.CreateDate;
+  if (typeof dateValue !== "string" && !(dateValue instanceof Date)) {
+    return null;
+  }
+
+  const date = new Date(dateValue);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export function getExifDate(exif?: ExifData | null): Date | null {
   if (!exif) {
     return null;

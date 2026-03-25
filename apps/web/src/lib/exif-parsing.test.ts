@@ -49,6 +49,38 @@ describe("getExifDate", () => {
   });
 });
 
+describe("getCapturedAtDate", () => {
+  it("returns null for missing or invalid values", async () => {
+    mockExifDependencies();
+    const { getCapturedAtDate } = await import("./exif-parsing");
+
+    expect(getCapturedAtDate()).toBeNull();
+    expect(getCapturedAtDate({ DateTimeDigitized: 123 })).toBeNull();
+    expect(getCapturedAtDate({ CreateDate: "invalid" })).toBeNull();
+  });
+
+  it("falls back across supported captured-at EXIF fields", async () => {
+    mockExifDependencies();
+    const { getCapturedAtDate } = await import("./exif-parsing");
+
+    expect(
+      getCapturedAtDate({
+        DateTimeOriginal: "2024-01-02T03:04:05.000Z",
+      })?.toISOString(),
+    ).toBe("2024-01-02T03:04:05.000Z");
+    expect(
+      getCapturedAtDate({
+        DateTimeDigitized: "2024-02-03T04:05:06.000Z",
+      })?.toISOString(),
+    ).toBe("2024-02-03T04:05:06.000Z");
+    expect(
+      getCapturedAtDate({
+        CreateDate: "2024-03-04T05:06:07.000Z",
+      })?.toISOString(),
+    ).toBe("2024-03-04T05:06:07.000Z");
+  });
+});
+
 describe("parseExifData", () => {
   it("returns null when EXIF parsing fails", async () => {
     mockExifDependencies();
