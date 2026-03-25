@@ -110,7 +110,7 @@
     },
     "uploadStep": {
       "title": "Ladda upp dina foton",
-      "description": "Välj och ladda upp dina foton för inlämning",
+      "description": "Välj och ladda upp dina foton för inlämning. Foton sorteras automatiskt utifrån varje bilds metadata.",
       "byCameraTitle": "Ladda upp ditt foto",
       "byCameraDescription": "Välj och ladda upp ditt foto",
       "topicLabel": "Tema",
@@ -128,6 +128,7 @@
       "photoCount": "{current} av {max} foton valda",
       "selectPhotos": "Välj foton",
       "back": "Tillbaka",
+      "goBack": "Gå tillbaka",
       "confirmGoBack": "Är du säker på att du vill gå tillbaka? Detta kommer att rensa alla valda foton.",
       "finalizeAndSubmit": "Slutför & Skicka in",
       "uploadAndContinue": "Ladda upp & Fortsätt",

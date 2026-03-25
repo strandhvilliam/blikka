@@ -15,7 +15,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
 import { useTRPC } from "@/lib/trpc/client"
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
-import { formatDomainPathname } from "@/lib/utils"
+import { cn, formatDomainPathname } from "@/lib/utils"
 
 import { useFileUpload } from "../_hooks/use-file-upload"
 import { useLivePhotoValidation } from "../_hooks/use-live-photo-validation"
@@ -278,7 +278,12 @@ export function UploadSubmissionsStep({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="mx-auto max-w-md px-6"
+            className={cn(
+              "mx-auto max-w-md px-6",
+              canSubmit &&
+                !isUploading &&
+                "pb-[calc(7rem+env(safe-area-inset-bottom,0px))]",
+            )}
           >
             {/* Header */}
             <div className="mb-8 text-center">
@@ -323,9 +328,9 @@ export function UploadSubmissionsStep({
                 variant="ghost"
                 size="lg"
                 onClick={handleResetAndGoBack}
-                className="w-full"
+                className="w-full rounded-full bg-muted text-foreground hover:bg-muted/80 hover:text-foreground"
               >
-                {t("back")}
+                {t("goBack")}
               </Button>
             </div>
           </motion.div>
@@ -337,7 +342,7 @@ export function UploadSubmissionsStep({
           initial={{ opacity: 0, y: 100 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 100 }}
-          className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-white/95 p-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur-sm"
+          className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-white/95 p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur-sm"
         >
           <div className="mx-auto max-w-md">
             <PrimaryButton

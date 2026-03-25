@@ -110,7 +110,7 @@
     },
     "uploadStep": {
       "title": "Upload Your Photos",
-      "description": "Select and upload your photos for submission",
+      "description": "Select and upload your photos for submission. They are sorted automatically using each photo's metadata.",
       "byCameraTitle": "Upload Your Photo",
       "byCameraDescription": "Select and upload your photo",
       "topicLabel": "Topic",
@@ -128,6 +128,7 @@
       "photoCount": "{current} of {max} photos selected",
       "selectPhotos": "Select Photos",
       "back": "Back",
+      "goBack": "Go back",
       "confirmGoBack": "Are you sure you want to go back? This will clear all selected photos.",
       "finalizeAndSubmit": "Finalize & Submit",
       "uploadAndContinue": "Upload & Continue",

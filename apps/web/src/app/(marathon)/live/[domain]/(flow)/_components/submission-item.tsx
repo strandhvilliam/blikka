@@ -9,7 +9,14 @@ import {
 } from "@/components/ui/dialog"
 import type { Topic } from "@blikka/db"
 import { format } from "date-fns"
-import { ChevronDown, ChevronUp, ImageIcon, Info, X } from "lucide-react"
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  ImageIcon,
+  Info,
+  X,
+} from "lucide-react"
 import { useTranslations } from "next-intl"
 import { motion } from "motion/react"
 import { useState } from "react"
@@ -58,19 +65,12 @@ export function SubmissionItem({
   })
 
   const highestPriorityResult = sortedValidationResults?.[0]
-  const displayValidation =
-    photo?.exif && Object.keys(photo.exif).length === 0
-      ? {
-          message: t("noExifData"),
-          outcome: VALIDATION_OUTCOME.FAILED as typeof VALIDATION_OUTCOME.FAILED,
-          severity: "warning" as const,
-        }
-      : {
-          message: highestPriorityResult?.message,
-          outcome: highestPriorityResult?.outcome,
-          severity: highestPriorityResult?.severity,
-          ruleKey: highestPriorityResult?.ruleKey,
-        }
+  const displayValidation = {
+    message: highestPriorityResult?.message,
+    outcome: highestPriorityResult?.outcome,
+    severity: highestPriorityResult?.severity,
+    ruleKey: highestPriorityResult?.ruleKey,
+  }
 
   if (!photo) {
     return (
@@ -164,9 +164,11 @@ export function SubmissionItem({
         </div>
       </div>
 
-      {/* Details toggle */}
-      {hasExifData && (
-        <div className="border-t border-dashed border-border px-3 py-2">
+      {/* Photo details toggle, or no-EXIF notice in the same footer row */}
+      <div
+        className={`border-t border-dashed border-border px-3 py-2 ${!hasExifData ? "bg-amber-50/60" : ""}`}
+      >
+        {hasExifData ? (
           <Button
             variant="ghost"
             size="sm"
@@ -177,8 +179,19 @@ export function SubmissionItem({
             <span>{t("photoDetails")}</span>
             {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
-        </div>
-      )}
+        ) : (
+          <div
+            role="alert"
+            className="flex items-start gap-2 text-xs text-amber-900"
+          >
+            <AlertTriangle
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+              aria-hidden
+            />
+            <span className="min-w-0 leading-snug">{t("noExifData")}</span>
+          </div>
+        )}
+      </div>
 
       {expanded && hasExifData && (
         <motion.div
