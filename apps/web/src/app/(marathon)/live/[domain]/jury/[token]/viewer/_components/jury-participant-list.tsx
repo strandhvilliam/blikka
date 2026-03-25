@@ -6,10 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { JuryRatingsResponse } from "../../_lib/jury-types";
 import type { JuryListParticipant } from "../_lib/jury-list-participant";
 import { JuryParticipantCard } from "./jury-participant-card";
+import { JuryTopPicksPanel } from "./jury-top-picks-panel";
 import { RatingFilterBar } from "./rating-filter";
 
 export function JuryParticipantList({
   participants,
+  ratings,
   ratingByParticipantId,
   selectedRatings,
   toggleRatingFilter,
@@ -24,6 +26,7 @@ export function JuryParticipantList({
   error,
 }: {
   participants: JuryListParticipant[];
+  ratings: JuryRatingsResponse["ratings"];
   ratingByParticipantId: Map<number, JuryRatingsResponse["ratings"][number]>;
   selectedRatings: number[];
   toggleRatingFilter: (rating: number) => void;
@@ -173,6 +176,12 @@ export function JuryParticipantList({
 
   return (
     <div className="space-y-5">
+      <JuryTopPicksPanel
+        ratings={ratings}
+        participants={participants}
+        onParticipantSelect={onParticipantSelect}
+      />
+
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="flex items-center gap-2 text-sm font-medium text-brand-black">

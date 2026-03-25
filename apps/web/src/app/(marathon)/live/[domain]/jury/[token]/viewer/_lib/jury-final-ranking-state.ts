@@ -45,3 +45,19 @@ export function getFinalRankingLabel(finalRanking: 1 | 2 | 3): string {
       return "3rd";
   }
 }
+
+export function getRankAssignments(
+  ratings: ReadonlyArray<JuryRatingEntry>,
+): Map<1 | 2 | 3, number> {
+  const assignments = new Map<1 | 2 | 3, number>();
+  for (const rating of ratings) {
+    if (
+      rating.finalRanking === 1 ||
+      rating.finalRanking === 2 ||
+      rating.finalRanking === 3
+    ) {
+      assignments.set(rating.finalRanking, rating.participantId);
+    }
+  }
+  return assignments;
+}

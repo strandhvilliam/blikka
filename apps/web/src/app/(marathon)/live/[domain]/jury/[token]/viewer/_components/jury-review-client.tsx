@@ -211,6 +211,7 @@ export function JuryReviewClient({
         ) : (
           <JuryParticipantList
             participants={participants}
+            ratings={ratingsData.ratings}
             ratingByParticipantId={ratingByParticipantId}
             selectedRatings={selectedRatings}
             toggleRatingFilter={toggleRatingFilter}

@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useTRPC } from "@/lib/trpc/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { parseAsInteger, useQueryState } from "nuqs";
@@ -24,12 +34,19 @@ import type {
   JuryRatingsResponse,
 } from "../../_lib/jury-types";
 import {
+  juryRankChipActive,
+  juryRankChipNeutralOccupied,
+  juryRankChipNeutralSlot,
+} from "../_lib/jury-rank-chip-classes";
+import {
   getFinalRankingLabel,
   getParticipantFinalRanking,
+  getRankAssignments,
 } from "../_lib/jury-final-ranking-state";
 import type { JuryListParticipant } from "../_lib/jury-list-participant";
 import { getParticipantAssetUrl } from "../_lib/jury-list-participant";
 import { ActiveRatingFilterBadge } from "./rating-filter";
+import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge";
 import { JurySidebar } from "./jury-sidebar";
 
 export function JurySubmissionViewer({
@@ -225,14 +242,22 @@ export function JurySubmissionViewer({
     [localFinalRanking, localNotes, localRating, saveRating],
   );
 
+  const [pendingRank, setPendingRank] = useState<1 | 2 | 3 | null>(null);
+
+  const confirmFinalRanking = useCallback(() => {
+    if (pendingRank === null) return;
+    const nextFinalRanking =
+      localFinalRanking === pendingRank ? null : pendingRank;
+    setLocalFinalRanking(nextFinalRanking);
+    void saveRating(localRating, localNotes, nextFinalRanking);
+    setPendingRank(null);
+  }, [pendingRank, localFinalRanking, localNotes, localRating, saveRating]);
+
   const handleFinalRankingClick = useCallback(
     (finalRanking: 1 | 2 | 3) => {
-      const nextFinalRanking =
-        localFinalRanking === finalRanking ? null : finalRanking;
-      setLocalFinalRanking(nextFinalRanking);
-      void saveRating(localRating, localNotes, nextFinalRanking);
+      setPendingRank(finalRanking);
     },
-    [localFinalRanking, localNotes, localRating, saveRating],
+    [],
   );
 
   useEffect(() => {
@@ -301,12 +326,12 @@ export function JurySubmissionViewer({
   if (!currentParticipant) {
     return (
       <div className="space-y-3">
-        <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 rounded-full border border-border/60 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-neutral-50 px-3 py-2 text-sm font-medium text-brand-black transition-colors hover:bg-neutral-100"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-neutral-50 px-3 py-2 text-sm font-medium text-brand-black transition-colors hover:bg-neutral-100"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               List
@@ -324,14 +349,27 @@ export function JurySubmissionViewer({
 
   const visibleTotal = totalParticipants;
 
+  const rankOccupants = useMemo(() => {
+    const base = getRankAssignments(ratings);
+    if (currentParticipantId) {
+      for (const [rank, pid] of base) {
+        if (pid === currentParticipantId) base.delete(rank);
+      }
+      if (localFinalRanking !== null) {
+        base.set(localFinalRanking, currentParticipantId);
+      }
+    }
+    return base;
+  }, [ratings, currentParticipantId, localFinalRanking]);
+
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 rounded-full border border-border/60 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-neutral-50 px-3 py-2 text-sm font-medium text-brand-black transition-colors hover:bg-neutral-100"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-neutral-50 px-3 py-2 text-sm font-medium text-brand-black transition-colors hover:bg-neutral-100"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             List
@@ -346,26 +384,87 @@ export function JurySubmissionViewer({
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-          {[1, 2, 3].map((rank) => {
+          {([1, 2, 3] as const).map((rank) => {
             const isActive = localFinalRanking === rank;
+            const occupantId = rankOccupants.get(rank);
+            const occupantRef =
+              occupantId && !isActive
+                ? participants.find((p) => p.id === occupantId)?.reference
+                : null;
+            const isOccupiedByOther =
+              occupantId !== undefined &&
+              occupantId !== currentParticipantId;
 
             return (
               <button
                 key={rank}
                 type="button"
-                className={`inline-flex min-w-20 items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition-all ${
+                className={
                   isActive
-                    ? "border-brand-primary bg-brand-primary text-white shadow-[0_10px_26px_rgba(254,77,58,0.24)]"
-                    : "border-border/60 bg-neutral-50 text-brand-black hover:border-brand-primary/30 hover:bg-white"
-                }`}
-                onClick={() => handleFinalRankingClick(rank as 1 | 2 | 3)}
+                    ? juryRankChipActive
+                    : isOccupiedByOther
+                      ? juryRankChipNeutralOccupied
+                      : juryRankChipNeutralSlot
+                }
+                onClick={() => handleFinalRankingClick(rank)}
               >
-                {getFinalRankingLabel(rank as 1 | 2 | 3)}
+                <JuryRankTrophyBadge
+                  rank={rank}
+                  tone={isActive ? "active" : "idle"}
+                />
+                {getFinalRankingLabel(rank)}
+                {isActive ? (
+                  <span className="text-xs font-normal opacity-80">
+                    #{currentParticipant.reference}
+                  </span>
+                ) : occupantRef ? (
+                  <span className="text-xs font-normal text-brand-gray">
+                    #{occupantRef}
+                  </span>
+                ) : null}
               </button>
             );
           })}
         </div>
       </div>
+
+      <AlertDialog
+        open={pendingRank !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingRank(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingRank !== null && localFinalRanking === pendingRank
+                ? `Remove ${getFinalRankingLabel(pendingRank)} place?`
+                : pendingRank !== null
+                  ? `Assign ${getFinalRankingLabel(pendingRank)} place?`
+                  : "Assign ranking"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingRank !== null && localFinalRanking === pendingRank
+                ? `This will remove #${currentParticipant.reference} from ${getFinalRankingLabel(pendingRank)} place.`
+                : pendingRank !== null
+                  ? `This will assign #${currentParticipant.reference} as your ${getFinalRankingLabel(pendingRank)} place pick.${
+                      rankOccupants.has(pendingRank) && rankOccupants.get(pendingRank) !== currentParticipantId
+                        ? ` The current ${getFinalRankingLabel(pendingRank)} place holder will be replaced.`
+                        : ""
+                    }`
+                  : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmFinalRanking}>
+              {pendingRank !== null && localFinalRanking === pendingRank
+                ? "Remove"
+                : "Assign"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="overflow-hidden rounded-xl border border-border/60 bg-neutral-950">

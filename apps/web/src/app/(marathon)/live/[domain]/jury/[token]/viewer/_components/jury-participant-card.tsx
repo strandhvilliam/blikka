@@ -4,6 +4,8 @@ import { ImageIcon, Star } from "lucide-react";
 import type { JuryListParticipant } from "../_lib/jury-list-participant";
 import { getFinalRankingLabel } from "../_lib/jury-final-ranking-state";
 import { getParticipantPreview } from "../_lib/jury-list-participant";
+import { juryRankChipCardBadge } from "../_lib/jury-rank-chip-classes";
+import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge";
 
 export function JuryParticipantCard({
   participant,
@@ -45,7 +47,10 @@ export function JuryParticipantCard({
               {participant.reference}
             </h3>
             {finalRanking !== null ? (
-              <span className="rounded-full bg-brand-primary/10 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-brand-primary">
+              <span
+                className={`${juryRankChipCardBadge} pointer-events-none tracking-wide`}
+              >
+                <JuryRankTrophyBadge rank={finalRanking} tone="idle" size="sm" />
                 {getFinalRankingLabel(finalRanking)}
               </span>
             ) : null}
