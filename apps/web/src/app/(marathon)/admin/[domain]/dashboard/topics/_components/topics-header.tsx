@@ -1,15 +1,16 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, List, Circle, Tag } from "lucide-react"
+import { Plus, Circle, Tag } from "lucide-react"
 import { PrimaryButton } from "@/components/ui/primary-button"
-import { TopicsCreateDialog } from "./topics-create-dialog"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
-export function TopicsHeader() {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+type TopicsHeaderProps = {
+  onAddTopic: () => void
+}
+
+export function TopicsHeader({ onAddTopic }: TopicsHeaderProps) {
   const domain = useDomain()
   const trpc = useTRPC()
 
@@ -42,14 +43,12 @@ export function TopicsHeader() {
             </div>
             <span>{topicCount === 1 ? "topic" : "topics"}</span>
           </div>
-          <PrimaryButton onClick={() => setCreateDialogOpen(true)} className="h-8 px-3 text-xs">
+          <PrimaryButton onClick={onAddTopic} className="h-8 px-3 text-xs">
             <Plus className="size-3.5" />
             Add Topic
           </PrimaryButton>
         </div>
       </div>
-
-      <TopicsCreateDialog isOpen={createDialogOpen} onOpenChange={setCreateDialogOpen} />
     </div>
   )
 }

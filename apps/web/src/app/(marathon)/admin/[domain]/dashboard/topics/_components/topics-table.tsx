@@ -2,7 +2,14 @@
 
 import { useMemo, useState, useEffect, useCallback } from "react"
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -40,8 +47,13 @@ import {
 import { cn } from "@/lib/utils"
 import { TopicsDragHandle } from "./topics-drag-handle"
 import { TopicsSortableRow } from "./topics-sortable-row"
+import { TopicsMarathonEmptyState } from "./topics-marathon-empty-state"
 
-export function TopicsTable() {
+type TopicsTableProps = {
+  onCreateTopic: () => void
+}
+
+export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
   const domain = useDomain()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -281,6 +293,25 @@ export function TopicsTable() {
     getRowId: (row) => row.id.toString(),
   })
 
+  const headerGroups = table.getHeaderGroups()
+  const columnCount = table.getAllColumns().length
+
+  const tableHeader = (
+    <TableHeader className="sticky top-0 z-10 bg-card">
+      {headerGroups.map((headerGroup) => (
+        <TableRow className="bg-muted/50 hover:bg-muted/50" key={headerGroup.id}>
+          {headerGroup.headers.map((header) => (
+            <TableHead key={header.id}>
+              {header.isPlaceholder
+                ? null
+                : flexRender(header.column.columnDef.header, header.getContext())}
+            </TableHead>
+          ))}
+        </TableRow>
+      ))}
+    </TableHeader>
+  )
+
   return (
     <>
       <div
@@ -290,45 +321,49 @@ export function TopicsTable() {
         )}
       >
         <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
-          <DndContext
-            id={tableKey}
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-            modifiers={[restrictToVerticalAxis]}
-          >
+          {topics.length === 0 ? (
             <Table>
-              <TableHeader className="sticky top-0 z-10 bg-card">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow className="bg-muted/50 hover:bg-muted/50" key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
+              {tableHeader}
               <TableBody>
-                <SortableContext
-                  key={tableKey}
-                  items={dataIds}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {table.getRowModel().rows.map((row) => (
-                    <TopicsSortableRow
-                      key={row.original.id}
-                      row={row}
-                      index={row.original.orderIndex}
-                      dataIds={dataIds}
-                    />
-                  ))}
-                </SortableContext>
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={columnCount}
+                    className="min-w-0 border-b-0 p-4 align-top whitespace-normal"
+                  >
+                    <TopicsMarathonEmptyState onCreateClick={onCreateTopic} />
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
-          </DndContext>
+          ) : (
+            <DndContext
+              id={tableKey}
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              modifiers={[restrictToVerticalAxis]}
+            >
+              <Table>
+                {tableHeader}
+                <TableBody>
+                  <SortableContext
+                    key={tableKey}
+                    items={dataIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {table.getRowModel().rows.map((row) => (
+                      <TopicsSortableRow
+                        key={row.original.id}
+                        row={row}
+                        index={row.original.orderIndex}
+                        dataIds={dataIds}
+                      />
+                    ))}
+                  </SortableContext>
+                </TableBody>
+              </Table>
+            </DndContext>
+          )}
         </div>
       </div>
 
