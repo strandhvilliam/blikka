@@ -11,7 +11,7 @@ import {
   XCircle,
 } from "lucide-react"
 import type { CompetitionClass, Topic, ValidationResult } from "@blikka/db"
-import { RULE_KEY_DISPLAY_LABELS } from "@blikka/validation"
+import { RULE_KEY_DISPLAY_LABELS, RULE_KEY_PASSED_DISPLAY_LABELS } from "@blikka/validation"
 
 import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
@@ -51,12 +51,18 @@ function countsFor(validations: ValidationResult[]) {
   }
 }
 
-function ruleLabel(ruleKey: string) {
-  const key = ruleKey.toLowerCase()
+function ruleLabel(validation: ValidationResult) {
+  const key = validation.ruleKey.toLowerCase()
+  if (
+    validation.outcome === "passed" &&
+    key in RULE_KEY_PASSED_DISPLAY_LABELS
+  ) {
+    return RULE_KEY_PASSED_DISPLAY_LABELS[key as keyof typeof RULE_KEY_PASSED_DISPLAY_LABELS]
+  }
   if (key in RULE_KEY_DISPLAY_LABELS) {
     return RULE_KEY_DISPLAY_LABELS[key as keyof typeof RULE_KEY_DISPLAY_LABELS]
   }
-  return ruleKey.replace(/_/g, " ")
+  return validation.ruleKey.replace(/_/g, " ")
 }
 
 function globalLeadIconClass(counts: ReturnType<typeof countsFor>) {
@@ -198,7 +204,7 @@ function ValidationDetailRow({
       </div>
       <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium capitalize">{ruleLabel(validation.ruleKey)}</p>
+          <p className="text-sm font-medium capitalize">{ruleLabel(validation)}</p>
           <p className="mt-1 text-xs text-muted-foreground">{validation.message}</p>
         </div>
         {showOverruleButtons &&

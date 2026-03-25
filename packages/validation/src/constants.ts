@@ -17,6 +17,16 @@ export const RULE_KEY_DISPLAY_LABELS = {
   [RULE_KEYS.MODIFIED]: "Possible editing or weak EXIF",
 } as const satisfies Record<(typeof RULE_KEYS)[keyof typeof RULE_KEYS], string>;
 
+/** Short UI labels when a rule passes (counterpart to {@link RULE_KEY_DISPLAY_LABELS}). */
+export const RULE_KEY_PASSED_DISPLAY_LABELS = {
+  [RULE_KEYS.MAX_FILE_SIZE]: "Within size limit",
+  [RULE_KEYS.ALLOWED_FILE_TYPES]: "Valid file type",
+  [RULE_KEYS.STRICT_TIMESTAMP_ORDERING]: "In capture-time order",
+  [RULE_KEYS.SAME_DEVICE]: "Same device",
+  [RULE_KEYS.WITHIN_TIMERANGE]: "Within configured timerange",
+  [RULE_KEYS.MODIFIED]: "No editing indicators",
+} as const satisfies Record<(typeof RULE_KEYS)[keyof typeof RULE_KEYS], string>;
+
 export const IMAGE_EXTENSION_TO_MIME_TYPE = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
