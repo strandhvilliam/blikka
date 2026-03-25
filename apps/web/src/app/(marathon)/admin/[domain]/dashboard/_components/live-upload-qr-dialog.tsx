@@ -1,8 +1,8 @@
 "use client"
 
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { Check, Copy, Download, QrCode, XIcon } from "lucide-react"
-import { useRef, useState } from "react"
+import { Check, Copy, Download, XIcon } from "lucide-react"
+import { useRef, useState, type ReactNode } from "react"
 import { downloadQrPng } from "../_lib/download-qr-png"
 import { QrCodeGenerator } from "@/components/qr-code-generator"
 import { Button } from "@/components/ui/button"
@@ -13,16 +13,35 @@ import {
   DialogOverlay,
   DialogPortal,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
-interface LiveUploadQrDialogProps {
+const defaultParticipantDescription = (
+  <>
+    This QR code and URL point at your marathon&apos;s{" "}
+    <span className="font-medium text-brand-black/85 dark:text-foreground">live</span> site — the
+    page participants open in a browser to register and upload their photos during the event.
+    Share it on a poster, slide, or chat, or open{" "}
+    <span className="font-medium text-brand-black/85 dark:text-foreground">Upload</span> in the
+    header for the same address.
+  </>
+)
+
+export interface LiveUploadQrDialogProps {
   uploadUrl: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  heading?: string
+  description?: ReactNode
 }
 
-export function LiveUploadQrDialog({ uploadUrl }: LiveUploadQrDialogProps) {
-  const [open, setOpen] = useState(false)
+export function LiveUploadQrDialog({
+  uploadUrl,
+  open,
+  onOpenChange,
+  heading = "Participant upload link",
+  description = defaultParticipantDescription,
+}: LiveUploadQrDialogProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -32,19 +51,7 @@ export function LiveUploadQrDialog({ uploadUrl }: LiveUploadQrDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="rounded-full border-border/60 bg-sidebar-accent/50 text-sidebar-foreground/80 shadow-none hover:bg-sidebar-accent hover:text-sidebar-foreground"
-          aria-label="Show QR code and link for the participant live upload site"
-        >
-          <QrCode className="size-4 opacity-70" />
-          <span>QR</span>
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Local portal + flex center: shared DialogContent uses zoom-in-95 which overwrites translate-based centering. */}
       <DialogPortal>
         <DialogOverlay />
@@ -58,14 +65,18 @@ export function LiveUploadQrDialog({ uploadUrl }: LiveUploadQrDialogProps) {
             )}
           >
             <DialogHeader className="sr-only">
-              <DialogTitle>QR code for the participant live upload site</DialogTitle>
+              <DialogTitle>QR code for {heading}</DialogTitle>
               <DialogDescription>
-                Opens the public live upload address for this marathon in a browser, where
-                participants enter their details and submit photos. Same URL as the Upload shortcut
-                in the header.
+                Scannable QR code and shareable URL for this marathon link.
               </DialogDescription>
             </DialogHeader>
-            <LiveUploadQrDialogBody uploadUrl={uploadUrl} onCopy={handleCopy} copied={copied} />
+            <LiveUploadQrDialogBody
+              uploadUrl={uploadUrl}
+              onCopy={handleCopy}
+              copied={copied}
+              heading={heading}
+              description={description}
+            />
             <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 z-10 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
               <XIcon />
               <span className="sr-only">Close</span>
@@ -81,7 +92,9 @@ export function LiveUploadQrDialogBody({
   uploadUrl,
   onCopy,
   copied = false,
-}: LiveUploadQrDialogProps & {
+  heading = "Participant upload link",
+  description = defaultParticipantDescription,
+}: Omit<LiveUploadQrDialogProps, "open" | "onOpenChange"> & {
   onCopy?: () => void | Promise<void>
   copied?: boolean
 }) {
@@ -112,15 +125,10 @@ export function LiveUploadQrDialogBody({
     <div className="relative flex flex-col gap-8 p-6 sm:gap-10 sm:p-10">
       <header className="pr-10">
         <h2 className="font-special-gothic text-balance text-3xl leading-[0.95] tracking-tight text-brand-black sm:text-4xl dark:text-card-foreground">
-          Participant upload link
+          {heading}
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-brand-black/70 dark:text-muted-foreground">
-          This QR code and URL point at your marathon&apos;s{" "}
-          <span className="font-medium text-brand-black/85 dark:text-foreground">live</span> site —
-          the page participants open in a browser to register and upload their photos during the
-          event. Share it on a poster, slide, or chat, or open{" "}
-          <span className="font-medium text-brand-black/85 dark:text-foreground">Upload</span> in
-          the header for the same address.
+          {description}
         </p>
       </header>
 
