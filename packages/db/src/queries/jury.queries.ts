@@ -420,7 +420,8 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
       }) {
         const limit = 50;
         if (invitation.inviteType === "topic") {
-          if (!invitation.topicId) {
+          const topicId = invitation.topicId;
+          if (!topicId) {
             return yield* Effect.fail(
               new DbError({
                 message: "Topic not found",
@@ -445,7 +446,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
               where: (table, operators) =>
                 operators.and(
                   operators.eq(table.marathonId, invitation.marathonId),
-                  operators.eq(table.topicId, invitation.topicId),
+                  operators.eq(table.topicId, topicId),
                   ...(cursorSubmission
                     ? [
                         operators.lt(
@@ -597,6 +598,15 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
           .map(([participantId]) => participantId);
         if (ratingFilter.includes(0)) {
           if (invitation.inviteType === "topic") {
+            const topicId = invitation.topicId;
+            if (!topicId) {
+              return yield* Effect.fail(
+                new DbError({
+                  message: "Topic not found",
+                }),
+              );
+            }
+
             const allTopicParticipants = yield* use((db) =>
               db
                 .selectDistinct({ participantId: submissions.participantId })
@@ -604,7 +614,7 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
                 .where(
                   and(
                     eq(submissions.marathonId, invitation.marathonId),
-                    eq(submissions.topicId, invitation.topicId),
+                    eq(submissions.topicId, topicId),
                   ),
                 ),
             );
@@ -643,12 +653,21 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
         }
         const offset = cursor || 0;
         if (invitation.inviteType === "topic") {
+          const topicId = invitation.topicId;
+          if (!topicId) {
+            return yield* Effect.fail(
+              new DbError({
+                message: "Topic not found",
+              }),
+            );
+          }
+
           const topicSubmissions = yield* use((db) =>
             db.query.submissions.findMany({
               where: (table, operators) =>
                 operators.and(
                   operators.eq(table.marathonId, invitation.marathonId),
-                  operators.eq(table.topicId, invitation.topicId),
+                  operators.eq(table.topicId, topicId),
                 ),
               with: {
                 topic: true,
@@ -837,24 +856,61 @@ export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
             }),
           );
         }
-        const conditions = [eq(submissions.marathonId, invitation.marathonId)];
-        if (invitation.topicId) {
-          conditions.push(eq(submissions.topicId, invitation.topicId));
-        }
-        let participantIds = yield* use((db) =>
-          db
-            .selectDistinct({ participantId: submissions.participantId })
-            .from(submissions)
-            .where(
-              and(
-                eq(submissions.marathonId, invitation.marathonId),
-                invitation.topicId
-                  ? eq(submissions.topicId, invitation.topicId)
-                  : undefined,
-                ...conditions,
+        let participantIds: Array<{ participantId: number }>;
+
+        if (invitation.inviteType === "topic") {
+          const topicId = invitation.topicId;
+          if (!topicId) {
+            return yield* Effect.fail(
+              new DbError({
+                message: "Topic not found",
+              }),
+            );
+          }
+
+          participantIds = (yield* use((db) =>
+            db
+              .selectDistinct({ participantId: submissions.participantId })
+              .from(submissions)
+              .where(
+                and(
+                  eq(submissions.marathonId, invitation.marathonId),
+                  eq(submissions.topicId, topicId),
+                ),
               ),
-            ),
-        );
+          )) as Array<{ participantId: number }>;
+        } else if (invitation.inviteType === "class") {
+          const competitionClassId = invitation.competitionClassId;
+          if (!competitionClassId) {
+            return yield* Effect.fail(
+              new DbError({
+                message: "Class not found",
+              }),
+            );
+          }
+
+          participantIds = (yield* use((db) =>
+            db
+              .select({ participantId: participants.id })
+              .from(participants)
+              .where(
+                and(
+                  eq(participants.marathonId, invitation.marathonId),
+                  eq(
+                    participants.competitionClassId,
+                    competitionClassId,
+                  ),
+                ),
+              ),
+          )) as Array<{ participantId: number }>;
+        } else {
+          return yield* Effect.fail(
+            new DbError({
+              message: "Invitation type not found",
+            }),
+          );
+        }
+
         if (ratingFilter && ratingFilter.length > 0) {
           const allRatings = yield* use((db) =>
             db.query.juryRatings.findMany({

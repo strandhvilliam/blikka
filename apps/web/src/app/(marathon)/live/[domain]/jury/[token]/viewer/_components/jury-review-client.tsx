@@ -1,7 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -151,28 +152,37 @@ function JuryParticipantCard({
 
 function JuryParticipantList({
   participants,
-  ratings,
+  ratingByParticipantId,
   selectedRatings,
   toggleRatingFilter,
+  clearRatingFilter,
   onParticipantSelect,
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
+  isRefreshingResults,
   totalParticipants,
   error,
 }: {
   participants: JuryListParticipant[]
-  ratings: JuryRatingsResponse["ratings"]
+  ratingByParticipantId: Map<number, JuryRatingsResponse["ratings"][number]>
   selectedRatings: number[]
   toggleRatingFilter: (rating: number) => void
+  clearRatingFilter: () => void
   onParticipantSelect: (participantId: number, index: number) => void
   fetchNextPage: () => void
   hasNextPage: boolean
   isFetchingNextPage: boolean
+  isRefreshingResults: boolean
   totalParticipants?: { value: number }
   error: Error | null
 }) {
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const totalMatchingParticipants = totalParticipants?.value ?? participants.length
+  const participantSummary =
+    participants.length < totalMatchingParticipants
+      ? `Showing ${participants.length} of ${totalMatchingParticipants} participants`
+      : `${totalMatchingParticipants} participants`
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -212,15 +222,49 @@ function JuryParticipantList({
 
   if (participants.length === 0) {
     return (
-      <div className="rounded-xl border border-border/60 bg-white px-6 py-16 text-center">
-        <h2 className="font-rocgrotesk text-xl font-bold text-brand-black">
-          No participants found
-        </h2>
-        <p className="mt-2 text-sm text-brand-gray">
-          {selectedRatings.length > 0
-            ? "Try adjusting the rating filters."
-            : "There are no participants to review yet."}
-        </p>
+      <div className="space-y-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="flex items-center gap-2 text-sm font-medium text-brand-black">
+              {totalMatchingParticipants > 0
+                ? `Showing 0 of ${totalMatchingParticipants} participants`
+                : "0 participants"}
+              {isRefreshingResults ? (
+                <span className="inline-flex items-center gap-1 text-xs font-normal text-brand-gray">
+                  <Loader2 className="h-3 w-3 animate-spin text-brand-primary" />
+                  Updating
+                </span>
+              ) : null}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {selectedRatings.length > 0 ? (
+              <button
+                type="button"
+                onClick={clearRatingFilter}
+                className="inline-flex items-center rounded-full border border-border/60 bg-white px-3 py-1.5 text-xs font-medium text-brand-gray transition-colors hover:border-brand-primary/30 hover:text-brand-black"
+              >
+                Clear filter
+              </button>
+            ) : null}
+            <RatingFilterBar
+              selectedRatings={selectedRatings}
+              onToggle={toggleRatingFilter}
+              isPending={isRefreshingResults}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-white px-6 py-16 text-center">
+          <h2 className="font-rocgrotesk text-xl font-bold text-brand-black">
+            No participants found
+          </h2>
+          <p className="mt-2 text-sm text-brand-gray">
+            {selectedRatings.length > 0
+              ? "Try adjusting the rating filters."
+              : "There are no participants to review yet."}
+          </p>
+        </div>
       </div>
     )
   }
@@ -229,17 +273,26 @@ function JuryParticipantList({
     <div className="space-y-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm font-medium text-brand-black">
-            {participants.length} of {totalParticipants?.value ?? participants.length} participants
+          <p className="flex items-center gap-2 text-sm font-medium text-brand-black">
+            {participantSummary}
+            {isRefreshingResults ? (
+              <span className="inline-flex items-center gap-1 text-xs font-normal text-brand-gray">
+                <Loader2 className="h-3 w-3 animate-spin text-brand-primary" />
+                Updating
+              </span>
+            ) : null}
           </p>
         </div>
-        <RatingFilterBar selectedRatings={selectedRatings} onToggle={toggleRatingFilter} />
+        <RatingFilterBar
+          selectedRatings={selectedRatings}
+          onToggle={toggleRatingFilter}
+          isPending={isRefreshingResults}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {participants.map((participant, index) => {
-          const rating =
-            ratings.find((item) => item.participantId === participant.id)?.rating ?? 0
+          const rating = ratingByParticipantId.get(participant.id)?.rating ?? 0
 
           return (
             <JuryParticipantCard
@@ -271,9 +324,11 @@ function JuryParticipantList({
 function RatingFilterBar({
   selectedRatings,
   onToggle,
+  isPending = false,
 }: {
   selectedRatings: number[]
   onToggle: (rating: number) => void
+  isPending?: boolean
 }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -284,11 +339,12 @@ function RatingFilterBar({
             key={rating}
             type="button"
             onClick={() => onToggle(rating)}
+            aria-busy={isPending}
             className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
               isActive
                 ? "bg-brand-primary text-white"
                 : "border border-border/60 bg-white text-brand-gray hover:border-brand-primary/30 hover:text-brand-black"
-            }`}
+            } ${isPending ? "opacity-80" : ""}`}
           >
             {rating === 0 ? (
               "Unrated"
@@ -301,6 +357,27 @@ function RatingFilterBar({
           </button>
         )
       })}
+    </div>
+  )
+}
+
+function ActiveRatingFilterBadge({ selectedRatings }: { selectedRatings: number[] }) {
+  if (selectedRatings.length === 0) {
+    return null
+  }
+
+  const [rating] = selectedRatings
+
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-neutral-50 px-3 py-2 text-xs font-medium text-brand-gray">
+      {rating === 0 ? (
+        "Unrated only"
+      ) : (
+        <>
+          <Star className="h-3 w-3 fill-current" />
+          {rating}-star only
+        </>
+      )}
     </div>
   )
 }
@@ -555,7 +632,6 @@ function JurySubmissionViewer({
   participants,
   initialIndex,
   selectedRatings,
-  toggleRatingFilter,
   ratings,
   totalParticipants,
   fetchNextPage,
@@ -569,7 +645,6 @@ function JurySubmissionViewer({
   participants: JuryListParticipant[]
   initialIndex: number
   selectedRatings: number[]
-  toggleRatingFilter: (rating: number) => void
   ratings: JuryRatingsResponse["ratings"]
   totalParticipants: number
   fetchNextPage: () => void
@@ -759,13 +834,29 @@ function JurySubmissionViewer({
 
   if (!currentParticipant) {
     return (
-      <div className="rounded-xl border border-border/60 bg-white px-6 py-16 text-center">
-        <p className="text-sm text-brand-gray">No participant selected.</p>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-neutral-50 px-3 py-2 text-sm font-medium text-brand-black transition-colors hover:bg-neutral-100"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            List
+          </button>
+          <ActiveRatingFilterBadge selectedRatings={selectedRatings} />
+        </div>
+      </div>
+
+        <div className="rounded-xl border border-border/60 bg-white px-6 py-16 text-center">
+          <p className="text-sm text-brand-gray">No participant selected.</p>
+        </div>
       </div>
     )
   }
 
-  const visibleTotal = selectedRatings.length > 0 ? participants.length : totalParticipants
+  const visibleTotal = totalParticipants
 
   return (
     <div className="space-y-3">
@@ -779,13 +870,12 @@ function JurySubmissionViewer({
             <ArrowLeft className="h-3.5 w-3.5" />
             List
           </button>
+          <ActiveRatingFilterBadge selectedRatings={selectedRatings} />
           <span className="font-rocgrotesk text-sm font-bold text-brand-black">
             {currentParticipantIndex + 1}
             <span className="font-sans font-normal text-brand-gray"> / {visibleTotal}</span>
           </span>
         </div>
-
-        <RatingFilterBar selectedRatings={selectedRatings} onToggle={toggleRatingFilter} />
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -859,6 +949,7 @@ function JurySubmissionViewer({
 
 export function JuryReviewClient({ domain, token }: { domain: string; token: string }) {
   const trpc = useTRPC()
+  const [isFilterPending, startFilterTransition] = useTransition()
   const [selectedParticipantId, setSelectedParticipantId] = useQueryState(
     "participant",
     parseAsInteger,
@@ -878,18 +969,39 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
   const { data: ratingsData } = useSuspenseQuery(
     trpc.jury.getJuryRatingsByInvitation.queryOptions({ domain, token }),
   )
-  const { data: totalParticipants } = useQuery(
+  const { data: reviewSetParticipantCount } = useQuery(
     trpc.jury.getJuryParticipantCount.queryOptions({
       domain,
       token,
-      ratingFilter: selectedRatings.length > 0 ? selectedRatings : undefined,
     }),
   )
+
+  const {
+    data: filteredParticipantCount,
+    isFetching: isFetchingParticipantCount,
+  } = useQuery(
+    trpc.jury.getJuryParticipantCount.queryOptions(
+      {
+        domain,
+        token,
+        ratingFilter: selectedRatings.length > 0 ? selectedRatings : undefined,
+      },
+      {
+        placeholderData: keepPreviousData,
+      },
+    ),
+  )
+
+  const totalParticipants =
+    selectedRatings.length > 0
+      ? filteredParticipantCount
+      : (reviewSetParticipantCount ?? filteredParticipantCount)
 
   const {
     data,
     fetchNextPage,
     hasNextPage = false,
+    isFetching,
     isFetchingNextPage,
     error,
   } = useInfiniteQuery(
@@ -901,6 +1013,7 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
       },
       {
         getNextPageParam: (lastPage) => lastPage?.nextCursor,
+        placeholderData: keepPreviousData,
       },
     ),
   )
@@ -908,6 +1021,14 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
   const participants = useMemo(
     () => (data?.pages ?? []).flatMap((page) => page.participants) as JuryListParticipant[],
     [data?.pages],
+  )
+
+  const reviewSetTotalParticipants =
+    reviewSetParticipantCount?.value ?? totalParticipants?.value ?? participants.length
+
+  const ratingByParticipantId = useMemo(
+    () => new Map(ratingsData.ratings.map((rating) => [rating.participantId, rating])),
+    [ratingsData.ratings],
   )
 
   const handleParticipantSelect = useCallback(
@@ -923,15 +1044,27 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
     void setCurrentParticipantIndex(0)
   }, [setCurrentParticipantIndex, setSelectedParticipantId])
 
+  const clearRatingFilter = useCallback(() => {
+    startFilterTransition(() => {
+      void setSelectedParticipantId(null)
+      void setCurrentParticipantIndex(0)
+      void setSelectedRatings([])
+    })
+  }, [setCurrentParticipantIndex, setSelectedParticipantId, setSelectedRatings])
+
   const toggleRatingFilter = useCallback(
     (rating: number) => {
-      void setSelectedRatings((previous) =>
-        previous.includes(rating)
-          ? previous.filter((item) => item !== rating)
-          : [...previous, rating],
-      )
+      startFilterTransition(() => {
+        void setSelectedParticipantId(null)
+        void setCurrentParticipantIndex(0)
+        void setSelectedRatings((previous) => {
+          const nextRatings = previous.includes(rating) ? [] : [rating]
+
+          return nextRatings.toSorted((left, right) => left - right)
+        })
+      })
     },
-    [setSelectedRatings],
+    [setCurrentParticipantIndex, setSelectedParticipantId, setSelectedRatings],
   )
 
   const selectedIndex = useMemo(() => {
@@ -943,6 +1076,10 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
     return index >= 0 ? index : 0
   }, [currentParticipantIndex, participants, selectedParticipantId])
 
+  const isRefreshingResults =
+    isFilterPending || isFetchingParticipantCount || (isFetching && !isFetchingNextPage)
+  const shouldShowViewer = selectedParticipantId !== null && participants.length > 0
+
   return (
     <main className="min-h-dvh bg-neutral-50 bg-dot-pattern-light">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 py-5 md:px-6 md:py-6">
@@ -951,10 +1088,10 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
           token={token}
           invitation={invitation}
           ratedCount={ratingsData.ratings.length}
-          totalParticipants={totalParticipants?.value ?? participants.length}
+          totalParticipants={reviewSetTotalParticipants}
         />
 
-        {selectedParticipantId ? (
+        {shouldShowViewer ? (
           <JurySubmissionViewer
             domain={domain}
             token={token}
@@ -962,7 +1099,6 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
             participants={participants}
             initialIndex={selectedIndex}
             selectedRatings={selectedRatings}
-            toggleRatingFilter={toggleRatingFilter}
             ratings={ratingsData.ratings}
             totalParticipants={totalParticipants?.value ?? participants.length}
             fetchNextPage={fetchNextPage}
@@ -973,13 +1109,15 @@ export function JuryReviewClient({ domain, token }: { domain: string; token: str
         ) : (
           <JuryParticipantList
             participants={participants}
-            ratings={ratingsData.ratings}
+            ratingByParticipantId={ratingByParticipantId}
             selectedRatings={selectedRatings}
             toggleRatingFilter={toggleRatingFilter}
+            clearRatingFilter={clearRatingFilter}
             onParticipantSelect={handleParticipantSelect}
             fetchNextPage={fetchNextPage}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
+            isRefreshingResults={isRefreshingResults}
             totalParticipants={totalParticipants}
             error={error as Error | null}
           />
