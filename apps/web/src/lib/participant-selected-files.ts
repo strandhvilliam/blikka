@@ -29,16 +29,16 @@ interface PrepareParticipantSelectedPhotosInput {
   topicOrderIndexes: number[]
 }
 
+const MAX_SELECTED_PHOTO_PROCESSING_CONCURRENCY = 2
+
 async function createParticipantSelectedPhoto(candidate: {
   file: File
   preconvertedExif: ExifData | null
 }): Promise<ParticipantSelectedPhoto> {
-  const [parsedExif, previewUrl] = await Promise.all([
-    candidate.preconvertedExif
-      ? Promise.resolve(candidate.preconvertedExif)
-      : parseExifData(candidate.file),
-    generateThumbnailUrl(candidate.file),
-  ])
+  const parsedExif = candidate.preconvertedExif
+    ? candidate.preconvertedExif
+    : await parseExifData(candidate.file)
+  const previewUrl = await generateThumbnailUrl(candidate.file)
 
   return {
     id: createClientPhotoId(),
@@ -48,6 +48,33 @@ async function createParticipantSelectedPhoto(candidate: {
     previewUrl,
     orderIndex: 0,
   }
+}
+
+async function mapWithConcurrency<TInput, TOutput>(
+  items: readonly TInput[],
+  concurrency: number,
+  mapper: (item: TInput, index: number) => Promise<TOutput>,
+): Promise<TOutput[]> {
+  const results = new Array<TOutput>(items.length)
+  const safeConcurrency = Math.max(1, Math.min(concurrency, items.length))
+
+  if (safeConcurrency === 0) {
+    return results
+  }
+
+  let nextIndex = 0
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex
+      nextIndex += 1
+      results[currentIndex] = await mapper(items[currentIndex]!, currentIndex)
+    }
+  }
+
+  await Promise.all(Array.from({ length: safeConcurrency }, () => worker()))
+
+  return results
 }
 
 export async function prepareParticipantSelectedPhotos({
@@ -95,7 +122,11 @@ export async function prepareParticipantSelectedPhotos({
     warnings.push(`Only ${remainingSlots} additional image(s) accepted`)
   }
 
-  const newPhotos = await Promise.all(candidatesToUse.map(createParticipantSelectedPhoto))
+  const newPhotos = await mapWithConcurrency(
+    candidatesToUse,
+    MAX_SELECTED_PHOTO_PROCESSING_CONCURRENCY,
+    createParticipantSelectedPhoto,
+  )
 
   const sortedPhotos = sortByExifDate([...existingPhotos, ...newPhotos], (photo) => photo.exif)
 

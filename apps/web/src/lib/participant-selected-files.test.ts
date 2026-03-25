@@ -191,4 +191,53 @@ describe("participant-upload/participant-selected-files", () => {
     ]);
     expect(result.photos.map((photo) => photo.orderIndex)).toEqual([2, 4]);
   });
+
+  it("bounds concurrent photo preprocessing work", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+
+    const parseExifData = vi.fn(async () => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      inFlight -= 1;
+      return null;
+    });
+
+    vi.doMock("./exif-parsing", () => ({
+      getExifDate: () => null,
+      parseExifData,
+    }));
+    vi.doMock("./file-processing", async () => {
+      const actual = await vi.importActual<typeof import("./file-processing")>(
+        "./file-processing",
+      );
+
+      return {
+        ...actual,
+        createClientPhotoId: vi.fn(() => crypto.randomUUID()),
+        generateThumbnailUrl: vi.fn(async (file: File) => `blob:${file.name}`),
+      };
+    });
+
+    const { prepareParticipantSelectedPhotos } = await import(
+      "./participant-selected-files"
+    );
+
+    await prepareParticipantSelectedPhotos({
+      candidates: [
+        { file: new File(["one"], "one.jpg", { type: "image/jpeg" }), preconvertedExif: null },
+        { file: new File(["two"], "two.jpg", { type: "image/jpeg" }), preconvertedExif: null },
+        {
+          file: new File(["three"], "three.jpg", { type: "image/jpeg" }),
+          preconvertedExif: null,
+        },
+      ],
+      existingPhotos: [],
+      maxPhotos: 3,
+      topicOrderIndexes: [0, 1, 2],
+    });
+
+    expect(maxInFlight).toBeLessThanOrEqual(2);
+  });
 });
