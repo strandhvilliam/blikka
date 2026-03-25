@@ -5,6 +5,7 @@ import { routing } from "./i18n/routing.public"
 
 function withDomainHeader(request: NextRequest, subdomain: string) {
   const headers = new Headers(request.headers)
+  console.log("setting domain header", subdomain)
   headers.set("x-marathon-domain", subdomain)
   return { request: { headers } }
 }
@@ -20,7 +21,9 @@ function extractSubdomain(request: NextRequest): string | null {
 
     const path = url.slice(url.indexOf("localhost")).split("/")
     if (path.at(1) === "admin" || path.at(1) === "live" || path.at(1) === "staff") {
-      return path.at(2) ?? null
+      // remove query params
+      const pathWithoutQueryParams = path.at(2)?.split("?")[0] ?? null
+      return pathWithoutQueryParams ?? null
     }
 
     // Fallback to host header approach
