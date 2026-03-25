@@ -23,8 +23,10 @@ const _TopicsPage = Effect.fn("@blikka/web/TopicsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<TopicsSkeleton />}>
-          <div className="mx-auto max-w-4xl px-6 py-4">
-            <TopicsContent />
+          <div className="mx-auto flex h-full min-h-0 max-w-4xl flex-col overflow-hidden px-6 py-4">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <TopicsContent />
+            </div>
           </div>
         </Suspense>
       </HydrateClient>

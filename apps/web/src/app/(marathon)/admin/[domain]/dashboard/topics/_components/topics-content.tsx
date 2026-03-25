@@ -25,13 +25,17 @@ export function TopicsContent() {
   }
 
   return (
-    <div>
-      <TopicsHeader onAddTopic={() => setCreateDialogOpen(true)} />
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="shrink-0">
+        <TopicsHeader onAddTopic={() => setCreateDialogOpen(true)} />
+      </div>
       <TopicsCreateDialog
         isOpen={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
-      <TopicsTable onCreateTopic={() => setCreateDialogOpen(true)} />
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <TopicsTable onCreateTopic={() => setCreateDialogOpen(true)} />
+      </div>
     </div>
   )
 }
