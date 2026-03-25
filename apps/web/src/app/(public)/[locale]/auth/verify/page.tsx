@@ -1,5 +1,7 @@
 import { decodeSearchParams, Page } from "@/lib/next-utils"
 import { getAppSession } from "@/lib/auth/server"
+import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
+import { getPermissions } from "@blikka/api/trpc/utils"
 import { Effect, Option, Schema } from "effect"
 import { VerifyForm } from "./verify-form"
 import { redirect } from "next/navigation"
@@ -22,7 +24,8 @@ const _VerifyPage = Effect.fn("@blikka/web/VerifyPage")(
     )
 
     if (Option.isSome(session)) {
-      redirect(params.next ?? "/admin")
+      const permissions = yield* getPermissions({ userId: session.value.user.id })
+      redirect(params.next ?? getDefaultPostLoginPath(permissions))
     }
 
     if (!params.email) {

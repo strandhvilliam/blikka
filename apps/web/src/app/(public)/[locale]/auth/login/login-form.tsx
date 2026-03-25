@@ -139,7 +139,7 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
 
             const result = await authClient.signIn.social({
               provider: "google",
-              callbackURL: next ?? "/admin",
+              callbackURL: next ?? "/auth/redirect",
             })
 
             if (result.error) {

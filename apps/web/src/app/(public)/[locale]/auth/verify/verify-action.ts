@@ -1,7 +1,9 @@
 "use server"
 
 import { Auth } from "@/lib/auth/server"
+import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
 import { Action, toActionResponse } from "@/lib/next-utils"
+import { getPermissions } from "@blikka/api/trpc/utils"
 import { Schema, Effect } from "effect"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
@@ -39,7 +41,21 @@ const _verifyAction = Effect.fn("@blikka/web/verifyAction")(function* ({
       }),
   })
 
-  redirect(next ?? "/admin")
+  const session = yield* Effect.tryPromise({
+    try: () =>
+      auth.api.getSession({
+        headers: readonlyHeaders,
+      }),
+    catch: (error) =>
+      new VerifyError({
+        cause: error,
+        message: "Failed to resolve session after verification",
+      }),
+  })
+
+  const permissions = yield* getPermissions({ userId: session?.user.id })
+
+  redirect(next ?? getDefaultPostLoginPath(permissions))
 }, toActionResponse)
 
 export const verifyAction = async (input: { email: string; otp: string; next?: string }) =>

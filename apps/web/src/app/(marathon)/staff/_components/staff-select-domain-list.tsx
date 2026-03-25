@@ -5,7 +5,7 @@ import { ShieldCheck, ArrowRight, MapPin } from "lucide-react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 
 import { useTRPC } from "@/lib/trpc/client"
-import { formatDomainPathname } from "@/lib/utils"
+import { getMarathonDestination } from "@/lib/auth/redirect"
 import {
   Empty,
   EmptyDescription,
@@ -40,7 +40,7 @@ export function StaffSelectDomainList() {
         <Link
           key={marathon.id}
           prefetch={true}
-          href={formatDomainPathname("/staff", marathon.domain, "staff")}
+          href={getMarathonDestination(marathon)}
           className="group block"
         >
           <div className="flex w-full items-center gap-4 rounded-2xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">

@@ -103,7 +103,10 @@ export class UsersQueries extends ServiceMap.Service<UsersQueries>()(
           }),
         );
 
-        return result.map((userMarathon) => userMarathon.marathon);
+        return result.map((userMarathon) => ({
+          ...userMarathon.marathon,
+          role: userMarathon.role,
+        }));
       });
 
       const getUserByEmailWithMarathons = Effect.fn(

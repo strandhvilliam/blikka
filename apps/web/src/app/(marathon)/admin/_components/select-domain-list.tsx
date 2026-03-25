@@ -7,7 +7,7 @@ import { Trophy, ArrowRight, MapPin } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useTRPC } from "@/lib/trpc/client"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { formatDomainLink } from "@/lib/utils"
+import { getMarathonDestination } from "@/lib/auth/redirect"
 import { motion } from "motion/react"
 
 export function SelectDomainList() {
@@ -52,7 +52,7 @@ export function SelectDomainList() {
         >
           <Link
             prefetch={true}
-            href={formatDomainLink(`/admin/dashboard`, marathon.domain)}
+            href={getMarathonDestination(marathon)}
             className="group block"
           >
             <div className="relative rounded-2xl border border-brand-black/8 bg-white p-4 transition-all duration-200 hover:border-brand-black/14 hover:shadow-[0_6px_24px_rgba(0,0,0,0.06)] hover:-translate-y-px">

@@ -1,7 +1,9 @@
 import Image from "next/image"
 import { LoginForm } from "./login-form"
 import { getAppSession } from "@/lib/auth/server"
+import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
 import { decodeSearchParams, Page } from "@/lib/next-utils"
+import { getPermissions } from "@blikka/api/trpc/utils"
 import { Effect, Option, Schema } from "effect"
 import { redirect } from "next/navigation"
 import { DotPattern } from "@/components/dot-pattern"
@@ -16,7 +18,8 @@ const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
     )(searchParams).pipe(Effect.catch(() => Effect.succeed({ next: undefined })))
 
     if (Option.isSome(session)) {
-      redirect(params.next ?? "/admin")
+      const permissions = yield* getPermissions({ userId: session.value.user.id })
+      redirect(params.next ?? getDefaultPostLoginPath(permissions))
     }
 
     return (
