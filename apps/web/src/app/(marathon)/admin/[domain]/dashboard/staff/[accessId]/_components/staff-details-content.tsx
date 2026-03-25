@@ -38,7 +38,6 @@ import { useDomain } from "@/lib/domain-provider"
 import { formatDomainPathname } from "@/lib/utils"
 import { StaffVerificationsTable } from "./staff-verifications-table"
 import { StaffEditDialog } from "./staff-edit-dialog"
-import { StaffAccessCard } from "../../_components/staff-access-card"
 
 interface StaffDetailsContentProps {
   accessId: string
@@ -197,8 +196,6 @@ export function StaffDetailsContent({ accessId }: StaffDetailsContentProps) {
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-6 px-8 py-6">
-          {staff.kind === "active" ? <StaffAccessCard /> : null}
-
           {staff.kind === "active" ? (
             <section>
               <div className="mb-1 flex items-center gap-2">

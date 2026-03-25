@@ -1,5 +1,4 @@
 import { User2Icon } from "lucide-react"
-import { StaffAccessCard } from "./_components/staff-access-card"
 
 export default function StaffDefaultPage() {
   return (
@@ -15,9 +14,6 @@ export default function StaffDefaultPage() {
           Select a staff member from the list to view their details, or add a new staff member to
           give them access to the standalone verification desk.
         </p>
-      </div>
-      <div className="mx-auto w-full max-w-2xl">
-        <StaffAccessCard />
       </div>
     </div>
   )
