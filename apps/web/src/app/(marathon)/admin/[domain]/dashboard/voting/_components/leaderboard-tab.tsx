@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Presentation, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 } from "../_lib/utils";
 import { useDomain } from "@/lib/domain-provider";
 import { useVotingUiState } from "../_hooks/use-voting-ui-state";
+import { WinnersSlideshow } from "./winners-slideshow";
 
 interface LeaderboardEntry {
   submissionId: number;
@@ -64,6 +65,11 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
   const trpc = useTRPC();
   const domain = useDomain();
   const { leaderboardPage, setLeaderboardPage } = useVotingUiState();
+  const [slideshowOpen, setSlideshowOpen] = useState(false);
+
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({ domain }),
+  );
 
   const { data: summary } = useSuspenseQuery(
     trpc.voting.getVotingAdminSummary.queryOptions({
@@ -150,50 +156,70 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
 
   return (
     <div className="space-y-6">
-      {summary.currentRound ? (
-        <div className="flex flex-wrap items-center gap-2.5 text-sm text-muted-foreground">
-          <Badge
-            variant="outline"
-            className="border-brand-primary/25 bg-brand-primary/5 text-brand-primary"
-          >
-            {summary.currentRound.kind === "tiebreak"
-              ? `Tie-break ${summary.currentRound.roundNumber}`
-              : `Round ${summary.currentRound.roundNumber}`}
-          </Badge>
-          {summary.currentRound.kind === "tiebreak" ? (
-            <span className="text-xs">
-              Only the tied leading submissions are shown in this round.
-            </span>
+      {(summary.currentRound || topCardEntries.length > 0) ? (
+        <div className="flex flex-wrap items-center gap-2.5 gap-y-2 text-sm text-muted-foreground">
+          {summary.currentRound ? (
+            <>
+              <Badge
+                variant="outline"
+                className="border-brand-primary/25 bg-brand-primary/5 text-brand-primary"
+              >
+                {summary.currentRound.kind === "tiebreak"
+                  ? `Tie-break ${summary.currentRound.roundNumber}`
+                  : `Round ${summary.currentRound.roundNumber}`}
+              </Badge>
+              {summary.currentRound.kind === "tiebreak" ? (
+                <span className="text-xs">
+                  Only the tied leading submissions are shown in this round.
+                </span>
+              ) : null}
+            </>
+          ) : null}
+          {topCardEntries.length > 0 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSlideshowOpen(true)}
+              className="ml-auto shrink-0 gap-2 border-brand-primary/20 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 hover:text-brand-primary"
+            >
+              <Presentation className="h-4 w-4" />
+              Present Top {Math.min(topCardEntries.length, 3)} Winners
+            </Button>
           ) : null}
         </div>
       ) : null}
 
-      {/* Winner — full-width hero card */}
-      <PodiumCard
-        entry={winner}
-        rank={1}
-        variant="hero"
-        getDisplayName={getDisplayName}
-        onClick={winner ? () => handleRowClick(winner) : undefined}
-      />
-
-      {/* Runner-ups — side by side */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* Top 3 — three-column grid, image-on-top cards */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <PodiumCard
+          entry={winner}
+          rank={1}
+          getDisplayName={getDisplayName}
+          onClick={winner ? () => handleRowClick(winner) : undefined}
+        />
         <PodiumCard
           entry={runnerUp}
           rank={2}
-          variant="compact"
           getDisplayName={getDisplayName}
           onClick={runnerUp ? () => handleRowClick(runnerUp) : undefined}
         />
         <PodiumCard
           entry={thirdPlace}
           rank={3}
-          variant="compact"
           getDisplayName={getDisplayName}
           onClick={thirdPlace ? () => handleRowClick(thirdPlace) : undefined}
         />
       </div>
+
+      {slideshowOpen && (
+        <WinnersSlideshow
+          open={slideshowOpen}
+          onClose={() => setSlideshowOpen(false)}
+          winners={topCardEntries}
+          marathonName={marathon.name}
+          marathonLogoUrl={marathon.logoUrl}
+        />
+      )}
 
       {/* Full results table */}
       <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
@@ -339,7 +365,6 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
 interface PodiumCardProps {
   entry: LeaderboardEntry | undefined;
   rank: number;
-  variant: "hero" | "compact";
   getDisplayName: (entry: LeaderboardEntry) => string;
   onClick?: () => void;
 }
@@ -347,7 +372,6 @@ interface PodiumCardProps {
 function PodiumCard({
   entry,
   rank,
-  variant,
   getDisplayName,
   onClick,
 }: PodiumCardProps) {
@@ -359,12 +383,11 @@ function PodiumCard({
       )
     : null;
 
-  const isHero = variant === "hero";
-
   if (!entry) {
     return (
-      <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 py-10">
-        <div className="flex items-center gap-3 text-muted-foreground">
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-dashed border-border bg-muted/20">
+        <div className="relative aspect-[4/3] w-full bg-muted/40" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-muted-foreground">
           <span
             className={`inline-flex size-8 items-center justify-center rounded-full text-sm font-bold opacity-40 ${accent}`}
           >
@@ -380,17 +403,13 @@ function PodiumCard({
 
   return (
     <div
-      className={`group relative flex overflow-hidden rounded-lg border border-border bg-card shadow-sm ${
+      className={`group relative flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm ${
         onClick ? "cursor-pointer transition-shadow hover:shadow-md" : ""
       }`}
       onClick={onClick}
     >
       {/* Image */}
-      <div
-        className={`relative shrink-0 overflow-hidden bg-muted ${
-          isHero ? "w-56 lg:w-72" : "w-36 lg:w-44"
-        }`}
-      >
+      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-muted">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -405,16 +424,10 @@ function PodiumCard({
       </div>
 
       {/* Content */}
-      <div
-        className={`flex min-w-0 flex-1 flex-col justify-center ${
-          isHero ? "p-5 lg:p-7" : "p-4"
-        }`}
-      >
-        <div className="flex items-center gap-2.5">
+      <div className="flex min-w-0 flex-1 flex-col p-4">
+        <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold ${accent} ${
-              isHero ? "size-10 text-base" : "size-7 text-xs"
-            }`}
+            className={`inline-flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${accent}`}
           >
             {rank}
           </span>
@@ -431,23 +444,15 @@ function PodiumCard({
           ) : null}
         </div>
 
-        <p
-          className={`mt-2 truncate font-semibold text-foreground ${
-            isHero ? "text-lg" : "text-sm"
-          }`}
-        >
+        <p className="mt-2 line-clamp-2 font-semibold text-foreground">
           {getDisplayName(entry)}
         </p>
         <p className="mt-0.5 text-xs text-muted-foreground">
           #{entry.participantReference}
         </p>
 
-        <div className={`flex items-baseline gap-1.5 ${isHero ? "mt-4" : "mt-3"}`}>
-          <span
-            className={`font-mono font-bold tabular-nums text-foreground ${
-              isHero ? "text-3xl" : "text-xl"
-            }`}
-          >
+        <div className="mt-3 flex items-baseline gap-1.5">
+          <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
             {entry.voteCount}
           </span>
           <span className="text-xs text-muted-foreground">
@@ -455,7 +460,7 @@ function PodiumCard({
           </span>
         </div>
 
-        <p className="mt-1.5 text-[11px] text-muted-foreground">
+        <p className="mt-2 text-[11px] text-muted-foreground">
           {formatDateTime(entry.submissionCreatedAt)}
         </p>
       </div>
