@@ -2,7 +2,6 @@
 
 import type { Topic } from "@blikka/db"
 import {
-  AlarmClockCheck,
   CheckCircle2,
   Clock3,
   Lock,
@@ -10,6 +9,7 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Square,
   TagIcon,
   TimerOff,
   Zap,
@@ -39,7 +39,7 @@ const BADGE_STYLES: Record<
   }
 > = {
   "not-opened": {
-    label: "Awaiting submission start",
+    label: "Waiting to open",
     className: "border-slate-200 bg-slate-50 text-slate-700",
     icon: Play,
   },
@@ -54,7 +54,7 @@ const BADGE_STYLES: Record<
     icon: CheckCircle2,
   },
   closed: {
-    label: "Submission window ended",
+    label: "Submissions closed",
     className: "border-amber-200 bg-amber-50 text-amber-700",
     icon: TimerOff,
   },
@@ -78,19 +78,21 @@ export function ActiveTopicBanner({
     const submissionWindowLockedAfterVote = resolvedSubmissionState === "closed" && votingHasStarted
     const submissionWindowActionLabel =
       resolvedSubmissionState === "not-opened"
-        ? "Start submissions"
+        ? "Open submissions"
         : resolvedSubmissionState === "closed"
           ? submissionWindowLockedAfterVote
-            ? "Submission window closed"
+            ? "Submissions closed"
             : "Reopen submissions"
-          : "Edit submission window"
+          : resolvedSubmissionState === "scheduled"
+            ? "Open submissions"
+            : "Close submissions"
 
     return (
       <div className="relative overflow-hidden rounded-xl border border-brand-primary/20 bg-white p-5 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.06)] sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
-              <Zap className="size-5 text-brand-primary" />
+              <CheckCircle2 className="size-5 text-brand-primary" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
@@ -109,21 +111,21 @@ export function ActiveTopicBanner({
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                 <div className="rounded-full border border-border/70 bg-muted/30 px-3 py-1.5">
-                  Starts:{" "}
+                  Started:{" "}
                   <span className="font-medium text-foreground">
                     {activeTopic.scheduledStart
                       ? formatTimestamp(activeTopic.scheduledStart)
                       : "Not set"}
                   </span>
                 </div>
-                <div className="rounded-full border border-border/70 bg-muted/30 px-3 py-1.5">
-                  Ends:{" "}
-                  <span className="font-medium text-foreground">
-                    {activeTopic.scheduledEnd
-                      ? formatTimestamp(activeTopic.scheduledEnd)
-                      : "No end time"}
-                  </span>
-                </div>
+                {resolvedSubmissionState === "closed" ? (
+                  <div className="rounded-full border border-border/70 bg-muted/30 px-3 py-1.5">
+                    Ended:{" "}
+                    <span className="font-medium text-foreground">
+                      {activeTopic.scheduledEnd ? formatTimestamp(activeTopic.scheduledEnd) : "—"}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -142,7 +144,8 @@ export function ActiveTopicBanner({
                 disabled={isLoading}
                 className="gap-1.5"
               >
-                {resolvedSubmissionState === "not-opened" ? (
+                {resolvedSubmissionState === "not-opened" ||
+                resolvedSubmissionState === "scheduled" ? (
                   <Play className="size-3" />
                 ) : resolvedSubmissionState === "closed" ? (
                   submissionWindowLockedAfterVote ? (
@@ -151,7 +154,7 @@ export function ActiveTopicBanner({
                     <RotateCcw className="size-3" />
                   )
                 ) : (
-                  <AlarmClockCheck className="size-3" />
+                  <Square className="size-3" />
                 )}
                 {submissionWindowActionLabel}
               </Button>
@@ -182,7 +185,7 @@ export function ActiveTopicBanner({
           <div>
             <h3 className="font-medium text-foreground">No active topic</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Step 1: activate a topic below. Step 2: start submissions from the active topic panel.
+              Step 1: activate a topic below. Step 2: open submissions from the active topic panel.
             </p>
           </div>
         </div>

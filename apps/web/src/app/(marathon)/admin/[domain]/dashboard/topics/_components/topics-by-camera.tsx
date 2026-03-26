@@ -14,7 +14,6 @@ import { TopicsDeleteDialog } from "./topics-delete-dialog"
 import { TopicsActivateDialog } from "./topics-activate-dialog"
 import { TopicsByCameraHeader } from "./topics-by-camera-header"
 import { TopicsByCameraEmptyState } from "./topics-by-camera-empty-state"
-import { TopicsByCameraStats } from "./topics-by-camera-stats"
 import { ActiveTopicBanner } from "./active-topic-banner"
 import { TopicsHistoryList } from "./topics-history-list"
 import { TopicsSubmissionWindowDialog } from "./topics-submission-window-dialog"
@@ -59,10 +58,10 @@ export function TopicsByCamera() {
     enabled: activeTopic != null,
   })
   const historyTopics = sortedTopics.filter((topic) => topic.id !== activeTopic?.id)
-  const totalSubmissions = submissionCounts.reduce((sum, row) => sum + row.count, 0)
   const activeVotingWindow = activeVotingSummary?.votingWindow ?? null
   const activeVotingHasStarted =
-    getVotingLifecycleState(activeVotingWindow ?? { startsAt: null, endsAt: null }) !== "not-started"
+    getVotingLifecycleState(activeVotingWindow ?? { startsAt: null, endsAt: null }) !==
+    "not-started"
 
   const selectedTopic = topicId != null ? (topics.find((t) => t.id === topicId) ?? null) : null
 
@@ -70,7 +69,7 @@ export function TopicsByCamera() {
     trpc.topics.activate.mutationOptions({
       onSuccess: () => {
         toast.success("Topic activated", {
-          description: "Start submissions from the active topic panel when ready.",
+          description: "Open submissions from the active topic panel when ready.",
         })
       },
       onError: (error) => {
@@ -149,28 +148,35 @@ export function TopicsByCamera() {
       {topics.length === 0 ? (
         <TopicsByCameraEmptyState onCreateClick={openCreate} />
       ) : (
-        <div className="flex flex-col gap-6">
-          <TopicsByCameraStats
-            topicsCount={topics.length}
-            totalSubmissions={totalSubmissions}
-            submissionState={activeTopicSubmissionState}
-          />
+        <div className="space-y-10">
+          <section>
+            <div className="mb-4 flex items-center gap-2.5">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
+              <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
+                Active Topic
+              </p>
+            </div>
+            <ActiveTopicBanner
+              activeTopic={activeTopic}
+              submissionState={activeTopicSubmissionState}
+              votingHasStarted={activeVotingHasStarted}
+              submissionCount={submissionCountMap.get(activeTopic?.id ?? 0) ?? 0}
+              onEdit={handleEditClick}
+              onEditSubmissionWindow={handleSubmissionWindowClick}
+              onCreate={openCreate}
+              isLoading={isLoading}
+            />
+          </section>
 
-          <ActiveTopicBanner
-            activeTopic={activeTopic}
-            submissionState={activeTopicSubmissionState}
-            votingHasStarted={activeVotingHasStarted}
-            submissionCount={submissionCountMap.get(activeTopic?.id ?? 0) ?? 0}
-            onEdit={handleEditClick}
-            onEditSubmissionWindow={handleSubmissionWindowClick}
-            onCreate={openCreate}
-            isLoading={isLoading}
-          />
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="font-gothic text-sm text-muted-foreground">All topics</p>
-              <p className="text-xs tabular-nums text-muted-foreground">
+          <section>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-brand-primary" />
+                <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
+                  All topics
+                </p>
+              </div>
+              <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
                 {historyTopics.length} {historyTopics.length === 1 ? "topic" : "topics"}
               </p>
             </div>
@@ -183,7 +189,7 @@ export function TopicsByCamera() {
               onDelete={handleDeleteClick}
               isLoading={isLoading}
             />
-          </div>
+          </section>
         </div>
       )}
 

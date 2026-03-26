@@ -89,8 +89,8 @@ export function TopicsCreateDialog({
         <DialogHeader>
           <DialogTitle>Create New Topic</DialogTitle>
           <DialogDescription>
-            Add a new topic to your marathon. Submission timing can be started
-            later from the active topic panel.
+            Add a new topic to your marathon. You can open submissions later
+            from the active topic panel.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -168,7 +168,7 @@ export function TopicsCreateDialog({
                     </label>
                     <p className="text-sm text-muted-foreground">
                       Mark this topic as the active one. Submissions stay closed
-                      until you start them from the active topic panel.
+                      until you open them from the active topic panel.
                     </p>
                   </div>
                   <Switch
@@ -185,7 +185,6 @@ export function TopicsCreateDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
               type="button"
-              size="sm"
             >
               Cancel
             </Button>

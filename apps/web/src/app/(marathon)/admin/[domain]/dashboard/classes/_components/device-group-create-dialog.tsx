@@ -202,10 +202,10 @@ export function DeviceGroupCreateDialog({ isOpen, onOpenChange }: CreateDeviceGr
           />
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)} type="button" size="sm">
+            <Button variant="outline" onClick={() => onOpenChange(false)} type="button">
               Cancel
             </Button>
-            <PrimaryButton className="py-1" type="submit" disabled={isCreating}>
+            <PrimaryButton type="submit" disabled={isCreating}>
               {isCreating ? "Creating..." : "Create Device Group"}
             </PrimaryButton>
           </DialogFooter>

@@ -22,9 +22,11 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { Separator } from "@radix-ui/react-separator"
 import { useDomain } from "@/lib/domain-provider"
 import { formatDomainPathname } from "@/lib/utils"
+import { useTRPC } from "@/lib/trpc/client"
 
 export const NAV_LINKS = {
   marathon: [
@@ -91,6 +93,20 @@ export const NAV_LINKS = {
 export default function SidebarLinks() {
   const pathname = usePathname()
   const domain = useDomain()
+  const trpc = useTRPC()
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({ domain }),
+  )
+
+  const marathonNavItems = NAV_LINKS.marathon.filter((item) => {
+    if (marathon.mode === "by-camera" && item.url === "/dashboard/jury") {
+      return false
+    }
+    if (marathon.mode === "marathon" && item.url === "/dashboard/voting") {
+      return false
+    }
+    return true
+  })
 
   const isActive = (url: string) => {
     const formattedUrl = formatDomainPathname(`/admin${url}`, domain)
@@ -110,7 +126,7 @@ export default function SidebarLinks() {
         </SidebarGroupLabel>
 
         <SidebarMenu>
-          {NAV_LINKS.marathon.map((item) => {
+          {marathonNavItems.map((item) => {
             const href = formatDomainPathname(`/admin${item.url}`, domain)
             return (
               <SidebarMenuItem key={item.name}>

@@ -33,7 +33,8 @@ export function PrimaryButton({
     <motion.button
       ref={ref}
       className={cn(
-        "relative px-4 py-2 text-white text-sm font-semibold rounded-lg flex justify-center items-center gap-2 flex-row ",
+        // Match default `Button` / outline sizing (`buttonVariants` size default: h-9, px-4, rounded-md)
+        "relative inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium text-white has-[>svg]:px-3",
         "transition-all duration-200 ease-in-out",
         disabled && "opacity-50 cursor-not-allowed",
         className

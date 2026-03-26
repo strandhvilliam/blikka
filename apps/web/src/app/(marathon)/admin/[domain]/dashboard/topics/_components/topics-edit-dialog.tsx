@@ -166,7 +166,6 @@ export function TopicsEditDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
               type="button"
-              size="sm"
             >
               Cancel
             </Button>

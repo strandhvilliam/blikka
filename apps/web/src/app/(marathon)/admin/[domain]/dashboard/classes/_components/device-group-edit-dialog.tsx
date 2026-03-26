@@ -225,10 +225,10 @@ export function DeviceGroupEditDialog({
           />
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)} type="button" size="sm">
+            <Button variant="outline" onClick={() => onOpenChange(false)} type="button">
               Cancel
             </Button>
-            <PrimaryButton className="py-1" type="submit" disabled={isUpdating}>
+            <PrimaryButton type="submit" disabled={isUpdating}>
               {isUpdating ? "Saving..." : "Save changes"}
             </PrimaryButton>
           </DialogFooter>
