@@ -6,6 +6,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { SponsorCard } from "./sponsor-card"
 import { SponsorsHeader } from "./sponsors-header"
 import { Smartphone, FileText } from "lucide-react"
+import { resolveLiveLandingSponsor } from "@/lib/sponsors/live-landing-sponsor"
 
 export function SponsorsContent() {
   const trpc = useTRPC()
@@ -26,13 +27,16 @@ export function SponsorsContent() {
 
   const allTypes = [
     "contact-sheets",
-    "live-initial-1",
-    "live-initial-2",
+    "live-landing",
     "live-success-1",
     "live-success-2",
   ] as const
 
-  const activeCount = allTypes.filter((type) => getSponsorImage(type)).length
+  const landingSponsor = resolveLiveLandingSponsor(sponsors)
+
+  const activeCount = allTypes.filter((type) =>
+    type === "live-landing" ? !!landingSponsor : !!getSponsorImage(type),
+  ).length
 
   return (
     <div>
@@ -47,21 +51,16 @@ export function SponsorsContent() {
             </p>
           </div>
           <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 max-w-md">
-            Sponsor images shown inside the participant upload app during the event.
+            Sponsor images shown inside the participant upload app during the event. Use one image for
+            the landing page — combine logos in your design tool if you need several brands in one
+            asset.
           </p>
           <div className="space-y-3">
             <SponsorCard
-              title="Start Screen — Slot 1"
-              description="Primary sponsor image on the app landing page"
-              type="live-initial-1"
-              sponsor={getSponsorImage("live-initial-1")}
-              icon={Smartphone}
-            />
-            <SponsorCard
-              title="Start Screen — Slot 2"
-              description="Secondary sponsor image on the app landing page"
-              type="live-initial-2"
-              sponsor={getSponsorImage("live-initial-2")}
+              title="Live landing page"
+              description="Single image on the screen where participants choose language and start the flow. Layout and composition are up to you."
+              type="live-landing"
+              sponsor={landingSponsor}
               icon={Smartphone}
             />
             <SponsorCard

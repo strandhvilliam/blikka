@@ -37,7 +37,7 @@ export class SponsorsApiService extends ServiceMap.Service<SponsorsApiService>()
         key,
       }: {
         domain: string
-        type: "contact-sheets" | "live-initial-1" | "live-initial-2" | "live-success-1" | "live-success-2"
+        type: "contact-sheets" | "live-landing" | "live-success-1" | "live-success-2"
         position: "bottom-right" | "bottom-left" | "top-right" | "top-left"
         key: string
       }) {
@@ -67,7 +67,7 @@ export class SponsorsApiService extends ServiceMap.Service<SponsorsApiService>()
         position,
       }: {
         domain: string
-        type: "contact-sheets" | "live-initial-1" | "live-initial-2" | "live-success-1" | "live-success-2"
+        type: "contact-sheets" | "live-landing" | "live-success-1" | "live-success-2"
         position: "bottom-right" | "bottom-left" | "top-right" | "top-left"
       }) {
         const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")

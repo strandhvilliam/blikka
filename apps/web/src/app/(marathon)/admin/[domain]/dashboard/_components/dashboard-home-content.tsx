@@ -113,8 +113,8 @@ function NavigationCard({ card, domain }: { card: NavCard; domain: string }) {
       className="group relative flex flex-col rounded-2xl border border-border/60 bg-white p-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.06)]"
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/40 transition-colors duration-300">
-          <Icon className="h-5 w-5 text-muted-foreground" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 transition-colors duration-300">
+          <Icon className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
         </div>
         <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/40 transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-foreground/60" />
       </div>

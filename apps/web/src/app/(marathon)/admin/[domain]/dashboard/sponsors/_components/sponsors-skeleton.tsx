@@ -2,21 +2,21 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 function CardSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-white p-5">
-      <div className="flex items-start gap-4">
-        <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-4">
+    <div className="overflow-hidden rounded-xl border border-border bg-white">
+      <div className="flex flex-col sm:flex-row sm:items-stretch">
+        <div className="flex min-w-0 flex-1 items-start gap-4 p-5">
+          <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
+          <div className="max-w-lg space-y-3">
             <div className="space-y-2">
               <Skeleton className="h-4 w-36" />
-              <Skeleton className="h-3.5 w-56" />
+              <Skeleton className="h-3.5 w-56 max-w-full" />
             </div>
-            <Skeleton className="h-8 w-20 rounded-md shrink-0" />
+            <Skeleton className="h-8 w-28 rounded-md" />
           </div>
         </div>
-      </div>
-      <div className="mt-4">
-        <Skeleton className="h-32 w-full rounded-lg" />
+        <div className="w-full shrink-0 border-t border-border/50 bg-muted/35 p-5 sm:w-56 sm:border-t-0 sm:border-l sm:py-5 sm:pr-5 sm:pl-6">
+          <Skeleton className="aspect-[4/3] w-full rounded-md" />
+        </div>
       </div>
     </div>
   )
@@ -47,6 +47,7 @@ export function SponsorsSkeleton() {
           </div>
           <Skeleton className="h-3.5 w-72 mb-5" />
           <div className="space-y-3">
+            <CardSkeleton />
             <CardSkeleton />
             <CardSkeleton />
           </div>

@@ -32,6 +32,7 @@ import {
   getByCameraLiveAccessState,
   type ByCameraLiveAccessResult,
 } from "@/lib/by-camera/by-camera-live-access-state"
+import { resolveLiveLandingSponsor } from "@/lib/sponsors/live-landing-sponsor"
 
 const BUCKET_NAME = process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
 
@@ -89,49 +90,48 @@ export function LiveClientPage() {
     router.push(formatDomainPathname(`/live/marathon/prepare`, domain, "live"))
   }
 
-  const sponsorImages = marathon.sponsors
-    ?.filter((s) => s.type.startsWith("live-initial"))
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+  const landingSponsor = resolveLiveLandingSponsor(marathon.sponsors)
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
+      <PoweredByBlikka />
       <div className="z-20 flex flex-col flex-1 h-full">
-        <main className="flex-1 px-6 pb-6 max-w-md mx-auto w-full flex flex-col justify-end">
-          <LogoAndEventInfo
-            marathon={marathon}
-            mode={marathon.mode as "marathon" | "by-camera"}
-            activeTopicName={
-              marathon.mode === "by-camera"
-                ? (byCameraAccessState?.activeTopic?.name ?? null)
-                : null
-            }
-          />
-
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
-            <LanguageSelection locale={locale} setLocale={setLocale} isPending={isPending} />
-
-            <RulesAndInformation description={marathon.description} />
-
-            <TermsCheckbox
-              termsAccepted={termsAccepted}
-              setTermsAccepted={setTermsAccepted}
-              domain={domain}
-              locale={locale}
+        <main className="flex-1 w-full flex flex-col justify-end pb-6">
+          <div className="px-6 max-w-md mx-auto w-full">
+            <LogoAndEventInfo
+              marathon={marathon}
+              mode={marathon.mode as "marathon" | "by-camera"}
+              activeTopicName={
+                marathon.mode === "by-camera"
+                  ? (byCameraAccessState?.activeTopic?.name ?? null)
+                  : null
+              }
             />
 
-            <StartButtons
-              marathonMode={marathon.mode as "marathon" | "by-camera"}
-              onUploadClick={handleStartUpload}
-              onPrepareClick={handleStartPrepare}
-              disabled={!termsAccepted}
-              byCameraAccessState={byCameraAccessState}
-              activeTopic={byCameraAccessState?.activeTopic ?? null}
-            />
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
+              <LanguageSelection locale={locale} setLocale={setLocale} isPending={isPending} />
 
-            <SponsorsSection sponsorImages={sponsorImages} />
+              <RulesAndInformation description={marathon.description} />
+
+              <TermsCheckbox
+                termsAccepted={termsAccepted}
+                setTermsAccepted={setTermsAccepted}
+                domain={domain}
+                locale={locale}
+              />
+
+              <StartButtons
+                marathonMode={marathon.mode as "marathon" | "by-camera"}
+                onUploadClick={handleStartUpload}
+                onPrepareClick={handleStartPrepare}
+                disabled={!termsAccepted}
+                byCameraAccessState={byCameraAccessState}
+                activeTopic={byCameraAccessState?.activeTopic ?? null}
+              />
+            </div>
           </div>
 
-          <PoweredByBlikka />
+          <SponsorsSection sponsor={landingSponsor} />
         </main>
       </div>
     </div>
@@ -388,27 +388,19 @@ function TermsCheckbox({
   )
 }
 
-function SponsorsSection({
-  sponsorImages,
-}: {
-  sponsorImages: { id: number; key: string; type: string; createdAt: string }[] | undefined
-}) {
+function SponsorsSection({ sponsor }: { sponsor: { id: number; key: string } | undefined }) {
   const t = useTranslations("LivePage")
-  if (!sponsorImages || sponsorImages.length === 0) return null
+  if (!sponsor) return null
 
   return (
-    <div className="mt-4 pt-6 border-t border-border">
-      <p className="text-center text-sm text-muted-foreground mb-2">{t("sponsors")}</p>
-      <div className="flex justify-center items-center gap-4 flex-wrap">
-        {sponsorImages.map((sponsor) => (
-          <div key={sponsor.id} className="h-10 flex items-center justify-center">
-            <img
-              src={`https://s3.eu-north-1.amazonaws.com/${BUCKET_NAME}/${sponsor.key}`}
-              alt="Sponsor"
-              className="max-h-10 max-w-[120px] object-contain"
-            />
-          </div>
-        ))}
+    <div className="mt-8 w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center">
+      <p className="text-center text-sm font-medium text-muted-foreground mb-4">{t("sponsors")}</p>
+      <div className="w-full flex justify-center">
+        <img
+          src={`https://s3.eu-north-1.amazonaws.com/${BUCKET_NAME}/${sponsor.key}`}
+          alt={t("sponsors")}
+          className="w-full h-auto max-h-48 sm:max-h-64 object-contain rounded-xl border border-border/35 bg-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.05)]"
+        />
       </div>
     </div>
   )
@@ -416,12 +408,12 @@ function SponsorsSection({
 
 function PoweredByBlikka() {
   return (
-    <div className="mt-6 flex flex-col items-center">
-      <p className="text-xs text-muted-foreground mb-1 italic">Powered by</p>
-      <div className="flex items-center gap-1.5">
-        <Image src="/blikka-logo.svg" alt="Blikka" width={20} height={17} />
-        <span className="font-special-gothic text-base tracking-tight">blikka</span>
-      </div>
+    <div className="pointer-events-none absolute left-4 top-4 z-30 flex items-center gap-1 sm:left-6 sm:top-5">
+      <p className="sr-only">Blikka</p>
+      <Image src="/blikka-logo.svg" alt="" width={18} height={15} aria-hidden />
+      <span className="font-special-gothic text-sm tracking-tight text-foreground/90" aria-hidden>
+        blikka
+      </span>
     </div>
   )
 }

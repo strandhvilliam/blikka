@@ -23,7 +23,8 @@ export function SponsorsHeader({ activeCount, totalCount }: SponsorsHeaderProps)
       </div>
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
-          Upload sponsor images that appear throughout the participant experience — on contact sheets, the upload app, and success screens.
+          Upload sponsor images for the live landing page (one composite asset if needed), contact
+          sheets, and in-app success screens when those placements are enabled.
         </p>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70 tabular-nums">
           <div className="flex items-center gap-1">
