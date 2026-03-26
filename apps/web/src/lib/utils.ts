@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { protocol, rootDomain } from "@/config"
+import { DEFAULT_LOCALE, protocol, rootDomain } from "@/config"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -26,6 +26,10 @@ export const formatPublicPathname = (pathname: string, domain?: string, locale?:
 
   return `/${locale}${pathname}`
 }
+
+/** Public Blikka platform terms (`[locale]/terms-and-conditions`), respects `localePrefix: "as-needed"`. */
+export const formatPlatformTermsPathname = (locale: string) =>
+  locale === DEFAULT_LOCALE ? "/terms-and-conditions" : `/${locale}/terms-and-conditions`
 
 export const formatDomainPathname = (
   pathname: string,

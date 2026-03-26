@@ -14,7 +14,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { cn, formatDomainPathname, formatPublicPathname } from "@/lib/utils"
+import {
+  cn,
+  formatDomainPathname,
+  formatPlatformTermsPathname,
+  formatPublicPathname,
+} from "@/lib/utils"
 import { format } from "date-fns"
 import { enUS, sv, type Locale as DateFnsLocale } from "date-fns/locale"
 import { Info, ImageIcon, Play } from "lucide-react"
@@ -342,14 +347,26 @@ function TermsCheckbox({
             checked={termsAccepted}
             onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
           />
-          {t("termsAccept")}{" "}
-          <a
-            target="_blank"
-            href={formatPublicPathname(`/terms`, domain, locale)}
-            className="underline font-semibold ml-1"
-          >
-            {t("termsAndConditions")}
-          </a>
+          <span className="text-pretty leading-snug">
+            {t("termsAccept")}{" "}
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href={formatPublicPathname(`/terms`, domain, locale)}
+              className="underline font-semibold"
+            >
+              {t("organizerTerms")}
+            </a>{" "}
+            {t("termsAcceptAnd")}{" "}
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href={formatPlatformTermsPathname(locale)}
+              className="underline font-semibold"
+            >
+              {t("blikkaTerms")}
+            </a>
+          </span>
         </div>
       </label>
     </section>
