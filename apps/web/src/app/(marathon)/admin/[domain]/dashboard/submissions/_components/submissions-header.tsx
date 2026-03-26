@@ -1,6 +1,6 @@
 "use client"
 
-import { FileText, RefreshCw, Upload } from "lucide-react"
+import { Images, RefreshCw, Upload } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useQueryStates } from "nuqs"
 import { submissionSearchParams } from "../_lib/search-params"
@@ -126,7 +126,7 @@ export function SubmissionsHeader() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10">
-              <FileText className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
+              <Images className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
