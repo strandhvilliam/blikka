@@ -1522,6 +1522,19 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         };
       });
 
+      const getVotingRoundsForTopic = Effect.fn(
+        "VotingApiService.getVotingRoundsForTopic",
+      )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
+        const { marathon } = yield* getByCameraMarathonWithTopic({
+          domain,
+          topicId,
+        });
+        return yield* db.votingQueries.getVotingRoundsForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
+      });
+
       const getVotingLeaderboardPage = Effect.fn(
         "VotingApiService.getVotingLeaderboardPage",
       )(function* ({
@@ -1529,11 +1542,13 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         topicId,
         page,
         limit,
+        roundId,
       }: {
         domain: string;
         topicId: number;
         page?: number | null;
         limit?: number | null;
+        roundId?: number;
       }) {
         const { marathon } = yield* getByCameraMarathonWithTopic({
           domain,
@@ -1545,16 +1560,33 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             limit,
           });
 
+        if (roundId != null) {
+          const roundOpt = yield* db.votingQueries.getVotingRoundById({
+            marathonId: marathon.id,
+            topicId,
+            roundId,
+          });
+          if (Option.isNone(roundOpt)) {
+            return yield* Effect.fail(
+              new VotingApiError({ message: "Voting round not found" }),
+            );
+          }
+        }
+
+        const roundIdForQuery = roundId ?? null;
+
         const [items, total] = yield* Effect.all([
           db.votingQueries.getLeaderboardPageForTopic({
             marathonId: marathon.id,
             topicId,
             page: normalizedPage,
             limit: normalizedLimit,
+            roundId: roundIdForQuery,
           }),
           db.votingQueries.countVotingRoundSubmissionsForTopic({
             marathonId: marathon.id,
             topicId,
+            roundId: roundIdForQuery,
           }),
         ]);
 
@@ -2240,6 +2272,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         createOrUpdateVotingSessionForParticipant,
         getVotingSessionByParticipant,
         getVotingAdminSummary,
+        getVotingRoundsForTopic,
         getVotingLeaderboardPage,
         getVotingVotersPage,
         createManualVotingSession,

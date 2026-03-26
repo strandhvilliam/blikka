@@ -8,6 +8,7 @@ export function useVotingUiState() {
       "voters",
     ]).withDefault("leaderboard"),
     leaderboardPage: parseAsInteger.withDefault(1),
+    leaderboardRoundId: parseAsInteger,
     votersPage: parseAsInteger.withDefault(1),
   })
   return {
@@ -15,6 +16,13 @@ export function useVotingUiState() {
     setActiveTab: (tab: "leaderboard" | "voters") => setParams({ ...params, tab }),
     leaderboardPage: params.leaderboardPage,
     setLeaderboardPage: (page: number) => setParams({ ...params, leaderboardPage: page }),
+    leaderboardRoundId: params.leaderboardRoundId,
+    setLeaderboardRoundId: (roundId: number | null) =>
+      setParams({
+        ...params,
+        leaderboardRoundId: roundId,
+        leaderboardPage: 1,
+      }),
     votersPage: params.votersPage,
     setVotersPage: (page: number) => setParams({ ...params, votersPage: page }),
     setParams,

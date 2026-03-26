@@ -192,6 +192,9 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
         queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
       }),
       queryClient.invalidateQueries({
+        queryKey: trpc.voting.getVotingRoundsForTopic.pathKey(),
+      }),
+      queryClient.invalidateQueries({
         queryKey: trpc.voting.getParticipantsWithoutVotingSession.pathKey(),
       }),
       queryClient.invalidateQueries({

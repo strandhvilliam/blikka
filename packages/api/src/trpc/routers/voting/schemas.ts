@@ -84,6 +84,13 @@ export const GetVotingAdminSummarySchema = Schema.toStandardSchemaV1(
   }),
 );
 
+export const GetVotingRoundsForTopicSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+  }),
+);
+
 export const GetParticipantsWithoutVotingSessionSchema =
   Schema.toStandardSchemaV1(
     Schema.Struct({
@@ -112,6 +119,7 @@ export const GetVotingLeaderboardPageSchema = Schema.toStandardSchemaV1(
         Schema.isLessThanOrEqualTo(100),
       ),
     ),
+    roundId: Schema.optional(Schema.Number.check(Schema.isGreaterThan(0))),
   }),
 );
 

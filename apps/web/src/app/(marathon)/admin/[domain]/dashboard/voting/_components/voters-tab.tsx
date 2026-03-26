@@ -85,6 +85,9 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
           }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingRoundsForTopic.pathKey(),
+          }),
         ]);
       },
       onError: (error) => {
@@ -106,6 +109,9 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
           }),
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingRoundsForTopic.pathKey(),
           }),
         ]);
       },
@@ -149,6 +155,9 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
           }),
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.voting.getVotingRoundsForTopic.pathKey(),
           }),
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getParticipantsWithoutVotingSession.pathKey(),

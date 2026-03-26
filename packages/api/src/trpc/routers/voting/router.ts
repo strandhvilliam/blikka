@@ -13,6 +13,7 @@ import {
   CreateOrUpdateVotingSessionSchema,
   GetVotingSessionByParticipantSchema,
   GetVotingAdminSummarySchema,
+  GetVotingRoundsForTopicSchema,
   GetParticipantsWithoutVotingSessionSchema,
   GetVotingLeaderboardPageSchema,
   GetVotingVotersPageSchema,
@@ -191,6 +192,21 @@ export const votingRouter = createTRPCRouter({
             );
           },
         ),
+      ),
+    ),
+
+  getVotingRoundsForTopic: domainProcedure
+    .input(GetVotingRoundsForTopicSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn("VotingRouter.getVotingRoundsForTopic")(function* ({
+          input,
+        }) {
+          return yield* VotingApiService.use((s) =>
+            s.getVotingRoundsForTopic(input),
+          );
+        }),
       ),
     ),
 

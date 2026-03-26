@@ -37,6 +37,7 @@ interface UseVotingRealtimeOptions {
   domain: string;
   topicId: number;
   leaderboardPage: number;
+  leaderboardRoundId: number | null;
   votersPage: number;
 }
 
@@ -44,6 +45,7 @@ export function useVotingRealtime({
   domain,
   topicId,
   leaderboardPage,
+  leaderboardRoundId,
   votersPage,
 }: UseVotingRealtimeOptions) {
   const trpc = useTRPC();
@@ -67,6 +69,15 @@ export function useVotingRealtime({
     [domain, topicId, trpc],
   );
 
+  const roundsQueryOptions = useMemo(
+    () =>
+      trpc.voting.getVotingRoundsForTopic.queryOptions({
+        domain,
+        topicId,
+      }),
+    [domain, topicId, trpc],
+  );
+
   const leaderboardQueryOptions = useMemo(
     () =>
       trpc.voting.getVotingLeaderboardPage.queryOptions({
@@ -74,8 +85,9 @@ export function useVotingRealtime({
         topicId,
         page: leaderboardPage,
         limit: VOTING_PAGE_SIZE,
+        ...(leaderboardRoundId != null ? { roundId: leaderboardRoundId } : {}),
       }),
-    [domain, leaderboardPage, topicId, trpc],
+    [domain, leaderboardPage, topicId, trpc, leaderboardRoundId],
   );
 
   const votersQueryOptions = useMemo(
@@ -99,6 +111,11 @@ export function useVotingRealtime({
     leaderboardQueryOptions.queryKey,
     VOTING_REALTIME_RECONCILE_DEBOUNCE_MS,
   );
+  const invalidateRounds = useDebouncedInvalidate(
+    queryClient,
+    roundsQueryOptions.queryKey,
+    VOTING_REALTIME_RECONCILE_DEBOUNCE_MS,
+  );
   const invalidateVoters = useDebouncedInvalidate(
     queryClient,
     votersQueryOptions.queryKey,
@@ -120,7 +137,7 @@ export function useVotingRealtime({
     }
     queuedVoteEventsRef.current = [];
     queueOverflowedRef.current = false;
-  }, [domain, topicId, leaderboardPage, votersPage]);
+  }, [domain, topicId, leaderboardPage, leaderboardRoundId, votersPage]);
 
   useRealtime({
     events: [VOTING_VOTE_CAST_EVENT],
@@ -151,6 +168,7 @@ export function useVotingRealtime({
             startTransition(() => {
               invalidateSummary();
               invalidateLeaderboard();
+              invalidateRounds();
               invalidateVoters();
             });
           }, VOTING_REALTIME_BATCH_WINDOW_MS);
@@ -214,6 +232,7 @@ export function useVotingRealtime({
 
           invalidateSummary();
           invalidateLeaderboard();
+          invalidateRounds();
           invalidateVoters();
         });
       }, VOTING_REALTIME_BATCH_WINDOW_MS);

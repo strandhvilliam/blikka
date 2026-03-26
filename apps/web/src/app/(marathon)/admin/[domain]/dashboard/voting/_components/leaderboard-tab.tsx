@@ -5,6 +5,13 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -64,7 +71,12 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
   const router = useRouter();
   const trpc = useTRPC();
   const domain = useDomain();
-  const { leaderboardPage, setLeaderboardPage } = useVotingUiState();
+  const {
+    leaderboardPage,
+    setLeaderboardPage,
+    leaderboardRoundId,
+    setLeaderboardRoundId,
+  } = useVotingUiState();
   const [slideshowOpen, setSlideshowOpen] = useState(false);
 
   const { data: marathon } = useSuspenseQuery(
@@ -78,12 +90,28 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
     }),
   );
 
+  const { data: rounds } = useSuspenseQuery(
+    trpc.voting.getVotingRoundsForTopic.queryOptions({
+      domain,
+      topicId: activeTopic.id,
+    }),
+  );
+
+  const leaderboardRoundIdForQuery =
+    leaderboardRoundId != null &&
+    rounds.some((r) => r.id === leaderboardRoundId)
+      ? leaderboardRoundId
+      : null;
+
   const { data: leaderboardPageData } = useSuspenseQuery(
     trpc.voting.getVotingLeaderboardPage.queryOptions({
       domain,
       topicId: activeTopic.id,
       page: leaderboardPage,
       limit: VOTING_PAGE_SIZE,
+      ...(leaderboardRoundIdForQuery != null
+        ? { roundId: leaderboardRoundIdForQuery }
+        : {}),
     }),
   );
 
@@ -96,6 +124,16 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
       setLeaderboardPage(pageCount);
     }
   }, [pageCount, leaderboardPage, setLeaderboardPage]);
+
+  useEffect(() => {
+    if (leaderboardRoundId == null || rounds.length === 0) {
+      return;
+    }
+    const exists = rounds.some((r) => r.id === leaderboardRoundId);
+    if (!exists) {
+      setLeaderboardRoundId(null);
+    }
+  }, [leaderboardRoundId, rounds, setLeaderboardRoundId]);
 
   const handleRowClick = (entry: LeaderboardEntry) => {
     router.push(
@@ -154,6 +192,14 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
   const runnerUp = topCardEntries[1];
   const thirdPlace = topCardEntries[2];
 
+  const latestRound = rounds.length > 0 ? rounds[rounds.length - 1] : undefined;
+  const tableRoundId = leaderboardRoundIdForQuery ?? latestRound?.id;
+  const selectedTableRound = tableRoundId
+    ? rounds.find((r) => r.id === tableRoundId)
+    : undefined;
+  const roundSelectValue =
+    tableRoundId !== undefined ? String(tableRoundId) : "";
+
   return (
     <div className="space-y-6">
       {(summary.currentRound || topCardEntries.length > 0) ? (
@@ -168,11 +214,6 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
                   ? `Tie-break ${summary.currentRound.roundNumber}`
                   : `Round ${summary.currentRound.roundNumber}`}
               </Badge>
-              {summary.currentRound.kind === "tiebreak" ? (
-                <span className="text-xs">
-                  Only the tied leading submissions are shown in this round.
-                </span>
-              ) : null}
             </>
           ) : null}
           {topCardEntries.length > 0 ? (
@@ -220,6 +261,47 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
           marathonLogoUrl={marathon.logoUrl}
         />
       )}
+
+      {rounds.length > 0 ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-muted-foreground">
+              Leaderboard table
+            </p>
+            <Select
+              value={roundSelectValue}
+              onValueChange={(value) => {
+                const nextId = Number(value);
+                const latestId = latestRound?.id;
+                if (latestId !== undefined && nextId === latestId) {
+                  setLeaderboardRoundId(null);
+                } else {
+                  setLeaderboardRoundId(nextId);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[280px]" size="sm">
+                <SelectValue placeholder="Select round" />
+              </SelectTrigger>
+              <SelectContent>
+                {rounds.map((r) => (
+                  <SelectItem key={r.id} value={String(r.id)}>
+                    {r.kind === "tiebreak"
+                      ? `Round ${r.roundNumber} (tie-break)`
+                      : `Round ${r.roundNumber} (initial)`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedTableRound?.kind === "tiebreak" ? (
+            <p className="max-w-md text-xs text-muted-foreground sm:pt-5">
+              This round only lists submissions that were tied for the lead.
+              Choose an earlier round to see the full field.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Full results table */}
       <div className="rounded-lg border bg-card shadow-sm overflow-hidden">

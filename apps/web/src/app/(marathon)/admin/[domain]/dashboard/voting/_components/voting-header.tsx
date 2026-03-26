@@ -59,6 +59,9 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
           queryKey: trpc.voting.getVotingLeaderboardPage.pathKey(),
         }),
         queryClient.invalidateQueries({
+          queryKey: trpc.voting.getVotingRoundsForTopic.pathKey(),
+        }),
+        queryClient.invalidateQueries({
           queryKey: trpc.voting.getVotingVotersPage.pathKey(),
         }),
         queryClient.invalidateQueries({

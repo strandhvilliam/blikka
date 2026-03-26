@@ -32,6 +32,7 @@ function VotingSummaryContent({
     setLeaderboardPage,
     setVotersPage,
     leaderboardPage,
+    leaderboardRoundId,
     votersPage,
   } = useVotingUiState()
 
@@ -46,6 +47,7 @@ function VotingSummaryContent({
     domain,
     topicId: activeTopic.id,
     leaderboardPage,
+    leaderboardRoundId,
     votersPage,
   })
 

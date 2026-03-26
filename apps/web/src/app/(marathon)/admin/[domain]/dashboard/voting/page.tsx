@@ -31,6 +31,12 @@ const _VotingPage = Effect.fn("@blikka/web/VotingPage")(
           }),
         )
         prefetch(
+          trpc.voting.getVotingRoundsForTopic.queryOptions({
+            domain,
+            topicId: activeTopic.id,
+          }),
+        )
+        prefetch(
           trpc.voting.getVotingLeaderboardPage.queryOptions({
             domain,
             topicId: activeTopic.id,

@@ -877,6 +877,36 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         return result[0]?.value ?? 0;
       });
 
+      const getVotingRoundsForTopic = Effect.fn(
+        "VotingQueries.getVotingRoundsForTopic",
+      )(function* ({
+        marathonId,
+        topicId,
+      }: {
+        marathonId: number;
+        topicId: number;
+      }) {
+        return yield* use((database) =>
+          database
+            .select({
+              id: votingRound.id,
+              roundNumber: votingRound.roundNumber,
+              kind: votingRound.kind,
+              sourceRoundId: votingRound.sourceRoundId,
+              startedAt: votingRound.startedAt,
+              endsAt: votingRound.endsAt,
+            })
+            .from(votingRound)
+            .where(
+              and(
+                eq(votingRound.marathonId, marathonId),
+                eq(votingRound.topicId, topicId),
+              ),
+            )
+            .orderBy(asc(votingRound.roundNumber)),
+        );
+      });
+
       const getLeaderboardPageForTopic = Effect.fn(
         "VotingQueries.getLeaderboardPageForTopic",
       )(function* ({
@@ -1561,6 +1591,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         countSubmissionsForTopic,
         countParticipantsWithSubmissionsForTopic,
         countVotingRoundSubmissionsForTopic,
+        getVotingRoundsForTopic,
         getLeaderboardPageForTopic,
         getTopRanksPreviewForTopic,
         getLeadingTieForTopic,
