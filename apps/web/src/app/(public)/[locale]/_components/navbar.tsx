@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { PublicNavigation } from "@/i18n/navigation.public"
+import { PublicLocaleSwitcher } from "./public-locale-switcher"
 import { Menu, X } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 
@@ -32,7 +33,11 @@ export function Navbar() {
     <>
       <nav className="absolute top-3 left-3 right-3 z-50 flex items-center justify-between rounded-t-2xl px-6 py-5 lg:top-4 lg:left-4 lg:right-4 lg:rounded-t-3xl lg:px-12">
         <div className="flex items-center gap-12">
-          <Link href="/" className="flex items-center animate-hero-fade-in-from-top" aria-label="blikka home">
+          <Link
+            href="/"
+            className="flex items-center animate-hero-fade-in-from-top"
+            aria-label="blikka home"
+          >
             <img
               src="/blikka-logo-white.svg"
               alt="blikka logo"
@@ -85,6 +90,7 @@ export function Navbar() {
           >
             Login
           </PublicNavigation.Link>
+          <PublicLocaleSwitcher variant="navbarDark" />
           <Link
             href="#pricing"
             className="rounded-full border border-white/30 bg-white/10 px-5 py-2 text-sm text-white backdrop-blur-sm transition-[background-color,color,border-color] hover:bg-white hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
@@ -172,6 +178,9 @@ export function Navbar() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.35, duration: 0.3 }}
             >
+              <div className="flex justify-center pb-1">
+                <PublicLocaleSwitcher variant="navbarMobile" />
+              </div>
               <PublicNavigation.Link
                 href="/auth/login"
                 className="py-4 text-center text-base font-medium text-brand-black transition-colors hover:text-brand-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2"

@@ -18,4 +18,4 @@ export const rootDomain =
 /** Platform-wide Blikka terms (not per-organizer event terms). Override if hosted elsewhere. */
 export const BLIKKA_PLATFORM_TERMS_URL =
   process.env.NEXT_PUBLIC_BLIKKA_PLATFORM_TERMS_URL ||
-  `https://${process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL || "blikka.app"}/terms`
+  `https://${process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL || "blikka.app"}/terms-and-conditions`
