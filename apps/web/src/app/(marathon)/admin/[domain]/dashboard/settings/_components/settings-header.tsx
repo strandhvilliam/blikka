@@ -4,7 +4,7 @@ import { Settings } from "lucide-react"
 
 export function SettingsHeader() {
   return (
-    <div className="mb-8">
+    <div>
       <div className="flex items-center gap-3 mb-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10">
           <Settings className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
@@ -17,7 +17,7 @@ export function SettingsHeader() {
         </div>
       </div>
       <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
-        Configure your marathon name, schedule, languages, terms, and branding.
+        Configure your marathon name, schedule, languages, and branding.
       </p>
     </div>
   )

@@ -23,13 +23,15 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { SmsTestSection } from "./sms-test-section"
 
-interface DangerZoneTabProps {
+interface DangerZoneProps {
   marathonName: string
   onReset: () => Promise<void>
   isResettingMarathon: boolean
 }
 
-export function DangerZoneTab({ marathonName, onReset, isResettingMarathon }: DangerZoneTabProps) {
+export { DangerZoneSection as DangerZoneTab }
+
+export function DangerZoneSection({ marathonName, onReset, isResettingMarathon }: DangerZoneProps) {
   const trpc = useTRPC()
   const domain = useDomain()
   const router = useRouter()
@@ -110,7 +112,13 @@ export function DangerZoneTab({ marathonName, onReset, isResettingMarathon }: Da
     seedStatusQuery.isLoading
 
   return (
-    <div className="mt-0 bg-white">
+    <section>
+      <div className="flex items-center gap-2.5 mb-4">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" />
+        <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
+          Danger Zone
+        </p>
+      </div>
       <Alert variant="destructive" className="bg-destructive/10">
         <AlertTriangle className="h-4 w-4" aria-hidden />
         <AlertTitle className="font-gothic">Danger Zone</AlertTitle>
@@ -297,6 +305,6 @@ export function DangerZoneTab({ marathonName, onReset, isResettingMarathon }: Da
       ) : null}
 
       <SmsTestSection />
-    </div>
+    </section>
   )
 }

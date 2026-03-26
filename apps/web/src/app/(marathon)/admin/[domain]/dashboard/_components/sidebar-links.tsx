@@ -7,7 +7,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Download, Gavel, Handshake, Layers, type LucideIcon } from "lucide-react"
+import { Download, FileText, Gavel, Handshake, Layers, type LucideIcon } from "lucide-react"
 import {
   BookOpen,
   File,
@@ -81,6 +81,11 @@ export const NAV_LINKS = {
       name: "Sponsors",
       url: "/dashboard/sponsors",
       icon: Handshake as LucideIcon,
+    },
+    {
+      name: "Terms",
+      url: "/dashboard/terms",
+      icon: FileText as LucideIcon,
     },
     {
       name: "Settings",
