@@ -10,7 +10,6 @@ import {
 import {
   AlertTriangle,
   Check,
-  Clock,
   Flag,
   ImageIcon,
   Loader2,
@@ -34,13 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { useTRPC } from "@/lib/trpc/client";
 import { useDomain } from "@/lib/domain-provider";
 import { Button } from "@/components/ui/button";
@@ -49,11 +42,7 @@ import {
   getSubmissionLifecycleState,
   getVotingLifecycleState,
 } from "@/lib/voting-lifecycle";
-import {
-  formatDateTime,
-  toDateTimeLocalValue,
-  toIsoFromLocal,
-} from "../_lib/utils";
+import { formatDateTime } from "../_lib/utils";
 
 interface VotingSetupProps {
   activeTopic: Topic;
@@ -283,10 +272,6 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     }),
   );
 
-  const [endsAtInput, setEndsAtInput] = useState(() => {
-    const endsAt = summary.votingWindow.endsAt;
-    return endsAt ? toDateTimeLocalValue(new Date(endsAt)) : "";
-  });
   const [isStartVotingDialogOpen, setIsStartVotingDialogOpen] = useState(false);
   const [sendInitialSms, setSendInitialSms] = useState(true);
   const [isCloseVotingDialogOpen, setIsCloseVotingDialogOpen] = useState(false);
@@ -305,8 +290,6 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
   const participantWithSubmissionCount =
     summary?.submissionStats.participantWithSubmissionCount ?? 0;
   const totalSessions = summary?.sessionStats.total ?? 0;
-  const plannedEndIso = endsAtInput ? toIsoFromLocal(endsAtInput) : null;
-  const hasValidPlannedEnd = !endsAtInput || !!plannedEndIso;
   const hasScheduledVotingStart = !!summary.votingWindow.startsAt;
 
   const startBlockedMessage = useMemo(() => {
@@ -319,16 +302,8 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
     if (hasScheduledVotingStart) {
       return "Voting already has a recorded start timestamp.";
     }
-    if (!hasValidPlannedEnd) {
-      return "Choose a valid end time or leave it empty.";
-    }
     return null;
-  }, [
-    hasScheduledVotingStart,
-    hasValidPlannedEnd,
-    submissionCount,
-    submissionState,
-  ]);
+  }, [hasScheduledVotingStart, submissionCount, submissionState]);
 
   const canStartVoting = !startBlockedMessage && votingState === "not-started";
 
@@ -353,10 +328,6 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       toast.error(startBlockedMessage);
       return;
     }
-    if (plannedEndIso && new Date(plannedEndIso).getTime() <= Date.now()) {
-      toast.error("The planned voting end must be in the future.");
-      return;
-    }
     setIsStartVotingDialogOpen(true);
   };
 
@@ -365,7 +336,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       {
         domain,
         topicId: activeTopic.id,
-        endsAt: plannedEndIso,
+        endsAt: null,
         sendInitialSms,
       },
       { onSuccess: () => handleStartVotingDialogOpenChange(false) },
@@ -516,50 +487,10 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
               : null
           }
           extraContent={
-            step3Status === "active" ? (
-              <div className="space-y-3">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      disabled={hasScheduledVotingStart}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      <Clock className="h-3 w-3" />
-                      {endsAtInput
-                        ? formatDateTime(toIsoFromLocal(endsAtInput))
-                        : "Set Voing End Time"}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-64 space-y-3">
-                    <div className="space-y-1.5">
-                      <Label
-                        htmlFor="planned-voting-end"
-                        className="text-[12px] font-medium text-foreground"
-                      >
-                        Voting end time
-                      </Label>
-                      <Input
-                        id="planned-voting-end"
-                        type="datetime-local"
-                        value={endsAtInput}
-                        onChange={(event) => setEndsAtInput(event.target.value)}
-                        disabled={hasScheduledVotingStart}
-                        className="h-8 text-[13px]"
-                      />
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/60">
-                      Optional. Leave empty to close manually.
-                    </p>
-                  </PopoverContent>
-                </Popover>
-
-                {startBlockedMessage && (
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-[12px] leading-relaxed text-amber-800">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-                    {startBlockedMessage}
-                  </div>
-                )}
+            step3Status === "active" && startBlockedMessage ? (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-[12px] leading-relaxed text-amber-800">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                {startBlockedMessage}
               </div>
             ) : null
           }

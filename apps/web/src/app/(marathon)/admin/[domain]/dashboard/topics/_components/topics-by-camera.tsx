@@ -57,7 +57,18 @@ export function TopicsByCamera() {
     }),
     enabled: activeTopic != null,
   })
-  const historyTopics = sortedTopics.filter((topic) => topic.id !== activeTopic?.id)
+  const historyTopics = sortedTopics
+    .filter((topic) => topic.id !== activeTopic?.id)
+    .sort((a, b) => {
+      const at = a.activatedAt
+        ? new Date(a.activatedAt).getTime()
+        : Number.NEGATIVE_INFINITY
+      const bt = b.activatedAt
+        ? new Date(b.activatedAt).getTime()
+        : Number.NEGATIVE_INFINITY
+      if (bt !== at) return bt - at
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
   const activeVotingWindow = activeVotingSummary?.votingWindow ?? null
   const activeVotingHasStarted =
     getVotingLifecycleState(activeVotingWindow ?? { startsAt: null, endsAt: null }) !==
@@ -176,9 +187,15 @@ export function TopicsByCamera() {
                   All topics
                 </p>
               </div>
-              <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                {historyTopics.length} {historyTopics.length === 1 ? "topic" : "topics"}
-              </p>
+              <div className="flex shrink-0 flex-col items-end gap-0.5 text-end">
+                <p className="text-xs tabular-nums text-muted-foreground">
+                  {historyTopics.length}{" "}
+                  {historyTopics.length === 1 ? "topic" : "topics"}
+                </p>
+                <p className="text-[10px] leading-tight text-muted-foreground/85">
+                  Sorted by last activation
+                </p>
+              </div>
             </div>
 
             <TopicsHistoryList

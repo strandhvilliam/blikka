@@ -1,14 +1,7 @@
 import { useEffect } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Medal, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-} from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +38,25 @@ interface LeaderboardEntry {
 
 interface LeaderboardTabProps {
   activeTopic: { id: number };
+}
+
+const RANK_ACCENT = {
+  1: "bg-brand-primary text-white",
+  2: "bg-zinc-800 text-white",
+  3: "bg-zinc-400 text-white",
+} as const;
+
+function getRankAccent(rank: number) {
+  return (
+    RANK_ACCENT[rank as keyof typeof RANK_ACCENT] ??
+    "bg-zinc-200 text-zinc-600"
+  );
+}
+
+function getOrdinal(n: number) {
+  const suffixes = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
 }
 
 export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
@@ -115,300 +127,338 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
   const getDisplayName = (entry: LeaderboardEntry) =>
     `${entry.participantFirstName} ${entry.participantLastName}`.trim();
 
-  const getMedalTone = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return "text-amber-500";
-      case 2:
-        return "text-slate-500";
-      case 3:
-        return "text-orange-500";
-      default:
-        return "text-muted-foreground";
-    }
-  };
+  if (summary.voteStats.totalVotes === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 px-6">
+        <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+          <Trophy className="size-5 text-muted-foreground" />
+        </div>
+        <p className="mt-4 text-sm font-semibold text-foreground">
+          No votes yet
+        </p>
+        <p className="mt-1 max-w-xs text-center text-sm text-muted-foreground">
+          The leaderboard will populate once participants begin casting their
+          votes.
+        </p>
+      </div>
+    );
+  }
 
-  const getRankBadgeClass = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return "border-amber-300 bg-gradient-to-b from-amber-100 to-amber-50 text-amber-800 shadow-amber-200/80";
-      case 2:
-        return "border-slate-300 bg-gradient-to-b from-slate-100 to-slate-50 text-slate-700 shadow-slate-200/80";
-      case 3:
-        return "border-orange-300 bg-gradient-to-b from-orange-100 to-orange-50 text-orange-800 shadow-orange-200/80";
-      default:
-        return "border-zinc-300 bg-gradient-to-b from-zinc-100 to-zinc-50 text-zinc-700 shadow-zinc-200/70";
-    }
-  };
+  const winner = topCardEntries[0];
+  const runnerUp = topCardEntries[1];
+  const thirdPlace = topCardEntries[2];
 
   return (
     <div className="space-y-6">
       {summary.currentRound ? (
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Badge variant="outline">
+        <div className="flex flex-wrap items-center gap-2.5 text-sm text-muted-foreground">
+          <Badge
+            variant="outline"
+            className="border-brand-primary/25 bg-brand-primary/5 text-brand-primary"
+          >
             {summary.currentRound.kind === "tiebreak"
               ? `Tie-break ${summary.currentRound.roundNumber}`
               : `Round ${summary.currentRound.roundNumber}`}
           </Badge>
           {summary.currentRound.kind === "tiebreak" ? (
-            <span>
+            <span className="text-xs">
               Only the tied leading submissions are shown in this round.
             </span>
           ) : null}
         </div>
       ) : null}
-      <Card className="overflow-hidden border-border/80 shadow-sm">
-        <CardContent className="p-3 sm:p-4 md:p-5">
-          {summary.voteStats.totalVotes === 0 ? (
-            <div className="rounded-xl border border-dashed bg-muted/20 p-6 text-center">
-              <p className="text-sm font-medium">
-                Leaderboard will appear once votes are cast
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Start the voting session and wait for participants to submit
-                their votes.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                {[0, 1, 2].map((cardIndex) => {
-                  const entry = topCardEntries[cardIndex];
-                  const displayRank = entry?.rank ?? cardIndex + 1;
-                  const tone = getMedalTone(displayRank);
-                  const imageUrl = entry
-                    ? getSubmissionImageUrl(
-                        entry.submissionThumbnailKey,
-                        entry.submissionKey,
-                      )
-                    : null;
+
+      {/* Winner — full-width hero card */}
+      <PodiumCard
+        entry={winner}
+        rank={1}
+        variant="hero"
+        getDisplayName={getDisplayName}
+        onClick={winner ? () => handleRowClick(winner) : undefined}
+      />
+
+      {/* Runner-ups — side by side */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <PodiumCard
+          entry={runnerUp}
+          rank={2}
+          variant="compact"
+          getDisplayName={getDisplayName}
+          onClick={runnerUp ? () => handleRowClick(runnerUp) : undefined}
+        />
+        <PodiumCard
+          entry={thirdPlace}
+          rank={3}
+          variant="compact"
+          getDisplayName={getDisplayName}
+          onClick={thirdPlace ? () => handleRowClick(thirdPlace) : undefined}
+        />
+      </div>
+
+      {/* Full results table */}
+      <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-card">
+              <TableRow className="border-b bg-muted/30 hover:bg-muted/30">
+                <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                  Rank
+                </TableHead>
+                <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                  Participant
+                </TableHead>
+                <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                  Reference
+                </TableHead>
+                <TableHead className="h-9 bg-muted/50 text-xs font-semibold text-foreground">
+                  Submitted
+                </TableHead>
+                <TableHead className="h-9 bg-muted/50 text-right text-xs font-semibold text-foreground">
+                  Votes
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {leaderboard.length > 0 ? (
+                leaderboard.map((entry) => {
+                  const voteProgress =
+                    maxVotes > 0 ? (entry.voteCount / maxVotes) * 100 : 0;
 
                   return (
-                    <div
-                      key={`top-card-${cardIndex}`}
-                      className={`relative overflow-hidden rounded-2xl border border-border/70 bg-white p-4 ${
-                        entry
-                          ? "cursor-pointer hover:shadow-md transition-shadow"
-                          : ""
-                      }`}
-                      onClick={entry ? () => handleRowClick(entry) : undefined}
+                    <TableRow
+                      key={entry.submissionId}
+                      className="border-b transition-colors hover:bg-muted/60 cursor-pointer"
+                      onClick={() => handleRowClick(entry)}
                     >
-                      {entry ? (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`relative flex size-12 shrink-0 items-center justify-center rounded-full border text-base font-black tracking-tight shadow-md ${getRankBadgeClass(displayRank)}`}
-                            >
-                              <span className="absolute inset-[3px] rounded-full border border-white/80" />
-                              <span className="relative leading-none text-xl">
-                                {displayRank}
-                              </span>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold">
-                                {getDisplayName(entry)}
-                              </p>
-                              <p className="truncate text-xs text-muted-foreground">
-                                #{entry.participantReference}
-                              </p>
-                            </div>
-                            <div className="flex ml-auto items-center justify-between">
-                              <Medal className={`h-4 w-4 ${tone}`} />
-                            </div>
-                          </div>
-
-                          <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl border border-border/60 bg-white/80 p-2">
-                            <div>
-                              <p className="text-[10px] uppercase text-muted-foreground">
-                                Votes
-                              </p>
-                              <p className="text-sm font-semibold">
-                                {entry.voteCount}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] uppercase text-muted-foreground">
-                                Rank
-                              </p>
-                              <p className="text-sm font-semibold">
-                                {entry.rank}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] uppercase text-muted-foreground">
-                                Uploaded
-                              </p>
-                              <p className="text-xs font-medium">
-                                {formatDateTime(entry.submissionCreatedAt)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 overflow-hidden rounded-lg border bg-muted/50">
-                            {imageUrl ? (
-                              <img
-                                src={imageUrl}
-                                alt={`Participant ${entry.participantReference} submission ${entry.submissionId}`}
-                                className="aspect-[16/9] w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex aspect-[16/9] items-center justify-center text-xs text-muted-foreground">
-                                No image preview
-                              </div>
-                            )}
-                          </div>
-
+                      <TableCell className="py-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex size-7 items-center justify-center rounded-full text-xs font-bold ${getRankAccent(entry.rank)}`}
+                          >
+                            {entry.rank}
+                          </span>
                           {entry.isTie ? (
-                            <Badge variant="outline" className="mt-3 bg-white">
-                              Tie ({entry.tieSize} submissions)
+                            <Badge
+                              variant="outline"
+                              className="border-brand-primary/20 bg-brand-primary/5 text-[10px] text-brand-primary"
+                            >
+                              Tie ({entry.tieSize})
                             </Badge>
                           ) : null}
-                        </>
-                      ) : (
-                        <div className="mt-3 rounded-lg border border-dashed bg-white/70 p-4 text-sm text-muted-foreground">
-                          No ranked submission yet
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-start justify-between gap-4"></div>
-
-              <div className="overflow-hidden rounded-2xl border border-border/80 bg-white">
-                <Table className="min-w-[760px]">
-                  <TableHeader className="bg-muted/40">
-                    <TableRow className="border-b border-border/70 bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="h-10 px-4 text-xs font-semibold">
-                        Rank
-                      </TableHead>
-                      <TableHead className="h-10 px-4 text-xs font-semibold">
-                        Participant
-                      </TableHead>
-                      <TableHead className="h-10 px-4 text-xs font-semibold">
-                        Reference
-                      </TableHead>
-                      <TableHead className="h-10 px-4 text-xs font-semibold">
-                        Uploaded
-                      </TableHead>
-                      <TableHead className="h-10 px-4 text-xs font-semibold">
-                        Votes
-                      </TableHead>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <p className="text-sm font-medium">
+                          {getDisplayName(entry)}
+                        </p>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <code className="font-mono text-xs">
+                          {entry.participantReference}
+                        </code>
+                      </TableCell>
+                      <TableCell className="py-2 text-sm text-muted-foreground">
+                        {formatDateTime(entry.submissionCreatedAt)}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-brand-primary transition-all duration-300"
+                              style={{
+                                width: `${Math.max(4, Math.min(100, voteProgress))}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="w-8 text-right font-mono text-sm font-bold tabular-nums">
+                            {entry.voteCount}
+                          </span>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-
-                  <TableBody>
-                    {leaderboard.length > 0 ? (
-                      leaderboard.map((entry) => {
-                        const voteProgress =
-                          maxVotes > 0 ? (entry.voteCount / maxVotes) * 100 : 0;
-
-                        return (
-                          <TableRow
-                            key={entry.submissionId}
-                            className="border-b border-border/70 hover:bg-muted/30 cursor-pointer"
-                            onClick={() => handleRowClick(entry)}
-                          >
-                            <TableCell className="px-4 py-3 font-semibold">
-                              {entry.rank}
-                              {entry.isTie && (
-                                <Badge
-                                  variant="outline"
-                                  className="ml-2 border-amber-300 bg-amber-50 text-amber-700"
-                                >
-                                  Tie ({entry.tieSize})
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <p className="text-sm font-medium">
-                                  {getDisplayName(entry)}
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="px-4 py-3 font-medium">
-                              {entry.participantReference}
-                            </TableCell>
-                            <TableCell className="px-4 py-3 text-muted-foreground">
-                              {formatDateTime(entry.submissionCreatedAt)}
-                            </TableCell>
-                            <TableCell className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold">
-                                  {entry.voteCount}
-                                </p>
-                                <div className="h-1.5 w-24 rounded-full bg-muted">
-                                  <div
-                                    className="h-full rounded-full bg-orange-400"
-                                    style={{
-                                      width: `${Math.max(
-                                        10,
-                                        Math.min(100, voteProgress),
-                                      )}%`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="h-24 text-center text-muted-foreground"
-                        >
-                          No submissions found for this topic.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Showing {leaderboard.length} of {total} submissions
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setLeaderboardPage(Math.max(1, leaderboardPage - 1))
-                    }
-                    disabled={leaderboardPage <= 1}
-                    className="bg-white"
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="h-24 text-center text-muted-foreground"
                   >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {pageCount === 0 ? 0 : leaderboardPage} of {pageCount}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setLeaderboardPage(
-                        pageCount > 0
-                          ? Math.min(pageCount, leaderboardPage + 1)
-                          : leaderboardPage + 1,
-                      )
-                    }
-                    disabled={pageCount === 0 || leaderboardPage >= pageCount}
-                    className="bg-white"
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    No submissions found for this topic.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Showing {leaderboard.length} of {total} submissions
+        </p>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={() =>
+              setLeaderboardPage(Math.max(1, leaderboardPage - 1))
+            }
+            disabled={leaderboardPage <= 1}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="px-2 text-xs tabular-nums text-muted-foreground">
+            {pageCount === 0 ? 0 : leaderboardPage} / {pageCount}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={() =>
+              setLeaderboardPage(
+                pageCount > 0
+                  ? Math.min(pageCount, leaderboardPage + 1)
+                  : leaderboardPage + 1,
+              )
+            }
+            disabled={pageCount === 0 || leaderboardPage >= pageCount}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Podium Card ─── */
+
+interface PodiumCardProps {
+  entry: LeaderboardEntry | undefined;
+  rank: number;
+  variant: "hero" | "compact";
+  getDisplayName: (entry: LeaderboardEntry) => string;
+  onClick?: () => void;
+}
+
+function PodiumCard({
+  entry,
+  rank,
+  variant,
+  getDisplayName,
+  onClick,
+}: PodiumCardProps) {
+  const accent = getRankAccent(rank);
+  const imageUrl = entry
+    ? getSubmissionImageUrl(
+        entry.submissionThumbnailKey,
+        entry.submissionKey,
+      )
+    : null;
+
+  const isHero = variant === "hero";
+
+  if (!entry) {
+    return (
+      <div className="flex items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 py-10">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <span
+            className={`inline-flex size-8 items-center justify-center rounded-full text-sm font-bold opacity-40 ${accent}`}
+          >
+            {rank}
+          </span>
+          <span className="text-sm">
+            {getOrdinal(rank)} place — awaiting submission
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`group relative flex overflow-hidden rounded-lg border border-border bg-card shadow-sm ${
+        onClick ? "cursor-pointer transition-shadow hover:shadow-md" : ""
+      }`}
+      onClick={onClick}
+    >
+      {/* Image */}
+      <div
+        className={`relative shrink-0 overflow-hidden bg-muted ${
+          isHero ? "w-56 lg:w-72" : "w-36 lg:w-44"
+        }`}
+      >
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={`Submission by ${getDisplayName(entry)}`}
+            className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
+            No preview
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div
+        className={`flex min-w-0 flex-1 flex-col justify-center ${
+          isHero ? "p-5 lg:p-7" : "p-4"
+        }`}
+      >
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold ${accent} ${
+              isHero ? "size-10 text-base" : "size-7 text-xs"
+            }`}
+          >
+            {rank}
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            {getOrdinal(rank)} Place
+          </span>
+          {entry.isTie ? (
+            <Badge
+              variant="outline"
+              className="border-brand-primary/20 bg-brand-primary/5 text-[10px] text-brand-primary"
+            >
+              Tie &middot; {entry.tieSize}
+            </Badge>
+          ) : null}
+        </div>
+
+        <p
+          className={`mt-2 truncate font-semibold text-foreground ${
+            isHero ? "text-lg" : "text-sm"
+          }`}
+        >
+          {getDisplayName(entry)}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          #{entry.participantReference}
+        </p>
+
+        <div className={`flex items-baseline gap-1.5 ${isHero ? "mt-4" : "mt-3"}`}>
+          <span
+            className={`font-mono font-bold tabular-nums text-foreground ${
+              isHero ? "text-3xl" : "text-xl"
+            }`}
+          >
+            {entry.voteCount}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            vote{entry.voteCount !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          {formatDateTime(entry.submissionCreatedAt)}
+        </p>
+      </div>
     </div>
   );
 }

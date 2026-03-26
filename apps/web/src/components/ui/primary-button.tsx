@@ -33,11 +33,10 @@ export function PrimaryButton({
     <motion.button
       ref={ref}
       className={cn(
-        // Match default `Button` / outline sizing (`buttonVariants` size default: h-9, px-4, rounded-md)
-        "relative inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium text-white has-[>svg]:px-3",
+        "relative px-4 py-2 text-white text-sm font-semibold rounded-lg flex justify-center items-center gap-2 flex-row ",
         "transition-all duration-200 ease-in-out",
         disabled && "opacity-50 cursor-not-allowed",
-        className
+        className,
       )}
       style={
         {
@@ -48,13 +47,11 @@ export function PrimaryButton({
           background: "linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%)",
         } as React.CSSProperties
       }
-      whileHover={
-        {
-          "--gradient-start": disabled ? disabledGradientStart : hoverPrimaryColor,
-          "--gradient-end": disabled ? disabledGradientEnd : primaryColor,
-          boxShadow: `0px 6px 8px ${disabled ? disabledShadowColor : shadowColor}`,
-        } as any
-      }
+      whileHover={{
+        "--gradient-start": disabled ? disabledGradientStart : hoverPrimaryColor,
+        "--gradient-end": disabled ? disabledGradientEnd : primaryColor,
+        boxShadow: `0px 6px 8px ${disabled ? disabledShadowColor : shadowColor}`,
+      }}
       whileTap={{
         boxShadow: `0px 5px 10px ${disabled ? disabledShadowColor : shadowColor}`,
       }}

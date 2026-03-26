@@ -25,7 +25,7 @@ export function TopicListItem({
 }: TopicListItemProps) {
   return (
     <div className="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-muted-foreground/30">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
             <CircleDot className="size-4 text-muted-foreground" />
@@ -65,7 +65,7 @@ export function TopicListItem({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-start gap-2">
           <Button
             size="sm"
             variant="outline"
