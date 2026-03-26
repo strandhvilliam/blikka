@@ -41,6 +41,7 @@ type SubmissionWindowMode = "now" | "schedule";
 
 interface TopicsSubmissionWindowDialogProps {
   topic: Topic | null;
+  votingHasStarted: boolean;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -69,6 +70,7 @@ function getSubmissionWindowDefaults(topic: Topic | null) {
 
 export function TopicsSubmissionWindowDialog({
   topic,
+  votingHasStarted,
   isOpen,
   onOpenChange,
 }: TopicsSubmissionWindowDialogProps) {
@@ -110,7 +112,7 @@ export function TopicsSubmissionWindowDialog({
       const submissionClosed =
         getByCameraSubmissionWindowState(topic) === "closed";
 
-      if (submissionClosed && topic.votingStartsAt) {
+      if (submissionClosed && votingHasStarted) {
         toast.error("Voting has already started; submissions cannot be reopened");
         return;
       }
@@ -180,7 +182,6 @@ export function TopicsSubmissionWindowDialog({
     ? getByCameraSubmissionWindowState(topic)
     : null;
   const isSubmissionClosed = submissionState === "closed";
-  const votingHasStarted = Boolean(topic?.votingStartsAt);
   const submissionClosedReadOnly = isSubmissionClosed && votingHasStarted;
   const canReopenAfterClose =
     isActiveTopic && isSubmissionClosed && !votingHasStarted;

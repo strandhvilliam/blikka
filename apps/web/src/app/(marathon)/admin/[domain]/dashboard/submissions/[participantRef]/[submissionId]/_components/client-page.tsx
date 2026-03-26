@@ -12,7 +12,6 @@ import type {
   DeviceGroup,
   Participant,
   Submission,
-  Topic,
   ValidationResult,
 } from "@blikka/db"
 import { SubmissionImageViewer } from "./submission-image-viewer"
@@ -25,7 +24,6 @@ import { useRouter } from "next/navigation"
 
 import { useDomain } from "@/lib/domain-provider"
 import { formatDomainPathname } from "@/lib/utils"
-import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
 import {
   getSubmissionDownloadFileName,
   getSubmissionOriginalImageUrl,
@@ -34,7 +32,6 @@ import {
 
 interface VotingDataPanelProps {
   submission: Submission
-  submissionTopic: Pick<Topic, "votingStartsAt" | "votingEndsAt">
   participant: Participant & {
     competitionClass: CompetitionClass | null
     deviceGroup: DeviceGroup | null
@@ -46,7 +43,6 @@ interface VotingDataPanelProps {
 
 function VotingDataPanel({
   submission,
-  submissionTopic,
   participant,
   hasIssues,
   validationResults,
@@ -64,7 +60,6 @@ function VotingDataPanel({
   return (
     <SubmissionMetadataPanel
       submission={submission}
-      submissionTopic={submissionTopic}
       participant={participant}
       hasIssues={hasIssues}
       validationResults={validationResults}
@@ -160,13 +155,6 @@ export function ParticipantSubmissionClientPage({
   const submissionDownloadFileName = getSubmissionDownloadFileName(submission)
   const submissionDownloadUrl = originalImageUrl ?? previewImageUrl
 
-  const byCameraVotingStarted =
-    marathon.mode === "by-camera" &&
-    getVotingLifecycleState({
-      startsAt: topic.votingStartsAt,
-      endsAt: topic.votingEndsAt,
-    }) !== "not-started"
-
   return (
     <div className="space-y-6">
       <SubmissionHeader participant={participant} marathonMode={marathon.mode} />
@@ -224,39 +212,24 @@ export function ParticipantSubmissionClientPage({
 
         <div className="space-y-6">
           {marathon.mode === "by-camera" ? (
-            byCameraVotingStarted ? (
-              <Suspense
-                fallback={
-                  <div className="rounded-xl border border-border bg-white p-4 animate-pulse">
-                    <div className="h-32 bg-muted/30 rounded-lg" />
-                  </div>
-                }
-              >
-                <VotingDataPanel
-                  submission={submission}
-                  submissionTopic={topic}
-                  participant={participant}
-                  hasIssues={hasIssues}
-                  validationResults={submissionValidationResults}
-                  domain={domain}
-                />
-              </Suspense>
-            ) : (
-              <SubmissionMetadataPanel
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-border bg-white p-4 animate-pulse">
+                  <div className="h-32 bg-muted/30 rounded-lg" />
+                </div>
+              }
+            >
+              <VotingDataPanel
                 submission={submission}
-                submissionTopic={topic}
                 participant={participant}
                 hasIssues={hasIssues}
                 validationResults={submissionValidationResults}
-                marathonMode="by-camera"
-                voteStats={undefined}
                 domain={domain}
               />
-            )
+            </Suspense>
           ) : (
             <SubmissionMetadataPanel
               submission={submission}
-              submissionTopic={topic}
               participant={participant}
               hasIssues={hasIssues}
               validationResults={submissionValidationResults}

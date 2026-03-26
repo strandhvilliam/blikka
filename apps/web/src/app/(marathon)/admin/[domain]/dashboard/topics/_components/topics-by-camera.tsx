@@ -3,10 +3,11 @@
 import type { Topic } from "@blikka/db"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useTopicsByCameraDialogState } from "../_hooks/use-topics-by-camera-dialog-state"
 import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
+import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
 import { TopicsCreateDialog } from "./topics-create-dialog"
 import { TopicsEditDialog } from "./topics-edit-dialog"
 import { TopicsDeleteDialog } from "./topics-delete-dialog"
@@ -50,8 +51,18 @@ export function TopicsByCamera() {
   const sortedTopics = [...topics].sort((a, b) => a.orderIndex - b.orderIndex)
   const activeTopic = sortedTopics.find((topic) => topic.visibility === "active") ?? null
   const activeTopicSubmissionState = getByCameraSubmissionWindowState(activeTopic)
+  const { data: activeVotingSummary } = useQuery({
+    ...trpc.voting.getVotingAdminSummary.queryOptions({
+      domain,
+      topicId: activeTopic?.id ?? 0,
+    }),
+    enabled: activeTopic != null,
+  })
   const historyTopics = sortedTopics.filter((topic) => topic.id !== activeTopic?.id)
   const totalSubmissions = submissionCounts.reduce((sum, row) => sum + row.count, 0)
+  const activeVotingWindow = activeVotingSummary?.votingWindow ?? null
+  const activeVotingHasStarted =
+    getVotingLifecycleState(activeVotingWindow ?? { startsAt: null, endsAt: null }) !== "not-started"
 
   const selectedTopic = topicId != null ? (topics.find((t) => t.id === topicId) ?? null) : null
 
@@ -148,6 +159,7 @@ export function TopicsByCamera() {
           <ActiveTopicBanner
             activeTopic={activeTopic}
             submissionState={activeTopicSubmissionState}
+            votingHasStarted={activeVotingHasStarted}
             submissionCount={submissionCountMap.get(activeTopic?.id ?? 0) ?? 0}
             onEdit={handleEditClick}
             onEditSubmissionWindow={handleSubmissionWindowClick}
@@ -190,6 +202,7 @@ export function TopicsByCamera() {
 
       <TopicsSubmissionWindowDialog
         topic={selectedTopic}
+        votingHasStarted={selectedTopic?.id === activeTopic?.id ? activeVotingHasStarted : false}
         isOpen={dialog === "submission-window"}
         onOpenChange={(open) => !open && closeDialog()}
       />
@@ -197,6 +210,7 @@ export function TopicsByCamera() {
       <TopicsActivateDialog
         topicToActivate={selectedTopic}
         activeTopic={activeTopic}
+        activeVotingWindow={activeVotingWindow}
         isOpen={dialog === "activate"}
         onOpenChange={(open) => !open && closeDialog()}
         onConfirm={handleActivateConfirm}

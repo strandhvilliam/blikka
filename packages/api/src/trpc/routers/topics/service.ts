@@ -187,7 +187,13 @@ export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
             ? topic.scheduledEnd
             : data.scheduledEnd;
 
-        if (topic.votingStartsAt) {
+        const latestVotingRoundOpt =
+          yield* db.votingQueries.getLatestVotingRoundForTopic({
+            marathonId: topic.marathonId,
+            topicId: topic.id,
+          });
+
+        if (Option.isSome(latestVotingRoundOpt)) {
           const startChanged = nextScheduledStart !== topic.scheduledStart;
           const endChanged = nextScheduledEnd !== topic.scheduledEnd;
           if (startChanged || endChanged) {

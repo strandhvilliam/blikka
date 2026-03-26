@@ -25,8 +25,6 @@ function createTopic(
     marathonId: 1,
     updatedAt: null as string | null,
     activatedAt: null as string | null,
-    votingStartsAt: null as string | null,
-    votingEndsAt: null as string | null,
     ...overrides,
   };
 }

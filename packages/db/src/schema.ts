@@ -589,14 +589,6 @@ export const topics = pgTable(
       withTimezone: true,
       mode: "string",
     }),
-    votingStartsAt: timestamp("voting_starts_at", {
-      withTimezone: true,
-      mode: "string",
-    }),
-    votingEndsAt: timestamp("voting_ends_at", {
-      withTimezone: true,
-      mode: "string",
-    }),
   },
   (table) => [
     foreignKey({

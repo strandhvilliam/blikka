@@ -22,6 +22,7 @@ import { formatTimestamp } from "../_lib/formatting"
 type ActiveTopicBannerProps = {
   activeTopic: Topic | null
   submissionState: ByCameraSubmissionWindowState
+  votingHasStarted: boolean
   submissionCount: number
   onEdit: (topic: Topic) => void
   onEditSubmissionWindow: (topic: Topic) => void
@@ -62,6 +63,7 @@ const BADGE_STYLES: Record<
 export function ActiveTopicBanner({
   activeTopic,
   submissionState,
+  votingHasStarted,
   submissionCount,
   onEdit,
   onEditSubmissionWindow,
@@ -73,9 +75,7 @@ export function ActiveTopicBanner({
       submissionState === "no-active-topic" ? "not-opened" : submissionState
     const badge = BADGE_STYLES[resolvedSubmissionState]
     const BadgeIcon = badge.icon
-    const submissionWindowLockedAfterVote =
-      resolvedSubmissionState === "closed" &&
-      Boolean(activeTopic.votingStartsAt)
+    const submissionWindowLockedAfterVote = resolvedSubmissionState === "closed" && votingHasStarted
     const submissionWindowActionLabel =
       resolvedSubmissionState === "not-opened"
         ? "Start submissions"

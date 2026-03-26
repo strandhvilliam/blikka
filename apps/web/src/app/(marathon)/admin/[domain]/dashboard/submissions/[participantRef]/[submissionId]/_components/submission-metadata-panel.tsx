@@ -5,7 +5,6 @@ import type {
   DeviceGroup,
   Participant,
   Submission,
-  Topic,
   ValidationResult,
 } from "@blikka/db"
 import { format } from "date-fns"
@@ -25,7 +24,6 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { formatDomainPathname } from "@/lib/utils"
-import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
 
 interface VoteStats {
   voteCount: number
@@ -43,7 +41,6 @@ interface VoteStats {
 
 interface SubmissionMetadataPanelProps {
   submission: Submission
-  submissionTopic: Pick<Topic, "votingStartsAt" | "votingEndsAt"> | null
   participant: Participant & {
     competitionClass: CompetitionClass | null
     deviceGroup: DeviceGroup | null
@@ -95,7 +92,6 @@ function PanelHeaderWithIcon({
 
 export function SubmissionMetadataPanel({
   submission,
-  submissionTopic,
   participant,
   hasIssues,
   validationResults,
@@ -104,13 +100,7 @@ export function SubmissionMetadataPanel({
   domain,
 }: SubmissionMetadataPanelProps) {
   const isByCameraMode = marathonMode === "by-camera"
-  const byCameraVotingRelevant =
-    isByCameraMode &&
-    submissionTopic &&
-    getVotingLifecycleState({
-      startsAt: submissionTopic.votingStartsAt,
-      endsAt: submissionTopic.votingEndsAt,
-    }) !== "not-started"
+  const byCameraVotingRelevant = isByCameraMode && voteStats?.roundNumber != null
 
   return (
     <div className="space-y-4">

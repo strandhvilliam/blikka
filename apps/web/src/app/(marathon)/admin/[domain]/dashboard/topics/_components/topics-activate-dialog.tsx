@@ -15,9 +15,15 @@ import {
 import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
 import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
 
+type VotingWindow = {
+  startsAt: string | null
+  endsAt: string | null
+}
+
 interface TopicsActivateDialogProps {
   topicToActivate: Topic | null
   activeTopic: Topic | null
+  activeVotingWindow: VotingWindow | null
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: (topic: Topic) => void
@@ -27,6 +33,7 @@ interface TopicsActivateDialogProps {
 function getActivateDialogMessage(
   topicToActivate: Topic,
   activeTopic: Topic | null,
+  activeVotingWindow: VotingWindow | null,
 ): { title: string; description: string } {
   const topicName = topicToActivate.name
 
@@ -38,10 +45,7 @@ function getActivateDialogMessage(
   }
 
   const submissionState = getByCameraSubmissionWindowState(activeTopic)
-  const votingState = getVotingLifecycleState({
-    startsAt: activeTopic.votingStartsAt,
-    endsAt: activeTopic.votingEndsAt,
-  })
+  const votingState = getVotingLifecycleState(activeVotingWindow ?? { startsAt: null, endsAt: null })
 
   const submissionsOngoing = submissionState === "open"
   const votingActive = votingState === "active"
@@ -79,6 +83,7 @@ function getActivateDialogMessage(
 export function TopicsActivateDialog({
   topicToActivate,
   activeTopic,
+  activeVotingWindow,
   isOpen,
   onOpenChange,
   onConfirm,
@@ -90,7 +95,9 @@ export function TopicsActivateDialog({
   }
 
   const message =
-    topicToActivate != null ? getActivateDialogMessage(topicToActivate, activeTopic) : null
+    topicToActivate != null
+      ? getActivateDialogMessage(topicToActivate, activeTopic, activeVotingWindow)
+      : null
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>

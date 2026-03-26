@@ -3,7 +3,7 @@ import type { Topic } from "@blikka/db"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { useQueryClient } from "@tanstack/react-query"
-import { useSuspenseQuery, useMutation } from "@tanstack/react-query"
+import { useSuspenseQuery, useMutation, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { SidebarMenuButton } from "@/components/ui/sidebar"
@@ -28,6 +28,13 @@ export function DashboardHeaderTopicSwitcher() {
 
   const topics = [...(marathon?.topics ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
   const activeTopic = topics.find((topic) => topic.visibility === "active") ?? null
+  const { data: activeVotingSummary } = useQuery({
+    ...trpc.voting.getVotingAdminSummary.queryOptions({
+      domain,
+      topicId: activeTopic?.id ?? 0,
+    }),
+    enabled: activeTopic != null,
+  })
 
   const { mutate: activateTopic, isPending: isActivatingTopic } = useMutation(
     trpc.topics.activate.mutationOptions({
@@ -138,6 +145,7 @@ export function DashboardHeaderTopicSwitcher() {
       <TopicsActivateDialog
         topicToActivate={pendingTopicToActivate}
         activeTopic={activeTopic}
+        activeVotingWindow={activeVotingSummary?.votingWindow ?? null}
         isOpen={pendingTopicToActivate != null}
         onOpenChange={(open) => !open && setPendingTopicToActivate(null)}
         onConfirm={handleActivateConfirm}

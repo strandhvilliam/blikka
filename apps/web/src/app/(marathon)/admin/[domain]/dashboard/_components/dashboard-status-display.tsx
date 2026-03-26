@@ -27,7 +27,7 @@ import type { RequiredAction } from "@/hooks/use-marathon-configuration"
 import { useMarathonCountdown, type MarathonStatus } from "@/hooks/use-marathon-countdown"
 import { cn } from "@/lib/utils"
 import { useTRPC } from "@/lib/trpc/client"
-import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useSuspenseQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
 import {
   AlertTriangle,
@@ -220,18 +220,23 @@ function ByCameraStatusDisplay({ domain }: { domain: string }) {
 
   const topics = [...(marathon?.topics ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
   const activeTopic = topics.find((t) => t.visibility === "active") ?? null
+  const { data: activeVotingSummary } = useQuery({
+    ...trpc.voting.getVotingAdminSummary.queryOptions({
+      domain,
+      topicId: activeTopic?.id ?? 0,
+    }),
+    enabled: activeTopic != null,
+  })
+  const activeVotingWindow = activeVotingSummary?.votingWindow ?? null
   const pendingTopic = topics.find((topic) => topic.id === pendingTopicId) ?? null
-  const phase = useByCameraLifecycle(activeTopic)
+  const phase = useByCameraLifecycle(activeTopic, activeVotingWindow)
   const phaseMeta = getPhaseMeta(phase)
   const PhaseIcon = phaseMeta.icon
   const submissionState = getSubmissionLifecycleState(
     activeTopic?.scheduledStart,
     activeTopic?.scheduledEnd,
   )
-  const votingState = getVotingLifecycleState({
-    startsAt: activeTopic?.votingStartsAt,
-    endsAt: activeTopic?.votingEndsAt,
-  })
+  const votingState = getVotingLifecycleState(activeVotingWindow ?? { startsAt: null, endsAt: null })
   const hasOpenSubmissions = submissionState === "open"
   const hasActiveVoting = votingState === "active"
 

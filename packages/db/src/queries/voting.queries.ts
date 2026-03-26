@@ -596,27 +596,19 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         marathonId: number;
         topicId: number;
       }) {
-        const result = yield* use((database) =>
-          database.query.topics.findFirst({
-            where: (table, operators) =>
-              operators.and(
-                operators.eq(table.marathonId, marathonId),
-                operators.eq(table.id, topicId),
-              ),
-            columns: {
-              votingStartsAt: true,
-              votingEndsAt: true,
-            },
-          }),
-        );
+        const roundOpt = yield* getLatestVotingRoundForTopic({
+          marathonId,
+          topicId,
+        });
+        const round = Option.getOrUndefined(roundOpt);
 
-        if (!result) {
+        if (!round) {
           return undefined;
         }
 
         return {
-          startsAt: result.votingStartsAt,
-          endsAt: result.votingEndsAt,
+          startsAt: round.startedAt,
+          endsAt: round.endsAt,
         };
       });
 
@@ -633,24 +625,31 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         startsAt: string;
         endsAt: string | null;
       }) {
-        const result = yield* use((database) =>
-          database
-            .update(topics)
-            .set({
-              votingStartsAt: startsAt,
-              votingEndsAt: endsAt,
-              updatedAt: new Date().toISOString(),
-            })
-            .where(
-              and(eq(topics.marathonId, marathonId), eq(topics.id, topicId)),
-            )
-            .returning({
-              startsAt: topics.votingStartsAt,
-              endsAt: topics.votingEndsAt,
-            }),
-        );
+        const latestRoundOpt = yield* getLatestVotingRoundForTopic({
+          marathonId,
+          topicId,
+        });
+        const latestRound = Option.getOrUndefined(latestRoundOpt);
 
-        return result[0];
+        if (!latestRound) {
+          return undefined;
+        }
+
+        const updatedRound = yield* updateVotingRoundWindow({
+          roundId: latestRound.id,
+          startedAt: startsAt,
+          endsAt,
+          updatedAt: new Date().toISOString(),
+        });
+
+        if (!updatedRound) {
+          return undefined;
+        }
+
+        return {
+          startsAt: updatedRound.startedAt,
+          endsAt: updatedRound.endsAt,
+        };
       });
 
       const updateVotingRoundWindow = Effect.fn(
@@ -692,30 +691,34 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number;
         nowIso: string;
       }) {
-        const result = yield* use((database) =>
-          database
-            .update(topics)
-            .set({
-              votingStartsAt: sql`case
-                when ${topics.votingStartsAt} is null
-                  then ${nowIso}::timestamptz - interval '1 second'
-                when ${topics.votingStartsAt} >= ${nowIso}::timestamptz
-                  then ${nowIso}::timestamptz - interval '1 second'
-                else ${topics.votingStartsAt}
-              end`,
-              votingEndsAt: sql`${nowIso}::timestamptz`,
-              updatedAt: nowIso,
-            })
-            .where(
-              and(eq(topics.marathonId, marathonId), eq(topics.id, topicId)),
-            )
-            .returning({
-              startsAt: topics.votingStartsAt,
-              endsAt: topics.votingEndsAt,
-            }),
-        );
+        const latestRoundOpt = yield* getLatestVotingRoundForTopic({
+          marathonId,
+          topicId,
+        });
+        const latestRound = Option.getOrUndefined(latestRoundOpt);
 
-        return result[0];
+        if (!latestRound) {
+          return undefined;
+        }
+
+        const updatedRound = yield* updateVotingRoundWindow({
+          roundId: latestRound.id,
+          startedAt:
+            new Date(latestRound.startedAt).getTime() >= new Date(nowIso).getTime()
+              ? new Date(new Date(nowIso).getTime() - 1000).toISOString()
+              : undefined,
+          endsAt: nowIso,
+          updatedAt: nowIso,
+        });
+
+        if (!updatedRound) {
+          return undefined;
+        }
+
+        return {
+          startsAt: updatedRound.startedAt,
+          endsAt: updatedRound.endsAt,
+        };
       });
 
       const reopenTopicVotingWindow = Effect.fn(
@@ -729,23 +732,30 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         topicId: number;
         nowIso: string;
       }) {
-        const result = yield* use((database) =>
-          database
-            .update(topics)
-            .set({
-              votingEndsAt: null,
-              updatedAt: nowIso,
-            })
-            .where(
-              and(eq(topics.marathonId, marathonId), eq(topics.id, topicId)),
-            )
-            .returning({
-              startsAt: topics.votingStartsAt,
-              endsAt: topics.votingEndsAt,
-            }),
-        );
+        const latestRoundOpt = yield* getLatestVotingRoundForTopic({
+          marathonId,
+          topicId,
+        });
+        const latestRound = Option.getOrUndefined(latestRoundOpt);
 
-        return result[0];
+        if (!latestRound) {
+          return undefined;
+        }
+
+        const updatedRound = yield* updateVotingRoundWindow({
+          roundId: latestRound.id,
+          endsAt: null,
+          updatedAt: nowIso,
+        });
+
+        if (!updatedRound) {
+          return undefined;
+        }
+
+        return {
+          startsAt: updatedRound.startedAt,
+          endsAt: updatedRound.endsAt,
+        };
       });
 
       const closeVotingWindowsForTopics = Effect.fn(
@@ -765,28 +775,27 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
 
         return yield* use((database) =>
           database
-            .update(topics)
+            .update(votingRound)
             .set({
-              votingStartsAt: sql`case
-                when ${topics.votingStartsAt} is null
+              startedAt: sql`case
+                when ${votingRound.startedAt} >= ${nowIso}::timestamptz
                   then ${nowIso}::timestamptz - interval '1 second'
-                when ${topics.votingStartsAt} >= ${nowIso}::timestamptz
-                  then ${nowIso}::timestamptz - interval '1 second'
-                else ${topics.votingStartsAt}
+                else ${votingRound.startedAt}
               end`,
-              votingEndsAt: sql`${nowIso}::timestamptz`,
+              endsAt: sql`${nowIso}::timestamptz`,
               updatedAt: nowIso,
             })
             .where(
               and(
-                eq(topics.marathonId, marathonId),
-                inArray(topics.id, [...topicIds]),
+                eq(votingRound.marathonId, marathonId),
+                inArray(votingRound.topicId, [...topicIds]),
+                sql`(${votingRound.endsAt} is null or ${votingRound.endsAt} > ${nowIso}::timestamptz)`,
               ),
             )
             .returning({
-              topicId: topics.id,
-              startsAt: topics.votingStartsAt,
-              endsAt: topics.votingEndsAt,
+              topicId: votingRound.topicId,
+              startsAt: votingRound.startedAt,
+              endsAt: votingRound.endsAt,
             }),
         );
       });

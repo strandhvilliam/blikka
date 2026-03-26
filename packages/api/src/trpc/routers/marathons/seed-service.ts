@@ -509,14 +509,6 @@ const createTopics = Effect.fn("SeedService.createTopics")(function* ({
         activatedAt: isActiveByCameraTopic
           ? new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
           : timestamps.activatedAt,
-        votingStartsAt:
-          isActiveByCameraTopic && mode === "by-camera"
-            ? new Date(now.getTime() - 90 * 60 * 1000).toISOString()
-            : null,
-        votingEndsAt:
-          isActiveByCameraTopic && mode === "by-camera"
-            ? new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
-            : null,
       };
 
       return db.topicsQueries.createTopic({
@@ -1271,7 +1263,7 @@ const createVotingSessions = Effect.fn("SeedService.createVotingSessions")(
       kind: "initial",
       sourceRoundId: null,
       startedAt: new Date(now.getTime() - 75 * 60 * 1000).toISOString(),
-      endsAt: activeTopic.votingEndsAt ?? now.toISOString(),
+      endsAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
     });
 
     if (!createdRound) {

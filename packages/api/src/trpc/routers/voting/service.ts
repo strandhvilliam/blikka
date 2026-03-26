@@ -473,6 +473,19 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           );
         }
 
+        const latestRound = yield* getLatestVotingRoundForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
+
+        if (!latestRound) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "No voting round found for this topic",
+            }),
+          );
+        }
+
         const window = yield* db.votingQueries.upsertTopicVotingWindow({
           marathonId: marathon.id,
           topicId,
@@ -557,12 +570,6 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           );
         }
 
-        yield* db.votingQueries.updateVotingRoundWindow({
-          roundId: latestRound.id,
-          endsAt: nowIso,
-          updatedAt: nowIso,
-        });
-
         return {
           topicId,
           startsAt: updatedWindow.startsAt,
@@ -632,12 +639,6 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             }),
           );
         }
-
-        yield* db.votingQueries.updateVotingRoundWindow({
-          roundId: latestRound.id,
-          endsAt: null,
-          updatedAt: nowIso,
-        });
 
         return {
           topicId,
@@ -713,21 +714,6 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           endsAt,
         });
 
-        const votingWindow = yield* db.votingQueries.upsertTopicVotingWindow({
-          marathonId: marathon.id,
-          topicId,
-          startsAt: startsAtIso,
-          endsAt: endsAtIso,
-        });
-
-        if (!votingWindow) {
-          return yield* Effect.fail(
-            new VotingApiError({
-              message: "Failed to start tie-break voting for this topic",
-            }),
-          );
-        }
-
         const createdRound = yield* db.votingQueries.createVotingRound({
           marathonId: marathon.id,
           topicId,
@@ -766,7 +752,10 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
 
         return {
           topicId,
-          votingWindow,
+          votingWindow: {
+            startsAt: resolvedRound.startedAt,
+            endsAt: resolvedRound.endsAt,
+          },
           round: mapRoundSummary(resolvedRound),
           eligibleSubmissionCount: leadingTie.submissionIds.length,
           tieSize: leadingTie.tieSize,
@@ -801,7 +790,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           );
         }
 
-        if (topic.votingStartsAt) {
+        const latestRound = yield* getLatestVotingRoundForTopic({
+          marathonId: marathon.id,
+          topicId,
+        });
+
+        if (latestRound) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Voting has already been started for this topic",
@@ -858,21 +852,6 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
               topicId,
             },
           );
-
-        const votingWindow = yield* db.votingQueries.upsertTopicVotingWindow({
-          marathonId: marathon.id,
-          topicId,
-          startsAt: startsAtIso,
-          endsAt: endsAtIso,
-        });
-
-        if (!votingWindow) {
-          return yield* Effect.fail(
-            new VotingApiError({
-              message: "Failed to start voting for this topic",
-            }),
-          );
-        }
 
         const createdRound = yield* db.votingQueries.createVotingRound({
           marathonId: marathon.id,
@@ -970,7 +949,10 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
 
         return {
           topicId,
-          votingWindow,
+          votingWindow: {
+            startsAt: resolvedRound.startedAt,
+            endsAt: resolvedRound.endsAt,
+          },
           sessionsCreated: createdSessions.length,
           smsSent: 0,
           smsResults: [],
