@@ -191,13 +191,23 @@ function LanguageSelection({
   const t = useTranslations("LivePage")
   return (
     <section className="mb-5">
-      <label className="block text-sm font-medium mb-2">{t("selectLanguage")}</label>
-      <div className="flex flex-col gap-3">
+      <p id="live-language-label" className="text-center text-sm font-medium text-muted-foreground mb-3">
+        {t("selectLanguage")}
+      </p>
+      <div
+        className="flex gap-2.5 sm:gap-3"
+        role="group"
+        aria-labelledby="live-language-label"
+      >
         <Button
+          type="button"
           variant="outline"
+          aria-pressed={locale === "en"}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-3 border-2 rounded-xl",
-            locale === "en" && "border-foreground",
+            "min-w-0 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors",
+            locale === "en"
+              ? "border-primary bg-primary/5 font-medium shadow-xs"
+              : "border-border hover:bg-accent/40",
           )}
           onClick={() => setLocale("en")}
           disabled={isPending}
@@ -206,10 +216,14 @@ function LanguageSelection({
           English
         </Button>
         <Button
+          type="button"
           variant="outline"
+          aria-pressed={locale === "sv"}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-3 border-2 rounded-xl",
-            locale === "sv" && "border-foreground",
+            "min-w-0 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors",
+            locale === "sv"
+              ? "border-primary bg-primary/5 font-medium shadow-xs"
+              : "border-border hover:bg-accent/40",
           )}
           onClick={() => setLocale("sv")}
           disabled={isPending}
@@ -341,9 +355,10 @@ function TermsCheckbox({
   return (
     <section className="mb-6 space-y-4">
       <label htmlFor="platform-terms" className="text-sm font-medium">
-        <div className="flex items-center space-x-2 px-2.5 border rounded-lg py-2 bg-background">
+        <div className="flex items-start gap-3 px-3 py-3 rounded-xl border border-input bg-muted/30">
           <Checkbox
             id="platform-terms"
+            className="size-5 mt-0.5 rounded-[5px] border-foreground/20"
             checked={termsAccepted}
             onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
           />
