@@ -14,3 +14,8 @@ export const rootDomain =
   protocol === "https"
     ? (process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL || "blikka.app")
     : "localhost:3002"
+
+/** Platform-wide Blikka terms (not per-organizer event terms). Override if hosted elsewhere. */
+export const BLIKKA_PLATFORM_TERMS_URL =
+  process.env.NEXT_PUBLIC_BLIKKA_PLATFORM_TERMS_URL ||
+  `https://${process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL || "blikka.app"}/terms`
