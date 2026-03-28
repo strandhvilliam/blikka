@@ -63,6 +63,12 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
       orderIndex: submission.topic?.orderIndex ?? 0,
     }))
 
+  const activeTopic = marathon.topics.find((topic) => topic.visibility === "active") ?? null
+
+  const activeTopicImage = activeTopic
+    ? images.find((image) => image.orderIndex === activeTopic.orderIndex)
+    : null
+
   if (marathon.mode === "by-camera") {
     return (
       <>
@@ -74,7 +80,7 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
             deviceGroup: participant.deviceGroup,
             competitionClass: participant.competitionClass,
           }}
-          image={images[0] ?? null}
+          image={activeTopicImage ?? null}
           handleRedirect={handleRedirect}
         />
       </>
