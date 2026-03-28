@@ -4,10 +4,7 @@ import { Config, Effect, Layer, Schema } from "effect"
 import { Database } from "@blikka/db"
 import { SMSService } from "@blikka/aws"
 import { PubSubLoggerService } from "@blikka/pubsub"
-import {
-  getRealtimeChannelEnvironmentFromNodeEnv,
-  type RealtimeChannelEnv,
-} from "@blikka/realtime"
+import { getRealtimeChannelEnvironmentFromNodeEnv, type RealtimeChannelEnv } from "@blikka/realtime"
 import { TelemetryLayer } from "@blikka/telemetry"
 import {
   PhoneNumberEncryptionService,
@@ -66,9 +63,9 @@ const effectHandler = (event: SQSEvent) =>
     )
     const shouldSendVotingSms = environment === "prod"
 
-    const parseQueueMessage = Effect.fn(
-      "voting-sms-notifier.parseQueueMessage",
-    )(function* (record: SQSRecord) {
+    const parseQueueMessage = Effect.fn("voting-sms-notifier.parseQueueMessage")(function* (
+      record: SQSRecord,
+    ) {
       const parsed = yield* Effect.try({
         try: () => JSON.parse(record.body),
         catch: (error) =>
@@ -78,9 +75,7 @@ const effectHandler = (event: SQSEvent) =>
           }),
       })
 
-      return yield* Schema.decodeUnknownEffect(VotingSmsQueueMessageSchema)(
-        parsed,
-      ).pipe(
+      return yield* Schema.decodeUnknownEffect(VotingSmsQueueMessageSchema)(parsed).pipe(
         Effect.mapError(
           (error) =>
             new VotingSmsNotifierError({
@@ -91,9 +86,9 @@ const effectHandler = (event: SQSEvent) =>
       )
     })
 
-    const processSQSRecord = Effect.fn(
-      "voting-sms-notifier.processSQSRecord",
-    )(function* (record: SQSRecord) {
+    const processSQSRecord = Effect.fn("voting-sms-notifier.processSQSRecord")(function* (
+      record: SQSRecord,
+    ) {
       const { votingSessionIds, forceResend } = yield* parseQueueMessage(record)
       const uniqueVotingSessionIds = Array.from(new Set(votingSessionIds))
 
@@ -103,22 +98,16 @@ const effectHandler = (event: SQSEvent) =>
       }
 
       if (!shouldSendVotingSms) {
-        yield* Effect.logInfo(
-          "Skipping voting SMS chunk because environment is not production",
-        )
+        yield* Effect.logInfo("Skipping voting SMS chunk because environment is not production")
         return
       }
 
-      const sessions = yield* db.votingQueries.getVotingSessionsByIdsWithMarathon(
-        {
-          ids: uniqueVotingSessionIds,
-        },
-      )
+      const sessions = yield* db.votingQueries.getVotingSessionsByIdsWithMarathon({
+        ids: uniqueVotingSessionIds,
+      })
 
       const foundSessionIds = new Set(sessions.map((session) => session.id))
-      const missingSessionIds = uniqueVotingSessionIds.filter(
-        (id) => !foundSessionIds.has(id),
-      )
+      const missingSessionIds = uniqueVotingSessionIds.filter((id) => !foundSessionIds.has(id))
 
       if (missingSessionIds.length > 0) {
         yield* Effect.logWarning("Voting sessions missing from chunk")
@@ -138,9 +127,7 @@ const effectHandler = (event: SQSEvent) =>
             }
 
             if (!session.phoneEncrypted) {
-              yield* Effect.logInfo(
-                "Skipping voting session without encrypted phone number",
-              )
+              yield* Effect.logInfo("Skipping voting session without encrypted phone number")
               return {
                 sessionId: session.id,
                 status: "skipped",
@@ -148,16 +135,16 @@ const effectHandler = (event: SQSEvent) =>
               } satisfies VotingSmsDeliveryOutcome
             }
 
-            if (!forceResend && session.notificationLastSentAt) {
-              yield* Effect.logInfo(
-                "Skipping voting session that already has a sent notification timestamp",
-              )
-              return {
-                sessionId: session.id,
-                status: "skipped",
-                reason: "already-notified",
-              } satisfies VotingSmsDeliveryOutcome
-            }
+            // if (!forceResend && session.notificationLastSentAt) {
+            //   yield* Effect.logInfo(
+            //     "Skipping voting session that already has a sent notification timestamp",
+            //   )
+            //   return {
+            //     sessionId: session.id,
+            //     status: "skipped",
+            //     reason: "already-notified",
+            //   } satisfies VotingSmsDeliveryOutcome
+            // }
 
             const phoneNumber = yield* phoneEncryption
               .decrypt({
@@ -245,9 +232,7 @@ const effectHandler = (event: SQSEvent) =>
     })
   }).pipe(
     Effect.withSpan("VotingSmsNotifier.handler"),
-    Effect.tapError((error) =>
-      Effect.logError("Voting SMS notifier failed", error),
-    ),
+    Effect.tapError((error) => Effect.logError("Voting SMS notifier failed", error)),
   )
 
 const serviceLayer = Layer.mergeAll(
