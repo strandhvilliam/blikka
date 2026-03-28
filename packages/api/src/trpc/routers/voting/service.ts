@@ -39,6 +39,12 @@ interface VotingSmsQueueMessage {
   forceResend?: boolean;
 }
 
+type NotificationWarning = {
+  channel: "email" | "sms";
+  message: string;
+  failedSessionIds: number[];
+};
+
 function buildS3Url(
   bucketName: string,
   key: string | null | undefined,
@@ -93,6 +99,10 @@ function chunkItems<T>(items: readonly T[], size: number): T[][] {
   }
 
   return chunks;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 function parseVotingWindow({
@@ -265,6 +275,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           return {
             smsChunksEnqueued: 0,
             smsSessionsQueued: 0,
+            warning: null as NotificationWarning | null,
           };
         }
 
@@ -273,13 +284,14 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           return {
             smsChunksEnqueued: 0,
             smsSessionsQueued: 0,
+            warning: null as NotificationWarning | null,
           };
         }
 
         const queueUrl = yield* Config.string("VOTING_SMS_QUEUE_URL");
         const queueChunks = chunkItems(uniqueSessionIds, VOTING_SMS_CHUNK_SIZE);
 
-        yield* Effect.all(
+        const enqueueResult = yield* Effect.all(
           queueChunks.map((votingSessionIds) => {
             const message: VotingSmsQueueMessage = forceResend
               ? { votingSessionIds, forceResend: true }
@@ -288,21 +300,35 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             return sqs.sendMessage(queueUrl, JSON.stringify(message));
           }),
           { concurrency: VOTING_SMS_ENQUEUE_CONCURRENCY },
+        ).pipe(
+          Effect.as(null as NotificationWarning | null),
+          Effect.catch((error) =>
+            Effect.logError(
+              "Failed to enqueue voting invite SMS notifications",
+              error,
+            ).pipe(
+              Effect.as({
+                channel: "sms" as const,
+                message: getErrorMessage(
+                  error,
+                  "Failed to enqueue voting invite SMS notifications",
+                ),
+                failedSessionIds: uniqueSessionIds,
+              }),
+            ),
+          ),
         );
 
         return {
-          smsChunksEnqueued: queueChunks.length,
-          smsSessionsQueued: uniqueSessionIds.length,
+          smsChunksEnqueued: enqueueResult ? 0 : queueChunks.length,
+          smsSessionsQueued: enqueueResult ? 0 : uniqueSessionIds.length,
+          warning: enqueueResult,
         };
       });
 
       const updateNotificationTimestamp = Effect.fn(
         "VotingApiService.updateNotificationTimestamp",
-      )(function* ({
-        sessionIds,
-      }: {
-        sessionIds: readonly number[];
-      }) {
+      )(function* ({ sessionIds }: { sessionIds: readonly number[] }) {
         const uniqueSessionIds = Array.from(new Set(sessionIds));
         if (uniqueSessionIds.length === 0) {
           return null;
@@ -353,61 +379,85 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         if (emailSessions.length === 0) {
           return {
             sentSessionIds: [] as number[],
+            warnings: [] as NotificationWarning[],
           };
         }
 
         const chunks = chunkItems(emailSessions, VOTING_EMAIL_BATCH_SIZE);
-        const sentSessionIdChunks: number[][] = yield* Effect.forEach(
+        const batchResults: Array<{
+          sentSessionIds: number[];
+          warning: NotificationWarning | null;
+        }> = yield* Effect.forEach(
           chunks,
-          (chunk) =>
-            emailService
-              .sendBatch(
-                chunk.map((session) => {
-                  const participantName = getParticipantDisplayName({
-                    firstName: session.firstName,
-                    lastName: session.lastName,
-                  });
-                  const votingUrl = buildVotingInviteUrl({
-                    domain,
-                    token: session.token,
-                  });
+          (chunk) => {
+            const emails = chunk.map((session) => {
+              const participantName = getParticipantDisplayName({
+                firstName: session.firstName,
+                lastName: session.lastName,
+              });
+              const votingUrl = buildVotingInviteUrl({
+                domain,
+                token: session.token,
+              });
 
-                  return {
-                    to: session.email,
-                    subject: votingInviteEmailSubject({
-                      participantName,
-                      marathonName,
-                      votingUrl,
-                      marathonLogoUrl,
-                      topicName,
-                    }),
-                    template: VotingInviteEmail({
-                      participantName,
-                      marathonName,
-                      votingUrl,
-                      marathonLogoUrl,
-                      topicName,
-                    }),
-                    tags: [
-                      { name: "category", value: "voting-invite" },
-                      { name: "marathon", value: marathonName },
-                    ],
-                  };
+              return {
+                to: session.email,
+                subject: votingInviteEmailSubject({
+                  participantName,
+                  marathonName,
+                  votingUrl,
+                  marathonLogoUrl,
+                  topicName,
                 }),
-              )
-              .pipe(
-                Effect.as(chunk.map((session) => session.id)),
-                Effect.catch((error) =>
-                  Effect.logError("Failed to send voting invite email batch", error).pipe(
-                    Effect.as([] as number[]),
-                  ),
+                template: VotingInviteEmail({
+                  participantName,
+                  marathonName,
+                  votingUrl,
+                  marathonLogoUrl,
+                  topicName,
+                }),
+                tags: [
+                  { name: "category", value: "voting-invite" },
+                  { name: "marathon", value: marathonName },
+                ],
+              };
+            });
+
+            return emailService.sendBatch(emails).pipe(
+              Effect.as({
+                sentSessionIds: chunk.map((session) => session.id),
+                warning: null,
+              }),
+              Effect.catch((error) =>
+                Effect.logError(
+                  "Failed to send voting invite email batch",
+                  error,
+                ).pipe(
+                  Effect.as({
+                    sentSessionIds: [] as number[],
+                    warning: {
+                      channel: "email" as const,
+                      message: getErrorMessage(
+                        error,
+                        "Failed to send voting invite email batch",
+                      ),
+                      failedSessionIds: chunk.map((session) => session.id),
+                    },
+                  }),
                 ),
               ),
+            );
+          },
           { concurrency: 2 },
         );
 
         return {
-          sentSessionIds: sentSessionIdChunks.flat(),
+          sentSessionIds: batchResults.flatMap(
+            (result) => result.sentSessionIds,
+          ),
+          warnings: batchResults.flatMap((result) =>
+            result.warning ? [result.warning] : [],
+          ),
         };
       });
 
@@ -428,6 +478,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           lastName: string;
           token: string;
           phoneEncrypted: string | null;
+          notificationLastSentAt: string | null;
         };
         marathonName: string;
         marathonLogoUrl?: string | null;
@@ -457,75 +508,101 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           token: session.token,
         });
 
-        const emailSent = canSendEmail
-          ? yield* (
-              emailService
-                .send({
-                  to: email,
-                  subject: votingInviteEmailSubject({
-                    participantName,
-                    marathonName,
-                    votingUrl,
-                    marathonLogoUrl,
-                    topicName,
-                  }),
-                  template: VotingInviteEmail({
-                    participantName,
-                    marathonName,
-                    votingUrl,
-                    marathonLogoUrl,
-                    topicName,
-                  }),
-                  tags: [
-                    { name: "category", value: "voting-invite" },
-                    { name: "marathon", value: marathonName },
-                  ],
-                })
-                .pipe(
-                  Effect.as(true),
-                  Effect.catch((error) =>
-                    Effect.logError("Failed to send voting invite email", error).pipe(
-                      Effect.as(false),
-                    ),
-                  ),
-                )
-            )
-          : false;
-
-        const smsSent = canSendSms
-          ? yield* (
-              phoneEncryption
-                .decrypt({
-                  encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
-                })
-                .pipe(
-                  Effect.mapError(
-                    () =>
-                      new VotingApiError({
-                        message: "Failed to decrypt phone number for this voter",
-                      }),
-                  ),
-                  Effect.flatMap((phoneNumber) =>
-                    smsService.sendWithOptOutCheck({
-                      phoneNumber,
-                      message: buildVotingInviteMessage({
-                        marathonName,
-                        domain,
-                        token: session.token,
-                      }),
+        const emailResult = canSendEmail
+          ? yield* emailService
+              .send({
+                to: email,
+                subject: votingInviteEmailSubject({
+                  participantName,
+                  marathonName,
+                  votingUrl,
+                  marathonLogoUrl,
+                  topicName,
+                }),
+                template: VotingInviteEmail({
+                  participantName,
+                  marathonName,
+                  votingUrl,
+                  marathonLogoUrl,
+                  topicName,
+                }),
+                tags: [
+                  { name: "category", value: "voting-invite" },
+                  { name: "marathon", value: marathonName },
+                ],
+              })
+              .pipe(
+                Effect.as({ sent: true, error: null as string | null }),
+                Effect.catch((error) =>
+                  Effect.logError(
+                    "Failed to send voting invite email",
+                    error,
+                  ).pipe(
+                    Effect.as({
+                      sent: false,
+                      error: getErrorMessage(
+                        error,
+                        "Failed to send voting invite email",
+                      ),
                     }),
                   ),
-                  Effect.as(true),
-                  Effect.catch((error) =>
-                    Effect.logError("Failed to send voting invite SMS", error).pipe(
-                      Effect.as(false),
-                    ),
-                  ),
-                )
-            )
-          : false;
+                ),
+              )
+          : { sent: false, error: null as string | null };
 
-        if (!emailSent && !smsSent) {
+        const smsResult = canSendSms
+          ? yield* phoneEncryption
+              .decrypt({
+                encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
+              })
+              .pipe(
+                Effect.mapError(
+                  () =>
+                    new VotingApiError({
+                      message: "Failed to decrypt phone number for this voter",
+                    }),
+                ),
+                Effect.flatMap((phoneNumber) =>
+                  smsService.sendWithOptOutCheck({
+                    phoneNumber,
+                    message: buildVotingInviteMessage({
+                      marathonName,
+                      domain,
+                      token: session.token,
+                    }),
+                  }),
+                ),
+                Effect.as({ sent: true, error: null as string | null }),
+                Effect.catch((error) =>
+                  Effect.logError(
+                    "Failed to send voting invite SMS",
+                    error,
+                  ).pipe(
+                    Effect.as({
+                      sent: false,
+                      error: getErrorMessage(
+                        error,
+                        "Failed to send voting invite SMS",
+                      ),
+                    }),
+                  ),
+                ),
+              )
+          : { sent: false, error: null as string | null };
+
+        const emailSent = emailResult.sent;
+        const smsSent = smsResult.sent;
+
+        const warningMessages = [
+          ...(canSendEmail && emailResult.error
+            ? [`Email was not sent: ${emailResult.error}`]
+            : []),
+          ...(canSendSms && smsResult.error
+            ? [`SMS was not sent: ${smsResult.error}`]
+            : []),
+        ];
+
+        if (!emailSent && !smsSent && warningMessages.length === 0) {
           return yield* Effect.fail(
             new VotingApiError({
               message: "Failed to send voting notification to this voter",
@@ -533,15 +610,21 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           );
         }
 
-        const notificationLastSentAt = yield* updateNotificationTimestamp({
-          sessionIds: [session.id],
-        });
+        const notificationLastSentAt =
+          emailSent || smsSent
+            ? yield* updateNotificationTimestamp({
+                sessionIds: [session.id],
+              })
+            : session.notificationLastSentAt;
 
         return {
           sessionId: session.id,
           notificationLastSentAt,
           emailSent,
           smsSent,
+          emailError: emailResult.error,
+          smsError: smsResult.error,
+          warningMessages,
         };
       });
 
@@ -1216,35 +1299,40 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         const createdSessions = yield* db.votingQueries.createVotingSessions({
           sessions: sessionsToCreate,
         });
-        const { sentSessionIds } = yield* sendVotingInviteEmails({
-          marathonName: marathon.name,
-          marathonLogoUrl: marathon.logoUrl,
-          domain,
-          topicName: topic.name,
-          sessions: createdSessions.map((session) => ({
-            id: session.id,
-            email: session.email,
-            firstName: session.firstName,
-            lastName: session.lastName,
-            token: session.token,
-          })),
-        });
+        const { sentSessionIds, warnings: emailWarnings } =
+          yield* sendVotingInviteEmails({
+            marathonName: marathon.name,
+            marathonLogoUrl: marathon.logoUrl,
+            domain,
+            topicName: topic.name,
+            sessions: createdSessions.map((session) => ({
+              id: session.id,
+              email: session.email,
+              firstName: session.firstName,
+              lastName: session.lastName,
+              token: session.token,
+            })),
+          });
 
         yield* updateNotificationTimestamp({
           sessionIds: sentSessionIds,
         });
 
-        const { smsChunksEnqueued, smsSessionsQueued } =
-          sendInitialSms === false
-            ? {
-                smsChunksEnqueued: 0,
-                smsSessionsQueued: 0,
-              }
-            : yield* enqueueVotingSmsNotifications({
-                sessionIds: createdSessions
-                  .filter((session) => session.phoneEncrypted)
-                  .map((session) => session.id),
-              });
+        const {
+          smsChunksEnqueued,
+          smsSessionsQueued,
+          warning: smsWarning,
+        } = sendInitialSms === false
+          ? {
+              smsChunksEnqueued: 0,
+              smsSessionsQueued: 0,
+              warning: null as NotificationWarning | null,
+            }
+          : yield* enqueueVotingSmsNotifications({
+              sessionIds: createdSessions
+                .filter((session) => session.phoneEncrypted)
+                .map((session) => session.id),
+            });
 
         return {
           topicId,
@@ -1258,6 +1346,9 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           smsChunksEnqueued,
           smsSessionsQueued,
           existingSessions: existingCount,
+          notificationWarnings: smsWarning
+            ? [...emailWarnings, smsWarning]
+            : emailWarnings,
         };
       });
 
@@ -1396,30 +1487,34 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         const createdSessions = yield* db.votingQueries.createVotingSessions({
           sessions: sessionsToCreate,
         });
-        const { sentSessionIds } = yield* sendVotingInviteEmails({
-          marathonName: marathon.name,
-          marathonLogoUrl: marathon.logoUrl,
-          domain,
-          topicName: topic.name,
-          sessions: createdSessions.map((session) => ({
-            id: session.id,
-            email: session.email,
-            firstName: session.firstName,
-            lastName: session.lastName,
-            token: session.token,
-          })),
-        });
+        const { sentSessionIds, warnings: emailWarnings } =
+          yield* sendVotingInviteEmails({
+            marathonName: marathon.name,
+            marathonLogoUrl: marathon.logoUrl,
+            domain,
+            topicName: topic.name,
+            sessions: createdSessions.map((session) => ({
+              id: session.id,
+              email: session.email,
+              firstName: session.firstName,
+              lastName: session.lastName,
+              token: session.token,
+            })),
+          });
 
         yield* updateNotificationTimestamp({
           sessionIds: sentSessionIds,
         });
 
-        const { smsChunksEnqueued, smsSessionsQueued } =
-          yield* enqueueVotingSmsNotifications({
-            sessionIds: createdSessions
-              .filter((session) => session.phoneEncrypted)
-              .map((session) => session.id),
-          });
+        const {
+          smsChunksEnqueued,
+          smsSessionsQueued,
+          warning: smsWarning,
+        } = yield* enqueueVotingSmsNotifications({
+          sessionIds: createdSessions
+            .filter((session) => session.phoneEncrypted)
+            .map((session) => session.id),
+        });
 
         return {
           topicId,
@@ -1429,6 +1524,9 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           smsResults: [],
           smsChunksEnqueued,
           smsSessionsQueued,
+          notificationWarnings: smsWarning
+            ? [...emailWarnings, smsWarning]
+            : emailWarnings,
         };
       });
 
@@ -2135,6 +2233,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
             lastName: session.lastName,
             token: session.token,
             phoneEncrypted: session.phoneEncrypted,
+            notificationLastSentAt: session.notificationLastSentAt,
           },
           marathonName: marathon.name,
           marathonLogoUrl: marathon.logoUrl,

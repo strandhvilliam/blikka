@@ -68,6 +68,21 @@ function getLifecyclePhase(
 
 type StepStatus = "completed" | "active" | "upcoming";
 
+function formatNotificationWarnings(
+  warnings: Array<{
+    channel: "email" | "sms";
+    message: string;
+    failedSessionIds: number[];
+  }>,
+) {
+  return warnings.map((warning) => {
+    const label = warning.channel === "email" ? "Email" : "SMS";
+    const failedCount = warning.failedSessionIds.length;
+
+    return `${label} failed for ${failedCount} session${failedCount === 1 ? "" : "s"}: ${warning.message}`;
+  });
+}
+
 function getCardStatus(stepNumber: number, phase: LifecyclePhase): StepStatus {
   const phaseToActiveStep: Record<LifecyclePhase, number> = {
     waiting: 1,
@@ -229,8 +244,13 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
 
   const startVotingMutation = useMutation(
     trpc.voting.startVotingSessions.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: async (data) => {
         toast.success("Voting started");
+        for (const message of formatNotificationWarnings(
+          data.notificationWarnings,
+        )) {
+          toast.warning(message);
+        }
         await invalidateVotingData();
       },
       onError: (error) => {
@@ -652,9 +672,9 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
             <AlertDialogDescription>
               This will open the voting window and create voting sessions for
               all {participantWithSubmissionCount} participants with
-              submissions. Participants with an email address will receive
-              their voting link automatically. SMS invites are only sent if you
-              keep the box checked.
+              submissions. Participants with an email address will receive their
+              voting link automatically. SMS invites are only sent if you keep
+              the box checked.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">

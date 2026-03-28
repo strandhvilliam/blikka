@@ -58,6 +58,21 @@ interface VotersTabProps {
   activeTopic: { id: number; name: string; orderIndex: number };
 }
 
+function formatNotificationWarnings(
+  warnings: Array<{
+    channel: "email" | "sms";
+    message: string;
+    failedSessionIds: number[];
+  }>,
+) {
+  return warnings.map((warning) => {
+    const label = warning.channel === "email" ? "Email" : "SMS";
+    const failedCount = warning.failedSessionIds.length;
+
+    return `${label} failed for ${failedCount} session${failedCount === 1 ? "" : "s"}: ${warning.message}`;
+  });
+}
+
 export function VotersTab({ activeTopic }: VotersTabProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -122,8 +137,15 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
 
   const resendVotingSessionNotificationMutation = useMutation(
     trpc.voting.resendVotingSessionNotification.mutationOptions({
-      onSuccess: async () => {
-        toast.success("Voting notification resent by available channels");
+      onSuccess: async (data) => {
+        if (data.emailSent || data.smsSent) {
+          toast.success("Voting notification resent by available channels");
+        } else {
+          toast.warning("Voting notification could not be delivered");
+        }
+        for (const message of data.warningMessages) {
+          toast.warning(message);
+        }
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
@@ -145,6 +167,11 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
         toast.success(
           `Voting sessions created for ${data.sessionsCreated} participant${data.sessionsCreated === 1 ? "" : "s"}`,
         );
+        for (const message of formatNotificationWarnings(
+          data.notificationWarnings,
+        )) {
+          toast.warning(message);
+        }
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
