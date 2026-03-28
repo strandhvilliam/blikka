@@ -191,14 +191,13 @@ function LanguageSelection({
   const t = useTranslations("LivePage")
   return (
     <section className="mb-5">
-      <p id="live-language-label" className="text-center text-sm font-medium text-muted-foreground mb-3">
+      <p
+        id="live-language-label"
+        className="text-center text-sm font-medium text-muted-foreground mb-3"
+      >
         {t("selectLanguage")}
       </p>
-      <div
-        className="flex gap-2.5 sm:gap-3"
-        role="group"
-        aria-labelledby="live-language-label"
-      >
+      <div className="flex gap-2.5 sm:gap-3" role="group" aria-labelledby="live-language-label">
         <Button
           type="button"
           variant="outline"

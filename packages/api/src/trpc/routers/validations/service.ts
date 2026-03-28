@@ -2,6 +2,7 @@ import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { type RuleConfig, type Submission, Database } from "@blikka/db"
 import { S3Service } from "@blikka/aws"
 import { RealtimeEventsService } from "@blikka/realtime"
+import { EmailService } from "@blikka/email"
 import {
   ValidationEngine,
   ValidationInputSchema,
@@ -11,6 +12,7 @@ import {
 } from "@blikka/validation"
 import { ValidationsApiError } from "./schemas"
 import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract"
+import { sendParticipantVerifiedEmail } from "../participants/notifications"
 
 export class ValidationsApiService extends ServiceMap.Service<ValidationsApiService>()(
   "@blikka/api/validations-api-service",
@@ -161,6 +163,24 @@ export class ValidationsApiService extends ServiceMap.Service<ValidationsApiServ
           },
         })
 
+        const marathon = Option.getOrUndefined(
+          yield* db.marathonsQueries.getMarathonByDomain({
+            domain: participant.value.domain,
+          }),
+        )
+
+        if (marathon) {
+          yield* sendParticipantVerifiedEmail({
+            participantEmail: participant.value.email,
+            participantFirstName: participant.value.firstname,
+            participantLastName: participant.value.lastname,
+            participantReference: participant.value.reference,
+            marathonName: marathon.name,
+            marathonLogoUrl: marathon.logoUrl,
+            marathonMode: marathon.mode,
+          })
+        }
+
         yield* realtimeEvents.emitEventResult({
           environment,
           domain: participant.value.domain,
@@ -221,6 +241,7 @@ export class ValidationsApiService extends ServiceMap.Service<ValidationsApiServ
       RealtimeEventsService.layer,
       S3Service.layer,
       ValidationEngine.layer,
+      EmailService.layer,
     ))
   )
 }

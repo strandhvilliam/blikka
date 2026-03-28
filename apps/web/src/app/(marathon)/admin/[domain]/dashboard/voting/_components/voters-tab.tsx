@@ -8,7 +8,6 @@ import {
   Check,
   Copy,
   Loader2,
-  Mail,
   MessageSquare,
   Send,
   ExternalLink,
@@ -124,7 +123,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
   const resendVotingSessionNotificationMutation = useMutation(
     trpc.voting.resendVotingSessionNotification.mutationOptions({
       onSuccess: async () => {
-        toast.success("Voting notification resent");
+        toast.success("Voting notification resent by available channels");
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
@@ -514,7 +513,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                   <button
                                     className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                     disabled={
-                                      !voter.phoneNumber ||
+                                      (!voter.phoneNumber && !voter.email) ||
                                       (isResending &&
                                         pendingResendSessionId ===
                                           voter.sessionId)
@@ -534,23 +533,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                         <MessageSquare className="size-4" />
                                       )}
                                       <span className="text-sm font-medium">
-                                        Send by SMS
-                                      </span>
-                                    </div>
-                                  </button>
-                                  <button
-                                    className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                                    disabled={!voter.email}
-                                    onClick={() => {
-                                      handleResendSessionNotification(
-                                        voter.sessionId,
-                                      );
-                                    }}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <Mail className="size-4" />
-                                      <span className="text-sm font-medium">
-                                        Send by Email
+                                        Resend notification
                                       </span>
                                     </div>
                                   </button>

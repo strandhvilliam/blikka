@@ -50,3 +50,22 @@ export interface MagicLinkEmailParams {
   readonly companyName?: string
   readonly companyLogoUrl?: string
 }
+
+export interface MarathonVerificationEmailParams {
+  readonly to: string | string[]
+  readonly from?: string
+  readonly participantName: string
+  readonly participantReference: string
+  readonly marathonName: string
+  readonly marathonLogoUrl?: string | null
+}
+
+export interface VotingInviteEmailParams {
+  readonly to: string | string[]
+  readonly from?: string
+  readonly participantName: string
+  readonly marathonName: string
+  readonly votingUrl: string
+  readonly marathonLogoUrl?: string | null
+  readonly topicName?: string | null
+}

@@ -5,6 +5,8 @@ import { ParticipantApiError, PublicParticipantSchema } from "./schemas";
 import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract";
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption";
 import type { NewParticipant } from "@blikka/db";
+import { EmailService } from "@blikka/email";
+import { sendParticipantVerifiedEmail } from "./notifications";
 
 export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiService>()(
   "@blikka/api/ParticipantsApiService",
@@ -194,6 +196,11 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
             ids: [...ids],
             domain,
           });
+          const marathon = Option.getOrUndefined(
+            yield* db.marathonsQueries.getMarathonByDomain({
+              domain,
+            }),
+          );
 
           yield* Effect.forEach(
             ids,
@@ -216,6 +223,20 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
                   outcome: "success",
                   timestamp: Date.now(),
                   channels: "participant",
+                });
+
+                if (!marathon) {
+                  return;
+                }
+
+                yield* sendParticipantVerifiedEmail({
+                  participantEmail: participant.value.email,
+                  participantFirstName: participant.value.firstname,
+                  participantLastName: participant.value.lastname,
+                  participantReference: participant.value.reference,
+                  marathonName: marathon.name,
+                  marathonLogoUrl: marathon.logoUrl,
+                  marathonMode: marathon.mode,
                 });
               }),
             { concurrency: 10, discard: true },
@@ -250,6 +271,11 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
 
         if (result.updatedCount > 0) {
           const participant = yield* db.participantsQueries.getParticipantById({ id });
+          const marathon = Option.getOrUndefined(
+            yield* db.marathonsQueries.getMarathonByDomain({
+              domain,
+            }),
+          );
 
           if (Option.isSome(participant)) {
             yield* realtimeEvents.emitEventResult({
@@ -261,6 +287,18 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
               timestamp: Date.now(),
               channels: "participant",
             });
+
+            if (marathon) {
+              yield* sendParticipantVerifiedEmail({
+                participantEmail: participant.value.email,
+                participantFirstName: participant.value.firstname,
+                participantLastName: participant.value.lastname,
+                participantReference: participant.value.reference,
+                marathonName: marathon.name,
+                marathonLogoUrl: marathon.logoUrl,
+                marathonMode: marathon.mode,
+              });
+            }
           }
         }
 
@@ -287,6 +325,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
       Database.layer,
       RealtimeEventsService.layer,
       PhoneNumberEncryptionService.layer,
+      EmailService.layer,
     ))
   )
 }

@@ -51,7 +51,10 @@ export function Hero() {
                 className="group mt-5 inline-flex items-center gap-2 rounded-full bg-brand-primary px-4 py-2.5 text-xs font-semibold tracking-wide text-brand-white transition-[background-color,transform] duration-200 hover:bg-brand-primary/90 hover:translate-x-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70"
               >
                 Buy Tickets
-                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+                <ArrowRight
+                  className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
               </Link>
             </div>
           </div>
@@ -65,7 +68,8 @@ export function Hero() {
 
           <div className="mt-6 flex items-start gap-4 md:mt-7 lg:mt-8 animate-hero-fade-in [animation-delay:250ms]">
             <p className="max-w-xl text-center text-base leading-relaxed text-white/80 sm:text-left md:text-lg lg:max-w-[55%] lg:text-xl xl:max-w-xl xl:text-2xl">
-              Blikka takes care of the tech behind the scenes, from photo uploads to judging, so you can focus on running the event.
+              Blikka takes care of the tech behind the scenes, from photo uploads to judging, so you
+              can focus on running the event.
             </p>
           </div>
 
@@ -75,7 +79,10 @@ export function Hero() {
               className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-primary px-7 py-3.5 text-sm font-medium text-brand-white transition-[background-color,gap] duration-200 hover:gap-3 hover:bg-brand-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/70 sm:w-auto sm:justify-start"
             >
               Book a demo
-              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+              <ArrowRight
+                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
             </Link>
             <Link
               href="#how-it-works"

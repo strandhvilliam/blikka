@@ -482,7 +482,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
         <StepCard
           stepNumber={3}
           title="Start Voting"
-          description="Open voting and optionally send an SMS with a voting link."
+          description="Open voting, email the voting link automatically, and optionally send an SMS."
           status={step3Status}
           detail={
             step3Status === "completed" && summary.votingWindow.startsAt
@@ -651,8 +651,10 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
             <AlertDialogTitle>Start voting?</AlertDialogTitle>
             <AlertDialogDescription>
               This will open the voting window and create voting sessions for
-              all {participantWithSubmissionCount} participants with submissions.
-              Initial SMS invites are only sent if you keep the box checked.
+              all {participantWithSubmissionCount} participants with
+              submissions. Participants with an email address will receive
+              their voting link automatically. SMS invites are only sent if you
+              keep the box checked.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
@@ -671,8 +673,8 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 Send initial SMS invites
               </Label>
               <p className="text-sm text-muted-foreground">
-                Send a voting link to participants who have a phone number on
-                file.
+                Also send the voting link by SMS to participants who have a
+                phone number on file.
               </p>
             </div>
           </div>

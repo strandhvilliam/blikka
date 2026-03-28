@@ -90,6 +90,9 @@ export function TopicsByCamera() {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
         })
+        queryClient.invalidateQueries({
+          queryKey: trpc.uploadFlow.getPublicMarathon.queryKey({ domain }),
+        })
       },
     }),
   )
@@ -105,6 +108,9 @@ export function TopicsByCamera() {
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.uploadFlow.getPublicMarathon.queryKey({ domain }),
         })
       },
     }),

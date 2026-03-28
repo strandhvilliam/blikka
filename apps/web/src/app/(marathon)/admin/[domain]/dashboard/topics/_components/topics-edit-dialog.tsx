@@ -50,6 +50,9 @@ export function TopicsEditDialog({
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
         });
+        queryClient.invalidateQueries({
+          queryKey: trpc.uploadFlow.getPublicMarathon.queryKey({ domain }),
+        });
       },
     }),
   );
