@@ -25,7 +25,7 @@ export function DashboardSidebarHeader() {
               blikka
             </span>
           </div>
-          <div className="group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:opacity-0 transition-opacity duration-300 opacity-100">
+          <div className="max-md:hidden group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:opacity-0 transition-opacity duration-300 opacity-100">
             <SidebarTrigger />
           </div>
         </SidebarMenuItem>

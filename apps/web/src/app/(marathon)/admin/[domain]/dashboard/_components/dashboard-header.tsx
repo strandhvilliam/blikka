@@ -3,10 +3,19 @@
 import { DashboardStatusDisplay, DashboardStatusDisplaySkeleton } from "./dashboard-status-display"
 import { DomainSwitchDropdown } from "./domain-switch-dropdown"
 import { LiveUploadQrDialog } from "./live-upload-qr-dialog"
-import { Copy, ExternalLink, QrCode, Shield, Upload, Users } from "lucide-react"
+import { Copy, ExternalLink, MoreHorizontal, QrCode, Shield, Upload, Users } from "lucide-react"
+import Image from "next/image"
 import { Suspense, useState, type ComponentType, type ReactNode } from "react"
 import { useDomain } from "@/lib/domain-provider"
+import { Button } from "@/components/ui/button"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDomainLink } from "@/lib/utils"
 import { cn } from "@/lib/utils"
@@ -33,6 +42,74 @@ type QrDialogState = {
   qrDescription?: ReactNode
 }
 
+async function copyQuickLinkUrl(url: string) {
+  try {
+    await navigator.clipboard.writeText(url)
+    toast.success("Link copied")
+  } catch {
+    toast.error("Could not copy link")
+  }
+}
+
+function MobileQuickLinkRow({
+  config,
+  onShowQr,
+  onClose,
+}: {
+  config: QuickLinkConfig
+  onShowQr: (state: QrDialogState) => void
+  onClose: () => void
+}) {
+  const { url, icon: Icon, label, showQrOption = true } = config
+
+  const openInNewTab = () => {
+    window.open(url, "_blank", "noopener,noreferrer")
+    onClose()
+  }
+
+  const handleShowQr = () => {
+    onShowQr({ url, qrHeading: config.qrHeading, qrDescription: config.qrDescription })
+    onClose()
+  }
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+        <Icon className="size-4 text-muted-foreground" />
+      </div>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted/80 hover:bg-muted hover:text-foreground"
+          onClick={openInNewTab}
+          aria-label={`Open ${label} in new tab`}
+        >
+          <ExternalLink className="size-3.5" />
+        </button>
+        {showQrOption && (
+          <button
+            type="button"
+            className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted/80 hover:bg-muted hover:text-foreground"
+            onClick={handleShowQr}
+            aria-label={`Show QR code for ${label}`}
+          >
+            <QrCode className="size-3.5" />
+          </button>
+        )}
+        <button
+          type="button"
+          className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted/80 hover:bg-muted hover:text-foreground"
+          onClick={() => void copyQuickLinkUrl(url)}
+          aria-label={`Copy ${label} link`}
+        >
+          <Copy className="size-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function DashboardQuickLinkPopover({
   config,
   onShowQr,
@@ -47,12 +124,7 @@ function DashboardQuickLinkPopover({
   }
 
   const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(url)
-      toast.success("Link copied")
-    } catch {
-      toast.error("Could not copy link")
-    }
+    await copyQuickLinkUrl(url)
   }
 
   const handleShowQr = () => {
@@ -96,11 +168,7 @@ function DashboardQuickLinkPopover({
             </PopoverClose>
           ) : null}
           <PopoverClose asChild>
-            <button
-              type="button"
-              className={quickLinkMenuItemClass}
-              onClick={() => void copyLink()}
-            >
+            <button type="button" className={quickLinkMenuItemClass} onClick={() => void copyLink()}>
               <Copy className="size-4 shrink-0 opacity-70" />
               Copy Link
             </button>
@@ -118,12 +186,99 @@ const staffQrDescription = (
   </>
 )
 
+function DashboardMobileDrawer({
+  domain,
+  quickLinkConfigs,
+  onShowQr,
+}: {
+  domain: string
+  quickLinkConfigs: QuickLinkConfig[]
+  onShowQr: (state: QrDialogState) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0"
+          aria-label="Marathon menu"
+        >
+          <MoreHorizontal className="size-4" />
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent className="px-4 pb-8 pt-2">
+        <DrawerTitle className="sr-only">Marathon menu</DrawerTitle>
+        <div className="flex flex-col gap-5 pt-3">
+          <section className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Marathon
+            </p>
+            <Suspense fallback={<Skeleton className="h-10 w-full rounded-full" />}>
+              <DomainSwitchDropdown />
+            </Suspense>
+          </section>
+
+          <section className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Quick links
+            </p>
+            <div className="flex flex-col gap-2">
+              {quickLinkConfigs.map((config) => (
+                <MobileQuickLinkRow
+                  key={config.label}
+                  config={config}
+                  onShowQr={onShowQr}
+                  onClose={() => setOpen(false)}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              Status
+            </p>
+            <Suspense fallback={<DashboardStatusDisplaySkeleton />}>
+              <DashboardStatusDisplay domain={domain} interactionMode="tap" />
+            </Suspense>
+          </section>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}
+
 export function DashboardHeader() {
   const domain = useDomain()
 
   const staffSiteUrl = formatDomainLink(`/staff`, domain, "staff")
   const participantSiteUrl = formatDomainLink(`/live`, domain)
   const computerUploadSiteUrl = formatDomainLink(`/staff/staff-upload`, domain)
+
+  const quickLinkConfigs: QuickLinkConfig[] = [
+    {
+      url: staffSiteUrl,
+      icon: Shield,
+      label: "Staff",
+      qrHeading: "Staff site",
+      qrDescription: staffQrDescription,
+    },
+    {
+      url: participantSiteUrl,
+      icon: Users,
+      label: "Upload",
+    },
+    {
+      url: computerUploadSiteUrl,
+      icon: Upload,
+      label: "Computer Upload",
+      showQrOption: false,
+    },
+  ]
 
   const [qrOpen, setQrOpen] = useState(false)
   const [qrDialog, setQrDialog] = useState<QrDialogState | null>(null)
@@ -139,40 +294,38 @@ export function DashboardHeader() {
 
   return (
     <div className="z-50 w-full pr-4 bg-sidebar">
-      <div className="flex h-14 items-center gap-4">
+      <div className="flex h-12 items-center gap-2 pl-1 py-2 md:hidden">
+        <SidebarTrigger className="shrink-0" />
+        <Image
+          src="/blikka-logo.svg"
+          alt="Blikka"
+          width={20}
+          height={20}
+          className="h-5 w-auto shrink-0"
+          priority
+        />
+        <div className="min-w-0 flex-1 flex justify-end">
+          <Suspense fallback={<DashboardStatusDisplaySkeleton />}>
+            <DashboardStatusDisplay domain={domain} interactionMode="tap" />
+          </Suspense>
+        </div>
+        <DashboardMobileDrawer
+          domain={domain}
+          quickLinkConfigs={quickLinkConfigs}
+          onShowQr={openQr}
+        />
+      </div>
+
+      <div className="hidden md:flex md:h-14 md:flex-row md:items-center md:gap-4 md:py-0">
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:max-w-xs">
           <Suspense fallback={<Skeleton className="h-9 w-full max-w-68 shrink-0 rounded-full" />}>
             <DomainSwitchDropdown />
           </Suspense>
         </div>
         <div className="flex items-center gap-2 ml-auto mr-4">
-          <DashboardQuickLinkPopover
-            onShowQr={openQr}
-            config={{
-              url: staffSiteUrl,
-              icon: Shield,
-              label: "Staff",
-              qrHeading: "Staff site",
-              qrDescription: staffQrDescription,
-            }}
-          />
-          <DashboardQuickLinkPopover
-            onShowQr={openQr}
-            config={{
-              url: participantSiteUrl,
-              icon: Users,
-              label: "Upload",
-            }}
-          />
-          <DashboardQuickLinkPopover
-            onShowQr={openQr}
-            config={{
-              url: computerUploadSiteUrl,
-              icon: Upload,
-              label: "Computer Upload",
-              showQrOption: false,
-            }}
-          />
+          {quickLinkConfigs.map((config) => (
+            <DashboardQuickLinkPopover key={config.label} onShowQr={openQr} config={config} />
+          ))}
         </div>
         <Suspense fallback={<DashboardStatusDisplaySkeleton />}>
           <DashboardStatusDisplay domain={domain} />
