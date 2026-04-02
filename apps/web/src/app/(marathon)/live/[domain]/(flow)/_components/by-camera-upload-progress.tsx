@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { getUploadSummaryPresentation } from "../_lib/upload-error-presenter"
 import type { FinalizationState, UploadFileState } from "../_lib/types"
 import { FINALIZATION_STATE, UPLOAD_PHASE } from "../_lib/types"
 
@@ -53,6 +54,7 @@ export function ByCameraUploadProgress({
     const failed = files.filter((f) => f.phase === UPLOAD_PHASE.ERROR).length
     return { total, completed, failed }
   }, [files, expectedCount])
+  const uploadSummary = useMemo(() => getUploadSummaryPresentation(files), [files])
 
   const allUploadsComplete = progress.completed === expectedCount
   const hasFailures = progress.failed > 0
@@ -93,6 +95,24 @@ export function ByCameraUploadProgress({
 
         {/* Steps */}
         <div className="space-y-3">
+          {hasFailures && uploadSummary && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4"
+            >
+              <p className="text-sm font-semibold text-destructive">
+                {t(uploadSummary.titleKey)}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{t(uploadSummary.bodyKey)}</p>
+              {uploadSummary.actionKey && (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t(uploadSummary.actionKey)}
+                </p>
+              )}
+            </motion.div>
+          )}
+
           {/* Step 1: Upload */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -129,7 +149,7 @@ export function ByCameraUploadProgress({
               </div>
             </div>
 
-            {step1Status === "error" && onRetry && (
+            {step1Status === "error" && onRetry && uploadSummary?.retriable !== false && (
               <div className="mt-4 border-t border-dashed border-destructive/20 pt-4">
                 <Button
                   onClick={onRetry}
@@ -138,7 +158,7 @@ export function ByCameraUploadProgress({
                   className="w-full rounded-full border-destructive/50 hover:bg-destructive/10"
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Retry Upload
+                  {t(uploadSummary?.retryLabelKey ?? "retry")}
                 </Button>
               </div>
             )}

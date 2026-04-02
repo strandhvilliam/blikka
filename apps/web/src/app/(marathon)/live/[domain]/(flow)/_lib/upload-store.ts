@@ -18,6 +18,10 @@ interface UploadStore {
   // Actions
   initializeFiles: (photos: PhotoWithPresignedUrl[]) => void;
   updateFilePhase: (key: string, phase: UploadPhase, progress?: number) => void;
+  updateFileUploadTarget: (
+    key: string,
+    uploadTarget: Pick<UploadFileState, "presignedUrl" | "contentType">,
+  ) => void;
   setFileProcessingComplete: (key: string) => void;
   setFileError: (key: string, error: FileUploadError) => void;
   setFileProgress: (key: string, progress: number) => void;
@@ -79,6 +83,20 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
       }
 
       newFiles.set(key, updatedFile);
+      set({ files: newFiles });
+    }
+  },
+
+  updateFileUploadTarget: (key, uploadTarget) => {
+    const state = get();
+    const file = state.files.get(key);
+
+    if (file) {
+      const newFiles = new Map(state.files);
+      newFiles.set(key, {
+        ...file,
+        ...uploadTarget,
+      });
       set({ files: newFiles });
     }
   },

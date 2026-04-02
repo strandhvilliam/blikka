@@ -9,6 +9,7 @@ import {
   ResolveByCameraParticipantByPhoneSchema,
   CheckParticipantExistsSchema,
   GetUploadStatusSchema,
+  RefreshPresignedUploadsSchema,
   ReTriggerUploadFlowSchema,
 } from "./schemas";
 import { trpcEffect } from "../../utils";
@@ -103,6 +104,20 @@ export const uploadFlowRouter = createTRPCRouter({
       }),
     ),
   ),
+
+  refreshPresignedUploads: publicProcedure
+    .input(RefreshPresignedUploadsSchema)
+    .mutation(
+      trpcEffect(
+        Effect.fn("UploadFlowRouter.refreshPresignedUploads")(function* ({
+          input,
+        }) {
+          return yield* UploadFlowApiService.use((s) =>
+            s.refreshPresignedUploads(input),
+          );
+        }),
+      ),
+    ),
 
   reTriggerUploadFlow: domainProcedure
     .input(ReTriggerUploadFlowSchema)

@@ -219,7 +219,12 @@ export function ByCameraUploadStep({
         }
       })
 
-      await executeUpload(photosWithUrls)
+      try {
+        await executeUpload(photosWithUrls)
+      } catch (error) {
+        console.error("Upload execution failed:", error)
+        setIsUploading(false)
+      }
     } catch (error) {
       console.error("Upload failed:", error)
       setIsUploading(false)

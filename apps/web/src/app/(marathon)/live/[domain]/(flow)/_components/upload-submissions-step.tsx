@@ -238,11 +238,16 @@ export function UploadSubmissionsStep({
         }
       })
 
-      await executeUpload(photosWithUrls)
+      try {
+        await executeUpload(photosWithUrls)
+      } catch (error) {
+        console.error("Upload execution failed:", error)
+        setIsUploading(false)
+      }
     } catch (error) {
       console.error("Upload failed:", error)
       setIsUploading(false)
-      toast.error(t("uploadFailed"))
+      toast.error(error instanceof Error && error.message ? error.message : t("uploadFailed"))
     }
   }
 

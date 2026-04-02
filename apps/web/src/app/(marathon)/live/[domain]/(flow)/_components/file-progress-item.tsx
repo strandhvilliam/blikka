@@ -2,14 +2,10 @@
 
 import { cn } from "@/lib/utils";
 import type { Topic } from "@blikka/db";
-import {
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Upload,
-} from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, Upload } from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
+import { getUploadErrorPresentation } from "../_lib/upload-error-presenter";
 import type { UploadFileState } from "../_lib/types";
 import { UPLOAD_PHASE } from "../_lib/types";
 
@@ -20,6 +16,9 @@ interface FileProgressItemProps {
 
 export function FileProgressItem({ file, topic }: FileProgressItemProps) {
   const t = useTranslations("FlowPage.uploadProgress");
+  const errorPresentation = file.error
+    ? getUploadErrorPresentation(file.error)
+    : null;
 
   const getStatusIcon = () => {
     switch (file.phase) {
@@ -39,7 +38,7 @@ export function FileProgressItem({ file, topic }: FileProgressItemProps) {
       case UPLOAD_PHASE.UPLOADED:
         return t("statusUploaded");
       case UPLOAD_PHASE.ERROR:
-        return file.error?.message || t("statusError");
+        return errorPresentation ? t(errorPresentation.titleKey) : t("statusError");
       case UPLOAD_PHASE.UPLOADING:
         return t("statusUploading");
       default:
@@ -75,6 +74,42 @@ export function FileProgressItem({ file, topic }: FileProgressItemProps) {
         >
           {getStatusText()}
         </p>
+        {file.phase === UPLOAD_PHASE.ERROR && errorPresentation && (
+          <>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t(errorPresentation.bodyKey)}
+            </p>
+            {errorPresentation.actionKey && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t(errorPresentation.actionKey)}
+              </p>
+            )}
+            {errorPresentation.technicalDetails && (
+              <details className="mt-2 text-xs text-muted-foreground">
+                <summary className="cursor-pointer select-none font-medium">
+                  {t("technicalDetails")}
+                </summary>
+                <div className="mt-2 space-y-1 rounded-md border border-border/70 bg-background/60 p-2">
+                  {errorPresentation.technicalDetails.awsCode && (
+                    <p>
+                      {t("awsCode")}: {errorPresentation.technicalDetails.awsCode}
+                    </p>
+                  )}
+                  {errorPresentation.technicalDetails.awsRequestId && (
+                    <p>
+                      {t("requestId")}: {errorPresentation.technicalDetails.awsRequestId}
+                    </p>
+                  )}
+                  {errorPresentation.technicalDetails.httpStatus && (
+                    <p>
+                      {t("statusCode")}: {errorPresentation.technicalDetails.httpStatus}
+                    </p>
+                  )}
+                </div>
+              </details>
+            )}
+          </>
+        )}
       </div>
       <div className="shrink-0">{getStatusIcon()}</div>
     </motion.div>

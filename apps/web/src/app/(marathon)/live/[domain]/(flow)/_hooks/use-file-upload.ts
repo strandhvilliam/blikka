@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { uploadFileToPresignedUrl } from "@/lib/upload-client"
 import { useUploadStore, selectFailedFiles } from "../_lib/upload-store"
@@ -44,6 +44,7 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
   const isUploading = useUploadStore((state) => state.isUploading)
   const initializeFiles = useUploadStore((state) => state.initializeFiles)
   const updateFilePhase = useUploadStore((state) => state.updateFilePhase)
+  const updateFileUploadTarget = useUploadStore((state) => state.updateFileUploadTarget)
   const setFileProcessingComplete = useUploadStore((state) => state.setFileProcessingComplete)
   const setFileError = useUploadStore((state) => state.setFileError)
   const clearFiles = useUploadStore((state) => state.clearFiles)
@@ -172,6 +173,10 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
           ),
       },
     ),
+  )
+
+  const { mutateAsync: refreshPresignedUploads } = useMutation(
+    trpc.uploadFlow.refreshPresignedUploads.mutationOptions(),
   )
 
   useEffect(() => {
@@ -326,8 +331,37 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
   )
 
   const retryFailedFiles = useCallback(async (): Promise<void> => {
-    const failedFiles = selectFailedFiles(useUploadStore.getState())
+    const failedFiles = selectFailedFiles(useUploadStore.getState()).filter(
+      (file) => file.error?.retriable !== false,
+    )
     if (failedFiles.length === 0) return
+
+    if (reference) {
+      const refreshedUploads = await refreshPresignedUploads({
+        domain,
+        reference,
+        orderIndexes: failedFiles.map((file) => file.orderIndex),
+        uploadContentTypes: failedFiles.map(
+          (file) => file.contentType ?? file.file.type ?? "image/jpeg",
+        ),
+      })
+
+      const refreshedUploadByKey = new Map(
+        refreshedUploads.map((upload) => [upload.key, upload] as const),
+      )
+
+      failedFiles.forEach((file) => {
+        const refreshedUpload = refreshedUploadByKey.get(file.key)
+        if (!refreshedUpload || isFileLocked(file.key)) {
+          return
+        }
+
+        updateFileUploadTarget(file.key, {
+          presignedUrl: refreshedUpload.url,
+          contentType: refreshedUpload.contentType,
+        })
+      })
+    }
 
     failedFiles.forEach((file) => {
       if (!isFileLocked(file.key)) {
@@ -337,9 +371,19 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
 
     setFinalizationState(FINALIZATION_STATE.UPLOADING)
 
-    const filesToRetry = failedFiles.filter((f) => !isFileLocked(f.key))
+    const filesToRetry = failedFiles
+      .map((file) => useUploadStore.getState().files.get(file.key) ?? file)
+      .filter((file) => !isFileLocked(file.key))
     await uploadWithConcurrency(filesToRetry)
-  }, [isFileLocked, updateFilePhase, uploadWithConcurrency])
+  }, [
+    domain,
+    isFileLocked,
+    reference,
+    refreshPresignedUploads,
+    updateFilePhase,
+    updateFileUploadTarget,
+    uploadWithConcurrency,
+  ])
 
   const clearUploadFiles = useCallback(() => {
     resetUploadLifecycle()

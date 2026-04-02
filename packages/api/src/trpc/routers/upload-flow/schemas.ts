@@ -98,6 +98,15 @@ export const GetUploadStatusSchema = Schema.toStandardSchemaV1(
   }),
 );
 
+export const RefreshPresignedUploadsSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    reference: Schema.String,
+    orderIndexes: Schema.Array(Schema.Number),
+    uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
+  }),
+);
+
 export const ReTriggerUploadFlowSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,

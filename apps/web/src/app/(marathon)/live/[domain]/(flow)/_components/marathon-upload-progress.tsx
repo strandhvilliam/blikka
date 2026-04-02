@@ -14,6 +14,7 @@ import { AlertTriangle, Check, Loader2, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getUploadSummaryPresentation } from "../_lib/upload-error-presenter";
 import { FileProgressItem } from "./file-progress-item";
 import type { UploadFileState } from "../_lib/types";
 import { UPLOAD_PHASE } from "../_lib/types";
@@ -59,6 +60,7 @@ export function MarathonUploadProgress({
 
   const rawUploadsComplete = progress.completed === expectedCount;
   const hasFailures = progress.failed > 0;
+  const uploadSummary = useMemo(() => getUploadSummaryPresentation(files), [files]);
 
   const MIN_UPLOAD_PHASE_DISPLAY_MS = 2000;
 
@@ -202,7 +204,10 @@ export function MarathonUploadProgress({
                     ? t("oneFileFailed")
                     : t("multipleFilesFailed", { count: progress.failed })}
                 </p>
-                <p className="text-muted-foreground">{t("checkConnection")}</p>
+                {uploadSummary && <p className="text-muted-foreground">{t(uploadSummary.bodyKey)}</p>}
+                {uploadSummary?.actionKey && (
+                  <p className="text-muted-foreground">{t(uploadSummary.actionKey)}</p>
+                )}
               </div>
             </motion.div>
           )}
@@ -256,7 +261,7 @@ export function MarathonUploadProgress({
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 pb-8">
-          {hasFailures && onRetry && !allUploadsComplete && (
+          {hasFailures && onRetry && !allUploadsComplete && uploadSummary?.retriable !== false && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -264,7 +269,7 @@ export function MarathonUploadProgress({
             >
               <Button onClick={onRetry} variant="outline" className="w-full">
                 <RefreshCw className="w-4 h-4 mr-2" />
-                {t("retryFailed", { count: progress.failed })}
+                {t(uploadSummary?.retryLabelKey ?? "retry")} ({progress.failed})
               </Button>
             </motion.div>
           )}
