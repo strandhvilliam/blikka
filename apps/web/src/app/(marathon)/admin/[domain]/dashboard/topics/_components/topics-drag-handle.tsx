@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { GripVertical } from "lucide-react"
-import { useSortableRowContext } from "./topics-sortable-row"
+import { useSortableRowContext } from "./topics-sortable-context"
 
 interface DragHandleProps {
   id: number

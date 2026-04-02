@@ -48,6 +48,8 @@ import { cn } from "@/lib/utils"
 import { TopicsDragHandle } from "./topics-drag-handle"
 import { TopicsSortableRow } from "./topics-sortable-row"
 import { TopicsMarathonEmptyState } from "./topics-marathon-empty-state"
+import { TopicsMobileSortableCard } from "./topics-mobile-sortable-card"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 type TopicsTableProps = {
   onCreateTopic: () => void
@@ -57,6 +59,7 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
   const domain = useDomain()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
+  const isMobile = useIsMobile()
 
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({
@@ -312,29 +315,63 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
     </TableHeader>
   )
 
+  const sortableList = (
+    <SortableContext key={tableKey} items={dataIds} strategy={verticalListSortingStrategy}>
+      {isMobile
+        ? topics.map((topic) => (
+            <TopicsMobileSortableCard
+              key={topic.id}
+              topic={topic}
+              onEdit={handleEditClick}
+              onDeleteClick={handleDeleteClick}
+              isLoading={isLoading}
+            />
+          ))
+        : table.getRowModel().rows.map((row) => (
+            <TopicsSortableRow
+              key={row.original.id}
+              row={row}
+              index={row.original.orderIndex}
+              dataIds={dataIds}
+            />
+          ))}
+    </SortableContext>
+  )
+
   return (
     <>
       <div
         className={cn(
-          "h-full flex flex-col min-h-0 rounded-md border bg-card shadow-sm overflow-hidden relative",
-          isLoading && "pointer-events-none"
+          "relative flex h-full min-h-0 flex-col overflow-hidden rounded-md border bg-card shadow-sm",
+          isLoading && "pointer-events-none",
         )}
       >
-        <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+        <div
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto",
+            isMobile ? "overflow-x-hidden p-2 sm:p-3" : "overflow-x-auto",
+          )}
+        >
           {topics.length === 0 ? (
-            <Table>
-              {tableHeader}
-              <TableBody>
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={columnCount}
-                    className="min-w-0 border-b-0 p-4 align-top whitespace-normal"
-                  >
-                    <TopicsMarathonEmptyState onCreateClick={onCreateTopic} />
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+            isMobile ? (
+              <div className="p-4">
+                <TopicsMarathonEmptyState onCreateClick={onCreateTopic} />
+              </div>
+            ) : (
+              <Table>
+                {tableHeader}
+                <TableBody>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell
+                      colSpan={columnCount}
+                      className="min-w-0 border-b-0 p-4 align-top whitespace-normal"
+                    >
+                      <TopicsMarathonEmptyState onCreateClick={onCreateTopic} />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            )
           ) : (
             <DndContext
               id={tableKey}
@@ -343,25 +380,14 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
               onDragEnd={handleDragEnd}
               modifiers={[restrictToVerticalAxis]}
             >
-              <Table>
-                {tableHeader}
-                <TableBody>
-                  <SortableContext
-                    key={tableKey}
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {table.getRowModel().rows.map((row) => (
-                      <TopicsSortableRow
-                        key={row.original.id}
-                        row={row}
-                        index={row.original.orderIndex}
-                        dataIds={dataIds}
-                      />
-                    ))}
-                  </SortableContext>
-                </TableBody>
-              </Table>
+              {isMobile ? (
+                <div className="flex flex-col gap-2 pb-1">{sortableList}</div>
+              ) : (
+                <Table>
+                  {tableHeader}
+                  <TableBody>{sortableList}</TableBody>
+                </Table>
+              )}
             </DndContext>
           )}
         </div>

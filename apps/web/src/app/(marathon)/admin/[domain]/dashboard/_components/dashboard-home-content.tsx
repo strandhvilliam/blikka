@@ -139,7 +139,7 @@ export function DashboardHomeContent() {
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col px-6 pb-16 pt-2 md:px-10">
+    <div className="mx-auto flex w-full max-w-6xl flex-col px-4 pb-16 pt-2 sm:px-6 md:px-10">
       <header className="mb-12 max-w-2xl md:mb-16">
         <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-brand-primary">
           {marathon.name}

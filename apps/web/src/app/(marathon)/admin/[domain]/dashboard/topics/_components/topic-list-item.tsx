@@ -24,7 +24,7 @@ export function TopicListItem({
   isLoading,
 }: TopicListItemProps) {
   return (
-    <div className="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-muted-foreground/30">
+    <div className="group rounded-xl border border-border bg-card p-3 transition-colors hover:border-muted-foreground/30 sm:p-4">
       <div className="flex flex-col gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -65,35 +65,37 @@ export function TopicListItem({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-start gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-start">
           <Button
             size="sm"
             variant="outline"
             onClick={() => onActivate(topic)}
             disabled={isLoading}
-            className="gap-1.5"
+            className="h-9 gap-1 px-2 text-xs sm:gap-1.5 sm:px-3"
           >
-            <Zap className="size-3" />
-            Activate
+            <Zap className="size-3 shrink-0" />
+            <span className="truncate">Activate</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => onEdit(topic)}
             disabled={isLoading}
-            className="gap-1.5"
+            className="h-9 gap-1 px-2 text-xs sm:gap-1.5 sm:px-3"
           >
-            <Pencil className="size-3" />
-            Edit
+            <Pencil className="size-3 shrink-0" />
+            <span className="truncate">Edit</span>
           </Button>
           <Button
             size="sm"
             variant="ghost"
             onClick={() => onDelete(topic)}
             disabled={isLoading}
-            className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            aria-label={`Delete ${topic.name}`}
+            className="h-9 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive sm:gap-1.5 sm:px-3"
           >
-            <Trash2 className="size-3" />
+            <Trash2 className="size-3 shrink-0" />
+            <span className="hidden sm:inline">Delete</span>
           </Button>
         </div>
       </div>

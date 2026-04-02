@@ -23,7 +23,7 @@ export function TopicsHistoryList({
 }: TopicsHistoryListProps) {
   if (topics.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
+      <div className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center sm:px-6 sm:py-10">
         <Layers className="mx-auto size-5 text-muted-foreground/50" />
         <p className="mt-2 text-sm text-muted-foreground">
           No other topics yet. Create another topic to build your event history.

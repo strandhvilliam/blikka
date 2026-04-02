@@ -4,7 +4,6 @@ import { DashboardStatusDisplay, DashboardStatusDisplaySkeleton } from "./dashbo
 import { DomainSwitchDropdown } from "./domain-switch-dropdown"
 import { LiveUploadQrDialog } from "./live-upload-qr-dialog"
 import { Copy, ExternalLink, MoreHorizontal, QrCode, Shield, Upload, Users } from "lucide-react"
-import Image from "next/image"
 import { Suspense, useState, type ComponentType, type ReactNode } from "react"
 import { useDomain } from "@/lib/domain-provider"
 import { Button } from "@/components/ui/button"
@@ -204,10 +203,14 @@ function DashboardMobileDrawer({
           type="button"
           variant="ghost"
           size="icon"
-          className="size-8 shrink-0"
+          className={cn(
+            "size-10 shrink-0 touch-manipulation rounded-lg border border-border/60 bg-sidebar-accent/70 p-0 text-sidebar-foreground",
+            "hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border active:scale-[0.98]",
+            "[&_svg]:size-4.5 [&_svg]:opacity-90",
+          )}
           aria-label="Marathon menu"
         >
-          <MoreHorizontal className="size-4" />
+          <MoreHorizontal />
         </Button>
       </DrawerTrigger>
       <DrawerContent className="px-4 pb-8 pt-2">
@@ -294,26 +297,28 @@ export function DashboardHeader() {
 
   return (
     <div className="z-50 w-full pr-4 bg-sidebar">
-      <div className="flex h-12 items-center gap-2 pl-1 py-2 md:hidden">
-        <SidebarTrigger className="shrink-0" />
-        <Image
-          src="/blikka-logo.svg"
-          alt="Blikka"
-          width={20}
-          height={20}
-          className="h-5 w-auto shrink-0"
-          priority
-        />
-        <div className="min-w-0 flex-1 flex justify-end">
+      <div className="grid min-h-12 grid-cols-[1fr_auto_1fr] items-center gap-2 py-1.5 pl-3 md:hidden">
+        <div className="flex items-center justify-start">
+          <SidebarTrigger
+            className={cn(
+              "size-10 shrink-0 touch-manipulation rounded-lg border border-border/60 bg-sidebar-accent/70 p-0 text-sidebar-foreground",
+              "hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border active:scale-[0.98]",
+              "[&_svg]:size-4.5 [&_svg]:opacity-90",
+            )}
+          />
+        </div>
+        <div className="flex min-w-0 items-center justify-center">
           <Suspense fallback={<DashboardStatusDisplaySkeleton />}>
             <DashboardStatusDisplay domain={domain} interactionMode="tap" />
           </Suspense>
         </div>
-        <DashboardMobileDrawer
-          domain={domain}
-          quickLinkConfigs={quickLinkConfigs}
-          onShowQr={openQr}
-        />
+        <div className="flex items-center justify-end">
+          <DashboardMobileDrawer
+            domain={domain}
+            quickLinkConfigs={quickLinkConfigs}
+            onShowQr={openQr}
+          />
+        </div>
       </div>
 
       <div className="hidden md:flex md:h-14 md:flex-row md:items-center md:gap-4 md:py-0">

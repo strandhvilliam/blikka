@@ -23,8 +23,8 @@ const _TopicsPage = Effect.fn("@blikka/web/TopicsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<TopicsSkeleton />}>
-          <div className="mx-auto flex h-full min-h-0 max-w-4xl flex-col overflow-hidden px-6 py-4">
-            <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="mx-auto flex h-full min-h-0 max-w-4xl flex-col px-4 py-3 sm:px-6 sm:py-4">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
               <TopicsContent />
             </div>
           </div>

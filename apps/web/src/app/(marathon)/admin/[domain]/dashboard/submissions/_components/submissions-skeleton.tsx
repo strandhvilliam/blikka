@@ -2,39 +2,41 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function SubmissionsSkeleton() {
   return (
-    <div className="mx-auto px-6 py-4 space-y-6">
+    <div className="mx-auto space-y-4 px-4 py-3 sm:space-y-6 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="space-y-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Skeleton className="h-9 w-9 rounded-lg" />
+      <div className="space-y-3 md:space-y-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <div className="mb-2 flex items-center gap-3">
+              <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
               <div className="space-y-1.5">
                 <Skeleton className="h-3 w-20" />
                 <Skeleton className="h-6 w-32" />
               </div>
             </div>
-            <Skeleton className="h-4 w-72" />
+            <Skeleton className="h-4 w-full max-w-72" />
           </div>
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-8 w-20 rounded-md" />
-            <Skeleton className="h-8 w-28 rounded-md" />
+          <div className="flex w-full items-center gap-2 md:w-auto">
+            <Skeleton className="h-9 min-h-9 flex-1 rounded-md md:h-8 md:flex-initial" />
+            <Skeleton className="h-9 min-h-9 flex-1 rounded-md md:h-8 md:flex-initial" />
           </div>
         </div>
-        {/* Tabs */}
-        <div className="border-b border-border">
-          <div className="flex gap-8">
+        {/* Tabs (desktop) */}
+        <div className="border-b border-border hidden md:block">
+          <div className="flex gap-8 overflow-x-auto">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-4 w-24 mb-4" />
+              <Skeleton key={i} className="mb-4 h-4 w-24 shrink-0" />
             ))}
           </div>
         </div>
+        <Skeleton className="h-10 w-full rounded-md md:hidden" />
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <Skeleton className="h-9 flex-1 w-full sm:w-auto rounded-md" />
-        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+      <Skeleton className="h-10 w-full rounded-md md:hidden" />
+      <div className="hidden gap-3 md:flex md:flex-row md:items-center">
+        <Skeleton className="h-9 w-full flex-1 rounded-md sm:w-auto" />
+        <div className="flex w-full flex-wrap gap-3 sm:w-auto">
           <Skeleton className="h-9 w-[140px] rounded-md" />
           <Skeleton className="h-9 w-[180px] rounded-md" />
           <Skeleton className="h-9 w-[160px] rounded-md" />

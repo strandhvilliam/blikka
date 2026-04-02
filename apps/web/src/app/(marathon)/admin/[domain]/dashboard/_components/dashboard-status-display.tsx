@@ -171,7 +171,7 @@ function MarathonStatusDisplay({
     <div
       className={cn(
         "flex items-center",
-        interactionMode === "tap" && "min-w-0 max-w-full justify-end",
+        interactionMode === "tap" && "min-w-0 max-w-full justify-center",
       )}
     >
       {status === "not-setup" ? (
@@ -238,7 +238,7 @@ function MarathonStatusDisplay({
             <button
               type="button"
               className={cn(
-                "min-w-0 max-w-[min(46vw,13rem)] rounded-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
+                "inline-flex min-w-0 max-w-[min(46vw,13rem)] items-center rounded-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
               )}
               aria-label="Marathon status, show details"
             >
@@ -396,7 +396,7 @@ function ByCameraStatusDisplay({ domain, compact = false }: { domain: string; co
 
   return (
     <div
-      className={cn("flex items-center gap-2", compact && "min-w-0 max-w-full justify-end")}
+      className={cn("flex items-center gap-2", compact && "min-w-0 max-w-full justify-center")}
     >
       <Popover>
         <PopoverTrigger asChild>
@@ -405,7 +405,7 @@ function ByCameraStatusDisplay({ domain, compact = false }: { domain: string; co
             className={cn(
               "focus-visible:outline-none",
               compact &&
-                "min-w-0 max-w-[min(46vw,13rem)] rounded-full text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
+                "inline-flex min-w-0 max-w-[min(46vw,13rem)] items-center rounded-full text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
             )}
             aria-label={compact ? "Topic and phase status, show details" : undefined}
           >

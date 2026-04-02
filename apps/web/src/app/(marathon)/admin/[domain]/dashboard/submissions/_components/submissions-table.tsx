@@ -311,8 +311,8 @@ export function SubmissionsTable() {
   })
 
   return (
-    <div className="flex flex-col h-full space-y-4">
-      <div className="space-y-4 shrink-0">
+    <div className="flex flex-col h-full space-y-2 md:space-y-4">
+      <div className="shrink-0 space-y-2 md:space-y-4">
         {hasSelection ? (
           <SubmissionsBulkToolbar
             marathonMode={marathon?.mode}

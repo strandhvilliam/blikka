@@ -11,7 +11,7 @@ export function TopicsByCameraEmptyState({
   onCreateClick,
 }: TopicsByCameraEmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 px-6 py-20 text-center">
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-14 text-center sm:px-6 sm:py-20">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary/10">
         <Camera className="size-6 text-brand-primary" />
       </div>

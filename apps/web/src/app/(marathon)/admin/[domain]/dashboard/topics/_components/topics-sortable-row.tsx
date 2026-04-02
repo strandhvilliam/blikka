@@ -8,23 +8,7 @@ import { cn } from "@/lib/utils"
 import { flexRender } from "@tanstack/react-table"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { CSS } from "@dnd-kit/utilities"
-import { createContext, useContext } from "react"
-import type { DraggableAttributes } from "@dnd-kit/core"
-import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities"
-
-const SortableRowContext = createContext<{
-  attributes: DraggableAttributes
-  listeners: SyntheticListenerMap | undefined
-  isDragging: boolean
-} | null>(null)
-
-export const useSortableRowContext = () => {
-  const context = useContext(SortableRowContext)
-  if (!context) {
-    throw new Error("useSortableRowContext must be used within a TopicsSortableRow")
-  }
-  return context
-}
+import { SortableRowContext } from "./topics-sortable-context"
 
 interface TopicsSortableRowProps {
   row: Row<Topic>

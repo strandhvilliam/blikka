@@ -88,9 +88,9 @@ export function ActiveTopicBanner({
             : "Close submissions"
 
     return (
-      <div className="relative overflow-hidden rounded-xl border border-brand-primary/20 bg-white p-5 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.06)] sm:p-6">
+      <div className="relative overflow-hidden rounded-xl border border-brand-primary/20 bg-white p-4 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.06)] sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
               <CheckCircle2 className="size-5 text-brand-primary" />
             </div>
@@ -131,18 +131,18 @@ export function ActiveTopicBanner({
           </div>
 
           <div className="flex flex-col gap-3 sm:items-end">
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-start sm:items-end">
               <p className="text-2xl font-semibold tabular-nums leading-none text-foreground">
                 {submissionCount}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">submissions</p>
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
               <Button
                 size="sm"
                 onClick={() => onEditSubmissionWindow(activeTopic)}
                 disabled={isLoading}
-                className="gap-1.5"
+                className="h-10 gap-1.5 sm:h-9"
               >
                 {resolvedSubmissionState === "not-opened" ||
                 resolvedSubmissionState === "scheduled" ? (
@@ -163,7 +163,7 @@ export function ActiveTopicBanner({
                 variant="outline"
                 onClick={() => onEdit(activeTopic)}
                 disabled={isLoading}
-                className="gap-1.5"
+                className="h-10 gap-1.5 sm:h-9"
               >
                 <Pencil className="size-3" />
                 Edit
@@ -176,9 +176,9 @@ export function ActiveTopicBanner({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/20 p-5 sm:p-6">
+    <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-border bg-muted/20 p-4 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted">
             <TagIcon className="size-5 text-muted-foreground" />
           </div>
@@ -189,7 +189,7 @@ export function ActiveTopicBanner({
             </p>
           </div>
         </div>
-        <Button size="sm" onClick={onCreate} className="gap-1.5">
+        <Button size="sm" onClick={onCreate} className="h-10 w-full gap-1.5 sm:h-9 sm:w-auto">
           <Plus className="size-3.5" />
           Create topic
         </Button>

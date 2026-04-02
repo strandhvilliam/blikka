@@ -152,7 +152,7 @@ export function TopicsByCamera() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5 sm:gap-8">
       <TopicsByCameraHeader onCreateClick={openCreate} isLoading={isLoading} />
 
       <TopicsCreateDialog
@@ -165,9 +165,9 @@ export function TopicsByCamera() {
       {topics.length === 0 ? (
         <TopicsByCameraEmptyState onCreateClick={openCreate} />
       ) : (
-        <div className="space-y-10">
+        <div className="space-y-6 sm:space-y-10">
           <section>
-            <div className="mb-4 flex items-center gap-2.5">
+            <div className="mb-3 flex items-center gap-2.5 sm:mb-4">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
               <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
                 Active Topic
@@ -186,14 +186,14 @@ export function TopicsByCamera() {
           </section>
 
           <section>
-            <div className="mb-4 flex items-center justify-between gap-4">
+            <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="flex min-w-0 items-center gap-2.5">
                 <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-brand-primary" />
                 <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
                   All topics
                 </p>
               </div>
-              <div className="flex shrink-0 flex-col items-end gap-0.5 text-end">
+              <div className="flex shrink-0 flex-col items-start gap-0.5 text-start sm:items-end sm:text-end">
                 <p className="text-xs tabular-nums text-muted-foreground">
                   {historyTopics.length}{" "}
                   {historyTopics.length === 1 ? "topic" : "topics"}
