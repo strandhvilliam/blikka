@@ -35,13 +35,16 @@ export function VotingProgress({
   return (
     <div className="rounded-xl border border-border bg-white px-4 py-4 transition-shadow duration-200 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] sm:px-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-medium">Voting progress</p>
           <p className="text-xs text-muted-foreground">
             {completedSessions} of {totalSessions} sessions completed
           </p>
         </div>
-        <Badge variant={pendingSessions > 0 ? "outline" : "secondary"} className="ml-auto">
+        <Badge
+          variant={pendingSessions > 0 ? "outline" : "secondary"}
+          className="w-fit self-start sm:ml-auto sm:self-center"
+        >
           {pendingSessions > 0
             ? `${pendingSessions} pending`
             : "All sessions completed"}

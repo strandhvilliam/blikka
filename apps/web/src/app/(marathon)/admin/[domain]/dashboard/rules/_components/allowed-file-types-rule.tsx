@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react"
 import { CheckCircle, AlertCircle, FileImage } from "lucide-react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { RuleCard, type RuleValue } from "./rule-card"
 import type { AllowedFileTypesParams } from "../_lib/schemas"
@@ -22,7 +23,7 @@ export function AllowedFileTypesRule({ value, onChange }: AllowedFileTypesRulePr
   return (
     <RuleCard
       title="Allowed File Types"
-      description="Specify permitted image file formats (e.g., JPG, PNG)."
+      description="Specify permitted image file formats (JPG; PNG is not available yet)."
       icon={FileImage}
       recommendedSeverity="error"
       value={value}
@@ -32,11 +33,18 @@ export function AllowedFileTypesRule({ value, onChange }: AllowedFileTypesRulePr
         <div className="flex flex-wrap gap-2">
           {FILE_TYPE_OPTIONS.map((option) => {
             const isSelected = value.params.allowedFileTypes.includes(option.value)
+            const pngUnavailable = option.value === "png" && !isSelected
             return (
               <motion.button
                 key={option.value}
                 type="button"
+                aria-disabled={pngUnavailable}
                 onClick={() => {
+                  if (option.value === "png" && !isSelected) {
+                    toast.message("PNG is not available at the moment.")
+                    return
+                  }
+
                   const currentTypes = [...value.params.allowedFileTypes]
                   const index = currentTypes.indexOf(option.value)
 
@@ -58,9 +66,10 @@ export function AllowedFileTypesRule({ value, onChange }: AllowedFileTypesRulePr
                   "border flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none transition-colors duration-150",
                   isSelected
                     ? "bg-foreground text-background border-transparent shadow-sm"
-                    : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/40"
+                    : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/40",
+                  pngUnavailable && "cursor-not-allowed opacity-50 hover:bg-muted/40",
                 )}
-                whileTap={{ scale: 0.97 }}
+                whileTap={pngUnavailable ? undefined : { scale: 0.97 }}
               >
                 {isSelected && <CheckCircle className="h-3.5 w-3.5 opacity-80" />}
                 {option.label}

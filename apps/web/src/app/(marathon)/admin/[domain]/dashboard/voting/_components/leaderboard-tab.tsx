@@ -203,12 +203,12 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
   return (
     <div className="space-y-6">
       {(summary.currentRound || topCardEntries.length > 0) ? (
-        <div className="flex flex-wrap items-center gap-2.5 gap-y-2 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5 sm:gap-y-2">
           {summary.currentRound ? (
             <>
               <Badge
                 variant="outline"
-                className="border-brand-primary/25 bg-brand-primary/5 text-brand-primary"
+                className="w-fit border-brand-primary/25 bg-brand-primary/5 text-brand-primary"
               >
                 {summary.currentRound.kind === "tiebreak"
                   ? `Tie-break ${summary.currentRound.roundNumber}`
@@ -221,10 +221,12 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
               variant="outline"
               size="sm"
               onClick={() => setSlideshowOpen(true)}
-              className="ml-auto shrink-0 gap-2 border-brand-primary/20 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 hover:text-brand-primary"
+              className="w-full shrink-0 gap-2 border-brand-primary/20 bg-brand-primary/5 text-brand-primary hover:bg-brand-primary/10 hover:text-brand-primary sm:ml-auto sm:w-auto"
             >
-              <Presentation className="h-4 w-4" />
-              Present Top {Math.min(topCardEntries.length, 3)} Winners
+              <Presentation className="h-4 w-4 shrink-0" />
+              <span className="text-left">
+                Present Top {Math.min(topCardEntries.length, 3)} Winners
+              </span>
             </Button>
           ) : null}
         </div>

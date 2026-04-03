@@ -117,7 +117,7 @@ function StepCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col rounded-2xl p-6 transition-all duration-300",
+        "relative flex flex-col rounded-2xl p-4 transition-all duration-300 sm:p-6",
         status === "completed" &&
           "border border-emerald-200/60 bg-emerald-50/30",
         status === "active" &&

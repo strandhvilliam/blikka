@@ -89,11 +89,13 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <p className="text-sm text-muted-foreground leading-relaxed">
+          <div className="min-w-0">
+            <div className="mb-1.5 flex flex-wrap items-center gap-2">
+              <p className="min-w-0 text-sm leading-relaxed text-muted-foreground">
                 Manage voting for{" "}
-                <span className="font-medium text-foreground">{activeTopic.name}</span>
+                <span className="break-words font-medium text-foreground">
+                  {activeTopic.name}
+                </span>
               </p>
               <Badge variant="secondary" className="text-[10px]">
                 Topic {activeTopic.orderIndex + 1}
@@ -116,7 +118,7 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
               Manual invites are available only while voting is active.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="grid w-full shrink-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
             <Button
               variant="outline"
               size="sm"
@@ -124,7 +126,7 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
               disabled={isRefreshing}
               className="text-xs"
             >
-              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
               Refresh
             </Button>
             <Button
@@ -134,7 +136,7 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
               disabled={votingState !== "active"}
               className="text-xs"
             >
-              <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+              <UserPlus className="mr-1.5 h-3.5 w-3.5" />
               Invite Voter
             </Button>
           </div>

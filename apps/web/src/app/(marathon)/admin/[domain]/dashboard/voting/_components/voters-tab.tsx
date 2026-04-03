@@ -325,6 +325,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                 ))}
               </ul>
               <PrimaryButton
+                className="w-full sm:w-auto"
                 onClick={() =>
                   startVotingSessionsForParticipantsMutation.mutate({
                     domain,
