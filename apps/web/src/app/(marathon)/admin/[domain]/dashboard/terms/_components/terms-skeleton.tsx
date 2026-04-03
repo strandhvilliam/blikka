@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function TermsSkeleton() {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-4">
+    <div className="mx-auto w-full max-w-4xl px-6 py-4">
       <div className="mb-10">
         <div className="mb-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">

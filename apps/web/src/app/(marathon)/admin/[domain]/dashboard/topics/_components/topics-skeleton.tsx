@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function TopicsSkeleton() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
+    <div className="mx-auto w-full max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
       <div className="mb-4 sm:mb-8">
         <div className="mb-3 flex items-center gap-3">
           <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />

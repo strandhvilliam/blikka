@@ -21,7 +21,7 @@ const _TermsPage = Effect.fn("@blikka/web/TermsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<TermsSkeleton />}>
-          <div className="mx-auto max-w-4xl px-6 py-4">
+          <div className="mx-auto w-full max-w-4xl px-6 py-4">
             <TermsContent />
           </div>
         </Suspense>

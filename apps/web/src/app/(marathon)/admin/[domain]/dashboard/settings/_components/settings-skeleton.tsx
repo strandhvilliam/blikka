@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function SettingsSkeleton() {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-4">
+    <div className="mx-auto w-full max-w-4xl px-6 py-4">
       <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3 mb-3">

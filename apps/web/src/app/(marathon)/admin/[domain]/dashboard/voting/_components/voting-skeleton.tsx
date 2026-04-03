@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function VotingSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8 lg:py-10">
+    <div className="mx-auto w-full max-w-5xl px-6 py-8 lg:py-10">
       <div className="space-y-8 pb-8">
         {/* Header */}
         <div className="mb-8">

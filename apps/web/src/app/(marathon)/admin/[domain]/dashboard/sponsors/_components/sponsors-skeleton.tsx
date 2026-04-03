@@ -24,7 +24,7 @@ function CardSkeleton() {
 
 export function SponsorsSkeleton() {
   return (
-    <div className="mx-auto max-w-4xl px-6 py-4">
+    <div className="mx-auto w-full max-w-4xl px-6 py-4">
       <div className="mb-10">
         <div className="flex items-center gap-3 mb-3">
           <Skeleton className="h-9 w-9 rounded-lg" />

@@ -23,7 +23,7 @@ const _RulesPage = Effect.fn("@blikka/web/RulesPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<RulesSkeleton />}>
-          <div className="mx-auto max-w-3xl px-6 py-4">
+          <div className="mx-auto w-full max-w-3xl px-6 py-4">
             <RulesForm />
           </div>
         </Suspense>

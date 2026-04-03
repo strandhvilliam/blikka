@@ -20,7 +20,7 @@ const _ClassesPage = Effect.fn("@blikka/web/ClassesPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<ClassesSkeleton />}>
-          <div className="mx-auto max-w-4xl px-6 py-4">
+          <div className="mx-auto w-full max-w-4xl px-6 py-4">
             <ClassesHeader />
             <div className="space-y-10">
               <CompetitionClassSection />

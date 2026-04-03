@@ -23,7 +23,7 @@ const _ExportPage = Effect.fn("@blikka/web/ExportPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<ExportSkeleton />}>
-          <div className="mx-auto max-w-4xl px-6 py-4">
+          <div className="mx-auto w-full max-w-4xl px-6 py-4">
             <ExportContent />
           </div>
         </Suspense>

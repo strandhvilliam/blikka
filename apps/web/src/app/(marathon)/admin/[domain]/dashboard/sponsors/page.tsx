@@ -18,7 +18,7 @@ const _SponsorsPage = Effect.fn("@blikka/web/SponsorsPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<SponsorsSkeleton />}>
-          <div className="mx-auto max-w-4xl px-6 py-4">
+          <div className="mx-auto w-full max-w-4xl px-6 py-4">
             <SponsorsContent />
           </div>
         </Suspense>
