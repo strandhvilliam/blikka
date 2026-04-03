@@ -75,28 +75,28 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
 
   return (
     <>
-      <section className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10">
+      <section className="mb-8 min-w-0">
+        <div className="mb-3 flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10">
             <Vote className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
               By Camera
             </p>
-            <h1 className="text-2xl font-bold tracking-tight font-gothic leading-none">Voting</h1>
+            <h1 className="text-2xl font-bold font-gothic leading-none tracking-tight">Voting</h1>
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <div className="mb-1.5 flex flex-wrap items-center gap-2">
-              <p className="min-w-0 text-sm leading-relaxed text-muted-foreground">
-                Manage voting for{" "}
-                <span className="break-words font-medium text-foreground">
-                  {activeTopic.name}
-                </span>
-              </p>
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 w-full max-w-full">
+            <p className="text-pretty text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
+              Manage voting for{" "}
+              <span className="font-medium text-foreground">
+                {activeTopic.name}
+              </span>
+            </p>
+            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
               <Badge variant="secondary" className="text-[10px]">
                 Topic {activeTopic.orderIndex + 1}
               </Badge>
@@ -110,23 +110,23 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
               </span>
             </div>
             {summary.currentRound?.kind === "tiebreak" && (
-              <p className="text-[11px] text-muted-foreground/70">
+              <p className="mt-2 text-[11px] text-muted-foreground/70">
                 Latest round is a tie-break. Only the tied leading submissions are eligible.
               </p>
             )}
-            <p className="text-[11px] text-muted-foreground/70">
+            <p className="mt-1.5 text-[11px] text-muted-foreground/70">
               Manual invites are available only while voting is active.
             </p>
           </div>
-          <div className="grid w-full shrink-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+          <div className="grid w-full min-w-0 shrink-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefetch}
               disabled={isRefreshing}
-              className="text-xs"
+              className="min-w-0 px-2 text-xs whitespace-normal sm:px-3"
             >
-              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5 shrink-0" />
               Refresh
             </Button>
             <Button
@@ -134,10 +134,10 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
               size="sm"
               onClick={() => setIsInviteDialogOpen(true)}
               disabled={votingState !== "active"}
-              className="text-xs"
+              className="min-w-0 px-2 text-xs whitespace-normal sm:px-3"
             >
-              <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-              Invite Voter
+              <UserPlus className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+              Invite voter
             </Button>
           </div>
         </div>

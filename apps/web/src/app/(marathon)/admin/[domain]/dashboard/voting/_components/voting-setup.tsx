@@ -117,7 +117,7 @@ function StepCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col rounded-2xl p-4 transition-all duration-300 sm:p-6",
+        "relative flex min-w-0 flex-col rounded-2xl px-5 py-5 transition-all duration-300 sm:p-6",
         status === "completed" &&
           "border border-emerald-200/60 bg-emerald-50/30",
         status === "active" &&
@@ -142,10 +142,10 @@ function StepCard({
         )}
       </div>
 
-      <div className="mt-5">
+      <div className="mt-4 sm:mt-5">
         <h3
           className={cn(
-            "text-[15px] font-semibold tracking-tight",
+            "text-[15px] font-semibold tracking-tight text-pretty",
             status === "completed" && "text-emerald-900",
             status === "active" && "text-foreground",
             status === "upcoming" && "text-muted-foreground/40",
@@ -155,7 +155,7 @@ function StepCard({
         </h3>
         <p
           className={cn(
-            "mt-1.5 text-[13px] leading-relaxed",
+            "mt-1.5 text-[13px] leading-relaxed text-pretty [overflow-wrap:anywhere]",
             status === "completed" && "text-emerald-700/60",
             status === "active" && "text-muted-foreground",
             status === "upcoming" && "text-muted-foreground/30",
@@ -178,7 +178,7 @@ function StepCard({
 
       {extraContent && <div className="mt-2">{extraContent}</div>}
 
-      <div className="mt-auto pt-3">{children}</div>
+      <div className="mt-auto pt-4 sm:pt-3">{children}</div>
     </div>
   );
 }
@@ -406,8 +406,8 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
   const step4Status = getCardStatus(4, currentPhase);
 
   return (
-    <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="min-w-0 w-full max-w-full">
+      <div className="grid min-w-0 grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-4">
         {/* Step 1: Open Submissions */}
         <StepCard
           stepNumber={1}
@@ -426,7 +426,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
             <PrimaryButton
               onClick={handleStartSubmissionsNow}
               disabled={startSubmissionsMutation.isPending}
-              className="w-full"
+              className="w-full min-h-11 justify-center sm:min-h-9"
             >
               {startSubmissionsMutation.isPending ? (
                 <>
@@ -446,7 +446,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
               Completed
             </span>
           ) : (
-            <Button disabled variant="outline" className="w-full">
+            <Button disabled variant="outline" className="w-full min-h-11 justify-center sm:min-h-9">
               <Play className="h-4 w-4" />
               Open
             </Button>
@@ -471,7 +471,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
             <PrimaryButton
               onClick={handleEndSubmissionsNow}
               disabled={endSubmissionsMutation.isPending}
-              className="w-full"
+              className="w-full min-h-11 justify-center sm:min-h-9"
             >
               {endSubmissionsMutation.isPending ? (
                 <>
@@ -491,7 +491,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
               Completed
             </span>
           ) : (
-            <Button disabled variant="outline" className="w-full">
+            <Button disabled variant="outline" className="w-full min-h-11 justify-center sm:min-h-9">
               <Lock className="h-4 w-4" />
               Close
             </Button>
@@ -511,7 +511,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
           }
           extraContent={
             step3Status === "active" && startBlockedMessage ? (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-[12px] leading-relaxed text-amber-800">
+              <div className="flex items-start gap-2.5 rounded-xl border border-amber-200/60 bg-amber-50/50 px-3.5 py-2.5 text-[12px] leading-relaxed text-amber-800">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                 {startBlockedMessage}
               </div>
@@ -522,7 +522,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
             <PrimaryButton
               onClick={handleStartVotingClick}
               disabled={!canStartVoting || startVotingMutation.isPending}
-              className="w-full"
+              className="w-full min-h-11 justify-center sm:min-h-9"
             >
               {startVotingMutation.isPending ? (
                 <>
@@ -542,7 +542,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
               Completed
             </span>
           ) : (
-            <Button disabled variant="outline" className="w-full">
+            <Button disabled variant="outline" className="w-full min-h-11 justify-center sm:min-h-9">
               <Send className="h-4 w-4" />
               Start
             </Button>
@@ -574,7 +574,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
             <PrimaryButton
               onClick={handleCloseVotingClick}
               disabled={closeVotingMutation.isPending}
-              className="w-full"
+              className="w-full min-h-11 justify-center sm:min-h-9"
             >
               {closeVotingMutation.isPending ? (
                 <>
@@ -598,7 +598,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 <PrimaryButton
                   onClick={handleStartTiebreakClick}
                   disabled={startTiebreakRoundMutation.isPending}
-                  className="w-full"
+                  className="w-full min-h-11 justify-center sm:min-h-9"
                 >
                   {startTiebreakRoundMutation.isPending ? (
                     <>
@@ -628,7 +628,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
               </button>
             </div>
           ) : (
-            <Button disabled variant="outline" className="w-full">
+            <Button disabled variant="outline" className="w-full min-h-11 justify-center sm:min-h-9">
               <Flag className="h-4 w-4" />
               Finish
             </Button>
@@ -637,7 +637,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       </div>
 
       {/* Stats */}
-      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 sm:mt-5">
         <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <ImageIcon className="h-3.5 w-3.5" />
           <span className="font-semibold tabular-nums text-foreground">
@@ -831,6 +831,6 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

@@ -173,7 +173,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
 
   if (summary.voteStats.totalVotes === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 px-6">
+      <div className="flex w-full min-w-0 max-w-full flex-col items-center justify-center rounded-2xl border border-dashed border-border px-4 py-14 sm:px-6 sm:py-16">
         <div className="flex size-12 items-center justify-center rounded-full bg-muted">
           <Trophy className="size-5 text-muted-foreground" />
         </div>
@@ -368,7 +368,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
                           {entry.participantReference}
                         </code>
                       </TableCell>
-                      <TableCell className="py-2 text-sm text-muted-foreground">
+                      <TableCell className="py-2 text-xs text-muted-foreground sm:text-sm">
                         {formatDateTime(entry.submissionCreatedAt)}
                       </TableCell>
                       <TableCell className="py-2">
@@ -412,7 +412,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="size-8"
+            className="min-h-10 min-w-10 sm:min-h-8 sm:min-w-8"
             onClick={() =>
               setLeaderboardPage(Math.max(1, leaderboardPage - 1))
             }
@@ -426,7 +426,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="size-8"
+            className="min-h-10 min-w-10 sm:min-h-8 sm:min-w-8"
             onClick={() =>
               setLeaderboardPage(
                 pageCount > 0

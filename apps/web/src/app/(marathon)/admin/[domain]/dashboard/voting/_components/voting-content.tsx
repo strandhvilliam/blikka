@@ -62,11 +62,11 @@ function VotingSummaryContent({
   }, [hasSessions, setLeaderboardPage, setVotersPage])
 
   return (
-    <>
+    <div className="w-full min-w-0 max-w-full">
       <VotingHeader activeTopic={activeTopic} />
       <VotingSetup key={activeTopic.id} activeTopic={activeTopic} />
 
-      <div className="relative mt-8">
+      <div className="relative mt-8 min-w-0">
         {!hasSessions && (
           <div className="absolute inset-0 z-10 flex items-start justify-center pt-16">
             <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white px-4 py-2 text-[13px] font-medium text-muted-foreground shadow-sm">
@@ -78,10 +78,10 @@ function VotingSummaryContent({
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as 'leaderboard' | 'voters')}
-          className="space-y-0"
+          className="min-w-0 space-y-0"
         >
-          <div className="border-b border-border">
-            <TabsList className="flex h-auto w-full gap-0 rounded-none bg-transparent p-0 sm:w-auto sm:gap-8 -mb-px">
+          <div className="min-w-0 border-b border-border">
+            <TabsList className="-mb-px flex h-auto w-full min-w-0 gap-0 rounded-none bg-transparent p-0 sm:w-auto sm:gap-8">
               <TabsTrigger
                 value="leaderboard"
                 className={cn(
@@ -103,7 +103,7 @@ function VotingSummaryContent({
             </TabsList>
           </div>
 
-          <TabsContent value="leaderboard" className="mt-6 space-y-6">
+          <TabsContent value="leaderboard" className="mt-6 min-w-0 space-y-6">
             {activeTab === "leaderboard" && hasSessions && (
               <Suspense fallback={<LeaderboardTabSkeleton />}>
                 <LeaderboardTab
@@ -114,7 +114,7 @@ function VotingSummaryContent({
             {!hasSessions && <LeaderboardTabSkeleton />}
           </TabsContent>
 
-          <TabsContent value="voters" className="mt-6">
+          <TabsContent value="voters" className="mt-6 min-w-0">
             {activeTab === "voters" && hasSessions && (
               <Suspense fallback={<VotersTabSkeleton />}>
                 <VotersTab
@@ -127,7 +127,7 @@ function VotingSummaryContent({
         </Tabs>
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -218,7 +218,7 @@ export function VotingContent() {
         </div>
       }
     >
-      <div className="space-y-8 pb-8">
+      <div className="min-w-0 space-y-8 pb-8">
         <VotingSummaryContent
           activeTopic={activeTopic}
         />

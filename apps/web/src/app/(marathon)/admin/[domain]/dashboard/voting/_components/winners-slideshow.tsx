@@ -182,7 +182,7 @@ export function WinnersSlideshow({
 
       {/* Top bar — logos and marathon name */}
       <motion.header
-        className="relative z-10 flex items-center justify-between px-6 py-5 md:px-10 lg:px-14"
+        className="relative z-10 flex items-center justify-between px-6 py-5 pt-[max(1.25rem,env(safe-area-inset-top))] md:px-10 lg:px-14"
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15 }}
@@ -214,7 +214,7 @@ export function WinnersSlideshow({
       </motion.header>
 
       {/* Main content */}
-      <div className="relative z-10 flex flex-1 items-center justify-center overflow-hidden px-4 pb-4 md:px-8 lg:px-12">
+      <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center overflow-hidden px-4 pb-4 md:px-8 lg:px-12">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentIndex}
@@ -227,11 +227,11 @@ export function WinnersSlideshow({
               x: { type: "tween", duration: 0.35, ease: [0.32, 0.72, 0, 1] },
               opacity: { duration: 0.25 },
             }}
-            className="flex h-full w-full min-w-0 max-w-[1600px] items-center gap-10 lg:gap-16 xl:gap-20"
+            className="flex h-full min-h-0 w-full min-w-0 max-w-[1600px] flex-col items-stretch gap-6 lg:flex-row lg:items-center lg:gap-16 xl:gap-20"
             style={{ willChange: "transform, opacity" }}
           >
             {/* Photo */}
-            <div className="relative flex min-w-0 flex-1 self-stretch items-center justify-center overflow-hidden rounded-2xl bg-black/40 shadow-2xl shadow-black/50 lg:rounded-3xl">
+            <div className="relative flex h-auto max-h-[45vh] min-h-0 w-full shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-black/40 shadow-2xl shadow-black/50 lg:h-auto lg:max-h-none lg:min-h-0 lg:flex-1 lg:self-stretch lg:rounded-3xl">
               {imageUrl ? (
                 <img
                   src={imageUrl}
@@ -247,11 +247,11 @@ export function WinnersSlideshow({
             </div>
 
             {/* Info panel */}
-            <div className="flex min-w-0 w-full max-w-sm flex-col lg:max-w-md xl:max-w-lg">
+            <div className="flex min-h-0 min-w-0 w-full shrink-0 flex-col lg:max-w-md lg:shrink xl:max-w-lg">
               {/* Rank badge */}
-              <div className="mb-8 flex min-w-0 items-center gap-4 lg:mb-10">
+              <div className="mb-4 flex min-w-0 items-center gap-3 lg:mb-10 lg:gap-4">
                 <div
-                  className={`flex h-18 w-18 shrink-0 items-center justify-center rounded-2xl text-3xl font-bold lg:h-22 lg:w-22 lg:rounded-3xl lg:text-4xl ${
+                  className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-2xl font-bold sm:h-16 sm:w-16 sm:rounded-2xl sm:text-3xl lg:h-22 lg:w-22 lg:rounded-3xl lg:text-4xl ${
                     currentIndex === 0
                       ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/30"
                       : currentIndex === 1
@@ -262,27 +262,27 @@ export function WinnersSlideshow({
                   {winner.rank}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-special-gothic text-2xl tracking-tight text-white wrap-break-word lg:text-3xl xl:text-4xl">
+                  <p className="font-special-gothic text-lg tracking-tight text-white wrap-break-word sm:text-xl lg:text-3xl xl:text-4xl">
                     {rankLabel}
                   </p>
-                  <p className="mt-1 text-sm text-white/40 lg:text-base">
+                  <p className="mt-1 text-xs text-white/40 sm:text-sm lg:text-base">
                     {winner.voteCount} vote{winner.voteCount !== 1 ? "s" : ""}
                   </p>
                 </div>
               </div>
 
               {/* Participant name */}
-              <h2 className="max-w-full text-4xl font-bold leading-tight tracking-tight text-white wrap-break-word lg:text-5xl xl:text-6xl">
+              <h2 className="max-w-full text-2xl font-bold leading-tight tracking-tight text-white wrap-break-word sm:text-3xl lg:text-5xl xl:text-6xl">
                 {getDisplayName(winner)}
               </h2>
 
               {/* Vote count accent */}
-              <div className="mt-8 flex items-baseline gap-3 lg:mt-10">
-                <Trophy className="h-5 w-5 text-brand-primary lg:h-6 lg:w-6" />
-                <span className="font-mono text-2xl font-bold tabular-nums text-brand-primary lg:text-3xl">
+              <div className="mt-4 flex items-baseline gap-3 lg:mt-10">
+                <Trophy className="h-5 w-5 shrink-0 text-brand-primary lg:h-6 lg:w-6" />
+                <span className="font-mono text-xl font-bold tabular-nums text-brand-primary sm:text-2xl lg:text-3xl">
                   {winner.voteCount}
                 </span>
-                <span className="text-base text-white/50 lg:text-lg">
+                <span className="text-sm text-white/50 sm:text-base lg:text-lg">
                   vote{winner.voteCount !== 1 ? "s" : ""}
                 </span>
               </div>
@@ -293,7 +293,7 @@ export function WinnersSlideshow({
 
       {/* Bottom navigation */}
       <motion.footer
-        className="relative z-10 flex items-center justify-between px-6 pb-6 md:px-10 lg:px-14"
+        className="relative z-10 flex flex-wrap items-center justify-between gap-y-3 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:px-10 lg:px-14"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}

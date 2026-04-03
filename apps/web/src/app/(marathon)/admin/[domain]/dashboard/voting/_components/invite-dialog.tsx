@@ -104,16 +104,20 @@ export function InviteDialog({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="created-vote-link">Invite link</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="created-vote-link"
-                  value={createdInviteUrl}
-                  readOnly
-                />
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+                <div className="min-w-0 flex-1">
+                  <Input
+                    id="created-vote-link"
+                    value={createdInviteUrl}
+                    readOnly
+                    className="min-w-0"
+                  />
+                </div>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleCopyInviteLink}
+                  className="w-full shrink-0 sm:w-auto"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>

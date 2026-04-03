@@ -394,11 +394,11 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                       className="border-b transition-colors hover:bg-muted/60"
                     >
                       <TableCell className="py-2">
-                        <div className="space-y-1 flex items-center gap-2">
-                          <p className="font-medium">
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                          <p className="min-w-0 font-medium wrap-break-word">
                             {voter.firstName} {voter.lastName}
                           </p>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="shrink-0 text-xs">
                             {voter.connectedParticipantId
                               ? "Participant"
                               : "Manual"}
@@ -429,7 +429,10 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                 </Badge>
                               </button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-80 p-4" align="start">
+                            <PopoverContent
+                              className="w-[min(20rem,calc(100vw-2rem))] max-w-[min(20rem,calc(100vw-2rem))] p-4"
+                              align="start"
+                            >
                               <div className="space-y-3">
                                 <div className="space-y-1">
                                   <h4 className="font-semibold text-sm">
@@ -504,11 +507,11 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                         )}
                       </TableCell>
                       <TableCell className="py-2">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7"
+                            className="h-7 w-full justify-center sm:w-auto"
                             onClick={() => handleCopySessionLink(voter.token)}
                           >
                             <Copy className="mr-1.5 size-3.5" />
@@ -520,7 +523,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-7"
+                                className="h-7 w-full justify-center sm:w-auto"
                                 disabled={isResending}
                               >
                                 {pendingResendSessionId === voter.sessionId ? (
@@ -531,7 +534,10 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                 Resend
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-56 p-3" align="end">
+                            <PopoverContent
+                              className="w-[min(14rem,calc(100vw-2rem))] max-w-[min(14rem,calc(100vw-2rem))] p-3"
+                              align="end"
+                            >
                               <div className="space-y-3">
                                 <div className="text-xs text-muted-foreground">
                                   Last sent:{" "}
@@ -575,7 +581,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-7 w-7"
+                                className="h-7 w-7 self-end sm:self-auto"
                                 disabled={
                                   isClearingVote ||
                                   isDeletingSession ||

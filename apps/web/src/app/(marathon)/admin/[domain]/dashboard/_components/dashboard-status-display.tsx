@@ -396,7 +396,10 @@ function ByCameraStatusDisplay({ domain, compact = false }: { domain: string; co
 
   return (
     <div
-      className={cn("flex items-center gap-2", compact && "min-w-0 max-w-full justify-center")}
+      className={cn(
+        "flex items-center gap-2",
+        compact && "min-w-0 w-full max-w-full justify-center",
+      )}
     >
       <Popover>
         <PopoverTrigger asChild>
@@ -405,7 +408,7 @@ function ByCameraStatusDisplay({ domain, compact = false }: { domain: string; co
             className={cn(
               "focus-visible:outline-none",
               compact &&
-                "inline-flex min-w-0 max-w-[min(46vw,13rem)] items-center rounded-full text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
+                "flex w-full min-w-0 max-w-full items-center rounded-full text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
             )}
             aria-label={compact ? "Topic and phase status, show details" : undefined}
           >
@@ -413,7 +416,7 @@ function ByCameraStatusDisplay({ domain, compact = false }: { domain: string; co
               className={cn(
                 "gap-2 cursor-pointer",
                 phaseMeta.toneClass,
-                compact && "min-w-0 max-w-full",
+                compact && "min-w-0 max-w-full w-full",
               )}
             >
               {isLive ? (
@@ -425,8 +428,8 @@ function ByCameraStatusDisplay({ domain, compact = false }: { domain: string; co
                 <>
                   <span
                     className={cn(
-                      "font-semibold truncate",
-                      compact ? "max-w-18" : "max-w-[120px]",
+                      "min-w-0 font-semibold truncate",
+                      compact ? "flex-1" : "max-w-[120px]",
                     )}
                   >
                     {activeTopic.name}
@@ -434,7 +437,13 @@ function ByCameraStatusDisplay({ domain, compact = false }: { domain: string; co
                   <span className="text-[10px] opacity-60 shrink-0">·</span>
                 </>
               ) : null}
-              <span className={cn("text-[11px] truncate", activeTopic ? "opacity-80" : "font-semibold")}>
+              <span
+                className={cn(
+                  "shrink-0 text-[11px] truncate",
+                  compact && "max-w-[min(40%,7.5rem)]",
+                  activeTopic ? "opacity-80" : "font-semibold",
+                )}
+              >
                 {phaseMeta.label}
               </span>
               <ChevronsUpDown className={cn("size-3 shrink-0 opacity-50", compact && "size-2.5")} />

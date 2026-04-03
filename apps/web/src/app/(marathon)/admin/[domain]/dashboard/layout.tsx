@@ -15,11 +15,11 @@ const _DashboardLayout = Effect.fn("@blikka/web/DashboardLayout")(
       <HydrateClient>
         <SidebarProvider>
           <DashboardSidebar />
-          <SidebarInset className="bg-transparent flex flex-1 flex-col max-h-screen overflow-hidden relative">
+          <SidebarInset className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-transparent max-h-screen">
             <div className="shrink-0">
               <DashboardHeader />
             </div>
-            <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-tl-2xl border px-0 pt-8 pb-4 md:px-6 [&_h1.font-gothic]:font-medium [-webkit-overflow-scrolling:touch]">
+            <div className="relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-tl-2xl border px-0 pt-8 pb-4 md:px-6 [&_h1.font-gothic]:font-medium [-webkit-overflow-scrolling:touch]">
               {children}
             </div>
           </SidebarInset>

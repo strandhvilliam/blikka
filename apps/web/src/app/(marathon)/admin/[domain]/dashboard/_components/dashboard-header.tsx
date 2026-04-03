@@ -297,7 +297,7 @@ export function DashboardHeader() {
 
   return (
     <div className="z-50 w-full pr-4 bg-sidebar">
-      <div className="grid min-h-12 grid-cols-[1fr_auto_1fr] items-center gap-2 py-1.5 pl-3 md:hidden">
+      <div className="grid min-h-12 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 py-1.5 pl-3 md:hidden">
         <div className="flex items-center justify-start">
           <SidebarTrigger
             className={cn(
@@ -307,7 +307,7 @@ export function DashboardHeader() {
             )}
           />
         </div>
-        <div className="flex min-w-0 items-center justify-center">
+        <div className="flex min-w-0 items-center justify-center px-1">
           <Suspense fallback={<DashboardStatusDisplaySkeleton />}>
             <DashboardStatusDisplay domain={domain} interactionMode="tap" />
           </Suspense>
