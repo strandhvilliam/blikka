@@ -1,16 +1,17 @@
-import { type ColumnDef } from "@tanstack/react-table";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Clock, XCircle, AlertCircle, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { RealtimeEnrichedTableData } from "../_hooks/use-submissions-table-realtime";
+import { type ColumnDef } from "@tanstack/react-table"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { CheckCircle2, Clock, XCircle, AlertCircle, Info } from "lucide-react"
+import { cn } from "@/lib/utils"
+import type { RealtimeEnrichedTableData } from "../_hooks/use-submissions-table-realtime"
+import { format } from "date-fns"
 
 interface SubmissionsColumnsOptions {
-  marathonMode?: string;
-  participants: RealtimeEnrichedTableData[];
-  selectedIds: Set<number>;
-  onToggleSelection: (id: number, event: React.MouseEvent) => void;
-  onToggleAll: () => void;
+  marathonMode?: string
+  participants: RealtimeEnrichedTableData[]
+  selectedIds: Set<number>
+  onToggleSelection: (id: number, event: React.MouseEvent) => void
+  onToggleAll: () => void
 }
 
 export const getSubmissionsColumns = ({
@@ -20,208 +21,200 @@ export const getSubmissionsColumns = ({
   onToggleSelection,
   onToggleAll,
 }: SubmissionsColumnsOptions): ColumnDef<RealtimeEnrichedTableData>[] => {
-  const visibleIds = participants.map((p) => p.id);
-  const selectedVisibleCount = visibleIds.filter((id) =>
-    selectedIds.has(id),
-  ).length;
-  const allVisibleSelected =
-    visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
-  const someVisibleSelected =
-    selectedVisibleCount > 0 && selectedVisibleCount < visibleIds.length;
+  const visibleIds = participants.map((p) => p.id)
+  const selectedVisibleCount = visibleIds.filter((id) => selectedIds.has(id)).length
+  const allVisibleSelected = visibleIds.length > 0 && selectedVisibleCount === visibleIds.length
+  const someVisibleSelected = selectedVisibleCount > 0 && selectedVisibleCount < visibleIds.length
 
-  const baseColumns: ColumnDef<RealtimeEnrichedTableData>[] = [
-    {
-      id: "select",
-      header: () => (
+  const baseColumns: ColumnDef<RealtimeEnrichedTableData>[] = []
+
+  baseColumns.push({
+    id: "select",
+    header: () => (
+      <div className="flex items-center justify-center">
+        <Checkbox
+          checked={allVisibleSelected}
+          data-state={someVisibleSelected ? "indeterminate" : undefined}
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleAll()
+          }}
+          aria-label="Select all visible"
+        />
+      </div>
+    ),
+    cell: ({ row }) => {
+      const participant = row.original
+      const isChecked = selectedIds.has(participant.id)
+      return (
         <div className="flex items-center justify-center">
           <Checkbox
-            checked={allVisibleSelected}
-            data-state={someVisibleSelected ? "indeterminate" : undefined}
+            checked={isChecked}
             onClick={(e) => {
-              e.stopPropagation();
-              onToggleAll();
+              e.stopPropagation()
+              onToggleSelection(participant.id, e as unknown as React.MouseEvent)
             }}
-            aria-label="Select all visible"
+            aria-label={`Select participant ${participant.reference}`}
           />
         </div>
-      ),
-      cell: ({ row }) => {
-        const participant = row.original;
-        const isChecked = selectedIds.has(participant.id);
-        return (
-          <div className="flex items-center justify-center">
-            <Checkbox
-              checked={isChecked}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleSelection(
-                  participant.id,
-                  e as unknown as React.MouseEvent,
-                );
-              }}
-              aria-label={`Select participant ${participant.reference}`}
-            />
-          </div>
-        );
-      },
-      size: 40,
+      )
     },
+    size: 40,
+  })
+  baseColumns.push(
     {
       accessorKey: "reference",
       header: "Reference",
       cell: ({ row }) => (
-        <div className="font-semibold text-xs text-foreground">
-          {row.getValue("reference")}
-        </div>
+        <div className="font-semibold text-xs text-foreground">{row.getValue("reference")}</div>
       ),
     },
     {
       id: "name",
       header: "Name",
       cell: ({ row }) => {
-        const firstname = row.original.firstname;
-        const lastname = row.original.lastname;
-        return (
-          <div className="font-medium text-xs">{`${firstname} ${lastname}`}</div>
-        );
+        const firstname = row.original.firstname
+        const lastname = row.original.lastname
+        return <div className="font-medium text-xs">{`${firstname} ${lastname}`}</div>
       },
     },
-    {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => {
-        const email = row.getValue("email") as string | null;
-        return (
-          <div
-            className="text-xs text-muted-foreground truncate max-w-[200px]"
-            title={email || undefined}
-          >
-            {email || "-"}
-          </div>
-        );
-      },
+  )
+  baseColumns.push({
+    accessorKey: "email",
+    header: "Email",
+    cell: ({ row }) => {
+      const email = row.getValue("email") as string | null
+      return (
+        <div
+          className="text-xs text-muted-foreground truncate max-w-[200px]"
+          title={email || undefined}
+        >
+          {email || "-"}
+        </div>
+      )
     },
-    {
-      accessorKey: "createdAt",
-      header: "Initialized At",
-      cell: ({ row }) => {
-        const createdAt = row.getValue("createdAt") as string;
-        const date = new Date(createdAt);
-        return (
-          <div className="text-xs text-muted-foreground">
-            {date.toLocaleString(undefined, {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </div>
-        );
-      },
+  })
+  baseColumns.push({
+    id: "phone",
+    header: "Phone",
+    cell: ({ row }) => {
+      const phone = row.original.phoneNumber ?? null
+      return (
+        <div
+          className="text-xs text-muted-foreground truncate max-w-[200px]"
+          title={phone || undefined}
+        >
+          {phone || "-"}
+        </div>
+      )
     },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.original.realtimeIsFinalized
-          ? "completed"
-          : (row.getValue("status") as string);
-        const statusConfig = {
-          prepared: {
-            variant: "outline" as const,
-            className:
-              "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
-            icon: Clock,
-          },
-          completed: {
-            variant: "default" as const,
-            className:
-              "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
-            icon: CheckCircle2,
-          },
-          initialized: {
-            variant: "outline" as const,
-            className:
-              "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700",
-            icon: Clock,
-          },
-          verified: {
-            variant: "default" as const,
-            className:
-              "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
-            icon: CheckCircle2,
-          },
-        };
-        const config =
-          statusConfig[status as keyof typeof statusConfig] ||
-          statusConfig.initialized;
-        const Icon = config.icon;
-        return (
-          <Badge
-            variant={config.variant}
-            className={cn(
-              "capitalize text-xs font-medium gap-1 h-5 px-1.5",
-              config.className,
-            )}
-          >
-            <Icon className="size-2.5" />
-            {status}
-          </Badge>
-        );
-      },
+  })
+  baseColumns.push({
+    accessorKey: "createdAt",
+    header: "Initialized At",
+    cell: ({ row }) => {
+      const createdAt = row.getValue("createdAt") as string
+      const date = new Date(createdAt)
+      return (
+        <div className="text-xs text-muted-foreground">{format(date, "MMM d, yyyy, HH:mm")}</div>
+      )
     },
-    {
-      id: "uploadProgress",
-      header: "Upload",
-      cell: ({ row }) => {
-        const participant = row.original;
-        const expectedFromClass =
-          participant.competitionClass?.numberOfPhotos ?? null;
-        const expectedCount =
-          expectedFromClass !== null && expectedFromClass > 0
-            ? expectedFromClass
-            : marathonMode === "by-camera"
-              ? 1
-              : null;
+  })
+  baseColumns.push({
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.original.realtimeIsFinalized
+        ? "completed"
+        : (row.getValue("status") as string)
+      const statusConfig = {
+        prepared: {
+          variant: "outline" as const,
+          className:
+            "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+          icon: Clock,
+        },
+        completed: {
+          variant: "default" as const,
+          className:
+            "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
+          icon: CheckCircle2,
+        },
+        initialized: {
+          variant: "outline" as const,
+          className:
+            "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700",
+          icon: Clock,
+        },
+        verified: {
+          variant: "default" as const,
+          className:
+            "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
+          icon: CheckCircle2,
+        },
+      }
+      const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.initialized
+      const Icon = config.icon
+      return (
+        <Badge
+          variant={config.variant}
+          className={cn("capitalize text-xs font-medium gap-1 h-5 px-1.5", config.className)}
+        >
+          <Icon className="size-2.5" />
+          {status}
+        </Badge>
+      )
+    },
+  })
+  baseColumns.push({
+    id: "uploadProgress",
+    header: "Upload",
+    cell: ({ row }) => {
+      const participant = row.original
+      const expectedFromClass = participant.competitionClass?.numberOfPhotos ?? null
+      const expectedCount =
+        expectedFromClass !== null && expectedFromClass > 0
+          ? expectedFromClass
+          : marathonMode === "by-camera"
+            ? 1
+            : null
 
-        if (expectedCount === null) {
-          return <span className="text-xs text-muted-foreground">-</span>;
-        }
+      if (expectedCount === null) {
+        return <span className="text-xs text-muted-foreground">-</span>
+      }
 
-        const isCompleted =
-          participant.realtimeIsFinalized ||
-          participant.status === "completed" ||
-          participant.status === "verified";
-        const processedCount = isCompleted
-          ? expectedCount
-          : Math.min(participant.realtimeProcessedCount, expectedCount);
+      const isCompleted =
+        participant.realtimeIsFinalized ||
+        participant.status === "completed" ||
+        participant.status === "verified"
+      const processedCount = isCompleted
+        ? expectedCount
+        : Math.min(participant.realtimeProcessedCount, expectedCount)
 
-        return (
-          <Badge
-            variant={processedCount === expectedCount ? "default" : "outline"}
-            className={cn(
-              "h-5 px-1.5 text-xs font-medium tabular-nums",
-              processedCount === expectedCount
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
-                : "text-muted-foreground",
-            )}
-          >
-            {processedCount}/{expectedCount}
-          </Badge>
-        );
-      },
+      return (
+        <Badge
+          variant={processedCount === expectedCount ? "default" : "outline"}
+          className={cn(
+            "h-5 px-1.5 text-xs font-medium tabular-nums",
+            processedCount === expectedCount
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
+              : "text-muted-foreground",
+          )}
+        >
+          {processedCount}/{expectedCount}
+        </Badge>
+      )
     },
-  ];
+  })
 
   if (marathonMode === "by-camera") {
     baseColumns.push({
       id: "voted",
       header: "Voted",
       cell: ({ row }) => {
-        const votedAt = row.original.votingSession?.votedAt;
+        const votedAt = row.original.votingSession?.votedAt
         if (votedAt) {
-          const date = new Date(votedAt);
+          const date = new Date(votedAt)
           return (
             <Badge
               variant="default"
@@ -235,7 +228,7 @@ export const getSubmissionsColumns = ({
                 day: "numeric",
               })}
             </Badge>
-          );
+          )
         }
         return (
           <Badge
@@ -245,18 +238,18 @@ export const getSubmissionsColumns = ({
             <Clock className="size-2.5" />
             Not voted
           </Badge>
-        );
+        )
       },
-    });
+    })
   } else {
     baseColumns.push({
       id: "competitionClass",
       header: "Class",
       cell: ({ row }) => {
-        const competitionClass = row.original.competitionClass;
-        return <div className="text-xs">{competitionClass?.name || "-"}</div>;
+        const competitionClass = row.original.competitionClass
+        return <div className="text-xs">{competitionClass?.name || "-"}</div>
       },
-    });
+    })
   }
 
   baseColumns.push(
@@ -264,29 +257,26 @@ export const getSubmissionsColumns = ({
       id: "deviceGroup",
       header: "Device Group",
       cell: ({ row }) => {
-        const deviceGroup = row.original.deviceGroup;
-        return <div className="text-xs">{deviceGroup?.name || "-"}</div>;
+        const deviceGroup = row.original.deviceGroup
+        return <div className="text-xs">{deviceGroup?.name || "-"}</div>
       },
     },
     {
       id: "validationResults",
       header: "Validation Results",
       cell: ({ row }) => {
-        const submissionHealth = row.original.submissionHealth;
-        const hasMissingExif = submissionHealth !== null && !submissionHealth.hasExif;
-        const failed = row.original.failedValidationResults;
-        const passed = row.original.passedValidationResults;
-        const skipped = row.original.skippedValidationResults;
-        const failedCount = failed.errors + failed.warnings;
-        const passedCount = passed.errors + passed.warnings;
-        const skippedCount = skipped.errors + skipped.warnings;
+        const submissionHealth = row.original.submissionHealth
+        const hasMissingExif = submissionHealth !== null && !submissionHealth.hasExif
+        const failed = row.original.failedValidationResults
+        const passed = row.original.passedValidationResults
+        const skipped = row.original.skippedValidationResults
+        const failedCount = failed.errors + failed.warnings
+        const passedCount = passed.errors + passed.warnings
+        const skippedCount = skipped.errors + skipped.warnings
         return (
           <div className="flex items-center gap-1.5">
             {failedCount > 0 && (
-              <Badge
-                variant="destructive"
-                className="gap-1 text-xs font-medium h-5 px-1.5"
-              >
+              <Badge variant="destructive" className="gap-1 text-xs font-medium h-5 px-1.5">
                 <XCircle className="size-2.5" />
                 {failedCount}
               </Badge>
@@ -323,10 +313,10 @@ export const getSubmissionsColumns = ({
               <span className="text-xs text-muted-foreground">-</span>
             )}
           </div>
-        );
+        )
       },
     },
-  );
+  )
 
-  return baseColumns;
-};
+  return baseColumns
+}

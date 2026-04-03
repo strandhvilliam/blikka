@@ -66,6 +66,7 @@ function useSubmissionTableQueryState() {
 }
 
 export type TableData = Omit<Participant, "phoneEncrypted" | "phoneHash"> & {
+  phoneNumber?: string | null;
   competitionClass: CompetitionClass | null;
   deviceGroup: DeviceGroup | null;
   activeTopicSubmissionId: number | null;

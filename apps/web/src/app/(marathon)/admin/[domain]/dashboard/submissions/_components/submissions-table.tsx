@@ -140,7 +140,9 @@ export function SubmissionsTable() {
   const selectedParticipants = participants.filter((participant) => selectedIds.has(participant.id))
   const selectedReferences = selectedParticipants.map((participant) => participant.reference)
   const completableParticipantIds = selectedParticipants
-    .filter((participant) => participant.status !== "completed" && participant.status !== "verified")
+    .filter(
+      (participant) => participant.status !== "completed" && participant.status !== "verified",
+    )
     .map((participant) => participant.id)
   const selectedSubmissionIdsMissingExif = selectedParticipants
     .filter(

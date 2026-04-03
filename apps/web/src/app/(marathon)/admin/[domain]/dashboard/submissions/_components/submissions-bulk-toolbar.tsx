@@ -179,7 +179,7 @@ export function SubmissionsBulkToolbar({
             </Button>
           </>
         )}
-        <Button
+        {/* <Button
           variant="outline"
           size="sm"
           onClick={onReTriggerUploadFlow}
@@ -192,7 +192,7 @@ export function SubmissionsBulkToolbar({
             <RefreshCw className="h-4 w-4 mr-1" />
           )}
           Re-trigger Upload Flow
-        </Button>
+        </Button> */}
         <Button
           variant="destructive"
           size="sm"
@@ -247,8 +247,8 @@ export function SubmissionsBulkToolbar({
             <DialogTitle>Mark Participants Completed</DialogTitle>
             <DialogDescription>
               This will set {completableCount} selected participant
-              {completableCount === 1 ? "" : "s"} to completed. Only do this when you are sure
-              their uploads are actually complete.
+              {completableCount === 1 ? "" : "s"} to completed. Only do this when you are sure their
+              uploads are actually complete.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

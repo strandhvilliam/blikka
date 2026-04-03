@@ -87,7 +87,7 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
         hasValidationErrors,
         votedFilter,
       }) {
-        return yield* db.participantsQueries.getInfiniteParticipantsByDomain({
+        const page = yield* db.participantsQueries.getInfiniteParticipantsByDomain({
           domain,
           cursor,
           limit,
@@ -102,6 +102,35 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
           hasValidationErrors,
           votedFilter,
         });
+
+        const participantsWithPhone = yield* Effect.forEach(
+          page.participants,
+          (participant) =>
+            Effect.gen(function* () {
+              const { phoneEncrypted, ...rest } = participant;
+              const phoneNumber = yield* Option.match(
+                Option.fromNullishOr(phoneEncrypted),
+                {
+                  onNone: () => Effect.succeed<string | null>(null),
+                  onSome: (encrypted) =>
+                    phoneEncryption
+                      .decrypt({
+                        encrypted: encrypted as EncryptedPhoneNumber,
+                      })
+                      .pipe(
+                        Effect.catch(() => Effect.succeed<string | null>(null)),
+                      ),
+                },
+              );
+              return { ...rest, phoneNumber };
+            }),
+          { concurrency: 8 },
+        );
+
+        return {
+          participants: participantsWithPhone,
+          nextCursor: page.nextCursor,
+        };
       });
 
       const getDashboardOverview = Effect.fn(

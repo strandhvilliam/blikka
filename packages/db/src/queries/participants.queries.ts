@@ -332,7 +332,6 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
             where: whereCondition,
             columns: {
               phoneHash: false,
-              phoneEncrypted: false,
             },
             with: {
               competitionClass: true,
