@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { protocol, rootDomain } from "./config"
 import createMiddleware from "next-intl/middleware"
 import { routing } from "./i18n/routing.public"
+import { marathonDomainFromLocation } from "./lib/marathon-domain"
 
 function withDomainHeader(request: NextRequest, subdomain: string) {
   const headers = new Headers(request.headers)
@@ -11,38 +12,11 @@ function withDomainHeader(request: NextRequest, subdomain: string) {
 }
 
 function extractSubdomain(request: NextRequest): string | null {
-  const url = request.url
-  const host = request.headers.get("host") || ""
-  const hostname = host.split(":")[0]
-
-  // Local development environment
-  if (url.includes("localhost") || url.includes("127.0.0.1")) {
-    // Try to extract subdomain from the full URL
-
-    const path = url.slice(url.indexOf("localhost")).split("/")
-    if (path.at(1) === "admin" || path.at(1) === "live" || path.at(1) === "staff") {
-      // remove query params
-      const pathWithoutQueryParams = path.at(2)?.split("?")[0] ?? null
-      return pathWithoutQueryParams ?? null
-    }
-
-    // Fallback to host header approach
-    if (hostname.includes(".localhost")) {
-      return hostname.split(".")[0]
-    }
-
-    return null
-  }
-
-  // Production environment
-  const rootDomainFormatted = rootDomain.split(":")[0]
-
-  const isSubdomain =
-    hostname !== rootDomainFormatted &&
-    hostname !== `www.${rootDomainFormatted}` &&
-    hostname.endsWith(`.${rootDomainFormatted}`)
-
-  return isSubdomain ? hostname.replace(`.${rootDomainFormatted}`, "") : null
+  return marathonDomainFromLocation({
+    host: request.headers.get("host") || "",
+    href: request.url,
+    pathname: request.nextUrl.pathname,
+  })
 }
 
 export async function proxy(request: NextRequest) {

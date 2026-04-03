@@ -1,7 +1,7 @@
 "use client"
 
 import type { QueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { createTRPCClient, httpBatchStreamLink, loggerLink } from "@trpc/client"
 import { createTRPCContext } from "@trpc/tanstack-react-query"
@@ -9,7 +9,46 @@ import { createTRPCContext } from "@trpc/tanstack-react-query"
 import type { AppRouter } from "@blikka/api/trpc"
 
 import { createQueryClient } from "./query-client"
-import { useRouter } from "next/navigation"
+import { marathonDomainFromLocation } from "@/lib/marathon-domain"
+
+function domainForTrpcHeader(fromServerLayout: string | null): string | null {
+  if (typeof window !== "undefined") {
+    return (
+      marathonDomainFromLocation({
+        host: window.location.host,
+        href: window.location.href,
+        pathname: window.location.pathname,
+      }) ?? fromServerLayout
+    )
+  }
+  return fromServerLayout
+}
+
+/** Props read on each outbound tRPC HTTP call (client is created once; values stay fresh via `useLatest`). */
+type MarathonTrpcLinkProps = {
+  domain: string | null
+  requestCookieHeader: string | null
+}
+
+function useLatest<T>(value: T) {
+  const ref = useRef(value)
+  ref.current = value
+  return ref
+}
+
+function marathonTrpcFetchHeaders(latest: MarathonTrpcLinkProps): Headers {
+  const headers = new Headers()
+  const domain = domainForTrpcHeader(latest.domain)
+  headers.set("x-trpc-source", "blikka-web-client")
+  if (domain) {
+    headers.set("x-marathon-domain", domain)
+  }
+  // Fixes SSR permission errors
+  if (typeof window === "undefined" && latest.requestCookieHeader) {
+    headers.set("cookie", latest.requestCookieHeader)
+  }
+  return headers
+}
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined
 
@@ -23,13 +62,18 @@ const getQueryClient = (/*unauthorizedCallback: () => void*/) => {
 
 export const { useTRPC, TRPCProvider } = createTRPCContext<AppRouter>()
 
-export function TRPCReactProvider(props: { children: React.ReactNode; domain: string | null }) {
-  const router = useRouter()
-  // const unauthorizedCallback = () => {
-  //   console.log("UNAUTHORIZED")
-  //   router.replace("/auth/login")
-  // }
+export function TRPCReactProvider(props: {
+  children: React.ReactNode
+  domain: string | null
+  /** Set from server layout via `headers().get("cookie")` so RSC/SSR fetches to `/api/trpc` stay authenticated. */
+  requestCookieHeader?: string | null
+}) {
   const queryClient = getQueryClient(/*unauthorizedCallback*/)
+
+  const latestLinkProps = useLatest<MarathonTrpcLinkProps>({
+    domain: props.domain,
+    requestCookieHeader: props.requestCookieHeader ?? null,
+  })
 
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
@@ -41,17 +85,12 @@ export function TRPCReactProvider(props: { children: React.ReactNode; domain: st
         }),
         httpBatchStreamLink({
           url: getBaseUrl() + "/api/trpc",
-          async headers() {
-            const headers = new Headers()
-            headers.set("x-trpc-source", "blikka-web-client")
-            if (props.domain) {
-              headers.set("x-marathon-domain", props.domain)
-            }
-            return headers
+          headers() {
+            return marathonTrpcFetchHeaders(latestLinkProps.current)
           },
         }),
       ],
-    })
+    }),
   )
 
   return (
