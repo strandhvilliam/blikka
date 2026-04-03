@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CheckCircle,
   Mail,
+  UserPen,
   XCircle,
   Download,
   Shield,
@@ -61,6 +62,10 @@ import {
 } from "../_lib/utils"
 import { ParticipantCard } from "./participant-card"
 import { ParticipantVerifyDialog } from "./participant-verify-dialog"
+import {
+  ParticipantContactEditDialog,
+  type ParticipantWithPhoneNumber,
+} from "../[submissionId]/_components/participant-contact-edit-dialog"
 
 export function ParticipantHeader({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
@@ -69,10 +74,17 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
   const router = useRouter()
   const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isEditContactOpen, setIsEditContactOpen] = useState(false)
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
       reference: participantRef,
+      domain,
+    }),
+  )
+
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({
       domain,
     }),
   )
@@ -146,6 +158,8 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         <ParticipantHeaderInfo participant={participant} />
         <ParticipantHeaderActions
           participant={participant}
+          marathonMode={marathon?.mode ?? ""}
+          onEditParticipant={() => setIsEditContactOpen(true)}
           onRunValidations={handleRunValidations}
           isRunningValidations={runValidationsMutation.isPending}
           onGenerateContactSheet={handleGenerateContactSheet}
@@ -175,6 +189,15 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         <ParticipantThumbnailsIndicator participant={participant} />
         <ParticipantExifIndicator participant={participant} />
       </div>
+      {marathon?.mode === "marathon" ? (
+        <ParticipantContactEditDialog
+          participantRef={participantRef}
+          participant={participant as ParticipantWithPhoneNumber}
+          isOpen={isEditContactOpen}
+          onOpenChange={setIsEditContactOpen}
+          mode="marathon"
+        />
+      ) : null}
       <ParticipantVerifyDialog
         isOpen={isVerifyDialogOpen}
         onOpenChange={setIsVerifyDialogOpen}
@@ -264,6 +287,8 @@ function ParticipantHeaderInfo({
 
 function ParticipantHeaderActions({
   participant,
+  marathonMode,
+  onEditParticipant,
   onDeleteParticipant,
   onRunValidations,
   isRunningValidations,
@@ -271,6 +296,8 @@ function ParticipantHeaderActions({
   isGeneratingContactSheet,
 }: {
   participant: ParticipantWithRelations
+  marathonMode: string
+  onEditParticipant: () => void
   onDeleteParticipant: () => void
   onRunValidations: () => void
   isRunningValidations: boolean
@@ -290,6 +317,12 @@ function ParticipantHeaderActions({
 
   return (
     <div className="flex items-center gap-2">
+      {marathonMode === "marathon" ? (
+        <Button variant="outline" size="sm" onClick={onEditParticipant} className="text-xs">
+          <UserPen className="h-3.5 w-3.5 mr-1.5" />
+          Edit details
+        </Button>
+      ) : null}
       {hasSubmissions && (
         <Button variant="default" size="sm" onClick={handleExport} className="text-xs">
           <Download className="h-3.5 w-3.5 mr-1.5" />

@@ -3,7 +3,10 @@ import { Database } from "@blikka/db";
 import { RealtimeEventsService } from "@blikka/realtime";
 import { ParticipantApiError, PublicParticipantSchema } from "./schemas";
 import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract";
-import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption";
+import {
+  EncryptedPhoneNumber,
+  PhoneNumberEncryptionService,
+} from "../../utils/phone-number-encryption";
 import type { NewParticipant } from "@blikka/db";
 import { EmailService } from "@blikka/email";
 import { sendParticipantVerifiedEmail } from "./notifications";
@@ -122,7 +125,20 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
               }),
             );
           }
-          return result.value;
+          const row = result.value;
+          const phoneNumber = yield* Option.match(
+            Option.fromNullishOr(row.phoneEncrypted),
+            {
+              onNone: () => Effect.succeed<string | null>(null),
+              onSome: (encrypted) =>
+                phoneEncryption
+                  .decrypt({
+                    encrypted: encrypted as EncryptedPhoneNumber,
+                  })
+                  .pipe(Effect.catch(() => Effect.succeed<string | null>(null))),
+            },
+          );
+          return { ...row, phoneNumber };
         },
       );
 
@@ -261,6 +277,183 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
         });
       });
 
+      const updateByCameraParticipantContact = Effect.fn(
+        "ParticipantsApiService.updateByCameraParticipantContact",
+      )(function* ({
+        domain,
+        reference,
+        firstname,
+        lastname,
+        email,
+        phone,
+      }: {
+        domain: string;
+        reference: string;
+        firstname: string;
+        lastname: string;
+        email: string;
+        phone: string;
+      }) {
+        const first = firstname.trim();
+        const last = lastname.trim();
+        const mail = email.trim();
+        const phoneTrimmed = phone.trim();
+
+        if (!first || !last || !mail || !phoneTrimmed) {
+          return yield* Effect.fail(
+            new ParticipantApiError({
+              message: "First name, last name, email, and phone are required",
+            }),
+          );
+        }
+
+        const marathonOption = yield* db.marathonsQueries.getMarathonByDomain({
+          domain,
+        });
+        if (Option.isNone(marathonOption)) {
+          return yield* Effect.fail(
+            new ParticipantApiError({ message: "Marathon not found" }),
+          );
+        }
+        const marathon = marathonOption.value;
+        if (marathon.mode !== "by-camera") {
+          return yield* Effect.fail(
+            new ParticipantApiError({
+              message: "Marathon is not in by-camera mode",
+            }),
+          );
+        }
+
+        const participantOption =
+          yield* db.participantsQueries.getParticipantByReference({
+            reference,
+            domain,
+          });
+        if (Option.isNone(participantOption)) {
+          return yield* Effect.fail(
+            new ParticipantApiError({ message: "Participant not found" }),
+          );
+        }
+        const participant = participantOption.value;
+        if (participant.participantMode !== "by-camera") {
+          return yield* Effect.fail(
+            new ParticipantApiError({
+              message: "Only by-camera participants can be updated with this action",
+            }),
+          );
+        }
+
+        const phoneHash = yield* phoneEncryption.hashLookup({
+          phoneNumber: phoneTrimmed,
+        });
+        const existingByPhone =
+          yield* db.participantsQueries.getByPhoneHashForByCamera({
+            marathonId: marathon.id,
+            phoneHash,
+          });
+        if (
+          Option.isSome(existingByPhone) &&
+          existingByPhone.value.id !== participant.id
+        ) {
+          return yield* Effect.fail(
+            new ParticipantApiError({
+              message: "Another participant already uses this phone number",
+            }),
+          );
+        }
+
+        const { hash, encrypted } = yield* phoneEncryption.encrypt({
+          phoneNumber: phoneTrimmed,
+        });
+
+        yield* db.participantsQueries.updateParticipantById({
+          id: participant.id,
+          data: {
+            firstname: first,
+            lastname: last,
+            email: mail,
+            phoneHash: hash,
+            phoneEncrypted: encrypted,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      });
+
+      const updateMarathonParticipantContact = Effect.fn(
+        "ParticipantsApiService.updateMarathonParticipantContact",
+      )(function* ({
+        domain,
+        reference,
+        firstname,
+        lastname,
+        email,
+      }: {
+        domain: string;
+        reference: string;
+        firstname: string;
+        lastname: string;
+        email: string;
+      }) {
+        const first = firstname.trim();
+        const last = lastname.trim();
+        const mail = email.trim();
+
+        if (!first || !last || !mail) {
+          return yield* Effect.fail(
+            new ParticipantApiError({
+              message: "First name, last name, and email are required",
+            }),
+          );
+        }
+
+        const marathonOption = yield* db.marathonsQueries.getMarathonByDomain({
+          domain,
+        });
+        if (Option.isNone(marathonOption)) {
+          return yield* Effect.fail(
+            new ParticipantApiError({ message: "Marathon not found" }),
+          );
+        }
+        const marathon = marathonOption.value;
+        if (marathon.mode !== "marathon") {
+          return yield* Effect.fail(
+            new ParticipantApiError({
+              message: "Marathon is not in classic marathon mode",
+            }),
+          );
+        }
+
+        const participantOption =
+          yield* db.participantsQueries.getParticipantByReference({
+            reference,
+            domain,
+          });
+        if (Option.isNone(participantOption)) {
+          return yield* Effect.fail(
+            new ParticipantApiError({ message: "Participant not found" }),
+          );
+        }
+        const participant = participantOption.value;
+        if (participant.participantMode !== "marathon") {
+          return yield* Effect.fail(
+            new ParticipantApiError({
+              message:
+                "Only classic marathon participants can be updated with this action",
+            }),
+          );
+        }
+
+        yield* db.participantsQueries.updateParticipantById({
+          id: participant.id,
+          data: {
+            firstname: first,
+            lastname: last,
+            email: mail,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      });
+
       const verifyParticipant = Effect.fn(
         "ParticipantsApiService.verifyParticipant",
       )(function* ({ id, domain }: { id: number; domain: string }) {
@@ -315,6 +508,8 @@ export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiSe
         batchDelete,
         batchVerify,
         batchMarkCompleted,
+        updateByCameraParticipantContact,
+        updateMarathonParticipantContact,
         verifyParticipant,
       } as const;
     }),

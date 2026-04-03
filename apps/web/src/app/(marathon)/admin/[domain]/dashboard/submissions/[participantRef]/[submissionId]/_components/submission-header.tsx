@@ -1,20 +1,25 @@
 "use client"
 
-import { ArrowLeft, FileText, User } from "lucide-react"
+import { useState } from "react"
+import { ArrowLeft, FileText, UserPen, User } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import type { Participant } from "@blikka/db"
 import { Badge } from "@/components/ui/badge"
 import { formatDomainPathname } from "@/lib/utils"
 import { useDomain } from "@/lib/domain-provider"
+import {
+  ParticipantContactEditDialog,
+  type ParticipantWithPhoneNumber,
+} from "./participant-contact-edit-dialog"
 
 interface SubmissionHeaderProps {
-  participant: Participant
+  participant: ParticipantWithPhoneNumber
   marathonMode?: string
 }
 
 export function SubmissionHeader({ participant, marathonMode }: SubmissionHeaderProps) {
   const domain = useDomain()
+  const [editContactOpen, setEditContactOpen] = useState(false)
 
   const getBackLink = () => {
     if (marathonMode === "by-camera") {
@@ -49,7 +54,27 @@ export function SubmissionHeader({ participant, marathonMode }: SubmissionHeader
           </div>
         </div>
       </div>
-      {marathonMode !== "by-camera" && (
+      {marathonMode === "by-camera" ? (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            onClick={() => setEditContactOpen(true)}
+          >
+            <UserPen className="h-3.5 w-3.5 mr-1.5" />
+            Edit details
+          </Button>
+          <ParticipantContactEditDialog
+            participantRef={participant.reference}
+            participant={participant}
+            isOpen={editContactOpen}
+            onOpenChange={setEditContactOpen}
+            mode="by-camera"
+          />
+        </>
+      ) : (
         <Button variant="outline" size="sm" asChild className="text-xs">
           <Link
             href={formatDomainPathname(

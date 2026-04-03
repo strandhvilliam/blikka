@@ -80,6 +80,29 @@ export const VerifyParticipantInputSchema = Schema.toStandardSchemaV1(
   }),
 );
 
+export const UpdateByCameraParticipantContactInputSchema =
+  Schema.toStandardSchemaV1(
+    Schema.Struct({
+      domain: Schema.String,
+      reference: Schema.String,
+      firstname: Schema.String,
+      lastname: Schema.String,
+      email: Schema.String,
+      phone: Schema.String,
+    }),
+  );
+
+export const UpdateMarathonParticipantContactInputSchema =
+  Schema.toStandardSchemaV1(
+    Schema.Struct({
+      domain: Schema.String,
+      reference: Schema.String,
+      firstname: Schema.String,
+      lastname: Schema.String,
+      email: Schema.String,
+    }),
+  );
+
 export const PublicParticipantSchema = Schema.Struct({
   reference: Schema.String,
   domain: Schema.String,

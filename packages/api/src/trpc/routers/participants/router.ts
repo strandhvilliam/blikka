@@ -15,6 +15,8 @@ import {
   BatchMarkCompletedInputSchema,
   BatchVerifyInputSchema,
   VerifyParticipantInputSchema,
+  UpdateByCameraParticipantContactInputSchema,
+  UpdateMarathonParticipantContactInputSchema,
 } from "./schemas";
 import { ParticipantsApiService } from "./service";
 
@@ -178,6 +180,49 @@ export const participantRouter = createTRPCRouter({
             }),
           );
         }),
+      ),
+    ),
+
+  updateByCameraParticipantContact: domainProcedure
+    .input(UpdateByCameraParticipantContactInputSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn("ParticipantRouter.updateByCameraParticipantContact")(
+          function* ({ input }) {
+            return yield* ParticipantsApiService.use((s) =>
+              s.updateByCameraParticipantContact({
+                domain: input.domain,
+                reference: input.reference,
+                firstname: input.firstname,
+                lastname: input.lastname,
+                email: input.email,
+                phone: input.phone,
+              }),
+            );
+          },
+        ),
+      ),
+    ),
+
+  updateMarathonParticipantContact: domainProcedure
+    .input(UpdateMarathonParticipantContactInputSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn("ParticipantRouter.updateMarathonParticipantContact")(
+          function* ({ input }) {
+            return yield* ParticipantsApiService.use((s) =>
+              s.updateMarathonParticipantContact({
+                domain: input.domain,
+                reference: input.reference,
+                firstname: input.firstname,
+                lastname: input.lastname,
+                email: input.email,
+              }),
+            );
+          },
+        ),
       ),
     ),
 });
