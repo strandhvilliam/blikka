@@ -18,13 +18,13 @@ interface ByCameraUploadProgressProps {
   participantReference?: string
 }
 
-const PROCESSING_TEXTS = [
-  "Validating...",
-  "Creating Contact Sheet...",
-  "Mesmerizing...",
-  "Admiring...",
-  "Making thumbnail...",
-]
+const BY_CAMERA_PROCESSING_MESSAGE_KEYS = [
+  "byCameraProcessingValidating",
+  "byCameraProcessingContactSheet",
+  "byCameraProcessingMesmerizing",
+  "byCameraProcessingAdmiring",
+  "byCameraProcessingThumbnail",
+] as const
 
 function useLoopingText(texts: string[], intervalMs = 2000) {
   const [index, setIndex] = useState(0)
@@ -46,7 +46,11 @@ export function ByCameraUploadProgress({
 }: ByCameraUploadProgressProps) {
   const t = useTranslations("FlowPage.uploadProgress")
   const finalizingT = useTranslations("FlowPage.uploadFinalizing")
-  const loopingText = useLoopingText(PROCESSING_TEXTS, 2500)
+  const processingTexts = useMemo(
+    () => BY_CAMERA_PROCESSING_MESSAGE_KEYS.map((key) => t(key)),
+    [t],
+  )
+  const loopingText = useLoopingText(processingTexts, 2500)
 
   const progress = useMemo(() => {
     const total = files.length || expectedCount
@@ -84,12 +88,12 @@ export function ByCameraUploadProgress({
           className="text-center"
         >
           <h2 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
-            {allUploadsComplete ? "Processing Photo" : "Uploading Photo"}
+            {allUploadsComplete ? t("byCameraTitleProcessing") : t("byCameraTitleUploading")}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {allUploadsComplete
-              ? "Your photo is safe in the cloud. We are now preparing it."
-              : "Please keep the app open while we upload your photo."}
+              ? t("byCameraSubtitleProcessing")
+              : t("byCameraSubtitleUploading")}
           </p>
         </motion.div>
 
@@ -138,13 +142,13 @@ export function ByCameraUploadProgress({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Step 1
+                  {t("byCameraStep1Label")}
                 </p>
-                <h3 className="text-base font-semibold text-foreground">Uploading to Cloud</h3>
+                <h3 className="text-base font-semibold text-foreground">{t("byCameraStep1Heading")}</h3>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {step1Status === "active" && "Transferring securely..."}
-                  {step1Status === "completed" && "Safe and soundly uploaded"}
-                  {step1Status === "error" && "Upload failed"}
+                  {step1Status === "active" && t("byCameraStep1StatusActive")}
+                  {step1Status === "completed" && t("byCameraStep1StatusComplete")}
+                  {step1Status === "error" && t("byCameraStep1StatusError")}
                 </p>
               </div>
             </div>
@@ -194,9 +198,9 @@ export function ByCameraUploadProgress({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Step 2
+                  {t("byCameraStep2Label")}
                 </p>
-                <h3 className="text-base font-semibold text-foreground">Processing in Backend</h3>
+                <h3 className="text-base font-semibold text-foreground">{t("byCameraStep2Heading")}</h3>
                 <div className="relative mt-0.5 h-4 overflow-hidden text-xs text-muted-foreground">
                   <AnimatePresence mode="popLayout">
                     {step2Status === "pending" && (
@@ -207,7 +211,7 @@ export function ByCameraUploadProgress({
                         exit={{ opacity: 0 }}
                         className="absolute inset-0"
                       >
-                        Waiting for upload...
+                        {t("byCameraStep2StatusPending")}
                       </motion.span>
                     )}
                     {step2Status === "active" && (
@@ -229,7 +233,7 @@ export function ByCameraUploadProgress({
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 font-medium text-emerald-600"
                       >
-                        Ready!
+                        {t("byCameraStep2StatusReady")}
                       </motion.span>
                     )}
                     {step2Status === "error" && (
@@ -240,7 +244,7 @@ export function ByCameraUploadProgress({
                         exit={{ opacity: 0 }}
                         className="absolute inset-0 text-amber-700"
                       >
-                        Taking longer than expected
+                        {t("byCameraStep2StatusSlow")}
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -253,7 +257,7 @@ export function ByCameraUploadProgress({
                 <p className="text-xs text-amber-900">{finalizingT("doNotUploadAgain")}</p>
                 {participantReference && (
                   <p className="mt-2 rounded-xl bg-amber-100/50 p-2.5 font-mono text-sm font-bold tracking-wider text-amber-950">
-                    Ref: {participantReference}
+                    {t("byCameraParticipantRef", { ref: participantReference })}
                   </p>
                 )}
               </div>

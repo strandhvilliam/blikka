@@ -18,7 +18,7 @@ export function ClassSelectionStep({
   const t = useTranslations("FlowPage")
 
   return (
-    <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col justify-center px-6">
+    <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col justify-center px-4">
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">

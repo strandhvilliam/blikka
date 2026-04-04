@@ -96,8 +96,8 @@ export function LiveClientPage() {
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
       <PoweredByBlikka />
       <div className="z-20 flex flex-col flex-1 h-full">
-        <main className="flex-1 w-full flex flex-col justify-end pb-6">
-          <div className="px-6 max-w-md mx-auto w-full">
+        <main className="flex-1 w-full flex flex-col justify-center pb-4 sm:pb-6">
+          <div className="px-3 sm:px-6 max-w-md mx-auto w-full">
             <LogoAndEventInfo
               marathon={marathon}
               mode={marathon.mode as "marathon" | "by-camera"}
@@ -108,7 +108,7 @@ export function LiveClientPage() {
               }
             />
 
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
               <LanguageSelection locale={locale} setLocale={setLocale} isPending={isPending} />
 
               <RulesAndInformation description={marathon.description} />
@@ -161,7 +161,7 @@ function LogoAndEventInfo({
         : t("datesToBeAnnounced")
 
   return (
-    <div className="flex flex-col items-center pb-12">
+    <div className="flex flex-col items-center pb-8">
       {marathon.logoUrl ? (
         <div className="w-24 h-24 rounded-full flex items-center justify-center mb-3 overflow-hidden shadow border">
           <img src={marathon.logoUrl} alt="Logo" width={96} height={96} />
@@ -190,14 +190,14 @@ function LanguageSelection({
 }) {
   const t = useTranslations("LivePage")
   return (
-    <section className="mb-5">
+    <section className="mb-3 sm:mb-5">
       <p
         id="live-language-label"
-        className="text-center text-sm font-medium text-muted-foreground mb-3"
+        className="text-center text-sm font-medium text-muted-foreground mb-2 sm:mb-3"
       >
         {t("selectLanguage")}
       </p>
-      <div className="flex gap-2.5 sm:gap-3" role="group" aria-labelledby="live-language-label">
+      <div className="flex gap-2 sm:gap-3" role="group" aria-labelledby="live-language-label">
         <Button
           type="button"
           variant="outline"
@@ -240,7 +240,7 @@ function RulesAndInformation({ description }: { description: string | null }) {
   if (!description) return null
 
   return (
-    <section className="mb-5">
+    <section className="mb-3 sm:mb-5">
       <Dialog>
         <DialogTrigger asChild>
           <Button
@@ -352,7 +352,7 @@ function TermsCheckbox({
 }) {
   const t = useTranslations("LivePage")
   return (
-    <section className="mb-6 space-y-4">
+    <section className="mb-4 sm:mb-6 space-y-4">
       <label htmlFor="platform-terms" className="text-sm font-medium">
         <div className="flex items-start gap-3 px-3 py-3 rounded-xl border border-input bg-muted/30">
           <Checkbox
@@ -392,8 +392,8 @@ function SponsorsSection({ sponsor }: { sponsor: { id: number; key: string } | u
   if (!sponsor) return null
 
   return (
-    <div className="mt-8 w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center">
-      <p className="text-center text-sm font-medium text-muted-foreground mb-4">{t("sponsors")}</p>
+    <div className="mt-5 sm:mt-8 w-full max-w-4xl mx-auto px-3 sm:px-6 flex flex-col items-center">
+      <p className="text-center text-sm font-medium text-muted-foreground mb-3 sm:mb-4">{t("sponsors")}</p>
       <div className="w-full flex justify-center">
         <img
           src={`https://s3.eu-north-1.amazonaws.com/${BUCKET_NAME}/${sponsor.key}`}

@@ -293,7 +293,7 @@ export function UploadSubmissionsStep({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="mx-auto max-w-md px-6"
+            className="mx-auto max-w-md px-4"
           >
             <UploadProgress
               files={uploadFiles}
@@ -311,7 +311,7 @@ export function UploadSubmissionsStep({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className={cn(
-              "mx-auto max-w-md px-6",
+              "mx-auto max-w-md px-4",
               canSubmit &&
                 !isUploading &&
                 "pb-[calc(7rem+env(safe-area-inset-bottom,0px))]",
