@@ -170,6 +170,7 @@ export function FilterBar({
       </div>
 
       {/* Filters */}
+      <p className="mb-1.5 text-xs text-muted-foreground">{t("filterBar.ratingFilterHint")}</p>
       <div className="scrollbar-hide flex items-center gap-1.5 overflow-x-auto">
         {filterOptions.map((option) => renderFilterOption(option))}
       </div>

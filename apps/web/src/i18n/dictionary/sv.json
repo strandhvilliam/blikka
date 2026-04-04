@@ -362,7 +362,8 @@
     "filterBar": {
       "all": "Alla",
       "changeLanguage": "Byt språk",
-      "photoProgress": "Foto {current} av {total}"
+      "photoProgress": "Foto {current} av {total}",
+      "ratingFilterHint": "Filtrera foton efter stjärnbetyg"
     },
     "footer": {
       "navigationHint": "Svep eller använd pilarna för att bläddra bland foton",

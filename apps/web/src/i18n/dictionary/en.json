@@ -362,7 +362,8 @@
     "filterBar": {
       "all": "All",
       "changeLanguage": "Change language",
-      "photoProgress": "Photo {current} of {total}"
+      "photoProgress": "Photo {current} of {total}",
+      "ratingFilterHint": "Filter photos by the star rating"
     },
     "footer": {
       "navigationHint": "Swipe or use the arrows to browse photos",
