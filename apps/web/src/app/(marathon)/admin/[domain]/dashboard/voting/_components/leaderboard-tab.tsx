@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Presentation, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, Presentation, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useTRPC } from "@/lib/trpc/client";
 import {
   formatDateTime,
@@ -78,6 +79,9 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
     setLeaderboardRoundId,
   } = useVotingUiState();
   const [slideshowOpen, setSlideshowOpen] = useState(false);
+  const [fullscreenEntry, setFullscreenEntry] = useState<LeaderboardEntry | null>(
+    null,
+  );
 
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({ domain }),
@@ -200,6 +204,14 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
   const roundSelectValue =
     tableRoundId !== undefined ? String(tableRoundId) : "";
 
+  const fullscreenImageUrl =
+    fullscreenEntry != null
+      ? getSubmissionImageUrl(
+          fullscreenEntry.submissionThumbnailKey,
+          fullscreenEntry.submissionKey,
+        )
+      : null;
+
   return (
     <div className="space-y-6">
       {(summary.currentRound || topCardEntries.length > 0) ? (
@@ -264,6 +276,35 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
         />
       )}
 
+      <Dialog
+        open={fullscreenEntry !== null}
+        onOpenChange={(open) => {
+          if (!open) setFullscreenEntry(null);
+        }}
+      >
+        <DialogContent
+          size="full"
+          className="flex max-h-[100dvh] items-center justify-center gap-0 border-0 bg-zinc-950 p-2 shadow-none sm:p-3 [&_[data-slot=dialog-close]]:text-white [&_[data-slot=dialog-close]]:hover:bg-white/10 [&_[data-slot=dialog-close]]:hover:text-white"
+        >
+          {fullscreenEntry ? (
+            <>
+              <DialogTitle className="sr-only">
+                {getDisplayName(fullscreenEntry)} — submission photo
+              </DialogTitle>
+              {fullscreenImageUrl ? (
+                <img
+                  src={fullscreenImageUrl}
+                  alt={`Submission by ${getDisplayName(fullscreenEntry)}`}
+                  className="max-h-[calc(100dvh-1rem)] max-w-full object-contain"
+                />
+              ) : (
+                <p className="text-sm text-zinc-400">No photo available</p>
+              )}
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
       {rounds.length > 0 ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div className="space-y-1.5">
@@ -326,6 +367,9 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
                 <TableHead className="h-9 bg-muted/50 text-right text-xs font-semibold text-foreground">
                   Votes
                 </TableHead>
+                <TableHead className="h-9 w-[1%] bg-muted/50 text-right text-xs font-semibold text-foreground whitespace-nowrap">
+                  <span className="sr-only">Fullscreen photo</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
 
@@ -386,13 +430,28 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
                           </span>
                         </div>
                       </TableCell>
+                      <TableCell
+                        className="py-2 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1.5 px-2.5 text-xs"
+                          onClick={() => setFullscreenEntry(entry)}
+                        >
+                          <Maximize2 className="size-3.5 shrink-0" />
+                          Fullscreen
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={6}
                     className="h-24 text-center text-muted-foreground"
                   >
                     No submissions found for this topic.
