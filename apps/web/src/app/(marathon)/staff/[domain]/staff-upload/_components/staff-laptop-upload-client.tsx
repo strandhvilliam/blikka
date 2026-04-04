@@ -104,7 +104,7 @@ type ByCameraSubmissionWindowBlockedState = Exclude<
 >
 
 interface StaffByCameraSubmissionWindowGateProps {
-  state: ByCameraSubmissionWindowBlockedState
+  state: ByCameraSubmissionWindowBlockedState | null
   topicName: string | null
   scheduledStart: string | null
   scheduledEnd: string | null
@@ -328,14 +328,7 @@ export function StaffLaptopUploadClient({
       }
       void setStep(formValues.reference.trim() ? "details" : "reference")
     }
-  }, [
-    formValues.phone,
-    formValues.reference,
-    marathonMode,
-    participantSummary,
-    setStep,
-    step,
-  ])
+  }, [formValues.phone, formValues.reference, marathonMode, participantSummary, setStep, step])
 
   useStaffPhotoValidation({
     step,
@@ -626,8 +619,7 @@ export function StaffLaptopUploadClient({
       )
 
       const continuingAfterPriorTopicFinalize =
-        outcome.kind === "blocked" &&
-        resolution.activeTopicUploadState === "eligible"
+        outcome.kind === "blocked" && resolution.activeTopicUploadState === "eligible"
 
       patchParticipant({
         existingParticipant: participant as StaffParticipant,
@@ -766,8 +758,7 @@ export function StaffLaptopUploadClient({
           firstName: existingParticipant.firstname,
           lastName: existingParticipant.lastname,
           email: existingParticipant.email ?? "",
-          phone:
-            marathonMode === "by-camera" ? (existingParticipant.phoneNumber ?? "").trim() : "",
+          phone: marathonMode === "by-camera" ? (existingParticipant.phoneNumber ?? "").trim() : "",
           competitionClassId: String(existingParticipant.competitionClassId),
           deviceGroupId: String(existingParticipant.deviceGroupId),
         }
@@ -797,8 +788,7 @@ export function StaffLaptopUploadClient({
         firstName: existingParticipant.firstname,
         lastName: existingParticipant.lastname,
         email: existingParticipant.email ?? "",
-        phone:
-          marathonMode === "by-camera" ? (existingParticipant.phoneNumber ?? "").trim() : "",
+        phone: marathonMode === "by-camera" ? (existingParticipant.phoneNumber ?? "").trim() : "",
         competitionClassId: String(existingParticipant.competitionClassId),
         deviceGroupId: String(existingParticipant.deviceGroupId),
       },
@@ -990,8 +980,8 @@ export function StaffLaptopUploadClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Replace photo for current topic?</AlertDialogTitle>
             <AlertDialogDescription>
-              This phone number already has a photo for the active topic. Continue to replace it with
-              a new upload.
+              This phone number already has a photo for the active topic. Continue to replace it
+              with a new upload.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
