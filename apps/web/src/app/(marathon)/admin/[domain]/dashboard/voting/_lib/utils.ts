@@ -43,6 +43,12 @@ export function getSubmissionImageUrl(
   );
 }
 
+/** Original submission object in the submissions bucket (not the thumbnail). */
+export function getSubmissionFullImageUrl(submissionKey?: string | null) {
+  const submissionsBucket = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME;
+  return buildS3Url(submissionsBucket, submissionKey);
+}
+
 export const VOTING_PAGE_SIZE = 50;
 
 export const tabTriggerClassName =

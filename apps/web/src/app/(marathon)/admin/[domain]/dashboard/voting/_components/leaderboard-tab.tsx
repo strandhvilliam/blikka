@@ -19,7 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useTRPC } from "@/lib/trpc/client";
 import {
   formatDateTime,
@@ -28,6 +27,7 @@ import {
 } from "../_lib/utils";
 import { useDomain } from "@/lib/domain-provider";
 import { useVotingUiState } from "../_hooks/use-voting-ui-state";
+import { SubmissionFullscreenDialog } from "./submission-fullscreen-dialog";
 import { WinnersSlideshow } from "./winners-slideshow";
 
 interface LeaderboardEntry {
@@ -204,14 +204,6 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
   const roundSelectValue =
     tableRoundId !== undefined ? String(tableRoundId) : "";
 
-  const fullscreenImageUrl =
-    fullscreenEntry != null
-      ? getSubmissionImageUrl(
-          fullscreenEntry.submissionThumbnailKey,
-          fullscreenEntry.submissionKey,
-        )
-      : null;
-
   return (
     <div className="space-y-6">
       {(summary.currentRound || topCardEntries.length > 0) ? (
@@ -276,34 +268,16 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
         />
       )}
 
-      <Dialog
+      <SubmissionFullscreenDialog
         open={fullscreenEntry !== null}
         onOpenChange={(open) => {
           if (!open) setFullscreenEntry(null);
         }}
-      >
-        <DialogContent
-          size="full"
-          className="flex max-h-[100dvh] items-center justify-center gap-0 border-0 bg-zinc-950 p-2 shadow-none sm:p-3 [&_[data-slot=dialog-close]]:text-white [&_[data-slot=dialog-close]]:hover:bg-white/10 [&_[data-slot=dialog-close]]:hover:text-white"
-        >
-          {fullscreenEntry ? (
-            <>
-              <DialogTitle className="sr-only">
-                {getDisplayName(fullscreenEntry)} — submission photo
-              </DialogTitle>
-              {fullscreenImageUrl ? (
-                <img
-                  src={fullscreenImageUrl}
-                  alt={`Submission by ${getDisplayName(fullscreenEntry)}`}
-                  className="max-h-[calc(100dvh-1rem)] max-w-full object-contain"
-                />
-              ) : (
-                <p className="text-sm text-zinc-400">No photo available</p>
-              )}
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+        participantDisplayName={
+          fullscreenEntry ? getDisplayName(fullscreenEntry) : ""
+        }
+        submissionKey={fullscreenEntry?.submissionKey}
+      />
 
       {rounds.length > 0 ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
