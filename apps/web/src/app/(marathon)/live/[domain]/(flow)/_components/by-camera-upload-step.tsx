@@ -259,7 +259,6 @@ export function ByCameraUploadStep({
         onOpenChange={setShowConfirmationDialog}
         onConfirm={handleConfirmedUpload}
         isInitializing={isInitializing}
-        participantRef={uploadFlowState.participantRef || undefined}
         numberOfPhotos={BY_CAMERA_MAX_PHOTOS}
       />
 
@@ -270,7 +269,7 @@ export function ByCameraUploadStep({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="mx-auto max-w-md px-6"
+            className="mx-auto max-w-md px-4"
           >
             <UploadProgress
               mode="by-camera"
@@ -288,7 +287,7 @@ export function ByCameraUploadStep({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`mx-auto max-w-md px-6 ${canSubmit ? "pb-28" : ""}`}
+            className={`mx-auto max-w-md px-4 ${canSubmit ? "pb-28" : ""}`}
           >
             {/* Header */}
             <div className="mb-8 text-center">

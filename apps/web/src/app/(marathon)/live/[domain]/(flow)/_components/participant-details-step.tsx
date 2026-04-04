@@ -223,7 +223,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
     }`
 
   return (
-    <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col justify-center px-6">
+    <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col justify-center px-4">
       <AlertDialog
         open={replaceDialogOpen}
         onOpenChange={(open) => {
