@@ -17,7 +17,7 @@ export function JuryLayoutContent({ children }: JuryLayoutContentProps) {
   const contentComponent = childrenArray[1]
 
   return (
-    <div className="flex h-full gap-5 mx-auto max-w-[1600px] px-6 py-4">
+    <div className="flex h-full gap-5 mx-auto w-full max-w-[1600px] px-6 py-4">
       <div className="w-80 shrink-0 flex flex-col rounded-xl border border-border bg-white overflow-hidden">
         <div className="border-b border-border px-4 py-4">
           <div className="flex items-center justify-between">
