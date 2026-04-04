@@ -112,20 +112,19 @@ export function ByCameraUploadStep({
     }
   }, [clearFiles])
 
+  const shouldNavigate =
+    finalizationState === FINALIZATION_STATE.READY ||
+    finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED
+
   useEffect(() => {
-    if (
-      finalizationState !== FINALIZATION_STATE.READY ||
-      !minimumProgressDisplayReached ||
-      hasRedirectedRef.current ||
-      !domain
-    ) {
+    if (!shouldNavigate || !minimumProgressDisplayReached || hasRedirectedRef.current || !domain) {
       return
     }
 
     hasRedirectedRef.current = true
     const serializedParams = flowStateClientParamSerializer(uploadFlowState)
     router.push(formatDomainPathname(`/live/confirmation${serializedParams}`, domain))
-  }, [domain, finalizationState, minimumProgressDisplayReached, router, uploadFlowState])
+  }, [domain, shouldNavigate, minimumProgressDisplayReached, router, uploadFlowState])
 
   const handleResetAndGoBack = () => {
     const confirmed = window.confirm(t("confirmGoBack"))
