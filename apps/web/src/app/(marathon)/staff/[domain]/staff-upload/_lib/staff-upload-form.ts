@@ -18,6 +18,7 @@ export const STAFF_UPLOAD_DEFAULT_FORM_VALUES: ParticipantFormValues = {
 export type StaffUploadFormErrors = Partial<Record<keyof ParticipantFormValues, string>>
 
 interface ValidateFilesContext {
+  marathonMode?: string
   expectedPhotoCount: number
   selectedPhotosCount: number
   validationResults: ValidationResult[]
@@ -25,7 +26,9 @@ interface ValidateFilesContext {
 }
 
 export function validateStaffUploadForm(marathonMode: string, values: ParticipantFormValues) {
-  const result = createParticipantFormSchema(marathonMode).safeParse(values)
+  const result = createParticipantFormSchema(marathonMode, {
+    staffByCameraManual: marathonMode === "by-camera",
+  }).safeParse(values)
 
   if (result.success) return null
 
@@ -46,9 +49,18 @@ function pluralizePhotos(count: number) {
 }
 
 export function validateStaffUploadFiles(context: ValidateFilesContext) {
-  const { expectedPhotoCount, selectedPhotosCount, validationResults, validationRunError } = context
+  const {
+    marathonMode,
+    expectedPhotoCount,
+    selectedPhotosCount,
+    validationResults,
+    validationRunError,
+  } = context
 
   if (expectedPhotoCount === 0) {
+    if (marathonMode === "by-camera") {
+      return "No active topic is available for uploads. Activate a topic in the dashboard first."
+    }
     return "Select a competition class before adding images"
   }
 

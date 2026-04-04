@@ -75,6 +75,23 @@ export const InitializeByCameraUploadSchema = Schema.toStandardSchemaV1(
   }),
 );
 
+/** Staff laptop flow: participant identity is the entered reference, not phone lookup. */
+export const InitializeStaffByCameraUploadSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    reference: Schema.String,
+    firstname: Schema.String,
+    lastname: Schema.String,
+    email: Schema.String,
+    deviceGroupId: Schema.Number,
+    phoneNumber: Schema.String,
+    uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
+    replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
+    /** Staff laptop: allow new upload after participant status completed or verified. */
+    replaceFinalizedParticipantUpload: Schema.Boolean.pipe(Schema.optional),
+  }),
+);
+
 export const ResolveByCameraParticipantByPhoneSchema =
   Schema.toStandardSchemaV1(
     Schema.Struct({

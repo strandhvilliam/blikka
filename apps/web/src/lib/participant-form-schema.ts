@@ -1,14 +1,8 @@
 import { z } from "zod";
 import { isPossiblePhoneNumber } from "react-phone-number-input";
 
-const referenceSchema = z
-  .string()
-  .trim()
-  .regex(/^\d{1,4}$/, "Participant reference must be 1-4 digits")
-  .transform((value) => value.padStart(4, "0"));
-
 const baseParticipantSchema = z.object({
-  reference: referenceSchema,
+  reference: z.string(),
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: z.string().trim().min(1, "Last name is required"),
   email: z.string().trim().email("Enter a valid email address"),
@@ -17,8 +11,41 @@ const baseParticipantSchema = z.object({
   deviceGroupId: z.string().min(1, "Select a device group"),
 });
 
-export function createParticipantFormSchema(marathonMode: string) {
+export type ParticipantFormSchemaOptions = {
+  /** Staff laptop by-camera: reference may be empty until phone resolve (then server assigns random ref for new participants). */
+  staffByCameraManual?: boolean
+}
+
+export function createParticipantFormSchema(
+  marathonMode: string,
+  options?: ParticipantFormSchemaOptions,
+) {
   return baseParticipantSchema.superRefine((data, ctx) => {
+    const ref = data.reference.trim()
+    if (marathonMode === "marathon") {
+      if (!/^\d{1,4}$/.test(ref)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Participant reference must be 1-4 digits",
+          path: ["reference"],
+        })
+      }
+    } else if (marathonMode === "by-camera") {
+      if (ref.length === 0 && !options?.staffByCameraManual) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Participant reference is required",
+          path: ["reference"],
+        })
+      } else if (ref.length > 0 && !/^\d{1,4}$/.test(ref)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Participant reference must be 1-4 digits",
+          path: ["reference"],
+        })
+      }
+    }
+
     if (marathonMode === "by-camera") {
       if (!data.phone.trim()) {
         ctx.addIssue({

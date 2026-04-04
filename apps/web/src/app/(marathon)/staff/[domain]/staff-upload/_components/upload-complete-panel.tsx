@@ -1,13 +1,22 @@
 "use client"
 
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { CheckCircle2, RotateCcw } from "lucide-react"
 import { PrimaryButton } from "@/components/ui/primary-button"
+import { useDomain } from "@/lib/domain-provider"
+import { useTRPC } from "@/lib/trpc/client"
+import type { UploadMarathonMode } from "@/lib/types"
 import { StaffParticipantCard } from "./staff-participant-card"
 import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary"
 import { useStaffUploadStep } from "../_hooks/use-staff-upload-step"
 import { useStaffUploadStore } from "../_lib/staff-upload-store"
 
 export function UploadCompletePanel() {
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
+  const marathonMode = marathon.mode as UploadMarathonMode
+
   const [, setStep] = useStaffUploadStep()
   const resetAllState = useStaffUploadStore((state) => state.resetAllState)
   const participantSummary = useStaffUploadParticipantSummary()
@@ -36,7 +45,7 @@ export function UploadCompletePanel() {
           className="mt-8 rounded-full bg-emerald-700 px-8 py-4 text-base hover:bg-emerald-800"
           onClick={() => {
             resetAllState()
-            void setStep("reference")
+            void setStep(marathonMode === "by-camera" ? "phone" : "reference")
           }}
         >
           <RotateCcw className="mr-2 h-4 w-4" />

@@ -946,6 +946,256 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         },
       )
 
+      const initializeStaffByCameraUpload = Effect.fn(
+        "UploadFlowApiService.initializeStaffByCameraUpload",
+      )(function* ({
+        domain,
+        reference,
+        firstname,
+        lastname,
+        deviceGroupId,
+        email,
+        phoneNumber,
+        uploadContentTypes,
+        replaceExistingActiveTopicUpload,
+        replaceFinalizedParticipantUpload,
+      }: {
+        domain: string
+        reference: string
+        firstname: string
+        lastname: string
+        deviceGroupId: number
+        email: string
+        phoneNumber: string
+        uploadContentTypes?: readonly string[] | undefined
+        replaceExistingActiveTopicUpload?: boolean | undefined
+        replaceFinalizedParticipantUpload?: boolean | undefined
+      }) {
+        const executeEffect = Effect.gen(function* () {
+          const allowReplaceFinalized = replaceFinalizedParticipantUpload === true
+          const marathon = yield* getMarathonByDomainOrFail(domain)
+
+          if (marathon.mode !== "by-camera") {
+            return yield* Effect.fail(
+              new UploadFlowApiError({
+                message: `[${domain}] Staff by-camera upload is only available in by-camera mode`,
+              }),
+            )
+          }
+
+          const activeTopic = yield* getActiveByCameraTopicOrFail({ domain, marathon })
+
+          yield* ensureMarathonIsOpenForUploads({
+            domain,
+            marathon,
+            activeTopic,
+          })
+
+          yield* ensureDeviceGroupExists({
+            domain,
+            marathon,
+            deviceGroupId,
+          })
+
+          const competitionClassId = yield* getByCameraCompetitionClassIdOrFail({
+            domain,
+            marathon,
+          })
+
+          const { encrypted, hash } = yield* encryptPhoneNumber(phoneNumber)
+
+          if (!encrypted || !hash) {
+            return yield* Effect.fail(
+              new UploadFlowApiError({
+                message: `[${domain}] Phone number is required`,
+              }),
+            )
+          }
+
+          if (
+            uploadContentTypes !== undefined &&
+              uploadContentTypes.length !== 1
+          ) {
+            const refLabel = reference.trim() === "" ? "new" : reference
+            return yield* Effect.fail(
+              new UploadFlowApiError({
+                message: `[${domain}|${refLabel}] uploadContentTypes must contain exactly one entry for by-camera staff upload`,
+              }),
+            )
+          }
+
+          const resolvedContentType =
+            uploadContentTypes === undefined || uploadContentTypes.length === 0
+              ? "image/jpeg"
+              : normalizeUploadContentType(uploadContentTypes[0])
+
+          const existingParticipant = yield* db.participantsQueries.getParticipantByReference({
+            reference,
+            domain,
+          })
+
+          let participant: Participant
+          let resolvedReference: string
+
+          if (Option.isSome(existingParticipant)) {
+            const row = existingParticipant.value
+
+            if (row.status === "completed" || row.status === "verified") {
+              if (!allowReplaceFinalized) {
+                return yield* Effect.fail(
+                  new UploadFlowApiError({
+                    message: `[${domain}|${reference}] Participant already completed upload flow`,
+                  }),
+                )
+              }
+            }
+
+            if (row.participantMode !== "by-camera") {
+              return yield* Effect.fail(
+                new UploadFlowApiError({
+                  message: `[${domain}|${reference}] Participant is not in by-camera mode`,
+                }),
+              )
+            }
+
+            const otherWithPhone = yield* db.participantsQueries.getByPhoneHashForByCamera({
+              marathonId: marathon.id,
+              phoneHash: hash,
+            })
+
+            if (Option.isSome(otherWithPhone) && otherWithPhone.value.id !== row.id) {
+              return yield* Effect.fail(
+                new UploadFlowApiError({
+                  message: "Another participant already uses this phone number",
+                }),
+              )
+            }
+
+            const activeTopicSubmission = yield* db.submissionsQueries
+              .getSubmissionByParticipantIdAndTopicId({
+                participantId: row.id,
+                topicId: activeTopic.id,
+              })
+              .pipe(
+                Effect.map((submission) =>
+                  Option.match(submission, {
+                    onSome: (value) => value,
+                    onNone: () => null,
+                  }),
+                ),
+              )
+
+            const alreadyUploaded = yield* hasSuccessfulActiveTopicUpload({
+              domain,
+              reference: row.reference,
+              activeTopic,
+              submissionStatus: activeTopicSubmission?.status ?? null,
+            })
+
+            if (
+              alreadyUploaded &&
+              !replaceExistingActiveTopicUpload &&
+              !allowReplaceFinalized
+            ) {
+              return yield* Effect.fail(
+                new UploadFlowApiError({
+                  message: ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE,
+                }),
+              )
+            }
+
+            participant = yield* db.participantsQueries.updateParticipantById({
+              id: row.id,
+              data: {
+                competitionClassId,
+                deviceGroupId,
+                firstname,
+                lastname,
+                email,
+                participantMode: "by-camera",
+                status: "initialized",
+                phoneHash: hash,
+                phoneEncrypted: encrypted,
+              },
+            })
+            resolvedReference = row.reference
+
+            if (activeTopicSubmission) {
+              yield* db.submissionsQueries.deleteSubmissionById({
+                id: activeTopicSubmission.id,
+              })
+            }
+          } else {
+            const otherWithPhone = yield* db.participantsQueries.getByPhoneHashForByCamera({
+              marathonId: marathon.id,
+              phoneHash: hash,
+            })
+
+            if (Option.isSome(otherWithPhone)) {
+              return yield* Effect.fail(
+                new UploadFlowApiError({
+                  message: "Another participant already uses this phone number",
+                }),
+              )
+            }
+
+            const created = yield* createByCameraParticipantWithGeneratedReference({
+              domain,
+              marathonId: marathon.id,
+              competitionClassId,
+              deviceGroupId,
+              firstname,
+              lastname,
+              email,
+              phoneHash: hash,
+              phoneEncrypted: encrypted,
+            })
+            participant = created.participant
+            resolvedReference = created.reference
+          }
+
+          const submissionKey = yield* s3.generateSubmissionKey(
+            domain,
+            resolvedReference,
+            activeTopic.orderIndex,
+          )
+
+          yield* db.submissionsQueries.createSubmission({
+            data: {
+              participantId: participant.id,
+              key: submissionKey,
+              marathonId: marathon.id,
+              topicId: activeTopic.id,
+              status: "initialized",
+            },
+          })
+
+          yield* kv.initializeState(domain, resolvedReference, [submissionKey])
+
+          const presignedUrl = yield* s3.getPresignedUrl(bucketName, submissionKey, "PUT", {
+            contentType: resolvedContentType,
+          })
+
+          return {
+            participantId: participant.id,
+            reference: resolvedReference,
+            uploads: [
+              {
+                key: submissionKey,
+                url: presignedUrl,
+                contentType: resolvedContentType,
+              },
+            ],
+          }
+        })
+
+        return yield* realtimeEvents.withEventResult(executeEffect, {
+          eventKey: "upload-flow-initialized",
+          environment,
+          domain,
+        })
+      })
+
       const refreshPresignedUploads = Effect.fn("UploadFlowApiService.refreshPresignedUploads")(
         function* ({ domain, reference, orderIndexes, uploadContentTypes }) {
           if (orderIndexes.length === 0) {
@@ -1102,6 +1352,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         initializeUploadFlow,
         prepareUploadFlow,
         initializeByCameraUpload,
+        initializeStaffByCameraUpload,
         resolveByCameraParticipantByPhone,
         getPublicMarathon,
         checkParticipantExists,

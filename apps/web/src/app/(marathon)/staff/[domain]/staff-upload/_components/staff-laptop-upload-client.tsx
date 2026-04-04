@@ -1,16 +1,17 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, UploadIcon } from "lucide-react"
-import Link from "next/link"
+import { ArrowLeft, ArrowRight, Loader2, UploadIcon } from "lucide-react"
+import dynamic from "next/dynamic"
 import { toast } from "sonner"
 import { motion } from "motion/react"
 
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
-import { cn, formatDomainPathname } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { getExpectedPhotoCount } from "@/lib/upload-utils"
+import type { UploadMarathonMode } from "@/lib/types"
 import {
   resolveStaffLaptopUploadLookupOutcome,
   type ParticipantExistenceStatus,
@@ -35,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
 import { normalizeParticipantReference } from "../../_lib/staff-utils"
 import type { StaffParticipant } from "../../_lib/staff-types"
 import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary"
@@ -44,13 +46,27 @@ import { useStaffUploadStatusSync } from "../_hooks/use-staff-upload-status-sync
 import { validateStaffUploadFiles, validateStaffUploadForm } from "../_lib/staff-upload-form"
 import { useStaffUploadStore, selectRequiresOverwriteWarning } from "../_lib/staff-upload-store"
 import { ParticipantDetailsStep } from "./participant-details-step"
+import { PhoneLookupStep } from "./phone-lookup-step"
 import { ReferenceStep } from "./reference-step"
-import { StepIndicator } from "./step-indicator"
 import { UploadCompletePanel } from "./upload-complete-panel"
 import { UploadProgressPanel } from "./upload-progress-panel"
 import { UploadStep } from "./upload-step"
 
 const POLLING_INTERVAL_MS = 3000
+
+const StepIndicator = dynamic(
+  () => import("./step-indicator").then((m) => ({ default: m.StepIndicator })),
+  {
+    ssr: false,
+    loading: () => (
+      <nav className="flex flex-col items-center gap-1" aria-label="Progress">
+        <div className="flex h-7 w-full min-w-[200px] max-w-[280px] items-center justify-center opacity-50">
+          <div className="h-1.5 w-full max-w-[240px] rounded-full bg-muted" />
+        </div>
+      </nav>
+    ),
+  },
+)
 
 interface StaffLaptopUploadClientProps {
   staffEmail?: string | null
@@ -78,6 +94,64 @@ function getBlockedMessage(status: ParticipantExistenceStatus) {
   return "This participant has already completed the upload flow and cannot be uploaded again from the staff laptop flow."
 }
 
+function formatTopicDateTime(iso: string) {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+}
+
+type ByCameraSubmissionWindowBlockedState = Exclude<
+  ReturnType<typeof getByCameraSubmissionWindowState>,
+  "open"
+>
+
+interface StaffByCameraSubmissionWindowGateProps {
+  state: ByCameraSubmissionWindowBlockedState
+  topicName: string | null
+  scheduledStart: string | null
+  scheduledEnd: string | null
+}
+
+function StaffByCameraSubmissionWindowGate({
+  state,
+  topicName,
+  scheduledStart,
+  scheduledEnd,
+}: StaffByCameraSubmissionWindowGateProps) {
+  let body: string
+  if (state === "no-active-topic") {
+    body =
+      "There is no active topic for this event. Staff cannot upload until a topic is activated in the dashboard."
+  } else if (state === "not-opened") {
+    body =
+      "The submission window for this topic has not been opened yet. Open submissions from the dashboard when you are ready."
+  } else if (state === "scheduled" && scheduledStart) {
+    body = `Submissions open ${formatTopicDateTime(scheduledStart)}.`
+  } else if (state === "scheduled") {
+    body = "Submissions are scheduled to open later."
+  } else {
+    body =
+      scheduledEnd != null
+        ? `Submissions closed ${formatTopicDateTime(scheduledEnd)}.`
+        : "Submissions are closed for this topic."
+  }
+
+  return (
+    <div className="flex flex-col items-center py-16 text-center">
+      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+        Submission window
+      </p>
+      <h2 className="mt-3 font-gothic text-4xl font-medium leading-none tracking-tight text-foreground">
+        Uploads unavailable
+      </h2>
+      {topicName ? (
+        <p className="mt-2 text-sm font-medium text-foreground/80">{topicName}</p>
+      ) : null}
+      <div className="mt-8 w-full max-w-md rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
+        {body}
+      </div>
+    </div>
+  )
+}
+
 export function StaffLaptopUploadClient({
   staffEmail,
   staffImage,
@@ -89,11 +163,16 @@ export function StaffLaptopUploadClient({
 
   const [step, setStep] = useStaffUploadStep()
 
-  // -- participant state ----------------------------------------------------
   const formValues = useStaffUploadStore((s) => s.formValues)
   const existingParticipant = useStaffUploadStore((s) => s.existingParticipant)
   const showOverwriteDialog = useStaffUploadStore((s) => s.showOverwriteDialog)
   const requiresOverwriteWarning = useStaffUploadStore(selectRequiresOverwriteWarning)
+  const byCameraReplaceExistingTopicUpload = useStaffUploadStore(
+    (s) => s.byCameraReplaceExistingTopicUpload,
+  )
+  const byCameraReplaceFinalizedParticipantUpload = useStaffUploadStore(
+    (s) => s.byCameraReplaceFinalizedParticipantUpload,
+  )
 
   const resetForm = useStaffUploadStore((s) => s.resetForm)
   const setFormField = useStaffUploadStore((s) => s.setFormField)
@@ -101,7 +180,6 @@ export function StaffLaptopUploadClient({
   const clearFormErrors = useStaffUploadStore((s) => s.clearFormErrors)
   const patchParticipant = useStaffUploadStore((s) => s.patchParticipant)
 
-  // -- photo state ----------------------------------------------------------
   const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos)
   const validationResults = useStaffUploadStore((s) => s.validationResults)
   const validationRunError = useStaffUploadStore((s) => s.validationRunError)
@@ -109,7 +187,6 @@ export function StaffLaptopUploadClient({
   const resetPhotoSelection = useStaffUploadStore((s) => s.resetPhotoSelection)
   const patchPhotos = useStaffUploadStore((s) => s.patchPhotos)
 
-  // -- upload state ---------------------------------------------------------
   const uploadFiles = useStaffUploadStore((s) => s.uploadFiles)
   const submittedReference = useStaffUploadStore((s) => s.submittedReference)
   const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles)
@@ -120,20 +197,24 @@ export function StaffLaptopUploadClient({
   const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow)
   const patchUpload = useStaffUploadStore((s) => s.patchUpload)
 
-  // -- global ---------------------------------------------------------------
   const resetAllState = useStaffUploadStore((s) => s.resetAllState)
 
   const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
-  const marathonMode = marathon.mode as "marathon" | "by-camera"
+  const marathonMode = marathon.mode as UploadMarathonMode
+  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
+  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === "active") ?? null
 
   const lookupParticipantMutation = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
   )
+  const resolveByCameraParticipantByPhone = useMutation(
+    trpc.uploadFlow.resolveByCameraParticipantByPhone.mutationOptions(),
+  )
   const initializeUploadFlowMutation = useMutation(
     trpc.uploadFlow.initializeUploadFlow.mutationOptions(),
   )
-  const initializeByCameraUploadMutation = useMutation(
-    trpc.uploadFlow.initializeByCameraUpload.mutationOptions(),
+  const initializeStaffByCameraUploadMutation = useMutation(
+    trpc.uploadFlow.initializeStaffByCameraUpload.mutationOptions(),
   )
 
   const activeCompetitionClassId = existingParticipant
@@ -145,10 +226,16 @@ export function StaffLaptopUploadClient({
 
   const selectedCompetitionClass =
     marathon.competitionClasses.find((cc) => cc.id === Number(activeCompetitionClassId)) ?? null
-  const selectedDeviceGroup =
-    marathon.deviceGroups.find((dg) => dg.id === Number(activeDeviceGroupId)) ?? null
 
-  const expectedPhotoCount = getExpectedPhotoCount(marathonMode, null, selectedCompetitionClass)
+  const expectedPhotoCount = getExpectedPhotoCount(
+    marathonMode,
+    activeByCameraTopic,
+    selectedCompetitionClass,
+  )
+
+  const isMappingReady =
+    !!activeDeviceGroupId &&
+    (marathonMode === "marathon" ? !!selectedCompetitionClass : !!activeByCameraTopic)
 
   const participantSummary = useStaffUploadParticipantSummary()
 
@@ -171,33 +258,84 @@ export function StaffLaptopUploadClient({
     isUploadingFiles ||
     isPollingStatus ||
     initializeUploadFlowMutation.isPending ||
-    initializeByCameraUploadMutation.isPending
-  const isBusy = lookupParticipantMutation.isPending || isUploadBusy
-  const canSelectFiles = Boolean(selectedCompetitionClass && selectedDeviceGroup)
+    initializeStaffByCameraUploadMutation.isPending
+  const [byCameraReplaceDialogOpen, setByCameraReplaceDialogOpen] = useState(false)
+  const [pendingByCameraReplacement, setPendingByCameraReplacement] = useState<{
+    reference: string
+    participantId: number
+  } | null>(null)
+  /** Re-render periodically so scheduled → open transitions without a full page reload. */
+  const [, setByCameraSubmissionClock] = useState(0)
+
+  const isBusy =
+    lookupParticipantMutation.isPending ||
+    isUploadBusy ||
+    (marathonMode === "by-camera" && resolveByCameraParticipantByPhone.isPending)
+  const canSelectFiles = isMappingReady && expectedPhotoCount > 0
   const isMaxImagesReached = selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0
   const isDropzoneDisabled = !canSelectFiles || isBusy || uploadComplete || isMaxImagesReached
 
   useEffect(() => {
     resetAllState()
-    void setStep("reference")
+    void setStep(marathonMode === "by-camera" ? "phone" : "reference")
 
     return () => {
       resetAllState()
     }
-  }, [resetAllState, setStep])
+  }, [marathonMode, resetAllState, setStep])
 
   useEffect(() => {
-    if (step === "reference") return
+    if (marathonMode !== "by-camera") return
+    const id = window.setInterval(() => {
+      setByCameraSubmissionClock((c) => c + 1)
+    }, 15_000)
+    return () => window.clearInterval(id)
+  }, [marathonMode])
 
-    if (step === "details" && !formValues.reference) {
+  const byCameraSubmissionWindowState =
+    marathonMode === "by-camera"
+      ? getByCameraSubmissionWindowState(activeByCameraTopic, new Date())
+      : null
+
+  useEffect(() => {
+    if (marathonMode === "marathon" && step === "phone") {
       void setStep("reference")
       return
     }
 
-    if ((step === "upload" || step === "progress" || step === "complete") && !participantSummary) {
-      void setStep(formValues.reference ? "details" : "reference")
+    if (marathonMode === "by-camera" && step === "reference") {
+      void setStep("phone")
+      return
     }
-  }, [formValues.reference, participantSummary, setStep, step])
+
+    if (step === "phone" || step === "reference") return
+
+    if (step === "details") {
+      if (marathonMode === "by-camera" && !formValues.phone.trim()) {
+        void setStep("phone")
+        return
+      }
+      if (marathonMode !== "by-camera" && !formValues.reference.trim()) {
+        void setStep("reference")
+        return
+      }
+    }
+
+    if ((step === "upload" || step === "progress" || step === "complete") && !participantSummary) {
+      if (marathonMode === "by-camera") {
+        void setStep(formValues.phone.trim() ? "details" : "phone")
+        return
+      }
+      void setStep(formValues.reference.trim() ? "details" : "reference")
+    }
+  }, [
+    formValues.phone,
+    formValues.reference,
+    marathonMode,
+    participantSummary,
+    setStep,
+    step,
+  ])
 
   useStaffPhotoValidation({
     step,
@@ -220,6 +358,10 @@ export function StaffLaptopUploadClient({
     reference: string,
     photos: ParticipantSelectedPhoto[],
     participantDraft?: Partial<typeof formValues>,
+    options?: {
+      replaceExistingActiveTopicUpload?: boolean
+      replaceFinalizedParticipantUpload?: boolean
+    },
   ) {
     if (photos.length === 0) return
 
@@ -258,7 +400,22 @@ export function StaffLaptopUploadClient({
               competitionClassId: Number(resolvedFormValues.competitionClassId),
               uploadContentTypes: orderedPhotos.map((photo) => photo.file.type || "image/jpeg"),
             })
-          : await initializeByCameraUploadMutation.mutateAsync(commonPayload)
+          : await initializeStaffByCameraUploadMutation.mutateAsync({
+              domain,
+              reference: reference.trim() ? reference : "",
+              firstname: commonPayload.firstname,
+              lastname: commonPayload.lastname,
+              email: commonPayload.email,
+              deviceGroupId: commonPayload.deviceGroupId,
+              phoneNumber: commonPayload.phoneNumber,
+              uploadContentTypes: orderedPhotos.map((photo) => photo.file.type || "image/jpeg"),
+              ...(options?.replaceExistingActiveTopicUpload
+                ? { replaceExistingActiveTopicUpload: true }
+                : {}),
+              ...(options?.replaceFinalizedParticipantUpload
+                ? { replaceFinalizedParticipantUpload: true }
+                : {}),
+            })
 
       const resolvedReference =
         marathonMode === "marathon" || Array.isArray(initialization)
@@ -331,7 +488,12 @@ export function StaffLaptopUploadClient({
     const normalizedReference = normalizeParticipantReference(reference)
 
     setFormField("reference", normalizedReference)
-    patchParticipant({ lookupErrorMessage: null, showOverwriteDialog: false })
+    patchParticipant({
+      lookupErrorMessage: null,
+      showOverwriteDialog: false,
+      byCameraReplaceExistingTopicUpload: false,
+      byCameraReplaceFinalizedParticipantUpload: false,
+    })
     patchPhotos({ filesError: null })
     resetPhotoSelection()
     resetUploadFlow()
@@ -361,7 +523,10 @@ export function StaffLaptopUploadClient({
       }
 
       if (outcome.kind === "manual-entry") {
-        patchParticipant({ existingParticipant: null })
+        patchParticipant({
+          existingParticipant: null,
+          byCameraReplaceExistingTopicUpload: false,
+        })
         resetForm(normalizedReference)
         clearFormErrors()
         void setStep("details")
@@ -388,7 +553,105 @@ export function StaffLaptopUploadClient({
     }
   }
 
-  const handleContinueFromDetails = () => {
+  const handlePhoneLookup = async (phoneNumber: string) => {
+    const trimmedPhone = phoneNumber.trim()
+
+    setFormField("phone", trimmedPhone)
+    patchParticipant({
+      lookupErrorMessage: null,
+      showOverwriteDialog: false,
+      byCameraReplaceExistingTopicUpload: false,
+      byCameraReplaceFinalizedParticipantUpload: false,
+    })
+    patchPhotos({ filesError: null })
+    resetPhotoSelection()
+    resetUploadFlow()
+
+    try {
+      const resolution = await resolveByCameraParticipantByPhone.mutateAsync({
+        domain,
+        phoneNumber: trimmedPhone,
+      })
+
+      if (!resolution.match) {
+        patchParticipant({
+          existingParticipant: null,
+          participantStatus: null,
+          lookupErrorMessage: null,
+        })
+        setFormField("reference", "")
+        setFormField("firstName", "")
+        setFormField("lastName", "")
+        setFormField("email", "")
+        clearFormErrors()
+        void setStep("details")
+        return
+      }
+
+      if (resolution.activeTopicUploadState === "already-uploaded") {
+        setPendingByCameraReplacement({
+          reference: resolution.reference,
+          participantId: resolution.participantId,
+        })
+        setByCameraReplaceDialogOpen(true)
+        return
+      }
+
+      const normalizedReference = normalizeParticipantReference(resolution.reference)
+
+      const result = await lookupParticipantMutation.mutateAsync({
+        domain,
+        reference: normalizedReference,
+      })
+
+      const resolvedStatus = result.status as ParticipantExistenceStatus
+      const outcome = resolveStaffLaptopUploadLookupOutcome({
+        exists: result.exists,
+        status: resolvedStatus,
+      })
+
+      patchParticipant({ participantStatus: resolvedStatus })
+
+      if (outcome.kind === "manual-entry") {
+        patchParticipant({ existingParticipant: null })
+        toast.error("Could not load this participant from the server. Try the lookup again.")
+        return
+      }
+
+      const participant = await queryClient.fetchQuery(
+        trpc.participants.getByReference.queryOptions({
+          domain,
+          reference: normalizedReference,
+        }),
+      )
+
+      const continuingAfterPriorTopicFinalize =
+        outcome.kind === "blocked" &&
+        resolution.activeTopicUploadState === "eligible"
+
+      patchParticipant({
+        existingParticipant: participant as StaffParticipant,
+        ...(continuingAfterPriorTopicFinalize
+          ? {
+              byCameraReplaceFinalizedParticipantUpload: true,
+              byCameraReplaceExistingTopicUpload: false,
+            }
+          : {}),
+      })
+      setFormField("reference", normalizedReference)
+      void setStep("upload")
+    } catch (error) {
+      console.error(error)
+      patchParticipant({
+        lookupErrorMessage:
+          error instanceof Error
+            ? error.message
+            : "Could not look up this phone number. Try again.",
+      })
+    }
+  }
+
+  const handleContinueFromDetails = async () => {
     const errors = validateStaffUploadForm(marathonMode, formValues)
 
     if (errors) {
@@ -396,9 +659,87 @@ export function StaffLaptopUploadClient({
       return
     }
 
-    clearFormErrors()
     patchParticipant({ lookupErrorMessage: null })
+    clearFormErrors()
     void setStep("upload")
+  }
+
+  const handleConfirmByCameraReplace = async () => {
+    if (!pendingByCameraReplacement) return
+
+    const normalizedReference = normalizeParticipantReference(pendingByCameraReplacement.reference)
+
+    setByCameraReplaceDialogOpen(false)
+    setPendingByCameraReplacement(null)
+
+    try {
+      const result = await lookupParticipantMutation.mutateAsync({
+        domain,
+        reference: normalizedReference,
+      })
+
+      const resolvedStatus = result.status as ParticipantExistenceStatus
+      const outcome = resolveStaffLaptopUploadLookupOutcome({
+        exists: result.exists,
+        status: resolvedStatus,
+      })
+
+      patchParticipant({ participantStatus: resolvedStatus })
+
+      if (outcome.kind === "blocked") {
+        const participant = await queryClient.fetchQuery(
+          trpc.participants.getByReference.queryOptions({
+            domain,
+            reference: normalizedReference,
+          }),
+        )
+
+        patchParticipant({
+          byCameraReplaceExistingTopicUpload: true,
+          byCameraReplaceFinalizedParticipantUpload: true,
+          lookupErrorMessage: null,
+          existingParticipant: participant as StaffParticipant,
+          participantStatus: participant.status as ParticipantExistenceStatus,
+        })
+        setFormField("reference", normalizedReference)
+        clearFormErrors()
+        void setStep("upload")
+        return
+      }
+
+      if (outcome.kind === "manual-entry") {
+        patchParticipant({
+          lookupErrorMessage:
+            "This participant is not in the expected state. Try the phone lookup again.",
+          existingParticipant: null,
+        })
+        void setStep("phone")
+        return
+      }
+
+      const participant = await queryClient.fetchQuery(
+        trpc.participants.getByReference.queryOptions({
+          domain,
+          reference: normalizedReference,
+        }),
+      )
+
+      patchParticipant({
+        byCameraReplaceExistingTopicUpload: true,
+        byCameraReplaceFinalizedParticipantUpload: false,
+        lookupErrorMessage: null,
+        existingParticipant: participant as StaffParticipant,
+      })
+      setFormField("reference", normalizedReference)
+      clearFormErrors()
+      void setStep("upload")
+    } catch (error) {
+      console.error(error)
+      toast.error(
+        error instanceof Error ? error.message : "Could not prepare replace upload. Try again.",
+      )
+      void setStep("phone")
+    }
   }
 
   const handleSubmitUpload = async () => {
@@ -408,6 +749,7 @@ export function StaffLaptopUploadClient({
     }
 
     const filesValidationError = validateStaffUploadFiles({
+      marathonMode,
       expectedPhotoCount,
       selectedPhotosCount: selectedPhotos.length,
       validationResults,
@@ -424,7 +766,8 @@ export function StaffLaptopUploadClient({
           firstName: existingParticipant.firstname,
           lastName: existingParticipant.lastname,
           email: existingParticipant.email ?? "",
-          phone: "",
+          phone:
+            marathonMode === "by-camera" ? (existingParticipant.phoneNumber ?? "").trim() : "",
           competitionClassId: String(existingParticipant.competitionClassId),
           deviceGroupId: String(existingParticipant.deviceGroupId),
         }
@@ -436,7 +779,10 @@ export function StaffLaptopUploadClient({
     }
 
     void setStep("progress")
-    await runUpload(participantSummary.reference, selectedPhotos, participantPayload)
+    await runUpload(participantSummary.reference, selectedPhotos, participantPayload, {
+      replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
+      replaceFinalizedParticipantUpload: byCameraReplaceFinalizedParticipantUpload,
+    })
   }
 
   const handleConfirmOverwrite = async () => {
@@ -444,86 +790,41 @@ export function StaffLaptopUploadClient({
 
     patchParticipant({ showOverwriteDialog: false })
     void setStep("progress")
-    await runUpload(participantSummary.reference, selectedPhotos, {
-      firstName: existingParticipant.firstname,
-      lastName: existingParticipant.lastname,
-      email: existingParticipant.email ?? "",
-      phone: "",
-      competitionClassId: String(existingParticipant.competitionClassId),
-      deviceGroupId: String(existingParticipant.deviceGroupId),
-    })
+    await runUpload(
+      participantSummary.reference,
+      selectedPhotos,
+      {
+        firstName: existingParticipant.firstname,
+        lastName: existingParticipant.lastname,
+        email: existingParticipant.email ?? "",
+        phone:
+          marathonMode === "by-camera" ? (existingParticipant.phoneNumber ?? "").trim() : "",
+        competitionClassId: String(existingParticipant.competitionClassId),
+        deviceGroupId: String(existingParticipant.deviceGroupId),
+      },
+      {
+        replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
+        replaceFinalizedParticipantUpload: byCameraReplaceFinalizedParticipantUpload,
+      },
+    )
   }
 
-  const backUrl = formatDomainPathname("/staff", domain, "staff")
   const showFloatingBar = step === "details" || step === "upload"
   const submitDisabled =
     isBusy ||
     selectedPhotos.length !== expectedPhotoCount ||
     validationResults.some((result) => result.outcome === "failed" && result.severity === "error")
 
-  if (marathon.mode !== "marathon") {
-    return (
-      <div className="relative min-h-screen">
-        <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-lg">
-          <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-            <Button asChild variant="ghost" size="sm" className="rounded-full">
-              <Link href={backUrl}>
-                <ArrowLeft className="mr-1.5 h-4 w-4" />
-                Back
-              </Link>
-            </Button>
-            <div className="flex items-center gap-2.5">
-              <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
-                {marathon.name}
-              </span>
-              <Avatar className="h-7 w-7 ring-1 ring-border">
-                {staffImage ? <AvatarImage src={staffImage} alt={staffName ?? ""} /> : null}
-                <AvatarFallback className="bg-muted text-[10px] font-semibold">
-                  {getStaffInitials(staffName, staffEmail)}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </header>
-        <div className="mx-auto max-w-3xl px-6 py-10">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
-            <div className="flex items-start gap-4">
-              <div className="mt-0.5 shrink-0 text-amber-600">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div>
-                <h1 className="font-gothic text-2xl font-medium tracking-tight text-amber-900">
-                  Staff upload unavailable
-                </h1>
-                <p className="mt-2 text-sm text-amber-800">
-                  This staff tool is only available for marathon mode events. By-camera events are
-                  not supported.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <>
       <div className="relative min-h-screen">
         <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-lg">
-          <div className="relative mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-            <Button asChild variant="ghost" size="sm" className="relative z-10 rounded-full">
-              <Link href={backUrl}>
-                <ArrowLeft className="mr-1.5 h-4 w-4" />
-                <span className="hidden sm:inline">Back</span>
-              </Link>
-            </Button>
-
+          <div className="relative mx-auto flex max-w-3xl items-center px-6 py-4">
             <div className="absolute inset-0 flex items-center justify-center">
               <StepIndicator />
             </div>
 
-            <div className="relative z-10 flex items-center gap-2.5">
+            <div className="relative z-10 ml-auto flex items-center gap-2.5">
               <span className="hidden text-sm font-medium text-muted-foreground sm:inline">
                 {marathon.name}
               </span>
@@ -544,7 +845,26 @@ export function StaffLaptopUploadClient({
             animate={{ opacity: 1 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
-            {step === "reference" ? (
+            {step === "phone" && marathonMode === "by-camera" ? (
+              byCameraSubmissionWindowState !== "open" ? (
+                <StaffByCameraSubmissionWindowGate
+                  state={byCameraSubmissionWindowState}
+                  topicName={activeByCameraTopic?.name ?? null}
+                  scheduledStart={activeByCameraTopic?.scheduledStart ?? null}
+                  scheduledEnd={activeByCameraTopic?.scheduledEnd ?? null}
+                />
+              ) : (
+                <PhoneLookupStep
+                  isSubmitting={
+                    resolveByCameraParticipantByPhone.isPending ||
+                    lookupParticipantMutation.isPending
+                  }
+                  onSubmitAction={handlePhoneLookup}
+                />
+              )
+            ) : null}
+
+            {step === "reference" && marathonMode === "marathon" ? (
               <ReferenceStep
                 isSubmitting={lookupParticipantMutation.isPending}
                 onSubmitAction={handleLookup}
@@ -574,13 +894,23 @@ export function StaffLaptopUploadClient({
                   variant="outline"
                   className="rounded-full"
                   onClick={() => {
-                    resetForm(formValues.reference)
+                    setByCameraReplaceDialogOpen(false)
+                    setPendingByCameraReplacement(null)
                     patchParticipant({
                       lookupErrorMessage: null,
                       existingParticipant: null,
                       participantStatus: null,
+                      byCameraReplaceExistingTopicUpload: false,
+                      byCameraReplaceFinalizedParticipantUpload: false,
                     })
                     patchPhotos({ filesError: null })
+
+                    if (marathonMode === "by-camera") {
+                      void setStep("phone")
+                      return
+                    }
+
+                    resetForm(formValues.reference)
                     void setStep("reference")
                   }}
                   disabled={isBusy}
@@ -591,7 +921,7 @@ export function StaffLaptopUploadClient({
                 <PrimaryButton
                   type="button"
                   className="rounded-full px-6"
-                  onClick={handleContinueFromDetails}
+                  onClick={() => void handleContinueFromDetails()}
                   disabled={isBusy}
                 >
                   Continue to photos
@@ -616,8 +946,10 @@ export function StaffLaptopUploadClient({
                         existingParticipant: null,
                         participantStatus: null,
                         showOverwriteDialog: false,
+                        byCameraReplaceExistingTopicUpload: false,
+                        byCameraReplaceFinalizedParticipantUpload: false,
                       })
-                      void setStep("reference")
+                      void setStep(marathonMode === "by-camera" ? "phone" : "reference")
                       return
                     }
 
@@ -646,6 +978,36 @@ export function StaffLaptopUploadClient({
           </div>
         </div>
       ) : null}
+
+      <AlertDialog
+        open={byCameraReplaceDialogOpen}
+        onOpenChange={(open) => {
+          setByCameraReplaceDialogOpen(open)
+          if (!open) setPendingByCameraReplacement(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace photo for current topic?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This phone number already has a photo for the active topic. Continue to replace it with
+              a new upload.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUploadBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isUploadBusy}
+              onClick={(event) => {
+                event.preventDefault()
+                void handleConfirmByCameraReplace()
+              }}
+            >
+              Replace and continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={showOverwriteDialog}

@@ -162,11 +162,12 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
 
   const marathonMode = marathon.mode as UploadMarathonMode
   const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
+  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === "active") ?? null
   const selectedCompetitionClass =
     marathon.competitionClasses.find((cc) => cc.id === Number(values.competitionClassId)) ?? null
   const selectedTopics = getSelectedTopics(
     marathonMode,
-    null,
+    activeByCameraTopic,
     selectedCompetitionClass,
     sortedTopics,
   )
@@ -175,16 +176,25 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
     <div className="space-y-8">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-          Participant #{reference}
+          Participant #
+          {reference.trim() ? reference : marathonMode === "by-camera" ? "new" : "—"}
         </p>
         <h2 className="mt-2 font-gothic text-3xl font-medium leading-none tracking-tight text-foreground">
           Fill in details
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This participant wasn&apos;t prepared beforehand. Enter their name, email, and select
-          class and device below.
+          {marathonMode === "by-camera"
+            ? "No existing record was found for this phone. Enter their name, email, and the device they used."
+            : "This participant was not prepared beforehand. Enter their name, email, and select class and device below."}
         </p>
       </div>
+
+      {marathonMode === "by-camera" && !activeByCameraTopic ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          There is no active topic for this event. Staff cannot upload until a topic is activated in
+          the dashboard.
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -240,32 +250,42 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
           />
           {errors.email ? <p className="text-sm text-rose-600">{errors.email}</p> : null}
         </div>
+
+        {marathonMode === "by-camera" ? (
+          <div className="space-y-1 rounded-xl border border-border bg-muted/30 px-4 py-3 text-left">
+            <p className="text-sm font-medium text-foreground">Phone number</p>
+            <p className="text-base text-foreground">{values.phone.trim() || "—"}</p>
+            {errors.phone ? <p className="text-sm text-rose-600">{errors.phone}</p> : null}
+          </div>
+        ) : null}
       </div>
 
-      <div className="space-y-3">
-        <div>
-          <p className="text-sm font-medium text-foreground">Competition class</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            How many photos is this participant submitting?
-          </p>
-        </div>
-        <div className="space-y-2">
-          <div className="grid gap-2 sm:grid-cols-2">
-            {marathon.competitionClasses.map((competitionClass) => (
-              <CompetitionClassCard
-                key={competitionClass.id}
-                competitionClass={competitionClass}
-                isSelected={values.competitionClassId === String(competitionClass.id)}
-                disabled={isBusy}
-                onSelect={() => setFormField("competitionClassId", String(competitionClass.id))}
-              />
-            ))}
+      {marathonMode === "marathon" ? (
+        <div className="space-y-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Competition class</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              How many photos is this participant submitting?
+            </p>
           </div>
-          {errors.competitionClassId ? (
-            <p className="text-sm text-rose-600">{errors.competitionClassId}</p>
-          ) : null}
+          <div className="space-y-2">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {marathon.competitionClasses.map((competitionClass) => (
+                <CompetitionClassCard
+                  key={competitionClass.id}
+                  competitionClass={competitionClass}
+                  isSelected={values.competitionClassId === String(competitionClass.id)}
+                  disabled={isBusy}
+                  onSelect={() => setFormField("competitionClassId", String(competitionClass.id))}
+                />
+              ))}
+            </div>
+            {errors.competitionClassId ? (
+              <p className="text-sm text-rose-600">{errors.competitionClassId}</p>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="space-y-3">
         <div>

@@ -6,6 +6,7 @@ import {
   InitializeUploadFlowSchema,
   PrepareUploadFlowSchema,
   InitializeByCameraUploadSchema,
+  InitializeStaffByCameraUploadSchema,
   ResolveByCameraParticipantByPhoneSchema,
   CheckParticipantExistsSchema,
   GetUploadStatusSchema,
@@ -64,6 +65,21 @@ export const uploadFlowRouter = createTRPCRouter({
         }) {
           return yield* UploadFlowApiService.use((s) =>
             s.initializeByCameraUpload(input),
+          );
+        }),
+      ),
+    ),
+
+  initializeStaffByCameraUpload: domainProcedure
+    .input(InitializeStaffByCameraUploadSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn("UploadFlowRouter.initializeStaffByCameraUpload")(function* ({
+          input,
+        }) {
+          return yield* UploadFlowApiService.use((s) =>
+            s.initializeStaffByCameraUpload(input),
           );
         }),
       ),

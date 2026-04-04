@@ -43,6 +43,7 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
 
   const marathonMode = marathon.mode as UploadMarathonMode
   const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
+  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === "active") ?? null
   const activeCompetitionClassId = existingParticipant
     ? String(existingParticipant.competitionClassId)
     : formValues.competitionClassId
@@ -51,12 +52,26 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
 
   const selectedTopics = getSelectedTopics(
     marathonMode,
-    null,
+    activeByCameraTopic,
     selectedCompetitionClass,
     sortedTopics,
   )
-  const expectedPhotoCount = getExpectedPhotoCount(marathonMode, null, selectedCompetitionClass)
+  const expectedPhotoCount = getExpectedPhotoCount(
+    marathonMode,
+    activeByCameraTopic,
+    selectedCompetitionClass,
+  )
   const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex)
+
+  const activeDeviceGroupId = existingParticipant
+    ? String(existingParticipant.deviceGroupId)
+    : formValues.deviceGroupId
+  const selectedDeviceGroupForFiles =
+    marathon.deviceGroups.find((dg) => dg.id === Number(activeDeviceGroupId)) ?? null
+  const canProcessFiles =
+    marathonMode === "by-camera"
+      ? Boolean(activeByCameraTopic && selectedDeviceGroupForFiles)
+      : Boolean(selectedCompetitionClass && selectedDeviceGroupForFiles)
 
   const { blocking: blockingValidationErrors, warnings: warningValidationResults } =
     splitValidationResultsBySeverity(validationResults)
@@ -67,7 +82,7 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
   const isComplete = selectedCount >= expectedPhotoCount && expectedPhotoCount > 0
 
   const handleFilesSelected = async (files: File[]) => {
-    if (isBusy || uploadComplete || !selectedCompetitionClass) {
+    if (isBusy || uploadComplete || !canProcessFiles) {
       return
     }
 

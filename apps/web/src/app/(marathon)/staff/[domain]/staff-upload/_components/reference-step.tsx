@@ -26,8 +26,7 @@ export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepPro
         Enter participant number
       </h2>
       <p className="mt-3 max-w-sm text-sm text-muted-foreground">
-        Type the participant number. Prepared participants skip straight
-        to photo selection.
+        Type the participant number. Prepared participants skip straight to photo selection.
       </p>
 
       <form
@@ -70,7 +69,7 @@ export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepPro
         <PrimaryButton
           type="submit"
           className="w-full rounded-full px-6 py-5 mt-6 text-lg"
-          disabled={isSubmitting}
+          disabled={isSubmitting || reference.length === 0}
         >
           {isSubmitting ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

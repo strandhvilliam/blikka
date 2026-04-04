@@ -1,30 +1,30 @@
-"use client";
+"use client"
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
 interface StaffParticipantCardProps {
-  reference: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  competitionClassName: string;
-  deviceGroupName: string;
-  statusLabel: string;
-  statusTone?: "default" | "warning" | "success";
+  reference: string
+  firstName: string
+  lastName: string
+  email: string
+  detailChip: { label: string; value: string }
+  deviceGroupName: string
+  statusLabel: string
+  statusTone?: "default" | "warning" | "success"
 }
 
 const STATUS_STYLES = {
   default: "border-stone-200 bg-stone-50 text-stone-600",
   warning: "border-amber-300 bg-amber-50 text-amber-700",
   success: "border-emerald-300 bg-emerald-50 text-emerald-700",
-} as const;
+} as const
 
 export function StaffParticipantCard({
   reference,
   firstName,
   lastName,
   email,
-  competitionClassName,
+  detailChip,
   deviceGroupName,
   statusLabel,
   statusTone = "default",
@@ -37,7 +37,7 @@ export function StaffParticipantCard({
             No.
           </span>
           <span className="mt-1 font-mono text-4xl font-bold leading-none tracking-wide text-foreground sm:text-5xl">
-            {reference}
+            {reference.length > 0 ? reference : "New"}
           </span>
         </div>
 
@@ -47,9 +47,7 @@ export function StaffParticipantCard({
               <p className="truncate font-gothic text-xl font-medium leading-tight tracking-tight text-foreground sm:text-2xl">
                 {firstName} {lastName}
               </p>
-              <p className="mt-1 truncate text-sm text-muted-foreground">
-                {email}
-              </p>
+              <p className="mt-1 truncate text-sm text-muted-foreground">{email}</p>
             </div>
             <span
               className={cn(
@@ -62,13 +60,13 @@ export function StaffParticipantCard({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <InfoChip label="Class" value={competitionClassName} />
+            <InfoChip label={detailChip.label} value={detailChip.value} />
             <InfoChip label="Device" value={deviceGroupName} />
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function InfoChip({ label, value }: { label: string; value: string }) {
@@ -77,5 +75,5 @@ function InfoChip({ label, value }: { label: string; value: string }) {
       <span className="font-medium text-muted-foreground">{label}:</span>
       <span className="font-semibold text-foreground">{value}</span>
     </span>
-  );
+  )
 }

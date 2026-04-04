@@ -21,6 +21,10 @@ interface ParticipantState {
   existingParticipant: StaffParticipant | null
   participantStatus: ParticipantExistenceStatus
   showOverwriteDialog: boolean
+  /** After phone resolve: replace existing upload for active topic (live by-camera semantics). */
+  byCameraReplaceExistingTopicUpload: boolean
+  /** Staff confirmed replacing upload after participant reached completed or verified. */
+  byCameraReplaceFinalizedParticipantUpload: boolean
 }
 
 interface ParticipantActions {
@@ -44,6 +48,8 @@ function initialParticipantState(): ParticipantState {
     existingParticipant: null,
     participantStatus: null,
     showOverwriteDialog: false,
+    byCameraReplaceExistingTopicUpload: false,
+    byCameraReplaceFinalizedParticipantUpload: false,
   }
 }
 

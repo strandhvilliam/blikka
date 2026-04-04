@@ -3,6 +3,7 @@
 import { parseAsStringEnum, useQueryState } from "nuqs";
 
 export const STAFF_UPLOAD_STEPS = [
+  "phone",
   "reference",
   "details",
   "upload",

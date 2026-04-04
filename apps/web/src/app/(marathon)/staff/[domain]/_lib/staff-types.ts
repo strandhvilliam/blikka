@@ -17,6 +17,7 @@ export type StaffParticipant = Participant & {
   submissions: StaffSubmission[]
   competitionClass: CompetitionClass | null
   deviceGroup: DeviceGroup | null
+  phoneNumber?: string | null
 }
 
 export type StaffVerification = ParticipantVerification & {

@@ -20,7 +20,7 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
       return (
         <RPNInput.default
           ref={ref}
-          className={cn("flex", className)}
+          className={cn("flex items-stretch", className)}
           flagComponent={FlagComponent}
           countrySelectComponent={CountrySelect}
           inputComponent={InputComponent}
@@ -48,7 +48,10 @@ const InputComponent = React.forwardRef<
   React.ComponentProps<"input">
 >(({ className, ...props }, ref) => (
   <Input
-    className={cn("rounded-e-lg rounded-s-none", className)}
+    className={cn(
+      "h-full min-h-9 self-stretch rounded-e-xl rounded-s-none",
+      className,
+    )}
     {...props}
     ref={ref}
   />
@@ -87,33 +90,35 @@ const CountrySelect = ({
   );
 
   return (
-    <PopoverSelect
-      options={selectOptions}
-      value={selectedCountry}
-      onChange={(value) => onChange(value as RPNInput.Country)}
-      disabled={disabled}
-      searchable
-      showFlags
-      searchPlaceholder="Search country..."
-      className="w-auto"
-      triggerClassName="rounded-e-none rounded-s-lg border-r-0 px-3"
-    >
-      <button
-        type="button"
+    <div className="flex min-h-9 items-stretch self-stretch [&_[data-slot=popover-trigger]]:h-full [&_[data-slot=popover-trigger]]:min-h-9">
+      <PopoverSelect
+        options={selectOptions}
+        value={selectedCountry}
+        onChange={(value) => onChange(value as RPNInput.Country)}
         disabled={disabled}
-        className={cn(
-          "flex h-9 items-center gap-2 rounded-e-none rounded-s-lg border border-r-0 px-3",
-          "border-input bg-background hover:bg-accent hover:text-accent-foreground",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          "disabled:pointer-events-none disabled:opacity-50",
-        )}
+        searchable
+        showFlags
+        searchPlaceholder="Search country..."
+        className="w-auto"
+        triggerClassName="rounded-e-none rounded-s-xl border-r-0 px-3"
       >
-        <FlagComponent
-          country={selectedCountry}
-          countryName={selectedCountry}
-        />
-      </button>
-    </PopoverSelect>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            "flex h-full min-h-9 items-center justify-center gap-2 rounded-e-none rounded-s-xl border border-r-0 px-3",
+            "border-input bg-background hover:bg-accent hover:text-accent-foreground",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "disabled:pointer-events-none disabled:opacity-50",
+          )}
+        >
+          <FlagComponent
+            country={selectedCountry}
+            countryName={selectedCountry}
+          />
+        </button>
+      </PopoverSelect>
+    </div>
   );
 };
 
