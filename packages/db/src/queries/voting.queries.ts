@@ -1501,7 +1501,12 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
               eq(participants.id, submissions.participantId),
             )
             .innerJoin(topics, eq(topics.id, submissions.topicId))
-            .where(eq(votingRoundSubmission.roundId, round.id))
+            .where(
+              and(
+                eq(votingRoundSubmission.roundId, round.id),
+                eq(submissions.status, "uploaded"),
+              ),
+            )
             .orderBy(asc(submissions.id)),
         );
       });
