@@ -1,6 +1,7 @@
 import * as React from "react"
 
-const MOBILE_BREAKPOINT = 768
+/** Align with Tailwind `lg` so portrait tablets (e.g. iPad ~820px) use sheet sidebar + compact header. */
+const MOBILE_BREAKPOINT = 1024
 const MOBILE_MEDIA_QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
 
 function subscribe(onStoreChange: () => void) {

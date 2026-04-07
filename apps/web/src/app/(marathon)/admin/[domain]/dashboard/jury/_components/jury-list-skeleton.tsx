@@ -5,7 +5,7 @@ import { Search } from "lucide-react"
 export function JuryListSkeleton() {
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-4 px-2 pt-4">
+      <div className="px-3 py-3 border-b border-border">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input

@@ -297,7 +297,7 @@ export function DashboardHeader() {
 
   return (
     <div className="z-50 w-full pr-4 bg-sidebar">
-      <div className="grid min-h-12 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 py-1.5 pl-3 md:hidden">
+      <div className="grid min-h-12 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 py-1.5 pl-3 lg:hidden">
         <div className="flex items-center justify-start">
           <SidebarTrigger
             className={cn(
@@ -321,7 +321,14 @@ export function DashboardHeader() {
         </div>
       </div>
 
-      <div className="hidden md:flex md:h-14 md:flex-row md:items-center md:gap-4 md:py-0">
+      <div className="hidden lg:flex lg:h-14 lg:flex-row lg:items-center lg:gap-4 lg:py-0">
+        <SidebarTrigger
+          className={cn(
+            "size-9 shrink-0 touch-manipulation rounded-lg border border-border/60 bg-sidebar-accent/70 p-0 text-sidebar-foreground",
+            "hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border",
+            "[&_svg]:size-4 [&_svg]:opacity-90",
+          )}
+        />
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:max-w-xs">
           <Suspense fallback={<Skeleton className="h-9 w-full max-w-68 shrink-0 rounded-full" />}>
             <DomainSwitchDropdown />

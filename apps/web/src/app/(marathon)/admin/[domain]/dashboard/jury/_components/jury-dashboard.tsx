@@ -29,49 +29,62 @@ export function JuryDashboard() {
   const [invitationId, setInvitationId] = useQueryState("invitation", parseAsInteger)
 
   return (
-    <div className="flex h-full gap-5 mx-auto w-full max-w-[1600px] px-6 py-4">
-      <div className="w-80 shrink-0 flex flex-col rounded-xl border border-border bg-white overflow-hidden">
-        <div className="border-b border-border px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-primary/10">
-                <Gavel className="h-4 w-4 text-brand-primary" strokeWidth={1.8} />
+    <div className="mx-auto w-full max-w-[1400px] h-full flex flex-col px-4 py-3 sm:px-6 sm:py-4">
+      <div className="shrink-0 mb-4 sm:mb-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 mb-1.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10">
+                <Gavel className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
               </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
                   Evaluation
                 </p>
-                <h1 className="text-lg font-bold tracking-tight font-gothic leading-none">Jury Invitations</h1>
+                <h1 className="text-2xl font-bold tracking-tight font-gothic leading-none">
+                  Jury Invitations
+                </h1>
               </div>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Manage jury invitations and review their progress
+            </p>
+          </div>
+          <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
             <PrimaryButton
               onClick={() => setCreateDialogOpen(true)}
-              className="h-8 shrink-0 gap-1.5 px-2.5 py-0 text-xs"
+              className="text-xs min-h-9 flex-1 items-center justify-center gap-1.5 sm:flex-initial"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3.5 w-3.5 shrink-0" />
               <span>Invite</span>
             </PrimaryButton>
           </div>
         </div>
-        <Suspense fallback={<JuryListSkeleton />}>
-          <JuryList
-            selectedInvitationId={invitationId ?? undefined}
-            onSelectInvitation={(id) => void setInvitationId(id)}
-          />
-        </Suspense>
       </div>
-      <div className="flex-1 flex flex-col h-full rounded-xl border border-border bg-white overflow-hidden">
-        {invitationId == null ? (
-          <JuryEmptySelection />
-        ) : (
-          <Suspense key={invitationId} fallback={<JuryInvitationDetailsSkeleton />}>
-            <JuryInvitationDetailsContent
-              invitationId={invitationId}
-              onDeleted={() => void setInvitationId(null)}
+
+      <div className="flex-1 min-h-0 flex min-w-0 flex-col rounded-xl border border-border bg-white overflow-hidden md:flex-row">
+        <div className="flex h-[min(42vh,300px)] shrink-0 flex-col border-b border-border md:h-auto md:w-80 md:shrink-0 md:border-r md:border-b-0 overflow-hidden">
+          <Suspense fallback={<JuryListSkeleton />}>
+            <JuryList
+              selectedInvitationId={invitationId ?? undefined}
+              onSelectInvitation={(id) => void setInvitationId(id)}
             />
           </Suspense>
-        )}
+        </div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {invitationId == null ? (
+            <JuryEmptySelection />
+          ) : (
+            <Suspense key={invitationId} fallback={<JuryInvitationDetailsSkeleton />}>
+              <JuryInvitationDetailsContent
+                invitationId={invitationId}
+                onDeleted={() => void setInvitationId(null)}
+              />
+            </Suspense>
+          )}
+        </div>
       </div>
+
       <JuryInvitationCreateDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
