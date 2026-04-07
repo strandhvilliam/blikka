@@ -19,6 +19,7 @@ import {
   ChevronRight,
   ImageOff,
   Loader2,
+  Maximize2,
 } from "lucide-react"
 import {
   type ChangeEvent,
@@ -45,6 +46,7 @@ import {
 } from "../_lib/jury-final-ranking-state"
 import type { JuryListParticipant } from "../_lib/jury-list-participant"
 import { getParticipantAssetUrl } from "../_lib/jury-list-participant"
+import { FullscreenImage } from "@/components/fullscreen-image"
 import { ActiveRatingFilterBadge } from "./rating-filter"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
 import { JurySidebar } from "./jury-sidebar"
@@ -86,6 +88,7 @@ export function JurySubmissionViewer({
   )
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
   const [isSaving, setIsSaving] = useState(false)
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false)
 
   const currentParticipant =
     participants[currentParticipantIndex] ?? participants[0] ?? null
@@ -272,6 +275,8 @@ export function JurySubmissionViewer({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (isFullscreenOpen) return
+
       if (
         event.target instanceof HTMLTextAreaElement ||
         event.target instanceof HTMLInputElement
@@ -318,7 +323,14 @@ export function JurySubmissionViewer({
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [goToPrev, goToNext, handleRatingClick, onBack, localRating])
+  }, [
+    goToPrev,
+    goToNext,
+    handleRatingClick,
+    onBack,
+    localRating,
+    isFullscreenOpen,
+  ])
 
   const handleNotesChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -429,6 +441,17 @@ export function JurySubmissionViewer({
           </div>
 
           <div className="flex items-center gap-2">
+            {currentAssetUrl && !imageErrors.has(currentAssetId) ? (
+              <button
+                type="button"
+                className="hidden h-8 w-8 items-center justify-center rounded-full border border-border/60 text-brand-black transition-colors hover:bg-neutral-50 md:flex"
+                onClick={() => setIsFullscreenOpen(true)}
+                title="Fullscreen"
+                aria-label="View image fullscreen"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+            ) : null}
             <button
               type="button"
               className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-brand-black transition-colors hover:bg-neutral-50 disabled:opacity-30"
@@ -507,6 +530,15 @@ export function JurySubmissionViewer({
           </div>
         </div>
       </div>
+
+      {currentAssetUrl && !imageErrors.has(currentAssetId) ? (
+        <FullscreenImage
+          src={currentAssetUrl}
+          alt={`Submission ${currentParticipant.reference}`}
+          isOpen={isFullscreenOpen}
+          onClose={() => setIsFullscreenOpen(false)}
+        />
+      ) : null}
     </>
   )
 }

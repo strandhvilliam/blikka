@@ -7,7 +7,7 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel";
-import { FullscreenImage } from "./fullscreen-image";
+import { FullscreenImage } from "@/components/fullscreen-image"
 import { useVotingCarouselApi } from "../_hooks/use-voting-carousel-api";
 import { useVotingSearchParams } from "../_hooks/use-voting-search-params";
 import { OwnSubmissionBadge } from "./own-submission-badge";

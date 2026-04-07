@@ -577,6 +577,42 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
         });
       });
 
+      /** Insert or update `jury_ratings` so we never hit unique violations. */
+      const upsertJuryRating = Effect.fn("JuryApiService.upsertJuryRating")(
+        function* ({
+          invitationId,
+          participantId,
+          rating,
+          notes,
+        }: {
+          invitationId: number;
+          participantId: number;
+          rating: number;
+          notes?: string;
+        }) {
+          const existing = yield* db.juryQueries.getJuryRating({
+            invitationId,
+            participantId,
+          });
+          return yield* Option.match(existing, {
+            onSome: () =>
+              db.juryQueries.updateJuryRating({
+                invitationId,
+                participantId,
+                rating,
+                notes,
+              }),
+            onNone: () =>
+              db.juryQueries.createJuryRating({
+                invitationId,
+                participantId,
+                rating,
+                notes,
+              }),
+          });
+        },
+      );
+
       const createRating = Effect.fn("JuryApiService.createRating")(function* ({
         token,
         domain,
@@ -606,7 +642,7 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
         }
 
         if (finalRanking === 1 || finalRanking === 2 || finalRanking === 3) {
-          const createdRating = yield* db.juryQueries.createJuryRating({
+          const createdRating = yield* upsertJuryRating({
             invitationId: invitation.id,
             participantId,
             rating,
@@ -620,7 +656,7 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
           return createdRating;
         }
 
-        return yield* db.juryQueries.createJuryRating({
+        return yield* upsertJuryRating({
           invitationId: invitation.id,
           participantId,
           rating,
@@ -657,25 +693,11 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
         }
 
         if (finalRanking === 1 || finalRanking === 2 || finalRanking === 3) {
-          const existingRating = yield* db.juryQueries.getJuryRating({
+          const updatedRating = yield* upsertJuryRating({
             invitationId: invitation.id,
             participantId,
-          });
-          const updatedRating = yield* Option.match(existingRating, {
-            onSome: () =>
-              db.juryQueries.updateJuryRating({
-                invitationId: invitation.id,
-                participantId,
-                rating,
-                notes,
-              }),
-            onNone: () =>
-              db.juryQueries.createJuryRating({
-                invitationId: invitation.id,
-                participantId,
-                rating,
-                notes,
-              }),
+            rating,
+            notes,
           });
           yield* reassignFinalRanking({
             invitationId: invitation.id,
@@ -711,7 +733,7 @@ export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
           });
         }
 
-        return yield* db.juryQueries.updateJuryRating({
+        return yield* upsertJuryRating({
           invitationId: invitation.id,
           participantId,
           rating,
