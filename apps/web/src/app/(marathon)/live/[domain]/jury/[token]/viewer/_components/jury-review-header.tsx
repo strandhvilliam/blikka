@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useSyncExternalStore } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,7 +40,15 @@ const ProgressRing = dynamic(() => import("./jury-progress-ring").then((mod) => 
   ssr: false,
 })
 
+const noopSubscribe = () => () => {}
+
 export function JuryReviewHeader() {
+  const isClientReady = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  )
+
   const { selectParticipant } = useJuryReviewQueryState()
   const { participants, reviewSetTotalParticipants: totalParticipants } = useJuryReviewData()
   const domain = useDomain()
@@ -55,7 +63,7 @@ export function JuryReviewHeader() {
   const ratings = ratingsData.ratings
   const ratedCount = ratings.length
   const assignedFinalRankingCount = getAssignedFinalRankingCount(ratings)
-  const canCompleteReview = hasCompleteFinalRankings(ratings)
+  const canCompleteReview = isClientReady && hasCompleteFinalRankings(ratings)
   const queryClient = useQueryClient()
   const router = useRouter()
 
@@ -78,6 +86,11 @@ export function JuryReviewHeader() {
   const participantMap = useMemo(() => new Map(participants.map((p) => [p.id, p])), [participants])
   const topPicksCount = rankAssignments.size
   const topPicksComplete = topPicksCount === 3
+  const headerRatedCount = isClientReady ? ratedCount : 0
+  const headerTotalParticipants = isClientReady ? totalParticipants : 0
+  const headerAssignedFinalCount = isClientReady ? assignedFinalRankingCount : 0
+  const headerTopPicksCount = isClientReady ? topPicksCount : 0
+  const headerTopPicksComplete = isClientReady && topPicksComplete
 
   const sessionInitials = useMemo(() => {
     const parts = invitation.displayName.trim().split(/\s+/).filter(Boolean)
@@ -93,7 +106,7 @@ export function JuryReviewHeader() {
     <header className="rounded-2xl border border-border/60 bg-white">
       <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
-          <ProgressRing rated={ratedCount} total={totalParticipants} />
+          <ProgressRing rated={headerRatedCount} total={headerTotalParticipants} />
           <div>
             <h1 className="font-gothic text-2xl font-bold tracking-tight text-brand-black">
               Jury Review
@@ -136,10 +149,10 @@ export function JuryReviewHeader() {
               </p>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span className="inline-flex items-center rounded-full border border-border/50 bg-white px-2 py-0.5 text-[11px] font-medium tabular-nums text-brand-black/75">
-                  {ratedCount}/{totalParticipants} rated
+                  {headerRatedCount}/{headerTotalParticipants} rated
                 </span>
                 <span className="inline-flex items-center rounded-full border border-border/50 bg-white px-2 py-0.5 text-[11px] font-medium tabular-nums text-brand-black/75">
-                  Top picks {assignedFinalRankingCount}/3
+                  Top picks {headerAssignedFinalCount}/3
                 </span>
               </div>
             </div>
@@ -185,18 +198,28 @@ export function JuryReviewHeader() {
           <p className="text-sm font-medium text-brand-black">Your Top 3</p>
           <span
             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-              topPicksComplete
+              headerTopPicksComplete
                 ? "border-brand-primary/20 bg-brand-primary/5 text-brand-primary"
                 : "border-border/60 bg-neutral-50 text-brand-gray"
             }`}
           >
-            {topPicksComplete ? <CheckCircle2 className="h-3 w-3" /> : null}
-            {topPicksCount}/3
+            {headerTopPicksComplete ? <CheckCircle2 className="h-3 w-3" /> : null}
+            {headerTopPicksCount}/3
           </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {([1, 2, 3] as const).map((rank) => {
+            if (!isClientReady) {
+              return (
+                <span key={rank} className={`${juryRankChipNeutralPlaceholder} cursor-default`}>
+                  <JuryRankTrophyBadge rank={rank} tone="idle" />
+                  {getFinalRankingLabel(rank)}
+                  <span className="text-xs font-normal text-brand-gray">Not Set</span>
+                </span>
+              )
+            }
+
             const participantId = rankAssignments.get(rank) ?? null
             const participant =
               participantId !== null ? (participantMap.get(participantId) ?? null) : null
