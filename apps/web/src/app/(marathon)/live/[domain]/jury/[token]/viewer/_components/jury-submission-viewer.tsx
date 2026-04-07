@@ -13,27 +13,10 @@ import {
 import { useTRPC } from "@/lib/trpc/client"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { parseAsInteger, useQueryState } from "nuqs"
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  ImageOff,
-  Loader2,
-  Maximize2,
-} from "lucide-react"
-import {
-  type ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import { ArrowLeft, ChevronLeft, ChevronRight, ImageOff, Loader2, Maximize2 } from "lucide-react"
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
-import type {
-  JuryInvitation,
-  JuryRatingsResponse,
-} from "../../_lib/jury-types"
+import type { JuryInvitation, JuryRatingsResponse } from "../../_lib/jury-types"
 import {
   juryRankChipActive,
   juryRankChipNeutralOccupied,
@@ -50,10 +33,11 @@ import { FullscreenImage } from "@/components/fullscreen-image"
 import { ActiveRatingFilterBadge } from "./rating-filter"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
 import { JurySidebar } from "./jury-sidebar"
+import { useDomain } from "@/lib/domain-provider"
+import { useJuryClientToken } from "../../_components/jury-client-token-provider"
+import { useJuryViewerKeyboardShortcuts } from "@/hooks/use-jury-viewer-keyboard-shortcuts"
 
 export function JurySubmissionViewer({
-  domain,
-  token,
   invitation,
   participants,
   initialIndex,
@@ -66,8 +50,6 @@ export function JurySubmissionViewer({
   ratingByParticipantId,
   onBack,
 }: {
-  domain: string
-  token: string
   invitation: JuryInvitation
   participants: JuryListParticipant[]
   initialIndex: number
@@ -80,6 +62,8 @@ export function JurySubmissionViewer({
   ratingByParticipantId: Map<number, JuryRatingsResponse["ratings"][number]>
   onBack: () => void
 }) {
+  const domain = useDomain()
+  const token = useJuryClientToken()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const [currentParticipantIndex, setCurrentParticipantIndex] = useQueryState(
@@ -90,23 +74,15 @@ export function JurySubmissionViewer({
   const [isSaving, setIsSaving] = useState(false)
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false)
 
-  const currentParticipant =
-    participants[currentParticipantIndex] ?? participants[0] ?? null
+  const currentParticipant = participants[currentParticipantIndex] ?? participants[0] ?? null
 
   const currentParticipantId = currentParticipant?.id ?? null
-  const currentAssetUrl = getParticipantAssetUrl(
-    currentParticipant,
-    invitation,
-  )
-  const currentAssetId = String(
-    currentParticipant?.submission?.id ?? currentParticipant?.id ?? "",
-  )
+  const currentAssetUrl = getParticipantAssetUrl(currentParticipant, invitation)
+  const currentAssetId = String(currentParticipant?.submission?.id ?? currentParticipant?.id ?? "")
 
   const existingRating = useMemo(
     () =>
-      currentParticipantId === null
-        ? undefined
-        : ratingByParticipantId.get(currentParticipantId),
+      currentParticipantId === null ? undefined : ratingByParticipantId.get(currentParticipantId),
     [currentParticipantId, ratingByParticipantId],
   )
 
@@ -120,26 +96,14 @@ export function JurySubmissionViewer({
   useEffect(() => {
     setLocalRating(existingRating?.rating ?? 0)
     setLocalNotes(existingRating?.notes ?? "")
-    setLocalFinalRanking(
-      getParticipantFinalRanking(ratings, currentParticipantId ?? -1),
-    )
+    setLocalFinalRanking(getParticipantFinalRanking(ratings, currentParticipantId ?? -1))
   }, [existingRating, currentParticipantId])
 
   useEffect(() => {
-    if (
-      participants.length - currentParticipantIndex <= 4 &&
-      hasNextPage &&
-      !isFetchingNextPage
-    ) {
+    if (participants.length - currentParticipantIndex <= 4 && hasNextPage && !isFetchingNextPage) {
       fetchNextPage()
     }
-  }, [
-    currentParticipantIndex,
-    participants.length,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  ])
+  }, [currentParticipantIndex, participants.length, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   useEffect(() => {
     return () => {
@@ -174,21 +138,13 @@ export function JurySubmissionViewer({
   )
 
   const saveRating = useCallback(
-    async (
-      nextRating: number,
-      nextNotes: string,
-      nextFinalRanking: 1 | 2 | 3 | null,
-    ) => {
+    async (nextRating: number, nextNotes: string, nextFinalRanking: 1 | 2 | 3 | null) => {
       if (!currentParticipantId) return
 
       setIsSaving(true)
       try {
         if (existingRating) {
-          if (
-            nextRating === 0 &&
-            !nextNotes.trim() &&
-            nextFinalRanking === null
-          ) {
+          if (nextRating === 0 && !nextNotes.trim() && nextFinalRanking === null) {
             await deleteRatingMutation.mutateAsync({
               token,
               domain,
@@ -204,11 +160,7 @@ export function JurySubmissionViewer({
               finalRanking: nextFinalRanking,
             })
           }
-        } else if (
-          nextRating > 0 ||
-          nextNotes.trim() ||
-          nextFinalRanking !== null
-        ) {
+        } else if (nextRating > 0 || nextNotes.trim() || nextFinalRanking !== null) {
           await createRatingMutation.mutateAsync({
             token,
             domain,
@@ -249,88 +201,32 @@ export function JurySubmissionViewer({
 
   const confirmFinalRanking = useCallback(() => {
     if (pendingRank === null) return
-    const nextFinalRanking =
-      localFinalRanking === pendingRank ? null : pendingRank
+    const nextFinalRanking = localFinalRanking === pendingRank ? null : pendingRank
     setLocalFinalRanking(nextFinalRanking)
     void saveRating(localRating, localNotes, nextFinalRanking)
     setPendingRank(null)
   }, [pendingRank, localFinalRanking, localNotes, localRating, saveRating])
 
-  const handleFinalRankingClick = useCallback(
-    (finalRanking: 1 | 2 | 3) => {
-      setPendingRank(finalRanking)
-    },
-    [],
-  )
+  const handleFinalRankingClick = useCallback((finalRanking: 1 | 2 | 3) => {
+    setPendingRank(finalRanking)
+  }, [])
 
   const goToPrev = useCallback(() => {
     void setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))
   }, [currentParticipantIndex, setCurrentParticipantIndex])
 
   const goToNext = useCallback(() => {
-    void setCurrentParticipantIndex(
-      Math.min(participants.length - 1, currentParticipantIndex + 1),
-    )
+    void setCurrentParticipantIndex(Math.min(participants.length - 1, currentParticipantIndex + 1))
   }, [currentParticipantIndex, participants.length, setCurrentParticipantIndex])
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (isFullscreenOpen) return
-
-      if (
-        event.target instanceof HTMLTextAreaElement ||
-        event.target instanceof HTMLInputElement
-      ) {
-        return
-      }
-
-      if (event.metaKey || event.ctrlKey || event.altKey) return
-
-      switch (event.key) {
-        case "ArrowLeft":
-          event.preventDefault()
-          goToPrev()
-          break
-        case "ArrowRight":
-          event.preventDefault()
-          goToNext()
-          break
-        case "Escape":
-          event.preventDefault()
-          onBack()
-          break
-        case "0":
-        case "1":
-        case "2":
-        case "3":
-        case "4":
-        case "5":
-          event.preventDefault()
-          handleRatingClick(Number(event.key))
-          break
-        case "]":
-          event.preventDefault()
-          handleRatingClick(Math.min(5, localRating + 1))
-          break
-        case "[":
-          event.preventDefault()
-          handleRatingClick(Math.max(0, localRating - 1))
-          break
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [
+  useJuryViewerKeyboardShortcuts({
+    isFullscreenOpen,
+    localRating,
     goToPrev,
     goToNext,
-    handleRatingClick,
     onBack,
-    localRating,
-    isFullscreenOpen,
-  ])
+    onRatingClick: handleRatingClick,
+  })
 
   const handleNotesChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -347,6 +243,21 @@ export function JurySubmissionViewer({
     },
     [localFinalRanking, localRating, saveRating],
   )
+
+  const visibleTotal = totalParticipants
+
+  const rankOccupants = useMemo(() => {
+    const base = getRankAssignments(ratings)
+    if (currentParticipantId) {
+      for (const [rank, pid] of base) {
+        if (pid === currentParticipantId) base.delete(rank)
+      }
+      if (localFinalRanking !== null) {
+        base.set(localFinalRanking, currentParticipantId)
+      }
+    }
+    return base
+  }, [ratings, currentParticipantId, localFinalRanking])
 
   if (!currentParticipant) {
     return (
@@ -370,21 +281,6 @@ export function JurySubmissionViewer({
     )
   }
 
-  const visibleTotal = totalParticipants
-
-  const rankOccupants = useMemo(() => {
-    const base = getRankAssignments(ratings)
-    if (currentParticipantId) {
-      for (const [rank, pid] of base) {
-        if (pid === currentParticipantId) base.delete(rank)
-      }
-      if (localFinalRanking !== null) {
-        base.set(localFinalRanking, currentParticipantId)
-      }
-    }
-    return base
-  }, [ratings, currentParticipantId, localFinalRanking])
-
   return (
     <>
       <AlertDialog
@@ -407,7 +303,8 @@ export function JurySubmissionViewer({
                 ? `This will remove #${currentParticipant.reference} from ${getFinalRankingLabel(pendingRank)} place.`
                 : pendingRank !== null
                   ? `This will assign #${currentParticipant.reference} as your ${getFinalRankingLabel(pendingRank)} place pick.${
-                      rankOccupants.has(pendingRank) && rankOccupants.get(pendingRank) !== currentParticipantId
+                      rankOccupants.has(pendingRank) &&
+                      rankOccupants.get(pendingRank) !== currentParticipantId
                         ? ` The current ${getFinalRankingLabel(pendingRank)} place holder will be replaced.`
                         : ""
                     }`
@@ -417,9 +314,7 @@ export function JurySubmissionViewer({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmFinalRanking}>
-              {pendingRank !== null && localFinalRanking === pendingRank
-                ? "Remove"
-                : "Assign"}
+              {pendingRank !== null && localFinalRanking === pendingRank ? "Remove" : "Assign"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -486,9 +381,7 @@ export function JurySubmissionViewer({
                 src={currentAssetUrl}
                 alt={currentParticipant.reference}
                 className="max-h-[75vh] max-w-full object-contain"
-                onError={() =>
-                  setImageErrors((prev) => new Set(prev).add(currentAssetId))
-                }
+                onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
               />
             ) : (
               <div className="flex max-w-sm flex-col items-center justify-center px-6 text-center">

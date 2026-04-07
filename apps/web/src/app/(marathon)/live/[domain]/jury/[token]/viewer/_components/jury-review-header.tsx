@@ -31,10 +31,10 @@ import {
 } from "../_lib/jury-final-ranking-state"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
 import { ProgressRing } from "./jury-progress-ring"
+import { useDomain } from "@/lib/domain-provider"
+import { useJuryClientToken } from "../../_components/jury-client-token-provider"
 
 export function JuryReviewHeader({
-  domain,
-  token,
   invitation,
   ratedCount,
   totalParticipants,
@@ -44,8 +44,6 @@ export function JuryReviewHeader({
   participants,
   onParticipantSelect,
 }: {
-  domain: string
-  token: string
   invitation: JuryInvitation
   ratedCount: number
   totalParticipants: number
@@ -55,6 +53,8 @@ export function JuryReviewHeader({
   participants: JuryListParticipant[]
   onParticipantSelect: (participantId: number, index: number) => void
 }) {
+  const domain = useDomain()
+  const token = useJuryClientToken()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const router = useRouter()

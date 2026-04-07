@@ -42,7 +42,7 @@ const _JuryViewerPage = Effect.fn("@blikka/web/JuryViewerPage")(
     return (
       <HydrateClient>
         <Suspense fallback={<Splash />}>
-          <JuryReviewClient domain={domain} token={token} />
+          <JuryReviewClient />
         </Suspense>
       </HydrateClient>
     )

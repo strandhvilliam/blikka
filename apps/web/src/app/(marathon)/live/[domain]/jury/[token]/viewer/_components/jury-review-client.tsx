@@ -14,6 +14,8 @@ import {
   parseAsStringLiteral,
   useQueryState,
 } from "nuqs"
+import { useDomain } from "@/lib/domain-provider"
+import { useJuryClientToken } from "../../_components/jury-client-token-provider"
 import { JuryParticipantList } from "./jury-participant-list"
 import { JuryReviewHeader } from "./jury-review-header"
 import { JurySubmissionViewer } from "./jury-submission-viewer"
@@ -25,14 +27,10 @@ import type { JuryListParticipant } from "../_lib/jury-list-participant"
 
 export type ViewMode = "compact" | "grid"
 
-export function JuryReviewClient({
-  domain,
-  token,
-}: {
-  domain: string
-  token: string
-}) {
+export function JuryReviewClient() {
   const trpc = useTRPC()
+  const domain = useDomain()
+  const token = useJuryClientToken()
   const [isFilterPending, startFilterTransition] = useTransition()
   const [selectedParticipantId, setSelectedParticipantId] = useQueryState(
     "participant",
@@ -193,8 +191,6 @@ export function JuryReviewClient({
     <main className="min-h-dvh bg-neutral-50 bg-dot-pattern-light">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 py-5 md:px-6 md:py-6">
         <JuryReviewHeader
-          domain={domain}
-          token={token}
           invitation={invitation}
           ratedCount={ratingsData.ratings.length}
           totalParticipants={reviewSetTotalParticipants}
@@ -207,8 +203,6 @@ export function JuryReviewClient({
 
         {shouldShowViewer ? (
           <JurySubmissionViewer
-            domain={domain}
-            token={token}
             invitation={invitation}
             participants={participants}
             initialIndex={selectedIndex}
