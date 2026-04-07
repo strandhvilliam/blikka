@@ -13,16 +13,16 @@ import {
   getRankAssignments,
 } from "../_lib/jury-final-ranking-state";
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge";
+import { useJuryReviewQueryState } from "../_hooks/use-jury-review-query-state";
 
 export function JuryTopPicksPanel({
   ratings,
   participants,
-  onParticipantSelect,
 }: {
   ratings: JuryRatingsResponse["ratings"];
   participants: JuryListParticipant[];
-  onParticipantSelect: (participantId: number, index: number) => void;
 }) {
+  const { selectParticipant } = useJuryReviewQueryState();
   const rankAssignments = useMemo(() => getRankAssignments(ratings), [ratings]);
   const participantMap = useMemo(
     () => new Map(participants.map((p) => [p.id, p])),
@@ -79,7 +79,7 @@ export function JuryTopPicksPanel({
               (p) => p.id === participantId,
             );
             if (index >= 0) {
-              onParticipantSelect(participantId, index);
+              selectParticipant(participantId, index);
             }
           };
 

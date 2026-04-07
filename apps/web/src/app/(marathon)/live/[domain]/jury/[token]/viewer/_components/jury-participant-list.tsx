@@ -4,12 +4,16 @@ import { useEffect, useRef, useMemo, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Grid2x2, List, Loader2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { JuryRatingsResponse } from "../../_lib/jury-types"
+import { useTRPC } from "@/lib/trpc/client"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { useDomain } from "@/lib/domain-provider"
+import { useJuryClientToken } from "../../_components/jury-client-token-provider"
 import type { JuryListParticipant } from "../_lib/jury-list-participant"
+import type { ViewMode } from "../_lib/jury-view-mode"
+import { useJuryReviewQueryState } from "../_hooks/use-jury-review-query-state"
+import { useJuryReviewData } from "./jury-review-data-provider"
 import { JuryParticipantCard } from "./jury-participant-card"
 import { RatingFilterBar } from "./rating-filter"
-import type { ViewMode } from "./jury-review-client"
-
 const COMPACT_ROW_HEIGHT = 68
 const GRID_ROW_HEIGHT = 260
 const GAP = 12
@@ -38,40 +42,36 @@ function useGridColumnCount(viewMode: ViewMode) {
 }
 
 export function JuryParticipantList({
-  participants,
-  ratings,
-  ratingByParticipantId,
-  selectedRatings,
-  toggleRatingFilter,
-  clearRatingFilter,
-  onParticipantSelect,
-  fetchNextPage,
-  hasNextPage,
-  isFetchingNextPage,
-  isPendingParticipants,
   isRefreshingResults,
-  totalParticipants,
-  error,
-  viewMode,
-  onViewModeChange,
 }: {
-  participants: JuryListParticipant[]
-  ratings: JuryRatingsResponse["ratings"]
-  ratingByParticipantId: Map<number, JuryRatingsResponse["ratings"][number]>
-  selectedRatings: number[]
-  toggleRatingFilter: (rating: number) => void
-  clearRatingFilter: () => void
-  onParticipantSelect: (participantId: number, index: number) => void
-  fetchNextPage: () => void
-  hasNextPage: boolean
-  isFetchingNextPage: boolean
-  isPendingParticipants: boolean
   isRefreshingResults: boolean
-  totalParticipants?: { value: number }
-  error: Error | null
-  viewMode: ViewMode
-  onViewModeChange: (mode: ViewMode) => void
 }) {
+  const {
+    participants,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending: isPendingParticipants,
+    totalParticipants,
+    error,
+  } = useJuryReviewData()
+  const { viewMode, selectedRatings, selectParticipant } =
+    useJuryReviewQueryState()
+  const domain = useDomain()
+  const token = useJuryClientToken()
+  const trpc = useTRPC()
+  const { data: ratingsData } = useSuspenseQuery(
+    trpc.jury.getJuryRatingsByInvitation.queryOptions({ domain, token }),
+  )
+  const ratingByParticipantId = useMemo(
+    () =>
+      new Map(
+        ratingsData.ratings.map(
+          (rating) => [rating.participantId, rating] as const,
+        ),
+      ),
+    [ratingsData.ratings],
+  )
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const totalMatchingParticipants =
     totalParticipants?.value ?? participants.length
@@ -148,11 +148,6 @@ export function JuryParticipantList({
               : "0 participants"
           }
           isRefreshingResults={isRefreshingResults}
-          selectedRatings={selectedRatings}
-          toggleRatingFilter={toggleRatingFilter}
-          clearRatingFilter={clearRatingFilter}
-          viewMode={viewMode}
-          onViewModeChange={onViewModeChange}
         />
         <div className="rounded-2xl border border-border/60 bg-white px-6 py-16 text-center">
           <h2 className="font-gothic text-xl font-bold text-brand-black">
@@ -173,11 +168,6 @@ export function JuryParticipantList({
       <ListToolbar
         participantSummary={isInitialLoading ? "" : participantSummary}
         isRefreshingResults={isInitialLoading ? false : isRefreshingResults}
-        selectedRatings={selectedRatings}
-        toggleRatingFilter={toggleRatingFilter}
-        clearRatingFilter={clearRatingFilter}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
         isPending={isInitialLoading}
       />
 
@@ -235,7 +225,9 @@ export function JuryParticipantList({
                           participant={participant}
                           rating={rating}
                           finalRanking={finalRanking}
-                          onClick={() => onParticipantSelect(participant.id, index)}
+                          onClick={() =>
+                            selectParticipant(participant.id, index)
+                          }
                           variant={viewMode}
                         />
                       )
@@ -263,22 +255,20 @@ export function JuryParticipantList({
 function ListToolbar({
   participantSummary,
   isRefreshingResults,
-  selectedRatings,
-  toggleRatingFilter,
-  clearRatingFilter,
-  viewMode,
-  onViewModeChange,
   isPending = false,
 }: {
   participantSummary: string
   isRefreshingResults: boolean
-  selectedRatings: number[]
-  toggleRatingFilter: (rating: number) => void
-  clearRatingFilter: () => void
-  viewMode: ViewMode
-  onViewModeChange: (mode: ViewMode) => void
   isPending?: boolean
 }) {
+  const {
+    viewMode,
+    setViewMode,
+    selectedRatings,
+    toggleRatingFilter,
+    clearRatingFilter,
+  } = useJuryReviewQueryState()
+
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-3">
@@ -315,7 +305,7 @@ function ListToolbar({
         <div className="flex items-center rounded-xl border border-border/60 bg-white">
           <button
             type="button"
-            onClick={() => onViewModeChange("grid")}
+            onClick={() => void setViewMode("grid")}
             className={`rounded-l-xl px-2.5 py-2 transition-colors ${
               viewMode === "grid"
                 ? "bg-neutral-100 text-brand-black"
@@ -327,7 +317,7 @@ function ListToolbar({
           </button>
           <button
             type="button"
-            onClick={() => onViewModeChange("compact")}
+            onClick={() => void setViewMode("compact")}
             className={`rounded-r-xl px-2.5 py-2 transition-colors ${
               viewMode === "compact"
                 ? "bg-neutral-100 text-brand-black"

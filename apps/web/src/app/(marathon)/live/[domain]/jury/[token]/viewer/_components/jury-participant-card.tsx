@@ -6,7 +6,7 @@ import { getFinalRankingLabel } from "../_lib/jury-final-ranking-state"
 import { getParticipantPreview } from "../_lib/jury-list-participant"
 import { juryRankChipCardBadge } from "../_lib/jury-rank-chip-classes"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
-import type { ViewMode } from "./jury-review-client"
+import type { ViewMode } from "../_lib/jury-view-mode"
 
 function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "xs" }) {
   const iconClass = size === "sm" ? "h-3.5 w-3.5" : "h-3 w-3"
@@ -67,7 +67,9 @@ function CompactCard({
               {participant.reference}
             </span>
             {finalRanking !== null ? (
-              <span className={`${juryRankChipCardBadge} pointer-events-none scale-90 tracking-wide`}>
+              <span
+                className={`${juryRankChipCardBadge} pointer-events-none scale-90 tracking-wide`}
+              >
                 <JuryRankTrophyBadge rank={finalRanking} tone="idle" size="sm" />
                 {getFinalRankingLabel(finalRanking)}
               </span>
@@ -133,7 +135,9 @@ function GridCard({
               {participant.reference}
             </span>
             {finalRanking !== null ? (
-              <span className={`${juryRankChipCardBadge} pointer-events-none scale-90 tracking-wide`}>
+              <span
+                className={`${juryRankChipCardBadge} pointer-events-none scale-90 tracking-wide`}
+              >
                 <JuryRankTrophyBadge rank={finalRanking} tone="idle" size="sm" />
                 {getFinalRankingLabel(finalRanking)}
               </span>

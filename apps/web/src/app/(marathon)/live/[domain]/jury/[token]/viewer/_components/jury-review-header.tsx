@@ -14,48 +14,48 @@ import {
 } from "@/components/ui/alert-dialog"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { CheckCircle2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { getJuryCompletedPath } from "../../_lib/jury-paths"
-import type { JuryInvitation, JuryRatingsResponse } from "../../_lib/jury-types"
-import type { JuryListParticipant } from "../_lib/jury-list-participant"
+import { useJuryReviewData } from "./jury-review-data-provider"
 import {
   juryRankChipNeutralOccupied,
   juryRankChipNeutralPlaceholder,
 } from "../_lib/jury-rank-chip-classes"
 import {
+  getAssignedFinalRankingCount,
   getFinalRankingLabel,
   getRankAssignments,
+  hasCompleteFinalRankings,
 } from "../_lib/jury-final-ranking-state"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
-import { ProgressRing } from "./jury-progress-ring"
 import { useDomain } from "@/lib/domain-provider"
 import { useJuryClientToken } from "../../_components/jury-client-token-provider"
+import { useJuryReviewQueryState } from "../_hooks/use-jury-review-query-state"
+import dynamic from "next/dynamic"
 
-export function JuryReviewHeader({
-  invitation,
-  ratedCount,
-  totalParticipants,
-  assignedFinalRankingCount,
-  canCompleteReview,
-  ratings,
-  participants,
-  onParticipantSelect,
-}: {
-  invitation: JuryInvitation
-  ratedCount: number
-  totalParticipants: number
-  assignedFinalRankingCount: number
-  canCompleteReview: boolean
-  ratings: JuryRatingsResponse["ratings"]
-  participants: JuryListParticipant[]
-  onParticipantSelect: (participantId: number, index: number) => void
-}) {
+const ProgressRing = dynamic(() => import("./jury-progress-ring").then((mod) => mod.ProgressRing), {
+  ssr: false,
+})
+
+export function JuryReviewHeader() {
+  const { selectParticipant } = useJuryReviewQueryState()
+  const { participants, reviewSetTotalParticipants: totalParticipants } = useJuryReviewData()
   const domain = useDomain()
   const token = useJuryClientToken()
   const trpc = useTRPC()
+  const { data: invitation } = useSuspenseQuery(
+    trpc.jury.verifyTokenAndGetInitialData.queryOptions({ domain, token }),
+  )
+  const { data: ratingsData } = useSuspenseQuery(
+    trpc.jury.getJuryRatingsByInvitation.queryOptions({ domain, token }),
+  )
+  const ratings = ratingsData.ratings
+  const ratedCount = ratings.length
+  const assignedFinalRankingCount = getAssignedFinalRankingCount(ratings)
+  const canCompleteReview = hasCompleteFinalRankings(ratings)
   const queryClient = useQueryClient()
   const router = useRouter()
 
@@ -75,10 +75,7 @@ export function JuryReviewHeader({
   )
 
   const rankAssignments = useMemo(() => getRankAssignments(ratings), [ratings])
-  const participantMap = useMemo(
-    () => new Map(participants.map((p) => [p.id, p])),
-    [participants],
-  )
+  const participantMap = useMemo(() => new Map(participants.map((p) => [p.id, p])), [participants])
   const topPicksCount = rankAssignments.size
   const topPicksComplete = topPicksCount === 3
 
@@ -101,9 +98,7 @@ export function JuryReviewHeader({
             <h1 className="font-gothic text-2xl font-bold tracking-tight text-brand-black">
               Jury Review
             </h1>
-            <p className="mt-0.5 text-sm text-brand-gray">
-              {invitation.marathon.name}
-            </p>
+            <p className="mt-0.5 text-sm text-brand-gray">{invitation.marathon.name}</p>
           </div>
           <div className="ml-2 hidden flex-wrap gap-1.5 lg:flex">
             {invitation.topic?.name ? (
@@ -161,9 +156,8 @@ export function JuryReviewHeader({
               <AlertDialogHeader>
                 <AlertDialogTitle>Complete review</AlertDialogTitle>
                 <AlertDialogDescription>
-                  You must choose 1st, 2nd, and 3rd place before completing this
-                  review. You will no longer be able to edit ratings after
-                  marking it as completed.
+                  You must choose 1st, 2nd, and 3rd place before completing this review. You will no
+                  longer be able to edit ratings after marking it as completed.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -178,9 +172,7 @@ export function JuryReviewHeader({
                     })
                   }
                 >
-                  {completeMutation.isPending
-                    ? "Completing..."
-                    : "Complete review"}
+                  {completeMutation.isPending ? "Completing..." : "Complete review"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -207,21 +199,14 @@ export function JuryReviewHeader({
           {([1, 2, 3] as const).map((rank) => {
             const participantId = rankAssignments.get(rank) ?? null
             const participant =
-              participantId !== null
-                ? (participantMap.get(participantId) ?? null)
-                : null
+              participantId !== null ? (participantMap.get(participantId) ?? null) : null
 
             if (participantId === null) {
               return (
-                <span
-                  key={rank}
-                  className={`${juryRankChipNeutralPlaceholder} cursor-default`}
-                >
+                <span key={rank} className={`${juryRankChipNeutralPlaceholder} cursor-default`}>
                   <JuryRankTrophyBadge rank={rank} tone="idle" />
                   {getFinalRankingLabel(rank)}
-                  <span className="text-xs font-normal text-brand-gray">
-                    Not Set
-                  </span>
+                  <span className="text-xs font-normal text-brand-gray">Not Set</span>
                 </span>
               )
             }
@@ -229,11 +214,9 @@ export function JuryReviewHeader({
             const canNavigate = participant !== null
             const handleClick = () => {
               if (!canNavigate) return
-              const index = participants.findIndex(
-                (p) => p.id === participantId,
-              )
+              const index = participants.findIndex((p) => p.id === participantId)
               if (index >= 0) {
-                onParticipantSelect(participantId, index)
+                selectParticipant(participantId, index)
               }
             }
 
@@ -252,9 +235,7 @@ export function JuryReviewHeader({
                     #{participant.reference}
                   </span>
                 ) : (
-                  <span className="text-xs font-normal text-brand-gray">
-                    Not Set
-                  </span>
+                  <span className="text-xs font-normal text-brand-gray">Not Set</span>
                 )}
               </button>
             )

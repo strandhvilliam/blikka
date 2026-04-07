@@ -1,239 +1,62 @@
 "use client"
 
-import { useCallback, useMemo, useTransition } from "react"
+import { useMemo } from "react"
 import {
-  keepPreviousData,
-  useInfiniteQuery,
-  useQuery,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
+  resolveJuryReviewParticipantIndex,
+  useJuryReviewQueryState,
+} from "../_hooks/use-jury-review-query-state"
 import {
-  parseAsArrayOf,
-  parseAsInteger,
-  parseAsStringLiteral,
-  useQueryState,
-} from "nuqs"
-import { useDomain } from "@/lib/domain-provider"
-import { useJuryClientToken } from "../../_components/jury-client-token-provider"
+  JuryReviewDataProvider,
+  useJuryReviewData,
+} from "./jury-review-data-provider"
 import { JuryParticipantList } from "./jury-participant-list"
 import { JuryReviewHeader } from "./jury-review-header"
 import { JurySubmissionViewer } from "./jury-submission-viewer"
-import {
-  getAssignedFinalRankingCount,
-  hasCompleteFinalRankings,
-} from "../_lib/jury-final-ranking-state"
-import type { JuryListParticipant } from "../_lib/jury-list-participant"
 
-export type ViewMode = "compact" | "grid"
+export type { ViewMode } from "../_lib/jury-view-mode"
 
 export function JuryReviewClient() {
-  const trpc = useTRPC()
-  const domain = useDomain()
-  const token = useJuryClientToken()
-  const [isFilterPending, startFilterTransition] = useTransition()
-  const [selectedParticipantId, setSelectedParticipantId] = useQueryState(
-    "participant",
-    parseAsInteger,
+  return (
+    <JuryReviewDataProvider>
+      <JuryReviewClientContent />
+    </JuryReviewDataProvider>
   )
-  const [currentParticipantIndex, setCurrentParticipantIndex] = useQueryState(
-    "index",
-    parseAsInteger.withDefault(0),
-  )
-  const [selectedRatings, setSelectedRatings] = useQueryState(
-    "ratings",
-    parseAsArrayOf(parseAsInteger).withDefault([]),
-  )
-  const [viewMode, setViewMode] = useQueryState(
-    "view",
-    parseAsStringLiteral(["compact", "grid"] as const).withDefault("grid"),
-  )
+}
 
-  const { data: invitation } = useSuspenseQuery(
-    trpc.jury.verifyTokenAndGetInitialData.queryOptions({ domain, token }),
-  )
-  const { data: ratingsData } = useSuspenseQuery(
-    trpc.jury.getJuryRatingsByInvitation.queryOptions({ domain, token }),
-  )
-  const { data: reviewSetParticipantCount } = useQuery(
-    trpc.jury.getJuryParticipantCount.queryOptions({
-      domain,
-      token,
-    }),
-  )
-
+function JuryReviewClientContent() {
   const {
-    data: filteredParticipantCount,
-    isFetching: isFetchingParticipantCount,
-  } = useQuery(
-    trpc.jury.getJuryParticipantCount.queryOptions(
-      {
-        domain,
-        token,
-        ratingFilter: selectedRatings.length > 0 ? selectedRatings : undefined,
-      },
-      {
-        placeholderData: keepPreviousData,
-      },
-    ),
-  )
-
-  const totalParticipants =
-    selectedRatings.length > 0
-      ? filteredParticipantCount
-      : (reviewSetParticipantCount ?? filteredParticipantCount)
-
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage = false,
+    participants,
     isFetching,
     isFetchingNextPage,
-    isPending,
-    error,
-  } = useInfiniteQuery(
-    trpc.jury.getJurySubmissionsFromToken.infiniteQueryOptions(
-      {
-        domain,
-        token,
-        ratingFilter: selectedRatings.length > 0 ? selectedRatings : undefined,
-      },
-      {
-        getNextPageParam: (lastPage) => lastPage?.nextCursor,
-        placeholderData: keepPreviousData,
-      },
-    ),
-  )
+    isFetchingParticipantCount,
+  } = useJuryReviewData()
+  const { selectedParticipantId, currentParticipantIndex } =
+    useJuryReviewQueryState()
 
-  const participants = useMemo(
+  const selectedIndex = useMemo(
     () =>
-      (data?.pages ?? []).flatMap(
-        (page) => page.participants,
-      ) as JuryListParticipant[],
-    [data?.pages],
-  )
-
-  const reviewSetTotalParticipants =
-    reviewSetParticipantCount?.value ??
-    totalParticipants?.value ??
-    participants.length
-
-  const ratingByParticipantId = useMemo(
-    () =>
-      new Map(
-        ratingsData.ratings.map((rating) => [rating.participantId, rating]),
+      resolveJuryReviewParticipantIndex(
+        participants,
+        selectedParticipantId,
+        currentParticipantIndex,
       ),
-    [ratingsData.ratings],
+    [currentParticipantIndex, participants, selectedParticipantId],
   )
-  const assignedFinalRankingCount = getAssignedFinalRankingCount(
-    ratingsData.ratings,
-  )
-  const canCompleteReview = hasCompleteFinalRankings(ratingsData.ratings)
-
-  const handleParticipantSelect = useCallback(
-    (participantId: number, index: number) => {
-      void setCurrentParticipantIndex(index)
-      void setSelectedParticipantId(participantId)
-    },
-    [setCurrentParticipantIndex, setSelectedParticipantId],
-  )
-
-  const handleBackToList = useCallback(() => {
-    void setSelectedParticipantId(null)
-    void setCurrentParticipantIndex(0)
-  }, [setCurrentParticipantIndex, setSelectedParticipantId])
-
-  const clearRatingFilter = useCallback(() => {
-    startFilterTransition(() => {
-      void setSelectedParticipantId(null)
-      void setCurrentParticipantIndex(0)
-      void setSelectedRatings([])
-    })
-  }, [
-    setCurrentParticipantIndex,
-    setSelectedParticipantId,
-    setSelectedRatings,
-  ])
-
-  const toggleRatingFilter = useCallback(
-    (rating: number) => {
-      startFilterTransition(() => {
-        void setSelectedParticipantId(null)
-        void setCurrentParticipantIndex(0)
-        void setSelectedRatings((previous) => {
-          const nextRatings = previous.includes(rating) ? [] : [rating]
-          return nextRatings.toSorted((left, right) => left - right)
-        })
-      })
-    },
-    [setCurrentParticipantIndex, setSelectedParticipantId, setSelectedRatings],
-  )
-
-  const selectedIndex = useMemo(() => {
-    if (selectedParticipantId === null) {
-      return currentParticipantIndex
-    }
-
-    const index = participants.findIndex(
-      (participant) => participant.id === selectedParticipantId,
-    )
-    return index >= 0 ? index : 0
-  }, [currentParticipantIndex, participants, selectedParticipantId])
 
   const isRefreshingResults =
-    isFilterPending ||
-    isFetchingParticipantCount ||
-    (isFetching && !isFetchingNextPage)
+    isFetchingParticipantCount || (isFetching && !isFetchingNextPage)
   const shouldShowViewer =
     selectedParticipantId !== null && participants.length > 0
 
   return (
     <main className="min-h-dvh bg-neutral-50 bg-dot-pattern-light">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 py-5 md:px-6 md:py-6">
-        <JuryReviewHeader
-          invitation={invitation}
-          ratedCount={ratingsData.ratings.length}
-          totalParticipants={reviewSetTotalParticipants}
-          assignedFinalRankingCount={assignedFinalRankingCount}
-          canCompleteReview={canCompleteReview}
-          ratings={ratingsData.ratings}
-          participants={participants}
-          onParticipantSelect={handleParticipantSelect}
-        />
+        <JuryReviewHeader />
 
         {shouldShowViewer ? (
-          <JurySubmissionViewer
-            invitation={invitation}
-            participants={participants}
-            initialIndex={selectedIndex}
-            selectedRatings={selectedRatings}
-            ratings={ratingsData.ratings}
-            totalParticipants={totalParticipants?.value ?? participants.length}
-            fetchNextPage={fetchNextPage}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            ratingByParticipantId={ratingByParticipantId}
-            onBack={handleBackToList}
-          />
+          <JurySubmissionViewer initialIndex={selectedIndex} />
         ) : (
-          <JuryParticipantList
-            participants={participants}
-            ratings={ratingsData.ratings}
-            ratingByParticipantId={ratingByParticipantId}
-            selectedRatings={selectedRatings}
-            toggleRatingFilter={toggleRatingFilter}
-            clearRatingFilter={clearRatingFilter}
-            onParticipantSelect={handleParticipantSelect}
-            fetchNextPage={fetchNextPage}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            isPendingParticipants={isPending}
-            isRefreshingResults={isRefreshingResults}
-            totalParticipants={totalParticipants}
-            error={error as Error | null}
-            viewMode={viewMode}
-            onViewModeChange={(mode) => void setViewMode(mode)}
-          />
+          <JuryParticipantList isRefreshingResults={isRefreshingResults} />
         )}
       </div>
     </main>

@@ -16,8 +16,7 @@ import { serverRuntime } from "../server-runtime"
 export class TRPCServerError extends Data.TaggedError("TRPCCServerError")<{
   message: string
   cause?: unknown
-}> {
-}
+}> {}
 
 export const getQueryClient = cache(createQueryClient)
 
@@ -62,12 +61,13 @@ export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(query
   }
 }
 
-type QueryOptionsResult<T extends ReturnType<TRPCQueryOptions<any>>> =
-  T extends { queryFn?: QueryFunction<infer TQueryFnData, any> }
+type QueryOptionsResult<T extends ReturnType<TRPCQueryOptions<any>>> = T extends {
+  queryFn?: QueryFunction<infer TQueryFnData, any>
+}
   ? TQueryFnData
   : T["queryFn"] extends (...args: any[]) => infer TResult
-  ? Awaited<TResult>
-  : never
+    ? Awaited<TResult>
+    : never
 
 export function fetchEffectQuery<T extends ReturnType<TRPCQueryOptions<any>>>(
   queryOptions: T,

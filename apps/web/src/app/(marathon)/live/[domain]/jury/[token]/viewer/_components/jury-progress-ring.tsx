@@ -30,9 +30,7 @@ export function ProgressRing({ rated, total }: { rated: number; total: number })
           className="text-brand-primary transition-[stroke-dashoffset] duration-500"
         />
       </svg>
-      <span className="absolute text-[10px] font-bold text-brand-black">
-        {Math.round(pct)}%
-      </span>
+      <span className="absolute text-[10px] font-bold text-brand-black">{Math.round(pct)}%</span>
     </div>
   )
 }

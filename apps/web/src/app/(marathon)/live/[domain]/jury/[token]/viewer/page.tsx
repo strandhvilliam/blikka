@@ -7,13 +7,10 @@ import { redirect } from "next/navigation"
 import { JuryReviewClient } from "./_components/jury-review-client"
 import { getJuryInvitationForRoute } from "../_lib/jury-route"
 import { getJuryCompletedPath, getJuryEntryPath } from "../_lib/jury-paths"
+import { getJurySubmissionsNextPageParam } from "./_lib/jury-utils"
 
 const _JuryViewerPage = Effect.fn("@blikka/web/JuryViewerPage")(
-  function* ({
-    params,
-  }: {
-    params: Promise<{ domain: string; token: string }>
-  }) {
+  function* ({ params }: { params: Promise<{ domain: string; token: string }> }) {
     const { domain, token } = yield* decodeParams(
       Schema.Struct({ domain: Schema.String, token: Schema.String }),
     )(params)
@@ -33,9 +30,7 @@ const _JuryViewerPage = Effect.fn("@blikka/web/JuryViewerPage")(
       trpc.jury.getJuryParticipantCount.queryOptions({ domain, token }),
       trpc.jury.getJurySubmissionsFromToken.infiniteQueryOptions(
         { domain, token },
-        {
-          getNextPageParam: (lastPage) => lastPage?.nextCursor,
-        },
+        { getNextPageParam: getJurySubmissionsNextPageParam },
       ),
     ])
 
@@ -48,11 +43,7 @@ const _JuryViewerPage = Effect.fn("@blikka/web/JuryViewerPage")(
     )
   },
   Effect.catch((error) =>
-    Effect.succeed(
-      <div>
-        Error: {error instanceof Error ? error.message : String(error)}
-      </div>,
-    ),
+    Effect.succeed(<div>Error: {error instanceof Error ? error.message : String(error)}</div>),
   ),
 )
 
