@@ -4,7 +4,7 @@ import { useState, Suspense } from "react"
 import { parseAsInteger, useQueryState } from "nuqs"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { Gavel, Plus, Mail } from "lucide-react"
-import { JuryInvitationCreateSheet } from "./jury-create-sheet"
+import { JuryInvitationCreateDialog } from "./jury-invitation-create-dialog"
 import { JuryList } from "./jury-list"
 import { JuryListSkeleton } from "./jury-list-skeleton"
 import { JuryInvitationDetailsContent } from "./jury-invitation-details-content"
@@ -25,7 +25,7 @@ function JuryEmptySelection() {
 }
 
 export function JuryDashboard() {
-  const [createSheetOpen, setCreateSheetOpen] = useState(false)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [invitationId, setInvitationId] = useQueryState("invitation", parseAsInteger)
 
   return (
@@ -45,7 +45,7 @@ export function JuryDashboard() {
               </div>
             </div>
             <PrimaryButton
-              onClick={() => setCreateSheetOpen(true)}
+              onClick={() => setCreateDialogOpen(true)}
               className="h-8 shrink-0 gap-1.5 px-2.5 py-0 text-xs"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -72,9 +72,9 @@ export function JuryDashboard() {
           </Suspense>
         )}
       </div>
-      <JuryInvitationCreateSheet
-        open={createSheetOpen}
-        onOpenChange={setCreateSheetOpen}
+      <JuryInvitationCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
         onInvitationCreated={(id) => void setInvitationId(id)}
       />
     </div>
