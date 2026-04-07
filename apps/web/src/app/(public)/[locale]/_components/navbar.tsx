@@ -4,8 +4,13 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { PublicNavigation } from "@/i18n/navigation.public"
 import { PublicLocaleSwitcher } from "./public-locale-switcher"
-import { Menu, X } from "lucide-react"
+import { Github, Menu, X } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
+
+const GITHUB_REPO_URL = "https://github.com/strandhvilliam/blikka"
+
+const githubNavLinkClassName =
+  "text-brand-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
 
 const navLinks = [
   { href: "#features", label: "Features" },
@@ -91,6 +96,15 @@ export function Navbar() {
             Login
           </PublicNavigation.Link>
           <PublicLocaleSwitcher variant="navbarDark" />
+          <a
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${githubNavLinkClassName} -m-1.5 p-1.5 animate-hero-fade-in-from-top [animation-delay:100ms]`}
+            aria-label="Blikka on GitHub"
+          >
+            <Github className="h-5 w-5" aria-hidden />
+          </a>
           <Link
             href="#pricing"
             className="rounded-full border border-white/30 bg-white/10 px-5 py-2 text-sm text-white backdrop-blur-sm transition-[background-color,color,border-color] hover:bg-white hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
@@ -99,13 +113,24 @@ export function Navbar() {
           </Link>
         </div>
 
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="relative z-70 text-white lg:hidden animate-hero-fade-in-from-top [animation-delay:80ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-1 lg:hidden animate-hero-fade-in-from-top [animation-delay:80ms]">
+          <a
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${githubNavLinkClassName} -m-1.5 p-1.5`}
+            aria-label="Blikka on GitHub"
+          >
+            <Github className="h-6 w-6" aria-hidden />
+          </a>
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="relative z-70 -m-1.5 p-1.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </nav>
 
       <AnimatePresence>

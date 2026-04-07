@@ -21,6 +21,7 @@ const socialLinks = [
   { label: "Twitter", href: "https://x.com/villiamstrandh" },
   { label: "Instagram", href: "https://www.instagram.com/stockholmfotomaraton" },
   { label: "LinkedIn", href: "https://www.linkedin.com/in/villiam-strandh/" },
+  { label: "GitHub", href: "https://github.com/strandhvilliam/blikka" },
 ]
 
 export function Footer() {

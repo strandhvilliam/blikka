@@ -1,6 +1,6 @@
-import "server-only";
+import "server-only"
 
-import { Effect } from "effect";
+import { Effect } from "effect"
 import {
   GetVotingSessionSchema,
   StartVotingSessionsSchema,
@@ -23,21 +23,22 @@ import {
   SubmitVoteSchema,
   ClearVoteSchema,
   DeleteVotingSessionSchema,
-} from "./schemas";
-import { trpcEffect } from "../../utils";
+} from "./schemas"
+import { trpcEffect } from "../../utils"
 import {
   createTRPCRouter,
   domainProcedure,
   publicProcedure,
   requireMatchingInputDomainMiddleware,
-} from "../../root";
-import { VotingApiService } from "./service";
+} from "../../root"
+import { VotingApiService } from "./service"
 
 export const votingRouter = createTRPCRouter({
   getVotingSession: publicProcedure.input(GetVotingSessionSchema).query(
     trpcEffect(
       Effect.fn("VotingRouter.getVotingSession")(function* ({ input }) {
-        return yield* VotingApiService.use((s) => s.getVotingSession(input));
+        const votingApiService = yield* VotingApiService
+        return yield* votingApiService.getVotingSession(input)
       }),
     ),
   ),
@@ -48,9 +49,7 @@ export const votingRouter = createTRPCRouter({
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.startVotingSessions")(function* ({ input }) {
-          return yield* VotingApiService.use((s) =>
-            s.startVotingSessions(input),
-          );
+          return yield* VotingApiService.use((s) => s.startVotingSessions(input))
         }),
       ),
     ),
@@ -61,9 +60,7 @@ export const votingRouter = createTRPCRouter({
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.setTopicVotingWindow")(function* ({ input }) {
-          return yield* VotingApiService.use((s) =>
-            s.setTopicVotingWindow(input),
-          );
+          return yield* VotingApiService.use((s) => s.setTopicVotingWindow(input))
         }),
       ),
     ),
@@ -74,9 +71,7 @@ export const votingRouter = createTRPCRouter({
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.closeTopicVotingWindow")(function* ({ input }) {
-          return yield* VotingApiService.use((s) =>
-            s.closeTopicVotingWindow(input),
-          );
+          return yield* VotingApiService.use((s) => s.closeTopicVotingWindow(input))
         }),
       ),
     ),
@@ -86,12 +81,8 @@ export const votingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("VotingRouter.reopenTopicVotingWindow")(function* ({
-          input,
-        }) {
-          return yield* VotingApiService.use((s) =>
-            s.reopenTopicVotingWindow(input),
-          );
+        Effect.fn("VotingRouter.reopenTopicVotingWindow")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.reopenTopicVotingWindow(input))
         }),
       ),
     ),
@@ -102,9 +93,7 @@ export const votingRouter = createTRPCRouter({
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.startTiebreakRound")(function* ({ input }) {
-          return yield* VotingApiService.use((s) =>
-            s.startTiebreakRound(input),
-          );
+          return yield* VotingApiService.use((s) => s.startTiebreakRound(input))
         }),
       ),
     ),
@@ -115,9 +104,7 @@ export const votingRouter = createTRPCRouter({
     .query(
       trpcEffect(
         Effect.fn("VotingRouter.getSubmissionVoteStats")(function* ({ input }) {
-          return yield* VotingApiService.use((s) =>
-            s.getSubmissionVoteStats(input),
-          );
+          return yield* VotingApiService.use((s) => s.getSubmissionVoteStats(input))
         }),
       ),
     ),
@@ -127,12 +114,10 @@ export const votingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("VotingRouter.createOrUpdateVotingSession")(function* ({
-          input,
-        }) {
+        Effect.fn("VotingRouter.createOrUpdateVotingSession")(function* ({ input }) {
           return yield* VotingApiService.use((s) =>
             s.createOrUpdateVotingSessionForParticipant(input),
-          );
+          )
         }),
       ),
     ),
@@ -142,12 +127,8 @@ export const votingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("VotingRouter.getVotingSessionByParticipant")(function* ({
-          input,
-        }) {
-          return yield* VotingApiService.use((s) =>
-            s.getVotingSessionByParticipant(input),
-          );
+        Effect.fn("VotingRouter.getVotingSessionByParticipant")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.getVotingSessionByParticipant(input))
         }),
       ),
     ),
@@ -158,9 +139,7 @@ export const votingRouter = createTRPCRouter({
     .query(
       trpcEffect(
         Effect.fn("VotingRouter.getVotingAdminSummary")(function* ({ input }) {
-          return yield* VotingApiService.use((s) =>
-            s.getVotingAdminSummary(input),
-          );
+          return yield* VotingApiService.use((s) => s.getVotingAdminSummary(input))
         }),
       ),
     ),
@@ -170,13 +149,9 @@ export const votingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("VotingRouter.getParticipantsWithoutVotingSession")(
-          function* ({ input }) {
-            return yield* VotingApiService.use((s) =>
-              s.getParticipantsWithoutVotingSession(input),
-            );
-          },
-        ),
+        Effect.fn("VotingRouter.getParticipantsWithoutVotingSession")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.getParticipantsWithoutVotingSession(input))
+        }),
       ),
     ),
 
@@ -185,13 +160,9 @@ export const votingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("VotingRouter.startVotingSessionsForParticipants")(
-          function* ({ input }) {
-            return yield* VotingApiService.use((s) =>
-              s.startVotingSessionsForParticipants(input),
-            );
-          },
-        ),
+        Effect.fn("VotingRouter.startVotingSessionsForParticipants")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.startVotingSessionsForParticipants(input))
+        }),
       ),
     ),
 
@@ -200,12 +171,8 @@ export const votingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("VotingRouter.getVotingRoundsForTopic")(function* ({
-          input,
-        }) {
-          return yield* VotingApiService.use((s) =>
-            s.getVotingRoundsForTopic(input),
-          );
+        Effect.fn("VotingRouter.getVotingRoundsForTopic")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.getVotingRoundsForTopic(input))
         }),
       ),
     ),
@@ -215,12 +182,8 @@ export const votingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("VotingRouter.getVotingLeaderboardPage")(function* ({
-          input,
-        }) {
-          return yield* VotingApiService.use((s) =>
-            s.getVotingLeaderboardPage(input),
-          );
+        Effect.fn("VotingRouter.getVotingLeaderboardPage")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.getVotingLeaderboardPage(input))
         }),
       ),
     ),
@@ -231,9 +194,7 @@ export const votingRouter = createTRPCRouter({
     .query(
       trpcEffect(
         Effect.fn("VotingRouter.getVotingVotersPage")(function* ({ input }) {
-          return yield* VotingApiService.use((s) =>
-            s.getVotingVotersPage(input),
-          );
+          return yield* VotingApiService.use((s) => s.getVotingVotersPage(input))
         }),
       ),
     ),
@@ -243,12 +204,8 @@ export const votingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("VotingRouter.createManualVotingSession")(function* ({
-          input,
-        }) {
-          return yield* VotingApiService.use((s) =>
-            s.createManualVotingSession(input),
-          );
+        Effect.fn("VotingRouter.createManualVotingSession")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.createManualVotingSession(input))
         }),
       ),
     ),
@@ -258,12 +215,8 @@ export const votingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("VotingRouter.resendVotingSessionNotification")(function* ({
-          input,
-        }) {
-          return yield* VotingApiService.use((s) =>
-            s.resendVotingSessionNotification(input),
-          );
+        Effect.fn("VotingRouter.resendVotingSessionNotification")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.resendVotingSessionNotification(input))
         }),
       ),
     ),
@@ -271,9 +224,7 @@ export const votingRouter = createTRPCRouter({
   getVotingSubmissions: publicProcedure.input(GetVotingSubmissionsSchema).query(
     trpcEffect(
       Effect.fn("VotingRouter.getVotingSubmissions")(function* ({ input }) {
-        return yield* VotingApiService.use((s) =>
-          s.getVotingSubmissions(input),
-        );
+        return yield* VotingApiService.use((s) => s.getVotingSubmissions(input))
       }),
     ),
   ),
@@ -281,7 +232,7 @@ export const votingRouter = createTRPCRouter({
   submitVote: publicProcedure.input(SubmitVoteSchema).mutation(
     trpcEffect(
       Effect.fn("VotingRouter.submitVote")(function* ({ input }) {
-        return yield* VotingApiService.use((s) => s.submitVote(input));
+        return yield* VotingApiService.use((s) => s.submitVote(input))
       }),
     ),
   ),
@@ -292,7 +243,7 @@ export const votingRouter = createTRPCRouter({
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.clearVote")(function* ({ input }) {
-          return yield* VotingApiService.use((s) => s.clearVote(input));
+          return yield* VotingApiService.use((s) => s.clearVote(input))
         }),
       ),
     ),
@@ -303,10 +254,8 @@ export const votingRouter = createTRPCRouter({
     .mutation(
       trpcEffect(
         Effect.fn("VotingRouter.deleteVotingSession")(function* ({ input }) {
-          return yield* VotingApiService.use((s) =>
-            s.deleteVotingSession(input),
-          );
+          return yield* VotingApiService.use((s) => s.deleteVotingSession(input))
         }),
       ),
     ),
-});
+})
