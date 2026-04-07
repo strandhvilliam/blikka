@@ -74,7 +74,7 @@ export default function JuryUnavailablePage() {
                 width={20}
                 height={17}
               />
-              <span className="font-rocgrotesk font-bold text-base tracking-tight">
+              <span className="font-special-gothic text-base tracking-tight">
                 blikka
               </span>
             </div>

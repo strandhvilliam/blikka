@@ -65,6 +65,9 @@ export function JuryTopPicksPanel({
               >
                 <JuryRankTrophyBadge rank={rank} tone="idle" />
                 {getFinalRankingLabel(rank)}
+                <span className="text-xs font-normal text-brand-gray">
+                  Not Set
+                </span>
               </span>
             );
           }
@@ -96,7 +99,7 @@ export function JuryTopPicksPanel({
                 </span>
               ) : (
                 <span className="text-xs font-normal text-brand-gray">
-                  assigned
+                  Not Set
                 </span>
               )}
             </button>

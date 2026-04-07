@@ -12,7 +12,7 @@ export function RatingFilterBar({
   isPending?: boolean
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/60 bg-white px-2.5 py-1.5">
       {[0, 1, 2, 3, 4, 5].map((rating) => {
         const isActive = selectedRatings.includes(rating)
         return (
@@ -21,10 +21,10 @@ export function RatingFilterBar({
             type="button"
             onClick={() => onToggle(rating)}
             aria-busy={isPending}
-            className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
               isActive
                 ? "bg-brand-primary text-white"
-                : "border border-border/60 bg-white text-brand-gray hover:border-brand-primary/30 hover:text-brand-black"
+                : "bg-neutral-50 text-brand-gray hover:bg-neutral-100 hover:text-brand-black"
             } ${isPending ? "opacity-80" : ""}`}
           >
             {rating === 0 ? (

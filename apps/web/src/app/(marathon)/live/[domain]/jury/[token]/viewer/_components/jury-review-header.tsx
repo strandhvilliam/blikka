@@ -1,5 +1,6 @@
-"use client";
+"use client"
 
+import { useMemo } from "react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,16 +11,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { useTRPC } from "@/lib/trpc/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, UserIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { getJuryCompletedPath } from "../../_lib/jury-paths";
-import type { JuryInvitation } from "../../_lib/jury-types";
-import { ProgressRing } from "./jury-progress-ring";
+} from "@/components/ui/alert-dialog"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { useTRPC } from "@/lib/trpc/client"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { CheckCircle2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { getJuryCompletedPath } from "../../_lib/jury-paths"
+import type { JuryInvitation, JuryRatingsResponse } from "../../_lib/jury-types"
+import type { JuryListParticipant } from "../_lib/jury-list-participant"
+import {
+  juryRankChipNeutralOccupied,
+  juryRankChipNeutralPlaceholder,
+} from "../_lib/jury-rank-chip-classes"
+import {
+  getFinalRankingLabel,
+  getRankAssignments,
+} from "../_lib/jury-final-ranking-state"
+import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
+import { ProgressRing } from "./jury-progress-ring"
 
 export function JuryReviewHeader({
   domain,
@@ -29,41 +40,65 @@ export function JuryReviewHeader({
   totalParticipants,
   assignedFinalRankingCount,
   canCompleteReview,
+  ratings,
+  participants,
+  onParticipantSelect,
 }: {
-  domain: string;
-  token: string;
-  invitation: JuryInvitation;
-  ratedCount: number;
-  totalParticipants: number;
-  assignedFinalRankingCount: number;
-  canCompleteReview: boolean;
+  domain: string
+  token: string
+  invitation: JuryInvitation
+  ratedCount: number
+  totalParticipants: number
+  assignedFinalRankingCount: number
+  canCompleteReview: boolean
+  ratings: JuryRatingsResponse["ratings"]
+  participants: JuryListParticipant[]
+  onParticipantSelect: (participantId: number, index: number) => void
 }) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const router = useRouter();
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const router = useRouter()
 
   const completeMutation = useMutation(
     trpc.jury.updateInvitationStatusByToken.mutationOptions({
       onSuccess: async () => {
         await queryClient.invalidateQueries({
           queryKey: trpc.jury.pathKey(),
-        });
-        toast.success("Review completed");
-        router.push(getJuryCompletedPath(domain, token));
+        })
+        toast.success("Review completed")
+        router.push(getJuryCompletedPath(domain, token))
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to complete review");
+        toast.error(error.message || "Failed to complete review")
       },
     }),
-  );
+  )
+
+  const rankAssignments = useMemo(() => getRankAssignments(ratings), [ratings])
+  const participantMap = useMemo(
+    () => new Map(participants.map((p) => [p.id, p])),
+    [participants],
+  )
+  const topPicksCount = rankAssignments.size
+  const topPicksComplete = topPicksCount === 3
+
+  const sessionInitials = useMemo(() => {
+    const parts = invitation.displayName.trim().split(/\s+/).filter(Boolean)
+    if (parts.length === 0) return "?"
+    if (parts.length === 1) {
+      const word = parts[0]!
+      return word.slice(0, 2).toUpperCase()
+    }
+    return `${parts[0]![0]}${parts[parts.length - 1]![0]}`.toUpperCase()
+  }, [invitation.displayName])
 
   return (
-    <header className="rounded-xl border border-border/60 bg-white px-5 py-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <header className="rounded-2xl border border-border/60 bg-white">
+      <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
           <ProgressRing rated={ratedCount} total={totalParticipants} />
           <div>
-            <h1 className="font-rocgrotesk text-2xl font-bold tracking-tight text-brand-black">
+            <h1 className="font-gothic text-2xl font-bold tracking-tight text-brand-black">
               Jury Review
             </h1>
             <p className="mt-0.5 text-sm text-brand-gray">
@@ -89,21 +124,29 @@ export function JuryReviewHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-neutral-50 px-3.5 py-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-brand-black">
-              <UserIcon className="h-3.5 w-3.5" />
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-3 sm:flex-initial">
+          <div className="flex min-w-0 max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-muted/30 px-3.5 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] sm:px-4">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-white font-gothic text-[13px] font-bold tracking-tight text-brand-black"
+              aria-hidden
+            >
+              {sessionInitials}
             </div>
-            <div>
-              <p className="text-sm font-medium text-brand-black">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-gray">
+                Your session
+              </p>
+              <p className="font-gothic truncate text-sm font-bold tracking-tight text-brand-black">
                 {invitation.displayName}
               </p>
-              <p className="text-[11px] text-brand-gray">
-                {ratedCount}/{totalParticipants} rated
-              </p>
-              <p className="text-[11px] text-brand-gray">
-                Top picks: {assignedFinalRankingCount}/3
-              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center rounded-full border border-border/50 bg-white px-2 py-0.5 text-[11px] font-medium tabular-nums text-brand-black/75">
+                  {ratedCount}/{totalParticipants} rated
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border/50 bg-white px-2 py-0.5 text-[11px] font-medium tabular-nums text-brand-black/75">
+                  Top picks {assignedFinalRankingCount}/3
+                </span>
+              </div>
             </div>
           </div>
 
@@ -144,6 +187,80 @@ export function JuryReviewHeader({
           </AlertDialog>
         </div>
       </div>
+
+      <div className="flex flex-col gap-3 border-t border-border/60 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <p className="text-sm font-medium text-brand-black">Your Top 3</p>
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+              topPicksComplete
+                ? "border-brand-primary/20 bg-brand-primary/5 text-brand-primary"
+                : "border-border/60 bg-neutral-50 text-brand-gray"
+            }`}
+          >
+            {topPicksComplete ? <CheckCircle2 className="h-3 w-3" /> : null}
+            {topPicksCount}/3
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {([1, 2, 3] as const).map((rank) => {
+            const participantId = rankAssignments.get(rank) ?? null
+            const participant =
+              participantId !== null
+                ? (participantMap.get(participantId) ?? null)
+                : null
+
+            if (participantId === null) {
+              return (
+                <span
+                  key={rank}
+                  className={`${juryRankChipNeutralPlaceholder} cursor-default`}
+                >
+                  <JuryRankTrophyBadge rank={rank} tone="idle" />
+                  {getFinalRankingLabel(rank)}
+                  <span className="text-xs font-normal text-brand-gray">
+                    Not Set
+                  </span>
+                </span>
+              )
+            }
+
+            const canNavigate = participant !== null
+            const handleClick = () => {
+              if (!canNavigate) return
+              const index = participants.findIndex(
+                (p) => p.id === participantId,
+              )
+              if (index >= 0) {
+                onParticipantSelect(participantId, index)
+              }
+            }
+
+            return (
+              <button
+                key={rank}
+                type="button"
+                onClick={handleClick}
+                disabled={!canNavigate}
+                className={`${juryRankChipNeutralOccupied} disabled:pointer-events-none disabled:opacity-50`}
+              >
+                <JuryRankTrophyBadge rank={rank} tone="idle" />
+                {getFinalRankingLabel(rank)}
+                {participant ? (
+                  <span className="text-xs font-normal text-brand-gray">
+                    #{participant.reference}
+                  </span>
+                ) : (
+                  <span className="text-xs font-normal text-brand-gray">
+                    Not Set
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
     </header>
-  );
+  )
 }

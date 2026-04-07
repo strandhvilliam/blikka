@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   AlertDialog,
@@ -9,17 +9,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useTRPC } from "@/lib/trpc/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { parseAsInteger, useQueryState } from "nuqs";
+} from "@/components/ui/alert-dialog"
+import { useTRPC } from "@/lib/trpc/client"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { parseAsInteger, useQueryState } from "nuqs"
 import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
   ImageOff,
   Loader2,
-} from "lucide-react";
+} from "lucide-react"
 import {
   type ChangeEvent,
   useCallback,
@@ -27,27 +27,27 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
-import { toast } from "sonner";
+} from "react"
+import { toast } from "sonner"
 import type {
   JuryInvitation,
   JuryRatingsResponse,
-} from "../../_lib/jury-types";
+} from "../../_lib/jury-types"
 import {
   juryRankChipActive,
   juryRankChipNeutralOccupied,
   juryRankChipNeutralSlot,
-} from "../_lib/jury-rank-chip-classes";
+} from "../_lib/jury-rank-chip-classes"
 import {
   getFinalRankingLabel,
   getParticipantFinalRanking,
   getRankAssignments,
-} from "../_lib/jury-final-ranking-state";
-import type { JuryListParticipant } from "../_lib/jury-list-participant";
-import { getParticipantAssetUrl } from "../_lib/jury-list-participant";
-import { ActiveRatingFilterBadge } from "./rating-filter";
-import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge";
-import { JurySidebar } from "./jury-sidebar";
+} from "../_lib/jury-final-ranking-state"
+import type { JuryListParticipant } from "../_lib/jury-list-participant"
+import { getParticipantAssetUrl } from "../_lib/jury-list-participant"
+import { ActiveRatingFilterBadge } from "./rating-filter"
+import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
+import { JurySidebar } from "./jury-sidebar"
 
 export function JurySubmissionViewer({
   domain,
@@ -64,40 +64,40 @@ export function JurySubmissionViewer({
   ratingByParticipantId,
   onBack,
 }: {
-  domain: string;
-  token: string;
-  invitation: JuryInvitation;
-  participants: JuryListParticipant[];
-  initialIndex: number;
-  selectedRatings: number[];
-  ratings: JuryRatingsResponse["ratings"];
-  totalParticipants: number;
-  fetchNextPage: () => void;
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  ratingByParticipantId: Map<number, JuryRatingsResponse["ratings"][number]>;
-  onBack: () => void;
+  domain: string
+  token: string
+  invitation: JuryInvitation
+  participants: JuryListParticipant[]
+  initialIndex: number
+  selectedRatings: number[]
+  ratings: JuryRatingsResponse["ratings"]
+  totalParticipants: number
+  fetchNextPage: () => void
+  hasNextPage: boolean
+  isFetchingNextPage: boolean
+  ratingByParticipantId: Map<number, JuryRatingsResponse["ratings"][number]>
+  onBack: () => void
 }) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
   const [currentParticipantIndex, setCurrentParticipantIndex] = useQueryState(
     "index",
     parseAsInteger.withDefault(initialIndex),
-  );
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
-  const [isSaving, setIsSaving] = useState(false);
+  )
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
+  const [isSaving, setIsSaving] = useState(false)
 
   const currentParticipant =
-    participants[currentParticipantIndex] ?? participants[0] ?? null;
+    participants[currentParticipantIndex] ?? participants[0] ?? null
 
-  const currentParticipantId = currentParticipant?.id ?? null;
+  const currentParticipantId = currentParticipant?.id ?? null
   const currentAssetUrl = getParticipantAssetUrl(
     currentParticipant,
     invitation,
-  );
+  )
   const currentAssetId = String(
     currentParticipant?.submission?.id ?? currentParticipant?.id ?? "",
-  );
+  )
 
   const existingRating = useMemo(
     () =>
@@ -105,22 +105,22 @@ export function JurySubmissionViewer({
         ? undefined
         : ratingByParticipantId.get(currentParticipantId),
     [currentParticipantId, ratingByParticipantId],
-  );
+  )
 
-  const [localRating, setLocalRating] = useState(existingRating?.rating ?? 0);
-  const [localNotes, setLocalNotes] = useState(existingRating?.notes ?? "");
+  const [localRating, setLocalRating] = useState(existingRating?.rating ?? 0)
+  const [localNotes, setLocalNotes] = useState(existingRating?.notes ?? "")
   const [localFinalRanking, setLocalFinalRanking] = useState<1 | 2 | 3 | null>(
     getParticipantFinalRanking(ratings, currentParticipantId ?? -1),
-  );
-  const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  )
+  const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    setLocalRating(existingRating?.rating ?? 0);
-    setLocalNotes(existingRating?.notes ?? "");
+    setLocalRating(existingRating?.rating ?? 0)
+    setLocalNotes(existingRating?.notes ?? "")
     setLocalFinalRanking(
       getParticipantFinalRanking(ratings, currentParticipantId ?? -1),
-    );
-  }, [existingRating, currentParticipantId]);
+    )
+  }, [existingRating, currentParticipantId])
 
   useEffect(() => {
     if (
@@ -128,7 +128,7 @@ export function JurySubmissionViewer({
       hasNextPage &&
       !isFetchingNextPage
     ) {
-      fetchNextPage();
+      fetchNextPage()
     }
   }, [
     currentParticipantIndex,
@@ -136,39 +136,39 @@ export function JurySubmissionViewer({
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  ]);
+  ])
 
   useEffect(() => {
     return () => {
       if (notesTimeoutRef.current) {
-        clearTimeout(notesTimeoutRef.current);
+        clearTimeout(notesTimeoutRef.current)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   const invalidateJuryQueries = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: trpc.jury.pathKey(),
-    });
-  }, [queryClient, trpc.jury]);
+    })
+  }, [queryClient, trpc.jury])
 
   const createRatingMutation = useMutation(
     trpc.jury.createRating.mutationOptions({
       onSettled: invalidateJuryQueries,
     }),
-  );
+  )
 
   const updateRatingMutation = useMutation(
     trpc.jury.updateRating.mutationOptions({
       onSettled: invalidateJuryQueries,
     }),
-  );
+  )
 
   const deleteRatingMutation = useMutation(
     trpc.jury.deleteRating.mutationOptions({
       onSettled: invalidateJuryQueries,
     }),
-  );
+  )
 
   const saveRating = useCallback(
     async (
@@ -176,9 +176,9 @@ export function JurySubmissionViewer({
       nextNotes: string,
       nextFinalRanking: 1 | 2 | 3 | null,
     ) => {
-      if (!currentParticipantId) return;
+      if (!currentParticipantId) return
 
-      setIsSaving(true);
+      setIsSaving(true)
       try {
         if (existingRating) {
           if (
@@ -190,7 +190,7 @@ export function JurySubmissionViewer({
               token,
               domain,
               participantId: currentParticipantId,
-            });
+            })
           } else {
             await updateRatingMutation.mutateAsync({
               token,
@@ -199,7 +199,7 @@ export function JurySubmissionViewer({
               rating: nextRating,
               notes: nextNotes,
               finalRanking: nextFinalRanking,
-            });
+            })
           }
         } else if (
           nextRating > 0 ||
@@ -213,13 +213,13 @@ export function JurySubmissionViewer({
             rating: nextRating,
             notes: nextNotes,
             finalRanking: nextFinalRanking,
-          });
+          })
         }
       } catch (error) {
-        console.error("Failed to save rating", error);
-        toast.error("Failed to save review changes");
+        console.error("Failed to save rating", error)
+        toast.error("Failed to save review changes")
       } finally {
-        setIsSaving(false);
+        setIsSaving(false)
       }
     },
     [
@@ -231,34 +231,44 @@ export function JurySubmissionViewer({
       token,
       updateRatingMutation,
     ],
-  );
+  )
 
   const handleRatingClick = useCallback(
     (star: number) => {
-      const nextRating = star === localRating ? 0 : star;
-      setLocalRating(nextRating);
-      void saveRating(nextRating, localNotes, localFinalRanking);
+      const nextRating = star === localRating ? 0 : star
+      setLocalRating(nextRating)
+      void saveRating(nextRating, localNotes, localFinalRanking)
     },
     [localFinalRanking, localNotes, localRating, saveRating],
-  );
+  )
 
-  const [pendingRank, setPendingRank] = useState<1 | 2 | 3 | null>(null);
+  const [pendingRank, setPendingRank] = useState<1 | 2 | 3 | null>(null)
 
   const confirmFinalRanking = useCallback(() => {
-    if (pendingRank === null) return;
+    if (pendingRank === null) return
     const nextFinalRanking =
-      localFinalRanking === pendingRank ? null : pendingRank;
-    setLocalFinalRanking(nextFinalRanking);
-    void saveRating(localRating, localNotes, nextFinalRanking);
-    setPendingRank(null);
-  }, [pendingRank, localFinalRanking, localNotes, localRating, saveRating]);
+      localFinalRanking === pendingRank ? null : pendingRank
+    setLocalFinalRanking(nextFinalRanking)
+    void saveRating(localRating, localNotes, nextFinalRanking)
+    setPendingRank(null)
+  }, [pendingRank, localFinalRanking, localNotes, localRating, saveRating])
 
   const handleFinalRankingClick = useCallback(
     (finalRanking: 1 | 2 | 3) => {
-      setPendingRank(finalRanking);
+      setPendingRank(finalRanking)
     },
     [],
-  );
+  )
+
+  const goToPrev = useCallback(() => {
+    void setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))
+  }, [currentParticipantIndex, setCurrentParticipantIndex])
+
+  const goToNext = useCallback(() => {
+    void setCurrentParticipantIndex(
+      Math.min(participants.length - 1, currentParticipantIndex + 1),
+    )
+  }, [currentParticipantIndex, participants.length, setCurrentParticipantIndex])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -266,172 +276,109 @@ export function JurySubmissionViewer({
         event.target instanceof HTMLTextAreaElement ||
         event.target instanceof HTMLInputElement
       ) {
-        return;
+        return
       }
 
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1));
-      }
+      if (event.metaKey || event.ctrlKey || event.altKey) return
 
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        setCurrentParticipantIndex(
-          Math.min(participants.length - 1, currentParticipantIndex + 1),
-        );
+      switch (event.key) {
+        case "ArrowLeft":
+          event.preventDefault()
+          goToPrev()
+          break
+        case "ArrowRight":
+          event.preventDefault()
+          goToNext()
+          break
+        case "Escape":
+          event.preventDefault()
+          onBack()
+          break
+        case "0":
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+        case "5":
+          event.preventDefault()
+          handleRatingClick(Number(event.key))
+          break
+        case "]":
+          event.preventDefault()
+          handleRatingClick(Math.min(5, localRating + 1))
+          break
+        case "[":
+          event.preventDefault()
+          handleRatingClick(Math.max(0, localRating - 1))
+          break
       }
+    }
 
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onBack();
-      }
-
-      if (
-        (event.metaKey || event.ctrlKey) &&
-        ["0", "1", "2", "3", "4", "5"].includes(event.key)
-      ) {
-        event.preventDefault();
-        handleRatingClick(Number(event.key));
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown)
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [
-    currentParticipantIndex,
-    handleRatingClick,
-    onBack,
-    participants.length,
-    setCurrentParticipantIndex,
-  ]);
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [goToPrev, goToNext, handleRatingClick, onBack, localRating])
 
   const handleNotesChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
-      const nextNotes = event.target.value;
-      setLocalNotes(nextNotes);
+      const nextNotes = event.target.value
+      setLocalNotes(nextNotes)
 
       if (notesTimeoutRef.current) {
-        clearTimeout(notesTimeoutRef.current);
+        clearTimeout(notesTimeoutRef.current)
       }
 
       notesTimeoutRef.current = setTimeout(() => {
-        void saveRating(localRating, nextNotes, localFinalRanking);
-      }, 800);
+        void saveRating(localRating, nextNotes, localFinalRanking)
+      }, 800)
     },
     [localFinalRanking, localRating, saveRating],
-  );
+  )
 
   if (!currentParticipant) {
     return (
       <div className="space-y-3">
-        <div className="flex flex-col gap-3 rounded-full border border-border/60 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onBack}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-neutral-50 px-3 py-2 text-sm font-medium text-brand-black transition-colors hover:bg-neutral-100"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              List
-            </button>
-            <ActiveRatingFilterBadge selectedRatings={selectedRatings} />
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border/60 bg-white px-6 py-16 text-center">
-          <p className="text-sm text-brand-gray">No participant selected.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const visibleTotal = totalParticipants;
-
-  const rankOccupants = useMemo(() => {
-    const base = getRankAssignments(ratings);
-    if (currentParticipantId) {
-      for (const [rank, pid] of base) {
-        if (pid === currentParticipantId) base.delete(rank);
-      }
-      if (localFinalRanking !== null) {
-        base.set(localFinalRanking, currentParticipantId);
-      }
-    }
-    return base;
-  }, [ratings, currentParticipantId, localFinalRanking]);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-3 rounded-full border border-border/60 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-white px-4 py-3">
           <button
             type="button"
             onClick={onBack}
             className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-neutral-50 px-3 py-2 text-sm font-medium text-brand-black transition-colors hover:bg-neutral-100"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            List
+            Back
           </button>
           <ActiveRatingFilterBadge selectedRatings={selectedRatings} />
-          <span className="font-rocgrotesk text-sm font-bold text-brand-black">
-            {currentParticipantIndex + 1}
-            <span className="font-sans font-normal text-brand-gray">
-              {" "}
-              / {visibleTotal}
-            </span>
-          </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-          {([1, 2, 3] as const).map((rank) => {
-            const isActive = localFinalRanking === rank;
-            const occupantId = rankOccupants.get(rank);
-            const occupantRef =
-              occupantId && !isActive
-                ? participants.find((p) => p.id === occupantId)?.reference
-                : null;
-            const isOccupiedByOther =
-              occupantId !== undefined &&
-              occupantId !== currentParticipantId;
 
-            return (
-              <button
-                key={rank}
-                type="button"
-                className={
-                  isActive
-                    ? juryRankChipActive
-                    : isOccupiedByOther
-                      ? juryRankChipNeutralOccupied
-                      : juryRankChipNeutralSlot
-                }
-                onClick={() => handleFinalRankingClick(rank)}
-              >
-                <JuryRankTrophyBadge
-                  rank={rank}
-                  tone={isActive ? "active" : "idle"}
-                />
-                {getFinalRankingLabel(rank)}
-                {isActive ? (
-                  <span className="text-xs font-normal opacity-80">
-                    #{currentParticipant.reference}
-                  </span>
-                ) : occupantRef ? (
-                  <span className="text-xs font-normal text-brand-gray">
-                    #{occupantRef}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+        <div className="rounded-2xl border border-border/60 bg-white px-6 py-16 text-center">
+          <p className="text-sm text-brand-gray">No participant selected.</p>
         </div>
       </div>
+    )
+  }
 
+  const visibleTotal = totalParticipants
+
+  const rankOccupants = useMemo(() => {
+    const base = getRankAssignments(ratings)
+    if (currentParticipantId) {
+      for (const [rank, pid] of base) {
+        if (pid === currentParticipantId) base.delete(rank)
+      }
+      if (localFinalRanking !== null) {
+        base.set(localFinalRanking, currentParticipantId)
+      }
+    }
+    return base
+  }, [ratings, currentParticipantId, localFinalRanking])
+
+  return (
+    <>
       <AlertDialog
         open={pendingRank !== null}
         onOpenChange={(open) => {
-          if (!open) setPendingRank(null);
+          if (!open) setPendingRank(null)
         }}
       >
         <AlertDialogContent>
@@ -466,9 +413,51 @@ export function JurySubmissionViewer({
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="overflow-hidden rounded-xl border border-border/60 bg-neutral-950">
-          <div className="relative flex min-h-[60vh] items-center justify-center">
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-white">
+        {/* Compact navigation bar */}
+        <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-neutral-50 px-3 py-1.5 text-xs font-medium text-brand-black transition-colors hover:bg-neutral-100"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Back
+            </button>
+            <ActiveRatingFilterBadge selectedRatings={selectedRatings} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-brand-black transition-colors hover:bg-neutral-50 disabled:opacity-30"
+              disabled={currentParticipantIndex === 0}
+              onClick={goToPrev}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="font-gothic text-sm font-bold tabular-nums text-brand-black">
+              {currentParticipantIndex + 1}
+              <span className="font-sans font-normal text-brand-gray">
+                {" / "}
+                {visibleTotal}
+              </span>
+            </span>
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-brand-black transition-colors hover:bg-neutral-50 disabled:opacity-30"
+              disabled={currentParticipantIndex >= participants.length - 1}
+              onClick={goToNext}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Image + sidebar */}
+        <div className="grid xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="relative flex min-h-[55vh] items-center justify-center bg-neutral-100 xl:min-h-[65vh]">
             {currentAssetUrl && !imageErrors.has(currentAssetId) ? (
               <img
                 src={currentAssetUrl}
@@ -480,66 +469,44 @@ export function JurySubmissionViewer({
               />
             ) : (
               <div className="flex max-w-sm flex-col items-center justify-center px-6 text-center">
-                <ImageOff className="mb-4 h-12 w-12 text-white/30" />
-                <p className="font-rocgrotesk text-lg font-bold text-white/80">
+                <ImageOff className="mb-4 h-12 w-12 text-brand-gray/30" />
+                <p className="font-gothic text-lg font-bold text-brand-black/60">
                   {invitation.inviteType === "class"
                     ? "Contact sheet unavailable"
                     : "Image unavailable"}
                 </p>
-                <p className="mt-2 text-sm text-white/40">
+                <p className="mt-2 text-sm text-brand-gray">
                   The asset could not be loaded for this participant.
                 </p>
               </div>
             )}
 
-            <button
-              type="button"
-              className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70 disabled:opacity-30"
-              disabled={currentParticipantIndex === 0}
-              onClick={() =>
-                setCurrentParticipantIndex(
-                  Math.max(0, currentParticipantIndex - 1),
-                )
-              }
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70 disabled:opacity-30"
-              disabled={currentParticipantIndex >= participants.length - 1}
-              onClick={() =>
-                setCurrentParticipantIndex(
-                  Math.min(
-                    participants.length - 1,
-                    currentParticipantIndex + 1,
-                  ),
-                )
-              }
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-
             {isFetchingNextPage ? (
-              <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
+              <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full border border-border/60 bg-white/80 px-3 py-1 text-xs text-brand-gray backdrop-blur-sm">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Loading
               </div>
             ) : null}
           </div>
-        </div>
 
-        <JurySidebar
-          participant={currentParticipant}
-          invitation={invitation}
-          rating={localRating}
-          notes={localNotes}
-          isSaving={isSaving}
-          onRatingClick={handleRatingClick}
-          onNotesChange={handleNotesChange}
-        />
+          <div className="border-t border-border/60 xl:border-l xl:border-t-0">
+            <JurySidebar
+              participant={currentParticipant}
+              invitation={invitation}
+              rating={localRating}
+              notes={localNotes}
+              isSaving={isSaving}
+              onRatingClick={handleRatingClick}
+              onNotesChange={handleNotesChange}
+              localFinalRanking={localFinalRanking}
+              rankOccupants={rankOccupants}
+              currentParticipantId={currentParticipantId}
+              participants={participants}
+              onFinalRankingClick={handleFinalRankingClick}
+            />
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    </>
+  )
 }
