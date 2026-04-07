@@ -7,9 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
-import { formatDomainPathname } from "@/lib/utils"
 import { useState, useMemo } from "react"
-import { useParams, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import type { JuryInvitation } from "@blikka/db"
@@ -56,11 +54,13 @@ function getStatusBadge(status: JuryInvitation["status"], isActive: boolean) {
   }
 }
 
-export function JuryList() {
+interface JuryListProps {
+  selectedInvitationId?: number
+  onSelectInvitation: (id: number) => void
+}
+
+export function JuryList({ selectedInvitationId, onSelectInvitation }: JuryListProps) {
   const domain = useDomain()
-  const router = useRouter()
-  const params = useParams()
-  const invitationId = params.invitationId as string | undefined
   const trpc = useTRPC()
   const { data: invitations } = useSuspenseQuery(
     trpc.jury.getJuryInvitationsByDomain.queryOptions({
@@ -106,15 +106,12 @@ export function JuryList() {
             </div>
           ) : (
             filteredInvitations.map((invitation) => {
-              const href = formatDomainPathname(
-                `/admin/dashboard/jury/${invitation.id}`,
-                domain
-              )
-              const isActive = invitationId === String(invitation.id)
+              const isActive = selectedInvitationId === invitation.id
               return (
                 <button
                   key={invitation.id}
-                  onClick={() => router.push(href)}
+                  type="button"
+                  onClick={() => onSelectInvitation(invitation.id)}
                   className={cn(
                     "block w-full px-3 py-2.5 text-left transition-all hover:bg-muted/50",
                     isActive && "bg-muted/80 border-l-2 border-primary"

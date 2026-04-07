@@ -3,7 +3,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 export function JuryInvitationDetailsSkeleton() {
   return (
     <div className="p-6 space-y-6 max-w-3xl">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Skeleton className="h-10 w-10 rounded-lg" />
@@ -20,7 +19,6 @@ export function JuryInvitationDetailsSkeleton() {
         </div>
       </div>
 
-      {/* Details section */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Skeleton className="h-1 w-1 rounded-full" />
@@ -54,7 +52,6 @@ export function JuryInvitationDetailsSkeleton() {
         </div>
       </div>
 
-      {/* Access Link section */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Skeleton className="h-1 w-1 rounded-full" />

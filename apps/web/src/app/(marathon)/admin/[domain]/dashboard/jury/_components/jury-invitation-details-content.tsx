@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
 import {
   Mail,
   Trash2,
@@ -10,11 +10,10 @@ import {
   Users,
   ExternalLink,
   Copy,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { useState } from "react"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,111 +23,111 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog"
 import {
   useMutation,
   useQueryClient,
   useSuspenseQuery,
-} from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc/client";
-import { useDomain } from "@/lib/domain-provider";
-import { formatDomainLink, formatDomainPathname } from "@/lib/utils";
-import { format } from "date-fns";
-import type { JuryInvitation } from "@blikka/db";
+} from "@tanstack/react-query"
+import { useTRPC } from "@/lib/trpc/client"
+import { useDomain } from "@/lib/domain-provider"
+import { formatDomainLink } from "@/lib/utils"
+import { format } from "date-fns"
+import type { JuryInvitation } from "@blikka/db"
 
 interface JuryInvitationDetailsContentProps {
-  invitationId: number;
+  invitationId: number
+  onDeleted?: () => void
 }
 
 function getStatusBadge(status: JuryInvitation["status"]) {
   switch (status) {
     case "completed":
-      return <Badge className="bg-green-600 text-[10px]">Completed</Badge>;
+      return <Badge className="bg-green-600 text-[10px]">Completed</Badge>
     case "in_progress":
-      return <Badge className="bg-blue-600 text-[10px]">In Progress</Badge>;
+      return <Badge className="bg-blue-600 text-[10px]">In Progress</Badge>
     default:
-      return <Badge className="bg-yellow-600 text-[10px]">Pending</Badge>;
+      return <Badge className="bg-yellow-600 text-[10px]">Pending</Badge>
   }
 }
 
 export function JuryInvitationDetailsContent({
   invitationId,
+  onDeleted,
 }: JuryInvitationDetailsContentProps) {
-  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
-  const router = useRouter();
-  const trpc = useTRPC();
-  const domain = useDomain();
-  const queryClient = useQueryClient();
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
+  const trpc = useTRPC()
+  const domain = useDomain()
+  const queryClient = useQueryClient()
 
   const { data: invitation } = useSuspenseQuery(
     trpc.jury.getJuryInvitationById.queryOptions({
       id: invitationId,
     }),
-  );
+  )
   const { data: reviewResults } = useSuspenseQuery(
     trpc.jury.getJuryReviewResultsByInvitationId.queryOptions({
       id: invitationId,
     }),
-  );
+  )
 
   const { mutate: executeDelete, isPending: isDeleting } = useMutation(
     trpc.jury.deleteJuryInvitation.mutationOptions({
       onError: (error) => {
-        toast.error("Failed to delete invitation");
-        console.error("Delete error:", error);
+        toast.error("Failed to delete invitation")
+        console.error("Delete error:", error)
       },
       onSuccess: () => {
-        toast.success("Invitation deleted successfully");
-        router.push(formatDomainPathname("/admin/dashboard/jury", domain));
+        toast.success("Invitation deleted successfully")
+        onDeleted?.()
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.jury.getJuryInvitationsByDomain.queryKey({ domain }),
-        });
+        })
       },
     }),
-  );
+  )
 
   const handleDelete = () => {
-    executeDelete({ id: invitationId });
-  };
+    executeDelete({ id: invitationId })
+  }
 
   const juryLink = formatDomainLink(
     `/live/jury/${invitation.token}`,
     domain,
     "live",
-  );
+  )
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(juryLink);
-    toast.success("Link copied to clipboard");
-  };
+    navigator.clipboard.writeText(juryLink)
+    toast.success("Link copied to clipboard")
+  }
 
   const handleOpenLink = () => {
-    window.open(juryLink, "_blank", "noopener,noreferrer");
-  };
+    window.open(juryLink, "_blank", "noopener,noreferrer")
+  }
 
   if (!invitation) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-muted-foreground">Invitation not found</p>
       </div>
-    );
+    )
   }
 
-  const isExpired = new Date(invitation.expiresAt) < new Date();
-  const createdDate = format(new Date(invitation.createdAt), "PPP");
-  const expiryDate = format(new Date(invitation.expiresAt), "PPP");
+  const isExpired = new Date(invitation.expiresAt) < new Date()
+  const createdDate = format(new Date(invitation.createdAt), "PPP")
+  const expiryDate = format(new Date(invitation.expiresAt), "PPP")
   const rankedResults = reviewResults.ratings
     .filter((rating) => rating.finalRanking !== null)
     .toSorted(
       (left, right) => (left.finalRanking ?? 0) - (right.finalRanking ?? 0),
-    );
+    )
 
   return (
     <ScrollArea className="h-full">
       <div className="p-6 space-y-6 max-w-3xl">
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10">
@@ -178,7 +177,6 @@ export function JuryInvitationDetailsContent({
           </div>
         </div>
 
-        {/* Invitation Details */}
         <section>
           <div className="flex items-center gap-2 mb-3">
             <span className="h-1 w-1 rounded-full bg-brand-primary" />
@@ -248,8 +246,7 @@ export function JuryInvitationDetailsContent({
                   Topic
                 </p>
                 <p className="text-[13px]">
-                  Topic {invitation.topic.orderIndex + 1}:{" "}
-                  {invitation.topic.name}
+                  Topic {invitation.topic.orderIndex + 1}: {invitation.topic.name}
                 </p>
               </div>
             )}
@@ -261,9 +258,7 @@ export function JuryInvitationDetailsContent({
                     <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
                       Competition Class
                     </p>
-                    <p className="text-[13px]">
-                      {invitation.competitionClass.name}
-                    </p>
+                    <p className="text-[13px]">{invitation.competitionClass.name}</p>
                   </div>
                 )}
                 {invitation.deviceGroup && (
@@ -282,9 +277,7 @@ export function JuryInvitationDetailsContent({
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
                   Notes
                 </p>
-                <p className="text-[13px] whitespace-pre-wrap">
-                  {invitation.notes}
-                </p>
+                <p className="text-[13px] whitespace-pre-wrap">{invitation.notes}</p>
               </div>
             )}
           </div>
@@ -300,8 +293,7 @@ export function JuryInvitationDetailsContent({
           <div className="rounded-xl border border-border bg-white p-5 space-y-3">
             {[1, 2, 3].map((rank) => {
               const rating =
-                rankedResults.find((entry) => entry.finalRanking === rank) ??
-                null;
+                rankedResults.find((entry) => entry.finalRanking === rank) ?? null
 
               return (
                 <div
@@ -309,11 +301,7 @@ export function JuryInvitationDetailsContent({
                   className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
                 >
                   <p className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {rank === 1
-                      ? "1st place"
-                      : rank === 2
-                        ? "2nd place"
-                        : "3rd place"}
+                    {rank === 1 ? "1st place" : rank === 2 ? "2nd place" : "3rd place"}
                   </p>
                   <p className="text-[13px] font-medium">
                     {rating?.participant?.reference
@@ -321,12 +309,11 @@ export function JuryInvitationDetailsContent({
                       : "Not selected"}
                   </p>
                 </div>
-              );
+              )
             })}
           </div>
         </section>
 
-        {/* Jury Access Link */}
         <section>
           <div className="flex items-center gap-2 mb-3">
             <span className="h-1 w-1 rounded-full bg-brand-primary" />
@@ -339,29 +326,20 @@ export function JuryInvitationDetailsContent({
               <code className="text-[11px] bg-muted/50 px-2.5 py-1.5 rounded-lg flex-1 truncate font-mono">
                 {juryLink}
               </code>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                onClick={handleCopyLink}
-              >
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleCopyLink}>
                 <Copy className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
         </section>
 
-        {/* Delete Dialog */}
-        <AlertDialog
-          open={isRemoveDialogOpen}
-          onOpenChange={setIsRemoveDialogOpen}
-        >
+        <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Jury Invitation</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete the jury invitation for{" "}
-                {invitation.email}? This action cannot be undone.
+                Are you sure you want to delete the jury invitation for {invitation.email}? This action
+                cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -377,5 +355,5 @@ export function JuryInvitationDetailsContent({
         </AlertDialog>
       </div>
     </ScrollArea>
-  );
+  )
 }

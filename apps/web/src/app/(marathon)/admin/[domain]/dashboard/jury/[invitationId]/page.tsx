@@ -1,33 +1,26 @@
 import { decodeParams, Page } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
-import { prefetch, HydrateClient, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { JuryInvitationDetailsContent } from "./_components/jury-invitation-details-content"
-import { JuryInvitationDetailsSkeleton } from "./_components/jury-invitation-details-skeleton"
+import { redirect } from "next/navigation"
+import { formatDomainPathname } from "@/lib/utils"
 
-const _JuryInvitationDetailsPage = Effect.fn("@blikka/web/JuryInvitationDetailsPage")(
+const _JuryInvitationLegacyRedirectPage = Effect.fn("@blikka/web/JuryInvitationLegacyRedirectPage")(
   function* ({ params }: PageProps<"/admin/[domain]/dashboard/jury/[invitationId]">) {
-    const { invitationId } = yield* decodeParams(Schema.Struct({ invitationId: Schema.String }))(
-      params,
-    )
-
-    const parsedId = parseInt(invitationId)
-
-    prefetch(
-      trpc.jury.getJuryInvitationById.queryOptions({
-        id: parsedId,
+    const { domain, invitationId } = yield* decodeParams(
+      Schema.Struct({
+        domain: Schema.String,
+        invitationId: Schema.String,
       }),
-    )
+    )(params)
 
-    return (
-      <HydrateClient>
-        <Suspense fallback={<JuryInvitationDetailsSkeleton />}>
-          <JuryInvitationDetailsContent invitationId={parsedId} />
-        </Suspense>
-      </HydrateClient>
-    )
+    const parsedId = parseInt(invitationId, 10)
+    const basePath = formatDomainPathname("/admin/dashboard/jury", domain)
+    if (Number.isNaN(parsedId)) {
+      return redirect(basePath)
+    }
+
+    return redirect(`${basePath}?invitation=${parsedId}`)
   },
   Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
 )
 
-export default Page(_JuryInvitationDetailsPage)
+export default Page(_JuryInvitationLegacyRedirectPage)

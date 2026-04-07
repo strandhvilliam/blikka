@@ -32,6 +32,7 @@ import { Label } from "@/components/ui/label"
 interface JuryInvitationCreateSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onInvitationCreated?: (invitationId: number) => void
 }
 
 type FormValues = {
@@ -45,7 +46,11 @@ type FormValues = {
   expiryDays: number
 }
 
-export function JuryInvitationCreateSheet({ open, onOpenChange }: JuryInvitationCreateSheetProps) {
+export function JuryInvitationCreateSheet({
+  open,
+  onOpenChange,
+  onInvitationCreated,
+}: JuryInvitationCreateSheetProps) {
   const domain = useDomain()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -67,6 +72,7 @@ export function JuryInvitationCreateSheet({ open, onOpenChange }: JuryInvitation
         toast.success("Jury invitation created successfully")
         form.reset()
         onOpenChange(false)
+        onInvitationCreated?.(invitationData.id)
         queryClient.invalidateQueries({
           queryKey: trpc.jury.getJuryInvitationsByDomain.queryKey({ domain }),
         })

@@ -1,15 +1,47 @@
-import { Mail } from "lucide-react"
+import { decodeParams, Page } from "@/lib/next-utils"
+import { Effect, Schema } from "effect"
+import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
+import { Suspense } from "react"
+import { loadJurySearchParams } from "./_lib/search-params"
+import { JuryDashboard } from "./_components/jury-dashboard"
+import { JuryPageSkeleton } from "./_components/jury-page-skeleton"
 
-export default function JuryDefaultPage() {
-  return (
-    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 mb-4">
-        <Mail className="h-6 w-6 text-muted-foreground/40" />
-      </div>
-      <h2 className="text-base font-medium font-gothic mb-1">No Invitation Selected</h2>
-      <p className="text-[13px] text-muted-foreground/70 max-w-[280px] text-center">
-        Select an invitation from the list to view details, or create a new one to get started.
-      </p>
-    </div>
-  )
-}
+const _JuryPage = Effect.fn("@blikka/web/JuryPage")(
+  function* ({ params, searchParams }: PageProps<"/admin/[domain]/dashboard/jury">) {
+    const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
+    const queryParams = yield* Effect.tryPromise(() => loadJurySearchParams(searchParams))
+
+    prefetch(
+      trpc.jury.getJuryInvitationsByDomain.queryOptions({
+        domain,
+      }),
+    )
+
+    prefetch(trpc.marathons.getByDomain.queryOptions({ domain }))
+
+    const selectedId = queryParams.invitation
+    if (selectedId != null) {
+      prefetch(
+        trpc.jury.getJuryInvitationById.queryOptions({
+          id: selectedId,
+        }),
+      )
+      prefetch(
+        trpc.jury.getJuryReviewResultsByInvitationId.queryOptions({
+          id: selectedId,
+        }),
+      )
+    }
+
+    return (
+      <HydrateClient>
+        <Suspense fallback={<JuryPageSkeleton />}>
+          <JuryDashboard />
+        </Suspense>
+      </HydrateClient>
+    )
+  },
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
+)
+
+export default Page(_JuryPage)
