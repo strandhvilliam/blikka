@@ -24,4 +24,4 @@ export function FilterBarSkeleton() {
       </div>
     </div>
   )
-} 
+}

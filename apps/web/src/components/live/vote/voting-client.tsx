@@ -10,19 +10,19 @@ import { EmptyState } from "./empty-state"
 import { CarouselView } from "./carousel-view"
 import { GridView } from "./grid-view"
 import { VotingFooter } from "./voting-footer"
-import { useVotingState } from "../_hooks/use-voting-state"
-import { useVotingSearchParams } from "../_hooks/use-voting-search-params"
+import { useVotingState } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-state"
+import { useVotingSearchParams } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params"
 import dynamic from "next/dynamic"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDomainPathname } from "@/lib/utils"
 import { FilterBarSkeleton } from "./filter-bar-skeleton"
-import { VotingCarouselApiProvider } from "../_hooks/use-voting-carousel-api"
-import { useClientReady } from "../_hooks/use-client-ready"
+import { VotingCarouselApiProvider } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-carousel-api"
+import { useClientReady } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-client-ready"
 
-const FilterBar = dynamic(
-  () => import("./filter-bar").then((mod) => mod.FilterBar),
-  { ssr: false, loading: () => <FilterBarSkeleton /> },
-)
+const FilterBar = dynamic(() => import("./filter-bar").then((mod) => mod.FilterBar), {
+  ssr: false,
+  loading: () => <FilterBarSkeleton />,
+})
 
 export function VotingClient({
   domain,

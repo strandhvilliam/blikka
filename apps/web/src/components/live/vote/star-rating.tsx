@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useClientReady } from "../_hooks/use-client-ready";
+import { useClientReady } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-client-ready";
 
 interface StarRatingProps {
   value?: number;

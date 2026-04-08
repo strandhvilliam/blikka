@@ -5,11 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import {
-  getVotingReviewStats,
-  sanitizeVotingState,
-} from "../_lib/voting-review-state";
-import type { VotingSubmission } from "../_lib/voting-submission";
+import { getVotingReviewStats, sanitizeVotingState } from "@/lib/vote/voting-review-state";
+import type { VotingSubmission } from "@/lib/vote/voting-submission";
 
 interface VotingState {
   ratings: Record<number, number | undefined>;

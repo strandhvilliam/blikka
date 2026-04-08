@@ -3,10 +3,10 @@
 import { Eye, Images } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
-import { useVotingSearchParams } from "../_hooks/use-voting-search-params"
-import { useVotingCarouselApi } from "../_hooks/use-voting-carousel-api"
+import { useVotingSearchParams } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params"
+import { useVotingCarouselApi } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-carousel-api"
 import { OwnSubmissionBadge } from "./own-submission-badge"
-import type { VotingSubmission } from "../_lib/voting-submission"
+import type { VotingSubmission } from "@/lib/vote/voting-submission"
 
 interface GridViewProps {
   submissions: VotingSubmission[]

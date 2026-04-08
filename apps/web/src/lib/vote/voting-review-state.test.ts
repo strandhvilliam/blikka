@@ -1,10 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest"
 
-import {
-  getVotingReviewStats,
-  sanitizeVotingState,
-} from "./voting-review-state";
-import type { VotingSubmission } from "./voting-submission";
+import { getVotingReviewStats, sanitizeVotingState } from "./voting-review-state"
+import type { VotingSubmission } from "./voting-submission"
 
 const submissions: VotingSubmission[] = [
   {
@@ -37,7 +34,7 @@ const submissions: VotingSubmission[] = [
     previewUrl: "https://example.com/3-preview.jpg",
     isOwnSubmission: false,
   },
-];
+]
 
 describe("voting review state", () => {
   it("removes stale ratings and selections for own submissions", () => {
@@ -57,8 +54,8 @@ describe("voting review state", () => {
         1: 5,
       },
       selectedSubmissionId: null,
-    });
-  });
+    })
+  })
 
   it("counts review progress only across rateable submissions", () => {
     expect(
@@ -84,6 +81,6 @@ describe("voting review state", () => {
         4: 0,
         5: 1,
       },
-    });
-  });
-});
+    })
+  })
+})

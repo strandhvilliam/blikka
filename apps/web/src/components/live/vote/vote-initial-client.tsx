@@ -8,7 +8,7 @@ import { Clock, ImageIcon, PlayIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { getVotingUnavailableReason } from "@/lib/voting-lifecycle"
-import { getVotingUnavailableContent } from "../_lib/voting-unavailable"
+import { getVotingUnavailableContent } from "@/lib/vote/voting-unavailable"
 
 export function VoteInitialClient({ domain, token }: { domain: string; token: string }) {
   const trpc = useTRPC()

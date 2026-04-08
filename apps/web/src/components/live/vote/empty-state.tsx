@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { useVotingSearchParams } from "../_hooks/use-voting-search-params"
+import { useVotingSearchParams } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params"
 
 export function EmptyState() {
   const { currentFilter, setCurrentFilter } = useVotingSearchParams()

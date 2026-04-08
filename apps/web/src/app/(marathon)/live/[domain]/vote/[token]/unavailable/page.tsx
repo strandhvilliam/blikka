@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { getVotingUnavailableReason } from "@/lib/voting-lifecycle"
 import { formatDomainPathname } from "@/lib/utils"
-import { getVotingUnavailableContent } from "../_lib/voting-unavailable"
+import { getVotingUnavailableContent } from "@/lib/vote/voting-unavailable"
 
 export default function UnavailablePage() {
   const router = useRouter()

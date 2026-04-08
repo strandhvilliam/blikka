@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/popover"
 import { StarRating } from "./star-rating"
 import { VoteButton } from "./vote-button"
-import { useVotingSearchParams } from "../_hooks/use-voting-search-params"
-import { useVotingCarouselApi } from "../_hooks/use-voting-carousel-api"
+import { useVotingSearchParams } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params"
+import { useVotingCarouselApi } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-carousel-api"
 
 interface VotingFooterProps {
   currentRating: number | undefined
