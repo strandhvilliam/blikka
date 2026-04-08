@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { uploadFileToPresignedUrl } from "@/lib/upload-client"
@@ -333,14 +334,22 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
     if (failedFiles.length === 0) return
 
     if (reference) {
-      const refreshedUploads = await refreshPresignedUploads({
-        domain,
-        reference,
-        orderIndexes: failedFiles.map((file) => file.orderIndex),
-        uploadContentTypes: failedFiles.map(
-          (file) => file.contentType ?? file.file.type ?? "image/jpeg",
-        ),
-      })
+      let refreshedUploads: Awaited<ReturnType<typeof refreshPresignedUploads>>
+      try {
+        refreshedUploads = await refreshPresignedUploads({
+          domain,
+          reference,
+          orderIndexes: failedFiles.map((file) => file.orderIndex),
+          uploadContentTypes: failedFiles.map(
+            (file) => file.contentType ?? file.file.type ?? "image/jpeg",
+          ),
+        })
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error)
+        toast.error(message)
+        return
+      }
 
       const refreshedUploadByKey = new Map(
         refreshedUploads.map((upload) => [upload.key, upload] as const),

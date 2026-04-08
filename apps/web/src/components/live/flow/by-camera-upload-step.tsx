@@ -260,7 +260,13 @@ export function ByCameraUploadStep({
         console.error("Upload execution failed:", error);
         clearFiles();
         setIsUploading(false);
-        toast.error(t("uploadFailed"));
+        const detail =
+          error instanceof Error && error.message ? error.message : undefined;
+        if (detail) {
+          toast.error(t("uploadFailed"), { description: detail });
+        } else {
+          toast.error(t("uploadFailed"));
+        }
         return;
       }
 
@@ -274,7 +280,15 @@ export function ByCameraUploadStep({
           },
         });
         clearFiles();
-        toast.error(t("uploadFailed"));
+        const firstErr = failedAfterUpload[0]?.error;
+        const detail =
+          firstErr?.message ||
+          (firstErr?.code ? String(firstErr.code) : undefined);
+        if (detail) {
+          toast.error(t("uploadFailed"), { description: detail });
+        } else {
+          toast.error(t("uploadFailed"));
+        }
       }
     } catch (error) {
       captureByCameraException(error, { phase: "handle_confirmed_upload" });
