@@ -7,7 +7,7 @@ import {
   COMMON_IMAGE_EXTENSIONS,
   createClientPhotoId,
   filterDuplicateImageCandidates,
-  generateThumbnailUrl,
+  generateThumbnailUrlWithRetries,
   limitImageCandidates,
   normalizeSelectedImageFiles,
   reassignOrderIndexes,
@@ -38,7 +38,7 @@ async function createParticipantSelectedPhoto(candidate: {
   const parsedExif = candidate.preconvertedExif
     ? candidate.preconvertedExif
     : await parseExifData(candidate.file)
-  const previewUrl = await generateThumbnailUrl(candidate.file)
+  const previewUrl = await generateThumbnailUrlWithRetries(candidate.file)
 
   return {
     id: createClientPhotoId(),

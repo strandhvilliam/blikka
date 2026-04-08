@@ -113,7 +113,11 @@ export function byCameraThumbnailBreadcrumb(
     | "bitmap_to_jpeg_failed"
     | "image_element_decode_failed"
     | "image_element_no_canvas_context"
-    | "image_element_convert_to_blob_failed",
+    | "image_element_convert_to_blob_failed"
+    | "preview_generation_retry"
+    | "thumbnail_retry_fresh_blob_from_array_buffer"
+    | "thumbnail_array_buffer_copy_failed"
+    | "fallback_uses_fresh_blob_object_url",
   data?: Record<string, unknown>,
 ) {
   if (!clientOnly()) return
