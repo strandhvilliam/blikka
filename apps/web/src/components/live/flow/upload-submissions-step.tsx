@@ -16,7 +16,10 @@ import { VALIDATION_OUTCOME } from "@blikka/validation";
 import { Button } from "@/components/ui/button";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { useDomain } from "@/lib/domain-provider";
-import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing";
+import {
+  COMMON_IMAGE_EXTENSIONS,
+  resolveSelectedImageContentType,
+} from "@/lib/file-processing";
 import { useTRPC } from "@/lib/trpc/client";
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client";
 import { cn, formatDomainPathname } from "@/lib/utils";
@@ -250,7 +253,8 @@ export function UploadSubmissionsStep({
       const presignedUrls = await initializeUploadFlow({
         ...initializeUploadFlowResult.data,
         uploadContentTypes: photosInTopicOrder.map(
-          (photo) => photo.file.type || "image/jpeg",
+          (photo) =>
+            resolveSelectedImageContentType(photo.file) ?? "image/jpeg",
         ),
         uploadExif: buildUploadExifPayload(photosInTopicOrder),
       });

@@ -957,6 +957,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
         deviceGroupId,
         email,
         phoneNumber,
+        uploadContentTypes,
         uploadExif,
         replaceExistingActiveTopicUpload,
       }) {
@@ -1015,6 +1016,22 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             );
           }
 
+          if (
+            uploadContentTypes !== undefined &&
+            uploadContentTypes.length !== 1
+          ) {
+            return yield* Effect.fail(
+              new UploadFlowApiError({
+                message: `[${domain}] uploadContentTypes must contain exactly one entry for by-camera upload`,
+              }),
+            );
+          }
+
+          const resolvedContentType =
+            uploadContentTypes === undefined || uploadContentTypes.length === 0
+              ? "image/jpeg"
+              : normalizeUploadContentType(uploadContentTypes[0]);
+
           let participant: Participant;
           let reference: string;
 
@@ -1072,6 +1089,9 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             domain,
             reference,
             activeTopic.orderIndex,
+            {
+              contentType: resolvedContentType,
+            },
           );
 
           yield* db.submissionsQueries.createSubmission({
@@ -1097,6 +1117,9 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             bucketName,
             submissionKey,
             "PUT",
+            {
+              contentType: resolvedContentType,
+            },
           );
 
           return {
@@ -1106,6 +1129,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
               {
                 key: submissionKey,
                 url: presignedUrl,
+                contentType: resolvedContentType,
               },
             ],
           };

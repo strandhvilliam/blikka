@@ -17,6 +17,7 @@ import { useTRPC } from "@/lib/trpc/client";
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client";
 import { formatDomainPathname } from "@/lib/utils";
 import { mapRuleConfigsToValidationRules } from "@/lib/validation";
+import { resolveSelectedImageContentType } from "@/lib/file-processing";
 
 import { useFileUpload } from "@/hooks/live/flow/use-file-upload";
 import { useLivePhotoValidation } from "@/hooks/live/flow/use-live-photo-validation";
@@ -220,6 +221,10 @@ export function ByCameraUploadStep({
 
       const initialization = await initializeByCameraUpload({
         ...initializeByCameraUploadResult.data,
+        uploadContentTypes: photos.map(
+          (photo) =>
+            resolveSelectedImageContentType(photo.file) ?? "image/jpeg",
+        ),
         uploadExif: buildUploadExifPayload(photos),
       });
 
@@ -249,6 +254,7 @@ export function ByCameraUploadStep({
             ...photo,
             presignedUrl: urlInfo.url,
             key: urlInfo.key,
+            contentType: urlInfo.contentType,
           };
         },
       );

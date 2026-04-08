@@ -73,25 +73,62 @@ export function captureByCameraException(
   });
 }
 
+/** Full client-side S3 PUT error payload for Sentry (matches `ClientUploadError`). */
+function clientUploadErrorToSentryExtras(
+  error: ClientUploadError,
+): Record<string, unknown> {
+  return {
+    clientErrorMessage: error.message,
+    classifiedCode: error.code,
+    source: error.source,
+    httpStatus: error.httpStatus,
+    awsCode: error.awsCode,
+    awsMessage: error.awsMessage,
+    awsRequestId: error.awsRequestId,
+    awsHostId: error.awsHostId,
+    rawResponseSnippet: error.rawResponseSnippet,
+    friendlyMessageKey: error.friendlyMessageKey,
+    friendlyActionKey: error.friendlyActionKey,
+    retriable: error.retriable,
+    retryMode: error.retryMode,
+    timestamp: error.timestamp.toISOString(),
+  };
+}
+
 export function captureByCameraS3UploadFailed(
   orderIndex: number,
   error: ClientUploadError,
+  options?: { submissionKey?: string },
 ) {
   if (!clientOnly()) return;
-  Sentry.captureMessage("by_camera_s3_upload_failed", {
+
+  const extras: Record<string, unknown> = {
+    orderIndex,
+    ...clientUploadErrorSentryExtras(error),
+  };
+  if (options?.submissionKey !== undefined) {
+    extras.submissionKey = options.submissionKey;
+  }
+
+  Sentry.captureMessage(error.message || "s3_presigned_put_failed", {
     level: "error",
     tags: {
-      flow: "by_camera",
+      upload: "presigned_s3_put",
       upload_error_code: error.code,
+      ...(error.awsCode != null && error.awsCode !== ""
+        ? { aws_error_code: error.awsCode }
+        : {}),
+      ...(error.httpStatus != null
+        ? { http_status: String(error.httpStatus) }
+        : {}),
     },
-    extra: {
-      orderIndex,
-      retriable: error.retriable,
-      retryMode: error.retryMode,
-      source: error.source,
-      httpStatus: error.httpStatus,
-      awsCode: error.awsCode,
-    },
+    extra: extras,
+    fingerprint: [
+      "s3-presigned-put",
+      error.code,
+      error.awsCode ?? "no-aws-code",
+      error.httpStatus != null ? String(error.httpStatus) : "no-status",
+    ],
   });
 }
 

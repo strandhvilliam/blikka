@@ -78,6 +78,7 @@ export const InitializeByCameraUploadSchema = Schema.toStandardSchemaV1(
     email: Schema.String,
     deviceGroupId: Schema.Number,
     phoneNumber: Schema.String,
+    uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
     uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
     replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
   }),

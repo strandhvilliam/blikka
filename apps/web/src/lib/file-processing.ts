@@ -11,6 +11,20 @@ export const COMMON_IMAGE_EXTENSIONS = [
   "webp",
 ] as const;
 
+const CONTENT_TYPE_BY_EXTENSION = {
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+} as const;
+
+const SUPPORTED_IMAGE_CONTENT_TYPES = new Set(
+  Object.values(CONTENT_TYPE_BY_EXTENSION),
+);
+
 export interface NormalizedImageCandidate {
   file: File;
   preconvertedExif: ExifData | null;
@@ -46,6 +60,34 @@ export function isSupportedImageFile(
 
   const extension = file.name.split(".").pop()?.toLowerCase();
   return extension ? supportedExtensions.includes(extension) : false;
+}
+
+export function resolveSelectedImageContentType(file: {
+  type?: string | null;
+  name: string;
+}):
+  | (typeof CONTENT_TYPE_BY_EXTENSION)[keyof typeof CONTENT_TYPE_BY_EXTENSION]
+  | null {
+  const normalizedType = (file.type ?? "").trim().toLowerCase();
+
+  if (normalizedType === "image/jpg") {
+    return "image/jpeg";
+  }
+
+  if (SUPPORTED_IMAGE_CONTENT_TYPES.has(normalizedType)) {
+    return normalizedType as (typeof CONTENT_TYPE_BY_EXTENSION)[keyof typeof CONTENT_TYPE_BY_EXTENSION];
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension) {
+    return null;
+  }
+
+  return (
+    CONTENT_TYPE_BY_EXTENSION[
+      extension as keyof typeof CONTENT_TYPE_BY_EXTENSION
+    ] ?? null
+  );
 }
 
 const HEIC_CONVERSION_TIMEOUT_MS = 60_000;

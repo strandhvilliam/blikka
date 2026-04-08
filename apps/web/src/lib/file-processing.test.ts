@@ -51,6 +51,38 @@ describe("file-processing", () => {
     expect(result.warnings).toEqual(["notes.txt: unsupported file type"]);
   });
 
+  it("resolves selected image content types from mime type or file extension", async () => {
+    const { resolveSelectedImageContentType } = await importFileProcessing();
+
+    expect(
+      resolveSelectedImageContentType({
+        type: "image/png",
+        name: "capture.png",
+      }),
+    ).toBe("image/png");
+
+    expect(
+      resolveSelectedImageContentType({
+        type: "image/jpg",
+        name: "capture.jpg",
+      }),
+    ).toBe("image/jpeg");
+
+    expect(
+      resolveSelectedImageContentType({
+        type: "",
+        name: "capture.webp",
+      }),
+    ).toBe("image/webp");
+
+    expect(
+      resolveSelectedImageContentType({
+        type: "",
+        name: "capture",
+      }),
+    ).toBeNull();
+  });
+
   it("skips duplicates case-insensitively", async () => {
     const { filterDuplicateImageCandidates } = await importFileProcessing();
 
