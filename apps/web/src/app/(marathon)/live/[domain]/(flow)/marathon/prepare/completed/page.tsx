@@ -3,7 +3,7 @@ import { flowStateServerLoader } from "@/lib/flow-state-params-server";
 import { Effect, Schema } from "effect";
 import { notFound } from "next/navigation";
 
-import { PrepareCompletedClient } from "../_components/prepare-completed-client";
+import { PrepareCompletedClient } from "@/components/live/flow/prepare-completed-client";
 
 const _PrepareCompletedPage = Effect.fn("@blikka/web/PrepareCompletedPage")(
   function* ({ params, searchParams }: PageProps<"/live/[domain]">) {

@@ -20,7 +20,7 @@ import { useTRPC } from "@/lib/trpc/client"
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
 import { QrCodeGenerator } from "@/components/qr-code-generator"
 import { PrimaryButton } from "@/components/ui/primary-button"
-import { useUploadFlowState } from "../(flow)/_hooks/use-upload-flow-state"
+import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
 
 interface VerificationClientProps {
   participantRef: string

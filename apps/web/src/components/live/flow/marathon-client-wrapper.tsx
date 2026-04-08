@@ -6,24 +6,24 @@ import { AnimatePresence } from "motion/react"
 import dynamic from "next/dynamic"
 import { useMemo } from "react"
 import { redirect } from "next/navigation"
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
-import { useHandleBeforeUnload } from "../_hooks/use-handle-before-unload"
+import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
+import { useHandleBeforeUnload } from "@/hooks/live/flow/use-handle-before-unload"
 import { getMarathonValidationWindow } from "@/lib/flow/live-validation-window"
 import { PARTICIPANT_SUBMISSION_STEPS, PREPARE_PARTICIPANT_STEPS } from "@/lib/flow/constants"
-import { StepNavigator } from "../_components/step-navigator"
-import { AnimatedStepWrapper } from "../_components/animated-step-wrapper"
-import { ParticipantNumberStep } from "../_components/participant-number-step"
-import { ParticipantDetailsStep } from "../_components/participant-details-step"
-import { ClassSelectionStep } from "../_components/class-selection-step"
-import { DeviceSelectionStep } from "../_components/device-selection-step"
-import { UploadSubmissionsStep } from "../_components/upload-submissions-step"
+import { StepNavigator } from "@/components/live/flow/step-navigator"
+import { AnimatedStepWrapper } from "@/components/live/flow/animated-step-wrapper"
+import { ParticipantNumberStep } from "@/components/live/flow/participant-number-step"
+import { ParticipantDetailsStep } from "@/components/live/flow/participant-details-step"
+import { ClassSelectionStep } from "@/components/live/flow/class-selection-step"
+import { DeviceSelectionStep } from "@/components/live/flow/device-selection-step"
+import { UploadSubmissionsStep } from "@/components/live/flow/upload-submissions-step"
 import { useStepState } from "@/lib/flow/step-state-context"
-import { PrepareNextStep } from "../_components/prepare-next-step"
+import { PrepareNextStep } from "@/components/live/flow/prepare-next-step"
 import { formatDomainPathname } from "@/lib/utils"
 
 const NetworkStatusBanner = dynamic(
   () =>
-    import("../_components/network-status-banner").then((mod) => ({
+    import("@/components/live/flow/network-status-banner").then((mod) => ({
       default: mod.NetworkStatusBanner,
     })),
   { ssr: false },

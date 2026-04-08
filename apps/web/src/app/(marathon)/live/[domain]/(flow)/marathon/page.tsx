@@ -2,7 +2,7 @@ import { decodeParams } from "@/lib/next-utils";
 import { Suspense } from "react";
 import { Effect, Schema } from "effect";
 import { HydrateClient } from "@/lib/trpc/server";
-import { MarathonClientWrapper } from "./marathon-client-wrapper";
+import { MarathonClientWrapper } from "@/components/live/flow/marathon-client-wrapper";
 import { Page } from "@/lib/next-utils";
 import { prefetch, trpc } from "@/lib/trpc/server";
 import { StepStateProvider } from "@/lib/flow/step-state-context";

@@ -6,7 +6,7 @@ import { Page } from "@/lib/next-utils"
 import { prefetch, trpc } from "@/lib/trpc/server"
 import { StepStateProvider } from "@/lib/flow/step-state-context"
 import { Splash } from "@/components/splash"
-import { ByCameraClientWrapper } from "./by-camera-client-wrapper"
+import { ByCameraClientWrapper } from "@/components/live/flow/by-camera-client-wrapper"
 
 const _ByCameraPage = Effect.fn("@blikka/web/ByCameraPage")(
   function* ({ params }: PageProps<"/live/[domain]">) {

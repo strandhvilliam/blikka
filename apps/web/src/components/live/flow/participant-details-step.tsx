@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
+import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
 import { useStepState } from "@/lib/flow/step-state-context"
 import { type FlowMode } from "@/lib/flow/constants"
 import { toParticipantFlowStatePatch } from "@/lib/flow/upload-flow-state"

@@ -5,7 +5,7 @@ import { PrimaryButton } from "@/components/ui/primary-button"
 import { DeviceGroup } from "@blikka/db"
 import { DeviceSelectionItem } from "./device-selection-item"
 import { useTranslations } from "next-intl"
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
+import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
 import { useStepState } from "@/lib/flow/step-state-context"
 import { validateDeviceSelectionRequirements } from "@/lib/flow/upload-flow-state"
 

@@ -6,7 +6,7 @@ import { CompetitionClass } from "@blikka/db"
 import { ClassSelectionItem } from "./class-selection-item"
 import { useTranslations } from "next-intl"
 import { useStepState } from "@/lib/flow/step-state-context"
-import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
+import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
 
 export function ClassSelectionStep({
   competitionClasses,

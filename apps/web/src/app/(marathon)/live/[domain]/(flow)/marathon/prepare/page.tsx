@@ -6,7 +6,7 @@ import { Page } from "@/lib/next-utils"
 import { prefetch, trpc } from "@/lib/trpc/server"
 import { StepStateProvider } from "@/lib/flow/step-state-context"
 import { Splash } from "@/components/splash"
-import { MarathonClientWrapper } from "../marathon-client-wrapper"
+import { MarathonClientWrapper } from "@/components/live/flow/marathon-client-wrapper"
 
 const _PrepareMarathonPage = Effect.fn("@blikka/web/PrepareMarathonPage")(
   function* ({ params }: PageProps<"/live/[domain]">) {

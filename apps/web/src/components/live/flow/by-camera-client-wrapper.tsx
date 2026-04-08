@@ -4,14 +4,14 @@ import { useTRPC } from "@/lib/trpc/client"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { AnimatePresence } from "motion/react"
 import dynamic from "next/dynamic"
-import { useHandleBeforeUnload } from "../_hooks/use-handle-before-unload"
+import { useHandleBeforeUnload } from "@/hooks/live/flow/use-handle-before-unload"
 import { BY_CAMERA_STEPS } from "@/lib/flow/constants"
 import { getByCameraValidationWindow } from "@/lib/flow/live-validation-window"
-import { ByCameraStepNavigator } from "../_components/by-camera-step-navigator"
-import { AnimatedStepWrapper } from "../_components/animated-step-wrapper"
-import { ParticipantDetailsStep } from "../_components/participant-details-step"
-import { DeviceSelectionStep } from "../_components/device-selection-step"
-import { ByCameraUploadStep } from "../_components/by-camera-upload-step"
+import { ByCameraStepNavigator } from "@/components/live/flow/by-camera-step-navigator"
+import { AnimatedStepWrapper } from "@/components/live/flow/animated-step-wrapper"
+import { ParticipantDetailsStep } from "@/components/live/flow/participant-details-step"
+import { DeviceSelectionStep } from "@/components/live/flow/device-selection-step"
+import { ByCameraUploadStep } from "@/components/live/flow/by-camera-upload-step"
 import { useStepState } from "@/lib/flow/step-state-context"
 import { redirect } from "next/navigation"
 import { formatDomainPathname } from "@/lib/utils"
@@ -19,7 +19,7 @@ import { getByCameraLiveAccessState } from "@/lib/by-camera/by-camera-live-acces
 
 const NetworkStatusBanner = dynamic(
   () =>
-    import("../_components/network-status-banner").then((mod) => ({
+    import("@/components/live/flow/network-status-banner").then((mod) => ({
       default: mod.NetworkStatusBanner,
     })),
   { ssr: false },
