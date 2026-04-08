@@ -1,4 +1,4 @@
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs"
 import type { NextConfig } from "next"
 import createNextIntlPlugin from "next-intl/plugin"
 
@@ -37,6 +37,7 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
   org: "villiam-strandh",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
 
   project: "blikka",
 
@@ -68,4 +69,4 @@ export default withSentryConfig(withNextIntl(nextConfig), {
       removeDebugLogging: true,
     },
   },
-});
+})
