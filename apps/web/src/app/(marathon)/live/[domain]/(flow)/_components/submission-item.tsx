@@ -20,7 +20,7 @@ import {
 import { useTranslations } from "next-intl"
 import { motion } from "motion/react"
 import { useState } from "react"
-import type { SelectedPhoto } from "../_lib/types"
+import type { SelectedPhoto } from "@/lib/flow/types"
 import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation"
 import { ValidationStatusBadge } from "./validation-status-badge"
 

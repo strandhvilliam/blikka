@@ -19,7 +19,7 @@ import { format } from "date-fns"
 import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
 import { cn } from "@/lib/utils"
 import { ValidationStatusBadge } from "./validation-status-badge"
-import type { SelectedPhoto } from "../_lib/types"
+import type { SelectedPhoto } from "@/lib/flow/types"
 import { VALIDATION_OUTCOME } from "@blikka/validation"
 
 interface ValidationSummary {

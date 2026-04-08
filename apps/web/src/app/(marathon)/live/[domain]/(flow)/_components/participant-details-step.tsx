@@ -26,9 +26,9 @@ import {
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
-import { useStepState } from "../_lib/step-state-context"
-import { type FlowMode } from "../_lib/constants"
-import { toParticipantFlowStatePatch } from "../_lib/upload-flow-state"
+import { useStepState } from "@/lib/flow/step-state-context"
+import { type FlowMode } from "@/lib/flow/constants"
+import { toParticipantFlowStatePatch } from "@/lib/flow/upload-flow-state"
 
 function getCountryFromLocale(): string {
   if (typeof navigator === "undefined") return "SE"

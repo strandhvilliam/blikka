@@ -3,10 +3,10 @@ import { motion } from "motion/react";
 import {
   PARTICIPANT_SUBMISSION_STEPS,
   PREPARE_PARTICIPANT_STEPS,
-} from "../_lib/constants";
+} from "@/lib/flow/constants";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
-import { useStepState } from "../_lib/step-state-context";
+import { useStepState } from "@/lib/flow/step-state-context";
 
 export function StepNavigator() {
   const { step: currentStep, handleSetStep, flowVariant } = useStepState();

@@ -1,5 +1,5 @@
-import { getCapturedAtDate } from "../../../../../../lib/exif-parsing"
-import { reassignOrderIndexes } from "../../../../../../lib/file-processing"
+import { getCapturedAtDate } from "@/lib/exif-parsing"
+import { reassignOrderIndexes } from "@/lib/file-processing"
 
 export interface PhotoWithExifLike {
   exif: Record<string, unknown>

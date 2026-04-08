@@ -4,9 +4,9 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import { prepareParticipantSelectedPhotos } from "@/lib/participant-selected-files";
 import { isSupportedImageFile } from "@/lib/file-processing";
-import { usePhotoStore } from "../_lib/photo-store";
-import { useHeicStore } from "../_lib/heic-store";
-import type { SelectedPhoto } from "../_lib/types";
+import { usePhotoStore } from "@/lib/flow/photo-store";
+import { useHeicStore } from "@/lib/flow/heic-store";
+import type { SelectedPhoto } from "@/lib/flow/types";
 import type { ParticipantSelectedPhoto } from "@/lib/participant-upload-types";
 
 interface UseSelectFileOptions {

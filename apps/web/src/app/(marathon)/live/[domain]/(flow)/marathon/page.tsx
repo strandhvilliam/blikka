@@ -5,7 +5,7 @@ import { HydrateClient } from "@/lib/trpc/server";
 import { MarathonClientWrapper } from "./marathon-client-wrapper";
 import { Page } from "@/lib/next-utils";
 import { prefetch, trpc } from "@/lib/trpc/server";
-import { StepStateProvider } from "../_lib/step-state-context";
+import { StepStateProvider } from "@/lib/flow/step-state-context";
 import { Splash } from "@/components/splash";
 
 const _MarathonPage = Effect.fn("@blikka/web/MarathonPage")(

@@ -17,8 +17,8 @@ import { PrimaryButton } from "@/components/ui/primary-button"
 import { getCapturedAtDate } from "@/lib/exif-parsing"
 import { cn } from "@/lib/utils"
 
-import { moveItemInArray } from "../_lib/photo-ordering"
-import type { SelectedPhoto } from "../_lib/types"
+import { moveItemInArray } from "@/lib/flow/photo-ordering"
+import type { SelectedPhoto } from "@/lib/flow/types"
 
 interface ManualPhotoOrderDialogProps {
   open: boolean

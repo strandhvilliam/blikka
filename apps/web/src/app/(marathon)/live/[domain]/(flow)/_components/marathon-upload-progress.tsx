@@ -14,10 +14,10 @@ import { AlertTriangle, Check, Loader2, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getUploadSummaryPresentation } from "../_lib/upload-error-presenter";
+import { getUploadSummaryPresentation } from "@/lib/flow/upload-error-presenter";
 import { FileProgressItem } from "./file-progress-item";
-import type { UploadFileState } from "../_lib/types";
-import { UPLOAD_PHASE } from "../_lib/types";
+import type { UploadFileState } from "@/lib/flow/types";
+import { UPLOAD_PHASE } from "@/lib/flow/types";
 
 interface MarathonUploadProgressProps {
   files: UploadFileState[];

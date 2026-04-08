@@ -5,7 +5,7 @@ import { PrimaryButton } from "@/components/ui/primary-button"
 import { CompetitionClass } from "@blikka/db"
 import { ClassSelectionItem } from "./class-selection-item"
 import { useTranslations } from "next-intl"
-import { useStepState } from "../_lib/step-state-context"
+import { useStepState } from "@/lib/flow/step-state-context"
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
 
 export function ClassSelectionStep({

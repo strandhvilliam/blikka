@@ -4,7 +4,7 @@ import { Effect, Schema } from "effect"
 import { HydrateClient } from "@/lib/trpc/server"
 import { Page } from "@/lib/next-utils"
 import { prefetch, trpc } from "@/lib/trpc/server"
-import { StepStateProvider } from "../_lib/step-state-context"
+import { StepStateProvider } from "@/lib/flow/step-state-context"
 import { Splash } from "@/components/splash"
 import { ByCameraClientWrapper } from "./by-camera-client-wrapper"
 

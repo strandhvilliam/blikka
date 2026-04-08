@@ -1,19 +1,17 @@
-import { decodeParams } from "@/lib/next-utils";
-import { Suspense } from "react";
-import { Effect, Schema } from "effect";
-import { HydrateClient } from "@/lib/trpc/server";
-import { Page } from "@/lib/next-utils";
-import { prefetch, trpc } from "@/lib/trpc/server";
-import { StepStateProvider } from "../../_lib/step-state-context";
-import { Splash } from "@/components/splash";
-import { MarathonClientWrapper } from "../marathon-client-wrapper";
+import { decodeParams } from "@/lib/next-utils"
+import { Suspense } from "react"
+import { Effect, Schema } from "effect"
+import { HydrateClient } from "@/lib/trpc/server"
+import { Page } from "@/lib/next-utils"
+import { prefetch, trpc } from "@/lib/trpc/server"
+import { StepStateProvider } from "@/lib/flow/step-state-context"
+import { Splash } from "@/components/splash"
+import { MarathonClientWrapper } from "../marathon-client-wrapper"
 
 const _PrepareMarathonPage = Effect.fn("@blikka/web/PrepareMarathonPage")(
   function* ({ params }: PageProps<"/live/[domain]">) {
-    const { domain } = yield* decodeParams(
-      Schema.Struct({ domain: Schema.String }),
-    )(params);
-    prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }));
+    const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
+    prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }))
     return (
       <HydrateClient>
         <Suspense fallback={<Splash />}>
@@ -22,15 +20,11 @@ const _PrepareMarathonPage = Effect.fn("@blikka/web/PrepareMarathonPage")(
           </StepStateProvider>
         </Suspense>
       </HydrateClient>
-    );
+    )
   },
   Effect.catch((error) =>
-    Effect.succeed(
-      <div>
-        Error: {error instanceof Error ? error.message : String(error)}
-      </div>,
-    ),
+    Effect.succeed(<div>Error: {error instanceof Error ? error.message : String(error)}</div>),
   ),
-);
+)
 
-export default Page(_PrepareMarathonPage);
+export default Page(_PrepareMarathonPage)

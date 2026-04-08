@@ -22,16 +22,16 @@ import { useFileUpload } from "../_hooks/use-file-upload"
 import { useLivePhotoValidation } from "../_hooks/use-live-photo-validation"
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
 import { useSelectFile } from "../_hooks/use-select-file"
-import { usePhotoStore } from "../_lib/photo-store"
-import { useHeicStore } from "../_lib/heic-store"
-import { useStepState } from "../_lib/step-state-context"
-import type { PhotoWithPresignedUrl } from "../_lib/types"
-import { useUploadStore } from "../_lib/upload-store"
-import { FINALIZATION_STATE } from "../_lib/types"
+import { usePhotoStore } from "@/lib/flow/photo-store"
+import { useHeicStore } from "@/lib/flow/heic-store"
+import { useStepState } from "@/lib/flow/step-state-context"
+import type { PhotoWithPresignedUrl } from "@/lib/flow/types"
+import { useUploadStore } from "@/lib/flow/upload-store"
+import { FINALIZATION_STATE } from "@/lib/flow/types"
 import {
   buildInitializeByCameraUploadInputResult,
   getUploadFlowIssueMessageKeys,
-} from "../_lib/upload-flow-state"
+} from "@/lib/flow/upload-flow-state"
 
 import { UploadProgress } from "./upload-progress"
 import { ByCameraUploadInput } from "./by-camera-upload-input"

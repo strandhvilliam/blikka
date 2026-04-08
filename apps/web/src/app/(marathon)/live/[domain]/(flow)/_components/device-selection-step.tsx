@@ -6,8 +6,8 @@ import { DeviceGroup } from "@blikka/db"
 import { DeviceSelectionItem } from "./device-selection-item"
 import { useTranslations } from "next-intl"
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
-import { useStepState } from "../_lib/step-state-context"
-import { validateDeviceSelectionRequirements } from "../_lib/upload-flow-state"
+import { useStepState } from "@/lib/flow/step-state-context"
+import { validateDeviceSelectionRequirements } from "@/lib/flow/upload-flow-state"
 
 interface DeviceSelectionStepProps {
   deviceGroups: DeviceGroup[]

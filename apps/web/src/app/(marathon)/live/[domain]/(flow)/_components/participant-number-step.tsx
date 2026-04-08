@@ -23,7 +23,7 @@ import {
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
-import { useStepState } from "../_lib/step-state-context"
+import { useStepState } from "@/lib/flow/step-state-context"
 
 const createInitializeParticipantSchema = (
   t: ReturnType<typeof useTranslations>,

@@ -19,7 +19,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { formatDomainPathname } from "@/lib/utils"
 import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
 import { useUploadFlowState } from "../_hooks/use-upload-flow-state"
-import { useStepState } from "../_lib/step-state-context"
+import { useStepState } from "@/lib/flow/step-state-context"
 import type { CompetitionClass, DeviceGroup } from "@blikka/db"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -27,7 +27,7 @@ import {
   buildPrepareCompletedSearchParamsResult,
   buildPrepareUploadFlowInputResult,
   getUploadFlowIssueMessageKeys,
-} from "../_lib/upload-flow-state"
+} from "@/lib/flow/upload-flow-state"
 
 interface PrepareNextStepProps {
   competitionClass: CompetitionClass

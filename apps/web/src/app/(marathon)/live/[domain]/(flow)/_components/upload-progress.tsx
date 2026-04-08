@@ -3,7 +3,7 @@
 import type { Topic } from "@blikka/db";
 import { ByCameraUploadProgress } from "./by-camera-upload-progress";
 import { MarathonUploadProgress } from "./marathon-upload-progress";
-import type { FinalizationState, UploadFileState } from "../_lib/types";
+import type { FinalizationState, UploadFileState } from "@/lib/flow/types";
 
 interface UploadProgressProps {
   files: UploadFileState[];

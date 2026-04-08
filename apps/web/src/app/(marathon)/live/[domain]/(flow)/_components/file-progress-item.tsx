@@ -5,9 +5,9 @@ import type { Topic } from "@blikka/db";
 import { AlertCircle, CheckCircle, Clock, Upload } from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
-import { getUploadErrorPresentation } from "../_lib/upload-error-presenter";
-import type { UploadFileState } from "../_lib/types";
-import { UPLOAD_PHASE } from "../_lib/types";
+import { getUploadErrorPresentation } from "@/lib/flow/upload-error-presenter";
+import type { UploadFileState } from "@/lib/flow/types";
+import { UPLOAD_PHASE } from "@/lib/flow/types";
 
 interface FileProgressItemProps {
   file: UploadFileState;

@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import { useEffect } from "react";
-import type { RuleConfig } from "@blikka/db";
-import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation";
-import type { UploadMarathonMode } from "@/lib/types";
-import { usePhotoStore } from "../_lib/photo-store";
+import { useEffect } from "react"
+import type { RuleConfig } from "@blikka/db"
+import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation"
+import type { UploadMarathonMode } from "@/lib/types"
+import { usePhotoStore } from "@/lib/flow/photo-store"
 
 interface UseLivePhotoValidationOptions {
-  ruleConfigs: RuleConfig[];
-  validationStartDate?: string | Date | null;
-  validationEndDate?: string | Date | null;
-  marathonMode: UploadMarathonMode;
+  ruleConfigs: RuleConfig[]
+  validationStartDate?: string | Date | null
+  validationEndDate?: string | Date | null
+  marathonMode: UploadMarathonMode
 }
 
 export function useLivePhotoValidation({
@@ -19,17 +19,15 @@ export function useLivePhotoValidation({
   validationEndDate,
   marathonMode,
 }: UseLivePhotoValidationOptions) {
-  const photos = usePhotoStore((state) => state.photos);
-  const setValidationResults = usePhotoStore(
-    (state) => state.setValidationResults,
-  );
+  const photos = usePhotoStore((state) => state.photos)
+  const setValidationResults = usePhotoStore((state) => state.setValidationResults)
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
 
     if (photos.length === 0) {
-      setValidationResults([]);
-      return;
+      setValidationResults([])
+      return
     }
 
     const runValidation = async () => {
@@ -40,25 +38,25 @@ export function useLivePhotoValidation({
           marathonStartDate: validationStartDate,
           marathonEndDate: validationEndDate,
           marathonMode,
-        });
+        })
 
         if (!cancelled) {
-          setValidationResults(results);
+          setValidationResults(results)
         }
       } catch (error) {
-        console.error("Live photo validation failed:", error);
+        console.error("Live photo validation failed:", error)
 
         if (!cancelled) {
-          setValidationResults([]);
+          setValidationResults([])
         }
       }
-    };
+    }
 
-    void runValidation();
+    void runValidation()
 
     return () => {
-      cancelled = true;
-    };
+      cancelled = true
+    }
   }, [
     validationEndDate,
     validationStartDate,
@@ -66,5 +64,5 @@ export function useLivePhotoValidation({
     photos,
     ruleConfigs,
     setValidationResults,
-  ]);
+  ])
 }

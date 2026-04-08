@@ -2,10 +2,10 @@
 
 import { CheckIcon } from "lucide-react"
 import { motion } from "motion/react"
-import { BY_CAMERA_STEPS } from "../_lib/constants"
+import { BY_CAMERA_STEPS } from "@/lib/flow/constants"
 import { cn } from "@/lib/utils"
 import { useTranslations } from "next-intl"
-import { useStepState } from "../_lib/step-state-context"
+import { useStepState } from "@/lib/flow/step-state-context"
 
 export function ByCameraStepNavigator() {
   const { step: currentStep, handleSetStep, maxSteps } = useStepState()

@@ -4,14 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { uploadFileToPresignedUrl } from "@/lib/upload-client"
-import { useUploadStore, selectFailedFiles } from "../_lib/upload-store"
+import { useUploadStore, selectFailedFiles } from "@/lib/flow/upload-store"
 import type {
   FinalizationState,
   PhotoWithPresignedUrl,
   UploadFileState,
   UploadPhase,
-} from "../_lib/types"
-import { FINALIZATION_STATE, UPLOAD_PHASE } from "../_lib/types"
+} from "@/lib/flow/types"
+import { FINALIZATION_STATE, UPLOAD_PHASE } from "@/lib/flow/types"
 import {
   MIN_UPLOAD_PROGRESS_DISPLAY_MS,
   PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS,
@@ -21,8 +21,8 @@ import {
   UPLOAD_TIMEOUT_MS,
   UPLOAD_CONCURRENCY_LIMIT,
   UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS,
-} from "../_lib/constants"
-import { chunk } from "../_lib/utils"
+} from "@/lib/flow/constants"
+import { chunk } from "@/lib/flow/utils"
 import { useUploadStatusRealtime } from "@/lib/use-upload-status-realtime"
 
 interface UseFileUploadOptions {
@@ -167,10 +167,7 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
         refetchIntervalInBackground: true,
         retry: UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
         retryDelay: (attemptIndex) =>
-          Math.min(
-            1000 * 2 ** attemptIndex,
-            UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
-          ),
+          Math.min(1000 * 2 ** attemptIndex, UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS),
       },
     ),
   )
@@ -202,10 +199,7 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
         refetchIntervalInBackground: true,
         retry: UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
         retryDelay: (attemptIndex) =>
-          Math.min(
-            1000 * 2 ** attemptIndex,
-            UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
-          ),
+          Math.min(1000 * 2 ** attemptIndex, UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS),
       },
     ),
   )

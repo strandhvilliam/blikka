@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { Check, CloudUpload, Loader2 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { AnimatePresence, motion } from "motion/react"
-import { usePhotoStore } from "../_lib/photo-store"
+import { usePhotoStore } from "@/lib/flow/photo-store"
 
 interface UploadSectionProps {
   maxPhotos: number

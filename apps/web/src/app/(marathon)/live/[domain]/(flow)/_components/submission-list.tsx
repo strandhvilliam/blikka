@@ -4,7 +4,7 @@ import type { Topic } from "@blikka/db"
 import { AnimatePresence, motion } from "motion/react"
 import { useMemo } from "react"
 import { buildPhotoValidationMap } from "@/lib/validation"
-import { usePhotoStore } from "../_lib/photo-store"
+import { usePhotoStore } from "@/lib/flow/photo-store"
 import { SubmissionItem } from "./submission-item"
 
 interface SubmissionListProps {

@@ -6,9 +6,9 @@ import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { getUploadSummaryPresentation } from "../_lib/upload-error-presenter"
-import type { FinalizationState, UploadFileState } from "../_lib/types"
-import { FINALIZATION_STATE, UPLOAD_PHASE } from "../_lib/types"
+import { getUploadSummaryPresentation } from "@/lib/flow/upload-error-presenter"
+import type { FinalizationState, UploadFileState } from "@/lib/flow/types"
+import { FINALIZATION_STATE, UPLOAD_PHASE } from "@/lib/flow/types"
 
 interface ByCameraUploadProgressProps {
   files: UploadFileState[]
