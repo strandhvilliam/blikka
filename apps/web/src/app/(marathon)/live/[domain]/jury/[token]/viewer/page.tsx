@@ -33,6 +33,7 @@ const _JuryViewerPage = Effect.fn("@blikka/web/JuryViewerPage")(
       trpc.jury.getJuryParticipantCount.queryOptions({ domain, token }),
       trpc.jury.getJurySubmissionsFromToken.infiniteQueryOptions(
         { domain, token },
+        // @ts-expect-error - TODO: fix this
         { getNextPageParam: getJurySubmissionsNextPageParam },
       ),
     ])

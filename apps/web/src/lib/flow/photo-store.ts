@@ -35,8 +35,21 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
   isProcessingFiles: false,
 
   initialize: (config) => {
+    const state = get();
+    const nextTopicOrderIndexes = config.topicOrderIndexes;
     set({
-      topicOrderIndexes: config.topicOrderIndexes,
+      topicOrderIndexes: nextTopicOrderIndexes,
+      photos:
+        state.photos.length === 0
+          ? state.photos
+          : reassignOrderIndexes(
+              state.photos,
+              nextTopicOrderIndexes,
+              (photo, orderIndex) => ({
+                ...photo,
+                orderIndex,
+              }),
+            ),
     });
   },
 
