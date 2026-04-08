@@ -1,3 +1,5 @@
+"use client"
+
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react"
 
 const DEBOUNCE_MS = 800

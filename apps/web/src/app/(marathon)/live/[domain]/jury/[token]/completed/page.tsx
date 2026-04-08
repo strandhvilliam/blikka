@@ -3,15 +3,11 @@ import { Effect, Schema } from "effect"
 import { redirect } from "next/navigation"
 import Image from "next/image"
 import { CheckCircle2 } from "lucide-react"
-import { getJuryInvitationForRoute } from "../_lib/jury-route"
-import { getJuryEntryPath } from "../_lib/jury-utils"
+import { getJuryInvitationForRoute } from "@/lib/jury/jury-server"
+import { getJuryEntryPath } from "@/lib/jury/jury-utils"
 
 const _JuryCompletedPage = Effect.fn("@blikka/web/JuryCompletedPage")(
-  function* ({
-    params,
-  }: {
-    params: Promise<{ domain: string; token: string }>
-  }) {
+  function* ({ params }: { params: Promise<{ domain: string; token: string }> }) {
     const { domain, token } = yield* decodeParams(
       Schema.Struct({ domain: Schema.String, token: Schema.String }),
     )(params)
@@ -43,35 +39,24 @@ const _JuryCompletedPage = Effect.fn("@blikka/web/JuryCompletedPage")(
                 </div>
               ) : null}
 
-              <h1 className="text-2xl font-bold text-center mb-2">
-                Review completed
-              </h1>
+              <h1 className="text-2xl font-bold text-center mb-2">Review completed</h1>
               <p className="text-muted-foreground text-center mb-6">
-                Thank you, {invitation.displayName}. Your review for{" "}
-                {invitation.marathon.name} has been recorded.
+                Thank you, {invitation.displayName}. Your review for {invitation.marathon.name} has
+                been recorded.
               </p>
               <div className="bg-muted rounded-xl p-4">
                 <p className="text-sm text-muted-foreground text-center">
-                  You can safely close this page. The organizing team can now
-                  continue with the jury process.
+                  You can safely close this page. The organizing team can now continue with the jury
+                  process.
                 </p>
               </div>
             </div>
 
             <div className="mt-6 flex flex-col items-center">
-              <p className="text-xs text-muted-foreground mb-1 italic">
-                Powered by
-              </p>
+              <p className="text-xs text-muted-foreground mb-1 italic">Powered by</p>
               <div className="flex items-center gap-1.5">
-                <Image
-                  src="/blikka-logo.svg"
-                  alt="Blikka"
-                  width={20}
-                  height={17}
-                />
-                <span className="font-special-gothic text-base tracking-tight">
-                  blikka
-                </span>
+                <Image src="/blikka-logo.svg" alt="Blikka" width={20} height={17} />
+                <span className="font-special-gothic text-base tracking-tight">blikka</span>
               </div>
             </div>
           </main>
@@ -80,11 +65,7 @@ const _JuryCompletedPage = Effect.fn("@blikka/web/JuryCompletedPage")(
     )
   },
   Effect.catch((error) =>
-    Effect.succeed(
-      <div>
-        Error: {error instanceof Error ? error.message : String(error)}
-      </div>,
-    ),
+    Effect.succeed(<div>Error: {error instanceof Error ? error.message : String(error)}</div>),
   ),
 )
 

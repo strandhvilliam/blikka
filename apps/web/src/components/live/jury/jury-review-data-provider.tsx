@@ -10,9 +10,9 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { useJuryClientToken } from "./jury-client-token-provider"
-import { useJuryReviewQueryState } from "@/app/(marathon)/live/[domain]/jury/[token]/viewer/_hooks/use-jury-review-query-state"
-import { useJurySubmissionsInfiniteQuery } from "@/app/(marathon)/live/[domain]/jury/[token]/viewer/_hooks/use-jury-submissions-infinite-query"
-import type { JuryListParticipant } from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-types"
+import { useJuryReviewQueryState } from "@/hooks/live/jury/use-jury-review-query-state"
+import { useJurySubmissionsInfiniteQuery } from "@/hooks/live/jury/use-jury-submissions-infinite-query"
+import type { JuryListParticipant } from "@/lib/jury/jury-types"
 
 export type JuryReviewDataContextValue = {
   participants: JuryListParticipant[]

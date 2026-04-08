@@ -1,10 +1,6 @@
 import { formatDomainPathname, buildS3Url } from "@/lib/utils"
 
-import type {
-  JuryInvitation,
-  JuryListParticipant,
-  JuryRatingEntry,
-} from "./jury-types"
+import type { JuryInvitation, JuryListParticipant, JuryRatingEntry } from "./jury-types"
 
 export function getJuryEntryPath(domain: string, token: string) {
   return formatDomainPathname(`/live/jury/${token}`, domain, "live")
@@ -27,9 +23,14 @@ export function getJuryUnavailablePath(
 }
 
 /** Cursor pagination for `getJurySubmissionsFromToken` — shared by server prefetch and client hook. */
-export function getJurySubmissionsNextPageParam(lastPage: {
-  nextCursor?: string | null
-} | null | undefined) {
+export function getJurySubmissionsNextPageParam(
+  lastPage:
+    | {
+        nextCursor?: string | null
+      }
+    | null
+    | undefined,
+) {
   return lastPage?.nextCursor ?? undefined
 }
 
@@ -87,9 +88,7 @@ export function getParticipantAssetUrl(
   )
 }
 
-export function getAssignedFinalRankingCount(
-  ratings: ReadonlyArray<JuryRatingEntry>,
-): number {
+export function getAssignedFinalRankingCount(ratings: ReadonlyArray<JuryRatingEntry>): number {
   return new Set(
     ratings
       .map((rating) => rating.finalRanking)
@@ -100,9 +99,7 @@ export function getAssignedFinalRankingCount(
   ).size
 }
 
-export function hasCompleteFinalRankings(
-  ratings: ReadonlyArray<JuryRatingEntry>,
-): boolean {
+export function hasCompleteFinalRankings(ratings: ReadonlyArray<JuryRatingEntry>): boolean {
   return getAssignedFinalRankingCount(ratings) === 3
 }
 
@@ -113,9 +110,7 @@ export function getParticipantFinalRanking(
   const entry = ratings.find((rating) => rating.participantId === participantId)
   const finalRanking = entry?.finalRanking
 
-  return finalRanking === 1 || finalRanking === 2 || finalRanking === 3
-    ? finalRanking
-    : null
+  return finalRanking === 1 || finalRanking === 2 || finalRanking === 3 ? finalRanking : null
 }
 
 export function getFinalRankingLabel(finalRanking: 1 | 2 | 3): string {
@@ -134,11 +129,7 @@ export function getRankAssignments(
 ): Map<1 | 2 | 3, number> {
   const assignments = new Map<1 | 2 | 3, number>()
   for (const rating of ratings) {
-    if (
-      rating.finalRanking === 1 ||
-      rating.finalRanking === 2 ||
-      rating.finalRanking === 3
-    ) {
+    if (rating.finalRanking === 1 || rating.finalRanking === 2 || rating.finalRanking === 3) {
       assignments.set(rating.finalRanking, rating.participantId)
     }
   }

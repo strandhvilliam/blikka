@@ -3,8 +3,8 @@
 import { useMemo } from "react"
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
-import { getJurySubmissionsNextPageParam } from "../../_lib/jury-utils"
-import type { JuryListParticipant } from "../../_lib/jury-types"
+import { getJurySubmissionsNextPageParam } from "@/lib/jury/jury-utils"
+import type { JuryListParticipant } from "@/lib/jury/jury-types"
 
 export function useJurySubmissionsInfiniteQuery({
   domain,

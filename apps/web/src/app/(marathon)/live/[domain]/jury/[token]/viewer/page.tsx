@@ -5,12 +5,12 @@ import { Suspense } from "react"
 import { Splash } from "@/components/splash"
 import { redirect } from "next/navigation"
 import { JuryReviewClient } from "@/components/live/jury/jury-review-client"
-import { getJuryInvitationForRoute } from "../_lib/jury-route"
+import { getJuryInvitationForRoute } from "@/lib/jury/jury-server"
 import {
   getJuryCompletedPath,
   getJuryEntryPath,
   getJurySubmissionsNextPageParam,
-} from "../_lib/jury-utils"
+} from "@/lib/jury/jury-utils"
 
 const _JuryViewerPage = Effect.fn("@blikka/web/JuryViewerPage")(
   function* ({ params }: { params: Promise<{ domain: string; token: string }> }) {

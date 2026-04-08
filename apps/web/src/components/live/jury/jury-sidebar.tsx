@@ -3,13 +3,13 @@
 import { Textarea } from "@/components/ui/textarea"
 import { Keyboard, Loader2, MessageSquare, Star } from "lucide-react"
 import type { ChangeEvent } from "react"
-import type { JuryInvitation, JuryListParticipant } from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-types"
+import type { JuryInvitation, JuryListParticipant } from "@/lib/jury/jury-types"
 import {
   getFinalRankingLabel,
   juryRankChipActive,
   juryRankChipNeutralOccupied,
   juryRankChipNeutralSlot,
-} from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-utils"
+} from "@/lib/jury/jury-utils"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
 
 export function JurySidebar({
