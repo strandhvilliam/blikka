@@ -13,7 +13,7 @@ import { JuryParticipantList } from "./jury-participant-list"
 import { JuryReviewHeader } from "./jury-review-header"
 import { JurySubmissionViewer } from "./jury-submission-viewer"
 
-export type { ViewMode } from "../_lib/jury-view-mode"
+export type { ViewMode } from "../../_lib/jury-types"
 
 export function JuryReviewClient() {
   return (

@@ -2,16 +2,13 @@
 
 import { useMemo } from "react";
 import { CheckCircle2 } from "lucide-react";
-import type { JuryRatingsResponse } from "../../_lib/jury-types";
-import type { JuryListParticipant } from "../_lib/jury-list-participant";
-import {
-  juryRankChipNeutralOccupied,
-  juryRankChipNeutralPlaceholder,
-} from "../_lib/jury-rank-chip-classes";
+import type { JuryListParticipant, JuryRatingsResponse } from "../../_lib/jury-types";
 import {
   getFinalRankingLabel,
   getRankAssignments,
-} from "../_lib/jury-final-ranking-state";
+  juryRankChipNeutralOccupied,
+  juryRankChipNeutralPlaceholder,
+} from "../../_lib/jury-utils";
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge";
 import { useJuryReviewQueryState } from "../_hooks/use-jury-review-query-state";
 

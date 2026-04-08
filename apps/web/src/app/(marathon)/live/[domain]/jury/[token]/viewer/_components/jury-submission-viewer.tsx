@@ -16,8 +16,11 @@ import { parseAsInteger, useQueryState } from "nuqs"
 import { ArrowLeft, ImageOff, Loader2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { getFinalRankingLabel, getRankAssignments } from "../_lib/jury-final-ranking-state"
-import { getParticipantAssetUrl } from "../_lib/jury-list-participant"
+import {
+  getFinalRankingLabel,
+  getParticipantAssetUrl,
+  getRankAssignments,
+} from "../../_lib/jury-utils"
 import { FullscreenImage } from "@/components/fullscreen-image"
 import { ActiveRatingFilterBadge } from "./rating-filter"
 import { JurySubmissionCompactNav } from "./jury-submission-compact-nav"

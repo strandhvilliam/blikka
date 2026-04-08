@@ -1,12 +1,13 @@
 "use client"
 
 import { ImageIcon, Star } from "lucide-react"
-import type { JuryListParticipant } from "../_lib/jury-list-participant"
-import { getFinalRankingLabel } from "../_lib/jury-final-ranking-state"
-import { getParticipantPreview } from "../_lib/jury-list-participant"
-import { juryRankChipCardBadge } from "../_lib/jury-rank-chip-classes"
+import type { JuryListParticipant, ViewMode } from "../../_lib/jury-types"
+import {
+  getFinalRankingLabel,
+  getParticipantPreview,
+  juryRankChipCardBadge,
+} from "../../_lib/jury-utils"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
-import type { ViewMode } from "../_lib/jury-view-mode"
 
 function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "xs" }) {
   const iconClass = size === "sm" ? "h-3.5 w-3.5" : "h-3 w-3"

@@ -3,14 +3,13 @@
 import { Textarea } from "@/components/ui/textarea"
 import { Keyboard, Loader2, MessageSquare, Star } from "lucide-react"
 import type { ChangeEvent } from "react"
-import type { JuryInvitation } from "../../_lib/jury-types"
-import type { JuryListParticipant } from "../_lib/jury-list-participant"
+import type { JuryInvitation, JuryListParticipant } from "../../_lib/jury-types"
 import {
+  getFinalRankingLabel,
   juryRankChipActive,
   juryRankChipNeutralOccupied,
   juryRankChipNeutralSlot,
-} from "../_lib/jury-rank-chip-classes"
-import { getFinalRankingLabel } from "../_lib/jury-final-ranking-state"
+} from "../../_lib/jury-utils"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
 
 export function JurySidebar({

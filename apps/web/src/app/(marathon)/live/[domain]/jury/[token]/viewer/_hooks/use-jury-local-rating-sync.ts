@@ -1,7 +1,5 @@
-import {
-  getParticipantFinalRanking,
-  type JuryRatingEntry,
-} from "../_lib/jury-final-ranking-state"
+import { getParticipantFinalRanking } from "../../_lib/jury-utils"
+import type { JuryRatingEntry } from "../../_lib/jury-types"
 import { useRef, useState } from "react"
 
 type ServerSnapshot = {

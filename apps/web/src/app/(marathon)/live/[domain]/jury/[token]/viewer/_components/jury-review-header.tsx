@@ -18,18 +18,16 @@ import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-q
 import { CheckCircle2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { getJuryCompletedPath } from "../../_lib/jury-paths"
 import { useJuryReviewData } from "./jury-review-data-provider"
-import {
-  juryRankChipNeutralOccupied,
-  juryRankChipNeutralPlaceholder,
-} from "../_lib/jury-rank-chip-classes"
 import {
   getAssignedFinalRankingCount,
   getFinalRankingLabel,
+  getJuryCompletedPath,
   getRankAssignments,
   hasCompleteFinalRankings,
-} from "../_lib/jury-final-ranking-state"
+  juryRankChipNeutralOccupied,
+  juryRankChipNeutralPlaceholder,
+} from "../../_lib/jury-utils"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
 import { useDomain } from "@/lib/domain-provider"
 import { useJuryClientToken } from "../../_components/jury-client-token-provider"

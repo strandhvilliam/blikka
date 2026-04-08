@@ -6,8 +6,11 @@ import { Splash } from "@/components/splash"
 import { redirect } from "next/navigation"
 import { JuryReviewClient } from "./_components/jury-review-client"
 import { getJuryInvitationForRoute } from "../_lib/jury-route"
-import { getJuryCompletedPath, getJuryEntryPath } from "../_lib/jury-paths"
-import { getJurySubmissionsNextPageParam } from "./_lib/jury-utils"
+import {
+  getJuryCompletedPath,
+  getJuryEntryPath,
+  getJurySubmissionsNextPageParam,
+} from "../_lib/jury-utils"
 
 const _JuryViewerPage = Effect.fn("@blikka/web/JuryViewerPage")(
   function* ({ params }: { params: Promise<{ domain: string; token: string }> }) {

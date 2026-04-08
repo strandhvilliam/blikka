@@ -12,7 +12,7 @@ import { useDomain } from "@/lib/domain-provider"
 import { useJuryClientToken } from "../../_components/jury-client-token-provider"
 import { useJuryReviewQueryState } from "../_hooks/use-jury-review-query-state"
 import { useJurySubmissionsInfiniteQuery } from "../_hooks/use-jury-submissions-infinite-query"
-import type { JuryListParticipant } from "../_lib/jury-list-participant"
+import type { JuryListParticipant } from "../../_lib/jury-types"
 
 export type JuryReviewDataContextValue = {
   participants: JuryListParticipant[]

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import Image from "next/image"
 import { CheckCircle2 } from "lucide-react"
 import { getJuryInvitationForRoute } from "../_lib/jury-route"
-import { getJuryEntryPath } from "../_lib/jury-paths"
+import { getJuryEntryPath } from "../_lib/jury-utils"
 
 const _JuryCompletedPage = Effect.fn("@blikka/web/JuryCompletedPage")(
   function* ({

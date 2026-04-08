@@ -6,7 +6,7 @@ import { Splash } from "@/components/splash"
 import { redirect } from "next/navigation"
 import { JuryInitialClient } from "./_components/jury-initial-client"
 import { getJuryInvitationForRoute } from "./_lib/jury-route"
-import { getJuryCompletedPath, getJuryViewerPath } from "./_lib/jury-paths"
+import { getJuryCompletedPath, getJuryViewerPath } from "./_lib/jury-utils"
 
 const _JuryPage = Effect.fn("@blikka/web/JuryPage")(
   function* ({

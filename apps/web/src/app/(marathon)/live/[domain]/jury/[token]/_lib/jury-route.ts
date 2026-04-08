@@ -3,7 +3,7 @@ import "server-only"
 import { notFound, redirect } from "next/navigation"
 import { Effect } from "effect"
 import { fetchEffectQuery, trpc } from "@/lib/trpc/server"
-import { getJuryUnavailablePath } from "./jury-paths"
+import { getJuryUnavailablePath } from "./jury-utils"
 
 export const getJuryInvitationForRoute = Effect.fn("@blikka/web/getJuryInvitationForRoute")(
   function* ({ domain, token }: { domain: string; token: string }) {
