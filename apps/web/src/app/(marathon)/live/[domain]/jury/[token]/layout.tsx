@@ -1,6 +1,6 @@
 import { decodeParams, Layout } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
-import { JuryClientTokenProvider } from "./_components/jury-client-token-provider"
+import { JuryClientTokenProvider } from "@/components/live/jury/jury-client-token-provider"
 
 const _JuryTokenLayout = Effect.fn("@blikka/web/JuryTokenLayout")(
   function* ({ children, params }: LayoutProps<"/live/[domain]/jury/[token]">) {

@@ -1,12 +1,12 @@
 "use client"
 
 import { ImageIcon, Star } from "lucide-react"
-import type { JuryListParticipant, ViewMode } from "../../_lib/jury-types"
+import type { JuryListParticipant, ViewMode } from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-types"
 import {
   getFinalRankingLabel,
   getParticipantPreview,
   juryRankChipCardBadge,
-} from "../../_lib/jury-utils"
+} from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-utils"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
 
 function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "xs" }) {

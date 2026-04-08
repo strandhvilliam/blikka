@@ -20,18 +20,18 @@ import {
   getFinalRankingLabel,
   getParticipantAssetUrl,
   getRankAssignments,
-} from "../../_lib/jury-utils"
+} from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-utils"
 import { FullscreenImage } from "@/components/fullscreen-image"
 import { ActiveRatingFilterBadge } from "./rating-filter"
 import { JurySubmissionCompactNav } from "./jury-submission-compact-nav"
 import { JurySidebar } from "./jury-sidebar"
 import { useDomain } from "@/lib/domain-provider"
-import { useJuryClientToken } from "../../_components/jury-client-token-provider"
+import { useJuryClientToken } from "./jury-client-token-provider"
 import { useJuryViewerKeyboardShortcuts } from "@/hooks/use-jury-viewer-keyboard-shortcuts"
 import { useJuryReviewData } from "./jury-review-data-provider"
-import { useJuryLocalRatingSync } from "../_hooks/use-jury-local-rating-sync"
-import { useJuryNotesDebouncedSave } from "../_hooks/use-jury-notes-debounced-save"
-import { useJuryReviewQueryState } from "../_hooks/use-jury-review-query-state"
+import { useJuryLocalRatingSync } from "@/app/(marathon)/live/[domain]/jury/[token]/viewer/_hooks/use-jury-local-rating-sync"
+import { useJuryNotesDebouncedSave } from "@/app/(marathon)/live/[domain]/jury/[token]/viewer/_hooks/use-jury-notes-debounced-save"
+import { useJuryReviewQueryState } from "@/app/(marathon)/live/[domain]/jury/[token]/viewer/_hooks/use-jury-review-query-state"
 
 export function JurySubmissionViewer({ initialIndex }: { initialIndex: number }) {
   const { selectedRatings, backToList } = useJuryReviewQueryState()

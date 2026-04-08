@@ -4,7 +4,7 @@ import { batchPrefetch, HydrateClient, trpc } from "@/lib/trpc/server"
 import { Suspense } from "react"
 import { Splash } from "@/components/splash"
 import { redirect } from "next/navigation"
-import { JuryReviewClient } from "./_components/jury-review-client"
+import { JuryReviewClient } from "@/components/live/jury/jury-review-client"
 import { getJuryInvitationForRoute } from "../_lib/jury-route"
 import {
   getJuryCompletedPath,

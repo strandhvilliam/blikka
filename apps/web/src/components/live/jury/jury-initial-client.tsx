@@ -13,7 +13,7 @@ import { toast } from "sonner"
 import { useTRPC } from "@/lib/trpc/client"
 import { PrimaryButton } from "@/components/ui/primary-button"
 import { Badge } from "@/components/ui/badge"
-import { getJuryViewerPath } from "../_lib/jury-utils"
+import { getJuryViewerPath } from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-utils"
 
 export function JuryInitialClient({
   domain,

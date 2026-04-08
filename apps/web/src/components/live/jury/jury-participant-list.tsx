@@ -7,15 +7,24 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useTRPC } from "@/lib/trpc/client"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useDomain } from "@/lib/domain-provider"
-import { useJuryClientToken } from "../../_components/jury-client-token-provider"
-import type { JuryListParticipant, ViewMode } from "../../_lib/jury-types"
-import { useJuryReviewQueryState } from "../_hooks/use-jury-review-query-state"
+import { useJuryClientToken } from "./jury-client-token-provider"
+import type { JuryListParticipant, ViewMode } from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-types"
+import { useJuryReviewQueryState } from "@/app/(marathon)/live/[domain]/jury/[token]/viewer/_hooks/use-jury-review-query-state"
 import { useJuryReviewData } from "./jury-review-data-provider"
 import { JuryParticipantCard } from "./jury-participant-card"
 import { RatingFilterBar } from "./rating-filter"
 const COMPACT_ROW_HEIGHT = 68
 const GRID_ROW_HEIGHT = 260
 const GAP = 12
+
+/** Aligns first client paint with SSR so query hydration cannot toggle `isPending` mid-hydration. */
+function useIsClientMounted() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  return mounted
+}
 
 /** SSR-safe: same count on server and first client paint; refine after mount. */
 function useGridColumnCount(viewMode: ViewMode) {
@@ -54,6 +63,7 @@ export function JuryParticipantList({
     totalParticipants,
     error,
   } = useJuryReviewData()
+  const isClientMounted = useIsClientMounted()
   const { viewMode, selectedRatings, selectParticipant } =
     useJuryReviewQueryState()
   const domain = useDomain()
@@ -135,7 +145,8 @@ export function JuryParticipantList({
     )
   }
 
-  const isInitialLoading = isPendingParticipants && participants.length === 0
+  const isInitialLoading =
+    !isClientMounted || (isPendingParticipants && participants.length === 0)
 
   if (!isInitialLoading && participants.length === 0) {
     return (

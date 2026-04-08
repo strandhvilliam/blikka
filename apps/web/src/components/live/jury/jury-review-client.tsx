@@ -4,7 +4,7 @@ import { useMemo } from "react"
 import {
   resolveJuryReviewParticipantIndex,
   useJuryReviewQueryState,
-} from "../_hooks/use-jury-review-query-state"
+} from "@/app/(marathon)/live/[domain]/jury/[token]/viewer/_hooks/use-jury-review-query-state"
 import {
   JuryReviewDataProvider,
   useJuryReviewData,
@@ -13,7 +13,7 @@ import { JuryParticipantList } from "./jury-participant-list"
 import { JuryReviewHeader } from "./jury-review-header"
 import { JurySubmissionViewer } from "./jury-submission-viewer"
 
-export type { ViewMode } from "../../_lib/jury-types"
+export type { ViewMode } from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-types"
 
 export function JuryReviewClient() {
   return (

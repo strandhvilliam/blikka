@@ -2,15 +2,15 @@
 
 import { useMemo } from "react";
 import { CheckCircle2 } from "lucide-react";
-import type { JuryListParticipant, JuryRatingsResponse } from "../../_lib/jury-types";
+import type { JuryListParticipant, JuryRatingsResponse } from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-types";
 import {
   getFinalRankingLabel,
   getRankAssignments,
   juryRankChipNeutralOccupied,
   juryRankChipNeutralPlaceholder,
-} from "../../_lib/jury-utils";
+} from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-utils";
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge";
-import { useJuryReviewQueryState } from "../_hooks/use-jury-review-query-state";
+import { useJuryReviewQueryState } from "@/app/(marathon)/live/[domain]/jury/[token]/viewer/_hooks/use-jury-review-query-state";
 
 export function JuryTopPicksPanel({
   ratings,

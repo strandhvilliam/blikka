@@ -27,11 +27,11 @@ import {
   hasCompleteFinalRankings,
   juryRankChipNeutralOccupied,
   juryRankChipNeutralPlaceholder,
-} from "../../_lib/jury-utils"
+} from "@/app/(marathon)/live/[domain]/jury/[token]/_lib/jury-utils"
 import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
 import { useDomain } from "@/lib/domain-provider"
-import { useJuryClientToken } from "../../_components/jury-client-token-provider"
-import { useJuryReviewQueryState } from "../_hooks/use-jury-review-query-state"
+import { useJuryClientToken } from "./jury-client-token-provider"
+import { useJuryReviewQueryState } from "@/app/(marathon)/live/[domain]/jury/[token]/viewer/_hooks/use-jury-review-query-state"
 import dynamic from "next/dynamic"
 
 const ProgressRing = dynamic(() => import("./jury-progress-ring").then((mod) => mod.ProgressRing), {

@@ -4,7 +4,7 @@ import { HydrateClient } from "@/lib/trpc/server"
 import { Suspense } from "react"
 import { Splash } from "@/components/splash"
 import { redirect } from "next/navigation"
-import { JuryInitialClient } from "./_components/jury-initial-client"
+import { JuryInitialClient } from "@/components/live/jury/jury-initial-client"
 import { getJuryInvitationForRoute } from "./_lib/jury-route"
 import { getJuryCompletedPath, getJuryViewerPath } from "./_lib/jury-utils"
 
