@@ -212,7 +212,9 @@ describe("file-processing", () => {
     expect(thumbnailUrl).toBe("blob:thumb");
     expect(createImageBitmap).toHaveBeenCalledWith(file, {
       resizeWidth: 400,
+      resizeHeight: 400,
       resizeQuality: "medium",
+      imageOrientation: "from-image",
     });
     expect(drawImageSpy).toHaveBeenCalledTimes(1);
     expect(convertToBlobSpy).toHaveBeenCalledWith({

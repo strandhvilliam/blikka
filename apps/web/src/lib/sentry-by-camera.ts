@@ -5,6 +5,83 @@ function clientOnly(): boolean {
   return typeof window !== "undefined"
 }
 
+const MAX_BREADCRUMB_STACK_CHARS = 6000
+
+/** Rich, JSON-safe snapshot of any thrown value for breadcrumbs / extras (stacks, causes, DOMException). */
+export function serializeUnknownErrorForLog(
+  error: unknown,
+  depth = 0,
+): Record<string, unknown> {
+  const maxDepth = 6
+  if (depth > maxDepth) {
+    return { kind: "truncated_cause_chain", depth }
+  }
+
+  if (error == null) {
+    return { kind: "nullish", value: String(error) }
+  }
+
+  if (typeof error === "string" || typeof error === "number" || typeof error === "boolean") {
+    return { kind: "primitive", value: error }
+  }
+
+  if (typeof error !== "object") {
+    return { kind: "non_object", value: String(error) }
+  }
+
+  if (typeof AggregateError !== "undefined" && error instanceof AggregateError) {
+    return {
+      kind: "AggregateError",
+      name: error.name,
+      message: error.message,
+      stack: truncateForBreadcrumb(error.stack),
+      errors: error.errors.map((e) => serializeUnknownErrorForLog(e, depth + 1)),
+    }
+  }
+
+  if (error instanceof Error) {
+    const out: Record<string, unknown> = {
+      kind: "Error",
+      name: error.name,
+      message: error.message,
+      stack: truncateForBreadcrumb(error.stack),
+    }
+    const cause = "cause" in error ? (error as Error & { cause?: unknown }).cause : undefined
+    if (cause !== undefined) {
+      out.cause = serializeUnknownErrorForLog(cause, depth + 1)
+    }
+    return out
+  }
+
+  if (typeof DOMException !== "undefined" && error instanceof DOMException) {
+    return {
+      kind: "DOMException",
+      name: error.name,
+      message: error.message,
+      code: error.code,
+    }
+  }
+
+  try {
+    return {
+      kind: "object",
+      constructor: (error as object).constructor?.name,
+      stringified: JSON.stringify(error),
+    }
+  } catch {
+    return {
+      kind: "object_unserializable",
+      constructor: (error as object).constructor?.name,
+    }
+  }
+}
+
+function truncateForBreadcrumb(stack: string | undefined): string | undefined {
+  if (stack == null) return undefined
+  if (stack.length <= MAX_BREADCRUMB_STACK_CHARS) return stack
+  return `${stack.slice(0, MAX_BREADCRUMB_STACK_CHARS)}…`
+}
+
 /** Safe file metadata for Sentry (no full paths or original filenames). */
 export function fileSummaryForSentry(file: File | Blob) {
   const name = file instanceof File ? file.name : ""
@@ -31,7 +108,12 @@ export function byCameraThumbnailBreadcrumb(
     | "jpeg_thumbnail"
     | "fallback_no_2d_context"
     | "fallback_after_exception"
-    | "image_element_failed",
+    | "image_element_failed"
+    | "create_image_bitmap_failed"
+    | "bitmap_to_jpeg_failed"
+    | "image_element_decode_failed"
+    | "image_element_no_canvas_context"
+    | "image_element_convert_to_blob_failed",
   data?: Record<string, unknown>,
 ) {
   if (!clientOnly()) return
@@ -89,7 +171,13 @@ function clientUploadErrorToSentryExtras(error: ClientUploadError): Record<strin
 export function captureByCameraS3UploadFailed(
   orderIndex: number,
   error: ClientUploadError,
-  options?: { submissionKey?: string },
+  options?: {
+    submissionKey?: string
+    /** Same file as PUT body — size/type/ext for correlating with decode / device issues */
+    file?: File
+    /** Effective Content-Type header on the presigned PUT (must match signature) */
+    requestContentType?: string
+  },
 ) {
   if (!clientOnly()) return
 
@@ -99,6 +187,12 @@ export function captureByCameraS3UploadFailed(
   }
   if (options?.submissionKey !== undefined) {
     extras.submissionKey = options.submissionKey
+  }
+  if (options?.file !== undefined) {
+    extras.file = fileSummaryForSentry(options.file)
+  }
+  if (options?.requestContentType !== undefined) {
+    extras.requestContentType = options.requestContentType
   }
 
   Sentry.captureMessage(error.message || "s3_presigned_put_failed", {

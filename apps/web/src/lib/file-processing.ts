@@ -1,5 +1,9 @@
 import { getExifDate, parseExifData, type ExifData } from "./exif-parsing"
-import { byCameraThumbnailBreadcrumb } from "./sentry-by-camera"
+import {
+  byCameraThumbnailBreadcrumb,
+  fileSummaryForSentry,
+  serializeUnknownErrorForLog,
+} from "./sentry-by-camera"
 
 export const COMMON_IMAGE_EXTENSIONS = [
   "jpg",
@@ -253,6 +257,7 @@ async function imageBitmapToJpegObjectUrl(bitmap: ImageBitmap): Promise<string> 
   })
   byCameraThumbnailBreadcrumb("jpeg_thumbnail", {
     thumbBytes: blob.size,
+    via: "create_image_bitmap",
   })
   return URL.createObjectURL(blob)
 }
@@ -270,14 +275,26 @@ async function generateThumbnailUrlViaImageElement(
       const image = new Image()
       image.decoding = "async"
       image.onload = () => resolve(image)
-      image.onerror = () => reject(new Error("img_decode_failed"))
+      image.onerror = () =>
+        reject(
+          new Error(
+            "img_onerror_after_load_start (browser does not expose decoder details for blob URLs)",
+          ),
+        )
       image.src = objectUrl
     })
 
     if ("decode" in img && typeof img.decode === "function") {
       try {
         await img.decode()
-      } catch {
+      } catch (decodeErr) {
+        byCameraThumbnailBreadcrumb("image_element_decode_failed", {
+          error: serializeUnknownErrorForLog(decodeErr),
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          maxDimension,
+          file: fileSummaryForSentry(file),
+        })
         return null
       }
     }
@@ -287,13 +304,36 @@ async function generateThumbnailUrlViaImageElement(
     const h = Math.max(1, Math.round(img.naturalHeight * scale))
     const canvas = new OffscreenCanvas(w, h)
     const ctx = canvas.getContext("2d")
-    if (!ctx) return null
+    if (!ctx) {
+      byCameraThumbnailBreadcrumb("image_element_no_canvas_context", {
+        thumbW: w,
+        thumbH: h,
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+        file: fileSummaryForSentry(file),
+      })
+      return null
+    }
 
     ctx.drawImage(img, 0, 0, w, h)
-    const blob = await canvas.convertToBlob({
-      type: "image/jpeg",
-      quality: 0.7,
-    })
+    let blob: Blob
+    try {
+      blob = await canvas.convertToBlob({
+        type: "image/jpeg",
+        quality: 0.7,
+      })
+    } catch (convertErr) {
+      byCameraThumbnailBreadcrumb("image_element_convert_to_blob_failed", {
+        error: serializeUnknownErrorForLog(convertErr),
+        thumbW: w,
+        thumbH: h,
+        naturalWidth: img.naturalWidth,
+        naturalHeight: img.naturalHeight,
+        file: fileSummaryForSentry(file),
+      })
+      return null
+    }
+
     byCameraThumbnailBreadcrumb("jpeg_thumbnail", {
       thumbBytes: blob.size,
       via: "image_element",
@@ -301,7 +341,9 @@ async function generateThumbnailUrlViaImageElement(
     return URL.createObjectURL(blob)
   } catch (cause) {
     byCameraThumbnailBreadcrumb("image_element_failed", {
-      cause: cause instanceof Error ? cause.message : String(cause),
+      error: serializeUnknownErrorForLog(cause),
+      maxDimension,
+      file: fileSummaryForSentry(file),
     })
     return null
   } finally {
@@ -324,7 +366,8 @@ export async function generateThumbnailUrl(
   let bitmap: ImageBitmap | null = null
   let lastBitmapError: unknown = null
 
-  for (const dim of resizeAttempts) {
+  for (let attempt = 0; attempt < resizeAttempts.length; attempt++) {
+    const dim = resizeAttempts[attempt]
     try {
       bitmap = await createImageBitmap(file, {
         resizeWidth: dim,
@@ -337,6 +380,12 @@ export async function generateThumbnailUrl(
     } catch (err) {
       lastBitmapError = err
       bitmap = null
+      byCameraThumbnailBreadcrumb("create_image_bitmap_failed", {
+        attempt,
+        resizeDim: dim,
+        error: serializeUnknownErrorForLog(err),
+        file: fileSummaryForSentry(file),
+      })
     }
   }
 
@@ -345,6 +394,10 @@ export async function generateThumbnailUrl(
       return await imageBitmapToJpegObjectUrl(bitmap)
     } catch (cause) {
       lastBitmapError = cause
+      byCameraThumbnailBreadcrumb("bitmap_to_jpeg_failed", {
+        error: serializeUnknownErrorForLog(cause),
+        file: fileSummaryForSentry(file),
+      })
     }
   }
 
@@ -352,12 +405,9 @@ export async function generateThumbnailUrl(
   if (viaImage) return viaImage
 
   byCameraThumbnailBreadcrumb("fallback_after_exception", {
-    cause:
-      lastBitmapError instanceof Error
-        ? lastBitmapError.message
-        : lastBitmapError != null
-          ? String(lastBitmapError)
-          : "unknown",
+    note: "using_full_file_object_url_after_all_thumbnail_strategies",
+    lastError: serializeUnknownErrorForLog(lastBitmapError),
+    file: fileSummaryForSentry(file),
   })
   return URL.createObjectURL(file)
 }

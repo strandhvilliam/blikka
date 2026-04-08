@@ -318,6 +318,9 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
           setFileError(file.key, result.error);
           captureByCameraS3UploadFailed(file.orderIndex, result.error, {
             submissionKey: file.key,
+            file: file.file,
+            requestContentType:
+              file.contentType ?? (file.file.type || "image/jpeg"),
           });
           return;
         }
