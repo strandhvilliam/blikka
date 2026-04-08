@@ -12,6 +12,20 @@ import { cn } from "@/lib/utils"
 import { createValidationResultKey } from "@/lib/validation"
 import { formatRuleKey, getValidationRowClass } from "@/lib/upload-utils"
 
+function formatExifDisplayValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "—"
+  }
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return String(value)
+    }
+  }
+  return String(value)
+}
+
 export interface ManualSelectedImagesSectionPhotoSelection {
   selectedPhotos: ParticipantSelectedPhoto[]
   photoValidationMap: Map<string, ValidationResult[]>
@@ -196,6 +210,34 @@ export function ManualSelectedImagesSection({
                               <p className="mt-1">{result.message}</p>
                             </div>
                           ))
+                        )}
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    <Collapsible className="mt-2 rounded-md border border-[#ecece2]">
+                      <CollapsibleTrigger className="group flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium text-[#5c5c55]">
+                        EXIF details
+                        <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-2 px-3 pb-3">
+                        {Object.keys(photo.exif).length === 0 ? (
+                          <p className="text-xs text-[#707069]">
+                            No EXIF metadata was read from this file.
+                          </p>
+                        ) : (
+                          Object.entries(photo.exif)
+                            .toSorted(([a], [b]) => a.localeCompare(b))
+                            .map(([key, value]) => (
+                              <div
+                                key={key}
+                                className="rounded-md border border-[#e8e8e0] bg-[#fafaf6] px-3 py-2 text-xs"
+                              >
+                                <p className="font-semibold text-[#2b2b24]">{key}</p>
+                                <pre className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-relaxed text-[#5c5c55] tabular-nums">
+                                  {formatExifDisplayValue(value)}
+                                </pre>
+                              </div>
+                            ))
                         )}
                       </CollapsibleContent>
                     </Collapsible>

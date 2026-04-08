@@ -270,12 +270,12 @@ export function ByCameraUploadInput({
               <span className="sr-only">{t("remove")}</span>
             </button>
 
-            {/* Image */}
-            <div className="w-full bg-muted">
+            {/* Image — cap height so very tall screenshots stay on-screen */}
+            <div className="flex w-full justify-center bg-muted">
               <img
                 src={photo.preview}
                 alt={t("photoPreview")}
-                className="min-h-[100px] w-full object-contain"
+                className="max-h-[min(52dvh,30rem)] w-full object-contain"
               />
             </div>
 
