@@ -1,31 +1,37 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { ArrowLeft, ArrowRight, Loader2, UploadIcon } from "lucide-react"
-import dynamic from "next/dynamic"
-import { toast } from "sonner"
-import { motion } from "motion/react"
+import { useEffect, useState } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
+import { ArrowLeft, ArrowRight, Loader2, UploadIcon } from "lucide-react";
+import dynamic from "next/dynamic";
+import { toast } from "sonner";
+import { motion } from "motion/react";
 
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import { cn } from "@/lib/utils"
-import { getExpectedPhotoCount } from "@/lib/upload-utils"
-import type { UploadMarathonMode } from "@/lib/types"
+import { useDomain } from "@/lib/domain-provider";
+import { useTRPC } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
+import { getExpectedPhotoCount } from "@/lib/upload-utils";
+import type { UploadMarathonMode } from "@/lib/types";
 import {
   resolveStaffLaptopUploadLookupOutcome,
   type ParticipantExistenceStatus,
-} from "@/lib/flow-helpers"
+} from "@/lib/flow-helpers";
 import {
   PARTICIPANT_UPLOAD_PHASE,
   type ParticipantPreparedUpload,
   type ParticipantSelectedPhoto,
   type ParticipantUploadFileState,
-} from "@/lib/participant-upload-types"
-import { uploadManualFiles } from "@/lib/manual-upload"
-import { Button } from "@/components/ui/button"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+} from "@/lib/participant-upload-types";
+import { uploadManualFiles } from "@/lib/manual-upload";
+import { buildUploadExifPayload } from "@/lib/upload-exif";
+import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,30 +41,36 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
-import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
-import type { StaffParticipant } from "@/lib/staff/staff-types"
-import { useStaffUploadParticipantSummary } from "@/hooks/staff/use-staff-upload-participant-summary"
-import { useStaffUploadStep } from "@/hooks/staff/use-staff-upload-step"
-import { useStaffPhotoValidation } from "@/hooks/staff/use-staff-photo-validation"
-import { useStaffUploadStatusSync } from "@/hooks/staff/use-staff-upload-status-sync"
-import { validateStaffUploadFiles, validateStaffUploadForm } from "@/lib/staff/staff-upload-form"
+} from "@/components/ui/alert-dialog";
+import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state";
+import { normalizeParticipantReference } from "@/lib/staff/staff-utils";
+import type { StaffParticipant } from "@/lib/staff/staff-types";
+import { useStaffUploadParticipantSummary } from "@/hooks/staff/use-staff-upload-participant-summary";
+import { useStaffUploadStep } from "@/hooks/staff/use-staff-upload-step";
+import { useStaffPhotoValidation } from "@/hooks/staff/use-staff-photo-validation";
+import { useStaffUploadStatusSync } from "@/hooks/staff/use-staff-upload-status-sync";
+import {
+  validateStaffUploadFiles,
+  validateStaffUploadForm,
+} from "@/lib/staff/staff-upload-form";
 import {
   useStaffUploadStore,
   selectRequiresOverwriteWarning,
-} from "@/lib/staff/staff-upload-store"
-import { ParticipantDetailsStep } from "@/components/staff/participant-details-step"
-import { PhoneLookupStep } from "@/components/staff/phone-lookup-step"
-import { ReferenceStep } from "@/components/staff/reference-step"
-import { UploadCompletePanel } from "@/components/staff/upload-complete-panel"
-import { UploadProgressPanel } from "@/components/staff/upload-progress-panel"
-import { UploadStep } from "@/components/staff/upload-step"
+} from "@/lib/staff/staff-upload-store";
+import { ParticipantDetailsStep } from "@/components/staff/participant-details-step";
+import { PhoneLookupStep } from "@/components/staff/phone-lookup-step";
+import { ReferenceStep } from "@/components/staff/reference-step";
+import { UploadCompletePanel } from "@/components/staff/upload-complete-panel";
+import { UploadProgressPanel } from "@/components/staff/upload-progress-panel";
+import { UploadStep } from "@/components/staff/upload-step";
 
-const POLLING_INTERVAL_MS = 3000
+const POLLING_INTERVAL_MS = 3000;
 
 const StepIndicator = dynamic(
-  () => import("@/components/staff/step-indicator").then((m) => ({ default: m.StepIndicator })),
+  () =>
+    import("@/components/staff/step-indicator").then((m) => ({
+      default: m.StepIndicator,
+    })),
   {
     ssr: false,
     loading: () => (
@@ -69,48 +81,51 @@ const StepIndicator = dynamic(
       </nav>
     ),
   },
-)
+);
 
 interface StaffLaptopUploadClientProps {
-  staffEmail?: string | null
-  staffImage?: string | null
-  staffName?: string | null
+  staffEmail?: string | null;
+  staffImage?: string | null;
+  staffName?: string | null;
 }
 
 function getStaffInitials(name?: string | null, email?: string | null) {
-  const source = (name || email || "Staff").trim()
-  const words = source.split(/\s+/).filter(Boolean)
-  if (words.length === 0) return "ST"
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
+  const source = (name || email || "Staff").trim();
+  const words = source.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "ST";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return words
     .slice(0, 2)
     .map((w) => w[0] ?? "")
     .join("")
-    .toUpperCase()
+    .toUpperCase();
 }
 
 function getBlockedMessage(status: ParticipantExistenceStatus) {
   if (status === "verified") {
-    return "This participant has already been verified and cannot be uploaded again from the staff laptop flow."
+    return "This participant has already been verified and cannot be uploaded again from the staff laptop flow.";
   }
 
-  return "This participant has already completed the upload flow and cannot be uploaded again from the staff laptop flow."
+  return "This participant has already completed the upload flow and cannot be uploaded again from the staff laptop flow.";
 }
 
 function formatTopicDateTime(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+  return new Date(iso).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 type ByCameraSubmissionWindowBlockedState = Exclude<
   ReturnType<typeof getByCameraSubmissionWindowState>,
   "open"
->
+>;
 
 interface StaffByCameraSubmissionWindowGateProps {
-  state: ByCameraSubmissionWindowBlockedState | null
-  topicName: string | null
-  scheduledStart: string | null
-  scheduledEnd: string | null
+  state: ByCameraSubmissionWindowBlockedState | null;
+  topicName: string | null;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
 }
 
 function StaffByCameraSubmissionWindowGate({
@@ -119,22 +134,22 @@ function StaffByCameraSubmissionWindowGate({
   scheduledStart,
   scheduledEnd,
 }: StaffByCameraSubmissionWindowGateProps) {
-  let body: string
+  let body: string;
   if (state === "no-active-topic") {
     body =
-      "There is no active topic for this event. Staff cannot upload until a topic is activated in the dashboard."
+      "There is no active topic for this event. Staff cannot upload until a topic is activated in the dashboard.";
   } else if (state === "not-opened") {
     body =
-      "The submission window for this topic has not been opened yet. Open submissions from the dashboard when you are ready."
+      "The submission window for this topic has not been opened yet. Open submissions from the dashboard when you are ready.";
   } else if (state === "scheduled" && scheduledStart) {
-    body = `Submissions open ${formatTopicDateTime(scheduledStart)}.`
+    body = `Submissions open ${formatTopicDateTime(scheduledStart)}.`;
   } else if (state === "scheduled") {
-    body = "Submissions are scheduled to open later."
+    body = "Submissions are scheduled to open later.";
   } else {
     body =
       scheduledEnd != null
         ? `Submissions closed ${formatTopicDateTime(scheduledEnd)}.`
-        : "Submissions are closed for this topic."
+        : "Submissions are closed for this topic.";
   }
 
   return (
@@ -146,13 +161,15 @@ function StaffByCameraSubmissionWindowGate({
         Uploads unavailable
       </h2>
       {topicName ? (
-        <p className="mt-2 text-sm font-medium text-foreground/80">{topicName}</p>
+        <p className="mt-2 text-sm font-medium text-foreground/80">
+          {topicName}
+        </p>
       ) : null}
       <div className="mt-8 w-full max-w-md rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
         {body}
       </div>
     </div>
-  )
+  );
 }
 
 export function StaffLaptopUploadClient({
@@ -160,87 +177,100 @@ export function StaffLaptopUploadClient({
   staffImage,
   staffName,
 }: StaffLaptopUploadClientProps) {
-  const domain = useDomain()
-  const trpc = useTRPC()
-  const queryClient = useQueryClient()
+  const domain = useDomain();
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
 
-  const [step, setStep] = useStaffUploadStep()
+  const [step, setStep] = useStaffUploadStep();
 
-  const formValues = useStaffUploadStore((s) => s.formValues)
-  const existingParticipant = useStaffUploadStore((s) => s.existingParticipant)
-  const showOverwriteDialog = useStaffUploadStore((s) => s.showOverwriteDialog)
-  const requiresOverwriteWarning = useStaffUploadStore(selectRequiresOverwriteWarning)
+  const formValues = useStaffUploadStore((s) => s.formValues);
+  const existingParticipant = useStaffUploadStore((s) => s.existingParticipant);
+  const showOverwriteDialog = useStaffUploadStore((s) => s.showOverwriteDialog);
+  const requiresOverwriteWarning = useStaffUploadStore(
+    selectRequiresOverwriteWarning,
+  );
   const byCameraReplaceExistingTopicUpload = useStaffUploadStore(
     (s) => s.byCameraReplaceExistingTopicUpload,
-  )
+  );
   const byCameraReplaceFinalizedParticipantUpload = useStaffUploadStore(
     (s) => s.byCameraReplaceFinalizedParticipantUpload,
-  )
+  );
 
-  const resetForm = useStaffUploadStore((s) => s.resetForm)
-  const setFormField = useStaffUploadStore((s) => s.setFormField)
-  const setFormErrors = useStaffUploadStore((s) => s.setFormErrors)
-  const clearFormErrors = useStaffUploadStore((s) => s.clearFormErrors)
-  const patchParticipant = useStaffUploadStore((s) => s.patchParticipant)
+  const resetForm = useStaffUploadStore((s) => s.resetForm);
+  const setFormField = useStaffUploadStore((s) => s.setFormField);
+  const setFormErrors = useStaffUploadStore((s) => s.setFormErrors);
+  const clearFormErrors = useStaffUploadStore((s) => s.clearFormErrors);
+  const patchParticipant = useStaffUploadStore((s) => s.patchParticipant);
 
-  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos)
-  const validationResults = useStaffUploadStore((s) => s.validationResults)
-  const validationRunError = useStaffUploadStore((s) => s.validationRunError)
+  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
+  const validationResults = useStaffUploadStore((s) => s.validationResults);
+  const validationRunError = useStaffUploadStore((s) => s.validationRunError);
 
-  const resetPhotoSelection = useStaffUploadStore((s) => s.resetPhotoSelection)
-  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos)
+  const resetPhotoSelection = useStaffUploadStore((s) => s.resetPhotoSelection);
+  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos);
 
-  const uploadFiles = useStaffUploadStore((s) => s.uploadFiles)
-  const submittedReference = useStaffUploadStore((s) => s.submittedReference)
-  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles)
-  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus)
-  const uploadComplete = useStaffUploadStore((s) => s.uploadComplete)
+  const uploadFiles = useStaffUploadStore((s) => s.uploadFiles);
+  const submittedReference = useStaffUploadStore((s) => s.submittedReference);
+  const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles);
+  const isPollingStatus = useStaffUploadStore((s) => s.isPollingStatus);
+  const uploadComplete = useStaffUploadStore((s) => s.uploadComplete);
 
-  const updateUploadFileState = useStaffUploadStore((s) => s.updateUploadFileState)
-  const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow)
-  const patchUpload = useStaffUploadStore((s) => s.patchUpload)
+  const updateUploadFileState = useStaffUploadStore(
+    (s) => s.updateUploadFileState,
+  );
+  const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow);
+  const patchUpload = useStaffUploadStore((s) => s.patchUpload);
 
-  const resetAllState = useStaffUploadStore((s) => s.resetAllState)
+  const resetAllState = useStaffUploadStore((s) => s.resetAllState);
 
-  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
-  const marathonMode = marathon.mode as UploadMarathonMode
-  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
-  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === "active") ?? null
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({ domain }),
+  );
+  const marathonMode = marathon.mode as UploadMarathonMode;
+  const sortedTopics = marathon.topics.toSorted(
+    (a, b) => a.orderIndex - b.orderIndex,
+  );
+  const activeByCameraTopic =
+    sortedTopics.find((topic) => topic.visibility === "active") ?? null;
 
   const lookupParticipantMutation = useMutation(
     trpc.uploadFlow.checkParticipantExists.mutationOptions(),
-  )
+  );
   const resolveByCameraParticipantByPhone = useMutation(
     trpc.uploadFlow.resolveByCameraParticipantByPhone.mutationOptions(),
-  )
+  );
   const initializeUploadFlowMutation = useMutation(
     trpc.uploadFlow.initializeUploadFlow.mutationOptions(),
-  )
+  );
   const initializeStaffByCameraUploadMutation = useMutation(
     trpc.uploadFlow.initializeStaffByCameraUpload.mutationOptions(),
-  )
+  );
 
   const activeCompetitionClassId = existingParticipant
     ? String(existingParticipant.competitionClassId)
-    : formValues.competitionClassId
+    : formValues.competitionClassId;
   const activeDeviceGroupId = existingParticipant
     ? String(existingParticipant.deviceGroupId)
-    : formValues.deviceGroupId
+    : formValues.deviceGroupId;
 
   const selectedCompetitionClass =
-    marathon.competitionClasses.find((cc) => cc.id === Number(activeCompetitionClassId)) ?? null
+    marathon.competitionClasses.find(
+      (cc) => cc.id === Number(activeCompetitionClassId),
+    ) ?? null;
 
   const expectedPhotoCount = getExpectedPhotoCount(
     marathonMode,
     activeByCameraTopic,
     selectedCompetitionClass,
-  )
+  );
 
   const isMappingReady =
     !!activeDeviceGroupId &&
-    (marathonMode === "marathon" ? !!selectedCompetitionClass : !!activeByCameraTopic)
+    (marathonMode === "marathon"
+      ? !!selectedCompetitionClass
+      : !!activeByCameraTopic);
 
-  const participantSummary = useStaffUploadParticipantSummary()
+  const participantSummary = useStaffUploadParticipantSummary();
 
   const uploadStatusQuery = useQuery(
     trpc.uploadFlow.getUploadStatus.queryOptions(
@@ -250,88 +280,105 @@ export function StaffLaptopUploadClient({
         orderIndexes: uploadFiles.map((file) => file.orderIndex),
       },
       {
-        enabled: isPollingStatus && submittedReference.length > 0 && uploadFiles.length > 0,
+        enabled:
+          isPollingStatus &&
+          submittedReference.length > 0 &&
+          uploadFiles.length > 0,
         refetchInterval: POLLING_INTERVAL_MS,
         refetchIntervalInBackground: false,
       },
     ),
-  )
+  );
 
   const isUploadBusy =
     isUploadingFiles ||
     isPollingStatus ||
     initializeUploadFlowMutation.isPending ||
-    initializeStaffByCameraUploadMutation.isPending
-  const [byCameraReplaceDialogOpen, setByCameraReplaceDialogOpen] = useState(false)
+    initializeStaffByCameraUploadMutation.isPending;
+  const [byCameraReplaceDialogOpen, setByCameraReplaceDialogOpen] =
+    useState(false);
   const [pendingByCameraReplacement, setPendingByCameraReplacement] = useState<{
-    reference: string
-    participantId: number
-  } | null>(null)
+    reference: string;
+    participantId: number;
+  } | null>(null);
   /** Re-render periodically so scheduled → open transitions without a full page reload. */
-  const [, setByCameraSubmissionClock] = useState(0)
+  const [, setByCameraSubmissionClock] = useState(0);
 
   const isBusy =
     lookupParticipantMutation.isPending ||
     isUploadBusy ||
-    (marathonMode === "by-camera" && resolveByCameraParticipantByPhone.isPending)
-  const canSelectFiles = isMappingReady && expectedPhotoCount > 0
-  const isMaxImagesReached = selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0
-  const isDropzoneDisabled = !canSelectFiles || isBusy || uploadComplete || isMaxImagesReached
+    (marathonMode === "by-camera" &&
+      resolveByCameraParticipantByPhone.isPending);
+  const canSelectFiles = isMappingReady && expectedPhotoCount > 0;
+  const isMaxImagesReached =
+    selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0;
+  const isDropzoneDisabled =
+    !canSelectFiles || isBusy || uploadComplete || isMaxImagesReached;
 
   useEffect(() => {
-    resetAllState()
-    void setStep(marathonMode === "by-camera" ? "phone" : "reference")
+    resetAllState();
+    void setStep(marathonMode === "by-camera" ? "phone" : "reference");
 
     return () => {
-      resetAllState()
-    }
-  }, [marathonMode, resetAllState, setStep])
+      resetAllState();
+    };
+  }, [marathonMode, resetAllState, setStep]);
 
   useEffect(() => {
-    if (marathonMode !== "by-camera") return
+    if (marathonMode !== "by-camera") return;
     const id = window.setInterval(() => {
-      setByCameraSubmissionClock((c) => c + 1)
-    }, 15_000)
-    return () => window.clearInterval(id)
-  }, [marathonMode])
+      setByCameraSubmissionClock((c) => c + 1);
+    }, 15_000);
+    return () => window.clearInterval(id);
+  }, [marathonMode]);
 
   const byCameraSubmissionWindowState =
     marathonMode === "by-camera"
       ? getByCameraSubmissionWindowState(activeByCameraTopic, new Date())
-      : null
+      : null;
 
   useEffect(() => {
     if (marathonMode === "marathon" && step === "phone") {
-      void setStep("reference")
-      return
+      void setStep("reference");
+      return;
     }
 
     if (marathonMode === "by-camera" && step === "reference") {
-      void setStep("phone")
-      return
+      void setStep("phone");
+      return;
     }
 
-    if (step === "phone" || step === "reference") return
+    if (step === "phone" || step === "reference") return;
 
     if (step === "details") {
       if (marathonMode === "by-camera" && !formValues.phone.trim()) {
-        void setStep("phone")
-        return
+        void setStep("phone");
+        return;
       }
       if (marathonMode !== "by-camera" && !formValues.reference.trim()) {
-        void setStep("reference")
-        return
+        void setStep("reference");
+        return;
       }
     }
 
-    if ((step === "upload" || step === "progress" || step === "complete") && !participantSummary) {
+    if (
+      (step === "upload" || step === "progress" || step === "complete") &&
+      !participantSummary
+    ) {
       if (marathonMode === "by-camera") {
-        void setStep(formValues.phone.trim() ? "details" : "phone")
-        return
+        void setStep(formValues.phone.trim() ? "details" : "phone");
+        return;
       }
-      void setStep(formValues.reference.trim() ? "details" : "reference")
+      void setStep(formValues.reference.trim() ? "details" : "reference");
     }
-  }, [formValues.phone, formValues.reference, marathonMode, participantSummary, setStep, step])
+  }, [
+    formValues.phone,
+    formValues.reference,
+    marathonMode,
+    participantSummary,
+    setStep,
+    step,
+  ]);
 
   useStaffPhotoValidation({
     step,
@@ -339,41 +386,41 @@ export function StaffLaptopUploadClient({
     marathonStartDate: marathon.startDate,
     marathonEndDate: marathon.endDate,
     marathonMode,
-  })
+  });
 
   const { resetCompletion } = useStaffUploadStatusSync({
     domain,
     uploadStatusData: uploadStatusQuery.data,
     refetchUploadStatus: async () => {
-      await uploadStatusQuery.refetch()
+      await uploadStatusQuery.refetch();
     },
     setStep,
-  })
+  });
 
   async function runUpload(
     reference: string,
     photos: ParticipantSelectedPhoto[],
     participantDraft?: Partial<typeof formValues>,
     options?: {
-      replaceExistingActiveTopicUpload?: boolean
-      replaceFinalizedParticipantUpload?: boolean
+      replaceExistingActiveTopicUpload?: boolean;
+      replaceFinalizedParticipantUpload?: boolean;
     },
   ) {
-    if (photos.length === 0) return
+    if (photos.length === 0) return;
 
     const resolvedFormValues = {
       ...formValues,
       ...participantDraft,
       reference,
-    }
+    };
 
     patchUpload({
       uploadErrorMessage: null,
       uploadComplete: false,
       isUploadingFiles: true,
       isPollingStatus: false,
-    })
-    resetCompletion()
+    });
+    resetCompletion();
 
     try {
       const commonPayload = {
@@ -383,9 +430,11 @@ export function StaffLaptopUploadClient({
         email: resolvedFormValues.email.trim(),
         deviceGroupId: Number(resolvedFormValues.deviceGroupId),
         phoneNumber: resolvedFormValues.phone.trim(),
-      }
+      };
 
-      const orderedPhotos = [...photos].sort((a, b) => a.orderIndex - b.orderIndex)
+      const orderedPhotos = [...photos].sort(
+        (a, b) => a.orderIndex - b.orderIndex,
+      );
 
       const initialization =
         marathonMode === "marathon"
@@ -394,7 +443,10 @@ export function StaffLaptopUploadClient({
               reference,
               phoneNumber: commonPayload.phoneNumber || null,
               competitionClassId: Number(resolvedFormValues.competitionClassId),
-              uploadContentTypes: orderedPhotos.map((photo) => photo.file.type || "image/jpeg"),
+              uploadContentTypes: orderedPhotos.map(
+                (photo) => photo.file.type || "image/jpeg",
+              ),
+              uploadExif: buildUploadExifPayload(orderedPhotos),
             })
           : await initializeStaffByCameraUploadMutation.mutateAsync({
               domain,
@@ -404,129 +456,140 @@ export function StaffLaptopUploadClient({
               email: commonPayload.email,
               deviceGroupId: commonPayload.deviceGroupId,
               phoneNumber: commonPayload.phoneNumber,
-              uploadContentTypes: orderedPhotos.map((photo) => photo.file.type || "image/jpeg"),
+              uploadContentTypes: orderedPhotos.map(
+                (photo) => photo.file.type || "image/jpeg",
+              ),
+              uploadExif: buildUploadExifPayload(orderedPhotos),
               ...(options?.replaceExistingActiveTopicUpload
                 ? { replaceExistingActiveTopicUpload: true }
                 : {}),
               ...(options?.replaceFinalizedParticipantUpload
                 ? { replaceFinalizedParticipantUpload: true }
                 : {}),
-            })
+            });
 
       const resolvedReference =
         marathonMode === "marathon" || Array.isArray(initialization)
           ? reference
-          : initialization.reference
-      const presignedUrls = Array.isArray(initialization) ? initialization : initialization.uploads
+          : initialization.reference;
+      const presignedUrls = Array.isArray(initialization)
+        ? initialization
+        : initialization.uploads;
 
       if (!presignedUrls.length) {
-        throw new Error("Failed to initialize upload URLs")
+        throw new Error("Failed to initialize upload URLs");
       }
 
-      const preparedUploads: ParticipantPreparedUpload[] = orderedPhotos.map((photo, index) => {
-        const urlData = presignedUrls[index]
+      const preparedUploads: ParticipantPreparedUpload[] = orderedPhotos.map(
+        (photo, index) => {
+          const urlData = presignedUrls[index];
 
-        if (!urlData) {
-          throw new Error(`Missing upload URL for image #${index + 1}`)
-        }
+          if (!urlData) {
+            throw new Error(`Missing upload URL for image #${index + 1}`);
+          }
 
-        const contentTypeFromApi =
-          "contentType" in urlData && typeof urlData.contentType === "string"
-            ? urlData.contentType
-            : undefined
+          const contentTypeFromApi =
+            "contentType" in urlData && typeof urlData.contentType === "string"
+              ? urlData.contentType
+              : undefined;
 
-        return {
+          return {
+            ...photo,
+            key: urlData.key,
+            presignedUrl: urlData.url,
+            ...(contentTypeFromApi !== undefined
+              ? { contentType: contentTypeFromApi }
+              : {}),
+          };
+        },
+      );
+
+      const initialUploadState: ParticipantUploadFileState[] =
+        preparedUploads.map((photo) => ({
           ...photo,
-          key: urlData.key,
-          presignedUrl: urlData.url,
-          ...(contentTypeFromApi !== undefined ? { contentType: contentTypeFromApi } : {}),
-        }
-      })
-
-      const initialUploadState: ParticipantUploadFileState[] = preparedUploads.map((photo) => ({
-        ...photo,
-        phase: PARTICIPANT_UPLOAD_PHASE.PRESIGNED,
-        progress: 0,
-        error: undefined,
-      }))
+          phase: PARTICIPANT_UPLOAD_PHASE.PRESIGNED,
+          progress: 0,
+          error: undefined,
+        }));
 
       patchUpload({
         uploadFiles: initialUploadState,
         submittedReference: resolvedReference,
-      })
+      });
 
       const { successKeys, failedKeys } = await uploadManualFiles({
         files: preparedUploads,
         onFileStateChange: updateUploadFileState,
-      })
+      });
 
       if (successKeys.length > 0) {
-        patchUpload({ isPollingStatus: true })
+        patchUpload({ isPollingStatus: true });
       }
 
-      if (failedKeys.length === 0) return
+      if (failedKeys.length === 0) return;
 
       const message = `${failedKeys.length} photo${
         failedKeys.length === 1 ? "" : "s"
-      } failed to upload`
-      patchUpload({ uploadErrorMessage: message })
-      toast.error(message)
+      } failed to upload`;
+      patchUpload({ uploadErrorMessage: message });
+      toast.error(message);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to initialize upload"
-      patchUpload({ uploadErrorMessage: message })
-      toast.error(message)
+      const message =
+        error instanceof Error ? error.message : "Failed to initialize upload";
+      patchUpload({ uploadErrorMessage: message });
+      toast.error(message);
     } finally {
-      patchUpload({ isUploadingFiles: false })
+      patchUpload({ isUploadingFiles: false });
     }
   }
 
   const handleLookup = async (reference: string) => {
-    const normalizedReference = normalizeParticipantReference(reference)
+    const normalizedReference = normalizeParticipantReference(reference);
 
-    setFormField("reference", normalizedReference)
+    setFormField("reference", normalizedReference);
     patchParticipant({
       lookupErrorMessage: null,
       showOverwriteDialog: false,
       byCameraReplaceExistingTopicUpload: false,
       byCameraReplaceFinalizedParticipantUpload: false,
-    })
-    patchPhotos({ filesError: null })
-    resetPhotoSelection()
-    resetUploadFlow()
+    });
+    patchPhotos({ filesError: null });
+    resetPhotoSelection();
+    resetUploadFlow();
 
     try {
       const result = await lookupParticipantMutation.mutateAsync({
         domain,
         reference: normalizedReference,
-      })
+      });
 
-      const resolvedStatus = result.status as ParticipantExistenceStatus
+      const resolvedStatus = result.status as ParticipantExistenceStatus;
       const outcome = resolveStaffLaptopUploadLookupOutcome({
         exists: result.exists,
         status: resolvedStatus,
-      })
+      });
 
-      patchParticipant({ participantStatus: resolvedStatus })
+      patchParticipant({ participantStatus: resolvedStatus });
 
       if (outcome.kind === "blocked") {
         patchParticipant({
           existingParticipant: null,
           lookupErrorMessage: getBlockedMessage(resolvedStatus),
-        })
-        resetForm(normalizedReference)
-        void setStep("reference")
-        return
+        });
+        resetForm(normalizedReference);
+        void setStep("reference");
+        return;
       }
 
       if (outcome.kind === "manual-entry") {
         patchParticipant({
           existingParticipant: null,
           byCameraReplaceExistingTopicUpload: false,
-        })
-        resetForm(normalizedReference)
-        clearFormErrors()
-        void setStep("details")
-        return
+        });
+        resetForm(normalizedReference);
+        clearFormErrors();
+        void setStep("details");
+        return;
       }
 
       const participant = await queryClient.fetchQuery(
@@ -534,84 +597,90 @@ export function StaffLaptopUploadClient({
           domain,
           reference: normalizedReference,
         }),
-      )
+      );
 
       patchParticipant({
         existingParticipant: participant as StaffParticipant,
-      })
-      void setStep("upload")
+      });
+      void setStep("upload");
     } catch (error) {
-      console.error(error)
+      console.error(error);
       patchParticipant({
         lookupErrorMessage:
-          error instanceof Error ? error.message : "Failed to find participant for this reference.",
-      })
+          error instanceof Error
+            ? error.message
+            : "Failed to find participant for this reference.",
+      });
     }
-  }
+  };
 
   const handlePhoneLookup = async (phoneNumber: string) => {
-    const trimmedPhone = phoneNumber.trim()
+    const trimmedPhone = phoneNumber.trim();
 
-    setFormField("phone", trimmedPhone)
+    setFormField("phone", trimmedPhone);
     patchParticipant({
       lookupErrorMessage: null,
       showOverwriteDialog: false,
       byCameraReplaceExistingTopicUpload: false,
       byCameraReplaceFinalizedParticipantUpload: false,
-    })
-    patchPhotos({ filesError: null })
-    resetPhotoSelection()
-    resetUploadFlow()
+    });
+    patchPhotos({ filesError: null });
+    resetPhotoSelection();
+    resetUploadFlow();
 
     try {
       const resolution = await resolveByCameraParticipantByPhone.mutateAsync({
         domain,
         phoneNumber: trimmedPhone,
-      })
+      });
 
       if (!resolution.match) {
         patchParticipant({
           existingParticipant: null,
           participantStatus: null,
           lookupErrorMessage: null,
-        })
-        setFormField("reference", "")
-        setFormField("firstName", "")
-        setFormField("lastName", "")
-        setFormField("email", "")
-        clearFormErrors()
-        void setStep("details")
-        return
+        });
+        setFormField("reference", "");
+        setFormField("firstName", "");
+        setFormField("lastName", "");
+        setFormField("email", "");
+        clearFormErrors();
+        void setStep("details");
+        return;
       }
 
       if (resolution.activeTopicUploadState === "already-uploaded") {
         setPendingByCameraReplacement({
           reference: resolution.reference,
           participantId: resolution.participantId,
-        })
-        setByCameraReplaceDialogOpen(true)
-        return
+        });
+        setByCameraReplaceDialogOpen(true);
+        return;
       }
 
-      const normalizedReference = normalizeParticipantReference(resolution.reference)
+      const normalizedReference = normalizeParticipantReference(
+        resolution.reference,
+      );
 
       const result = await lookupParticipantMutation.mutateAsync({
         domain,
         reference: normalizedReference,
-      })
+      });
 
-      const resolvedStatus = result.status as ParticipantExistenceStatus
+      const resolvedStatus = result.status as ParticipantExistenceStatus;
       const outcome = resolveStaffLaptopUploadLookupOutcome({
         exists: result.exists,
         status: resolvedStatus,
-      })
+      });
 
-      patchParticipant({ participantStatus: resolvedStatus })
+      patchParticipant({ participantStatus: resolvedStatus });
 
       if (outcome.kind === "manual-entry") {
-        patchParticipant({ existingParticipant: null })
-        toast.error("Could not load this participant from the server. Try the lookup again.")
-        return
+        patchParticipant({ existingParticipant: null });
+        toast.error(
+          "Could not load this participant from the server. Try the lookup again.",
+        );
+        return;
       }
 
       const participant = await queryClient.fetchQuery(
@@ -619,10 +688,11 @@ export function StaffLaptopUploadClient({
           domain,
           reference: normalizedReference,
         }),
-      )
+      );
 
       const continuingAfterPriorTopicFinalize =
-        outcome.kind === "blocked" && resolution.activeTopicUploadState === "eligible"
+        outcome.kind === "blocked" &&
+        resolution.activeTopicUploadState === "eligible";
 
       patchParticipant({
         existingParticipant: participant as StaffParticipant,
@@ -632,54 +702,56 @@ export function StaffLaptopUploadClient({
               byCameraReplaceExistingTopicUpload: false,
             }
           : {}),
-      })
-      setFormField("reference", normalizedReference)
-      void setStep("upload")
+      });
+      setFormField("reference", normalizedReference);
+      void setStep("upload");
     } catch (error) {
-      console.error(error)
+      console.error(error);
       patchParticipant({
         lookupErrorMessage:
           error instanceof Error
             ? error.message
             : "Could not look up this phone number. Try again.",
-      })
+      });
     }
-  }
+  };
 
   const handleContinueFromDetails = async () => {
-    const errors = validateStaffUploadForm(marathonMode, formValues)
+    const errors = validateStaffUploadForm(marathonMode, formValues);
 
     if (errors) {
-      setFormErrors(errors)
-      return
+      setFormErrors(errors);
+      return;
     }
 
-    patchParticipant({ lookupErrorMessage: null })
-    clearFormErrors()
-    void setStep("upload")
-  }
+    patchParticipant({ lookupErrorMessage: null });
+    clearFormErrors();
+    void setStep("upload");
+  };
 
   const handleConfirmByCameraReplace = async () => {
-    if (!pendingByCameraReplacement) return
+    if (!pendingByCameraReplacement) return;
 
-    const normalizedReference = normalizeParticipantReference(pendingByCameraReplacement.reference)
+    const normalizedReference = normalizeParticipantReference(
+      pendingByCameraReplacement.reference,
+    );
 
-    setByCameraReplaceDialogOpen(false)
-    setPendingByCameraReplacement(null)
+    setByCameraReplaceDialogOpen(false);
+    setPendingByCameraReplacement(null);
 
     try {
       const result = await lookupParticipantMutation.mutateAsync({
         domain,
         reference: normalizedReference,
-      })
+      });
 
-      const resolvedStatus = result.status as ParticipantExistenceStatus
+      const resolvedStatus = result.status as ParticipantExistenceStatus;
       const outcome = resolveStaffLaptopUploadLookupOutcome({
         exists: result.exists,
         status: resolvedStatus,
-      })
+      });
 
-      patchParticipant({ participantStatus: resolvedStatus })
+      patchParticipant({ participantStatus: resolvedStatus });
 
       if (outcome.kind === "blocked") {
         const participant = await queryClient.fetchQuery(
@@ -687,7 +759,7 @@ export function StaffLaptopUploadClient({
             domain,
             reference: normalizedReference,
           }),
-        )
+        );
 
         patchParticipant({
           byCameraReplaceExistingTopicUpload: true,
@@ -695,11 +767,11 @@ export function StaffLaptopUploadClient({
           lookupErrorMessage: null,
           existingParticipant: participant as StaffParticipant,
           participantStatus: participant.status as ParticipantExistenceStatus,
-        })
-        setFormField("reference", normalizedReference)
-        clearFormErrors()
-        void setStep("upload")
-        return
+        });
+        setFormField("reference", normalizedReference);
+        clearFormErrors();
+        void setStep("upload");
+        return;
       }
 
       if (outcome.kind === "manual-entry") {
@@ -707,9 +779,9 @@ export function StaffLaptopUploadClient({
           lookupErrorMessage:
             "This participant is not in the expected state. Try the phone lookup again.",
           existingParticipant: null,
-        })
-        void setStep("phone")
-        return
+        });
+        void setStep("phone");
+        return;
       }
 
       const participant = await queryClient.fetchQuery(
@@ -717,30 +789,32 @@ export function StaffLaptopUploadClient({
           domain,
           reference: normalizedReference,
         }),
-      )
+      );
 
       patchParticipant({
         byCameraReplaceExistingTopicUpload: true,
         byCameraReplaceFinalizedParticipantUpload: false,
         lookupErrorMessage: null,
         existingParticipant: participant as StaffParticipant,
-      })
-      setFormField("reference", normalizedReference)
-      clearFormErrors()
-      void setStep("upload")
+      });
+      setFormField("reference", normalizedReference);
+      clearFormErrors();
+      void setStep("upload");
     } catch (error) {
-      console.error(error)
+      console.error(error);
       toast.error(
-        error instanceof Error ? error.message : "Could not prepare replace upload. Try again.",
-      )
-      void setStep("phone")
+        error instanceof Error
+          ? error.message
+          : "Could not prepare replace upload. Try again.",
+      );
+      void setStep("phone");
     }
-  }
+  };
 
   const handleSubmitUpload = async () => {
     if (!participantSummary) {
-      toast.error("Participant details are missing.")
-      return
+      toast.error("Participant details are missing.");
+      return;
     }
 
     const filesValidationError = validateStaffUploadFiles({
@@ -749,11 +823,11 @@ export function StaffLaptopUploadClient({
       selectedPhotosCount: selectedPhotos.length,
       validationResults,
       validationRunError,
-    })
+    });
 
     if (filesValidationError) {
-      patchPhotos({ filesError: filesValidationError })
-      return
+      patchPhotos({ filesError: filesValidationError });
+      return;
     }
 
     const participantPayload = existingParticipant
@@ -761,29 +835,38 @@ export function StaffLaptopUploadClient({
           firstName: existingParticipant.firstname,
           lastName: existingParticipant.lastname,
           email: existingParticipant.email ?? "",
-          phone: marathonMode === "by-camera" ? (existingParticipant.phoneNumber ?? "").trim() : "",
+          phone:
+            marathonMode === "by-camera"
+              ? (existingParticipant.phoneNumber ?? "").trim()
+              : "",
           competitionClassId: String(existingParticipant.competitionClassId),
           deviceGroupId: String(existingParticipant.deviceGroupId),
         }
-      : formValues
+      : formValues;
 
     if (requiresOverwriteWarning) {
-      patchParticipant({ showOverwriteDialog: true })
-      return
+      patchParticipant({ showOverwriteDialog: true });
+      return;
     }
 
-    void setStep("progress")
-    await runUpload(participantSummary.reference, selectedPhotos, participantPayload, {
-      replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
-      replaceFinalizedParticipantUpload: byCameraReplaceFinalizedParticipantUpload,
-    })
-  }
+    void setStep("progress");
+    await runUpload(
+      participantSummary.reference,
+      selectedPhotos,
+      participantPayload,
+      {
+        replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
+        replaceFinalizedParticipantUpload:
+          byCameraReplaceFinalizedParticipantUpload,
+      },
+    );
+  };
 
   const handleConfirmOverwrite = async () => {
-    if (!participantSummary || !existingParticipant) return
+    if (!participantSummary || !existingParticipant) return;
 
-    patchParticipant({ showOverwriteDialog: false })
-    void setStep("progress")
+    patchParticipant({ showOverwriteDialog: false });
+    void setStep("progress");
     await runUpload(
       participantSummary.reference,
       selectedPhotos,
@@ -791,22 +874,28 @@ export function StaffLaptopUploadClient({
         firstName: existingParticipant.firstname,
         lastName: existingParticipant.lastname,
         email: existingParticipant.email ?? "",
-        phone: marathonMode === "by-camera" ? (existingParticipant.phoneNumber ?? "").trim() : "",
+        phone:
+          marathonMode === "by-camera"
+            ? (existingParticipant.phoneNumber ?? "").trim()
+            : "",
         competitionClassId: String(existingParticipant.competitionClassId),
         deviceGroupId: String(existingParticipant.deviceGroupId),
       },
       {
         replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
-        replaceFinalizedParticipantUpload: byCameraReplaceFinalizedParticipantUpload,
+        replaceFinalizedParticipantUpload:
+          byCameraReplaceFinalizedParticipantUpload,
       },
-    )
-  }
+    );
+  };
 
-  const showFloatingBar = step === "details" || step === "upload"
+  const showFloatingBar = step === "details" || step === "upload";
   const submitDisabled =
     isBusy ||
     selectedPhotos.length !== expectedPhotoCount ||
-    validationResults.some((result) => result.outcome === "failed" && result.severity === "error")
+    validationResults.some(
+      (result) => result.outcome === "failed" && result.severity === "error",
+    );
 
   return (
     <>
@@ -822,7 +911,9 @@ export function StaffLaptopUploadClient({
                 {marathon.name}
               </span>
               <Avatar className="h-7 w-7 ring-1 ring-border">
-                {staffImage ? <AvatarImage src={staffImage} alt={staffName ?? ""} /> : null}
+                {staffImage ? (
+                  <AvatarImage src={staffImage} alt={staffName ?? ""} />
+                ) : null}
                 <AvatarFallback className="bg-muted text-[10px] font-semibold">
                   {getStaffInitials(staffName, staffEmail)}
                 </AvatarFallback>
@@ -831,7 +922,12 @@ export function StaffLaptopUploadClient({
           </div>
         </header>
 
-        <div className={cn("mx-auto max-w-3xl px-6 py-6", showFloatingBar && "pb-28")}>
+        <div
+          className={cn(
+            "mx-auto max-w-3xl px-6 py-6",
+            showFloatingBar && "pb-28",
+          )}
+        >
           <motion.div
             key={step}
             initial={{ opacity: 0 }}
@@ -864,10 +960,15 @@ export function StaffLaptopUploadClient({
               />
             ) : null}
 
-            {step === "details" ? <ParticipantDetailsStep isBusy={isBusy} /> : null}
+            {step === "details" ? (
+              <ParticipantDetailsStep isBusy={isBusy} />
+            ) : null}
 
             {step === "upload" ? (
-              <UploadStep isBusy={isBusy} dropzoneDisabled={isDropzoneDisabled} />
+              <UploadStep
+                isBusy={isBusy}
+                dropzoneDisabled={isDropzoneDisabled}
+              />
             ) : null}
 
             {step === "progress" ? <UploadProgressPanel /> : null}
@@ -887,24 +988,24 @@ export function StaffLaptopUploadClient({
                   variant="outline"
                   className="rounded-full"
                   onClick={() => {
-                    setByCameraReplaceDialogOpen(false)
-                    setPendingByCameraReplacement(null)
+                    setByCameraReplaceDialogOpen(false);
+                    setPendingByCameraReplacement(null);
                     patchParticipant({
                       lookupErrorMessage: null,
                       existingParticipant: null,
                       participantStatus: null,
                       byCameraReplaceExistingTopicUpload: false,
                       byCameraReplaceFinalizedParticipantUpload: false,
-                    })
-                    patchPhotos({ filesError: null })
+                    });
+                    patchPhotos({ filesError: null });
 
                     if (marathonMode === "by-camera") {
-                      void setStep("phone")
-                      return
+                      void setStep("phone");
+                      return;
                     }
 
-                    resetForm(formValues.reference)
-                    void setStep("reference")
+                    resetForm(formValues.reference);
+                    void setStep("reference");
                   }}
                   disabled={isBusy}
                 >
@@ -930,23 +1031,25 @@ export function StaffLaptopUploadClient({
                   variant="outline"
                   className="rounded-full"
                   onClick={() => {
-                    patchPhotos({ filesError: null })
+                    patchPhotos({ filesError: null });
 
                     if (existingParticipant) {
-                      resetPhotoSelection()
-                      resetUploadFlow()
+                      resetPhotoSelection();
+                      resetUploadFlow();
                       patchParticipant({
                         existingParticipant: null,
                         participantStatus: null,
                         showOverwriteDialog: false,
                         byCameraReplaceExistingTopicUpload: false,
                         byCameraReplaceFinalizedParticipantUpload: false,
-                      })
-                      void setStep(marathonMode === "by-camera" ? "phone" : "reference")
-                      return
+                      });
+                      void setStep(
+                        marathonMode === "by-camera" ? "phone" : "reference",
+                      );
+                      return;
                     }
 
-                    void setStep("details")
+                    void setStep("details");
                   }}
                   disabled={isBusy}
                 >
@@ -975,25 +1078,29 @@ export function StaffLaptopUploadClient({
       <AlertDialog
         open={byCameraReplaceDialogOpen}
         onOpenChange={(open) => {
-          setByCameraReplaceDialogOpen(open)
-          if (!open) setPendingByCameraReplacement(null)
+          setByCameraReplaceDialogOpen(open);
+          if (!open) setPendingByCameraReplacement(null);
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Replace photo for current topic?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Replace photo for current topic?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This phone number already has a photo for the active topic. Continue to replace it
-              with a new upload.
+              This phone number already has a photo for the active topic.
+              Continue to replace it with a new upload.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isUploadBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isUploadBusy}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               disabled={isUploadBusy}
               onClick={(event) => {
-                event.preventDefault()
-                void handleConfirmByCameraReplace()
+                event.preventDefault();
+                void handleConfirmByCameraReplace();
               }}
             >
               Replace and continue
@@ -1010,17 +1117,19 @@ export function StaffLaptopUploadClient({
           <AlertDialogHeader>
             <AlertDialogTitle>Replace existing upload?</AlertDialogTitle>
             <AlertDialogDescription>
-              This participant already has an upload in progress. Starting again will replace that
-              upload.
+              This participant already has an upload in progress. Starting again
+              will replace that upload.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isUploadBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isUploadBusy}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               disabled={isUploadBusy}
               onClick={(event) => {
-                event.preventDefault()
-                void handleConfirmOverwrite()
+                event.preventDefault();
+                void handleConfirmOverwrite();
               }}
             >
               Replace and upload
@@ -1029,5 +1138,5 @@ export function StaffLaptopUploadClient({
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }

@@ -1,5 +1,9 @@
 import { Schema } from "effect";
 
+const UploadExifSchema = Schema.NullOr(
+  Schema.Record(Schema.String, Schema.Unknown),
+);
+
 const ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -11,7 +15,9 @@ const ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES = new Set([
 ]);
 
 /** Normalizes client-provided MIME types for S3 presigned PUT signatures. */
-export function normalizeUploadContentType(raw: string | undefined | null): string {
+export function normalizeUploadContentType(
+  raw: string | undefined | null,
+): string {
   const trimmed = (raw ?? "").trim().toLowerCase();
   if (trimmed === "" || trimmed === "image/jpg") {
     return "image/jpeg";
@@ -47,6 +53,7 @@ export const InitializeUploadFlowSchema = Schema.toStandardSchemaV1(
     deviceGroupId: Schema.Number,
     phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
     uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
+    uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
   }),
 );
 
@@ -71,6 +78,7 @@ export const InitializeByCameraUploadSchema = Schema.toStandardSchemaV1(
     email: Schema.String,
     deviceGroupId: Schema.Number,
     phoneNumber: Schema.String,
+    uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
     replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
   }),
 );
@@ -86,6 +94,7 @@ export const InitializeStaffByCameraUploadSchema = Schema.toStandardSchemaV1(
     deviceGroupId: Schema.Number,
     phoneNumber: Schema.String,
     uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
+    uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
     replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
     /** Staff laptop: allow new upload after participant status completed or verified. */
     replaceFinalizedParticipantUpload: Schema.Boolean.pipe(Schema.optional),

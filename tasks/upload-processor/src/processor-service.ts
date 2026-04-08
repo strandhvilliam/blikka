@@ -7,6 +7,7 @@ import { makeThumbnailKey } from "./utils"
 import { FailedToIncrementParticipantStateError, PhotoNotFoundError } from "./errors"
 import { SharpImageService } from "@blikka/image-manipulation/sharp"
 import { Resource as SSTResource } from "sst"
+import { hasExifFields, mergeExifStates } from "./exif-utils"
 
 const THUMBNAIL_WIDTH = 400
 
@@ -34,7 +35,12 @@ export class UploadProcessorService extends ServiceMap.Service<UploadProcessorSe
 
       const generateThumbnail = Effect.fn("UploadProcessorService.generateThumbnail")(function* (
         photo: Uint8Array<ArrayBufferLike>,
-        parsedKey: { domain: string; reference: string; orderIndex: number; fileName: string },
+        parsedKey: {
+          domain: string
+          reference: string
+          orderIndex: number
+          fileName: string
+        },
       ) {
         const thumbnailKey = makeThumbnailKey(parsedKey)
 
@@ -57,7 +63,9 @@ export class UploadProcessorService extends ServiceMap.Service<UploadProcessorSe
             orderIndex,
           )
           if (Option.isNone(submissionStateOpt)) {
-            yield* Effect.logWarning("Missing initialized submission state", { key })
+            yield* Effect.logWarning("Missing initialized submission state", {
+              key,
+            })
             return
           }
 
@@ -81,35 +89,87 @@ export class UploadProcessorService extends ServiceMap.Service<UploadProcessorSe
                   Effect.fail(
                     new PhotoNotFoundError({
                       message: "Photo not found",
-                      details: JSON.stringify({ domain, reference, orderIndex, key }),
+                      details: JSON.stringify({
+                        domain,
+                        reference,
+                        orderIndex,
+                        key,
+                      }),
                     }),
                   ),
               }),
             ),
           )
 
+          const existingExifState = yield* exifKv.getExifState(domain, reference, orderIndex)
+          const seededExif = Option.filter(existingExifState, hasExifFields)
+
           const [exifResult, thumbnailResult] = yield* Effect.all(
             [
-              exifParser.parse(photo).pipe(
-                Effect.tap((exif) => exifKv.setExifState(domain, reference, orderIndex, exif)),
-                Effect.map(Option.some),
-                Effect.catchCause((cause) =>
-                  Effect.gen(function* () {
-                    yield* Effect.logWarning(
-                      "EXIF parse or persist failed; continuing without EXIF (can retry later)",
-                      { domain, reference, orderIndex, key, cause: Cause.pretty(cause) },
-                    )
-                    return Option.none<ExifState>()
-                  }),
-                ),
-              ),
-              generateThumbnail(photo, { domain, reference, orderIndex, fileName }).pipe(
+              Option.match(seededExif, {
+                onSome: (seededExifState) =>
+                  exifParser.parse(photo).pipe(
+                    Effect.flatMap((parsedExif) => {
+                      const mergedExif = mergeExifStates(seededExifState, parsedExif)
+                      return exifKv
+                        .setExifState(domain, reference, orderIndex, mergedExif)
+                        .pipe(Effect.as(Option.some(mergedExif)))
+                    }),
+                    Effect.catchCause((cause) =>
+                      Effect.gen(function* () {
+                        yield* Effect.logWarning(
+                          "EXIF parse or merge persist failed; keeping seeded EXIF",
+                          {
+                            domain,
+                            reference,
+                            orderIndex,
+                            key,
+                            cause: Cause.pretty(cause),
+                          },
+                        )
+                        return Option.some<ExifState>(seededExifState)
+                      }),
+                    ),
+                  ),
+                onNone: () =>
+                  exifParser.parse(photo).pipe(
+                    Effect.tap((exif) => exifKv.setExifState(domain, reference, orderIndex, exif)),
+                    Effect.map(Option.some),
+                    Effect.catchCause((cause) =>
+                      Effect.gen(function* () {
+                        yield* Effect.logWarning(
+                          "EXIF parse or persist failed; continuing without EXIF (can retry later)",
+                          {
+                            domain,
+                            reference,
+                            orderIndex,
+                            key,
+                            cause: Cause.pretty(cause),
+                          },
+                        )
+                        return Option.none<ExifState>()
+                      }),
+                    ),
+                  ),
+              }),
+              generateThumbnail(photo, {
+                domain,
+                reference,
+                orderIndex,
+                fileName,
+              }).pipe(
                 Effect.map(Option.some),
                 Effect.catchCause((cause) =>
                   Effect.gen(function* () {
                     yield* Effect.logWarning(
                       "Thumbnail generation or upload failed; continuing without thumbnail (can retry later)",
-                      { domain, reference, orderIndex, key, cause: Cause.pretty(cause) },
+                      {
+                        domain,
+                        reference,
+                        orderIndex,
+                        key,
+                        cause: Cause.pretty(cause),
+                      },
                     )
                     return Option.none<string>()
                   }),

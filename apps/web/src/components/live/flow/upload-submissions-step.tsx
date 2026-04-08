@@ -1,44 +1,52 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { motion, AnimatePresence } from "motion/react"
-import { useTranslations } from "next-intl"
-import { useRouter } from "next/navigation"
-import { useMutation } from "@tanstack/react-query"
-import { toast } from "sonner"
-import type { CompetitionClass, RuleConfig as DbRuleConfig, Topic } from "@blikka/db"
-import { VALIDATION_OUTCOME } from "@blikka/validation"
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import type {
+  CompetitionClass,
+  RuleConfig as DbRuleConfig,
+  Topic,
+} from "@blikka/db";
+import { VALIDATION_OUTCOME } from "@blikka/validation";
 
-import { Button } from "@/components/ui/button"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useDomain } from "@/lib/domain-provider"
-import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
-import { useTRPC } from "@/lib/trpc/client"
-import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
-import { cn, formatDomainPathname } from "@/lib/utils"
+import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/primary-button";
+import { useDomain } from "@/lib/domain-provider";
+import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing";
+import { useTRPC } from "@/lib/trpc/client";
+import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client";
+import { cn, formatDomainPathname } from "@/lib/utils";
 
-import { useFileUpload } from "@/hooks/live/flow/use-file-upload"
-import { useLivePhotoValidation } from "@/hooks/live/flow/use-live-photo-validation"
-import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
-import { useSelectFile } from "@/hooks/live/flow/use-select-file"
-import { hasMissingCapturedAtTimestamp, reassignPhotosToTopicOrder } from "@/lib/flow/photo-ordering"
-import { usePhotoStore } from "@/lib/flow/photo-store"
-import { useHeicStore } from "@/lib/flow/heic-store"
-import { useStepState } from "@/lib/flow/step-state-context"
-import type { PhotoWithPresignedUrl } from "@/lib/flow/types"
-import { useUploadStore } from "@/lib/flow/upload-store"
-import { FINALIZATION_STATE } from "@/lib/flow/types"
+import { useFileUpload } from "@/hooks/live/flow/use-file-upload";
+import { useLivePhotoValidation } from "@/hooks/live/flow/use-live-photo-validation";
+import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state";
+import { useSelectFile } from "@/hooks/live/flow/use-select-file";
+import {
+  hasMissingCapturedAtTimestamp,
+  reassignPhotosToTopicOrder,
+} from "@/lib/flow/photo-ordering";
+import { usePhotoStore } from "@/lib/flow/photo-store";
+import { useHeicStore } from "@/lib/flow/heic-store";
+import { useStepState } from "@/lib/flow/step-state-context";
+import type { PhotoWithPresignedUrl } from "@/lib/flow/types";
+import { useUploadStore } from "@/lib/flow/upload-store";
+import { FINALIZATION_STATE } from "@/lib/flow/types";
 import {
   buildInitializeUploadFlowInputResult,
   getUploadFlowIssueMessageKeys,
-} from "@/lib/flow/upload-flow-state"
+} from "@/lib/flow/upload-flow-state";
+import { buildUploadExifPayload } from "@/lib/upload-exif";
 
-import { SubmissionList } from "./submission-list"
-import { UploadProgress } from "./upload-progress"
-import { UploadSection } from "./upload-section"
-import { HeicConversionDialog } from "./heic-conversion-dialog"
-import { ManualPhotoOrderDialog } from "./manual-photo-order-dialog"
-import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog"
+import { SubmissionList } from "./submission-list";
+import { UploadProgress } from "./upload-progress";
+import { UploadSection } from "./upload-section";
+import { HeicConversionDialog } from "./heic-conversion-dialog";
+import { ManualPhotoOrderDialog } from "./manual-photo-order-dialog";
+import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
 
 export function UploadSubmissionsStep({
   ruleConfigs,
@@ -47,53 +55,53 @@ export function UploadSubmissionsStep({
   validationStartDate,
   validationEndDate,
 }: {
-  ruleConfigs: DbRuleConfig[]
-  topics: Topic[]
-  competitionClass: CompetitionClass
-  validationStartDate: string
-  validationEndDate: string
+  ruleConfigs: DbRuleConfig[];
+  topics: Topic[];
+  competitionClass: CompetitionClass;
+  validationStartDate: string;
+  validationEndDate: string;
 }) {
-  const t = useTranslations("FlowPage.uploadStep")
-  const trpc = useTRPC()
-  const domain = useDomain()
-  const { handlePrevStep } = useStepState()
-  const router = useRouter()
-  const { uploadFlowState } = useUploadFlowState()
+  const t = useTranslations("FlowPage.uploadStep");
+  const trpc = useTRPC();
+  const domain = useDomain();
+  const { handlePrevStep } = useStepState();
+  const router = useRouter();
+  const { uploadFlowState } = useUploadFlowState();
 
-  const initializeStore = usePhotoStore((state) => state.initialize)
-  const cleanup = usePhotoStore((state) => state.cleanup)
-  const clearPhotos = usePhotoStore((state) => state.clearPhotos)
-  const photos = usePhotoStore((state) => state.photos)
-  const removePhoto = usePhotoStore((state) => state.removePhoto)
-  const reorderPhotos = usePhotoStore((state) => state.reorderPhotos)
-  const validationResults = usePhotoStore((state) => state.validationResults)
-  const isProcessingFiles = usePhotoStore((state) => state.isProcessingFiles)
+  const initializeStore = usePhotoStore((state) => state.initialize);
+  const cleanup = usePhotoStore((state) => state.cleanup);
+  const clearPhotos = usePhotoStore((state) => state.clearPhotos);
+  const photos = usePhotoStore((state) => state.photos);
+  const removePhoto = usePhotoStore((state) => state.removePhoto);
+  const reorderPhotos = usePhotoStore((state) => state.reorderPhotos);
+  const validationResults = usePhotoStore((state) => state.validationResults);
+  const isProcessingFiles = usePhotoStore((state) => state.isProcessingFiles);
 
-  const isUploading = useUploadStore((state) => state.isUploading)
-  const setIsUploading = useUploadStore((state) => state.setIsUploading)
+  const isUploading = useUploadStore((state) => state.isUploading);
+  const setIsUploading = useUploadStore((state) => state.setIsUploading);
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const hasRedirectedRef = useRef(false)
-  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
-  const [showManualOrderDialog, setShowManualOrderDialog] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasRedirectedRef = useRef(false);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [showManualOrderDialog, setShowManualOrderDialog] = useState(false);
 
-  const heicIsConverting = useHeicStore((state) => state.isConverting)
-  const heicIsCancelling = useHeicStore((state) => state.isCancelling)
-  const heicProgress = useHeicStore((state) => state.progress)
-  const heicCurrentFileName = useHeicStore((state) => state.currentFileName)
-  const cancelHeicConversion = useHeicStore((state) => state.cancel)
+  const heicIsConverting = useHeicStore((state) => state.isConverting);
+  const heicIsCancelling = useHeicStore((state) => state.isCancelling);
+  const heicProgress = useHeicStore((state) => state.progress);
+  const heicCurrentFileName = useHeicStore((state) => state.currentFileName);
+  const cancelHeicConversion = useHeicStore((state) => state.cancel);
 
   const { handleFileSelect } = useSelectFile({
     maxPhotos: competitionClass.numberOfPhotos,
     t,
-  })
+  });
 
   useLivePhotoValidation({
     ruleConfigs,
     validationStartDate,
     validationEndDate,
     marathonMode: "marathon",
-  })
+  });
 
   const {
     files: uploadFiles,
@@ -106,159 +114,195 @@ export function UploadSubmissionsStep({
   } = useFileUpload({
     domain,
     reference: uploadFlowState.participantRef || "",
-  })
+  });
 
   useEffect(() => {
     return () => {
       if (hasRedirectedRef.current) {
-        clearFiles()
+        clearFiles();
       }
-    }
-  }, [clearFiles])
+    };
+  }, [clearFiles]);
 
   const shouldNavigate =
     finalizationState === FINALIZATION_STATE.READY ||
-    finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED
+    finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED;
 
   useEffect(() => {
-    if (!shouldNavigate || !minimumProgressDisplayReached || hasRedirectedRef.current || !domain) {
-      return
+    if (
+      !shouldNavigate ||
+      !minimumProgressDisplayReached ||
+      hasRedirectedRef.current ||
+      !domain
+    ) {
+      return;
     }
 
-    hasRedirectedRef.current = true
-    const serializedParams = flowStateClientParamSerializer(uploadFlowState)
-    router.push(formatDomainPathname(`/live/verification${serializedParams}`, domain))
-  }, [domain, shouldNavigate, minimumProgressDisplayReached, router, uploadFlowState])
+    hasRedirectedRef.current = true;
+    const serializedParams = flowStateClientParamSerializer(uploadFlowState);
+    router.push(
+      formatDomainPathname(`/live/verification${serializedParams}`, domain),
+    );
+  }, [
+    domain,
+    shouldNavigate,
+    minimumProgressDisplayReached,
+    router,
+    uploadFlowState,
+  ]);
 
   const handleResetAndGoBack = () => {
-    const confirmed = window.confirm(t("confirmGoBack"))
-    if (!confirmed) return
+    const confirmed = window.confirm(t("confirmGoBack"));
+    if (!confirmed) return;
 
-    clearPhotos()
-    clearFiles()
-    setIsUploading(false)
-    setShowManualOrderDialog(false)
-    setShowConfirmationDialog(false)
-    handlePrevStep()
-  }
+    clearPhotos();
+    clearFiles();
+    setIsUploading(false);
+    setShowManualOrderDialog(false);
+    setShowConfirmationDialog(false);
+    handlePrevStep();
+  };
 
   const { mutateAsync: initializeUploadFlow } = useMutation(
     trpc.uploadFlow.initializeUploadFlow.mutationOptions({
       onError: (error) => {
-        toast.error(error.message || t("initializationFailed"))
+        toast.error(error.message || t("initializationFailed"));
       },
     }),
-  )
+  );
 
-  const topicOrderIndexes = useMemo(() => topics.map((topic) => topic.orderIndex), [topics])
+  const topicOrderIndexes = useMemo(
+    () => topics.map((topic) => topic.orderIndex),
+    [topics],
+  );
 
   useEffect(() => {
-    initializeStore({ topicOrderIndexes })
+    initializeStore({ topicOrderIndexes });
     return () => {
-      cleanup()
-    }
-  }, [initializeStore, cleanup, topicOrderIndexes])
+      cleanup();
+    };
+  }, [initializeStore, cleanup, topicOrderIndexes]);
 
   const handleUploadClick = () => {
-    if (isProcessingFiles) return
+    if (isProcessingFiles) return;
     if (photos.length >= competitionClass.numberOfPhotos) {
-      toast.error(t("maxPhotosReached"))
-      return
+      toast.error(t("maxPhotosReached"));
+      return;
     }
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const handleSubmit = () => {
     if (photos.length !== competitionClass.numberOfPhotos) {
-      toast.error(t("selectAllPhotos", { count: competitionClass.numberOfPhotos }))
-      return
+      toast.error(
+        t("selectAllPhotos", { count: competitionClass.numberOfPhotos }),
+      );
+      return;
     }
 
     if (hasMissingCapturedAtTimestamp(photos)) {
-      setShowManualOrderDialog(true)
-      return
+      setShowManualOrderDialog(true);
+      return;
     }
 
-    setShowConfirmationDialog(true)
-  }
+    setShowConfirmationDialog(true);
+  };
 
   const handleManualOrderContinue = (manuallyOrderedPhotos: typeof photos) => {
-    const normalizedPhotos = reassignPhotosToTopicOrder(manuallyOrderedPhotos, topicOrderIndexes)
+    const normalizedPhotos = reassignPhotosToTopicOrder(
+      manuallyOrderedPhotos,
+      topicOrderIndexes,
+    );
 
-    reorderPhotos(normalizedPhotos)
-    setShowManualOrderDialog(false)
-    setShowConfirmationDialog(true)
-  }
+    reorderPhotos(normalizedPhotos);
+    setShowManualOrderDialog(false);
+    setShowConfirmationDialog(true);
+  };
 
   const handleConfirmedUpload = async () => {
-    setShowConfirmationDialog(false)
+    setShowConfirmationDialog(false);
 
     const initializeUploadFlowResult = domain
       ? buildInitializeUploadFlowInputResult(domain, uploadFlowState)
-      : null
+      : null;
 
     if (!initializeUploadFlowResult?.ok) {
       const issueLabels = initializeUploadFlowResult
-        ? getUploadFlowIssueMessageKeys(initializeUploadFlowResult.issues).map((messageKey) =>
-            t(messageKey),
+        ? getUploadFlowIssueMessageKeys(initializeUploadFlowResult.issues).map(
+            (messageKey) => t(messageKey),
           )
-        : []
+        : [];
       toast.error(
         issueLabels.length > 0
           ? t("missingRequiredInfoDetailed", { fields: issueLabels.join(", ") })
           : t("missingRequiredInfo"),
-      )
-      return
+      );
+      return;
     }
 
     try {
-      setIsUploading(true)
+      setIsUploading(true);
 
-      const photosInTopicOrder = [...photos].sort((a, b) => a.orderIndex - b.orderIndex)
+      const photosInTopicOrder = [...photos].sort(
+        (a, b) => a.orderIndex - b.orderIndex,
+      );
 
       const presignedUrls = await initializeUploadFlow({
         ...initializeUploadFlowResult.data,
-        uploadContentTypes: photosInTopicOrder.map((photo) => photo.file.type || "image/jpeg"),
-      })
+        uploadContentTypes: photosInTopicOrder.map(
+          (photo) => photo.file.type || "image/jpeg",
+        ),
+        uploadExif: buildUploadExifPayload(photosInTopicOrder),
+      });
 
       if (!presignedUrls || presignedUrls.length === 0) {
-        setIsUploading(false)
-        toast.error(t("failedToGetPresignedUrls"))
-        return
+        setIsUploading(false);
+        toast.error(t("failedToGetPresignedUrls"));
+        return;
       }
 
-      const photosWithUrls: PhotoWithPresignedUrl[] = photosInTopicOrder.map((photo, index) => {
-        const urlInfo = presignedUrls[index]
-        if (!urlInfo) throw new Error(`Missing presigned URL for photo ${index}`)
-        return {
-          ...photo,
-          presignedUrl: urlInfo.url,
-          key: urlInfo.key,
-          contentType: urlInfo.contentType,
-        }
-      })
+      const photosWithUrls: PhotoWithPresignedUrl[] = photosInTopicOrder.map(
+        (photo, index) => {
+          const urlInfo = presignedUrls[index];
+          if (!urlInfo)
+            throw new Error(`Missing presigned URL for photo ${index}`);
+          return {
+            ...photo,
+            presignedUrl: urlInfo.url,
+            key: urlInfo.key,
+            contentType: urlInfo.contentType,
+          };
+        },
+      );
 
       try {
-        await executeUpload(photosWithUrls)
+        await executeUpload(photosWithUrls);
       } catch (error) {
-        console.error("Upload execution failed:", error)
-        setIsUploading(false)
+        console.error("Upload execution failed:", error);
+        setIsUploading(false);
       }
     } catch (error) {
-      console.error("Upload failed:", error)
-      setIsUploading(false)
-      toast.error(error instanceof Error && error.message ? error.message : t("uploadFailed"))
+      console.error("Upload failed:", error);
+      setIsUploading(false);
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t("uploadFailed"),
+      );
     }
-  }
+  };
 
   const allPhotosSelected =
-    photos.length === competitionClass.numberOfPhotos && photos.length > 0
+    photos.length === competitionClass.numberOfPhotos && photos.length > 0;
 
   const hasValidationErrors = validationResults.some(
-    (result) => result.outcome === VALIDATION_OUTCOME.FAILED && result.severity === "error",
-  )
+    (result) =>
+      result.outcome === VALIDATION_OUTCOME.FAILED &&
+      result.severity === "error",
+  );
 
-  const canSubmit = allPhotosSelected && !hasValidationErrors && !isProcessingFiles
+  const canSubmit =
+    allPhotosSelected && !hasValidationErrors && !isProcessingFiles;
 
   return (
     <>
@@ -344,11 +388,13 @@ export function UploadSubmissionsStep({
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
+                accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(
+                  ",",
+                )}
                 onChange={async (e) => {
-                  const target = e.currentTarget
-                  await handleFileSelect(target.files)
-                  target.value = ""
+                  const target = e.currentTarget;
+                  await handleFileSelect(target.files);
+                  target.value = "";
                 }}
                 className="hidden"
               />
@@ -387,5 +433,5 @@ export function UploadSubmissionsStep({
         </motion.div>
       )}
     </>
-  )
+  );
 }
