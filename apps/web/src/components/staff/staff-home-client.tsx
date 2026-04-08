@@ -25,11 +25,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { DotPattern } from "@/components/dot-pattern"
 
-import { normalizeParticipantReference } from "../_lib/staff-utils"
-import { StaffManualEntryDialog } from "./manual-entry-dialog"
-import { ParticipantInfoDrawer } from "./participant-info-drawer"
-import { QrScanDrawer } from "./qr-scan-drawer"
-import { VerifiedParticipantsDrawer } from "./verified-participants-drawer"
+import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
+import { StaffManualEntryDialog } from "@/components/staff/manual-entry-dialog"
+import { ParticipantInfoDrawer } from "@/components/staff/participant-info-drawer"
+import { QrScanDrawer } from "@/components/staff/qr-scan-drawer"
+import { VerifiedParticipantsDrawer } from "@/components/staff/verified-participants-drawer"
 
 function getInitials(name?: string | null, email?: string | null) {
   const source = (name || email || "Staff").trim()

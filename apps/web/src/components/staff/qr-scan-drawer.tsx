@@ -5,9 +5,9 @@ import { QrCodeIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { DrawerLayout } from "./drawer-layout"
+import { DrawerLayout } from "@/components/staff/drawer-layout"
 
-const QrScanner = dynamic(() => import("./qr-scanner").then((mod) => mod.QrScanner), {
+const QrScanner = dynamic(() => import("@/components/staff/qr-scanner").then((mod) => mod.QrScanner), {
   ssr: false,
 })
 

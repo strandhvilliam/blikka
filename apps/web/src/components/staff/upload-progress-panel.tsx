@@ -11,10 +11,10 @@ import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload-types"
 import { uploadManualFiles } from "@/lib/manual-upload"
 import { saveParticipantPhotosLocally } from "@/lib/local-save"
 import { cn } from "@/lib/utils"
-import { StaffParticipantCard } from "./staff-participant-card"
-import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary"
-import { useStaffUploadStep } from "../_hooks/use-staff-upload-step"
-import { useStaffUploadStore } from "../_lib/staff-upload-store"
+import { StaffParticipantCard } from "@/components/staff/staff-participant-card"
+import { useStaffUploadParticipantSummary } from "@/hooks/staff/use-staff-upload-participant-summary"
+import { useStaffUploadStep } from "@/hooks/staff/use-staff-upload-step"
+import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
 
 export function UploadProgressPanel() {
   const domain = useDomain()

@@ -11,7 +11,7 @@ import type {
 } from "@/lib/participant-upload-types"
 import { reassignOrderIndexes, revokePreviewUrls } from "@/lib/file-processing"
 import { type ParticipantExistenceStatus } from "@/lib/flow-helpers"
-import type { StaffParticipant } from "../../_lib/staff-types"
+import type { StaffParticipant } from "./staff-types"
 import { STAFF_UPLOAD_DEFAULT_FORM_VALUES, type StaffUploadFormErrors } from "./staff-upload-form"
 
 interface ParticipantState {

@@ -6,9 +6,9 @@ import type { Topic } from "@blikka/db"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { DrawerLayout } from "./drawer-layout"
-import { ParticipantInfoDrawer } from "./participant-info-drawer"
-import type { StaffParticipant, StaffVerification } from "../_lib/staff-types"
+import { DrawerLayout } from "@/components/staff/drawer-layout"
+import { ParticipantInfoDrawer } from "@/components/staff/participant-info-drawer"
+import type { StaffParticipant, StaffVerification } from "@/lib/staff/staff-types"
 
 interface VerifiedParticipantsDrawerProps {
   open: boolean

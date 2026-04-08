@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { PrimaryButton } from "@/components/ui/primary-button"
-import { normalizeParticipantReference } from "../_lib/staff-utils"
+import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
 
 interface StaffManualEntryDialogProps {
   open: boolean

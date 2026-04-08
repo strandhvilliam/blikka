@@ -5,7 +5,7 @@ import { isPossiblePhoneNumber } from "react-phone-number-input"
 
 import { PhoneInput } from "@/components/ui/phone-input"
 import { PrimaryButton } from "@/components/ui/primary-button"
-import { useStaffUploadStore } from "../_lib/staff-upload-store"
+import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
 
 interface PhoneLookupStepProps {
   isSubmitting: boolean

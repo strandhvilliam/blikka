@@ -22,8 +22,8 @@ import {
   getCaptureDateLabel,
   getSubmissionPreviewUrl,
   getSubmissionThumbnailUrl,
-} from "../_lib/staff-utils"
-import type { StaffSubmission } from "../_lib/staff-types"
+} from "@/lib/staff/staff-utils"
+import type { StaffSubmission } from "@/lib/staff/staff-types"
 
 interface ValidationAccordionProps {
   validationResults: ValidationResult[]

@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import type { RuleConfig } from "@blikka/db";
 import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation";
 import type { UploadMarathonMode } from "@/lib/types";
-import { useStaffUploadStore } from "../_lib/staff-upload-store";
-import type { StaffUploadStep } from "./use-staff-upload-step";
+import { useStaffUploadStore } from "@/lib/staff/staff-upload-store";
+import type { StaffUploadStep } from "@/hooks/staff/use-staff-upload-step";
 
 interface UsePhotoValidationOptions {
   step: StaffUploadStep;

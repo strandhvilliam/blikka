@@ -4,7 +4,7 @@ import { Effect, Option, Schema } from "effect";
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StaffLaptopUploadClient } from "./_components/staff-laptop-upload-client";
+import { StaffLaptopUploadClient } from "@/components/staff/staff-laptop-upload-client";
 
 const _StaffLaptopUploadPage = Effect.fn("@blikka/web/StaffLaptopUploadPage")(
   function* ({ params }: PageProps<"/staff/[domain]/staff-upload">) {

@@ -1,8 +1,8 @@
 "use client"
 
 import { useMemo } from "react"
-import { useStaffUploadStore } from "../_lib/staff-upload-store"
-import { normalizeParticipantReference } from "../../_lib/staff-utils"
+import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
+import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import { useSuspenseQuery } from "@tanstack/react-query"

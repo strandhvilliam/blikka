@@ -13,8 +13,8 @@ import {
 } from "@/lib/upload-status-realtime"
 import { useUploadStatusRealtime } from "@/lib/use-upload-status-realtime"
 import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload-types"
-import { useStaffUploadStore } from "../_lib/staff-upload-store"
-import type { StaffUploadStep } from "./use-staff-upload-step"
+import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
+import type { StaffUploadStep } from "@/hooks/staff/use-staff-upload-step"
 
 type UploadStatusData = {
   submissions: { key: string; uploaded: boolean }[]

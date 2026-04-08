@@ -37,25 +37,28 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
-import { normalizeParticipantReference } from "../../_lib/staff-utils"
-import type { StaffParticipant } from "../../_lib/staff-types"
-import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary"
-import { useStaffUploadStep } from "../_hooks/use-staff-upload-step"
-import { useStaffPhotoValidation } from "../_hooks/use-staff-photo-validation"
-import { useStaffUploadStatusSync } from "../_hooks/use-staff-upload-status-sync"
-import { validateStaffUploadFiles, validateStaffUploadForm } from "../_lib/staff-upload-form"
-import { useStaffUploadStore, selectRequiresOverwriteWarning } from "../_lib/staff-upload-store"
-import { ParticipantDetailsStep } from "./participant-details-step"
-import { PhoneLookupStep } from "./phone-lookup-step"
-import { ReferenceStep } from "./reference-step"
-import { UploadCompletePanel } from "./upload-complete-panel"
-import { UploadProgressPanel } from "./upload-progress-panel"
-import { UploadStep } from "./upload-step"
+import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
+import type { StaffParticipant } from "@/lib/staff/staff-types"
+import { useStaffUploadParticipantSummary } from "@/hooks/staff/use-staff-upload-participant-summary"
+import { useStaffUploadStep } from "@/hooks/staff/use-staff-upload-step"
+import { useStaffPhotoValidation } from "@/hooks/staff/use-staff-photo-validation"
+import { useStaffUploadStatusSync } from "@/hooks/staff/use-staff-upload-status-sync"
+import { validateStaffUploadFiles, validateStaffUploadForm } from "@/lib/staff/staff-upload-form"
+import {
+  useStaffUploadStore,
+  selectRequiresOverwriteWarning,
+} from "@/lib/staff/staff-upload-store"
+import { ParticipantDetailsStep } from "@/components/staff/participant-details-step"
+import { PhoneLookupStep } from "@/components/staff/phone-lookup-step"
+import { ReferenceStep } from "@/components/staff/reference-step"
+import { UploadCompletePanel } from "@/components/staff/upload-complete-panel"
+import { UploadProgressPanel } from "@/components/staff/upload-progress-panel"
+import { UploadStep } from "@/components/staff/upload-step"
 
 const POLLING_INTERVAL_MS = 3000
 
 const StepIndicator = dynamic(
-  () => import("./step-indicator").then((m) => ({ default: m.StepIndicator })),
+  () => import("@/components/staff/step-indicator").then((m) => ({ default: m.StepIndicator })),
   {
     ssr: false,
     loading: () => (

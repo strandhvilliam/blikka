@@ -3,7 +3,7 @@
 import { Fragment } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useStaffUploadStep } from "../_hooks/use-staff-upload-step";
+import { useStaffUploadStep } from "@/hooks/staff/use-staff-upload-step";
 
 const STEPS = [
   { key: "find", label: "Find" },

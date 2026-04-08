@@ -20,10 +20,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-import type { StaffParticipant } from "../_lib/staff-types"
-import { DrawerLayout } from "./drawer-layout"
-import { PreviewDialog } from "./preview-dialog"
-import { ValidationAccordion } from "./validation-accordion"
+import type { StaffParticipant } from "@/lib/staff/staff-types"
+import { DrawerLayout } from "@/components/staff/drawer-layout"
+import { PreviewDialog } from "@/components/staff/preview-dialog"
+import { ValidationAccordion } from "@/components/staff/validation-accordion"
 
 interface ParticipantInfoDrawerProps {
   open: boolean

@@ -6,10 +6,10 @@ import { PrimaryButton } from "@/components/ui/primary-button"
 import { useDomain } from "@/lib/domain-provider"
 import { useTRPC } from "@/lib/trpc/client"
 import type { UploadMarathonMode } from "@/lib/types"
-import { StaffParticipantCard } from "./staff-participant-card"
-import { useStaffUploadParticipantSummary } from "../_hooks/use-staff-upload-participant-summary"
-import { useStaffUploadStep } from "../_hooks/use-staff-upload-step"
-import { useStaffUploadStore } from "../_lib/staff-upload-store"
+import { StaffParticipantCard } from "@/components/staff/staff-participant-card"
+import { useStaffUploadParticipantSummary } from "@/hooks/staff/use-staff-upload-participant-summary"
+import { useStaffUploadStep } from "@/hooks/staff/use-staff-upload-step"
+import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
 
 export function UploadCompletePanel() {
   const domain = useDomain()

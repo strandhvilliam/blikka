@@ -2,8 +2,8 @@ import { getAppSession } from "@/lib/auth/server"
 import { Page, decodeParams } from "@/lib/next-utils"
 import { Effect, Option, Schema } from "effect"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { StaffHomeClient } from "./_components/staff-home-client"
-import { StaffLoadingSkeleton } from "./_components/staff-loading-skeleton"
+import { StaffHomeClient } from "@/components/staff/staff-home-client"
+import { StaffLoadingSkeleton } from "@/components/staff/staff-loading-skeleton"
 import { Suspense } from "react"
 
 const _StaffDomainPage = Effect.fn("@blikka/web/StaffDomainPage")(

@@ -4,8 +4,8 @@ import { Loader2, SearchIcon } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { normalizeParticipantReference } from "../../_lib/staff-utils";
-import { useStaffUploadStore } from "../_lib/staff-upload-store";
+import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
+import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
 
 interface ReferenceStepProps {
   isSubmitting: boolean;
