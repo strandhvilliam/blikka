@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { prepareParticipantSelectedPhotos } from "@/lib/participant-selected-files";
 import { isSupportedImageFile } from "@/lib/file-processing";
@@ -8,6 +8,11 @@ import { usePhotoStore } from "@/lib/flow/photo-store";
 import { useHeicStore } from "@/lib/flow/heic-store";
 import type { SelectedPhoto } from "@/lib/flow/types";
 import type { ParticipantSelectedPhoto } from "@/lib/participant-upload-types";
+import {
+  byCameraBreadcrumb,
+  captureByCameraMessage,
+  summarizeFileListForSentry,
+} from "@/lib/sentry-by-camera";
 
 interface UseSelectFileOptions {
   maxPhotos: number;
@@ -33,22 +38,37 @@ export function useSelectFile({
   const topicOrderIndexes = usePhotoStore((state) => state.topicOrderIndexes);
 
   const convertFiles = useHeicStore((state) => state.convertFiles);
+  const selectionGenerationRef = useRef(0);
 
   const handleFileSelect = useCallback(
     async (fileList: FileList | null, replace?: boolean) => {
       if (!fileList || fileList.length === 0) {
+        byCameraBreadcrumb("file_input_empty");
         toast.error(t("noFilesSelected"));
         return;
       }
 
       const files = Array.from(fileList);
+      const generation = ++selectionGenerationRef.current;
+      byCameraBreadcrumb("file_select_started", {
+        generation,
+        replace: Boolean(replace),
+        ...summarizeFileListForSentry(files),
+      });
 
       const { converted, nonHeic, cancelled } = await convertFiles(files);
 
       if (cancelled) {
+        byCameraBreadcrumb("heic_conversion_cancelled", { generation });
         toast.message(t("conversionCancelled"));
         return;
       }
+
+      byCameraBreadcrumb("heic_conversion_done", {
+        generation,
+        convertedCount: converted.length,
+        nonHeicCount: nonHeic.length,
+      });
 
       const candidates = [
         ...nonHeic
@@ -64,6 +84,13 @@ export function useSelectFile({
       ];
 
       if (candidates.length === 0) {
+        captureByCameraMessage("by_camera_zero_candidates_after_filter", {
+          level: "warning",
+          extra: {
+            generation,
+            ...summarizeFileListForSentry(files),
+          },
+        });
         toast.error(t("noValidFiles"));
         return;
       }
@@ -85,6 +112,21 @@ export function useSelectFile({
           ),
           maxPhotos,
           topicOrderIndexes,
+        });
+
+        if (generation !== selectionGenerationRef.current) {
+          byCameraBreadcrumb("file_select_stale_result_dropped", {
+            generation,
+            latest: selectionGenerationRef.current,
+          });
+          return;
+        }
+
+        byCameraBreadcrumb("prepare_participant_photos_done", {
+          generation,
+          photoCount: result.photos.length,
+          warningCount: result.warnings.length,
+          errorCount: result.errors.length,
         });
 
         const duplicateWarnings = result.warnings.filter((message) =>

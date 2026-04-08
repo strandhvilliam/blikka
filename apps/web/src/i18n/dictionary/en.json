@@ -145,6 +145,8 @@
       "selectPhotoPrompt": "Tap here to select a photo",
       "yourPhoto": "Your Photo",
       "photoPreview": "Photo Preview",
+      "previewUnavailable": "Preview could not be shown.",
+      "previewUnavailableHint": "You can still upload this photo.",
       "missingRequiredInfo": "Missing required participant information",
       "missingRequiredInfoDetailed": "Missing required information: {fields}",
       "missingParticipantNumber": "participant number",

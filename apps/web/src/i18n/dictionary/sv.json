@@ -145,6 +145,8 @@
       "selectPhotoPrompt": "Tryck här för att välja ett foto",
       "yourPhoto": "Ditt foto",
       "photoPreview": "Förhandsvisning",
+      "previewUnavailable": "Förhandsvisningen kunde inte visas.",
+      "previewUnavailableHint": "Du kan fortfarande ladda upp fotot.",
       "missingRequiredInfo": "Deltagarinformation saknas",
       "missingRequiredInfoDetailed": "Saknad information: {fields}",
       "missingParticipantNumber": "deltagarnummer",

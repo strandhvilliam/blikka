@@ -26,13 +26,17 @@ import { usePhotoStore } from "@/lib/flow/photo-store";
 import { useHeicStore } from "@/lib/flow/heic-store";
 import { useStepState } from "@/lib/flow/step-state-context";
 import type { PhotoWithPresignedUrl } from "@/lib/flow/types";
-import { useUploadStore } from "@/lib/flow/upload-store";
+import { selectFailedFiles, useUploadStore } from "@/lib/flow/upload-store";
 import { FINALIZATION_STATE } from "@/lib/flow/types";
 import {
   buildInitializeByCameraUploadInputResult,
   getUploadFlowIssueMessageKeys,
 } from "@/lib/flow/upload-flow-state";
 import { buildUploadExifPayload } from "@/lib/upload-exif";
+import {
+  captureByCameraException,
+  captureByCameraMessage,
+} from "@/lib/sentry-by-camera";
 
 import { UploadProgress } from "./upload-progress";
 import { ByCameraUploadInput } from "./by-camera-upload-input";
@@ -214,6 +218,10 @@ export function ByCameraUploadStep({
       });
 
       if (!initialization || initialization.uploads.length === 0) {
+        captureByCameraMessage("by_camera_presigned_urls_empty", {
+          level: "error",
+          extra: { hasInit: Boolean(initialization) },
+        });
         setIsUploading(false);
         toast.error(t("failedToGetPresignedUrls"));
         return;
@@ -242,10 +250,28 @@ export function ByCameraUploadStep({
       try {
         await executeUpload(photosWithUrls);
       } catch (error) {
+        captureByCameraException(error, { phase: "execute_upload_throw" });
         console.error("Upload execution failed:", error);
+        clearFiles();
         setIsUploading(false);
+        toast.error(t("uploadFailed"));
+        return;
+      }
+
+      const failedAfterUpload = selectFailedFiles(useUploadStore.getState());
+      if (failedAfterUpload.length > 0) {
+        captureByCameraMessage("by_camera_upload_finished_with_errors", {
+          level: "error",
+          extra: {
+            failedCount: failedAfterUpload.length,
+            codes: failedAfterUpload.map((f) => f.error?.code ?? "unknown"),
+          },
+        });
+        clearFiles();
+        toast.error(t("uploadFailed"));
       }
     } catch (error) {
+      captureByCameraException(error, { phase: "handle_confirmed_upload" });
       console.error("Upload failed:", error);
       setIsUploading(false);
       toast.error(

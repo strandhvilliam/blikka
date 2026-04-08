@@ -24,6 +24,7 @@ import {
 } from "@/lib/flow/constants"
 import { chunk } from "@/lib/flow/utils"
 import { useUploadStatusRealtime } from "@/lib/use-upload-status-realtime"
+import { captureByCameraS3UploadFailed } from "@/lib/sentry-by-camera"
 
 interface UseFileUploadOptions {
   domain: string
@@ -279,6 +280,7 @@ export function useFileUpload({ domain, reference }: UseFileUploadOptions) {
 
         if (!result.ok) {
           setFileError(file.key, result.error)
+          captureByCameraS3UploadFailed(file.orderIndex, result.error)
           return
         }
 

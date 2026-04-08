@@ -1,4 +1,5 @@
 import { getExifDate, parseExifData, type ExifData } from "./exif-parsing";
+import { byCameraThumbnailBreadcrumb } from "./sentry-by-camera";
 
 export const COMMON_IMAGE_EXTENSIONS = [
   "jpg",
@@ -224,8 +225,9 @@ export async function generateThumbnailUrl(
   file: File | Blob,
   maxDimension = THUMBNAIL_MAX_DIMENSION,
 ): Promise<string> {
+  let bitmap: ImageBitmap | null = null;
   try {
-    const bitmap = await createImageBitmap(file, {
+    bitmap = await createImageBitmap(file, {
       resizeWidth: maxDimension,
       resizeQuality: "medium",
     });
@@ -234,19 +236,39 @@ export async function generateThumbnailUrl(
     const ctx = canvas.getContext("2d");
 
     if (!ctx) {
+      byCameraThumbnailBreadcrumb("fallback_no_2d_context", {
+        w: bitmap.width,
+        h: bitmap.height,
+      });
       bitmap.close();
+      bitmap = null;
       return URL.createObjectURL(file);
     }
 
     ctx.drawImage(bitmap, 0, 0);
     bitmap.close();
+    bitmap = null;
 
     const blob = await canvas.convertToBlob({
       type: "image/jpeg",
       quality: 0.7,
     });
+    byCameraThumbnailBreadcrumb("jpeg_thumbnail", {
+      thumbBytes: blob.size,
+    });
     return URL.createObjectURL(blob);
-  } catch {
+  } catch (cause) {
+    byCameraThumbnailBreadcrumb("fallback_after_exception", {
+      cause: cause instanceof Error ? cause.message : String(cause),
+    });
     return URL.createObjectURL(file);
+  } finally {
+    if (bitmap) {
+      try {
+        bitmap.close();
+      } catch {
+        // ignore close errors
+      }
+    }
   }
 }

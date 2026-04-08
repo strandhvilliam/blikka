@@ -21,6 +21,12 @@ import { cn } from "@/lib/utils"
 import { ValidationStatusBadge } from "./validation-status-badge"
 import type { SelectedPhoto } from "@/lib/flow/types"
 import { VALIDATION_OUTCOME } from "@blikka/validation"
+import {
+  byCameraBreadcrumb,
+  captureByCameraMessage,
+  fileSummaryForSentry,
+  summarizeFileListForSentry,
+} from "@/lib/sentry-by-camera"
 
 interface ValidationSummary {
   status: "pending" | "passed" | "warning" | "error"
@@ -132,6 +138,38 @@ function getRelevantExifData(exif: Record<string, unknown>): Record<string, stri
   }
 
   return relevantData
+}
+
+function ByCameraSelectedPhotoPreview({ photo }: { photo: SelectedPhoto }) {
+  const t = useTranslations("FlowPage.uploadStep")
+  const [previewLoadFailed, setPreviewLoadFailed] = useState(false)
+
+  return (
+    <div className="flex w-full justify-center bg-muted">
+      {previewLoadFailed ? (
+        <div className="flex min-h-[min(52dvh,12rem)] w-full flex-col items-center justify-center gap-2 px-6 py-10 text-center">
+          <Info className="h-8 w-8 text-muted-foreground" aria-hidden />
+          <p className="text-sm font-medium text-foreground">{t("previewUnavailable")}</p>
+          <p className="text-xs text-muted-foreground">{t("previewUnavailableHint")}</p>
+        </div>
+      ) : (
+        <img
+          src={photo.preview}
+          alt={t("photoPreview")}
+          className="max-h-[min(52dvh,30rem)] w-full object-contain"
+          onError={() => {
+            setPreviewLoadFailed(true)
+            captureByCameraMessage("by_camera_preview_img_error", {
+              level: "info",
+              extra: {
+                file: fileSummaryForSentry(photo.file),
+              },
+            })
+          }}
+        />
+      )}
+    </div>
+  )
 }
 
 interface UploadInputProps {
@@ -271,13 +309,7 @@ export function ByCameraUploadInput({
             </button>
 
             {/* Image — cap height so very tall screenshots stay on-screen */}
-            <div className="flex w-full justify-center bg-muted">
-              <img
-                src={photo.preview}
-                alt={t("photoPreview")}
-                className="max-h-[min(52dvh,30rem)] w-full object-contain"
-              />
-            </div>
+            <ByCameraSelectedPhotoPreview key={photo.id} photo={photo} />
 
             {/* Info section */}
             <div className="px-4 py-3.5 space-y-3">
@@ -383,7 +415,13 @@ export function ByCameraUploadInput({
         accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
         onChange={async (e) => {
           const target = e.currentTarget
-          await onFileSelect(target.files)
+          const picked = target.files
+          if (picked && picked.length > 0) {
+            byCameraBreadcrumb("native_file_input_change", {
+              ...summarizeFileListForSentry(Array.from(picked)),
+            })
+          }
+          await onFileSelect(picked)
           target.value = ""
         }}
         disabled={isProcessing}

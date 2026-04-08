@@ -23,6 +23,89 @@ import { useState } from "react"
 import type { SelectedPhoto } from "@/lib/flow/types"
 import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation"
 import { ValidationStatusBadge } from "./validation-status-badge"
+import { byCameraBreadcrumb, fileSummaryForSentry } from "@/lib/sentry-by-camera"
+
+function SubmissionItemThumbnail({
+  photo,
+  index,
+  onOpenDialog,
+}: {
+  photo: SelectedPhoto
+  index: number
+  onOpenDialog: () => void
+}) {
+  const t = useTranslations("FlowPage.uploadStep")
+  const [thumbPreviewFailed, setThumbPreviewFailed] = useState(false)
+
+  if (thumbPreviewFailed) {
+    return (
+      <button
+        type="button"
+        className="flex h-full w-full flex-col items-center justify-center gap-1 bg-muted/50 p-1 text-center"
+        onClick={onOpenDialog}
+      >
+        <ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden />
+        <span className="text-[10px] leading-tight text-muted-foreground">
+          {t("previewUnavailable")}
+        </span>
+      </button>
+    )
+  }
+
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={photo.preview}
+      alt={t("uploadPreviewAlt", { index: index + 1 })}
+      className="h-full w-full cursor-pointer object-cover"
+      onClick={onOpenDialog}
+      onError={() => {
+        setThumbPreviewFailed(true)
+        byCameraBreadcrumb("submission_item_thumb_preview_error", {
+          index,
+          file: fileSummaryForSentry(photo.file),
+        })
+      }}
+    />
+  )
+}
+
+function SubmissionItemLargePreview({
+  photo,
+  index,
+}: {
+  photo: SelectedPhoto
+  index: number
+}) {
+  const t = useTranslations("FlowPage.uploadStep")
+  const [dialogPreviewFailed, setDialogPreviewFailed] = useState(false)
+
+  if (dialogPreviewFailed) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+        <ImageIcon className="h-10 w-10 text-muted-foreground" aria-hidden />
+        <p className="text-sm font-medium">{t("previewUnavailable")}</p>
+        <p className="text-xs text-muted-foreground">{t("previewUnavailableHint")}</p>
+      </div>
+    )
+  }
+
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={photo.preview}
+      alt={t("fullPreviewAlt", { index: index + 1 })}
+      className="h-auto w-full object-contain"
+      onError={() => {
+        setDialogPreviewFailed(true)
+        byCameraBreadcrumb("submission_item_dialog_preview_error", {
+          index,
+          file: fileSummaryForSentry(photo.file),
+        })
+      }}
+    />
+  )
+}
 
 interface SubmissionItemProps {
   photo?: SelectedPhoto
@@ -44,6 +127,7 @@ export function SubmissionItem({
   const t = useTranslations("FlowPage.uploadStep")
   const [expanded, setExpanded] = useState(false)
   const [showImageDialog, setShowImageDialog] = useState(false)
+  const [largePreviewNonce, setLargePreviewNonce] = useState(0)
 
   const exifData = photo?.exif || {}
   const relevantExifData = getRelevantExifData(exifData)
@@ -113,12 +197,14 @@ export function SubmissionItem({
           transition={{ duration: 0.2 }}
           className="h-24 w-24 shrink-0 overflow-hidden rounded-xl"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photo.preview}
-            alt={t("uploadPreviewAlt", { index: index + 1 })}
-            className="h-full w-full cursor-pointer object-cover"
-            onClick={() => setShowImageDialog(true)}
+          <SubmissionItemThumbnail
+            key={photo.id}
+            photo={photo}
+            index={index}
+            onOpenDialog={() => {
+              setLargePreviewNonce((n) => n + 1)
+              setShowImageDialog(true)
+            }}
           />
         </motion.div>
 
@@ -221,11 +307,10 @@ export function SubmissionItem({
             </DialogHeader>
             <div className="p-6 pt-0">
               <div className="max-h-[70vh] w-full overflow-auto">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photo.preview}
-                  alt={t("fullPreviewAlt", { index: index + 1 })}
-                  className="h-auto w-full object-contain"
+                <SubmissionItemLargePreview
+                  key={`${photo.id}-${largePreviewNonce}`}
+                  photo={photo}
+                  index={index}
                 />
               </div>
             </div>
