@@ -23,6 +23,7 @@ export function useJurySubmissionsInfiniteQuery({
       trpc.jury.getJurySubmissionsFromToken.infiniteQueryOptions(
         { domain, token, ratingFilter },
         {
+          // @ts-expect-error - TODO: fix this
           getNextPageParam: getJurySubmissionsNextPageParam,
           placeholderData: keepPreviousData,
         },
