@@ -7,7 +7,11 @@ import { useTranslations } from "next-intl"
 import { ArrowRight, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { z } from "zod"
-import { isPossiblePhoneNumber, parsePhoneNumber } from "react-phone-number-input"
+import {
+  isPossiblePhoneNumber,
+  parsePhoneNumber,
+  type Country,
+} from "react-phone-number-input"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,12 +34,12 @@ import { useStepState } from "@/lib/flow/step-state-context"
 import { type FlowMode } from "@/lib/flow/constants"
 import { toParticipantFlowStatePatch } from "@/lib/flow/upload-flow-state"
 
-function getCountryFromLocale(): string {
+function getCountryFromLocale(): Country {
   if (typeof navigator === "undefined") return "SE"
   const language = navigator.language
   if (!language) return "SE"
   const parts = language.split("-")
-  if (parts.length > 1) return parts[parts.length - 1].toUpperCase()
+  if (parts.length > 1) return parts[parts.length - 1].toUpperCase() as Country
   return "SE"
 }
 
@@ -102,16 +106,18 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
     reference: string
   } | null>(null)
   const [isCheckingParticipant, setIsCheckingParticipant] = useState(false)
+  /** Matches SSR (no `navigator`): start as SE, then device locale after hydration. */
+  const [phoneDefaultCountry, setPhoneDefaultCountry] = useState<Country>("SE")
   const isCheckingParticipantRef = useRef(false)
   const isMountedRef = useRef(true)
 
   useEffect(() => {
+    setPhoneDefaultCountry(getCountryFromLocale())
     return () => {
       isMountedRef.current = false
     }
   }, [])
 
-  const defaultCountry = getCountryFromLocale()
   const resolveByCameraParticipantByPhone = useMutation(
     trpc.uploadFlow.resolveByCameraParticipantByPhone.mutationOptions(),
   )
@@ -421,7 +427,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           <PhoneInput
                             id={field.name}
                             name={field.name}
-                            defaultCountry={defaultCountry as any}
+                            defaultCountry={phoneDefaultCountry}
                             value={field.state.value}
                             onChange={(value) => field.handleChange(value || "")}
                             onFocus={() =>
