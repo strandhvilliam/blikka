@@ -2,7 +2,7 @@ import { decodeParams, Page } from "@/lib/next-utils"
 import { Effect, Schema } from "effect"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
 import { Suspense } from "react"
-import { LiveClientPage } from "./_components/live-client-page"
+import { LiveClientPage } from "@/components/live/live-client-page"
 import { Splash } from "@/components/splash"
 
 const _LivePage = Effect.fn("@blikka/web/LivePage")(

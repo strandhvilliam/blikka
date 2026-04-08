@@ -5,7 +5,7 @@ import { Suspense } from "react"
 import { Splash } from "@/components/splash"
 import { notFound } from "next/navigation"
 import { flowStateServerLoader } from "@/lib/flow-state-params-server"
-import { ConfirmationClient } from "../_components/confirmation-client"
+import { ConfirmationClient } from "@/components/live/confirmation-client"
 
 const _ConfirmationPage = Effect.fn("@blikka/web/ConfirmationPage")(
   function* ({ params, searchParams }: PageProps<"/live/[domain]">) {
