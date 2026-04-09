@@ -18,9 +18,7 @@ async function importParticipantSelectedFiles() {
     .mockReturnValueOnce("generated-1")
     .mockReturnValueOnce("generated-2")
     .mockReturnValue("generated-next");
-  const generateThumbnailUrlWithRetries = vi.fn(
-    async (file: File) => `blob:${file.name}`,
-  );
+  const generateThumbnailUrl = vi.fn(async (file: File) => `blob:${file.name}`);
 
   vi.doMock("./exif-parsing", () => ({
     getExifDate: (exif?: Record<string, unknown> | null) => {
@@ -43,7 +41,7 @@ async function importParticipantSelectedFiles() {
     return {
       ...actual,
       createClientPhotoId,
-      generateThumbnailUrlWithRetries,
+      generateThumbnailUrl,
     };
   });
 
@@ -54,7 +52,7 @@ async function importParticipantSelectedFiles() {
     mocks: {
       parseExifData,
       createClientPhotoId,
-      generateThumbnailUrlWithRetries,
+      generateThumbnailUrl,
     },
   };
 }
@@ -125,7 +123,7 @@ describe("participant-upload/participant-selected-files", () => {
     expect(mocks.parseExifData).toHaveBeenCalledWith(
       expect.objectContaining({ name: "third.jpg" }),
     );
-    expect(mocks.generateThumbnailUrlWithRetries).toHaveBeenCalledTimes(2);
+    expect(mocks.generateThumbnailUrl).toHaveBeenCalledTimes(2);
   });
 
   it("preserves normalization warnings and enforces duplicate and max-count rules", async () => {
@@ -161,7 +159,7 @@ describe("participant-upload/participant-selected-files", () => {
     expect(result.photos).toHaveLength(2);
     expect(result.photos.map((photo) => photo.file.name)).toContain("first.jpg");
     expect(mocks.createClientPhotoId).toHaveBeenCalledTimes(1);
-    expect(mocks.generateThumbnailUrlWithRetries).toHaveBeenCalledTimes(1);
+    expect(mocks.generateThumbnailUrl).toHaveBeenCalledTimes(1);
     expect(mocks.parseExifData).toHaveBeenCalledTimes(1);
     expect(mocks.parseExifData).toHaveBeenCalledWith(
       expect.objectContaining({ name: "first.jpg" }),
@@ -218,9 +216,7 @@ describe("participant-upload/participant-selected-files", () => {
       return {
         ...actual,
         createClientPhotoId: vi.fn(() => crypto.randomUUID()),
-        generateThumbnailUrlWithRetries: vi.fn(
-          async (file: File) => `blob:${file.name}`,
-        ),
+        generateThumbnailUrl: vi.fn(async (file: File) => `blob:${file.name}`),
       };
     });
 

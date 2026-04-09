@@ -104,20 +104,7 @@ export function byCameraBreadcrumb(message: string, data?: Record<string, unknow
 }
 
 export function byCameraThumbnailBreadcrumb(
-  outcome:
-    | "jpeg_thumbnail"
-    | "fallback_no_2d_context"
-    | "fallback_after_exception"
-    | "image_element_failed"
-    | "create_image_bitmap_failed"
-    | "bitmap_to_jpeg_failed"
-    | "image_element_decode_failed"
-    | "image_element_no_canvas_context"
-    | "image_element_convert_to_blob_failed"
-    | "preview_generation_retry"
-    | "thumbnail_retry_fresh_blob_from_array_buffer"
-    | "thumbnail_array_buffer_copy_failed"
-    | "fallback_uses_fresh_blob_object_url",
+  outcome: "jpeg_thumbnail" | "fallback_no_2d_context" | "fallback_after_exception",
   data?: Record<string, unknown>,
 ) {
   if (!clientOnly()) return

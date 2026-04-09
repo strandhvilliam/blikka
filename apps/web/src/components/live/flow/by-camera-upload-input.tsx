@@ -6,15 +6,7 @@ import { PrimaryButton } from "@/components/ui/primary-button"
 import { useTranslations } from "next-intl"
 import { motion } from "motion/react"
 import { useRef, useState, useMemo, type RefObject } from "react"
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  CloudUpload,
-  Info,
-  Loader2,
-  X,
-} from "lucide-react"
+import { AlertTriangle, ChevronDown, ChevronUp, CloudUpload, Info, Loader2, X } from "lucide-react"
 import { format } from "date-fns"
 import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
 import { cn } from "@/lib/utils"
@@ -265,9 +257,7 @@ export function ByCameraUploadInput({
               )}
             </div>
 
-            <p className="mt-4 text-sm font-medium text-foreground">
-              {t("selectPhotoPrompt")}
-            </p>
+            <p className="mt-4 text-sm font-medium text-foreground">{t("selectPhotoPrompt")}</p>
 
             <PrimaryButton
               type="button"
@@ -360,7 +350,10 @@ export function ByCameraUploadInput({
                   role="alert"
                   className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
                 >
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
+                  <AlertTriangle
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+                    aria-hidden
+                  />
                   <span className="leading-snug">{t("noExifData")}</span>
                 </div>
               )}
@@ -409,10 +402,10 @@ export function ByCameraUploadInput({
         )}
       </motion.div>
 
+      {/* Omit accept= — some Android pickers return broken Files when it is set; we filter with isSupportedImageFile + HEIC path. */}
       <input
         ref={inputRef}
         type="file"
-        accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
         onChange={async (e) => {
           const target = e.currentTarget
           const picked = target.files
