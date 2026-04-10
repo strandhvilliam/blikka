@@ -186,7 +186,14 @@
       "uploadPreviewAlt": "Preview of photo {index}",
       "photoPreviewTitle": "Photo Preview - {topic}",
       "fullPreviewAlt": "Full preview of photo {index}",
-      "selectAnother": "Select another"
+      "selectAnother": "Select another",
+      "uploadInstructionsTitle": "Before you upload",
+      "uploadInstructionsIntro": "We check capture time and camera metadata — it’s often missing if the file was processed or shared the wrong way.",
+      "uploadInstructionsAvoidTitle": "Avoid files that came from",
+      "uploadInstructionsAvoidCloud": "Cloud backup, sync, or web galleries (metadata often stripped).",
+      "uploadInstructionsAvoidMessaging": "WhatsApp, Messenger, or similar (recompressed; metadata usually gone).",
+      "uploadInstructionsPrefer": "Pick the camera-original on this device — copying from a digital camera is fine; not from cloud or chats.",
+      "uploadInstructionsUnderstand": "I understand"
     },
     "uploadProgress": {
       "titleUploading": "Uploading Photos",

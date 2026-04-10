@@ -50,6 +50,7 @@ import { UploadSection } from "./upload-section";
 import { HeicConversionDialog } from "./heic-conversion-dialog";
 import { ManualPhotoOrderDialog } from "./manual-photo-order-dialog";
 import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog";
+import { UploadInstructionsDialog } from "./upload-instructions-dialog";
 
 export function UploadSubmissionsStep({
   ruleConfigs,
@@ -87,6 +88,8 @@ export function UploadSubmissionsStep({
   const hasRedirectedRef = useRef(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [showManualOrderDialog, setShowManualOrderDialog] = useState(false);
+  const [showUploadInstructionsDialog, setShowUploadInstructionsDialog] =
+    useState(true);
 
   const heicIsConverting = useHeicStore((state) => state.isConverting);
   const heicIsCancelling = useHeicStore((state) => state.isCancelling);
@@ -307,6 +310,11 @@ export function UploadSubmissionsStep({
 
   return (
     <>
+      <UploadInstructionsDialog
+        open={showUploadInstructionsDialog}
+        onUnderstand={() => setShowUploadInstructionsDialog(false)}
+      />
+
       <HeicConversionDialog
         open={heicIsConverting}
         isConverting={heicIsConverting}

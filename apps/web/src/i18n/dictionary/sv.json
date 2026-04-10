@@ -186,7 +186,14 @@
       "uploadPreviewAlt": "Förhandsvisning av foto {index}",
       "photoPreviewTitle": "Förhandsvisning av foto - {topic}",
       "fullPreviewAlt": "Full förhandsvisning av foto {index}",
-      "selectAnother": "Välj ett annat"
+      "selectAnother": "Välj ett annat",
+      "uploadInstructionsTitle": "Innan du laddar upp",
+      "uploadInstructionsIntro": "Vi validerar tidpunkt och kameradata — det försvinner ofta om filen bearbetats eller delats fel.",
+      "uploadInstructionsAvoidTitle": "Undvik filer som kommer från",
+      "uploadInstructionsAvoidCloud": "Molnsäkerhetskopior, synk eller webbgalleri (metadata försvinner ofta).",
+      "uploadInstructionsAvoidMessaging": "WhatsApp, Messenger m.fl. (omkomprimerade; metadata borta).",
+      "uploadInstructionsPrefer": "Välj kamera-originalet på enheten — kopia från digitalkamera är ok; inte från moln eller chatt.",
+      "uploadInstructionsUnderstand": "Jag förstår"
     },
     "uploadProgress": {
       "titleUploading": "Laddar upp foton",

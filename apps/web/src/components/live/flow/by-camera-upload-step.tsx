@@ -40,6 +40,7 @@ import { UploadProgress } from "./upload-progress"
 import { ByCameraUploadInput } from "./by-camera-upload-input"
 import { HeicConversionDialog } from "./heic-conversion-dialog"
 import { UploadConfirmationDialog } from "./upload-confirmation-dialog"
+import { UploadInstructionsDialog } from "./upload-instructions-dialog"
 
 const BY_CAMERA_MAX_PHOTOS = 1
 
@@ -75,6 +76,8 @@ export function ByCameraUploadStep({
   const setIsUploading = useUploadStore((state) => state.setIsUploading)
 
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
+  const [showUploadInstructionsDialog, setShowUploadInstructionsDialog] =
+    useState(true)
   const hasRedirectedRef = useRef(false)
   const selectAnotherFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -291,6 +294,11 @@ export function ByCameraUploadStep({
 
   return (
     <>
+      <UploadInstructionsDialog
+        open={showUploadInstructionsDialog}
+        onUnderstand={() => setShowUploadInstructionsDialog(false)}
+      />
+
       <HeicConversionDialog
         open={heicIsConverting}
         isConverting={heicIsConverting}
@@ -335,7 +343,6 @@ export function ByCameraUploadStep({
             exit={{ opacity: 0 }}
             className={`mx-auto max-w-md px-4 ${canSubmit ? "pb-28" : ""}`}
           >
-            {/* Header */}
             <div className="mb-8 text-center">
               <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
                 {t("byCameraTitle")}
@@ -353,7 +360,6 @@ export function ByCameraUploadStep({
               )}
             </div>
 
-            {/* Upload input */}
             <div className="space-y-4">
               <ByCameraUploadInput
                 photo={photo || null}
@@ -366,7 +372,6 @@ export function ByCameraUploadStep({
               />
             </div>
 
-            {/* Actions */}
             <div className="mt-6 flex justify-center">
               {!photoSelected ? (
                 <Button variant="ghost" size="lg" onClick={handleResetAndGoBack} className="w-full">
