@@ -263,7 +263,7 @@ async function imageBitmapToJpegObjectUrl(bitmap: ImageBitmap): Promise<string> 
 
 /**
  * Generates a small thumbnail blob URL from a full-size image file.
- * Uses createImageBitmap with resize for efficient sub-sampled decoding.
+ * Uses createImageBitmap with resizeWidth only (preserves aspect ratio).
  * Falls back to a direct object URL if thumbnail generation fails.
  */
 export async function generateThumbnailUrl(
@@ -273,7 +273,6 @@ export async function generateThumbnailUrl(
   try {
     const bitmap = await createImageBitmap(file, {
       resizeWidth: maxDimension,
-      resizeHeight: maxDimension,
       resizeQuality: "medium",
       imageOrientation: "from-image",
     })

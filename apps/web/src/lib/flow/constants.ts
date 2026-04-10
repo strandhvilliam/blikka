@@ -25,6 +25,9 @@ export type FlowVariant = "upload" | "prepare"
 
 export const PARTICIPANT_REF_LENGTH = 4
 
+/** By-camera selected-photo preview: caps on-screen height for very tall (portrait) thumbnails. */
+export const BY_CAMERA_PREVIEW_MAX_HEIGHT_CLASS = "max-h-[min(52dvh,30rem)]"
+
 export const UPLOAD_TIMEOUT_MS = 1000 * 60 * 3 // 3 minutes
 export const UPLOAD_CONCURRENCY_LIMIT = 1
 export const UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS = 15000 // 15 seconds

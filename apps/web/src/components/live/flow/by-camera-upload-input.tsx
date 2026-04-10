@@ -9,6 +9,7 @@ import { useRef, useState, useMemo, type RefObject } from "react"
 import { AlertTriangle, ChevronDown, ChevronUp, CloudUpload, Info, Loader2, X } from "lucide-react"
 import { format } from "date-fns"
 import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
+import { BY_CAMERA_PREVIEW_MAX_HEIGHT_CLASS } from "@/lib/flow/constants"
 import { cn } from "@/lib/utils"
 import { ValidationStatusBadge } from "./validation-status-badge"
 import type { SelectedPhoto } from "@/lib/flow/types"
@@ -136,30 +137,35 @@ function ByCameraSelectedPhotoPreview({ photo }: { photo: SelectedPhoto }) {
   const t = useTranslations("FlowPage.uploadStep")
   const [previewLoadFailed, setPreviewLoadFailed] = useState(false)
 
+  if (previewLoadFailed) {
+    return (
+      <div className="flex min-h-[min(52dvh,12rem)] w-full flex-col items-center justify-center gap-2 bg-muted px-6 py-10 text-center">
+        <Info className="h-8 w-8 text-muted-foreground" aria-hidden />
+        <p className="text-sm font-medium text-foreground">{t("previewUnavailable")}</p>
+        <p className="text-xs text-muted-foreground">{t("previewUnavailableHint")}</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex w-full justify-center bg-muted">
-      {previewLoadFailed ? (
-        <div className="flex min-h-[min(52dvh,12rem)] w-full flex-col items-center justify-center gap-2 px-6 py-10 text-center">
-          <Info className="h-8 w-8 text-muted-foreground" aria-hidden />
-          <p className="text-sm font-medium text-foreground">{t("previewUnavailable")}</p>
-          <p className="text-xs text-muted-foreground">{t("previewUnavailableHint")}</p>
-        </div>
-      ) : (
-        <img
-          src={photo.preview}
-          alt={t("photoPreview")}
-          className="max-h-[min(52dvh,30rem)] w-full object-contain"
-          onError={() => {
-            setPreviewLoadFailed(true)
-            captureByCameraMessage("by_camera_preview_img_error", {
-              level: "info",
-              extra: {
-                file: fileSummaryForSentry(photo.file),
-              },
-            })
-          }}
-        />
-      )}
+    <div className="w-full bg-muted">
+      <img
+        src={photo.preview}
+        alt={t("photoPreview")}
+        className={cn(
+          "mx-auto block h-auto w-auto max-w-full object-contain",
+          BY_CAMERA_PREVIEW_MAX_HEIGHT_CLASS,
+        )}
+        onError={() => {
+          setPreviewLoadFailed(true)
+          captureByCameraMessage("by_camera_preview_img_error", {
+            level: "info",
+            extra: {
+              file: fileSummaryForSentry(photo.file),
+            },
+          })
+        }}
+      />
     </div>
   )
 }
