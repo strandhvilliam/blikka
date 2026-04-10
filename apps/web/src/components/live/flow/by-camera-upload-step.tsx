@@ -76,8 +76,7 @@ export function ByCameraUploadStep({
   const setIsUploading = useUploadStore((state) => state.setIsUploading)
 
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
-  const [showUploadInstructionsDialog, setShowUploadInstructionsDialog] =
-    useState(true)
+  const [showUploadInstructionsDialog, setShowUploadInstructionsDialog] = useState(true)
   const hasRedirectedRef = useRef(false)
   const selectAnotherFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -294,10 +293,10 @@ export function ByCameraUploadStep({
 
   return (
     <>
-      <UploadInstructionsDialog
+      {/* <UploadInstructionsDialog
         open={showUploadInstructionsDialog}
         onUnderstand={() => setShowUploadInstructionsDialog(false)}
-      />
+      /> */}
 
       <HeicConversionDialog
         open={heicIsConverting}
