@@ -120,6 +120,8 @@ export function LiveClientPage() {
                 locale={locale}
               />
 
+              <OfficialBrowserTip />
+
               <StartButtons
                 marathonMode={marathon.mode as "marathon" | "by-camera"}
                 onUploadClick={handleStartUpload}
@@ -336,6 +338,15 @@ function StartButtons({
       {t("begin")}
       <Play className="h-4 w-4" />
     </PrimaryButton>
+  )
+}
+
+function OfficialBrowserTip() {
+  const t = useTranslations("LivePage")
+  return (
+    <p className="text-center text-xs sm:text-sm text-muted-foreground leading-snug px-1 mb-4 sm:mb-5">
+      {t("officialBrowserTip")}
+    </p>
   )
 }
 

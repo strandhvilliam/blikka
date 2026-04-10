@@ -31,7 +31,8 @@
     "submissionsClosed": "Submissions are closed for the current topic.",
     "sponsors": "Sponsors",
     "poweredBy": "powered by",
-    "datesToBeAnnounced": "Dates to be announced"
+    "datesToBeAnnounced": "Dates to be announced",
+    "officialBrowserTip": "Third-party QR apps can break uploads—use your phone’s built-in scanner, or open the link in Safari or Chrome."
   },
   "FlowPage": {
     "participantNumber": {
