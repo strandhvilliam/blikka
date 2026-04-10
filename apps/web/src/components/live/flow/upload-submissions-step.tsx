@@ -114,10 +114,7 @@ export function UploadSubmissionsStep({
     executeUpload,
     retryFailedFiles,
     clearFiles,
-  } = useFileUpload({
-    domain,
-    reference: uploadFlowState.participantRef || "",
-  });
+  } = useFileUpload();
 
   useEffect(() => {
     return () => {
