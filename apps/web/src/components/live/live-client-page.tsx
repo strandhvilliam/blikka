@@ -377,7 +377,8 @@ function TermsCheckbox({
             <a
               target="_blank"
               rel="noopener noreferrer"
-              href={formatPublicPathname(`/terms`, domain, locale)}
+              // href={formatPublicPathname(`/terms`, domain, locale)}
+              href={formatPlatformTermsPathname(locale)}
               className="underline font-semibold"
             >
               {t("organizerTerms")}
@@ -404,7 +405,9 @@ function SponsorsSection({ sponsor }: { sponsor: { id: number; key: string } | u
 
   return (
     <div className="mt-5 sm:mt-8 w-full max-w-4xl mx-auto px-3 sm:px-6 flex flex-col items-center">
-      <p className="text-center text-sm font-medium text-muted-foreground mb-3 sm:mb-4">{t("sponsors")}</p>
+      <p className="text-center text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
+        {t("sponsors")}
+      </p>
       <div className="w-full flex justify-center">
         <img
           src={`https://s3.eu-north-1.amazonaws.com/${BUCKET_NAME}/${sponsor.key}`}
