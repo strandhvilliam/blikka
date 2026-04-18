@@ -7,7 +7,6 @@ import { AlertTriangle, Vote } from "lucide-react"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
 import { VotingHeader } from "./voting-header"
 import { VotingSetup } from "./voting-setup"
 import { LeaderboardTab } from "./leaderboard-tab"
@@ -81,26 +80,16 @@ function VotingSummaryContent({
           className="min-w-0 space-y-0"
         >
           <div className="min-w-0 border-b border-border">
-            <TabsList className="-mb-px flex h-auto w-full min-w-0 gap-0 rounded-none bg-transparent p-0 sm:w-auto sm:gap-8">
-              <TabsTrigger
-                value="leaderboard"
-                className={cn(
-                  tabTriggerClassName,
-                  "min-w-0 flex-1 justify-center sm:flex-initial sm:justify-start",
-                )}
-              >
-                Leaderboard
-              </TabsTrigger>
-              <TabsTrigger
-                value="voters"
-                className={cn(
-                  tabTriggerClassName,
-                  "min-w-0 flex-1 justify-center sm:flex-initial sm:justify-start",
-                )}
-              >
-                Voters
-              </TabsTrigger>
-            </TabsList>
+            <div className="mx-auto w-full min-w-0 sm:w-1/2 sm:max-w-none">
+              <TabsList className="-mb-px flex h-auto w-full min-w-0 gap-0 rounded-none bg-transparent p-0">
+                <TabsTrigger value="leaderboard" className={tabTriggerClassName}>
+                  Leaderboard
+                </TabsTrigger>
+                <TabsTrigger value="voters" className={tabTriggerClassName}>
+                  Voters
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
           <TabsContent value="leaderboard" className="mt-6 min-w-0 space-y-6">

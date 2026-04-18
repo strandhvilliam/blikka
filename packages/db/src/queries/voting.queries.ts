@@ -1570,6 +1570,43 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         return result[0] as VotingSession | undefined;
       });
 
+      const updateVotingSessionContact = Effect.fn(
+        "VotingQueries.updateVotingSessionContact",
+      )(function* ({
+        marathonId,
+        topicId,
+        sessionId,
+        patch,
+      }: {
+        marathonId: number;
+        topicId: number;
+        sessionId: number;
+        patch: {
+          email?: string;
+          phoneHash?: string | null;
+          phoneEncrypted?: string | null;
+        };
+      }) {
+        const result = yield* use((database) =>
+          database
+            .update(votingSession)
+            .set({
+              ...patch,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(
+              and(
+                eq(votingSession.id, sessionId),
+                eq(votingSession.marathonId, marathonId),
+                eq(votingSession.topicId, topicId),
+              ),
+            )
+            .returning(),
+        );
+
+        return result[0] as VotingSession | undefined;
+      });
+
       return {
         getVotingSessionByToken,
         getVotingSessionsByIdsWithMarathon,
@@ -1612,6 +1649,7 @@ export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
         recordVote,
         clearVote,
         deleteVotingSession,
+        updateVotingSessionContact,
       } as const;
     }),
   },

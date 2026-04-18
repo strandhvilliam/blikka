@@ -19,6 +19,7 @@ import {
   GetVotingVotersPageSchema,
   CreateManualVotingSessionSchema,
   ResendVotingSessionNotificationSchema,
+  UpdateVotingSessionContactSchema,
   GetVotingSubmissionsSchema,
   SubmitVoteSchema,
   ClearVoteSchema,
@@ -217,6 +218,17 @@ export const votingRouter = createTRPCRouter({
       trpcEffect(
         Effect.fn("VotingRouter.resendVotingSessionNotification")(function* ({ input }) {
           return yield* VotingApiService.use((s) => s.resendVotingSessionNotification(input))
+        }),
+      ),
+    ),
+
+  updateVotingSessionContact: domainProcedure
+    .input(UpdateVotingSessionContactSchema)
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn("VotingRouter.updateVotingSessionContact")(function* ({ input }) {
+          return yield* VotingApiService.use((s) => s.updateVotingSessionContact(input))
         }),
       ),
     ),

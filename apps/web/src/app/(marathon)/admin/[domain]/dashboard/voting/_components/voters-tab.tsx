@@ -53,6 +53,7 @@ import {
 import { useVotingUiState } from "../_hooks/use-voting-ui-state";
 import { formatDomainLink } from "@/lib/utils";
 import { VotingProgress } from "./voting-progress";
+import { VoterContactCell } from "./voter-contact-cell";
 
 interface VotersTabProps {
   activeTopic: { id: number; name: string; orderIndex: number };
@@ -408,11 +409,21 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                       <TableCell className="py-2">
                         <code className="font-mono text-xs">{voter.token}</code>
                       </TableCell>
-                      <TableCell className="py-2">
-                        {voter.email || "-"}
+                      <TableCell className="py-2 align-top">
+                        <VoterContactCell
+                          kind="email"
+                          sessionId={voter.sessionId}
+                          topicId={activeTopic.id}
+                          value={voter.email || null}
+                        />
                       </TableCell>
-                      <TableCell className="py-2">
-                        {voter.phoneNumber || "-"}
+                      <TableCell className="py-2 align-top">
+                        <VoterContactCell
+                          kind="phone"
+                          sessionId={voter.sessionId}
+                          topicId={activeTopic.id}
+                          value={voter.phoneNumber}
+                        />
                       </TableCell>
                       <TableCell className="py-2">
                         {voter.voteSubmission ? (

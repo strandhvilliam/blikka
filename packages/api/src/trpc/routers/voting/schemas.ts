@@ -155,6 +155,16 @@ export const ResendVotingSessionNotificationSchema = Schema.toStandardSchemaV1(
   }),
 );
 
+export const UpdateVotingSessionContactSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    topicId: Schema.Number,
+    sessionId: Schema.Number,
+    email: Schema.optional(Schema.String),
+    phoneNumber: Schema.optional(Schema.String),
+  }),
+);
+
 export const GetVotingSubmissionsSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     token: Schema.String,

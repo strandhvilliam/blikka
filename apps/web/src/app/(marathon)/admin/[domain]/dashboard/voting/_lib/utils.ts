@@ -51,5 +51,6 @@ export function getSubmissionFullImageUrl(submissionKey?: string | null) {
 
 export const VOTING_PAGE_SIZE = 50;
 
+/** Wide underline tabs: equal segments, brand accent bar under active tab. */
 export const tabTriggerClassName =
-  "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-primary text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-brand-primary";
+  "relative min-h-12 min-w-0 flex-1 justify-center py-4 px-0 text-base font-semibold transition-colors rounded-none bg-transparent border-none shadow-none text-muted-foreground hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-primary data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-brand-primary data-[state=active]:after:content-['']";

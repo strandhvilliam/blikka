@@ -2242,6 +2242,114 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         });
       });
 
+      const updateVotingSessionContact = Effect.fn(
+        "VotingApiService.updateVotingSessionContact",
+      )(function* ({
+        domain,
+        topicId,
+        sessionId,
+        email,
+        phoneNumber,
+      }: {
+        domain: string;
+        topicId: number;
+        sessionId: number;
+        email?: string;
+        phoneNumber?: string;
+      }) {
+        if (email === undefined && phoneNumber === undefined) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Provide an email or phone number to update",
+            }),
+          );
+        }
+
+        const { marathon } = yield* getByCameraMarathonWithTopic({
+          domain,
+          topicId,
+        });
+
+        const sessionOpt = yield* db.votingQueries.getVotingSessionByIdForTopic(
+          {
+            marathonId: marathon.id,
+            topicId,
+            sessionId,
+          },
+        );
+        const session = yield* Option.match(sessionOpt, {
+          onSome: (s) => Effect.succeed(s),
+          onNone: () =>
+            Effect.fail(
+              new VotingApiError({
+                message: "Voting session not found for the selected topic",
+              }),
+            ),
+        });
+
+        yield* ensureSessionDomain(session, domain);
+
+        const patch: {
+          email?: string;
+          phoneHash?: string | null;
+          phoneEncrypted?: string | null;
+        } = {};
+
+        if (email !== undefined) {
+          patch.email = normalizeEmail(email) ?? "";
+        }
+
+        if (phoneNumber !== undefined) {
+          const trimmed = phoneNumber.trim();
+          if (!trimmed) {
+            patch.phoneHash = null;
+            patch.phoneEncrypted = null;
+          } else {
+            const encryptedPayload = yield* phoneEncryption
+              .encrypt({ phoneNumber: trimmed })
+              .pipe(
+                Effect.mapError(
+                  (error) =>
+                    new VotingApiError({
+                      message: error.message,
+                    }),
+                ),
+              );
+            patch.phoneHash = encryptedPayload.hash;
+            patch.phoneEncrypted = encryptedPayload.encrypted;
+          }
+        }
+
+        const updated = yield* db.votingQueries.updateVotingSessionContact({
+          marathonId: marathon.id,
+          topicId,
+          sessionId,
+          patch,
+        });
+
+        if (!updated) {
+          return yield* Effect.fail(
+            new VotingApiError({
+              message: "Failed to update voting session",
+            }),
+          );
+        }
+
+        const phoneNumberPlain = updated.phoneEncrypted
+          ? yield* phoneEncryption
+              .decrypt({
+                encrypted: updated.phoneEncrypted as EncryptedPhoneNumber,
+              })
+              .pipe(Effect.catch(() => Effect.succeed(null as string | null)))
+          : null;
+
+        return {
+          sessionId: updated.id,
+          email: updated.email,
+          phoneNumber: phoneNumberPlain,
+        };
+      });
+
       const getVotingSubmissions = Effect.fn(
         "VotingApiService.getVotingSubmissions",
       )(function* ({ token }: { token: string }) {
@@ -2656,6 +2764,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         getVotingVotersPage,
         createManualVotingSession,
         resendVotingSessionNotification,
+        updateVotingSessionContact,
         getVotingSubmissions,
         submitVote,
         clearVote,
