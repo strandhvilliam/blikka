@@ -152,6 +152,7 @@ export const ResendVotingSessionNotificationSchema = Schema.toStandardSchemaV1(
     domain: Schema.String,
     topicId: Schema.Number,
     sessionId: Schema.Number,
+    channel: Schema.optional(Schema.Literals(["email", "sms"])),
   }),
 );
 

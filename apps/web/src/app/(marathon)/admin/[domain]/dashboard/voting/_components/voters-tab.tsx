@@ -8,6 +8,7 @@ import {
   Check,
   Copy,
   Loader2,
+  Mail,
   MessageSquare,
   Send,
   ExternalLink,
@@ -138,8 +139,20 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
 
   const resendVotingSessionNotificationMutation = useMutation(
     trpc.voting.resendVotingSessionNotification.mutationOptions({
-      onSuccess: async (data) => {
-        if (data.emailSent || data.smsSent) {
+      onSuccess: async (data, variables) => {
+        if (variables.channel === "email") {
+          if (data.emailSent) {
+            toast.success("Voting email notification resent");
+          } else {
+            toast.warning("Voting email notification could not be delivered");
+          }
+        } else if (variables.channel === "sms") {
+          if (data.smsSent) {
+            toast.success("Voting phone notification resent");
+          } else {
+            toast.warning("Voting phone notification could not be delivered");
+          }
+        } else if (data.emailSent || data.smsSent) {
           toast.success("Voting notification resent by available channels");
         } else {
           toast.warning("Voting notification could not be delivered");
@@ -223,11 +236,15 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
     });
   };
 
-  const handleResendSessionNotification = (sessionId: number) => {
+  const handleResendSessionNotification = (
+    sessionId: number,
+    channel: "email" | "sms",
+  ) => {
     resendVotingSessionNotificationMutation.mutate({
       domain,
       topicId: activeTopic.id,
       sessionId,
+      channel,
     });
   };
 
@@ -245,6 +262,9 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
     resendVotingSessionNotificationMutation.isPending
       ? resendVotingSessionNotificationMutation.variables?.sessionId
       : null;
+  const pendingResendChannel = resendVotingSessionNotificationMutation.isPending
+    ? (resendVotingSessionNotificationMutation.variables?.channel ?? null)
+    : null;
   const isResending = resendVotingSessionNotificationMutation.isPending;
 
   const { data: votersPageData } = useSuspenseQuery(
@@ -558,7 +578,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                   <button
                                     className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                     disabled={
-                                      (!voter.phoneNumber && !voter.email) ||
+                                      !voter.email ||
                                       (isResending &&
                                         pendingResendSessionId ===
                                           voter.sessionId)
@@ -566,19 +586,50 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                     onClick={() => {
                                       handleResendSessionNotification(
                                         voter.sessionId,
+                                        "email",
                                       );
                                     }}
                                   >
                                     <div className="flex items-center gap-2">
                                       {isResending &&
                                       pendingResendSessionId ===
-                                        voter.sessionId ? (
+                                        voter.sessionId &&
+                                      pendingResendChannel === "email" ? (
+                                        <Loader2 className="size-4 animate-spin" />
+                                      ) : (
+                                        <Mail className="size-4" />
+                                      )}
+                                      <span className="text-sm font-medium">
+                                        Resend email
+                                      </span>
+                                    </div>
+                                  </button>
+                                  <button
+                                    className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                                    disabled={
+                                      !voter.phoneNumber ||
+                                      (isResending &&
+                                        pendingResendSessionId ===
+                                          voter.sessionId)
+                                    }
+                                    onClick={() => {
+                                      handleResendSessionNotification(
+                                        voter.sessionId,
+                                        "sms",
+                                      );
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {isResending &&
+                                      pendingResendSessionId ===
+                                        voter.sessionId &&
+                                      pendingResendChannel === "sms" ? (
                                         <Loader2 className="size-4 animate-spin" />
                                       ) : (
                                         <MessageSquare className="size-4" />
                                       )}
                                       <span className="text-sm font-medium">
-                                        Resend notification
+                                        Resend phone
                                       </span>
                                     </div>
                                   </button>

@@ -45,6 +45,8 @@ type NotificationWarning = {
   failedSessionIds: number[];
 };
 
+type VotingNotificationChannel = "email" | "sms" | "all";
+
 function buildS3Url(
   bucketName: string,
   key: string | null | undefined,
@@ -469,7 +471,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         marathonLogoUrl,
         domain,
         topicName,
-        sendSms = true,
+        channel = "all",
       }: {
         session: {
           id: number;
@@ -484,17 +486,25 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         marathonLogoUrl?: string | null;
         domain: string;
         topicName?: string | null;
-        sendSms?: boolean;
+        channel?: VotingNotificationChannel;
       }) {
         const email = normalizeEmail(session.email);
-        const canSendEmail = email !== null;
-        const canSendSms = sendSms && !!session.phoneEncrypted;
+        const canSendEmail =
+          (channel === "all" || channel === "email") && email !== null;
+        const canSendSms =
+          (channel === "all" || channel === "sms") && !!session.phoneEncrypted;
 
         if (!canSendEmail && !canSendSms) {
+          const message =
+            channel === "email"
+              ? "This voter has no email address, so no email notification can be sent"
+              : channel === "sms"
+                ? "This voter has no phone number, so no phone notification can be sent"
+                : "This voter has no email address or phone number, so no notification can be sent";
+
           return yield* Effect.fail(
             new VotingApiError({
-              message:
-                "This voter has no email address or phone number, so no notification can be sent",
+              message,
             }),
           );
         }
@@ -2198,10 +2208,12 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
         domain,
         topicId,
         sessionId,
+        channel,
       }: {
         domain: string;
         topicId: number;
         sessionId: number;
+        channel?: "email" | "sms";
       }) {
         const { marathon, topic } = yield* getByCameraMarathonWithTopic({
           domain,
@@ -2239,6 +2251,7 @@ export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
           marathonLogoUrl: marathon.logoUrl,
           domain,
           topicName: topic.name,
+          channel: channel ?? "all",
         });
       });
 
