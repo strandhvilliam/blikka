@@ -4,7 +4,7 @@
 
 # Blikka
 
-**Blikka** is an open-source SaaS for running photo marathons: participants upload photos during the event, staff validate submissions, and juries/voters review and score work — all in one multi-tenant, domain-based platform.
+**Blikka** is an open-source SaaS for running photo events. Used by Stockholm Fotomaraton it handles more than 10000 photo uploads in the matter of a couple hours each year. Also powering Sthlm By Camera every week and will soon be used my one of the largest camera makers for one of their events. Handles mass submission uploads in a intuitive flow. Admins get real-time overview of their event in the dashboard and jury members get a customer rating interface to review all their submissions.
 
 ## What you can do with Blikka
 
