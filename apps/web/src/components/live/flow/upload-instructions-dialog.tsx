@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   Dialog,
@@ -7,28 +7,25 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { useTranslations } from "next-intl";
+} from "@/components/ui/dialog"
+import { PrimaryButton } from "@/components/ui/primary-button"
+import { useTranslations } from "next-intl"
 
 interface UploadInstructionsDialogProps {
-  open: boolean;
-  onUnderstand: () => void;
+  open: boolean
+  onUnderstand: () => void
 }
 
-export function UploadInstructionsDialog({
-  open,
-  onUnderstand,
-}: UploadInstructionsDialogProps) {
-  const t = useTranslations("FlowPage.uploadStep");
+export function UploadInstructionsDialog({ open, onUnderstand }: UploadInstructionsDialogProps) {
+  const t = useTranslations("FlowPage.uploadStep")
 
   return (
     <Dialog open={open}>
       <DialogContent
         showCloseButton={false}
         className="sm:max-w-md"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={() => onUnderstand()}
+        // onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="font-gothic text-xl font-medium tracking-tight">
@@ -51,15 +48,11 @@ export function UploadInstructionsDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="sm:justify-stretch">
-          <PrimaryButton
-            type="button"
-            className="w-full rounded-full py-3"
-            onClick={onUnderstand}
-          >
+          <PrimaryButton type="button" className="w-full rounded-full py-3" onClick={onUnderstand}>
             {t("uploadInstructionsUnderstand")}
           </PrimaryButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

@@ -293,28 +293,6 @@ export function ByCameraUploadStep({
 
   return (
     <>
-      {/* <UploadInstructionsDialog
-        open={showUploadInstructionsDialog}
-        onUnderstand={() => setShowUploadInstructionsDialog(false)}
-      /> */}
-
-      <HeicConversionDialog
-        open={heicIsConverting}
-        isConverting={heicIsConverting}
-        isCancelling={heicIsCancelling}
-        progress={heicProgress}
-        currentFileName={heicCurrentFileName}
-        onCancel={cancelHeicConversion}
-      />
-
-      <UploadConfirmationDialog
-        open={showConfirmationDialog}
-        onOpenChange={setShowConfirmationDialog}
-        onConfirm={handleConfirmedUpload}
-        isInitializing={isInitializing}
-        numberOfPhotos={BY_CAMERA_MAX_PHOTOS}
-      />
-
       <AnimatePresence mode="wait">
         {isUploading ? (
           <motion.div
@@ -410,6 +388,28 @@ export function ByCameraUploadStep({
           </div>
         </motion.div>
       )}
+
+      <HeicConversionDialog
+        open={heicIsConverting}
+        isConverting={heicIsConverting}
+        isCancelling={heicIsCancelling}
+        progress={heicProgress}
+        currentFileName={heicCurrentFileName}
+        onCancel={cancelHeicConversion}
+      />
+
+      <UploadConfirmationDialog
+        open={showConfirmationDialog}
+        onOpenChange={setShowConfirmationDialog}
+        onConfirm={handleConfirmedUpload}
+        isInitializing={isInitializing}
+        numberOfPhotos={BY_CAMERA_MAX_PHOTOS}
+      />
+
+      <UploadInstructionsDialog
+        open={showUploadInstructionsDialog}
+        onUnderstand={() => setShowUploadInstructionsDialog(false)}
+      />
     </>
   )
 }
