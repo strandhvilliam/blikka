@@ -1,20 +1,43 @@
-import { User2Icon } from "lucide-react"
+import { decodeParams, Page } from "@/lib/next-utils"
+import { Effect, Schema } from "effect"
+import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
+import { Suspense } from "react"
+import { loadStaffSearchParams } from "./_lib/search-params"
+import { StaffDashboard } from "./_components/staff-dashboard"
+import { StaffPageSkeleton } from "./_components/staff-page-skeleton"
 
-export default function StaffDefaultPage() {
-  return (
-    <div className="flex h-full flex-col px-8 py-8">
-      <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted/50 mb-4">
-          <User2Icon className="h-7 w-7 text-muted-foreground/40" />
-        </div>
-        <h2 className="mb-1.5 font-gothic text-lg font-semibold text-foreground">
-          No Staff Selected
-        </h2>
-        <p className="max-w-md text-center text-[13px] leading-relaxed text-muted-foreground/70">
-          Select a staff member from the list to view their details, or add a new staff member to
-          give them access to the standalone verification desk.
-        </p>
-      </div>
-    </div>
-  )
-}
+const _StaffPage = Effect.fn("@blikka/web/StaffPage")(
+  function* ({ params, searchParams }: PageProps<"/admin/[domain]/dashboard/staff">) {
+    const { domain } = yield* decodeParams(Schema.Struct({ domain: Schema.String }))(params)
+    const queryParams = yield* Effect.tryPromise(() => loadStaffSearchParams(searchParams))
+
+    prefetch(
+      trpc.users.getStaffMembersByDomain.queryOptions({
+        domain,
+      }),
+    )
+
+    prefetch(trpc.marathons.getByDomain.queryOptions({ domain }))
+
+    const selectedAccessId = queryParams.access
+    if (selectedAccessId != null) {
+      prefetch(
+        trpc.users.getStaffAccessById.queryOptions({
+          accessId: selectedAccessId,
+          domain,
+        }),
+      )
+    }
+
+    return (
+      <HydrateClient>
+        <Suspense fallback={<StaffPageSkeleton />}>
+          <StaffDashboard />
+        </Suspense>
+      </HydrateClient>
+    )
+  },
+  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>)),
+)
+
+export default Page(_StaffPage)

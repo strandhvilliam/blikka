@@ -4,18 +4,18 @@ import { Search } from "lucide-react"
 
 export function StaffListSkeleton() {
   return (
-    <div className="flex flex-col h-full">
-      <div className="mb-4 px-2 pt-4">
+    <div className="flex h-full flex-col">
+      <div className="border-b border-border px-3 py-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search staff..."
-            className="h-9 bg-muted/50 border-border/40 pl-9"
+            className="h-9 border-border/40 bg-muted/50 pl-9"
             disabled
           />
         </div>
       </div>
-      <div className="space-y-0.5">
+      <div className="min-w-0 space-y-0.5">
         {Array.from({ length: 5 }).map((_, index) => (
           <div key={index} className="flex items-center gap-3 px-3 py-2.5">
             <Skeleton className="h-9 w-9 rounded-full shrink-0" />

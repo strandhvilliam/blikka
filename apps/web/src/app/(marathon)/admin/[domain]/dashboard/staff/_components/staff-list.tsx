@@ -8,16 +8,16 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
-import { formatDomainPathname } from "@/lib/utils"
 import { useState, useMemo } from "react"
-import { useParams, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
-export function StaffList() {
+interface StaffListProps {
+  selectedAccessId?: string
+  onSelectAccess: (id: string) => void
+}
+
+export function StaffList({ selectedAccessId, onSelectAccess }: StaffListProps) {
   const domain = useDomain()
-  const router = useRouter()
-  const params = useParams()
-  const accessId = params.accessId as string | undefined
   const trpc = useTRPC()
   const { data: staffMembers } = useSuspenseQuery(
     trpc.users.getStaffMembersByDomain.queryOptions({
@@ -37,20 +37,20 @@ export function StaffList() {
   }, [search, staffMembers])
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="mb-4 px-2 pt-4">
+    <div className="flex h-full flex-col">
+      <div className="border-b border-border px-3 py-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search staff..."
-            className="h-9 bg-muted/50 border-border/40 pl-9 focus-visible:ring-1 focus-visible:ring-primary/20"
+            className="h-9 border-border/40 bg-muted/50 pl-9 focus-visible:ring-1 focus-visible:ring-primary/20"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
-      <ScrollArea className="flex-1">
-        <div className="space-y-0.5">
+      <ScrollArea className="min-h-0 min-w-0 flex-1 [&_[data-slot=scroll-area-viewport]]:min-w-0">
+        <div className="min-w-0 space-y-0.5">
           {filteredStaff.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center px-4">
               <User2Icon className="h-12 w-12 mb-3 text-muted-foreground/50" />
@@ -65,15 +65,15 @@ export function StaffList() {
             </div>
           ) : (
             filteredStaff.map((staff) => {
-              const href = formatDomainPathname(`/admin/dashboard/staff/${staff.id}`, domain)
-              const isActive = accessId === staff.id
+              const isActive = selectedAccessId === staff.id
               return (
                 <button
                   key={staff.id}
-                  onClick={() => router.push(href)}
+                  type="button"
+                  onClick={() => onSelectAccess(staff.id)}
                   className={cn(
-                    "block w-full px-3 py-2.5 text-left transition-all hover:bg-muted/50",
-                    isActive && "bg-muted/80 border-l-2 border-primary"
+                    "block w-full min-w-0 max-w-full px-3 py-2.5 text-left transition-all hover:bg-muted/50",
+                    isActive && "border-l-2 border-primary bg-muted/80",
                   )}
                 >
                   <div className="flex items-center gap-3">

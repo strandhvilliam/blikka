@@ -34,11 +34,24 @@ const roleTypes = [
   },
 ] as const
 
-export function StaffAddDialog() {
+export interface StaffAddDialogProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onStaffCreated?: (accessId: string) => void
+}
+
+export function StaffAddDialog({
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  onStaffCreated,
+}: StaffAddDialogProps = {}) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const domain = useDomain()
-  const [isOpen, setIsOpen] = useState(false)
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined && controlledOnOpenChange !== undefined
+  const isOpen = isControlled ? controlledOpen : uncontrolledOpen
+  const setIsOpen = isControlled ? controlledOnOpenChange : setUncontrolledOpen
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const staffUrl = formatDomainLink("/staff", domain, "staff")
 
@@ -77,6 +90,7 @@ export function StaffAddDialog() {
                 : "They can now sign in on the staff page with the email you added.",
           }
         )
+        onStaffCreated?.(result.id)
         setIsOpen(false)
         setErrorMessage(null)
         form.reset()
@@ -99,12 +113,14 @@ export function StaffAddDialog() {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <PrimaryButton className="h-8 shrink-0 gap-1.5 px-2.5 py-0 text-xs">
-          <Plus className="h-3.5 w-3.5" />
-          <span>Add Staff</span>
-        </PrimaryButton>
-      </DialogTrigger>
+      {!isControlled ? (
+        <DialogTrigger asChild>
+          <PrimaryButton className="h-8 shrink-0 gap-1.5 px-2.5 py-0 text-xs">
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add Staff</span>
+          </PrimaryButton>
+        </DialogTrigger>
+      ) : null}
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="font-gothic">Add Staff Member</DialogTitle>

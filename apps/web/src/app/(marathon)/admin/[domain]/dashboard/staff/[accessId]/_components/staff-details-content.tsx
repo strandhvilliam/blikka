@@ -16,7 +16,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,18 +34,17 @@ import {
 } from "@tanstack/react-query"
 import { useTRPC } from "@/lib/trpc/client"
 import { useDomain } from "@/lib/domain-provider"
-import { formatDomainPathname } from "@/lib/utils"
 import { StaffVerificationsTable } from "./staff-verifications-table"
 import { StaffEditDialog } from "./staff-edit-dialog"
 
 interface StaffDetailsContentProps {
   accessId: string
+  onRemoved?: () => void
 }
 
-export function StaffDetailsContent({ accessId }: StaffDetailsContentProps) {
+export function StaffDetailsContent({ accessId, onRemoved }: StaffDetailsContentProps) {
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const router = useRouter()
   const trpc = useTRPC()
   const domain = useDomain()
   const queryClient = useQueryClient()
@@ -85,7 +83,7 @@ export function StaffDetailsContent({ accessId }: StaffDetailsContentProps) {
       },
       onSuccess: () => {
         toast.success(staff.kind === "pending" ? "Pending access removed" : "Staff member removed")
-        router.push(formatDomainPathname("/admin/dashboard/staff", domain))
+        onRemoved?.()
       },
       onSettled: () => {
         queryClient.invalidateQueries({

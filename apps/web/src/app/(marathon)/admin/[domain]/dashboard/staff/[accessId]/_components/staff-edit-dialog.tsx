@@ -99,7 +99,8 @@ export function StaffEditDialog({
             : "Staff member updated successfully",
         )
         if (data.id !== accessId) {
-          router.replace(formatDomainPathname(`/admin/dashboard/staff/${data.id}`, domain))
+          const base = formatDomainPathname("/admin/dashboard/staff", domain)
+          router.replace(`${base}?access=${encodeURIComponent(data.id)}`)
         }
         onOpenChange(false)
         setErrorMessage(null)
