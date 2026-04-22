@@ -308,7 +308,7 @@ export function ByCameraUploadProgress({
   participantReference,
 }: ByCameraUploadProgressProps) {
   return (
-    <div className="flex min-h-[60dvh] w-full flex-col items-center justify-center px-4">
+    <div className="flex min-h-[60dvh] w-full flex-col items-center justify-center">
       <div className="w-full max-w-md space-y-8">
         <ByCameraProgressHeading files={files} expectedCount={expectedCount} />
 
