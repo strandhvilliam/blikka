@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { FadeIn } from "./fade-in"
 
@@ -36,7 +37,7 @@ export function Footer() {
                 className="gap-2 flex items-center tracking-tight"
                 aria-label="blikka home"
               >
-                <img
+                <Image
                   src="/blikka-logo-dark.svg"
                   alt="blikka logo"
                   width={36}
@@ -61,7 +62,7 @@ export function Footer() {
                     <li key={link.label}>
                       <Link
                         href={link.href}
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        className="text-sm text-muted-foreground transition-colors hover:text-brand-primary"
                       >
                         {link.label}
                       </Link>
@@ -81,7 +82,7 @@ export function Footer() {
                 <Link
                   key={link.label}
                   href={link.href}
-                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  className="text-xs text-muted-foreground transition-colors hover:text-brand-primary"
                 >
                   {link.label}
                 </Link>

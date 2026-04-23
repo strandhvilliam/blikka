@@ -87,9 +87,9 @@ export function FAQ() {
                   <AccordionItem
                     key={item.question}
                     value={item.question}
-                    className="border-border"
+                    className="border-border data-[state=open]:border-brand-primary/20"
                   >
-                    <AccordionTrigger className="py-5 text-left text-base leading-relaxed text-foreground hover:no-underline">
+                    <AccordionTrigger className="py-5 text-left text-base leading-relaxed text-foreground transition-colors hover:no-underline data-[state=open]:text-brand-primary">
                       {item.question}
                     </AccordionTrigger>
                     <AccordionContent className="pb-5 text-sm leading-relaxed text-muted-foreground">

@@ -62,15 +62,31 @@ export function HowItWorks() {
         </div>
 
         <div className="relative grid gap-0 md:grid-cols-2 lg:grid-cols-4">
+          {/* desktop-only continuous rail connecting all four circles */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-[1.625rem] hidden h-px border-t border-dashed border-border lg:block"
+            style={{ left: "1.625rem", width: "75%" }}
+          />
+          {/* soft brand-primary halo behind the number row */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-10 left-1/2 hidden h-24 w-2/3 -translate-x-1/2 rounded-full lg:block"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, color-mix(in oklch, var(--brand-primary) 10%, transparent), transparent 70%)",
+              filter: "blur(32px)",
+            }}
+          />
           {steps.map((step, index) => (
             <FadeIn key={step.step} delay={index * 100}>
               <div className="group relative pb-10 pl-10 sm:pb-12 lg:pb-0 lg:pl-0 lg:pr-8">
                 <div className="absolute top-0 left-0 flex h-full w-px flex-col items-center lg:relative lg:mb-6 lg:h-auto lg:w-full lg:flex-row">
-                  <div className="relative z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-brand-primary/30 bg-background text-lg font-semibold text-brand-primary transition-colors duration-300 group-hover:border-brand-primary group-hover:bg-brand-primary/5 lg:static">
+                  <div className="relative z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-brand-primary/30 bg-background text-lg font-semibold text-brand-primary transition-[background-color,border-color,box-shadow] duration-300 group-hover:border-brand-primary group-hover:bg-brand-primary/5 group-hover:shadow-[0_0_0_6px_color-mix(in_oklch,var(--brand-primary)_10%,transparent)] lg:static">
                     {step.step}
                   </div>
                   {index < steps.length - 1 && (
-                    <div className="h-full w-px bg-border lg:h-px lg:w-full" />
+                    <div className="h-full w-px bg-border lg:hidden" />
                   )}
                 </div>
 

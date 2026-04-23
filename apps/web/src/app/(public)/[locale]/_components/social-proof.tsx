@@ -51,7 +51,9 @@ export function SocialProof() {
                       key={metric.label}
                       className="rounded-xl border border-white/15 bg-black/50 px-4 py-3 backdrop-blur-md"
                     >
-                      <p className="font-mono text-xl font-bold text-white">{metric.value}</p>
+                      <p className="font-gothic text-2xl leading-none tracking-tight text-white lg:text-[1.75rem]">
+                        {metric.value}
+                      </p>
                       <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-white/60">
                         {metric.label}
                       </p>

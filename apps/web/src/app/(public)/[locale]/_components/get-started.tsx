@@ -10,7 +10,7 @@ export function GetStarted() {
     <section id="pricing" className="scroll-mt-28 px-3 py-6 lg:px-4 lg:py-8 lg:scroll-mt-32">
       <div className="relative overflow-hidden rounded-2xl bg-brand-black px-6 py-24 md:px-10 md:py-28 lg:rounded-3xl lg:px-12 lg:py-32">
         <NoiseOverlay opacity={0.1} />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_110%,rgba(var(--brand-primary-rgb,200,80,50),0.12),transparent)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_110%,color-mix(in_oklch,var(--brand-primary)_16%,transparent),transparent)]" />
 
         <div className="relative mx-auto max-w-3xl text-center">
           <FadeIn>
