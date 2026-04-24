@@ -33,7 +33,7 @@ const audiences: AudienceRow[] = [
     description:
       "Give participants a simple upload flow while your team keeps track of classes, categories, deadlines, and approvals.",
     detail: "Works well for education programs, cultural festivals, and guided photo events.",
-    image: "/photo-event-2.jpg",
+    image: "/photo-event-6.jpg",
     alt: "Workshop setting with participants learning photography",
   },
 ]

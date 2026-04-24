@@ -32,7 +32,8 @@
     "sponsors": "Sponsorer",
     "poweredBy": "drivs av",
     "datesToBeAnnounced": "Datum meddelas senare",
-    "officialBrowserTip": "Tredjeparts-QR-appar kan störa uppladdning – använd inbyggd skanner eller öppna länken i Safari eller Chrome."
+    "officialBrowserTip": "Tredjeparts-QR-appar kan störa uppladdning – använd inbyggd skanner eller öppna länken i Safari eller Chrome.",
+    "noTopicOpen": "Det finns inget tema som är öppet för inlämning just nu."
   },
   "FlowPage": {
     "participantNumber": {

@@ -157,7 +157,7 @@ function LogoAndEventInfo({
   const t = useTranslations("LivePage")
   const subtitle =
     mode === "by-camera"
-      ? (activeTopicName ?? t("datesToBeAnnounced"))
+      ? (activeTopicName ?? t("noTopicOpen"))
       : marathon.startDate && marathon.endDate
         ? `${format(new Date(marathon.startDate), "dd MMMM yyyy")} - ${format(new Date(marathon.endDate), "dd MMMM yyyy")}`
         : t("datesToBeAnnounced")

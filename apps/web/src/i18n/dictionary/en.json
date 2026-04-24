@@ -32,7 +32,8 @@
     "sponsors": "Sponsors",
     "poweredBy": "powered by",
     "datesToBeAnnounced": "Dates to be announced",
-    "officialBrowserTip": "Third-party QR apps can break uploads—use your phone’s built-in scanner, or open the link in Safari or Chrome."
+    "officialBrowserTip": "Third-party QR apps can break uploads—use your phone’s built-in scanner, or open the link in Safari or Chrome.",
+    "noTopicOpen": "No topic is open for submissions right now."
   },
   "FlowPage": {
     "participantNumber": {
