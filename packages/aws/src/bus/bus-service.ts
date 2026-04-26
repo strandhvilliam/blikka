@@ -16,13 +16,15 @@ export class BusService extends ServiceMap.Service<BusService>()("@blikka/aws/bu
     const eb = yield* EventBridgeEffectClient
 
     const sendFinalizedEvent = Effect.fn("BusService.sendFinalizedEvent")(
-      function* (domain: string, reference: string) {
+      function* (domain: string, reference: string, uploadSessionId: string) {
         const command = new PutEventsCommand({
           Entries: [
             {
               EventBusName: SSTResource.SubmissionFinalizedBus.name,
               Source: EventBusDetailTypes.Finalized,
-              Detail: JSON.stringify(FinalizedEventSchema.makeUnsafe({ domain, reference })),
+              Detail: JSON.stringify(
+                FinalizedEventSchema.makeUnsafe({ domain, reference, uploadSessionId }),
+              ),
               DetailType: EventBusDetailTypes.Finalized,
             },
           ],
