@@ -217,13 +217,15 @@ export function UploadSubmissionsStep({
 
       const photosInTopicOrder = [...photos].sort((a, b) => a.orderIndex - b.orderIndex)
 
-      const presignedUrls = await initializeUploadFlow({
+      const initialization = await initializeUploadFlow({
         ...initializeUploadFlowResult.data,
         uploadContentTypes: photosInTopicOrder.map(
           (photo) => resolveSelectedImageContentType(photo.file) ?? "image/jpeg",
         ),
         uploadExif: buildUploadExifPayload(photosInTopicOrder),
       })
+
+      const presignedUrls = initialization.uploads
 
       if (!presignedUrls || presignedUrls.length === 0) {
         setIsUploading(false)

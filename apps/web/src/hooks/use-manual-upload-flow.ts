@@ -174,10 +174,10 @@ export function useManualUploadFlow({
             })
 
       const resolvedReference =
-        marathonMode === "marathon" || Array.isArray(initialization)
+        marathonMode === "marathon"
           ? reference
           : initialization.reference
-      const presignedUrls = Array.isArray(initialization) ? initialization : initialization.uploads
+      const presignedUrls = initialization.uploads
 
       if (!presignedUrls.length) {
         throw new Error("Failed to initialize upload URLs")
