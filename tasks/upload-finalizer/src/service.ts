@@ -8,8 +8,7 @@ export class FailedToFinalizeParticipantError extends Schema.TaggedErrorClass<Fa
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
-) {
-}
+) {}
 
 export class UploadFinalizerService extends ServiceMap.Service<UploadFinalizerService>()(
   "@blikka/tasks/upload-finalizer/upload-finalizer-service",
@@ -40,7 +39,29 @@ export class UploadFinalizerService extends ServiceMap.Service<UploadFinalizerSe
               })
             }
 
-            if (participant.value.status === "completed") {
+            // Guard against stale/redelivered SQS finalize messages: the kv
+            // `finalized` flag is set atomically by the lua-increment script in
+            // the same call that triggers `sendFinalizedEvent`. If we observe
+            // it as false, this message belongs to a previous upload session
+            // whose kv state has since been reset by `initializeState` (e.g.
+            // a new by-camera topic for the same participant). Dropping it
+            // prevents the finalizer from clobbering a freshly-initialized
+            // participant/submission row.
+            if (!participantState.value.finalized) {
+              yield* Effect.logWarning(
+                "Participant kv state is not finalized; dropping stale finalize message",
+              )
+              return
+            }
+
+            // In by-camera mode the same participant is reused across multiple
+            // weekly topics, so a previous topic's finalization (which sets
+            // status="completed") must NOT short-circuit a subsequent topic's
+            // finalization. Only skip for non-by-camera participants.
+            if (
+              participant.value.status === "completed" &&
+              participant.value.participantMode !== "by-camera"
+            ) {
               yield* Effect.logWarning("Participant already completed, skipping")
               return
             }
