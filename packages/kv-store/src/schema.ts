@@ -37,6 +37,7 @@ export const StringArrayFromString = Schema.String.pipe(Schema.decodeTo(
 // ----------------------------------------------------------------------------
 
 export const SubmissionStateSchema = Schema.Struct({
+  uploadSessionId: Schema.String,
   key: Schema.String,
   orderIndex: Schema.Number,
   uploaded: Schema.Boolean,
@@ -44,8 +45,13 @@ export const SubmissionStateSchema = Schema.Struct({
   exifProcessed: Schema.Boolean,
 });
 
-export const makeInitialSubmissionState = (key: string, orderIndex: number) =>
+export const makeInitialSubmissionState = (
+  uploadSessionId: string,
+  key: string,
+  orderIndex: number,
+) =>
   SubmissionStateSchema.makeUnsafe({
+    uploadSessionId,
     key,
     uploaded: false,
     orderIndex,
@@ -54,6 +60,7 @@ export const makeInitialSubmissionState = (key: string, orderIndex: number) =>
   });
 
 export const ParticipantStateSchema = Schema.Struct({
+  uploadSessionId: Schema.String,
   expectedCount: Schema.Number,
   orderIndexes: Schema.Array(Schema.Number),
   processedIndexes: Schema.Array(Schema.Number),
@@ -66,10 +73,12 @@ export const ParticipantStateSchema = Schema.Struct({
 });
 
 export const makeInitialParticipantState = (
+  uploadSessionId: string,
   expectedCount: number,
   orderIndexes: number[],
 ) =>
   ParticipantStateSchema.makeUnsafe({
+    uploadSessionId,
     expectedCount,
     orderIndexes,
     processedIndexes: Array.from({ length: expectedCount }, () => 0),

@@ -25,7 +25,12 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
       const keyFactory = yield* KeyFactory
 
       const initializeState = Effect.fn("UploadSessionRepository.initState")(
-        function* (domain: string, reference: string, submissionKeys: string[]) {
+        function* (
+          domain: string,
+          reference: string,
+          uploadSessionId: string,
+          submissionKeys: readonly string[]
+        ) {
           const map: Record<string, SubmissionState> = {}
           const submissionOrderIndexes: number[] = []
 
@@ -34,10 +39,11 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
             submissionOrderIndexes.push(orderIndex)
             const formattedOrderIndex = (orderIndex + 1).toString().padStart(2, "0")
             const redisKey = keyFactory.submission(domain, reference, formattedOrderIndex)
-            map[redisKey] = makeInitialSubmissionState(key, orderIndex)
+            map[redisKey] = makeInitialSubmissionState(uploadSessionId, key, orderIndex)
           }
 
           const participantState = makeInitialParticipantState(
+            uploadSessionId,
             submissionKeys.length,
             submissionOrderIndexes,
           )
@@ -111,18 +117,18 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
               })
             })
           )
-        const code = Schema.decodeUnknownSync(IncrementResultSchema)(result)
+        const status = Schema.decodeUnknownSync(IncrementResultSchema)(result)
 
-        switch (code) {
+        switch (status) {
           case "INVALID_ORDER_INDEX":
-            yield* setParticipantErrorState(domain, ref, code)
+            yield* setParticipantErrorState(domain, ref, status)
             return yield* new RedisError({
               message: `[${domain}|${ref}|${orderIndex}] Invalid order index provided: ${result}`,
               cause: result,
             })
             break
           case "MISSING_DATA":
-            yield* setParticipantErrorState(domain, ref, code)
+            yield* setParticipantErrorState(domain, ref, status)
             return yield* new RedisError({
               message: `[${domain}|${ref}|${orderIndex}] Missing data provided: ${result}`,
               cause: result,
@@ -136,7 +142,7 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
             break
         }
 
-        return { finalize: code === "FINALIZED" }
+        return { status }
       })
 
       const getParticipantState = Effect.fn("UploadSessionRepository.getParticipantState")(
