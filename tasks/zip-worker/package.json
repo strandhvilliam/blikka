@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@effect-aws/lambda": "catalog:",
+    "@blikka/kv-store": "workspace:*",
     "@blikka/realtime": "workspace:*",
+    "@blikka/telemetry": "workspace:*",
     "effect": "catalog:",
     "jszip": "^3.10.1",
     "@blikka/aws": "workspace:*"

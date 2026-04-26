@@ -1,6 +1,10 @@
 import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
 import { Database, RuleConfig } from "@blikka/db"
-import { SubmissionState, ExifState } from "@blikka/kv-store"
+import {
+  SubmissionState,
+  ExifState,
+  isCurrentUploadSession,
+} from "@blikka/kv-store"
 import { InvalidDataFoundError, InvalidValidationRuleError } from "./utils"
 import { S3Service } from "@blikka/aws"
 import {
@@ -83,8 +87,25 @@ export class ValidationRunner extends ServiceMap.Service<ValidationRunner>()(
       const execute = Effect.fn("ValidationRunner.execute")(function* (
         domain: string,
         reference: string,
+        uploadSessionId: string,
       ) {
         return yield* Effect.gen(function* () {
+          const participant = yield* db.participantsQueries
+            .getParticipantByReference({ domain, reference })
+            .pipe(
+              Effect.andThen(
+                Option.match({
+                  onSome: (participant) => Effect.succeed(participant),
+                  onNone: () =>
+                    Effect.fail(
+                      new InvalidDataFoundError({
+                        message: "Participant not found",
+                      }),
+                    ),
+                }),
+              ),
+            )
+
           const participantState = yield* kv.uploadRepository
             .getParticipantState(domain, reference)
             .pipe(
@@ -100,6 +121,23 @@ export class ValidationRunner extends ServiceMap.Service<ValidationRunner>()(
                 }),
               ),
             )
+
+          if (!participantState.finalized) {
+            yield* Effect.logWarning("Participant state not finalized, skipping validation")
+            return
+          }
+
+          const sessionGuard = isCurrentUploadSession({
+            eventUploadSessionId: uploadSessionId,
+            participantState,
+          })
+          if (!sessionGuard.matched) {
+            yield* Effect.logWarning("Dropping validation event for non-current upload session", {
+              reason: sessionGuard.reason,
+              uploadSessionId,
+            })
+            return
+          }
 
           if (participantState.validated) {
             yield* Effect.logWarning("Participant already validated, skipping")
@@ -148,6 +186,10 @@ export class ValidationRunner extends ServiceMap.Service<ValidationRunner>()(
             data: validationResults,
             domain,
             reference,
+          })
+
+          yield* kv.uploadRepository.updateParticipantSession(domain, reference, {
+            validated: true,
           })
         }).pipe(Effect.annotateLogs({ domain, reference }))
       })

@@ -1,6 +1,9 @@
 import { Config, Effect, Layer, Option, ServiceMap } from "effect"
 import { Database } from "@blikka/db"
-import { UploadSessionRepository } from "@blikka/kv-store"
+import {
+  isCurrentUploadSession,
+  UploadSessionRepository,
+} from "@blikka/kv-store"
 import { S3Service } from "@blikka/aws"
 import {
   ensureReadyForSheetGeneration,
@@ -21,7 +24,7 @@ export class SheetGeneratorService extends ServiceMap.Service<SheetGeneratorServ
       const contactSheetBuilder = yield* ContactSheetBuilder
 
       const generateContactSheet = Effect.fn("SheetGeneratorService.generateContactSheet")(
-        function* (params: { domain: string; reference: string }) {
+        function* (params: { domain: string; reference: string; uploadSessionId: string }) {
           return yield* Effect.gen(function* () {
             const participantState = yield* kvStore
               .getParticipantState(params.domain, params.reference)
@@ -67,6 +70,21 @@ export class SheetGeneratorService extends ServiceMap.Service<SheetGeneratorServ
                   }),
                 ),
               )
+
+            const sessionGuard = isCurrentUploadSession({
+              eventUploadSessionId: params.uploadSessionId,
+              participantState,
+            })
+            if (!sessionGuard.matched) {
+              yield* Effect.logWarning(
+                "Dropping contact sheet event for non-current upload session",
+                {
+                  reason: sessionGuard.reason,
+                  uploadSessionId: params.uploadSessionId,
+                },
+              )
+              return
+            }
 
             const sponsor = yield* db.sponsorsQueries.getLatestSponsorByType({
               marathonId: participant.marathonId,

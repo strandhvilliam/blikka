@@ -28,12 +28,15 @@ const effectHandler = (event: SQSEvent) =>
     const processSQSRecord = Effect.fn("validation-runner.processSQSRecord")(function* (
       record: SQSRecord
     ) {
-      const { domain, reference } = yield* parseBusEvent(record.body, FinalizedEventSchema)
+      const { domain, reference, uploadSessionId } = yield* parseBusEvent(
+        record.body,
+        FinalizedEventSchema,
+      )
 
       return yield* Effect.gen(function* () {
         yield* Effect.logInfo("Executing validation")
 
-        const validateEffect = validationRunner.execute(domain, reference).pipe(
+        const validateEffect = validationRunner.execute(domain, reference, uploadSessionId).pipe(
           Effect.tap(() => Effect.logInfo("Validation executed")),
           Effect.tapError((error) => Effect.logError("Error executing validation", error))
         )

@@ -20,15 +20,20 @@ const effectHandler = (event: SQSEvent) =>
     const processSQSRecord = Effect.fn("upload-finalizer.processSQSRecord")(function* (
       record: SQSRecord
     ) {
-      const { domain, reference } = yield* parseBusEvent(record.body, FinalizedEventSchema)
+      const { domain, reference, uploadSessionId } = yield* parseBusEvent(
+        record.body,
+        FinalizedEventSchema,
+      )
 
       return yield* Effect.gen(function* () {
         yield* Effect.logInfo("Finalizing participant")
 
-        const finalizeEffect = uploadFinalizerService.finalizeParticipant(domain, reference).pipe(
-          Effect.tap(() => Effect.logInfo("Participant finalized")),
-          Effect.tapError((error) => Effect.logError("Error finalizing participant", error))
-        )
+        const finalizeEffect = uploadFinalizerService
+          .finalizeParticipant(domain, reference, uploadSessionId)
+          .pipe(
+            Effect.tap(() => Effect.logInfo("Participant finalized")),
+            Effect.tapError((error) => Effect.logError("Error finalizing participant", error))
+          )
 
         return yield* realtimeEvents.withEventResult(finalizeEffect, {
           eventKey: REALTIME_EVENT,

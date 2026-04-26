@@ -27,13 +27,16 @@ const effectHandler = (event: SQSEvent) =>
     const processSQSRecord = Effect.fn("contact-sheet-generator.processSQSRecord")(function* (
       record: SQSRecord
     ) {
-      const { domain, reference } = yield* parseBusEvent(record.body, FinalizedEventSchema)
+      const { domain, reference, uploadSessionId } = yield* parseBusEvent(
+        record.body,
+        FinalizedEventSchema,
+      )
 
       return yield* Effect.gen(function* () {
         yield* Effect.logInfo("Generating contact sheet")
 
         const generateContactSheetEffect = sheetGeneratorService
-          .generateContactSheet({ domain, reference })
+          .generateContactSheet({ domain, reference, uploadSessionId })
           .pipe(
             Effect.tap(() => Effect.logInfo("Contact sheet generated")),
             Effect.tapError((error) => Effect.logError("Error generating contact sheet", error))

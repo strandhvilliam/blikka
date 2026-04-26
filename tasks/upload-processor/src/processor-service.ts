@@ -1,6 +1,11 @@
 import { Cause, Effect, Layer, Option, ServiceMap } from "effect"
 import { S3Service } from "@blikka/aws"
-import { ExifKVRepository, ExifState, UploadSessionRepository } from "@blikka/kv-store"
+import {
+  ExifKVRepository,
+  ExifState,
+  getUploadSessionId,
+  UploadSessionRepository,
+} from "@blikka/kv-store"
 import { ExifParser } from "@blikka/image-manipulation"
 import { BusService } from "@blikka/aws"
 import { makeThumbnailKey } from "./utils"
@@ -76,121 +81,133 @@ export class UploadProcessorService extends ServiceMap.Service<UploadProcessorSe
             return
           }
 
-          if (submissionStateOpt.value.uploaded) {
-            yield* Effect.logWarning("Submission already uploaded, skipping", { key })
+          const uploadSessionId = submissionStateOpt.value.uploadSessionId ?? ""
+
+          const participantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
+          if (Option.isNone(participantStateOpt)) {
+            yield* Effect.logWarning("Missing initialized participant state", { key })
             return
           }
 
-          const photo = yield* s3.getFile(submissionsBucketName, key).pipe(
-            Effect.andThen(
-              Option.match({
-                onSome: (photo) => Effect.succeed(photo),
-                onNone: () =>
-                  Effect.fail(
-                    new PhotoNotFoundError({
-                      message: "Photo not found",
-                      details: JSON.stringify({
-                        domain,
-                        reference,
-                        orderIndex,
-                        key,
-                      }),
-                    }),
-                  ),
-              }),
-            ),
-          )
+          if (getUploadSessionId(participantStateOpt.value) !== uploadSessionId) {
+            yield* Effect.logWarning("Submission belongs to a stale upload session", { key })
+            return
+          }
 
-          const existingExifState = yield* exifKv.getExifState(domain, reference, orderIndex)
-          const seededExif = Option.filter(existingExifState, hasExifFields)
-
-          const [exifResult, thumbnailResult] = yield* Effect.all(
-            [
-              Option.match(seededExif, {
-                onSome: (seededExifState) =>
-                  exifParser.parse(photo).pipe(
-                    Effect.flatMap((parsedExif) => {
-                      const mergedExif = mergeExifStates(seededExifState, parsedExif)
-                      return exifKv
-                        .setExifState(domain, reference, orderIndex, mergedExif)
-                        .pipe(Effect.as(Option.some(mergedExif)))
-                    }),
-                    Effect.catchCause((cause) =>
-                      Effect.gen(function* () {
-                        yield* Effect.logWarning(
-                          "EXIF parse or merge persist failed; keeping seeded EXIF",
-                          {
-                            domain,
-                            reference,
-                            orderIndex,
-                            key,
-                            cause: Cause.pretty(cause),
-                          },
-                        )
-                        return Option.some<ExifState>(seededExifState)
+          if (submissionStateOpt.value.uploaded) {
+            yield* Effect.logWarning("Submission already uploaded, continuing finalization", { key })
+          } else {
+            const photo = yield* s3.getFile(submissionsBucketName, key).pipe(
+              Effect.andThen(
+                Option.match({
+                  onSome: (photo) => Effect.succeed(photo),
+                  onNone: () =>
+                    Effect.fail(
+                      new PhotoNotFoundError({
+                        message: "Photo not found",
+                        details: JSON.stringify({
+                          domain,
+                          reference,
+                          orderIndex,
+                          key,
+                        }),
                       }),
                     ),
-                  ),
-                onNone: () =>
-                  exifParser.parse(photo).pipe(
-                    Effect.tap((exif) => exifKv.setExifState(domain, reference, orderIndex, exif)),
-                    Effect.map(Option.some),
-                    Effect.catchCause((cause) =>
-                      Effect.gen(function* () {
-                        yield* Effect.logWarning(
-                          "EXIF parse or persist failed; continuing without EXIF (can retry later)",
-                          {
-                            domain,
-                            reference,
-                            orderIndex,
-                            key,
-                            cause: Cause.pretty(cause),
-                          },
-                        )
-                        return Option.none<ExifState>()
-                      }),
-                    ),
-                  ),
-              }),
-              generateThumbnail(photo, {
-                domain,
-                reference,
-                orderIndex,
-                fileName,
-              }).pipe(
-                Effect.map(Option.some),
-                Effect.catchCause((cause) =>
-                  Effect.gen(function* () {
-                    yield* Effect.logWarning(
-                      "Thumbnail generation or upload failed; continuing without thumbnail (can retry later)",
-                      {
-                        domain,
-                        reference,
-                        orderIndex,
-                        key,
-                        cause: Cause.pretty(cause),
-                      },
-                    )
-                    return Option.none<string>()
-                  }),
-                ),
+                }),
               ),
-            ],
-            { concurrency: 2 },
-          )
-
-          yield* uploadKv
-            .updateSubmissionSession(domain, reference, orderIndex, {
-              uploaded: true,
-              orderIndex: Number(orderIndex),
-              thumbnailKey: Option.getOrNull(thumbnailResult),
-              exifProcessed: Option.isSome(exifResult),
-            })
-            .pipe(
-              Effect.catch((error) => Effect.logError("Failed to update submission state", error)),
             )
 
-          const { finalize } = yield* uploadKv
+            const existingExifState = yield* exifKv.getExifState(domain, reference, orderIndex)
+            const seededExif = Option.filter(existingExifState, hasExifFields)
+
+            const [exifResult, thumbnailResult] = yield* Effect.all(
+              [
+                Option.match(seededExif, {
+                  onSome: (seededExifState) =>
+                    exifParser.parse(photo).pipe(
+                      Effect.flatMap((parsedExif) => {
+                        const mergedExif = mergeExifStates(seededExifState, parsedExif)
+                        return exifKv
+                          .setExifState(domain, reference, orderIndex, mergedExif)
+                          .pipe(Effect.as(Option.some(mergedExif)))
+                      }),
+                      Effect.catchCause((cause) =>
+                        Effect.gen(function* () {
+                          yield* Effect.logWarning(
+                            "EXIF parse or merge persist failed; keeping seeded EXIF",
+                            {
+                              domain,
+                              reference,
+                              orderIndex,
+                              key,
+                              cause: Cause.pretty(cause),
+                            },
+                          )
+                          return Option.some<ExifState>(seededExifState)
+                        }),
+                      ),
+                    ),
+                  onNone: () =>
+                    exifParser.parse(photo).pipe(
+                      Effect.tap((exif) => exifKv.setExifState(domain, reference, orderIndex, exif)),
+                      Effect.map(Option.some),
+                      Effect.catchCause((cause) =>
+                        Effect.gen(function* () {
+                          yield* Effect.logWarning(
+                            "EXIF parse or persist failed; continuing without EXIF (can retry later)",
+                            {
+                              domain,
+                              reference,
+                              orderIndex,
+                              key,
+                              cause: Cause.pretty(cause),
+                            },
+                          )
+                          return Option.none<ExifState>()
+                        }),
+                      ),
+                    ),
+                }),
+                generateThumbnail(photo, {
+                  domain,
+                  reference,
+                  orderIndex,
+                  fileName,
+                }).pipe(
+                  Effect.map(Option.some),
+                  Effect.catchCause((cause) =>
+                    Effect.gen(function* () {
+                      yield* Effect.logWarning(
+                        "Thumbnail generation or upload failed; continuing without thumbnail (can retry later)",
+                        {
+                          domain,
+                          reference,
+                          orderIndex,
+                          key,
+                          cause: Cause.pretty(cause),
+                        },
+                      )
+                      return Option.none<string>()
+                    }),
+                  ),
+                ),
+              ],
+              { concurrency: 2 },
+            )
+
+            yield* uploadKv
+              .updateSubmissionSession(domain, reference, orderIndex, {
+                uploaded: true,
+                orderIndex: Number(orderIndex),
+                thumbnailKey: Option.getOrNull(thumbnailResult),
+                exifProcessed: Option.isSome(exifResult),
+              })
+              .pipe(
+                Effect.catch((error) => Effect.logError("Failed to update submission state", error)),
+              )
+          }
+
+          const { status } = yield* uploadKv
             .incrementParticipantState(domain, reference, orderIndex)
             .pipe(
               Effect.catch((error) =>
@@ -203,8 +220,19 @@ export class UploadProcessorService extends ServiceMap.Service<UploadProcessorSe
               ),
             )
 
-          if (finalize) {
-            yield* bus.sendFinalizedEvent(domain, reference)
+          if (status === "FINALIZED" || status === "ALREADY_FINALIZED") {
+            const currentParticipantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
+            if (
+              Option.isSome(currentParticipantStateOpt) &&
+              getUploadSessionId(currentParticipantStateOpt.value) === uploadSessionId
+            ) {
+              yield* bus.sendFinalizedEvent(domain, reference, uploadSessionId)
+            } else {
+              yield* Effect.logWarning("Skipping finalized event for stale upload session", {
+                key,
+                uploadSessionId,
+              })
+            }
           }
         }).pipe(Effect.annotateLogs({ domain, reference, orderIndex, key }))
       })

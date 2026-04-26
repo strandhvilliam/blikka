@@ -2,7 +2,10 @@ import { task } from "sst/aws/task"
 import { Effect, Layer, Option, Schema } from "effect"
 import { LambdaHandler, type SQSEvent } from "@effect-aws/lambda"
 import { Resource as SSTResource } from "sst"
-import { UploadSessionRepository } from "@blikka/kv-store"
+import {
+  isCurrentUploadSession,
+  UploadSessionRepository,
+} from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
 import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
 
@@ -17,7 +20,10 @@ const effectHandler = (event: SQSEvent) =>
     const kvStore = yield* UploadSessionRepository
     yield* Effect.forEach(event.Records, (record) =>
       Effect.gen(function* () {
-        const { domain, reference } = yield* parseBusEvent(record.body, FinalizedEventSchema)
+        const { domain, reference, uploadSessionId } = yield* parseBusEvent(
+          record.body,
+          FinalizedEventSchema,
+        )
 
         return yield* Effect.gen(function* () {
           const participantStateOpt = yield* kvStore.getParticipantState(domain, reference)
@@ -42,6 +48,18 @@ const effectHandler = (event: SQSEvent) =>
 
           if (participantState.orderIndexes.length === 1) {
             yield* Effect.logWarning("Participant has only one submission, skipping")
+            return
+          }
+
+          const sessionGuard = isCurrentUploadSession({
+            eventUploadSessionId: uploadSessionId,
+            participantState,
+          })
+          if (!sessionGuard.matched) {
+            yield* Effect.logWarning("Dropping zip event for non-current upload session", {
+              reason: sessionGuard.reason,
+              uploadSessionId,
+            })
             return
           }
 

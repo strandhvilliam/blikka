@@ -10,6 +10,8 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@blikka/db": "workspace:*",
+    "@blikka/kv-store": "workspace:*",
     "@blikka/realtime": "workspace:*",
     "@blikka/telemetry": "workspace:*",
     "@blikka/validation": "workspace:*",

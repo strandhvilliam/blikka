@@ -1,5 +1,9 @@
 import { Database } from "@blikka/db"
-import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
+import {
+  ExifKVRepository,
+  isCurrentUploadSession,
+  UploadSessionRepository,
+} from "@blikka/kv-store"
 import { Effect, Layer, Option, Schema, ServiceMap } from "effect"
 
 export class FailedToFinalizeParticipantError extends Schema.TaggedErrorClass<FailedToFinalizeParticipantError>()(
@@ -19,7 +23,7 @@ export class UploadFinalizerService extends ServiceMap.Service<UploadFinalizerSe
       const exifKv = yield* ExifKVRepository
 
       const finalizeParticipant = Effect.fn("UploadFinalizerService.finalizeParticipant")(
-        function* (domain: string, reference: string) {
+        function* (domain: string, reference: string, uploadSessionId: string) {
           return yield* Effect.gen(function* () {
             const participantState = yield* uploadKv.getParticipantState(domain, reference)
             const participant = yield* db.participantsQueries.getParticipantByReference({
@@ -51,6 +55,18 @@ export class UploadFinalizerService extends ServiceMap.Service<UploadFinalizerSe
               yield* Effect.logWarning(
                 "Participant kv state is not finalized; dropping stale finalize message",
               )
+              return
+            }
+
+            const sessionGuard = isCurrentUploadSession({
+              eventUploadSessionId: uploadSessionId,
+              participantState: participantState.value,
+            })
+            if (!sessionGuard.matched) {
+              yield* Effect.logWarning("Dropping finalized event for non-current upload session", {
+                reason: sessionGuard.reason,
+                uploadSessionId,
+              })
               return
             }
 
