@@ -8,6 +8,7 @@ import {
   pipe,
   ServiceMap,
 } from "effect";
+import { randomUUID } from "node:crypto";
 import {
   type CompetitionClass,
   type Marathon,
@@ -31,6 +32,10 @@ function createRandomReference() {
   return Math.floor(Math.random() * 10_000)
     .toString()
     .padStart(4, "0");
+}
+
+function createUploadSessionId() {
+  return randomUUID();
 }
 
 function normalizeOptionalPhoneNumber(phoneNumber?: string | null) {
@@ -851,7 +856,13 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             })),
           });
 
-          yield* kv.initializeState(domain, reference, submissionKeys);
+          const uploadSessionId = createUploadSessionId();
+          yield* kv.initializeState(
+            domain,
+            reference,
+            uploadSessionId,
+            submissionKeys,
+          );
           yield* resetAndSeedUploadExif({
             domain,
             reference,
@@ -877,11 +888,15 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             { concurrency: "unbounded" },
           );
 
-          return submissionKeys.map((key, index) => ({
-            key,
-            url: presignedUrls[index]!,
-            contentType: resolvedContentTypes[index]!,
-          }));
+          return {
+            uploadSessionId,
+            reference,
+            uploads: submissionKeys.map((key, index) => ({
+              key,
+              url: presignedUrls[index]!,
+              contentType: resolvedContentTypes[index]!,
+            })),
+          };
         });
 
         return yield* realtimeEvents.withEventResult(executeEffect, {
@@ -929,6 +944,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           return {
             participant: Option.match(participantState, {
               onSome: (state) => ({
+                uploadSessionId: state.uploadSessionId ?? "",
                 expectedCount: state.expectedCount,
                 processedIndexes: state.processedIndexes,
                 validated: state.validated,
@@ -939,6 +955,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             }),
             submissions: submissionStates.map((state) => ({
               key: state.key,
+              uploadSessionId: state.uploadSessionId ?? "",
               orderIndex: state.orderIndex,
               uploaded: state.uploaded,
               thumbnailKey: state.thumbnailKey,
@@ -1104,7 +1121,10 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             },
           });
 
-          yield* kv.initializeState(domain, reference, [submissionKey]);
+          const uploadSessionId = createUploadSessionId();
+          yield* kv.initializeState(domain, reference, uploadSessionId, [
+            submissionKey,
+          ]);
           yield* resetAndSeedUploadExif({
             domain,
             reference,
@@ -1125,6 +1145,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           return {
             participantId: participant.id,
             reference,
+            uploadSessionId,
             uploads: [
               {
                 key: submissionKey,
@@ -1399,7 +1420,13 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
             },
           });
 
-          yield* kv.initializeState(domain, resolvedReference, [submissionKey]);
+          const uploadSessionId = createUploadSessionId();
+          yield* kv.initializeState(
+            domain,
+            resolvedReference,
+            uploadSessionId,
+            [submissionKey],
+          );
           yield* resetAndSeedUploadExif({
             domain,
             reference: resolvedReference,
@@ -1420,6 +1447,7 @@ export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiServic
           return {
             participantId: participant.id,
             reference: resolvedReference,
+            uploadSessionId,
             uploads: [
               {
                 key: submissionKey,
