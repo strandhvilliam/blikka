@@ -440,9 +440,14 @@ export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>
               topicId === undefined
                 ? null
                 : (latestTopicSubmission?.id ?? null);
+            const activeTopicSubmissionCreatedAt =
+              topicId === undefined
+                ? null
+                : (latestTopicSubmission?.createdAt ?? null);
             return {
               ...rest,
               activeTopicSubmissionId,
+              activeTopicSubmissionCreatedAt,
               submissionHealth:
                 topicId === undefined
                   ? null

@@ -33,6 +33,8 @@ interface SubmissionsFiltersProps {
   deviceGroupId: number[] | null
   onDeviceGroupChange: (value: string) => void
   deviceGroups: { id: number; name: string }[]
+  /** When true, hides sort order and competition class controls (e.g. by-camera mode). */
+  hideSortAndCompetitionClass?: boolean
 }
 
 function SubmissionsFilterFields({
@@ -47,6 +49,7 @@ function SubmissionsFilterFields({
   onDeviceGroupChange,
   deviceGroups,
   layout,
+  hideSortAndCompetitionClass = false,
 }: SubmissionsFiltersProps & { layout: "toolbar" | "sheet" }) {
   const fieldWrap = layout === "sheet" ? "flex flex-col gap-4" : "flex flex-col gap-3 md:flex-row md:items-center md:gap-3"
 
@@ -70,42 +73,46 @@ function SubmissionsFilterFields({
             : "flex flex-col gap-3 md:flex-row md:flex-wrap md:w-auto"
         }
       >
-        <Select value={sortOrder} onValueChange={onSortOrderChange}>
-          <SelectTrigger className="h-9 w-full bg-background md:w-[160px]">
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="size-4 shrink-0 text-muted-foreground" />
-              <SelectValue />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="desc">Newest First</SelectItem>
-            <SelectItem value="asc">Oldest First</SelectItem>
-          </SelectContent>
-        </Select>
+        {!hideSortAndCompetitionClass ? (
+          <>
+            <Select value={sortOrder} onValueChange={onSortOrderChange}>
+              <SelectTrigger className="h-9 w-full bg-background md:w-[160px]">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="size-4 shrink-0 text-muted-foreground" />
+                  <SelectValue />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc">Newest First</SelectItem>
+                <SelectItem value="asc">Oldest First</SelectItem>
+              </SelectContent>
+            </Select>
 
-        <Select
-          value={
-            !competitionClassId || competitionClassId.length === 0
-              ? "all"
-              : competitionClassId.join(",")
-          }
-          onValueChange={onCompetitionClassChange}
-        >
-          <SelectTrigger className="h-9 w-full bg-background md:w-[220px]">
-            <div className="flex items-center gap-2">
-              <Filter className="size-4 shrink-0 text-muted-foreground" />
-              <SelectValue placeholder="All Classes" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Competition Classes</SelectItem>
-            {competitionClasses.map((cc) => (
-              <SelectItem key={cc.id} value={cc.id.toString()}>
-                {cc.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            <Select
+              value={
+                !competitionClassId || competitionClassId.length === 0
+                  ? "all"
+                  : competitionClassId.join(",")
+              }
+              onValueChange={onCompetitionClassChange}
+            >
+              <SelectTrigger className="h-9 w-full bg-background md:w-[220px]">
+                <div className="flex items-center gap-2">
+                  <Filter className="size-4 shrink-0 text-muted-foreground" />
+                  <SelectValue placeholder="All Classes" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Competition Classes</SelectItem>
+                {competitionClasses.map((cc) => (
+                  <SelectItem key={cc.id} value={cc.id.toString()}>
+                    {cc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        ) : null}
 
         <Select
           value={!deviceGroupId || deviceGroupId.length === 0 ? "all" : deviceGroupId.join(",")}
@@ -135,13 +142,20 @@ export function SubmissionsFilters(props: SubmissionsFiltersProps) {
   const isMobile = useIsMobile()
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
 
+  const hideSortAndCompetitionClass = props.hideSortAndCompetitionClass ?? false
+
   const filterCount = useMemo(() => {
     let n = 0
     if (props.search && props.search.trim().length > 0) n += 1
-    if (props.competitionClassId && props.competitionClassId.length > 0) n += 1
+    if (
+      !hideSortAndCompetitionClass &&
+      props.competitionClassId &&
+      props.competitionClassId.length > 0
+    )
+      n += 1
     if (props.deviceGroupId && props.deviceGroupId.length > 0) n += 1
     return n
-  }, [props.search, props.competitionClassId, props.deviceGroupId])
+  }, [props.search, props.competitionClassId, props.deviceGroupId, hideSortAndCompetitionClass])
 
   if (isMobile) {
     return (

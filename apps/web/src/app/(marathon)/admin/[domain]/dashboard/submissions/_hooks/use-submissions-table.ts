@@ -70,6 +70,8 @@ export type TableData = Omit<Participant, "phoneEncrypted" | "phoneHash"> & {
   competitionClass: CompetitionClass | null;
   deviceGroup: DeviceGroup | null;
   activeTopicSubmissionId: number | null;
+  /** Latest active-topic submission `createdAt` (upload time); null when not in topic-scoped table context */
+  activeTopicSubmissionCreatedAt: string | null;
   submissionHealth: {
     hasExif: boolean;
     hasThumbnail: boolean;

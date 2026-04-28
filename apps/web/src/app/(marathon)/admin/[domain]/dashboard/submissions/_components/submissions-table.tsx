@@ -357,6 +357,7 @@ export function SubmissionsTable() {
             deviceGroupId={queryState.deviceGroupId}
             onDeviceGroupChange={handleDeviceGroupChange}
             deviceGroups={marathon.deviceGroups}
+            hideSortAndCompetitionClass={marathon?.mode === "by-camera"}
           />
         )}
       </div>

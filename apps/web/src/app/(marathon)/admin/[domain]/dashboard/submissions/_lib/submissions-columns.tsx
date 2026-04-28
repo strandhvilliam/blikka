@@ -101,7 +101,7 @@ export const getSubmissionsColumns = ({
       const phone = row.original.phoneNumber ?? null
       return (
         <div
-          className="text-xs text-muted-foreground truncate max-w-[200px]"
+          className="tabular-nums text-xs text-muted-foreground truncate max-w-[200px]"
           title={phone || undefined}
         >
           {phone || "-"}
@@ -111,10 +111,17 @@ export const getSubmissionsColumns = ({
   })
   baseColumns.push({
     accessorKey: "createdAt",
-    header: "Initialized At",
+    header: marathonMode === "by-camera" ? "Uploaded At" : "Initialized At",
     cell: ({ row }) => {
-      const createdAt = row.getValue("createdAt") as string
-      const date = new Date(createdAt)
+      const participant = row.original
+      const rawDate =
+        marathonMode === "by-camera"
+          ? participant.activeTopicSubmissionCreatedAt
+          : (row.getValue("createdAt") as string)
+      if (!rawDate) {
+        return <span className="text-xs text-muted-foreground">-</span>
+      }
+      const date = new Date(rawDate)
       return (
         <div className="text-xs text-muted-foreground">{format(date, "MMM d, yyyy, HH:mm")}</div>
       )
