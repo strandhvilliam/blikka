@@ -85,6 +85,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
             firstname: string;
             lastname: string;
             email: string | null;
+            phoneEncrypted: string | null;
             competitionClass: { name: string } | null;
             deviceGroup: { name: string } | null;
           };
@@ -126,6 +127,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
           participantReference: submission.participant.reference,
           participantName: `${submission.participant.firstname} ${submission.participant.lastname}`,
           participantEmail: submission.participant.email || "",
+          phoneEncrypted: submission.participant.phoneEncrypted,
           competitionClassName:
             submission.participant.competitionClass?.name || "",
           deviceGroupName: submission.participant.deviceGroup?.name || "",
@@ -178,13 +180,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
 
       const getParticipantsForExportByTopic = Effect.fn(
         "ExportsQueries.getParticipantsForExportByTopic",
-      )(function* ({
-        domain,
-        topicId,
-      }: {
-        domain: string;
-        topicId: number;
-      }) {
+      )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
         const result = yield* use((db) =>
           db.query.participants.findMany({
             where: (table, operators) => operators.eq(table.domain, domain),
@@ -192,7 +188,8 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
               competitionClass: true,
               deviceGroup: true,
               submissions: {
-                where: (table, operators) => operators.eq(table.topicId, topicId),
+                where: (table, operators) =>
+                  operators.eq(table.topicId, topicId),
                 columns: {
                   id: true,
                 },
@@ -217,6 +214,64 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
           }));
       });
 
+      const getParticipantsForExportByCameraAllTopics = Effect.fn(
+        "ExportsQueries.getParticipantsForExportByCameraAllTopics",
+      )(function* ({ domain }: { domain: string }) {
+        const result = yield* use((db) =>
+          db.query.participants.findMany({
+            where: (table, operators) => operators.eq(table.domain, domain),
+            with: {
+              competitionClass: true,
+              deviceGroup: true,
+              submissions: {
+                columns: {
+                  id: true,
+                  createdAt: true,
+                },
+                with: {
+                  topic: true,
+                },
+              },
+            },
+            orderBy: (participants, { asc }) => [asc(participants.reference)],
+          }),
+        );
+
+        return result.map((participant) => {
+          const topicIds = new Set<number>();
+          let latestTopicName = "";
+          let latestUploadedAt: string | null = null;
+
+          for (const submission of participant.submissions) {
+            topicIds.add(submission.topic.id);
+
+            if (
+              !latestUploadedAt ||
+              new Date(submission.createdAt).getTime() >
+                new Date(latestUploadedAt).getTime()
+            ) {
+              latestUploadedAt = submission.createdAt;
+              latestTopicName = submission.topic.name;
+            }
+          }
+
+          return {
+            reference: participant.reference,
+            firstname: participant.firstname,
+            lastname: participant.lastname,
+            email: participant.email || "",
+            phoneEncrypted: participant.phoneEncrypted,
+            status: participant.status,
+            competitionClassName: participant.competitionClass?.name || "",
+            deviceGroupName: participant.deviceGroup?.name || "",
+            createdAt: participant.createdAt,
+            topicsParticipatedCount: topicIds.size,
+            latestTopicName,
+            latestUploadedAt,
+          };
+        });
+      });
+
       const getSubmissionsForExport = Effect.fn(
         "ExportsQueries.getSubmissionsForExport",
       )(function* ({ domain }: { domain: string }) {
@@ -226,9 +281,10 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
           return [];
         }
 
-        const validationsByParticipantFile = yield* getParticipantValidationCounts({
-          domain,
-        });
+        const validationsByParticipantFile =
+          yield* getParticipantValidationCounts({
+            domain,
+          });
 
         const result = yield* use((db) =>
           db.query.submissions.findMany({
@@ -254,22 +310,17 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
 
       const getSubmissionsForExportByTopic = Effect.fn(
         "ExportsQueries.getSubmissionsForExportByTopic",
-      )(function* ({
-        domain,
-        topicId,
-      }: {
-        domain: string;
-        topicId: number;
-      }) {
+      )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
         const marathon = yield* getMarathonByDomain({ domain });
 
         if (!marathon) {
           return [];
         }
 
-        const validationsByParticipantFile = yield* getParticipantValidationCounts({
-          domain,
-        });
+        const validationsByParticipantFile =
+          yield* getParticipantValidationCounts({
+            domain,
+          });
 
         const result = yield* use((db) =>
           db.query.submissions.findMany({
@@ -506,13 +557,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
 
       const getSubmissionFilesForTopicExport = Effect.fn(
         "ExportsQueries.getSubmissionFilesForTopicExport",
-      )(function* ({
-        domain,
-        topicId,
-      }: {
-        domain: string;
-        topicId: number;
-      }) {
+      )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
         const marathon = yield* getMarathonByDomain({ domain });
 
         if (!marathon) {
@@ -522,7 +567,10 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
         return yield* use((db) =>
           db.query.submissions.findMany({
             where: (table) =>
-              and(eq(table.marathonId, marathon.id), eq(table.topicId, topicId)),
+              and(
+                eq(table.marathonId, marathon.id),
+                eq(table.topicId, topicId),
+              ),
             columns: {
               id: true,
               key: true,
@@ -543,6 +591,7 @@ export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
       return {
         getParticipantsForExport,
         getParticipantsForExportByTopic,
+        getParticipantsForExportByCameraAllTopics,
         getSubmissionsForExport,
         getSubmissionsForExportByTopic,
         getExifDataForExport,

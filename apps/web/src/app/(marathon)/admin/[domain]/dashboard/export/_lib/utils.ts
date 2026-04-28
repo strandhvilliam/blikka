@@ -1,6 +1,6 @@
-import { ClipboardCheck, FileSpreadsheet } from "lucide-react";
+import { ClipboardCheck, FileSpreadsheet } from "lucide-react"
 
-import { type ExportTypeConfig } from "./types";
+import { type ExportTypeConfig } from "./types"
 
 export const MARATHON_EXPORT_TYPES: ExportTypeConfig[] = [
   {
@@ -16,8 +16,7 @@ export const MARATHON_EXPORT_TYPES: ExportTypeConfig[] = [
   {
     id: "submissions",
     title: "Submissions",
-    description:
-      "Upload times, status, and validation results for all photo submissions.",
+    description: "Upload times, status, and validation results for all photo submissions.",
     icon: FileSpreadsheet,
     exportType: "xlsx_submissions",
     downloadName: "submissions",
@@ -26,8 +25,7 @@ export const MARATHON_EXPORT_TYPES: ExportTypeConfig[] = [
   {
     id: "validation",
     title: "Validation Results",
-    description:
-      "Detailed validation outcomes showing which submissions passed or failed rules.",
+    description: "Detailed validation outcomes showing which submissions passed or failed rules.",
     icon: ClipboardCheck,
     exportType: "txt_validation_results",
     downloadName: "validation-results",
@@ -41,24 +39,24 @@ export const MARATHON_EXPORT_TYPES: ExportTypeConfig[] = [
       { value: "folder", label: "Per Participant (ZIP)" },
     ],
   },
-];
+]
 
 export const BY_CAMERA_EXPORT_TYPES: ExportTypeConfig[] = [
   {
     id: "participants",
-    title: "Participants",
+    title: "All Participants Across Topics",
     description:
-      "Registered participants who uploaded to the active topic, including their upload count for that topic.",
+      "Every by-camera participant, not just the active topic. Includes contact details, phone number, topics participated in, latest topic, and latest upload time.",
     icon: FileSpreadsheet,
-    exportType: "xlsx_participants_by_camera_active_topic",
-    downloadName: "participants-active-topic",
+    exportType: "xlsx_participants_by_camera_all_topics",
+    downloadName: "participants-all-topics",
     accentColor: "#10b981",
   },
   {
     id: "submissions",
     title: "Submissions",
     description:
-      "Submission metadata and validation counts for images uploaded to the active topic.",
+      "Submission uploaded to the active topic. Includes information about submission, participant and URL to the image",
     icon: FileSpreadsheet,
     exportType: "xlsx_submissions_by_camera_active_topic",
     downloadName: "submissions-active-topic",
@@ -67,8 +65,7 @@ export const BY_CAMERA_EXPORT_TYPES: ExportTypeConfig[] = [
   {
     id: "validation",
     title: "Validation Results",
-    description:
-      "Validation results tied to files uploaded to the active topic only.",
+    description: "Validation results tied to files uploaded to the active topic only.",
     icon: ClipboardCheck,
     exportType: "txt_validation_results_by_camera_active_topic",
     downloadName: "validation-results-active-topic",
@@ -82,4 +79,4 @@ export const BY_CAMERA_EXPORT_TYPES: ExportTypeConfig[] = [
       { value: "folder", label: "Per Participant (ZIP)" },
     ],
   },
-];
+]
