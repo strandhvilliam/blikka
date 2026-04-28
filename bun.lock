@@ -9,7 +9,7 @@
         "sst": "^4.3.9",
       },
       "devDependencies": {
-        "@effect/vitest": "4.0.0-beta.25",
+        "@effect/vitest": "catalog:",
         "@types/aws-lambda": "8.10.146",
         "@types/turndown": "^5.0.6",
         "prettier": "^3.6.2",
@@ -210,6 +210,7 @@
     "packages/db": {
       "name": "@blikka/db",
       "dependencies": {
+        "@blikka/validation": "workspace:*",
         "@neondatabase/serverless": "^1.0.2",
         "drizzle-kit": "^0.31.9",
         "drizzle-orm": "^0.45.1",
@@ -299,7 +300,7 @@
         "upstash-lua": "^0.3.1",
       },
       "devDependencies": {
-        "@effect/vitest": "^0.26.0",
+        "@effect/vitest": "catalog:",
         "@types/bun": "latest",
         "vitest": "^3.2.4",
       },
@@ -413,7 +414,7 @@
         "exifr": "^7.1.3",
       },
       "devDependencies": {
-        "@effect/vitest": "^0.26.0",
+        "@effect/vitest": "catalog:",
         "@types/bun": "latest",
         "vitest": "^3.2.4",
       },
@@ -562,6 +563,7 @@
     "@effect-aws/lambda": "2.0.0-beta.2",
     "@effect/platform-bun": "4.0.0-beta.25",
     "@effect/platform-node": "4.0.0-beta.25",
+    "@effect/vitest": "4.0.0-beta.25",
     "effect": "4.0.0-beta.25",
   },
   "packages": {
@@ -3839,8 +3841,6 @@
 
     "@blikka/db/@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
 
-    "@blikka/kv-store/@effect/vitest": ["@effect/vitest@0.26.0", "", { "peerDependencies": { "effect": "^3.18.0", "vitest": "^3.2.0" } }, "sha512-h7r21XRtHpl8CQmIuplCK54bYJkUij4c6bUxK27y4d9dTXn4s7c/I3Lilb4VZxv3P3S3sChCu5YIGW4pdQFjZg=="],
-
     "@blikka/kv-store/@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
 
     "@blikka/realtime/@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
@@ -3852,8 +3852,6 @@
     "@blikka/telemetry/@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
 
     "@blikka/upload-processor/@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
-
-    "@blikka/validation/@effect/vitest": ["@effect/vitest@0.26.0", "", { "peerDependencies": { "effect": "^3.18.0", "vitest": "^3.2.0" } }, "sha512-h7r21XRtHpl8CQmIuplCK54bYJkUij4c6bUxK27y4d9dTXn4s7c/I3Lilb4VZxv3P3S3sChCu5YIGW4pdQFjZg=="],
 
     "@blikka/validation/@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
 
@@ -4561,8 +4559,6 @@
 
     "@blikka/db/@types/bun/bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
 
-    "@blikka/kv-store/@effect/vitest/effect": ["effect@3.19.14", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "fast-check": "^3.23.1" } }, "sha512-3vwdq0zlvQOxXzXNKRIPKTqZNMyGCdaFUBfMPqpsyzZDre67kgC1EEHDV4EoQTovJ4w5fmJW756f86kkuz7WFA=="],
-
     "@blikka/kv-store/@types/bun/bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
 
     "@blikka/realtime/@types/bun/bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
@@ -4574,8 +4570,6 @@
     "@blikka/telemetry/@types/bun/bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
 
     "@blikka/upload-processor/@types/bun/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
-
-    "@blikka/validation/@effect/vitest/effect": ["effect@3.19.14", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "fast-check": "^3.23.1" } }, "sha512-3vwdq0zlvQOxXzXNKRIPKTqZNMyGCdaFUBfMPqpsyzZDre67kgC1EEHDV4EoQTovJ4w5fmJW756f86kkuz7WFA=="],
 
     "@blikka/validation/@types/bun/bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
 
@@ -5173,8 +5167,6 @@
 
     "@blikka/db/@types/bun/bun-types/@types/node": ["@types/node@22.19.13", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-akNQMv0wW5uyRpD2v2IEyRSZiR+BeGuoB6L310EgGObO44HSMNT8z1xzio28V8qOrgYaopIDNA18YgdXd+qTiw=="],
 
-    "@blikka/kv-store/@effect/vitest/effect/fast-check": ["fast-check@3.23.2", "", { "dependencies": { "pure-rand": "^6.1.0" } }, "sha512-h5+1OzzfCC3Ef7VbtKdcv7zsstUQwUDlYpUTvjeUsJAssPgLn7QzbboPtL5ro04Mq0rPOsMzl7q5hIbRs2wD1A=="],
-
     "@blikka/kv-store/@types/bun/bun-types/@types/node": ["@types/node@22.19.13", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-akNQMv0wW5uyRpD2v2IEyRSZiR+BeGuoB6L310EgGObO44HSMNT8z1xzio28V8qOrgYaopIDNA18YgdXd+qTiw=="],
 
     "@blikka/realtime/@types/bun/bun-types/@types/node": ["@types/node@22.19.13", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-akNQMv0wW5uyRpD2v2IEyRSZiR+BeGuoB6L310EgGObO44HSMNT8z1xzio28V8qOrgYaopIDNA18YgdXd+qTiw=="],
@@ -5182,8 +5174,6 @@
     "@blikka/redis/@types/bun/bun-types/@types/node": ["@types/node@22.19.13", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-akNQMv0wW5uyRpD2v2IEyRSZiR+BeGuoB6L310EgGObO44HSMNT8z1xzio28V8qOrgYaopIDNA18YgdXd+qTiw=="],
 
     "@blikka/telemetry/@types/bun/bun-types/@types/node": ["@types/node@22.19.13", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-akNQMv0wW5uyRpD2v2IEyRSZiR+BeGuoB6L310EgGObO44HSMNT8z1xzio28V8qOrgYaopIDNA18YgdXd+qTiw=="],
-
-    "@blikka/validation/@effect/vitest/effect/fast-check": ["fast-check@3.23.2", "", { "dependencies": { "pure-rand": "^6.1.0" } }, "sha512-h5+1OzzfCC3Ef7VbtKdcv7zsstUQwUDlYpUTvjeUsJAssPgLn7QzbboPtL5ro04Mq0rPOsMzl7q5hIbRs2wD1A=="],
 
     "@blikka/validation/@types/bun/bun-types/@types/node": ["@types/node@22.19.13", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-akNQMv0wW5uyRpD2v2IEyRSZiR+BeGuoB6L310EgGObO44HSMNT8z1xzio28V8qOrgYaopIDNA18YgdXd+qTiw=="],
 
@@ -5348,10 +5338,6 @@
     "@aws-sdk/middleware-sdk-sqs/@smithy/smithy-client/@smithy/util-stream/@smithy/node-http-handler/@smithy/querystring-builder": ["@smithy/querystring-builder@4.2.11", "", { "dependencies": { "@smithy/types": "^4.13.0", "@smithy/util-uri-escape": "^4.2.2", "tslib": "^2.6.2" } }, "sha512-7spdikrYiljpket6u0up2Ck2mxhy7dZ0+TDd+S53Dg2DHd6wg+YNJrTCHiLdgZmEXZKI7LJZcwL3721ZRDFiqA=="],
 
     "@aws-sdk/middleware-sdk-sqs/@smithy/smithy-client/@smithy/util-stream/@smithy/util-buffer-from/@smithy/is-array-buffer": ["@smithy/is-array-buffer@4.2.2", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-n6rQ4N8Jj4YTQO3YFrlgZuwKodf4zUFs7EJIWH86pSCWBaAtAGBFfCM7Wx6D2bBJ2xqFNxGBSrUWswT3M0VJow=="],
-
-    "@blikka/kv-store/@effect/vitest/effect/fast-check/pure-rand": ["pure-rand@6.1.0", "", {}, "sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA=="],
-
-    "@blikka/validation/@effect/vitest/effect/fast-check/pure-rand": ["pure-rand@6.1.0", "", {}, "sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA=="],
 
     "@npmcli/package-json/glob/minimatch/brace-expansion/balanced-match": ["balanced-match@4.0.4", "", {}, "sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA=="],
 

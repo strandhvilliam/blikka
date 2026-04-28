@@ -36,7 +36,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@effect/vitest": "4.0.0-beta.25",
+    "@effect/vitest": "catalog:",
     "@types/aws-lambda": "8.10.146",
     "@types/turndown": "^5.0.6",
     "prettier": "^3.6.2",
@@ -50,6 +50,7 @@
   "workspaces": {
     "catalog": {
       "effect": "4.0.0-beta.25",
+      "@effect/vitest": "4.0.0-beta.25",
       "@effect-aws/lambda": "2.0.0-beta.2",
       "@effect/platform-bun": "4.0.0-beta.25",
       "@effect/platform-node": "4.0.0-beta.25"
