@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { Eye, Images } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
@@ -40,21 +41,24 @@ export function GridView({
           const rating = getRating(submission.submissionId)
           const isSelected = submission.submissionId === selectedSubmissionId
           const isActive = index === currentImageIndex
+          const imageUrl = submission.thumbnailUrl ?? submission.url
           return (
             <button
               key={submission.submissionId}
               onClick={() => handleThumbnailClick(index)}
               className="relative aspect-square overflow-hidden rounded-xl bg-muted"
             >
-              {submission.thumbnailUrl || submission.url ? (
-                <img
-                  src={submission.thumbnailUrl || submission.url}
+              {imageUrl ? (
+                <Image
+                  src={imageUrl}
                   alt={t("gridView.photoAlt", {
                     participantId: submission.participantId,
                   })}
+                  fill
+                  sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 20vw"
+                  quality={50}
                   loading="lazy"
-                  decoding="async"
-                  className="h-full w-full object-cover"
+                  className="object-cover"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-muted">

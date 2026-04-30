@@ -28,7 +28,20 @@ const nextConfig: NextConfig = {
         hostname: "placehold.co",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "s3.eu-north-1.amazonaws.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.s3.eu-north-1.amazonaws.com",
+        pathname: "/**",
+      },
     ],
+    formats: ["image/webp"],
+    qualities: [50, 75],
+    minimumCacheTTL: 2678400,
   },
 }
 

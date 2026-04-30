@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import {
   Carousel,
   CarouselContent,
@@ -66,11 +67,15 @@ export function CarouselView({ submissions }: CarouselViewProps) {
                         className="relative w-full h-full cursor-zoom-in flex items-center justify-center overflow-hidden rounded-lg"
                       >
                         {submission.isOwnSubmission && <OwnSubmissionBadge />}
-                        <img
+                        <Image
                           src={submission.url}
                           alt={`photo-${submission.submissionId}`}
-                          decoding="async"
-                          className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
+                          fill
+                          sizes="100vw"
+                          quality={75}
+                          priority={index === currentImageIndex}
+                          loading={index === currentImageIndex ? "eager" : "lazy"}
+                          className="object-contain"
                         />
                       </button>
                     ) : submission.url ? (

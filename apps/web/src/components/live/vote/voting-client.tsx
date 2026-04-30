@@ -181,7 +181,7 @@ export function VotingClient({
           onVote={handleVote}
           totalCount={filteredSubmissions.length}
           submissionTitle={currentSubmission?.topicName}
-          submissionImageUrl={currentSubmission?.thumbnailUrl || currentSubmission?.url}
+          submissionImageUrl={currentSubmission?.thumbnailUrl ?? currentSubmission?.url}
           onViewModeChange={setViewMode}
         />
       </div>

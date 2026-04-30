@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import type { MouseEvent, TouchEvent, WheelEvent } from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { X, ZoomIn, ZoomOut } from "lucide-react"
@@ -225,7 +226,7 @@ export function FullscreenImage({
       return newScale
     })
 
-  if (!isOpen) return null
+  if (!isOpen || !src) return null
 
   return (
     <div
@@ -281,15 +282,18 @@ export function FullscreenImage({
         }}
       >
         <div
-          className="flex h-full w-full items-center justify-center transition-transform duration-100"
+          className="relative flex h-full w-full items-center justify-center transition-transform duration-100"
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
           }}
         >
-          <img
+          <Image
             src={src}
             alt={alt}
-            className="max-h-full max-w-full select-none object-contain"
+            fill
+            sizes="100vw"
+            quality={75}
+            className="select-none object-contain"
             draggable={false}
           />
         </div>
