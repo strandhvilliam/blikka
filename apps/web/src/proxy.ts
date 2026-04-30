@@ -6,7 +6,6 @@ import { marathonDomainFromLocation } from "./lib/marathon-domain"
 
 function withDomainHeader(request: NextRequest, subdomain: string) {
   const headers = new Headers(request.headers)
-  console.log("setting domain header", subdomain)
   headers.set("x-marathon-domain", subdomain)
   return { request: { headers } }
 }
@@ -66,6 +65,17 @@ export async function proxy(request: NextRequest) {
       if (!pathname.startsWith(staffWithSubdomain)) {
         const restOfPath = pathname === "/staff" ? "" : pathname.slice(6)
         const rewritePath = `${staffWithSubdomain}${restOfPath}`
+        return NextResponse.rewrite(new URL(rewritePath, request.url), requestWithDomainHeader)
+      }
+
+      return NextResponse.next(requestWithDomainHeader)
+    }
+
+    if (pathname.startsWith("/terms")) {
+      const termsWithSubdomain = `/terms/${subdomain}`
+      if (!pathname.startsWith(termsWithSubdomain)) {
+        const restOfPath = pathname === "/terms" ? "" : pathname.slice(6)
+        const rewritePath = `${termsWithSubdomain}${restOfPath}`
         return NextResponse.rewrite(new URL(rewritePath, request.url), requestWithDomainHeader)
       }
 

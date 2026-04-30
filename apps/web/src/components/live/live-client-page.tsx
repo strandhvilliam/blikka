@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/dialog"
 import {
   cn,
+  formatDomainLink,
   formatDomainPathname,
   formatPlatformTermsPathname,
-  formatPublicPathname,
 } from "@/lib/utils"
 import { format } from "date-fns"
 import { enUS, sv, type Locale as DateFnsLocale } from "date-fns/locale"
@@ -377,8 +377,7 @@ function TermsCheckbox({
             <a
               target="_blank"
               rel="noopener noreferrer"
-              // href={formatPublicPathname(`/terms`, domain, locale)}
-              href={formatPlatformTermsPathname(locale)}
+              href={formatDomainLink("/terms", domain, "terms")}
               className="underline font-semibold"
             >
               {t("organizerTerms")}

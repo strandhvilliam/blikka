@@ -3,8 +3,8 @@ import path from "node:path"
 import type { Metadata } from "next"
 import { hasLocale } from "next-intl"
 import type { Locale } from "next-intl"
+import { TermsMarkdown } from "@/components/terms-markdown"
 import { DEFAULT_LOCALE, LOCALES, protocol, rootDomain } from "@/config"
-import { TermsMarkdown } from "../[domain]/terms/_components/terms-markdown"
 import { PlatformTermsHero } from "./_components/platform-terms-hero"
 
 function termsMarkdownPath(locale: Locale) {

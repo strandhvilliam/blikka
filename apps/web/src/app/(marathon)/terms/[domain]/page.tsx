@@ -2,9 +2,9 @@ import { cacheLife, cacheTag } from "next/cache"
 import { Config, Effect, Exit, Option } from "effect"
 import type { Metadata } from "next"
 import { Database } from "@blikka/db"
+import { TermsMarkdown } from "@/components/terms-markdown"
 import { formatDomainLink } from "@/lib/utils"
 import { TermsHero } from "./_components/terms-hero"
-import { TermsMarkdown } from "./_components/terms-markdown"
 
 const getTermsMarkdown = async function getTermsMarkdown(domain: string) {
   "use cache"
@@ -62,7 +62,7 @@ const getPublicMarathon = async function getPublicMarathon(domain: string) {
   return result.value
 }
 
-export async function generateMetadata({ params }: PageProps<"/[locale]/[domain]/terms">): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<"/terms/[domain]">): Promise<Metadata> {
   const { domain } = await params
   const marathon = await getPublicMarathon(domain)
   const name = marathon?.name ?? "Photomarathon"
@@ -71,7 +71,7 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/[domain]
   }
 }
 
-export default async function TermsPage({ params }: PageProps<"/[locale]/[domain]/terms">) {
+export default async function TermsPage({ params }: PageProps<"/terms/[domain]">) {
   const { domain } = await params
   const publicMarathon = await getPublicMarathon(domain)
   const markdown = await getTermsMarkdown(domain)
