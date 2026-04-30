@@ -32,6 +32,10 @@ interface VotingFooterProps {
   onViewModeChange?: (mode: "carousel" | "grid") => void
 }
 
+export function shouldShowVoteButton(viewMode: "carousel" | "grid") {
+  return viewMode === "carousel"
+}
+
 export function VotingFooter({
   currentRating,
   onRatingChange,
@@ -107,16 +111,18 @@ export function VotingFooter({
       )}
 
       <div className="p-4">
-        <VoteButton
-          isSelected={isSelected}
-          hasVoted={hasVoted}
-          isOwnSubmission={isOwnSubmission}
-          isEnabled={hasImages}
-          onVote={onVote}
-          submissionTitle={submissionTitle}
-          imageUrl={submissionImageUrl}
-          className="w-full"
-        />
+        {shouldShowVoteButton(viewMode) && (
+          <VoteButton
+            isSelected={isSelected}
+            hasVoted={hasVoted}
+            isOwnSubmission={isOwnSubmission}
+            isEnabled={hasImages}
+            onVote={onVote}
+            submissionTitle={submissionTitle}
+            imageUrl={submissionImageUrl}
+            className="w-full"
+          />
+        )}
 
         {completionMessage && (
           <p className="mt-3 text-center text-sm text-muted-foreground">{completionMessage}</p>

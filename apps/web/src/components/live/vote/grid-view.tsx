@@ -52,6 +52,8 @@ export function GridView({
                   alt={t("gridView.photoAlt", {
                     participantId: submission.participantId,
                   })}
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -90,10 +92,10 @@ export function GridView({
       </div>
 
       {onViewModeChange && (
-        <div className="pointer-events-none absolute bottom-2 left-0 right-0 flex justify-center">
+        <div className="pointer-events-none sticky bottom-3 z-20 -mb-16 mt-4 flex justify-center">
           <button
             onClick={() => onViewModeChange("carousel")}
-            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-foreground shadow-lg transition-colors hover:bg-foreground/90"
+            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-foreground shadow-lg ring-1 ring-background/20 transition-colors hover:bg-foreground/90"
             aria-label={t("gridView.showCarousel")}
           >
             <Images className="h-6 w-6 text-background" />

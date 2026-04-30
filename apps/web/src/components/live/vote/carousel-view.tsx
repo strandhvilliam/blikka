@@ -17,6 +17,12 @@ interface CarouselViewProps {
   submissions: VotingSubmission[];
 }
 
+const IMAGE_RENDER_WINDOW_SIZE = 1;
+
+export function isSubmissionInRenderWindow(index: number, currentImageIndex: number) {
+  return Math.abs(index - currentImageIndex) <= IMAGE_RENDER_WINDOW_SIZE;
+}
+
 export function CarouselView({ submissions }: CarouselViewProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -45,34 +51,41 @@ export function CarouselView({ submissions }: CarouselViewProps) {
           className="w-full h-full"
         >
           <CarouselContent className="h-full">
-            {submissions.map((submission) => (
-              <CarouselItem
-                key={submission.submissionId}
-                className="h-full flex items-center justify-center"
-              >
-                <div className="relative w-full h-full flex items-center justify-center p-2">
-                  {submission.url ? (
-                    <button
-                      onClick={() => setIsFullscreen(true)}
-                      className="relative w-full h-full cursor-zoom-in flex items-center justify-center overflow-hidden rounded-lg"
-                    >
-                      {submission.isOwnSubmission && <OwnSubmissionBadge />}
-                      <img
-                        src={submission.url}
-                        alt={`photo-${submission.submissionId}`}
-                        className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
-                      />
-                    </button>
-                  ) : (
-                    <div className="flex items-center justify-center w-full h-full bg-muted rounded-lg">
-                      <span className="text-muted-foreground">
-                        Image not available
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </CarouselItem>
-            ))}
+            {submissions.map((submission, index) => {
+              const shouldRenderImage = isSubmissionInRenderWindow(index, currentImageIndex);
+
+              return (
+                <CarouselItem
+                  key={submission.submissionId}
+                  className="h-full flex items-center justify-center"
+                >
+                  <div className="relative w-full h-full flex items-center justify-center p-2">
+                    {submission.url && shouldRenderImage ? (
+                      <button
+                        onClick={() => setIsFullscreen(true)}
+                        className="relative w-full h-full cursor-zoom-in flex items-center justify-center overflow-hidden rounded-lg"
+                      >
+                        {submission.isOwnSubmission && <OwnSubmissionBadge />}
+                        <img
+                          src={submission.url}
+                          alt={`photo-${submission.submissionId}`}
+                          decoding="async"
+                          className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
+                        />
+                      </button>
+                    ) : submission.url ? (
+                      <div className="h-full w-full rounded-lg bg-muted/40" aria-hidden />
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-full bg-muted rounded-lg">
+                        <span className="text-muted-foreground">
+                          Image not available
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </CarouselItem>
+              );
+            })}
           </CarouselContent>
         </Carousel>
       </div>
