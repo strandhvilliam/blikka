@@ -21,7 +21,7 @@ export function marathonDomainFromLocation(loc: MarathonDomainLocation): string 
     const segments = loc.pathname.split("/").filter(Boolean)
     const root = segments[0]
     if (
-      (root === "admin" || root === "live" || root === "staff") &&
+      (root === "admin" || root === "live" || root === "staff" || root === "terms") &&
       typeof segments[1] === "string" &&
       segments[1].length > 0
     ) {

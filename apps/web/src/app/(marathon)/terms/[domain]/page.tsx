@@ -3,25 +3,31 @@ import { Config, Effect, Exit, Option } from "effect"
 import type { Metadata } from "next"
 import { Database } from "@blikka/db"
 import { TermsMarkdown } from "@/components/terms-markdown"
-import { formatDomainLink } from "@/lib/utils"
+import { buildS3Url, formatDomainLink } from "@/lib/utils"
 import { TermsHero } from "./_components/terms-hero"
 
 const getTermsMarkdown = async function getTermsMarkdown(domain: string) {
   "use cache"
   cacheTag(`terms-${domain}`)
-  cacheLife("days")
+  cacheLife("minutes")
 
   const result = await Effect.runPromiseExit(
     Effect.gen(function* () {
       const bucket = yield* Config.string("NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME")
       if (!bucket) return yield* Effect.fail(new Error("Bucket not found"))
 
+      const key = `${domain}/terms-and-conditions.txt`
+      const url = buildS3Url(bucket, key)
+
+      if (!url) return yield* Effect.fail(new Error("URL not found"))
+
       const response = yield* Effect.tryPromise({
-        try: () => fetch(`https://${bucket}.s3.eu-north-1.amazonaws.com/${domain}/terms-and-conditions.txt`),
+        try: () => fetch(url),
         catch: (error) => new Error(`Fetch failed: ${error}`),
       })
 
-      if (!response.ok) return yield* Effect.fail(new Error(`Response result was not ok. ${response.status}`))
+      if (!response.ok)
+        return yield* Effect.fail(new Error(`Response result was not ok. ${response.status}`))
 
       return yield* Effect.tryPromise({
         try: () => response.text(),
@@ -32,6 +38,7 @@ const getTermsMarkdown = async function getTermsMarkdown(domain: string) {
 
   if (Exit.isFailure(result)) {
     console.error("Error fetching terms and conditions", result.cause)
+
     return null
   }
 
@@ -41,7 +48,7 @@ const getTermsMarkdown = async function getTermsMarkdown(domain: string) {
 const getPublicMarathon = async function getPublicMarathon(domain: string) {
   "use cache"
   cacheTag(`public-marathon-${domain}`)
-  cacheLife("days")
+  cacheLife("minutes")
 
   const result = await Effect.runPromiseExit(
     Effect.gen(function* () {
@@ -62,7 +69,9 @@ const getPublicMarathon = async function getPublicMarathon(domain: string) {
   return result.value
 }
 
-export async function generateMetadata({ params }: PageProps<"/terms/[domain]">): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<"/terms/[domain]">): Promise<Metadata> {
   const { domain } = await params
   const marathon = await getPublicMarathon(domain)
   const name = marathon?.name ?? "Photomarathon"

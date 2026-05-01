@@ -1,6 +1,6 @@
 # Villkor och regler
 
-_Senast uppdaterad: 26 mars 2025_
+_Senast uppdaterad: 30 april 2026_
 
 Dessa villkor gäller mellan deltagaren vars uppgifter läggs in i detta system och Fotomaraton Sverige AB (559209-9732) (hädanefter benämnd **Arrangören**).
 

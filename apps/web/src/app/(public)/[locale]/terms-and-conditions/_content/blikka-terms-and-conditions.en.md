@@ -1,6 +1,6 @@
 # Terms and conditions
 
-_Last updated: 26 March 2025_
+_Last updated: 30 April 2026_
 
 These terms and conditions apply between the participant whose details are entered into this system and Fotomaraton Sverige AB (559209-9732) (hereinafter referred to as “**the Organizer**”).
 

@@ -38,7 +38,6 @@ export async function proxy(request: NextRequest) {
         // Inject subdomain: /admin/dashboard -> /admin/uppis/dashboard
         const restOfPath = pathname === "/admin" ? "" : pathname.slice(6) // Remove "/admin"
         const rewritePath = `${adminWithSubdomain}${restOfPath}`
-        console.log("rewrite to", rewritePath)
         return NextResponse.rewrite(new URL(rewritePath, request.url), requestWithDomainHeader)
       }
       // If already has subdomain, pass through and attach the subdomain to request headers
@@ -53,7 +52,6 @@ export async function proxy(request: NextRequest) {
         // Inject subdomain: /live/submissions -> /live/uppis/submissions
         const restOfPath = pathname === "/live" ? "" : pathname.slice(5) // Remove "/live"
         const rewritePath = `${liveWithSubdomain}${restOfPath}`
-        console.log("rewrite to", rewritePath)
         return NextResponse.rewrite(new URL(rewritePath, request.url), requestWithDomainHeader)
       }
       // If already has subdomain, pass through with subdomain request header
@@ -109,6 +107,11 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next()
     }
     return NextResponse.redirect(new URL(`/staff`, request.url))
+  }
+
+  /** Marathon URLs are outside `[locale]`; next-intl would rewrite/path-normalize these and 404 */
+  if (pathname.startsWith("/terms") || pathname.startsWith("/live")) {
+    return NextResponse.next()
   }
 
   // On the root domain, allow normal access
