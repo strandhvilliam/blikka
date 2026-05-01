@@ -1,8 +1,13 @@
-import { Schema } from "effect";
+import { Schema } from "effect"
 
-const UploadExifSchema = Schema.NullOr(
-  Schema.Record(Schema.String, Schema.Unknown),
-);
+const UploadExifSchema = Schema.NullOr(Schema.Record(Schema.String, Schema.Unknown))
+
+const TermsAcceptanceInputSchema = {
+  termsAccepted: Schema.Boolean.pipe(Schema.optional),
+  acceptedLocale: Schema.NullOr(Schema.String).pipe(Schema.optional),
+}
+
+const TermsAcceptanceSourceSchema = Schema.Literals(["participant", "staff-on-behalf"])
 
 const ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES = new Set([
   "image/jpeg",
@@ -12,20 +17,18 @@ const ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES = new Set([
   "image/heic",
   "image/heif",
   "image/avif",
-]);
+])
 
 /** Normalizes client-provided MIME types for S3 presigned PUT signatures. */
-export function normalizeUploadContentType(
-  raw: string | undefined | null,
-): string {
-  const trimmed = (raw ?? "").trim().toLowerCase();
+export function normalizeUploadContentType(raw: string | undefined | null): string {
+  const trimmed = (raw ?? "").trim().toLowerCase()
   if (trimmed === "" || trimmed === "image/jpg") {
-    return "image/jpeg";
+    return "image/jpeg"
   }
   if (ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES.has(trimmed)) {
-    return trimmed;
+    return trimmed
   }
-  return "image/jpeg";
+  return "image/jpeg"
 }
 
 export class UploadFlowApiError extends Schema.TaggedErrorClass<UploadFlowApiError>()(
@@ -40,7 +43,7 @@ export const GetPublicMarathonSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
   }),
-);
+)
 
 export const InitializeUploadFlowSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
@@ -54,8 +57,10 @@ export const InitializeUploadFlowSchema = Schema.toStandardSchemaV1(
     phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
     uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
     uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
+    ...TermsAcceptanceInputSchema,
+    termsAcceptanceSource: TermsAcceptanceSourceSchema.pipe(Schema.optional),
   }),
-);
+)
 
 export const PrepareUploadFlowSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
@@ -67,8 +72,9 @@ export const PrepareUploadFlowSchema = Schema.toStandardSchemaV1(
     competitionClassId: Schema.Number,
     deviceGroupId: Schema.Number,
     phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
+    ...TermsAcceptanceInputSchema,
   }),
-);
+)
 
 export const InitializeByCameraUploadSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
@@ -81,8 +87,9 @@ export const InitializeByCameraUploadSchema = Schema.toStandardSchemaV1(
     uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
     uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
     replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
+    ...TermsAcceptanceInputSchema,
   }),
-);
+)
 
 /** Staff laptop flow: participant identity is the entered reference, not phone lookup. */
 export const InitializeStaffByCameraUploadSchema = Schema.toStandardSchemaV1(
@@ -99,23 +106,23 @@ export const InitializeStaffByCameraUploadSchema = Schema.toStandardSchemaV1(
     replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
     /** Staff laptop: allow new upload after participant status completed or verified. */
     replaceFinalizedParticipantUpload: Schema.Boolean.pipe(Schema.optional),
+    ...TermsAcceptanceInputSchema,
   }),
-);
+)
 
-export const ResolveByCameraParticipantByPhoneSchema =
-  Schema.toStandardSchemaV1(
-    Schema.Struct({
-      domain: Schema.String,
-      phoneNumber: Schema.String,
-    }),
-  );
+export const ResolveByCameraParticipantByPhoneSchema = Schema.toStandardSchemaV1(
+  Schema.Struct({
+    domain: Schema.String,
+    phoneNumber: Schema.String,
+  }),
+)
 
 export const CheckParticipantExistsSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     reference: Schema.String,
   }),
-);
+)
 
 export const GetUploadStatusSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
@@ -123,7 +130,7 @@ export const GetUploadStatusSchema = Schema.toStandardSchemaV1(
     reference: Schema.String,
     orderIndexes: Schema.Array(Schema.Number),
   }),
-);
+)
 
 export const RefreshPresignedUploadsSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
@@ -132,11 +139,11 @@ export const RefreshPresignedUploadsSchema = Schema.toStandardSchemaV1(
     orderIndexes: Schema.Array(Schema.Number),
     uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
   }),
-);
+)
 
 export const ReTriggerUploadFlowSchema = Schema.toStandardSchemaV1(
   Schema.Struct({
     domain: Schema.String,
     reference: Schema.String,
   }),
-);
+)

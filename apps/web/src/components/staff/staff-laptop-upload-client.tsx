@@ -204,6 +204,7 @@ export function StaffLaptopUploadClient({
 
   const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
   const validationResults = useStaffUploadStore((s) => s.validationResults);
+  const termsAccepted = useStaffUploadStore((s) => s.termsAccepted);
   const validationRunError = useStaffUploadStore((s) => s.validationRunError);
 
   const resetPhotoSelection = useStaffUploadStore((s) => s.resetPhotoSelection);
@@ -220,6 +221,7 @@ export function StaffLaptopUploadClient({
   );
   const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow);
   const patchUpload = useStaffUploadStore((s) => s.patchUpload);
+  const setTermsAccepted = useStaffUploadStore((s) => s.setTermsAccepted);
 
   const resetAllState = useStaffUploadStore((s) => s.resetAllState);
 
@@ -430,6 +432,8 @@ export function StaffLaptopUploadClient({
         email: resolvedFormValues.email.trim(),
         deviceGroupId: Number(resolvedFormValues.deviceGroupId),
         phoneNumber: resolvedFormValues.phone.trim(),
+        termsAccepted,
+        acceptedLocale: null,
       };
 
       const orderedPhotos = [...photos].sort(
@@ -443,6 +447,7 @@ export function StaffLaptopUploadClient({
               reference,
               phoneNumber: commonPayload.phoneNumber || null,
               competitionClassId: Number(resolvedFormValues.competitionClassId),
+              termsAcceptanceSource: "staff-on-behalf",
               uploadContentTypes: orderedPhotos.map(
                 (photo) => photo.file.type || "image/jpeg",
               ),
@@ -456,6 +461,8 @@ export function StaffLaptopUploadClient({
               email: commonPayload.email,
               deviceGroupId: commonPayload.deviceGroupId,
               phoneNumber: commonPayload.phoneNumber,
+              termsAccepted: commonPayload.termsAccepted,
+              acceptedLocale: commonPayload.acceptedLocale,
               uploadContentTypes: orderedPhotos.map(
                 (photo) => photo.file.type || "image/jpeg",
               ),
@@ -469,9 +476,7 @@ export function StaffLaptopUploadClient({
             });
 
       const resolvedReference =
-        marathonMode === "marathon"
-          ? reference
-          : initialization.reference;
+        marathonMode === "marathon" ? reference : initialization.reference;
       const presignedUrls = initialization.uploads;
 
       if (!presignedUrls.length) {
@@ -554,6 +559,7 @@ export function StaffLaptopUploadClient({
     patchPhotos({ filesError: null });
     resetPhotoSelection();
     resetUploadFlow();
+    setTermsAccepted(false);
 
     try {
       const result = await lookupParticipantMutation.mutateAsync({
@@ -625,6 +631,7 @@ export function StaffLaptopUploadClient({
     patchPhotos({ filesError: null });
     resetPhotoSelection();
     resetUploadFlow();
+    setTermsAccepted(false);
 
     try {
       const resolution = await resolveByCameraParticipantByPhone.mutateAsync({
@@ -890,6 +897,7 @@ export function StaffLaptopUploadClient({
   const showFloatingBar = step === "details" || step === "upload";
   const submitDisabled =
     isBusy ||
+    !termsAccepted ||
     selectedPhotos.length !== expectedPhotoCount ||
     validationResults.some(
       (result) => result.outcome === "failed" && result.severity === "error",
@@ -1030,6 +1038,7 @@ export function StaffLaptopUploadClient({
                   className="rounded-full"
                   onClick={() => {
                     patchPhotos({ filesError: null });
+                    setTermsAccepted(false);
 
                     if (existingParticipant) {
                       resetPhotoSelection();

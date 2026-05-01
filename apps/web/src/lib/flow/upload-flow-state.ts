@@ -10,6 +10,8 @@ export interface UploadFlowStateSnapshot {
   participantLastName: string | null
   participantPhone: string | null
   replaceExistingActiveTopicUpload: boolean | null
+  termsAccepted: boolean | null
+  acceptedLocale: string | null
   uploadInstructionsShown?: boolean
 }
 
@@ -67,6 +69,8 @@ interface NormalizedUploadFlowState {
   participantLastName: string | null
   participantPhone: string | null
   replaceExistingActiveTopicUpload: boolean | null
+  termsAccepted: boolean | null
+  acceptedLocale: string | null
   uploadInstructionsShown?: boolean
 }
 
@@ -161,6 +165,8 @@ export function normalizeUploadFlowState(
     participantLastName: normalizeText(state.participantLastName),
     participantPhone: normalizeText(state.participantPhone),
     replaceExistingActiveTopicUpload: state.replaceExistingActiveTopicUpload ?? null,
+    termsAccepted: state.termsAccepted ?? null,
+    acceptedLocale: normalizeText(state.acceptedLocale),
     uploadInstructionsShown: state.uploadInstructionsShown,
   }
 }
@@ -250,6 +256,13 @@ function mapMarathonInputPayload(data: z.infer<typeof marathonUploadStateSchema>
   }
 }
 
+function mapTermsAcceptancePayload(state: UploadFlowStateSnapshot) {
+  return {
+    termsAccepted: state.termsAccepted === true,
+    acceptedLocale: normalizeText(state.acceptedLocale),
+  }
+}
+
 export function getUploadFlowIssueMessageKeys(
   issues: UploadFlowIssue[],
 ): UploadFlowIssueMessageKey[] {
@@ -310,6 +323,8 @@ export function buildInitializeUploadFlowInputResult(
   competitionClassId: number
   deviceGroupId: number
   phoneNumber?: string | null
+  termsAccepted: boolean
+  acceptedLocale: string | null
 }> {
   const validationResult = validateMarathonUploadRequirements(state)
   if (!validationResult.ok) return validationResult
@@ -319,6 +334,7 @@ export function buildInitializeUploadFlowInputResult(
     data: {
       domain,
       ...mapMarathonInputPayload(validationResult.data),
+      ...mapTermsAcceptancePayload(state),
     },
   }
 }
@@ -334,6 +350,8 @@ export function buildInitializeByCameraUploadInputResult(
   deviceGroupId: number
   phoneNumber: string
   replaceExistingActiveTopicUpload?: boolean
+  termsAccepted: boolean
+  acceptedLocale: string | null
 }> {
   const validationResult = validateStateWithSchema(
     state,
@@ -353,6 +371,7 @@ export function buildInitializeByCameraUploadInputResult(
       phoneNumber: validationResult.data.participantPhone,
       replaceExistingActiveTopicUpload:
         validationResult.data.replaceExistingActiveTopicUpload ?? undefined,
+      ...mapTermsAcceptancePayload(state),
     },
   }
 }
@@ -369,6 +388,8 @@ export function buildPrepareUploadFlowInputResult(
   competitionClassId: number
   deviceGroupId: number
   phoneNumber?: string | null
+  termsAccepted: boolean
+  acceptedLocale: string | null
 }> {
   const validationResult = validateMarathonUploadRequirements(state)
   if (!validationResult.ok) return validationResult
@@ -378,6 +399,7 @@ export function buildPrepareUploadFlowInputResult(
     data: {
       domain,
       ...mapMarathonInputPayload(validationResult.data),
+      ...mapTermsAcceptancePayload(state),
     },
   }
 }

@@ -25,6 +25,7 @@ interface ParticipantState {
   byCameraReplaceExistingTopicUpload: boolean
   /** Staff confirmed replacing upload after participant reached completed or verified. */
   byCameraReplaceFinalizedParticipantUpload: boolean
+  termsAccepted: boolean
 }
 
 interface ParticipantActions {
@@ -36,6 +37,7 @@ interface ParticipantActions {
   setFormErrors: (errors: StaffUploadFormErrors) => void
   clearFormErrors: () => void
   patchParticipant: (patch: Partial<ParticipantState>) => void
+  setTermsAccepted: (value: boolean) => void
 }
 
 type ParticipantSlice = ParticipantState & ParticipantActions
@@ -50,6 +52,7 @@ function initialParticipantState(): ParticipantState {
     showOverwriteDialog: false,
     byCameraReplaceExistingTopicUpload: false,
     byCameraReplaceFinalizedParticipantUpload: false,
+    termsAccepted: false,
   }
 }
 
@@ -62,6 +65,7 @@ const createParticipantSlice: StateCreator<StaffUploadStore, [], [], Participant
     set({
       formValues: { ...STAFF_UPLOAD_DEFAULT_FORM_VALUES, reference },
       formErrors: {},
+      termsAccepted: false,
     })
   },
   setFormField: (key, value) => {
@@ -84,6 +88,7 @@ const createParticipantSlice: StateCreator<StaffUploadStore, [], [], Participant
   setFormErrors: (errors) => set({ formErrors: errors }),
   clearFormErrors: () => set({ formErrors: {} }),
   patchParticipant: (patch) => set(patch),
+  setTermsAccepted: (value) => set({ termsAccepted: value }),
 })
 
 interface PhotoState {

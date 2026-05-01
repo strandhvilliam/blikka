@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import type { UploadFlowStateSnapshot } from "./upload-flow-state"
+import type { UploadFlowStateSnapshot } from "./upload-flow-state";
 import {
   buildInitializeByCameraUploadInputResult,
   buildInitializeUploadFlowInputResult,
@@ -9,7 +9,7 @@ import {
   getUploadFlowIssueMessageKeys,
   toParticipantFlowStatePatch,
   validateMarathonUploadRequirements,
-} from "./upload-flow-state"
+} from "./upload-flow-state";
 
 function createValidMarathonState(
   overrides: Partial<UploadFlowStateSnapshot> = {},
@@ -24,9 +24,11 @@ function createValidMarathonState(
     participantLastName: "Bond",
     participantPhone: null,
     replaceExistingActiveTopicUpload: null,
+    termsAccepted: null,
+    acceptedLocale: null,
     uploadInstructionsShown: false,
     ...overrides,
-  }
+  };
 }
 
 describe("upload-flow-state", () => {
@@ -34,14 +36,65 @@ describe("upload-flow-state", () => {
     const result = buildInitializeUploadFlowInputResult(
       "demo-domain",
       createValidMarathonState(),
-    )
+    );
 
-    expect(result.ok).toBe(true)
-    if (!result.ok) return
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
 
-    expect(result.data.reference).toBe("0042")
-    expect(result.data.phoneNumber).toBeUndefined()
-  })
+    expect(result.data.reference).toBe("0042");
+    expect(result.data.phoneNumber).toBeUndefined();
+    expect(result.data.termsAccepted).toBe(false);
+    expect(result.data.acceptedLocale).toBeNull();
+  });
+
+  it("adds terms acceptance metadata to marathon initialize payloads", () => {
+    const result = buildInitializeUploadFlowInputResult(
+      "demo-domain",
+      createValidMarathonState({
+        termsAccepted: true,
+        acceptedLocale: "sv",
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.data.termsAccepted).toBe(true);
+    expect(result.data.acceptedLocale).toBe("sv");
+  });
+
+  it("adds terms acceptance metadata to prepare payloads", () => {
+    const result = buildPrepareUploadFlowInputResult(
+      "demo-domain",
+      createValidMarathonState({
+        termsAccepted: true,
+        acceptedLocale: " en ",
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.data.termsAccepted).toBe(true);
+    expect(result.data.acceptedLocale).toBe("en");
+  });
+
+  it("adds terms acceptance metadata to by-camera initialize payloads", () => {
+    const result = buildInitializeByCameraUploadInputResult(
+      "demo-domain",
+      createValidMarathonState({
+        participantPhone: "+46700000000",
+        termsAccepted: true,
+        acceptedLocale: "sv",
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.data.termsAccepted).toBe(true);
+    expect(result.data.acceptedLocale).toBe("sv");
+  });
 
   it("returns by-camera issues for missing phone and device", () => {
     const result = buildInitializeByCameraUploadInputResult(
@@ -50,16 +103,16 @@ describe("upload-flow-state", () => {
         deviceGroupId: null,
         participantPhone: null,
       }),
-    )
+    );
 
-    expect(result.ok).toBe(false)
-    if (result.ok) return
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
 
-    const messageKeys = getUploadFlowIssueMessageKeys(result.issues)
+    const messageKeys = getUploadFlowIssueMessageKeys(result.issues);
     expect(messageKeys).toEqual(
       expect.arrayContaining(["missingPhoneNumber", "missingDeviceSelection"]),
-    )
-  })
+    );
+  });
 
   it("normalizes whitespace-only values and reports them as missing", () => {
     const result = buildPrepareUploadFlowInputResult(
@@ -67,27 +120,27 @@ describe("upload-flow-state", () => {
       createValidMarathonState({
         participantRef: "   ",
       }),
-    )
+    );
 
-    expect(result.ok).toBe(false)
-    if (result.ok) return
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
 
     expect(
       result.issues.some(
         (issue) => issue.field === "participantRef" && issue.code === "missing",
       ),
-    ).toBe(true)
-  })
+    ).toBe(true);
+  });
 
   it("builds completed search params when marathon state is valid", () => {
     const result = buildPrepareCompletedSearchParamsResult(
       createValidMarathonState({
         participantId: 1337,
       }),
-    )
+    );
 
-    expect(result.ok).toBe(true)
-    if (!result.ok) return
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
 
     expect(result.data).toEqual({
       competitionClassId: 2,
@@ -97,23 +150,29 @@ describe("upload-flow-state", () => {
       participantEmail: "user@example.com",
       participantFirstName: "James",
       participantLastName: "Bond",
-    })
-  })
+    });
+  });
 
   it("reports validation ok for marathon initialize and not ok for invalid by-camera", () => {
     const invalidByCamera = createValidMarathonState({
       participantPhone: null,
-    })
+    });
 
     expect(
-      buildInitializeByCameraUploadInputResult("demo-domain", invalidByCamera).ok,
-    ).toBe(false)
+      buildInitializeByCameraUploadInputResult("demo-domain", invalidByCamera)
+        .ok,
+    ).toBe(false);
 
     expect(
-      buildInitializeUploadFlowInputResult("demo-domain", createValidMarathonState()).ok,
-    ).toBe(true)
-    expect(validateMarathonUploadRequirements(createValidMarathonState()).ok).toBe(true)
-  })
+      buildInitializeUploadFlowInputResult(
+        "demo-domain",
+        createValidMarathonState(),
+      ).ok,
+    ).toBe(true);
+    expect(
+      validateMarathonUploadRequirements(createValidMarathonState()).ok,
+    ).toBe(true);
+  });
 
   it("trims phone and converts empty values to null in participant patch", () => {
     const patch = toParticipantFlowStatePatch(
@@ -124,8 +183,8 @@ describe("upload-flow-state", () => {
         phone: "   ",
       },
       { trimPhone: true },
-    )
+    );
 
-    expect(patch.participantPhone).toBeNull()
-  })
-})
+    expect(patch.participantPhone).toBeNull();
+  });
+});

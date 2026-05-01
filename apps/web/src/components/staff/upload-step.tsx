@@ -1,96 +1,120 @@
-"use client"
+"use client";
 
-import { AlertTriangle } from "lucide-react"
-import { toast } from "sonner"
-import { buildPhotoValidationMap, splitValidationResultsBySeverity } from "@/lib/validation"
-import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-utils"
-import { processSelectedFiles } from "@/lib/participant-selected-files"
-import { StaffParticipantCard } from "@/components/staff/staff-participant-card"
-import { StaffDropzone } from "@/components/staff/staff-dropzone"
-import { StaffPhotoList } from "@/components/staff/staff-photo-grid"
-import { useStaffUploadParticipantSummary } from "@/hooks/staff/use-staff-upload-participant-summary"
+import { AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import {
+  buildPhotoValidationMap,
+  splitValidationResultsBySeverity,
+} from "@/lib/validation";
+import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-utils";
+import { processSelectedFiles } from "@/lib/participant-selected-files";
+import { StaffParticipantCard } from "@/components/staff/staff-participant-card";
+import { StaffDropzone } from "@/components/staff/staff-dropzone";
+import { StaffPhotoList } from "@/components/staff/staff-photo-grid";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useStaffUploadParticipantSummary } from "@/hooks/staff/use-staff-upload-participant-summary";
 import {
   useStaffUploadStore,
   selectRequiresOverwriteWarning,
-} from "@/lib/staff/staff-upload-store"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { UploadMarathonMode } from "@/lib/types"
+} from "@/lib/staff/staff-upload-store";
+import { useTRPC } from "@/lib/trpc/client";
+import { useDomain } from "@/lib/domain-provider";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { UploadMarathonMode } from "@/lib/types";
+import { BLIKKA_PLATFORM_TERMS_URL } from "@/config";
+import { formatDomainLink } from "@/lib/utils";
 
 interface UploadStepProps {
-  isBusy: boolean
-  dropzoneDisabled: boolean
+  isBusy: boolean;
+  dropzoneDisabled: boolean;
 }
 
 export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
-  const domain = useDomain()
-  const trpc = useTRPC()
-  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
+  const domain = useDomain();
+  const trpc = useTRPC();
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({ domain }),
+  );
 
-  const participantSummary = useStaffUploadParticipantSummary()
-  const requiresOverwriteWarning = useStaffUploadStore(selectRequiresOverwriteWarning)
+  const participantSummary = useStaffUploadParticipantSummary();
+  const requiresOverwriteWarning = useStaffUploadStore(
+    selectRequiresOverwriteWarning,
+  );
 
-  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos)
-  const validationResults = useStaffUploadStore((s) => s.validationResults)
-  const isProcessingFiles = useStaffUploadStore((s) => s.isProcessingFiles)
-  const filesError = useStaffUploadStore((s) => s.filesError)
-  const existingParticipant = useStaffUploadStore((s) => s.existingParticipant)
-  const formValues = useStaffUploadStore((s) => s.formValues)
-  const uploadComplete = useStaffUploadStore((s) => s.uploadComplete)
+  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
+  const validationResults = useStaffUploadStore((s) => s.validationResults);
+  const isProcessingFiles = useStaffUploadStore((s) => s.isProcessingFiles);
+  const filesError = useStaffUploadStore((s) => s.filesError);
+  const existingParticipant = useStaffUploadStore((s) => s.existingParticipant);
+  const formValues = useStaffUploadStore((s) => s.formValues);
+  const uploadComplete = useStaffUploadStore((s) => s.uploadComplete);
+  const termsAccepted = useStaffUploadStore((s) => s.termsAccepted);
 
-  const removeSelectedPhoto = useStaffUploadStore((s) => s.removeSelectedPhoto)
-  const setSelectedPhotos = useStaffUploadStore((s) => s.setSelectedPhotos)
-  const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow)
-  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos)
+  const removeSelectedPhoto = useStaffUploadStore((s) => s.removeSelectedPhoto);
+  const setSelectedPhotos = useStaffUploadStore((s) => s.setSelectedPhotos);
+  const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow);
+  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos);
+  const setTermsAccepted = useStaffUploadStore((s) => s.setTermsAccepted);
 
-  const marathonMode = marathon.mode as UploadMarathonMode
-  const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
-  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === "active") ?? null
+  const marathonMode = marathon.mode as UploadMarathonMode;
+  const sortedTopics = marathon.topics.toSorted(
+    (a, b) => a.orderIndex - b.orderIndex,
+  );
+  const activeByCameraTopic =
+    sortedTopics.find((topic) => topic.visibility === "active") ?? null;
   const activeCompetitionClassId = existingParticipant
     ? String(existingParticipant.competitionClassId)
-    : formValues.competitionClassId
+    : formValues.competitionClassId;
   const selectedCompetitionClass =
-    marathon.competitionClasses.find((cc) => cc.id === Number(activeCompetitionClassId)) ?? null
+    marathon.competitionClasses.find(
+      (cc) => cc.id === Number(activeCompetitionClassId),
+    ) ?? null;
 
   const selectedTopics = getSelectedTopics(
     marathonMode,
     activeByCameraTopic,
     selectedCompetitionClass,
     sortedTopics,
-  )
+  );
   const expectedPhotoCount = getExpectedPhotoCount(
     marathonMode,
     activeByCameraTopic,
     selectedCompetitionClass,
-  )
-  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex)
+  );
+  const topicOrderIndexes = selectedTopics.map((topic) => topic.orderIndex);
 
   const activeDeviceGroupId = existingParticipant
     ? String(existingParticipant.deviceGroupId)
-    : formValues.deviceGroupId
+    : formValues.deviceGroupId;
   const selectedDeviceGroupForFiles =
-    marathon.deviceGroups.find((dg) => dg.id === Number(activeDeviceGroupId)) ?? null
+    marathon.deviceGroups.find((dg) => dg.id === Number(activeDeviceGroupId)) ??
+    null;
   const canProcessFiles =
     marathonMode === "by-camera"
       ? Boolean(activeByCameraTopic && selectedDeviceGroupForFiles)
-      : Boolean(selectedCompetitionClass && selectedDeviceGroupForFiles)
+      : Boolean(selectedCompetitionClass && selectedDeviceGroupForFiles);
 
-  const { blocking: blockingValidationErrors, warnings: warningValidationResults } =
-    splitValidationResultsBySeverity(validationResults)
-  const photoValidationMap = buildPhotoValidationMap(selectedPhotos, validationResults)
-  const selectedCount = selectedPhotos.length
-  const blockingErrorCount = blockingValidationErrors.length
-  const warningCount = warningValidationResults.length
-  const isComplete = selectedCount >= expectedPhotoCount && expectedPhotoCount > 0
+  const {
+    blocking: blockingValidationErrors,
+    warnings: warningValidationResults,
+  } = splitValidationResultsBySeverity(validationResults);
+  const photoValidationMap = buildPhotoValidationMap(
+    selectedPhotos,
+    validationResults,
+  );
+  const selectedCount = selectedPhotos.length;
+  const blockingErrorCount = blockingValidationErrors.length;
+  const warningCount = warningValidationResults.length;
+  const isComplete =
+    selectedCount >= expectedPhotoCount && expectedPhotoCount > 0;
 
   const handleFilesSelected = async (files: File[]) => {
     if (isBusy || uploadComplete || !canProcessFiles) {
-      return
+      return;
     }
 
-    patchPhotos({ isProcessingFiles: true })
-    resetUploadFlow()
+    patchPhotos({ isProcessingFiles: true });
+    resetUploadFlow();
 
     try {
       const result = await processSelectedFiles({
@@ -98,27 +122,27 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
         existingPhotos: selectedPhotos,
         maxPhotos: expectedPhotoCount,
         topicOrderIndexes,
-      })
+      });
 
       if (result.errors.length > 0) {
-        result.errors.forEach((message) => toast.error(message))
+        result.errors.forEach((message) => toast.error(message));
       }
 
       if (result.warnings.length > 0) {
-        result.warnings.forEach((message) => toast.message(message))
+        result.warnings.forEach((message) => toast.message(message));
       }
 
       if (result.photos !== selectedPhotos) {
-        setSelectedPhotos(result.photos)
-        patchPhotos({ filesError: null })
+        setSelectedPhotos(result.photos);
+        patchPhotos({ filesError: null });
       }
     } finally {
-      patchPhotos({ isProcessingFiles: false })
+      patchPhotos({ isProcessingFiles: false });
     }
-  }
+  };
 
   if (!participantSummary) {
-    return null
+    return null;
   }
 
   return (
@@ -128,7 +152,10 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
       {requiresOverwriteWarning ? (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>This participant already has an upload in progress. Starting again will replace it.</p>
+          <p>
+            This participant already has an upload in progress. Starting again
+            will replace it.
+          </p>
         </div>
       ) : null}
 
@@ -148,17 +175,19 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
         photoValidationMap={photoValidationMap}
         isBusy={isBusy}
         onRemove={(photoId) => {
-          resetUploadFlow()
-          removeSelectedPhoto(photoId, topicOrderIndexes)
+          resetUploadFlow();
+          removeSelectedPhoto(photoId, topicOrderIndexes);
         }}
       />
 
-      {(blockingErrorCount > 0 || warningCount > 0) && selectedPhotos.length > 0 ? (
+      {(blockingErrorCount > 0 || warningCount > 0) &&
+      selectedPhotos.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {blockingErrorCount > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700">
               <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-              {blockingErrorCount} issue{blockingErrorCount !== 1 ? "s" : ""} to fix
+              {blockingErrorCount} issue{blockingErrorCount !== 1 ? "s" : ""} to
+              fix
             </span>
           ) : null}
           {warningCount > 0 ? (
@@ -172,9 +201,45 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
 
       {isComplete && blockingErrorCount === 0 ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-center text-sm font-medium text-emerald-700">
-          Ready to upload &mdash; review the photos above, then press Start upload
+          Ready to upload &mdash; review the photos above, then press Start
+          upload
         </div>
       ) : null}
+
+      <label
+        htmlFor="staff-terms-accepted"
+        className="block text-sm font-medium"
+      >
+        <div className="flex items-start gap-3 rounded-xl border border-input bg-muted/30 px-4 py-3">
+          <Checkbox
+            id="staff-terms-accepted"
+            className="mt-0.5 size-5 rounded-[5px] border-foreground/20"
+            checked={termsAccepted}
+            onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+          />
+          <span className="leading-snug">
+            I confirm the participant has accepted the{" "}
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href={formatDomainLink("/terms", domain, "terms")}
+              className="font-semibold underline"
+            >
+              event terms
+            </a>{" "}
+            and{" "}
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href={BLIKKA_PLATFORM_TERMS_URL}
+              className="font-semibold underline"
+            >
+              Blikka terms
+            </a>
+            .
+          </span>
+        </div>
+      </label>
     </div>
-  )
+  );
 }

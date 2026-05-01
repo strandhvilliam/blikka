@@ -1,65 +1,56 @@
-import { relations } from "drizzle-orm";
-import * as schema from "./schema";
+import { relations } from "drizzle-orm"
+import * as schema from "./schema"
 
-export const juryRatingsRelations = relations(
-  schema.juryRatings,
-  ({ one }) => ({
-    juryInvitation: one(schema.juryInvitations, {
-      fields: [schema.juryRatings.invitationId],
-      references: [schema.juryInvitations.id],
-    }),
-    marathon: one(schema.marathons, {
-      fields: [schema.juryRatings.marathonId],
-      references: [schema.marathons.id],
-    }),
-    participant: one(schema.participants, {
-      fields: [schema.juryRatings.participantId],
-      references: [schema.participants.id],
-    }),
+export const juryRatingsRelations = relations(schema.juryRatings, ({ one }) => ({
+  juryInvitation: one(schema.juryInvitations, {
+    fields: [schema.juryRatings.invitationId],
+    references: [schema.juryInvitations.id],
   }),
-);
+  marathon: one(schema.marathons, {
+    fields: [schema.juryRatings.marathonId],
+    references: [schema.marathons.id],
+  }),
+  participant: one(schema.participants, {
+    fields: [schema.juryRatings.participantId],
+    references: [schema.participants.id],
+  }),
+}))
 
-export const juryFinalRankingsRelations = relations(
-  schema.juryFinalRankings,
-  ({ one }) => ({
-    juryInvitation: one(schema.juryInvitations, {
-      fields: [schema.juryFinalRankings.invitationId],
-      references: [schema.juryInvitations.id],
-    }),
-    marathon: one(schema.marathons, {
-      fields: [schema.juryFinalRankings.marathonId],
-      references: [schema.marathons.id],
-    }),
-    participant: one(schema.participants, {
-      fields: [schema.juryFinalRankings.participantId],
-      references: [schema.participants.id],
-    }),
+export const juryFinalRankingsRelations = relations(schema.juryFinalRankings, ({ one }) => ({
+  juryInvitation: one(schema.juryInvitations, {
+    fields: [schema.juryFinalRankings.invitationId],
+    references: [schema.juryInvitations.id],
   }),
-);
+  marathon: one(schema.marathons, {
+    fields: [schema.juryFinalRankings.marathonId],
+    references: [schema.marathons.id],
+  }),
+  participant: one(schema.participants, {
+    fields: [schema.juryFinalRankings.participantId],
+    references: [schema.participants.id],
+  }),
+}))
 
-export const juryInvitationsRelations = relations(
-  schema.juryInvitations,
-  ({ one, many }) => ({
-    juryRatings: many(schema.juryRatings),
-    juryFinalRankings: many(schema.juryFinalRankings),
-    competitionClass: one(schema.competitionClasses, {
-      fields: [schema.juryInvitations.competitionClassId],
-      references: [schema.competitionClasses.id],
-    }),
-    deviceGroup: one(schema.deviceGroups, {
-      fields: [schema.juryInvitations.deviceGroupId],
-      references: [schema.deviceGroups.id],
-    }),
-    marathon: one(schema.marathons, {
-      fields: [schema.juryInvitations.marathonId],
-      references: [schema.marathons.id],
-    }),
-    topic: one(schema.topics, {
-      fields: [schema.juryInvitations.topicId],
-      references: [schema.topics.id],
-    }),
+export const juryInvitationsRelations = relations(schema.juryInvitations, ({ one, many }) => ({
+  juryRatings: many(schema.juryRatings),
+  juryFinalRankings: many(schema.juryFinalRankings),
+  competitionClass: one(schema.competitionClasses, {
+    fields: [schema.juryInvitations.competitionClassId],
+    references: [schema.competitionClasses.id],
   }),
-);
+  deviceGroup: one(schema.deviceGroups, {
+    fields: [schema.juryInvitations.deviceGroupId],
+    references: [schema.deviceGroups.id],
+  }),
+  marathon: one(schema.marathons, {
+    fields: [schema.juryInvitations.marathonId],
+    references: [schema.marathons.id],
+  }),
+  topic: one(schema.topics, {
+    fields: [schema.juryInvitations.topicId],
+    references: [schema.topics.id],
+  }),
+}))
 
 export const marathonsRelations = relations(schema.marathons, ({ many }) => ({
   juryRatings: many(schema.juryRatings),
@@ -67,6 +58,7 @@ export const marathonsRelations = relations(schema.marathons, ({ many }) => ({
   ruleConfigs: many(schema.ruleConfigs),
   juryInvitations: many(schema.juryInvitations),
   participants: many(schema.participants),
+  participantTermsAcceptances: many(schema.participantTermsAcceptances),
   userMarathons: many(schema.userMarathons),
   pendingUserMarathons: many(schema.pendingUserMarathons),
   competitionClasses: many(schema.competitionClasses),
@@ -76,43 +68,52 @@ export const marathonsRelations = relations(schema.marathons, ({ many }) => ({
   zippedSubmissions: many(schema.zippedSubmissions),
   sponsors: many(schema.sponsors),
   votingRounds: many(schema.votingRound),
-}));
+}))
 
-export const participantsRelations = relations(
-  schema.participants,
-  ({ one, many }) => ({
-    juryRatings: many(schema.juryRatings),
-    juryFinalRankings: many(schema.juryFinalRankings),
-    competitionClass: one(schema.competitionClasses, {
-      fields: [schema.participants.competitionClassId],
-      references: [schema.competitionClasses.id],
-    }),
-    deviceGroup: one(schema.deviceGroups, {
-      fields: [schema.participants.deviceGroupId],
-      references: [schema.deviceGroups.id],
-    }),
-    marathon: one(schema.marathons, {
-      fields: [schema.participants.marathonId],
-      references: [schema.marathons.id],
-    }),
-    validationResults: many(schema.validationResults),
-    participantVerifications: many(schema.participantVerifications),
-    submissions: many(schema.submissions),
-    zippedSubmissions: many(schema.zippedSubmissions),
-    contactSheets: many(schema.contactSheets),
-    votingSessions: many(schema.votingSession),
+export const participantsRelations = relations(schema.participants, ({ one, many }) => ({
+  juryRatings: many(schema.juryRatings),
+  juryFinalRankings: many(schema.juryFinalRankings),
+  competitionClass: one(schema.competitionClasses, {
+    fields: [schema.participants.competitionClassId],
+    references: [schema.competitionClasses.id],
   }),
-);
+  deviceGroup: one(schema.deviceGroups, {
+    fields: [schema.participants.deviceGroupId],
+    references: [schema.deviceGroups.id],
+  }),
+  marathon: one(schema.marathons, {
+    fields: [schema.participants.marathonId],
+    references: [schema.marathons.id],
+  }),
+  validationResults: many(schema.validationResults),
+  participantVerifications: many(schema.participantVerifications),
+  termsAcceptances: many(schema.participantTermsAcceptances),
+  submissions: many(schema.submissions),
+  zippedSubmissions: many(schema.zippedSubmissions),
+  contactSheets: many(schema.contactSheets),
+  votingSessions: many(schema.votingSession),
+}))
 
-export const ruleConfigsRelations = relations(
-  schema.ruleConfigs,
+export const participantTermsAcceptancesRelations = relations(
+  schema.participantTermsAcceptances,
   ({ one }) => ({
+    participant: one(schema.participants, {
+      fields: [schema.participantTermsAcceptances.participantId],
+      references: [schema.participants.id],
+    }),
     marathon: one(schema.marathons, {
-      fields: [schema.ruleConfigs.marathonId],
+      fields: [schema.participantTermsAcceptances.marathonId],
       references: [schema.marathons.id],
     }),
   }),
-);
+)
+
+export const ruleConfigsRelations = relations(schema.ruleConfigs, ({ one }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.ruleConfigs.marathonId],
+    references: [schema.marathons.id],
+  }),
+}))
 
 export const competitionClassesRelations = relations(
   schema.competitionClasses,
@@ -124,19 +125,16 @@ export const competitionClassesRelations = relations(
       references: [schema.marathons.id],
     }),
   }),
-);
+)
 
-export const deviceGroupsRelations = relations(
-  schema.deviceGroups,
-  ({ one, many }) => ({
-    juryInvitations: many(schema.juryInvitations),
-    participants: many(schema.participants),
-    marathon: one(schema.marathons, {
-      fields: [schema.deviceGroups.marathonId],
-      references: [schema.marathons.id],
-    }),
+export const deviceGroupsRelations = relations(schema.deviceGroups, ({ one, many }) => ({
+  juryInvitations: many(schema.juryInvitations),
+  participants: many(schema.participants),
+  marathon: one(schema.marathons, {
+    fields: [schema.deviceGroups.marathonId],
+    references: [schema.marathons.id],
   }),
-);
+}))
 
 export const topicsRelations = relations(schema.topics, ({ one, many }) => ({
   juryInvitations: many(schema.juryInvitations),
@@ -146,14 +144,14 @@ export const topicsRelations = relations(schema.topics, ({ one, many }) => ({
     fields: [schema.topics.marathonId],
     references: [schema.marathons.id],
   }),
-}));
+}))
 
 export const accountRelations = relations(schema.account, ({ one }) => ({
   user: one(schema.user, {
     fields: [schema.account.userId],
     references: [schema.user.id],
   }),
-}));
+}))
 
 export const userRelations = relations(schema.user, ({ many }) => ({
   accounts: many(schema.account),
@@ -161,52 +159,43 @@ export const userRelations = relations(schema.user, ({ many }) => ({
   userMarathons: many(schema.userMarathons),
   pendingUserMarathonsInvited: many(schema.pendingUserMarathons),
   participantVerifications: many(schema.participantVerifications),
-}));
+}))
 
 export const sessionRelations = relations(schema.session, ({ one }) => ({
   user: one(schema.user, {
     fields: [schema.session.userId],
     references: [schema.user.id],
   }),
-}));
+}))
 
-export const userMarathonsRelations = relations(
-  schema.userMarathons,
-  ({ one }) => ({
-    marathon: one(schema.marathons, {
-      fields: [schema.userMarathons.marathonId],
-      references: [schema.marathons.id],
-    }),
-    user: one(schema.user, {
-      fields: [schema.userMarathons.userId],
-      references: [schema.user.id],
-    }),
+export const userMarathonsRelations = relations(schema.userMarathons, ({ one }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.userMarathons.marathonId],
+    references: [schema.marathons.id],
   }),
-);
+  user: one(schema.user, {
+    fields: [schema.userMarathons.userId],
+    references: [schema.user.id],
+  }),
+}))
 
-export const pendingUserMarathonsRelations = relations(
-  schema.pendingUserMarathons,
-  ({ one }) => ({
-    marathon: one(schema.marathons, {
-      fields: [schema.pendingUserMarathons.marathonId],
-      references: [schema.marathons.id],
-    }),
-    invitedByUser: one(schema.user, {
-      fields: [schema.pendingUserMarathons.invitedByUserId],
-      references: [schema.user.id],
-    }),
+export const pendingUserMarathonsRelations = relations(schema.pendingUserMarathons, ({ one }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.pendingUserMarathons.marathonId],
+    references: [schema.marathons.id],
   }),
-);
+  invitedByUser: one(schema.user, {
+    fields: [schema.pendingUserMarathons.invitedByUserId],
+    references: [schema.user.id],
+  }),
+}))
 
-export const validationResultsRelations = relations(
-  schema.validationResults,
-  ({ one }) => ({
-    participant: one(schema.participants, {
-      fields: [schema.validationResults.participantId],
-      references: [schema.participants.id],
-    }),
+export const validationResultsRelations = relations(schema.validationResults, ({ one }) => ({
+  participant: one(schema.participants, {
+    fields: [schema.validationResults.participantId],
+    references: [schema.participants.id],
   }),
-);
+}))
 
 export const participantVerificationsRelations = relations(
   schema.participantVerifications,
@@ -220,109 +209,94 @@ export const participantVerificationsRelations = relations(
       references: [schema.participants.id],
     }),
   }),
-);
+)
 
-export const submissionsRelations = relations(
-  schema.submissions,
-  ({ one, many }) => ({
-    marathon: one(schema.marathons, {
-      fields: [schema.submissions.marathonId],
-      references: [schema.marathons.id],
-    }),
-    participant: one(schema.participants, {
-      fields: [schema.submissions.participantId],
-      references: [schema.participants.id],
-    }),
-    topic: one(schema.topics, {
-      fields: [schema.submissions.topicId],
-      references: [schema.topics.id],
-    }),
-    votingRoundSubmissions: many(schema.votingRoundSubmission),
-    votingRoundVotes: many(schema.votingRoundVote),
+export const submissionsRelations = relations(schema.submissions, ({ one, many }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.submissions.marathonId],
+    references: [schema.marathons.id],
   }),
-);
+  participant: one(schema.participants, {
+    fields: [schema.submissions.participantId],
+    references: [schema.participants.id],
+  }),
+  topic: one(schema.topics, {
+    fields: [schema.submissions.topicId],
+    references: [schema.topics.id],
+  }),
+  votingRoundSubmissions: many(schema.votingRoundSubmission),
+  votingRoundVotes: many(schema.votingRoundVote),
+}))
 
-export const zippedSubmissionsRelations = relations(
-  schema.zippedSubmissions,
-  ({ one }) => ({
-    marathon: one(schema.marathons, {
-      fields: [schema.zippedSubmissions.marathonId],
-      references: [schema.marathons.id],
-    }),
-    participant: one(schema.participants, {
-      fields: [schema.zippedSubmissions.participantId],
-      references: [schema.participants.id],
-    }),
+export const zippedSubmissionsRelations = relations(schema.zippedSubmissions, ({ one }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.zippedSubmissions.marathonId],
+    references: [schema.marathons.id],
   }),
-);
+  participant: one(schema.participants, {
+    fields: [schema.zippedSubmissions.participantId],
+    references: [schema.participants.id],
+  }),
+}))
 
-export const contactSheetsRelations = relations(
-  schema.contactSheets,
-  ({ one }) => ({
-    marathon: one(schema.marathons, {
-      fields: [schema.contactSheets.marathonId],
-      references: [schema.marathons.id],
-    }),
-    participant: one(schema.participants, {
-      fields: [schema.contactSheets.participantId],
-      references: [schema.participants.id],
-    }),
+export const contactSheetsRelations = relations(schema.contactSheets, ({ one }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.contactSheets.marathonId],
+    references: [schema.marathons.id],
   }),
-);
+  participant: one(schema.participants, {
+    fields: [schema.contactSheets.participantId],
+    references: [schema.participants.id],
+  }),
+}))
 
 export const sponsorsRelations = relations(schema.sponsors, ({ one }) => ({
   marathon: one(schema.marathons, {
     fields: [schema.sponsors.marathonId],
     references: [schema.marathons.id],
   }),
-}));
+}))
 
-export const votingSessionRelations = relations(
-  schema.votingSession,
-  ({ one, many }) => ({
-    marathon: one(schema.marathons, {
-      fields: [schema.votingSession.marathonId],
-      references: [schema.marathons.id],
-    }),
-    participant: one(schema.participants, {
-      fields: [schema.votingSession.connectedParticipantId],
-      references: [schema.participants.id],
-    }),
-    topic: one(schema.topics, {
-      fields: [schema.votingSession.topicId],
-      references: [schema.topics.id],
-    }),
-    submissions: one(schema.submissions, {
-      fields: [schema.votingSession.voteSubmissionId],
-      references: [schema.submissions.id],
-    }),
-    roundVotes: many(schema.votingRoundVote),
+export const votingSessionRelations = relations(schema.votingSession, ({ one, many }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.votingSession.marathonId],
+    references: [schema.marathons.id],
   }),
-);
+  participant: one(schema.participants, {
+    fields: [schema.votingSession.connectedParticipantId],
+    references: [schema.participants.id],
+  }),
+  topic: one(schema.topics, {
+    fields: [schema.votingSession.topicId],
+    references: [schema.topics.id],
+  }),
+  submissions: one(schema.submissions, {
+    fields: [schema.votingSession.voteSubmissionId],
+    references: [schema.submissions.id],
+  }),
+  roundVotes: many(schema.votingRoundVote),
+}))
 
-export const votingRoundRelations = relations(
-  schema.votingRound,
-  ({ one, many }) => ({
-    marathon: one(schema.marathons, {
-      fields: [schema.votingRound.marathonId],
-      references: [schema.marathons.id],
-    }),
-    topic: one(schema.topics, {
-      fields: [schema.votingRound.topicId],
-      references: [schema.topics.id],
-    }),
-    sourceRound: one(schema.votingRound, {
-      fields: [schema.votingRound.sourceRoundId],
-      references: [schema.votingRound.id],
-      relationName: "voting_round_source_round",
-    }),
-    derivedRounds: many(schema.votingRound, {
-      relationName: "voting_round_source_round",
-    }),
-    roundSubmissions: many(schema.votingRoundSubmission),
-    roundVotes: many(schema.votingRoundVote),
+export const votingRoundRelations = relations(schema.votingRound, ({ one, many }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.votingRound.marathonId],
+    references: [schema.marathons.id],
   }),
-);
+  topic: one(schema.topics, {
+    fields: [schema.votingRound.topicId],
+    references: [schema.topics.id],
+  }),
+  sourceRound: one(schema.votingRound, {
+    fields: [schema.votingRound.sourceRoundId],
+    references: [schema.votingRound.id],
+    relationName: "voting_round_source_round",
+  }),
+  derivedRounds: many(schema.votingRound, {
+    relationName: "voting_round_source_round",
+  }),
+  roundSubmissions: many(schema.votingRoundSubmission),
+  roundVotes: many(schema.votingRoundVote),
+}))
 
 export const votingRoundSubmissionRelations = relations(
   schema.votingRoundSubmission,
@@ -336,22 +310,19 @@ export const votingRoundSubmissionRelations = relations(
       references: [schema.submissions.id],
     }),
   }),
-);
+)
 
-export const votingRoundVoteRelations = relations(
-  schema.votingRoundVote,
-  ({ one }) => ({
-    round: one(schema.votingRound, {
-      fields: [schema.votingRoundVote.roundId],
-      references: [schema.votingRound.id],
-    }),
-    session: one(schema.votingSession, {
-      fields: [schema.votingRoundVote.sessionId],
-      references: [schema.votingSession.id],
-    }),
-    submission: one(schema.submissions, {
-      fields: [schema.votingRoundVote.submissionId],
-      references: [schema.submissions.id],
-    }),
+export const votingRoundVoteRelations = relations(schema.votingRoundVote, ({ one }) => ({
+  round: one(schema.votingRound, {
+    fields: [schema.votingRoundVote.roundId],
+    references: [schema.votingRound.id],
   }),
-);
+  session: one(schema.votingSession, {
+    fields: [schema.votingRoundVote.sessionId],
+    references: [schema.votingSession.id],
+  }),
+  submission: one(schema.submissions, {
+    fields: [schema.votingRoundVote.submissionId],
+    references: [schema.submissions.id],
+  }),
+}))

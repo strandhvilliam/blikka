@@ -1,4 +1,9 @@
-import { parseAsInteger, parseAsString, parseAsBoolean, useQueryStates } from "nuqs"
+import {
+  parseAsInteger,
+  parseAsString,
+  parseAsBoolean,
+  useQueryStates,
+} from "nuqs";
 
 export function useUploadFlowState() {
   const [uploadFlowState, setUploadFlowState] = useQueryStates(
@@ -12,6 +17,8 @@ export function useUploadFlowState() {
       participantLastName: parseAsString,
       participantPhone: parseAsString,
       replaceExistingActiveTopicUpload: parseAsBoolean,
+      termsAccepted: parseAsBoolean,
+      acceptedLocale: parseAsString,
       uploadInstructionsShown: parseAsBoolean.withDefault(false),
     },
     {
@@ -25,10 +32,12 @@ export function useUploadFlowState() {
         participantLastName: "pl",
         participantPhone: "pp",
         replaceExistingActiveTopicUpload: "ra",
+        termsAccepted: "ta",
+        acceptedLocale: "tl",
         uploadInstructionsShown: "uis",
       },
     },
-  )
+  );
 
-  return { uploadFlowState, setUploadFlowState }
+  return { uploadFlowState, setUploadFlowState };
 }
