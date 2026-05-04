@@ -12,11 +12,17 @@ export function SponsorsContent() {
   const trpc = useTRPC()
   const domain = useDomain()
 
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({ domain }),
+  )
+
   const { data: sponsors } = useSuspenseQuery(
     trpc.sponsors.getByMarathon.queryOptions({
       domain,
     })
   )
+
+  const isByCameraMode = marathon?.mode === "by-camera"
 
   const getSponsorImage = (type: string) => {
     return sponsors
@@ -34,13 +40,21 @@ export function SponsorsContent() {
 
   const landingSponsor = resolveLiveLandingSponsor(sponsors)
 
-  const activeCount = allTypes.filter((type) =>
+  const typesForStats = isByCameraMode
+    ? (["live-landing", "live-success-1", "live-success-2"] as const)
+    : allTypes
+
+  const activeCount = typesForStats.filter((type) =>
     type === "live-landing" ? !!landingSponsor : !!getSponsorImage(type),
   ).length
 
   return (
     <div>
-      <SponsorsHeader activeCount={activeCount} totalCount={allTypes.length} />
+      <SponsorsHeader
+        activeCount={activeCount}
+        totalCount={typesForStats.length}
+        isByCameraMode={isByCameraMode}
+      />
 
       <div className="space-y-10">
         <section>
@@ -82,26 +96,28 @@ export function SponsorsContent() {
           </div>
         </section>
 
-        <section>
-          <div className="flex items-center gap-2.5 mb-4">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
-            <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
-              Print Placements
+        {!isByCameraMode && (
+          <section>
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
+              <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
+                Print Placements
+              </p>
+            </div>
+            <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 max-w-md">
+              Sponsor images printed on generated contact sheets and physical materials.
             </p>
-          </div>
-          <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 max-w-md">
-            Sponsor images printed on generated contact sheets and physical materials.
-          </p>
-          <div className="space-y-3">
-            <SponsorCard
-              title="Contact Sheet"
-              description="Sponsor image printed on every participant contact sheet"
-              type="contact-sheets"
-              sponsor={getSponsorImage("contact-sheets")}
-              icon={FileText}
-            />
-          </div>
-        </section>
+            <div className="space-y-3">
+              <SponsorCard
+                title="Contact Sheet"
+                description="Sponsor image printed on every participant contact sheet"
+                type="contact-sheets"
+                sponsor={getSponsorImage("contact-sheets")}
+                icon={FileText}
+              />
+            </div>
+          </section>
+        )}
       </div>
     </div>
   )

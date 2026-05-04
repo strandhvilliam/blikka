@@ -1,10 +1,66 @@
+"use client"
+
 import { type ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CheckCircle2, Clock, XCircle, AlertCircle, Info } from "lucide-react"
+import {
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Copy,
+  XCircle,
+  AlertCircle,
+  Info,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { RealtimeEnrichedTableData } from "../_hooks/use-submissions-table-realtime"
 import { format } from "date-fns"
+import { toast } from "sonner"
+
+function CopyableContact({
+  value,
+  copiedToast,
+  tabularNums,
+}: {
+  value: string | null | undefined
+  copiedToast: string
+  tabularNums?: boolean
+}) {
+  const trimmed = typeof value === "string" ? value.trim() : ""
+  if (!trimmed) {
+    return <span className="text-xs text-muted-foreground">-</span>
+  }
+
+  return (
+    <button
+      type="button"
+      title={`${trimmed} — Click to copy`}
+      onClick={(e) => {
+        e.stopPropagation()
+        void (async () => {
+          try {
+            await navigator.clipboard.writeText(trimmed)
+            toast.success(copiedToast)
+          } catch {
+            toast.error("Could not copy")
+          }
+        })()
+      }}
+      className={cn(
+        "group flex w-full min-w-0 max-w-[200px] items-center gap-1 rounded-md px-2 py-1 text-left",
+        "text-xs text-muted-foreground transition-colors",
+        "hover:bg-muted/80 hover:text-foreground active:bg-muted",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
+      )}
+    >
+      <span className={cn("min-w-0 flex-1 truncate", tabularNums && "tabular-nums")}>{trimmed}</span>
+      <Copy
+        className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-70"
+        aria-hidden
+      />
+    </button>
+  )
+}
 
 interface SubmissionsColumnsOptions {
   marathonMode?: string
@@ -82,32 +138,20 @@ export const getSubmissionsColumns = ({
   baseColumns.push({
     accessorKey: "email",
     header: "Email",
-    cell: ({ row }) => {
-      const email = row.getValue("email") as string | null
-      return (
-        <div
-          className="text-xs text-muted-foreground truncate max-w-[200px]"
-          title={email || undefined}
-        >
-          {email || "-"}
-        </div>
-      )
-    },
+    cell: ({ row }) => (
+      <CopyableContact value={row.getValue("email") as string | null} copiedToast="Email copied" />
+    ),
   })
   baseColumns.push({
     id: "phone",
     header: "Phone",
-    cell: ({ row }) => {
-      const phone = row.original.phoneNumber ?? null
-      return (
-        <div
-          className="tabular-nums text-xs text-muted-foreground truncate max-w-[200px]"
-          title={phone || undefined}
-        >
-          {phone || "-"}
-        </div>
-      )
-    },
+    cell: ({ row }) => (
+      <CopyableContact
+        value={row.original.phoneNumber ?? null}
+        copiedToast="Phone number copied"
+        tabularNums
+      />
+    ),
   })
   baseColumns.push({
     accessorKey: "createdAt",
@@ -259,16 +303,17 @@ export const getSubmissionsColumns = ({
     })
   }
 
-  baseColumns.push(
-    {
-      id: "deviceGroup",
-      header: "Device Group",
-      cell: ({ row }) => {
-        const deviceGroup = row.original.deviceGroup
-        return <div className="text-xs">{deviceGroup?.name || "-"}</div>
-      },
+  baseColumns.push({
+    id: "deviceGroup",
+    header: "Device Group",
+    cell: ({ row }) => {
+      const deviceGroup = row.original.deviceGroup
+      return <div className="text-xs">{deviceGroup?.name || "-"}</div>
     },
-    {
+  })
+
+  if (marathonMode !== "by-camera") {
+    baseColumns.push({
       id: "validationResults",
       header: "Validation Results",
       cell: ({ row }) => {
@@ -322,8 +367,19 @@ export const getSubmissionsColumns = ({
           </div>
         )
       },
-    },
-  )
+    })
+  }
+
+  baseColumns.push({
+    id: "openIndicator",
+    enableSorting: false,
+    header: () => <span className="sr-only">Open details</span>,
+    cell: () => (
+      <div className="flex justify-end">
+        <ChevronRight className="size-3.5 text-muted-foreground/80 shrink-0" aria-hidden />
+      </div>
+    ),
+  })
 
   return baseColumns
 }

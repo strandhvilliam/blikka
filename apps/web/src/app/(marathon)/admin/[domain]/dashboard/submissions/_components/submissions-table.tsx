@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Loader2, AlertCircle, FileText } from "lucide-react"
-import { formatDomainPathname } from "@/lib/utils"
+import { cn, formatDomainPathname } from "@/lib/utils"
 import { useSubmissionsTable } from "../_hooks/use-submissions-table"
 import { SubmissionsFilters } from "./submissions-filters"
 import { getSubmissionsColumns } from "../_lib/submissions-columns"
@@ -372,7 +372,10 @@ export function SubmissionsTable() {
                     {headerGroup.headers.map((header) => (
                       <TableHead
                         key={header.id}
-                        className="h-9 font-semibold text-xs text-foreground bg-muted/50"
+                        className={cn(
+                          "h-9 font-semibold text-xs text-foreground bg-muted/50",
+                          header.column.id === "openIndicator" && "w-10 px-2",
+                        )}
                       >
                         {header.isPlaceholder
                           ? null
@@ -453,7 +456,13 @@ export function SubmissionsTable() {
                           }}
                         >
                           {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="py-2">
+                            <TableCell
+                              key={cell.id}
+                              className={cn(
+                                "py-2",
+                                cell.column.id === "openIndicator" && "w-10 px-2 align-middle",
+                              )}
+                            >
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </TableCell>
                           ))}
