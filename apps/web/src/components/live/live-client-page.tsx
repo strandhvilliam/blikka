@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/trpc/client";
 import { useTranslations, useLocale, Locale } from "next-intl";
@@ -10,6 +10,7 @@ import { PrimaryButton } from "@/components/ui/primary-button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -22,7 +23,7 @@ import {
 } from "@/lib/utils";
 import { format } from "date-fns";
 import { enUS, sv, type Locale as DateFnsLocale } from "date-fns/locale";
-import { Info, ImageIcon, Play } from "lucide-react";
+import { AlertTriangle, Info, ImageIcon, Play } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 import Image from "next/image";
 import { changeLocaleAction } from "@/lib/actions/change-locale-action";
@@ -36,12 +37,62 @@ import { resolveLiveLandingSponsor } from "@/lib/sponsors/live-landing-sponsor";
 
 const BUCKET_NAME = process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME;
 
+interface BrowserCompatibilityWarning {
+  browserName: string;
+  version: number;
+}
+
+function getBrowserCompatibilityWarning(
+  userAgent: string,
+): BrowserCompatibilityWarning | null {
+  const safariMatch = userAgent.match(/Version\/(\d+)(?:\.\d+)? .*Safari\//);
+  const isSafari =
+    safariMatch &&
+    !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR/i.test(userAgent);
+
+  if (isSafari) {
+    const version = Number(safariMatch[1]);
+    if (version <= 15) return { browserName: "Safari", version };
+  }
+
+  const chromiumMatch = userAgent.match(/(?:Chrome|Chromium|CriOS)\/(\d+)/);
+  if (chromiumMatch) {
+    const version = Number(chromiumMatch[1]);
+    if (version <= 111) return { browserName: "Chromium", version };
+  }
+
+  const firefoxMatch = userAgent.match(/(?:Firefox|FxiOS)\/(\d+)/);
+  if (firefoxMatch) {
+    const version = Number(firefoxMatch[1]);
+    if (version <= 128) return { browserName: "Firefox", version };
+  }
+
+  return null;
+}
+
 export function LiveClientPage() {
   const domain = useDomain();
   const trpc = useTRPC();
   const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [compatibilityWarning, setCompatibilityWarning] =
+    useState<BrowserCompatibilityWarning | null>(null);
+
+  useEffect(() => {
+    const warning = getBrowserCompatibilityWarning(navigator.userAgent);
+    setCompatibilityWarning(warning);
+
+    console.info("[LiveClientPage] browser diagnostics", {
+      userAgent: navigator.userAgent,
+      userAgentData: "userAgentData" in navigator ? navigator.userAgentData : undefined,
+      compatibilityWarning: warning,
+      arrayAt: typeof Array.prototype.at,
+      createImageBitmap: typeof window.createImageBitmap,
+      offscreenCanvas: typeof window.OffscreenCanvas,
+      promiseAllSettled: typeof Promise.allSettled,
+    });
+  }, []);
 
   const setLocale = (locale: Locale) => {
     startTransition(async () => {
@@ -120,6 +171,10 @@ export function LiveClientPage() {
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
+      <BrowserCompatibilityDialog
+        warning={compatibilityWarning}
+        onContinue={() => setCompatibilityWarning(null)}
+      />
       <PoweredByBlikka />
       <div className="z-20 flex flex-col flex-1 h-full">
         <main className="flex-1 w-full flex flex-col justify-center pb-4 sm:pb-6">
@@ -167,6 +222,37 @@ export function LiveClientPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+function BrowserCompatibilityDialog({
+  warning,
+  onContinue,
+}: {
+  warning: BrowserCompatibilityWarning | null;
+  onContinue: () => void;
+}) {
+  const open = warning !== null;
+
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onContinue()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            Browser may not be compatible
+          </DialogTitle>
+          <DialogDescription>
+            {warning
+              ? `You are using ${warning.browserName} ${warning.version}, which may not support all features needed for uploads. If this device works for you, you can continue.`
+              : "This browser may not support all features needed for uploads. If this device works for you, you can continue."}
+          </DialogDescription>
+        </DialogHeader>
+        <Button type="button" className="w-full rounded-full" onClick={onContinue}>
+          Continue
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 }
 

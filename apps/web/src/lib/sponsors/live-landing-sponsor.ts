@@ -3,10 +3,11 @@ function latestOfType<T extends { type: string; createdAt: string }>(
   sponsors: T[],
   type: string,
 ): T | undefined {
-  return sponsors
+  const sorted = sponsors
     .filter((s) => s.type === type)
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    .at(-1)
+
+  return sorted[sorted.length - 1]
 }
 
 /** Preference order: canonical slot first, then legacy multi-slot types. */
