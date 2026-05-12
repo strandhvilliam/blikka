@@ -5,5 +5,6 @@ export default defineConfig({
   out: "./drizzle",
   dbCredentials: {
     url: process.env.DATABASE_URL!,
+    ssl: process.env.DATABASE_PROVIDER === "planetscale" ? true : false,
   },
 })

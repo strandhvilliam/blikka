@@ -18,6 +18,7 @@ export default $config({
       DEV_DATABASE_HOST: process.env.DEV_DATABASE_HOST!,
       DEV_DATABASE_PORT: process.env.DEV_DATABASE_PORT!,
       DEV_DATABASE_NAME: process.env.DEV_DATABASE_NAME!,
+      DATABASE_PROVIDER: process.env.DATABASE_PROVIDER ?? "neon",
       DATABASE_URL: process.env.DATABASE_URL!,
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET!,
       BETTER_AUTH_URL: process.env.BETTER_AUTH_URL!,
