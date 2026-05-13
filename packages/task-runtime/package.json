@@ -1,0 +1,24 @@
+{
+  "name": "@blikka/task-runtime",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.146",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@blikka/pubsub": "workspace:*",
+    "@blikka/realtime": "workspace:*",
+    "@blikka/telemetry": "workspace:*",
+    "@effect-aws/lambda": "catalog:",
+    "effect": "catalog:",
+    "sst": "^4.3.9"
+  }
+}
