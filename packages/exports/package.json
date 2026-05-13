@@ -1,0 +1,22 @@
+{
+  "name": "@blikka/exports",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@blikka/aws": "workspace:*",
+    "@blikka/db": "workspace:*",
+    "@blikka/kv-store": "workspace:*",
+    "effect": "catalog:",
+    "jszip": "^3.10.1"
+  }
+}
