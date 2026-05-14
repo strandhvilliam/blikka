@@ -50,7 +50,7 @@ export const makeInitialSubmissionState = (
   key: string,
   orderIndex: number,
 ) =>
-  SubmissionStateSchema.makeUnsafe({
+  SubmissionStateSchema.make({
     uploadSessionId,
     key,
     uploaded: false,
@@ -77,7 +77,7 @@ export const makeInitialParticipantState = (
   expectedCount: number,
   orderIndexes: number[],
 ) =>
-  ParticipantStateSchema.makeUnsafe({
+  ParticipantStateSchema.make({
     uploadSessionId,
     expectedCount,
     orderIndexes,

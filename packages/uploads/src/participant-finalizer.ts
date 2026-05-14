@@ -200,4 +200,10 @@ const makeUploadFinalizer = Effect.gen(function* () {
   return { finalize } satisfies UploadFinalizerShape
 })
 
-export const UploadFinalizerLayer = Layer.effect(UploadFinalizer, makeUploadFinalizer)
+export const UploadFinalizerLayerNoDeps = Layer.effect(UploadFinalizer, makeUploadFinalizer)
+
+export const UploadFinalizerLayer = UploadFinalizerLayerNoDeps.pipe(
+  Layer.provide(
+    Layer.mergeAll(Database.layer, UploadSessionRepository.layer, ExifKVRepository.layer),
+  ),
+)

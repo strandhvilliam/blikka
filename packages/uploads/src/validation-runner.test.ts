@@ -24,7 +24,7 @@ import {
   InvalidValidationRuleError,
   ValidationRunnerInvalidDataError,
   ValidationRunner,
-  ValidationRunnerLayer,
+  ValidationRunnerLayerNoDeps,
   type ValidateParticipantInput,
 } from "./validation-runner"
 
@@ -198,7 +198,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       })).pipe(Effect.as([validationResult])),
   })
 
-  return ValidationRunnerLayer.pipe(
+  return ValidationRunnerLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(Database)(db),

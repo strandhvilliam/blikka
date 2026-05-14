@@ -280,4 +280,21 @@ const makeSubmissionProcessor = Effect.gen(function* () {
   return { process } satisfies SubmissionProcessorShape
 })
 
-export const UploadProcessorLayer = Layer.effect(SubmissionProcessor, makeSubmissionProcessor)
+export const SubmissionProcessorLayerNoDeps = Layer.effect(
+  SubmissionProcessor,
+  makeSubmissionProcessor,
+)
+
+export const SubmissionProcessorLayer = SubmissionProcessorLayerNoDeps.pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      S3Service.layer,
+      UploadSessionRepository.layer,
+      ExifKVRepository.layer,
+      ExifParser.layer,
+      BusService.layer,
+      UploadsConfig.layer,
+      SharpImageService.layer,
+    ),
+  ),
+)

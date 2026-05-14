@@ -14,7 +14,7 @@ import {
   PhotoNotFoundError,
   type ProcessSubmissionInput,
   SubmissionProcessor,
-  UploadProcessorLayer,
+  SubmissionProcessorLayerNoDeps,
 } from "./submission-processor"
 
 const uploadSessionId = "upload-session-1"
@@ -228,7 +228,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     zipsBucketName: "zips",
   })
 
-  return UploadProcessorLayer.pipe(
+  return SubmissionProcessorLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(S3Service)(s3),

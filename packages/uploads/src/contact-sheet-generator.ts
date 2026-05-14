@@ -220,7 +220,19 @@ const makeContactSheetGenerator = Effect.gen(function* () {
   return { generate } satisfies ContactSheetGeneratorShape
 })
 
-export const ContactSheetGeneratorLayer = Layer.effect(
+export const ContactSheetGeneratorLayerNoDeps = Layer.effect(
   ContactSheetGenerator,
   makeContactSheetGenerator,
+)
+
+export const ContactSheetGeneratorLayer = ContactSheetGeneratorLayerNoDeps.pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      Database.layer,
+      UploadSessionRepository.layer,
+      S3Service.layer,
+      UploadsConfig.layer,
+      ContactSheetBuilder.layer,
+    ),
+  ),
 )

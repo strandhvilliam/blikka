@@ -8,8 +8,7 @@ import { EventBusDetailTypes } from "./event-types"
 export class EventBusError extends Schema.TaggedErrorClass<EventBusError>()("EventBusError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
-}) {
-}
+}) {}
 
 export class BusService extends Context.Service<BusService>()("@blikka/aws/bus-service", {
   make: Effect.gen(function* () {
@@ -23,7 +22,7 @@ export class BusService extends Context.Service<BusService>()("@blikka/aws/bus-s
               EventBusName: SSTResource.SubmissionFinalizedBus.name,
               Source: EventBusDetailTypes.Finalized,
               Detail: JSON.stringify(
-                FinalizedEventSchema.makeUnsafe({ domain, reference, uploadSessionId }),
+                FinalizedEventSchema.make({ domain, reference, uploadSessionId }),
               ),
               DetailType: EventBusDetailTypes.Finalized,
             },
@@ -39,7 +38,7 @@ export class BusService extends Context.Service<BusService>()("@blikka/aws/bus-s
           cause: error,
           message: "Unexpected EventBridge error",
         })
-      })
+      }),
     )
 
     return {

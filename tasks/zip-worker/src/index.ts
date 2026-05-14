@@ -1,8 +1,6 @@
-import { Config, Effect, Layer, Schema } from "effect"
-import { S3Service } from "@blikka/aws"
-import { Database } from "@blikka/db"
+import { Config, Effect, Schema } from "effect"
 import { Resource as SSTResource } from "sst"
-import { ZipWorker, ZipWorkerLayer, UploadsConfig } from "@blikka/uploads"
+import { ZipWorker, ZipWorkerLayer } from "@blikka/uploads"
 import {
   getEnvironmentFromStage,
   makeContainerRealtimeTask,
@@ -51,9 +49,7 @@ const runnable = makeContainerRealtimeTask({
 const layer = makeContainerTaskLayer({
   taskName: TASK_NAME,
   environment: getEnvironmentFromStage(SSTResource.App.stage),
-  workflowLayer: ZipWorkerLayer.pipe(
-    Layer.provide(Layer.mergeAll(Database.layer, S3Service.layer, UploadsConfig.layer)),
-  ),
+  workflowLayer: ZipWorkerLayer,
 })
 
 runContainerTask(runnable, layer)

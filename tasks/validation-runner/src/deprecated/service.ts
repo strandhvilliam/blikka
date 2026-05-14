@@ -1,10 +1,6 @@
 import { Config, Effect, Layer, Option, Schema, Context } from "effect"
 import { Database, RuleConfig } from "@blikka/db"
-import {
-  SubmissionState,
-  ExifState,
-  isCurrentUploadSession,
-} from "@blikka/kv-store"
+import { SubmissionState, ExifState, isCurrentUploadSession } from "@blikka/kv-store"
 import { InvalidDataFoundError, InvalidValidationRuleError } from "./utils"
 import { S3Service } from "@blikka/aws"
 import {
@@ -70,7 +66,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
               const fileSize = head.ContentLength
               const fileName = submissionState.key
 
-              const validationInput = ValidationInputSchema.makeUnsafe({
+              const validationInput = ValidationInputSchema.make({
                 exif: exifState?.exif ?? {},
                 fileName,
                 mimeType: mimeType ?? "image/jpeg",
@@ -180,7 +176,10 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
 
           const validationInputs = yield* makeValidationInputs(exifStates, submissionStates)
           const validationRules = yield* makeValidationRules(rules)
-          const validationResults = yield* validator.runValidations(validationRules, validationInputs)
+          const validationResults = yield* validator.runValidations(
+            validationRules,
+            validationInputs,
+          )
 
           yield* db.validationsQueries.createMultipleValidationResults({
             data: validationResults,

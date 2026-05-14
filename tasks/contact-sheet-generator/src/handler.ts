@@ -38,17 +38,7 @@ const effectHandler = makeSqsRealtimeTask({
 const serviceLayer = makeLambdaTaskLayer({
   taskName: TASK_NAME,
   environment: getEnvironmentFromStage(SSTResource.App.stage),
-  workflowLayer: ContactSheetGeneratorLayer.pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        Database.layer,
-        S3Service.layer,
-        UploadSessionRepository.layer,
-        ContactSheetBuilder.layer,
-        UploadsConfig.layer,
-      ),
-    ),
-  ),
+  workflowLayer: ContactSheetGeneratorLayer,
 })
 
 export const handler = makeLambdaHandler({

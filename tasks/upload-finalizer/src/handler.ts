@@ -1,6 +1,4 @@
-import { Effect, Layer } from "effect"
-import { Database } from "@blikka/db"
-import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
+import { Effect } from "effect"
 import { FinalizedEventSchema } from "@blikka/aws"
 import { Resource as SSTResource } from "sst"
 import {
@@ -37,11 +35,7 @@ const effectHandler = makeSqsRealtimeTask({
 const serviceLayer = makeLambdaTaskLayer({
   taskName: TASK_NAME,
   environment: getEnvironmentFromStage(SSTResource.App.stage),
-  workflowLayer: UploadFinalizerLayer.pipe(
-    Layer.provide(
-      Layer.mergeAll(Database.layer, UploadSessionRepository.layer, ExifKVRepository.layer),
-    ),
-  ),
+  workflowLayer: UploadFinalizerLayer,
 })
 
 export const handler = makeLambdaHandler({

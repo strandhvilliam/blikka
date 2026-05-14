@@ -75,7 +75,7 @@ export const createFailureResult = (
   input?: ValidationInput,
 ): Effect.Effect<ValidationResult> =>
   Effect.succeed(
-    ValidationResultSchema.makeUnsafe({
+    ValidationResultSchema.make({
       outcome: VALIDATION_OUTCOME.FAILED,
       ruleKey: rule.ruleKey,
       message: error.message,
@@ -92,7 +92,7 @@ export const createSkippedResult = (
   input?: ValidationInput,
 ): Effect.Effect<ValidationResult> =>
   Effect.succeed(
-    ValidationResultSchema.makeUnsafe({
+    ValidationResultSchema.make({
       outcome: VALIDATION_OUTCOME.SKIPPED,
       ruleKey: rule.ruleKey,
       message: error.reason,
@@ -108,7 +108,7 @@ export const createPassedResult = (
   input?: ValidationInput,
 ): Effect.Effect<ValidationResult> =>
   Effect.succeed(
-    ValidationResultSchema.makeUnsafe({
+    ValidationResultSchema.make({
       outcome: VALIDATION_OUTCOME.PASSED,
       ruleKey: rule.ruleKey,
       message: `${rule.ruleKey} validation passed`,

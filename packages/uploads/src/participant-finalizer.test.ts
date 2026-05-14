@@ -12,7 +12,7 @@ import { Effect, Layer, Option, Ref } from "effect"
 import {
   FailedToFinalizeParticipantError,
   UploadFinalizer,
-  UploadFinalizerLayer,
+  UploadFinalizerLayerNoDeps,
   type FinalizeParticipantInput,
 } from "./participant-finalizer"
 
@@ -152,7 +152,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       }),
   } as unknown as ExifKVRepository["Service"])
 
-  return UploadFinalizerLayer.pipe(
+  return UploadFinalizerLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(Database)(db),

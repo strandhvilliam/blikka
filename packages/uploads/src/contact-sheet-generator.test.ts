@@ -9,7 +9,7 @@ import { Effect, Layer, Option, Ref } from "effect"
 import { UploadsConfig } from "./config"
 import {
   ContactSheetGenerator,
-  ContactSheetGeneratorLayer,
+  ContactSheetGeneratorLayerNoDeps,
   FailedToGenerateContactSheetError,
   InvalidSheetGenerationDataError,
   type GenerateContactSheetInput,
@@ -187,7 +187,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       }),
   } as unknown as ContactSheetBuilder["Service"])
 
-  return ContactSheetGeneratorLayer.pipe(
+  return ContactSheetGeneratorLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(Database)(db),

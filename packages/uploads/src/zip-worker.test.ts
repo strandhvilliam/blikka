@@ -9,7 +9,7 @@ import {
   FailedToGenerateZipError,
   ZipWorker,
   ZipWorkerDataNotFoundError,
-  ZipWorkerLayer,
+  ZipWorkerLayerNoDeps,
   type RunZipTaskInput,
 } from "./zip-worker"
 
@@ -148,7 +148,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       }),
   } as unknown as S3Service["Service"])
 
-  return ZipWorkerLayer.pipe(
+  return ZipWorkerLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(Database)(db),

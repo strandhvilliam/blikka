@@ -1,7 +1,4 @@
-import { Effect, Layer } from "effect"
-import { BusService, S3Service } from "@blikka/aws"
-import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
-import { ExifParser, SharpImageService } from "@blikka/image-manipulation"
+import { Effect } from "effect"
 import { Resource as SSTResource } from "sst"
 import {
   getEnvironmentFromStage,
@@ -14,8 +11,7 @@ import {
 import {
   SubmissionProcessor,
   type ProcessSubmissionInput,
-  UploadProcessorLayer,
-  UploadsConfig,
+  SubmissionProcessorLayer,
 } from "@blikka/uploads"
 
 const TASK_NAME = "upload-processor"
@@ -64,19 +60,7 @@ const effectHandler = makeSqsRealtimeTask({
 const serviceLayer = makeLambdaTaskLayer({
   taskName: TASK_NAME,
   environment: getEnvironmentFromStage(SSTResource.App.stage),
-  workflowLayer: UploadProcessorLayer.pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        S3Service.layer,
-        UploadSessionRepository.layer,
-        ExifKVRepository.layer,
-        ExifParser.layer,
-        BusService.layer,
-        SharpImageService.layer,
-        UploadsConfig.layer,
-      ),
-    ),
-  ),
+  workflowLayer: SubmissionProcessorLayer,
 })
 
 export const handler = makeLambdaHandler({

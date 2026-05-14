@@ -38,18 +38,7 @@ const effectHandler = makeSqsRealtimeTask({
 const serviceLayer = makeLambdaTaskLayer({
   taskName: TASK_NAME,
   environment: getEnvironmentFromStage(SSTResource.App.stage),
-  workflowLayer: ValidationRunnerLayer.pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        Database.layer,
-        S3Service.layer,
-        UploadSessionRepository.layer,
-        ExifKVRepository.layer,
-        ValidationEngine.layer,
-        UploadsConfig.layer,
-      ),
-    ),
-  ),
+  workflowLayer: ValidationRunnerLayer,
 })
 
 export const handler = makeLambdaHandler({

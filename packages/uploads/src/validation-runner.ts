@@ -204,4 +204,17 @@ const makeValidationRunner = Effect.gen(function* () {
   return { execute } satisfies ValidationRunnerShape
 })
 
-export const ValidationRunnerLayer = Layer.effect(ValidationRunner, makeValidationRunner)
+export const ValidationRunnerLayerNoDeps = Layer.effect(ValidationRunner, makeValidationRunner)
+
+export const ValidationRunnerLayer = ValidationRunnerLayerNoDeps.pipe(
+  Layer.provide(
+    Layer.mergeAll(
+      Database.layer,
+      S3Service.layer,
+      UploadSessionRepository.layer,
+      ExifKVRepository.layer,
+      ValidationEngine.layer,
+      UploadsConfig.layer,
+    ),
+  ),
+)

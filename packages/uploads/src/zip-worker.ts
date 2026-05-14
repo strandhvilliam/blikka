@@ -212,4 +212,8 @@ const makeZipWorker = Effect.gen(function* () {
   return { runZipTask } satisfies ZipWorkerShape
 })
 
-export const ZipWorkerLayer = Layer.effect(ZipWorker, makeZipWorker)
+export const ZipWorkerLayerNoDeps = Layer.effect(ZipWorker, makeZipWorker)
+
+export const ZipWorkerLayer = ZipWorkerLayerNoDeps.pipe(
+  Layer.provide(Layer.mergeAll(Database.layer, S3Service.layer, UploadsConfig.layer)),
+)
