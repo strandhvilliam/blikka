@@ -210,6 +210,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
             submissionsBucketName: "submissions",
             thumbnailsBucketName: "thumbnails",
             contactSheetsBucketName: "contact-sheets",
+            zipsBucketName: "zips",
           }),
         ),
         Layer.succeed(ValidationEngine)(validationEngine),

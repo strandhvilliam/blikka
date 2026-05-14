@@ -225,6 +225,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     submissionsBucketName: "submissions",
     thumbnailsBucketName: "thumbnails",
     contactSheetsBucketName: "contact-sheets",
+    zipsBucketName: "zips",
   })
 
   return UploadProcessorLayer.pipe(

@@ -1,5 +1,4 @@
 import { Effect, Layer, Option, Context } from "effect"
-import { ZipKVRepository } from "@blikka/kv-store"
 import { Database, Submission, Topic } from "@blikka/db"
 import { S3Service } from "@blikka/aws"
 import { Resource as SSTResource } from "sst"
@@ -11,7 +10,6 @@ export class ZipWorker extends Context.Service<ZipWorker>()(
   "@blikka/tasks/zip-worker/zip-worker",
   {
     make: Effect.gen(function* () {
-      const kvStore = yield* ZipKVRepository
       const db = yield* Database
       const s3 = yield* S3Service
 
@@ -129,16 +127,11 @@ export class ZipWorker extends Context.Service<ZipWorker>()(
         reference: string,
       ) {
         return yield* Effect.gen(function* () {
-          yield* kvStore.initializeZipProgress(domain, reference, `${domain}/${reference}.zip`)
-
           const { participant, topics } = yield* fetchRequiredData(domain, reference)
 
           const entries = yield* Effect.forEach(
             participant.submissions,
-            (submission) =>
-              processSubmission(domain, reference, submission, topics).pipe(
-                Effect.tap(() => kvStore.incrementZipProgress(domain, reference)),
-              ),
+            (submission) => processSubmission(domain, reference, submission, topics),
             { concurrency: 5 },
           )
 
@@ -146,34 +139,16 @@ export class ZipWorker extends Context.Service<ZipWorker>()(
           yield* s3.putFile(SSTResource.V2ZipsBucket.name, `${domain}/${reference}.zip`, zipBuffer)
 
           const zipDto = makeNewZipDto(domain, participant)
-          yield* Effect.all(
-            [
-              kvStore.completeZipProgress(domain, reference).pipe(
-                Effect.mapError(
-                  (error) =>
-                    new FailedToGenerateZipError({
-                      message: "Failed to save zip progress",
-                      cause: error,
-                      domain,
-                      reference,
-                    }),
-                ),
-              ),
-              db.submissionsQueries.createZippedSubmission(zipDto).pipe(
-                Effect.mapError(
-                  (error) =>
-                    new FailedToGenerateZipError({
-                      domain,
-                      reference,
-                      message: "Failed to save zipped submission to db",
-                      cause: error,
-                    }),
-                ),
-              ),
-            ],
-            {
-              concurrency: 2,
-            },
+          yield* db.submissionsQueries.createZippedSubmission(zipDto).pipe(
+            Effect.mapError(
+              (error) =>
+                new FailedToGenerateZipError({
+                  domain,
+                  reference,
+                  message: "Failed to save zipped submission to db",
+                  cause: error,
+                }),
+            ),
           )
 
           return zipBuffer
@@ -186,6 +161,6 @@ export class ZipWorker extends Context.Service<ZipWorker>()(
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(ZipKVRepository.layer, Database.layer, S3Service.layer)),
+    Layer.provide(Layer.mergeAll(Database.layer, S3Service.layer)),
   )
 }

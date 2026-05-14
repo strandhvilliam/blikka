@@ -104,21 +104,6 @@ export const IncrementResultSchema = Schema.Literals([
   "MISSING_DATA",
 ]);
 
-export const ZipProgressSchema = Schema.Struct({
-  progress: Schema.Number,
-  status: Schema.String,
-  errors: Schema.Array(Schema.String),
-  zipKey: Schema.String,
-});
-
-export const makeInitialZipProgress = (zipKey: string) =>
-  ZipProgressSchema.makeUnsafe({
-    progress: 0,
-    status: "pending",
-    errors: [],
-    zipKey,
-  });
-
 // ----------------------------------------------------------------------------
 // Download State Schemas (stored as Redis HASH - all values are strings)
 // ----------------------------------------------------------------------------
