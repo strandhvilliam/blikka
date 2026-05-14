@@ -154,9 +154,7 @@ export class S3Service extends Context.Service<S3Service>()("@blikka/aws/s3-serv
         })
         return yield* s3Client.use((client) => client.send(putObjectCommand))
       },
-      Effect.retry(
-        Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
-      ),
+      Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
       Effect.mapError((error) => {
         return new S3ClientError({
           cause: error,
@@ -173,9 +171,7 @@ export class S3Service extends Context.Service<S3Service>()("@blikka/aws/s3-serv
         })
         return yield* s3Client.use((client) => client.send(deleteObjectCommand))
       },
-      Effect.retry(
-        Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
-      ),
+      Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
       Effect.mapError((error) => {
         return new S3ClientError({
           cause: error,

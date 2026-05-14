@@ -10,7 +10,6 @@ export * from "./repos/exif-kv-repository"
 export * from "./repos/download-state-repository"
 export * from "./key-factory"
 export * from "./schema"
-export * from "./upload-session-guards"
 
 export class KVStore extends Context.Service<KVStore>()("@blikka/packages/kv-store", {
   make: Effect.gen(function* () {

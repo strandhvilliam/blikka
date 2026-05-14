@@ -219,17 +219,27 @@ export class UploadSessionRepository extends Context.Service<UploadSessionReposi
             })
           })
         },
+        Effect.orElseSucceed(() => [] as SubmissionState[]),
       )
 
       const updateParticipantSession = Effect.fn(
         "UploadSessionRepository.updateParticipantSession",
-      )(function* (domain: string, ref: string, state: Partial<ParticipantState>) {
-        const key = keyFactory.participant(domain, ref)
-        const encodedState = yield* Schema.encodeEffect(
-          ParticipantStateSchema.mapFields(Struct.map(Schema.optional)),
-        )(state)
-        return yield* redis.use((client) => client.hset(key, encodedState))
-      })
+      )(
+        function* (domain: string, ref: string, state: Partial<ParticipantState>) {
+          const key = keyFactory.participant(domain, ref)
+          const encodedState = yield* Schema.encodeEffect(
+            ParticipantStateSchema.mapFields(Struct.map(Schema.optional)),
+          )(state)
+          return yield* redis.use((client) => client.hset(key, encodedState))
+        },
+        Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
+        Effect.mapError((error) => {
+          return new UploadSessionRepositoryError({
+            message: `Failed to update participant session`,
+            cause: error,
+          })
+        }),
+      )
 
       const updateSubmissionSession = Effect.fn("UploadSessionRepository.updateSubmissionSession")(
         function* (

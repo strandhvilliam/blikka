@@ -1,4 +1,4 @@
-import { describe, it } from "@effect/vitest"
+import { assert, describe, it } from "@effect/vitest"
 import { BusService, S3Service } from "@blikka/aws"
 import {
   ExifKVRepository,
@@ -9,7 +9,6 @@ import {
 } from "@blikka/kv-store"
 import { ExifParser, SharpImageService } from "@blikka/image-manipulation"
 import { Effect, Layer, Option, Ref } from "effect"
-import { strict as assert } from "node:assert"
 import { UploadsConfig } from "./config"
 import { PhotoNotFoundError } from "./errors"
 import {
@@ -271,181 +270,180 @@ const runWithState = <A, E>(
 
 describe("SubmissionProcessor", () => {
   it.effect("processes a ready submission and records artifacts", () =>
-    runWithState(makeInitialState(), (stateRef) =>
-      Effect.gen(function* () {
-        const processor = yield* SubmissionProcessor
-        yield* processor.process(input)
-        return yield* Ref.get(stateRef)
-      }),
-    ).pipe(
-      Effect.map(({ result: state }) => {
-        assert.deepStrictEqual(state.s3Gets, [{ bucket: "submissions", key: input.key }])
-        assert.deepStrictEqual(state.exif[input.orderIndex], { Make: "Nikon", ISO: 200 })
-        assert.deepStrictEqual(state.thumbnailPuts, [
-          {
-            bucket: "thumbnails",
-            key: "demo/REF123/03/thumbnail_photo.jpg",
-            file: thumbnailBytes,
-          },
-        ])
-        assert.deepStrictEqual(state.submissionUpdates, [
-          {
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(makeInitialState(), () =>
+        Effect.gen(function* () {
+          const processor = yield* SubmissionProcessor
+          yield* processor.process(input)
+        }),
+      )
+
+      assert.deepStrictEqual(state.s3Gets, [{ bucket: "submissions", key: input.key }])
+      assert.deepStrictEqual(state.exif[input.orderIndex], { Make: "Nikon", ISO: 200 })
+      assert.deepStrictEqual(state.thumbnailPuts, [
+        {
+          bucket: "thumbnails",
+          key: "demo/REF123/03/thumbnail_photo.jpg",
+          file: thumbnailBytes,
+        },
+      ])
+      assert.deepStrictEqual(state.submissionUpdates, [
+        {
+          orderIndex: input.orderIndex,
+          state: {
+            uploaded: true,
             orderIndex: input.orderIndex,
-            state: {
-              uploaded: true,
-              orderIndex: input.orderIndex,
-              thumbnailKey: "demo/REF123/03/thumbnail_photo.jpg",
-              exifProcessed: true,
-            },
+            thumbnailKey: "demo/REF123/03/thumbnail_photo.jpg",
+            exifProcessed: true,
           },
-        ])
-        assert.deepStrictEqual(state.increments, [input.orderIndex])
-      }),
-    ),
+        },
+      ])
+      assert.deepStrictEqual(state.increments, [input.orderIndex])
+    }),
   )
 
   it.effect("merges seeded EXIF over parsed EXIF", () =>
-    runWithState(
-      makeInitialState({
-        exif: {
-          [input.orderIndex]: {
-            Make: "Seeded",
-            Lens: "Prime",
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          exif: {
+            [input.orderIndex]: {
+              Make: "Seeded",
+              Lens: "Prime",
+            },
           },
-        },
-        parseResult: Effect.succeed({
-          Make: "Parsed",
-          ISO: 400,
+          parseResult: Effect.succeed({
+            Make: "Parsed",
+            ISO: 400,
+          }),
         }),
-      }),
-      () =>
-        Effect.gen(function* () {
-          const processor = yield* SubmissionProcessor
-          yield* processor.process(input)
-        }),
-    ).pipe(
-      Effect.map(({ state }) => {
-        assert.deepStrictEqual(state.exif[input.orderIndex], {
-          Make: "Seeded",
-          ISO: 400,
-          Lens: "Prime",
-        })
-      }),
-    ),
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            yield* processor.process(input)
+          }),
+      )
+
+      assert.deepStrictEqual(state.exif[input.orderIndex], {
+        Make: "Seeded",
+        ISO: 400,
+        Lens: "Prime",
+      })
+    }),
   )
 
   it.effect("sends finalized event only after current-session finalization", () =>
-    runWithState(
-      makeInitialState({
-        incrementStatus: "FINALIZED",
-      }),
-      () =>
-        Effect.gen(function* () {
-          const processor = yield* SubmissionProcessor
-          yield* processor.process(input)
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          incrementStatus: "FINALIZED",
         }),
-    ).pipe(
-      Effect.map(({ state }) => {
-        assert.deepStrictEqual(state.finalizedEvents, [
-          {
-            domain: input.domain,
-            reference: input.reference,
-            uploadSessionId,
-          },
-        ])
-      }),
-    ),
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            yield* processor.process(input)
+          }),
+      )
+
+      assert.deepStrictEqual(state.finalizedEvents, [
+        {
+          domain: input.domain,
+          reference: input.reference,
+          uploadSessionId,
+        },
+      ])
+    }),
   )
 
   it.effect("skips artifact work when the submission key is stale", () =>
-    runWithState(
-      makeInitialState({
-        submissions: {
-          [input.orderIndex]: makeSubmissionState({ key: "demo/REF123/03/old.jpg" }),
-        },
-      }),
-      () =>
-        Effect.gen(function* () {
-          const processor = yield* SubmissionProcessor
-          yield* processor.process(input)
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          submissions: {
+            [input.orderIndex]: makeSubmissionState({ key: "demo/REF123/03/old.jpg" }),
+          },
         }),
-    ).pipe(
-      Effect.map(({ state }) => {
-        assert.deepStrictEqual(state.s3Gets, [])
-        assert.deepStrictEqual(state.exif, {})
-        assert.deepStrictEqual(state.thumbnailPuts, [])
-        assert.deepStrictEqual(state.increments, [])
-        assert.deepStrictEqual(state.finalizedEvents, [])
-      }),
-    ),
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            yield* processor.process(input)
+          }),
+      )
+
+      assert.deepStrictEqual(state.s3Gets, [])
+      assert.deepStrictEqual(state.exif, {})
+      assert.deepStrictEqual(state.thumbnailPuts, [])
+      assert.deepStrictEqual(state.increments, [])
+      assert.deepStrictEqual(state.finalizedEvents, [])
+    }),
   )
 
   it.effect("fails with PhotoNotFoundError when S3 has no object", () =>
-    runWithState(
-      makeInitialState({
-        files: {},
-      }),
-      () =>
-        Effect.gen(function* () {
-          const processor = yield* SubmissionProcessor
-          return yield* Effect.flip(processor.process(input))
+    Effect.gen(function* () {
+      const { result: error, state } = yield* runWithState(
+        makeInitialState({
+          files: {},
         }),
-    ).pipe(
-      Effect.map(({ result: error, state }) => {
-        assert.ok(error instanceof PhotoNotFoundError)
-        assert.strictEqual(error.key, input.key)
-        assert.deepStrictEqual(state.increments, [])
-        assert.deepStrictEqual(state.finalizedEvents, [])
-      }),
-    ),
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            return yield* Effect.flip(processor.process(input))
+          }),
+      )
+
+      assert.instanceOf(error, PhotoNotFoundError)
+      assert.strictEqual(error.key, input.key)
+      assert.deepStrictEqual(state.increments, [])
+      assert.deepStrictEqual(state.finalizedEvents, [])
+    }),
   )
 
   it.effect("continues without thumbnail when resize fails", () =>
-    runWithState(
-      makeInitialState({
-        resizeResult: Effect.fail(new Error("resize failed")),
-      }),
-      () =>
-        Effect.gen(function* () {
-          const processor = yield* SubmissionProcessor
-          yield* processor.process(input)
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          resizeResult: Effect.fail(new Error("resize failed")),
         }),
-    ).pipe(
-      Effect.map(({ state }) => {
-        assert.deepStrictEqual(state.thumbnailPuts, [])
-        assert.deepStrictEqual(state.submissionUpdates, [
-          {
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            yield* processor.process(input)
+          }),
+      )
+
+      assert.deepStrictEqual(state.thumbnailPuts, [])
+      assert.deepStrictEqual(state.submissionUpdates, [
+        {
+          orderIndex: input.orderIndex,
+          state: {
+            uploaded: true,
             orderIndex: input.orderIndex,
-            state: {
-              uploaded: true,
-              orderIndex: input.orderIndex,
-              thumbnailKey: null,
-              exifProcessed: true,
-            },
+            thumbnailKey: null,
+            exifProcessed: true,
           },
-        ])
-        assert.deepStrictEqual(state.increments, [input.orderIndex])
-      }),
-    ),
+        },
+      ])
+      assert.deepStrictEqual(state.increments, [input.orderIndex])
+    }),
   )
 
   it.effect("skips finalized event for stale participant after increment", () =>
-    runWithState(
-      makeInitialState({
-        incrementStatus: "FINALIZED",
-        participantAfterIncrement: makeParticipantState({
-          uploadSessionId: "stale-upload-session",
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          incrementStatus: "FINALIZED",
+          participantAfterIncrement: makeParticipantState({
+            uploadSessionId: "stale-upload-session",
+          }),
         }),
-      }),
-      () =>
-        Effect.gen(function* () {
-          const processor = yield* SubmissionProcessor
-          yield* processor.process(input)
-        }),
-    ).pipe(
-      Effect.map(({ state }) => {
-        assert.deepStrictEqual(state.finalizedEvents, [])
-      }),
-    ),
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            yield* processor.process(input)
+          }),
+      )
+
+      assert.deepStrictEqual(state.finalizedEvents, [])
+    }),
   )
 })

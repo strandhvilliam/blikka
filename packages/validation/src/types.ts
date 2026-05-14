@@ -7,6 +7,7 @@ import {
   ValidationInputSchema,
   ValidationResultSchema,
 } from "./schemas"
+import { ValidationParamError } from "./utils"
 
 export class ValidationFailure extends Schema.TaggedErrorClass<ValidationFailure>()(
   "ValidationFailure",
@@ -14,16 +15,16 @@ export class ValidationFailure extends Schema.TaggedErrorClass<ValidationFailure
     ruleKey: RuleKeySchema,
     message: Schema.String,
     context: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
-  }) {
-}
+  },
+) {}
 
 export class ValidationSkipped extends Schema.TaggedErrorClass<ValidationSkipped>()(
   "ValidationSkipped",
   {
     ruleKey: RuleKeySchema,
     reason: Schema.String,
-  }) {
-}
+  },
+) {}
 
 export type RuleKey = (typeof RULE_KEYS)[keyof typeof RULE_KEYS]
 
@@ -39,3 +40,5 @@ export interface ValidationRule<K extends RuleKey = RuleKey> {
   severity: SeverityLevel
   params: RuleParams[K]
 }
+
+export type ValidationEngineError = ValidationFailure | ValidationParamError
