@@ -15,7 +15,9 @@
       "@blikka/validation": ["../../packages/validation/src"],
       "@blikka/telemetry": ["../../packages/telemetry/src"],
       "@blikka/pubsub": ["../../packages/pubsub/src"],
-      "@blikka/realtime": ["../../packages/realtime/src"]
+      "@blikka/realtime": ["../../packages/realtime/src"],
+      "@blikka/task-runtime": ["../../packages/task-runtime/src"],
+      "@blikka/uploads": ["../../packages/uploads/src"]
     },
     "strict": true
   },
