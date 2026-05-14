@@ -1,10 +1,10 @@
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Effect, Layer, Option, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import { deviceGroups, marathons } from "../schema";
 import { eq } from "drizzle-orm";
 import type { NewDeviceGroup } from "../types";
 import { DbError } from "../utils";
-export class DeviceGroupsQueries extends ServiceMap.Service<DeviceGroupsQueries>()(
+export class DeviceGroupsQueries extends Context.Service<DeviceGroupsQueries>()(
   "@blikka.app/db/device-group-queries",
   {
     make: Effect.gen(function* () {

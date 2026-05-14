@@ -1,7 +1,7 @@
 import "server-only";
 
 import { Database, type NewTopic } from "@blikka/db";
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Effect, Layer, Option, Context } from "effect";
 import { TopicApiError } from "./schemas";
 
 type TopicVisibility = "public" | "private" | "scheduled" | "active";
@@ -33,7 +33,7 @@ function validateSubmissionWindow({
   }
 }
 
-export class TopicsApiService extends ServiceMap.Service<TopicsApiService>()(
+export class TopicsApiService extends Context.Service<TopicsApiService>()(
   "@blikka/api/TopicsApiService",
   {
     make: Effect.gen(function* () {

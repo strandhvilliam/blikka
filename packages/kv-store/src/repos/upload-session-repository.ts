@@ -1,4 +1,4 @@
-import { Duration, Effect, Layer, Option, Schedule, Schema, ServiceMap, Struct } from "effect"
+import { Context, Duration, Effect, Layer, Option, Schedule, Schema, Struct } from "effect"
 import { RedisClient } from "@blikka/redis"
 import { KeyFactory } from "../key-factory"
 import {
@@ -25,7 +25,7 @@ export class UploadSessionRepositoryError extends Schema.TaggedErrorClass<Upload
   },
 ) {}
 
-export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRepository>()(
+export class UploadSessionRepository extends Context.Service<UploadSessionRepository>()(
   "@blikka/packages/kv-store/upload-session-repository",
   {
     make: Effect.gen(function* () {
@@ -88,9 +88,7 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
             return multi.exec()
           })
         },
-        Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
-        ),
+        Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
       )
 
       const setParticipantErrorState = Effect.fn("UploadSessionRepository.setErrorState")(
@@ -102,9 +100,7 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
             })
           }
         },
-        Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
-        ),
+        Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
       )
 
       const incrementParticipantState = Effect.fn(

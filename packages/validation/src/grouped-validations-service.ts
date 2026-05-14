@@ -1,10 +1,10 @@
-import { Effect, Layer, Option, ServiceMap } from "effect"
+import { Effect, Layer, Option, Context } from "effect"
 import type { RuleParams, ValidationInput } from "./types"
 import { RULE_KEYS } from "./constants"
 import { getTimestamp, getDeviceIdentifier } from "./utils"
 import { ValidationFailure, ValidationSkipped } from "./types"
 
-export class GroupedValidationsService extends ServiceMap.Service<GroupedValidationsService>()(
+export class GroupedValidationsService extends Context.Service<GroupedValidationsService>()(
   "@blikka/packages/validation/GroupedValidationsService",
   {
     make: Effect.gen(function* () {

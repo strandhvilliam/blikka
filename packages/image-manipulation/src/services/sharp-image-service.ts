@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, ServiceMap } from "effect"
+import { Effect, Layer, Schema, Context } from "effect"
 import sharp from "sharp"
 import type { OverlayOptions } from "sharp"
 
@@ -20,7 +20,7 @@ const makeSharpImage = (image: Uint8Array<ArrayBufferLike>) =>
       }),
   })
 
-export class SharpImageService extends ServiceMap.Service<SharpImageService>()(
+export class SharpImageService extends Context.Service<SharpImageService>()(
   "@blikka/packages/image-manipulation/SharpImageService",
   {
     make: Effect.gen(function* () {

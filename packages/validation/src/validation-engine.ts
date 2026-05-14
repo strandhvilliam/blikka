@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from "effect"
+import { Effect, Layer, Context } from "effect"
 import { SingleValidationsService } from "./single-validations-service"
 import { RULE_KEYS } from "./constants"
 import { type ValidationRule, type ValidationInput, ValidationFailure } from "./types"
@@ -10,7 +10,7 @@ import {
   parseRuleParams,
 } from "./utils"
 
-export class ValidationEngine extends ServiceMap.Service<ValidationEngine>()(
+export class ValidationEngine extends Context.Service<ValidationEngine>()(
   "@blikka/packages/validation/ValidationEngine",
   {
     make: Effect.gen(function* () {

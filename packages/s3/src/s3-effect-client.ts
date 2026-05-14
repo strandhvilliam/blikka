@@ -1,5 +1,5 @@
 import { S3Client } from "@aws-sdk/client-s3"
-import { Config, Console, ServiceMap, Effect, Schema, Layer } from "effect"
+import { Config, Console, Context, Effect, Schema, Layer } from "effect"
 
 export class S3EffectError extends Schema.TaggedErrorClass<S3EffectError>()("S3EffectError", {
   message: Schema.String,
@@ -7,7 +7,7 @@ export class S3EffectError extends Schema.TaggedErrorClass<S3EffectError>()("S3E
 }) {
 }
 
-export class S3EffectClient extends ServiceMap.Service<S3EffectClient>()(
+export class S3EffectClient extends Context.Service<S3EffectClient>()(
   "@blikka/packages/s3-service/s3-effect-client",
   {
     make: Effect.gen(function* () {

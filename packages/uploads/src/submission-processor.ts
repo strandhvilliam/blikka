@@ -1,4 +1,4 @@
-import { Cause, Effect, Layer, Option, ServiceMap } from "effect"
+import { Cause, Effect, Layer, Option, Context } from "effect"
 import { BusService, S3Service } from "@blikka/aws"
 import {
   ExifKVRepository,
@@ -52,7 +52,7 @@ export interface SubmissionProcessorShape {
   ) => Effect.Effect<void, SubmissionProcessorError>
 }
 
-export class SubmissionProcessor extends ServiceMap.Service<
+export class SubmissionProcessor extends Context.Service<
   SubmissionProcessor,
   SubmissionProcessorShape
 >()("@blikka/uploads/SubmissionProcessor") {}

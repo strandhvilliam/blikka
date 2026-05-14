@@ -1,11 +1,11 @@
-import { Effect, Layer, ServiceMap } from "effect";
+import { Effect, Layer, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import { marathons, submissions } from "../schema";
 import { count, eq } from "drizzle-orm";
 import { topics } from "../schema";
 import type { NewTopic } from "../types";
 import { DbError } from "../utils";
-export class TopicsQueries extends ServiceMap.Service<TopicsQueries>()(
+export class TopicsQueries extends Context.Service<TopicsQueries>()(
   "@blikka/db/topics-queries",
   {
     make: Effect.gen(function* () {

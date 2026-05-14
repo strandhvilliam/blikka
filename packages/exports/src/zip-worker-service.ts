@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Option, ServiceMap } from "effect";
+import { Config, Effect, Layer, Option, Context } from "effect";
 import { ZipKVRepository } from "@blikka/kv-store";
 import { Database } from "@blikka/db";
 import type { Submission, Topic } from "@blikka/db";
@@ -8,7 +8,7 @@ import JSZip from "jszip";
 import { ExportDataNotFoundError, FailedToGenerateZipError } from "./errors";
 import { makeZipKey, makeZippedSubmissionDto } from "./zip-utils";
 
-export class ZipWorker extends ServiceMap.Service<ZipWorker>()(
+export class ZipWorker extends Context.Service<ZipWorker>()(
   "@blikka/exports/ZipWorker",
   {
     make: Effect.gen(function* () {

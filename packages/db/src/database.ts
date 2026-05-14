@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from "effect"
+import { Effect, Layer, Context } from "effect"
 import { UsersQueries } from "./queries/users.queries"
 import { ValidationsQueries } from "./queries/validations.queries"
 import { SubmissionsQueries } from "./queries/submissions.queries"
@@ -15,7 +15,7 @@ import { ExportsQueries } from "./queries/exports.queries"
 import { ZippedSubmissionsQueries } from "./queries/zipped-submissions.queries"
 import { VotingQueries } from "./queries/voting.queries"
 
-export class Database extends ServiceMap.Service<Database>()("@blikka/db/database", {
+export class Database extends Context.Service<Database>()("@blikka/db/database", {
   make: Effect.gen(function* () {
     const usersQueries = yield* UsersQueries
     const validationsQueries = yield* ValidationsQueries

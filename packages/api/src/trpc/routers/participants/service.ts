@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Option, ServiceMap } from "effect";
+import { Config, Effect, Layer, Option, Context } from "effect";
 import { Database } from "@blikka/db";
 import { RealtimeEventsService } from "@blikka/realtime";
 import { ParticipantApiError, PublicParticipantSchema } from "./schemas";
@@ -11,7 +11,7 @@ import type { NewParticipant } from "@blikka/db";
 import { EmailService } from "@blikka/email";
 import { sendParticipantVerifiedEmail } from "./notifications";
 
-export class ParticipantsApiService extends ServiceMap.Service<ParticipantsApiService>()(
+export class ParticipantsApiService extends Context.Service<ParticipantsApiService>()(
   "@blikka/api/ParticipantsApiService",
   {
     make: Effect.gen(function* () {

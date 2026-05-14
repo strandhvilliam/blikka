@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis"
-import { Config, Console, Duration, Effect, Layer, Schedule, Schema, ServiceMap } from "effect"
+import { Config, Console, Duration, Effect, Layer, Schedule, Schema, Context } from "effect"
 
 export class RedisError extends Schema.TaggedErrorClass<RedisError>()(
   "RedisError",
@@ -18,13 +18,13 @@ const makeClient = Effect.fn("RedisClient.makeClient")(
     })
     return client
   },
-  Effect.retry(Schedule.compose(Schedule.exponential(Duration.seconds(1)), Schedule.recurs(3))),
+  Effect.retry(Schedule.both(Schedule.exponential(Duration.seconds(1)), Schedule.recurs(3))),
   Effect.tapError((error) =>
     Effect.logError(error.message ?? "Redis connection failed after retries")
   )
 )
 
-export class RedisClient extends ServiceMap.Service<RedisClient>()(
+export class RedisClient extends Context.Service<RedisClient>()(
   "@blikka/packages/redis/redis-client",
   {
     make: Effect.gen(function* () {

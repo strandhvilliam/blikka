@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Effect, Layer, Option, Context } from "effect";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { pendingUserMarathons, user, userMarathons } from "../schema";
 import type {
@@ -31,7 +31,7 @@ type PendingStaffAccess = {
   status: "pending";
 };
 
-export class UsersQueries extends ServiceMap.Service<UsersQueries>()(
+export class UsersQueries extends Context.Service<UsersQueries>()(
   "@blikka/db/users-queries",
   {
     make: Effect.gen(function* () {

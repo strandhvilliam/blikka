@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from "effect"
+import { Effect, Layer, Context } from "effect"
 import { UploadSessionRepository } from "./repos/upload-session-repository"
 import { ZipKVRepository } from "./repos/zip-kv-repository"
 import { ExifKVRepository } from "./repos/exif-kv-repository"
@@ -12,7 +12,7 @@ export * from "./key-factory"
 export * from "./schema"
 export * from "./upload-session-guards"
 
-export class KVStore extends ServiceMap.Service<KVStore>()("@blikka/packages/kv-store", {
+export class KVStore extends Context.Service<KVStore>()("@blikka/packages/kv-store", {
   make: Effect.gen(function* () {
     const uploadRepository = yield* UploadSessionRepository
     const zipRepository = yield* ZipKVRepository

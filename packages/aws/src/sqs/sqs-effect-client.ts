@@ -1,5 +1,5 @@
 import { SQSClient } from "@aws-sdk/client-sqs"
-import { Config, Console, ServiceMap, Effect, Schema, Layer } from "effect"
+import { Config, Console, Context, Effect, Schema, Layer } from "effect"
 
 export class SQSEffectError extends Schema.TaggedErrorClass<SQSEffectError>()("SQSEffectError", {
   message: Schema.String,
@@ -7,7 +7,7 @@ export class SQSEffectError extends Schema.TaggedErrorClass<SQSEffectError>()("S
 }) {
 }
 
-export class SQSEffectClient extends ServiceMap.Service<SQSEffectClient>()(
+export class SQSEffectClient extends Context.Service<SQSEffectClient>()(
   "@blikka/aws/sqs-effect-client",
   {
     make: Effect.gen(function* () {

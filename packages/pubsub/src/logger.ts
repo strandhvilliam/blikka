@@ -1,4 +1,4 @@
-import { Effect, Layer, Logger, ServiceMap } from "effect"
+import { Effect, Layer, Logger, Context } from "effect"
 import { PubSubService } from "./pubsub-service"
 import { PubSubChannel, PubSubMessage } from "./schema"
 
@@ -26,7 +26,7 @@ export const makePubSubLogger = (taskName: string) =>
     })
   ], { mergeWithExisting: true }).pipe(Layer.provide(PubSubService.layer))
 
-export class PubSubLoggerService extends ServiceMap.Service<PubSubLoggerService>()(
+export class PubSubLoggerService extends Context.Service<PubSubLoggerService>()(
   "@blikka/pubsub/logger",
   {
     make: Effect.succeed({}),

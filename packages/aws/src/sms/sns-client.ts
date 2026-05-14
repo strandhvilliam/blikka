@@ -1,5 +1,5 @@
 import { SNSClient } from "@aws-sdk/client-sns"
-import { Config, Console, Effect, Layer, Option, Schema, ServiceMap } from "effect"
+import { Config, Console, Effect, Layer, Option, Schema, Context } from "effect"
 
 export class SNSEffectError extends Schema.TaggedErrorClass<SNSEffectError>()("SNSEffectError", {
   message: Schema.String,
@@ -7,7 +7,7 @@ export class SNSEffectError extends Schema.TaggedErrorClass<SNSEffectError>()("S
 }) {
 }
 
-export class SNSEffectClient extends ServiceMap.Service<SNSEffectClient>()(
+export class SNSEffectClient extends Context.Service<SNSEffectClient>()(
   "@blikka/aws/sns-client",
   {
     make: Effect.gen(function* () {

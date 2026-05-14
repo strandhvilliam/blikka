@@ -1,10 +1,10 @@
-import { Effect, Layer, Option, ServiceMap } from "effect"
+import { Effect, Layer, Option, Context } from "effect"
 import type { RuleParams, ValidationInput } from "./types"
 import { RULE_KEYS, IMAGE_EXTENSION_TO_MIME_TYPE, EDITING_SOFTWARE_KEYWORDS } from "./constants"
 import { getTimestamp, getExtensionFromFilename, normalizeAllowedFileTypes } from "./utils"
 import { ValidationFailure, ValidationSkipped } from "./types"
 
-export class SingleValidationsService extends ServiceMap.Service<SingleValidationsService>()(
+export class SingleValidationsService extends Context.Service<SingleValidationsService>()(
   "@blikka/packages/validation/SingleValidationsService",
   {
     make: Effect.gen(function* () {

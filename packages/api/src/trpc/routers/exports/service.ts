@@ -1,7 +1,7 @@
 import { extname } from "node:path"
 
 import archiver from "archiver"
-import { Config, Effect, Layer, Option, ServiceMap } from "effect"
+import { Config, Effect, Layer, Option, Context } from "effect"
 
 import { S3Service } from "@blikka/aws"
 import { Database } from "@blikka/db"
@@ -12,7 +12,7 @@ import {
 } from "../../utils/phone-number-encryption"
 import { ExportsApiError } from "./schemas"
 
-export class ExportsApiService extends ServiceMap.Service<ExportsApiService>()(
+export class ExportsApiService extends Context.Service<ExportsApiService>()(
   "@blikka/api/ExportsApiService",
   {
     make: Effect.gen(function* () {

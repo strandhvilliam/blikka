@@ -1,5 +1,5 @@
 import { PutEventsCommand } from "@aws-sdk/client-eventbridge"
-import { Schema, Effect, ServiceMap, Layer } from "effect"
+import { Schema, Effect, Context, Layer } from "effect"
 import { Resource as SSTResource } from "sst"
 import { EventBridgeEffectClient } from "./eventbridge-effect-client"
 import { FinalizedEventSchema } from "./schemas"
@@ -11,7 +11,7 @@ export class EventBusError extends Schema.TaggedErrorClass<EventBusError>()("Eve
 }) {
 }
 
-export class BusService extends ServiceMap.Service<BusService>()("@blikka/aws/bus-service", {
+export class BusService extends Context.Service<BusService>()("@blikka/aws/bus-service", {
   make: Effect.gen(function* () {
     const eb = yield* EventBridgeEffectClient
 

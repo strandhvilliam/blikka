@@ -1,4 +1,4 @@
-import { Cause, Effect, Exit, Layer, ServiceMap } from "effect"
+import { Cause, Effect, Exit, Layer, Context } from "effect"
 import { RealtimeService } from "./realtime-service"
 import { RealtimeChannel, RealtimeError } from "./channel"
 import {
@@ -57,7 +57,7 @@ function resolveChannels(
   return channels ?? (reference ? "both" : "domain")
 }
 
-export class RealtimeEventsService extends ServiceMap.Service<RealtimeEventsService>()(
+export class RealtimeEventsService extends Context.Service<RealtimeEventsService>()(
   "@blikka/realtime/RealtimeEventsService",
   {
     make: Effect.gen(function* () {

@@ -1,9 +1,9 @@
-import { Effect, Layer, ServiceMap, Schedule, Duration } from "effect"
+import { Effect, Layer, Context, Schedule, Duration } from "effect"
 import { RedisClient } from "@blikka/redis"
 import { Realtime } from "@upstash/realtime"
 import { RealtimeChannel, RealtimeError } from "./channel"
 
-export class RealtimeService extends ServiceMap.Service<RealtimeService, {
+export class RealtimeService extends Context.Service<RealtimeService, {
   emit(channel: RealtimeChannel, eventName: string, payload: unknown): Effect.Effect<void, RealtimeError>
 }>()(
   "@blikka/realtime/RealtimeService", {
@@ -27,7 +27,7 @@ export class RealtimeService extends ServiceMap.Service<RealtimeService, {
         try: () => (realtime.channel(channel.channelString) as any).emit(eventName, jsonPayload),
         catch: (error) => new RealtimeError({ message: "Failed to emit realtime event", cause: error }),
       }).pipe(
-        Effect.retry(Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
+        Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
       )
     })
 

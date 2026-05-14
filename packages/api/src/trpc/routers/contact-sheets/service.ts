@@ -1,12 +1,12 @@
 import { ContactSheetBuilder } from "@blikka/image-manipulation"
-import { Config, Effect, Layer, Option, ServiceMap } from "effect"
+import { Config, Effect, Layer, Option, Context } from "effect"
 import { type CompetitionClass, Database } from "@blikka/db"
 import { S3Service } from "@blikka/aws"
 import { ContactSheetApiError } from "./schemas"
 
 const VALID_PHOTO_COUNTS = [8, 24]
 
-export class ContactSheetsApiService extends ServiceMap.Service<ContactSheetsApiService>()(
+export class ContactSheetsApiService extends Context.Service<ContactSheetsApiService>()(
   "@blikka/api/contact-sheets-api-service",
   {
     make: Effect.gen(function* () {

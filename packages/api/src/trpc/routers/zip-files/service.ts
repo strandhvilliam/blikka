@@ -1,4 +1,4 @@
-import { Effect, Array, Data, Option, Config, ServiceMap, Schema, Layer } from "effect"
+import { Effect, Array, Data, Option, Config, Context, Schema, Layer } from "effect"
 import { Database } from "@blikka/db"
 import { DownloadStateRepository } from "@blikka/kv-store"
 import { S3Service } from "@blikka/aws"
@@ -16,7 +16,7 @@ class UnableToRunZipDownloaderTaskError extends Schema.TaggedErrorClass<UnableTo
 
 const MAX_PARTICIPANTS_PER_ZIP = 200
 
-export class ZipFilesApiService extends ServiceMap.Service<ZipFilesApiService>()(
+export class ZipFilesApiService extends Context.Service<ZipFilesApiService>()(
   "@blikka/api/ZipFilesApiService",
   {
     make: Effect.gen(function* () {

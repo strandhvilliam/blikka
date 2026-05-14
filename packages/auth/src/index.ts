@@ -1,5 +1,5 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth"
-import { ServiceMap, Effect, Layer } from "effect"
+import { Context, Effect, Layer } from "effect"
 import { Database, DrizzleClient, schema } from "@blikka/db"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { EmailService, OTPEmail } from "@blikka/email"
@@ -8,7 +8,7 @@ import { RedisClient } from "@blikka/redis"
 import { bearer, emailOTP } from "better-auth/plugins"
 import { createAuthMiddleware } from "better-auth/api"
 
-export class AuthConfig extends ServiceMap.Service<
+export class AuthConfig extends Context.Service<
   AuthConfig,
   {
     readonly baseUrl: string
@@ -24,7 +24,7 @@ export class AuthConfig extends ServiceMap.Service<
 const isProduction = process.env.NODE_ENV === "production"
 const rootDomain = isProduction ? process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL : "localhost:3002"
 
-export class BetterAuthService extends ServiceMap.Service<BetterAuthService>()(
+export class BetterAuthService extends Context.Service<BetterAuthService>()(
   "@blikka/auth/better-auth-service",
   {
     make: Effect.gen(function* () {

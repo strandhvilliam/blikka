@@ -1,4 +1,4 @@
-import { Effect, Schema, Layer, ServiceMap } from "effect"
+import { Effect, Schema, Layer, Context } from "effect"
 
 export class CanvasImageError extends Schema.TaggedErrorClass<CanvasImageError>()("CanvasImageError", {
   message: Schema.String,
@@ -18,7 +18,7 @@ export interface ResizedImage {
   height: number
 }
 
-export class CanvasImageService extends ServiceMap.Service<CanvasImageService>()(
+export class CanvasImageService extends Context.Service<CanvasImageService>()(
   "@blikka/packages/image-manipulation/canvas-image-service",
   {
     make: Effect.gen(function* () {

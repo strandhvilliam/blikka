@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Option, ServiceMap } from "effect"
+import { Config, Effect, Layer, Option, Context } from "effect"
 import { Database } from "@blikka/db"
 import {
   isCurrentUploadSession,
@@ -13,7 +13,7 @@ import {
 } from "./utils"
 import { ContactSheetBuilder } from "@blikka/image-manipulation"
 
-export class SheetGeneratorService extends ServiceMap.Service<SheetGeneratorService>()(
+export class SheetGeneratorService extends Context.Service<SheetGeneratorService>()(
   "@blikka/contact-sheet-generator/sheet-generator-service",
   {
     make: Effect.gen(function* () {

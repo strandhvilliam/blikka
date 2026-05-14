@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Config, Effect, Layer, Option, ServiceMap } from "effect"
+import { Config, Effect, Layer, Option, Context } from "effect"
 import { Database, type VotingRound, type VotingSession, type NewVotingSession } from "@blikka/db"
 import { VotingApiError } from "./schemas"
 import { SMSService, SQSService } from "@blikka/aws"
@@ -213,7 +213,7 @@ function applyLatestRoundVoteToSession({
   }
 }
 
-export class VotingApiService extends ServiceMap.Service<VotingApiService>()(
+export class VotingApiService extends Context.Service<VotingApiService>()(
   "@blikka/api/VotingApiService",
   {
     make: Effect.gen(function* () {

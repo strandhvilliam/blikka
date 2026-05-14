@@ -1,4 +1,4 @@
-import { Effect, Option, Schedule, Duration, Schema, ServiceMap, Layer } from "effect"
+import { Effect, Option, Schedule, Duration, Schema, Context, Layer } from "effect"
 import { RedisClient } from "@blikka/redis"
 import { KeyFactory } from "../key-factory"
 import { atomicIncrementCompletedScript } from "../lua-scripts/atomic-increment-completed-script"
@@ -34,14 +34,14 @@ interface AtomicIncrementResult {
 
 const decodeStringArray = Schema.decodeSync(StringArrayFromString)
 
-export class DownloadStateRepository extends ServiceMap.Service<DownloadStateRepository>()(
+export class DownloadStateRepository extends Context.Service<DownloadStateRepository>()(
   "@blikka/packages/kv-store/download-state-repository",
   {
     make: Effect.gen(function* () {
       const redis = yield* RedisClient
       const keyFactory = yield* KeyFactory
 
-      const retryPolicy = Schedule.compose(
+      const retryPolicy = Schedule.both(
         Schedule.exponential(Duration.millis(100)),
         Schedule.recurs(3)
       )

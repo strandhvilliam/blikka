@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, ServiceMap } from "effect"
+import { Effect, Layer, Option, Context } from "effect"
 import { DrizzleClient } from "../drizzle-client"
 import {
   participants,
@@ -13,7 +13,7 @@ import { eq, and, or, inArray, gt, lt, ilike, notInArray, isNotNull, count, sql 
 import type { NewParticipant, NewParticipantTermsAcceptance } from "../types"
 import { DbError } from "../utils"
 import { VALIDATION_OUTCOME } from "@blikka/validation"
-export class ParticipantsQueries extends ServiceMap.Service<ParticipantsQueries>()(
+export class ParticipantsQueries extends Context.Service<ParticipantsQueries>()(
   "@blikka/db/participants-queries",
   {
     make: Effect.gen(function* () {

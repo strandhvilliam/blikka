@@ -1,9 +1,9 @@
-import { Cause, Chunk, Console, Data, Duration, Effect, Layer, Queue, Schedule, Schema, ServiceMap, Stream } from "effect"
+import { Cause, Chunk, Console, Data, Duration, Effect, Layer, Queue, Schedule, Schema, Context, Stream } from "effect"
 import { RedisClient, RedisError } from "@blikka/redis"
 import { PubSubChannel, PubSubMessage } from "./schema"
 import { ChannelParseError, PubSubError } from "./utils"
 
-export class PubSubService extends ServiceMap.Service<PubSubService>()(
+export class PubSubService extends Context.Service<PubSubService>()(
   "@blikka/pubsub/pubsub-service",
   {
     make: Effect.gen(function* () {
@@ -15,7 +15,7 @@ export class PubSubService extends ServiceMap.Service<PubSubService>()(
           return yield* redis.use((client) => client.publish(channelString, message))
         },
         Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+          Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
         ),
         Effect.mapError(
           (error) => new PubSubError({ cause: error, message: "Failed to publish message" })

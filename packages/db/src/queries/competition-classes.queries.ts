@@ -1,10 +1,10 @@
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Effect, Layer, Option, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import { competitionClasses, marathons } from "../schema";
 import { eq } from "drizzle-orm";
 import type { NewCompetitionClass } from "../types";
 import { DbError } from "../utils";
-export class CompetitionClassesQueries extends ServiceMap.Service<CompetitionClassesQueries>()(
+export class CompetitionClassesQueries extends Context.Service<CompetitionClassesQueries>()(
   "@blikka/db/competition-classes-queries",
   {
     make: Effect.gen(function* () {

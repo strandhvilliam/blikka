@@ -1,12 +1,12 @@
 import "server-only"
 
-import { Effect, Layer, Option, ServiceMap } from "effect"
+import { Effect, Layer, Option, Context } from "effect"
 import {
   type NewRuleConfig,
   type RuleConfig, Database } from "@blikka/db"
 import { RulesApiError } from "./schemas"
 
-export class RulesApiService extends ServiceMap.Service<RulesApiService>()(
+export class RulesApiService extends Context.Service<RulesApiService>()(
   "@blikka/api/RulesApiService",
   {
     make: Effect.gen(function*() {

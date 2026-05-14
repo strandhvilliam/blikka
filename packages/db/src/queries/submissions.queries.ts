@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Effect, Layer, Option, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import { participants, submissions, zippedSubmissions } from "../schema";
 import { eq, inArray } from "drizzle-orm";
@@ -9,7 +9,7 @@ import type {
 } from "../types";
 import { DbError } from "../utils";
 import { conflictUpdateSetAllColumns } from "../utils";
-export class SubmissionsQueries extends ServiceMap.Service<SubmissionsQueries>()(
+export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
   "@blikka/db/submissions-queries",
   {
     make: Effect.gen(function* () {

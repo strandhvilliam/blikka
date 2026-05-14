@@ -1,11 +1,11 @@
 import "server-only"
 
-import { Config, Effect, Layer, Option, ServiceMap } from "effect"
+import { Config, Effect, Layer, Option, Context } from "effect"
 import { Database, type NewSponsor } from "@blikka/db"
 import { S3Service } from "@blikka/aws"
 import { SponsorsApiError } from "./schemas"
 
-export class SponsorsApiService extends ServiceMap.Service<SponsorsApiService>()(
+export class SponsorsApiService extends Context.Service<SponsorsApiService>()(
   "@blikka/api/sponsors-api-service",
   {
     make: Effect.gen(function* () {

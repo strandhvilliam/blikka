@@ -1,5 +1,5 @@
 import { DrizzleClient } from "../drizzle-client";
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Effect, Layer, Option, Context } from "effect";
 import { eq, and } from "drizzle-orm";
 import {
   juryFinalRankings,
@@ -17,7 +17,7 @@ import type {
   Topic,
 } from "../types";
 import { DbError } from "../utils";
-export class JuryQueries extends ServiceMap.Service<JuryQueries>()(
+export class JuryQueries extends Context.Service<JuryQueries>()(
   "@blikka/db/jury-queries",
   {
     make: Effect.gen(function* () {

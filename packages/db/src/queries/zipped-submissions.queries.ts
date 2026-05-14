@@ -1,8 +1,8 @@
-import { Effect, Layer, ServiceMap } from "effect";
+import { Effect, Layer, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import { participants } from "../schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-export class ZippedSubmissionsQueries extends ServiceMap.Service<ZippedSubmissionsQueries>()(
+export class ZippedSubmissionsQueries extends Context.Service<ZippedSubmissionsQueries>()(
   "@blikka/db/zipped-submissions-queries",
   {
     make: Effect.gen(function* () {

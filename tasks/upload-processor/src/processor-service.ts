@@ -1,4 +1,4 @@
-import { Cause, Effect, Layer, Option, ServiceMap } from "effect"
+import { Cause, Effect, Layer, Option, Context } from "effect"
 import { S3Service } from "@blikka/aws"
 import {
   ExifKVRepository,
@@ -24,7 +24,7 @@ export interface ProcessPhotoParams {
   fileName: string
 }
 
-export class UploadProcessorService extends ServiceMap.Service<UploadProcessorService>()(
+export class UploadProcessorService extends Context.Service<UploadProcessorService>()(
   "@blikka/upload-processor/UploadProcessorService",
   {
     make: Effect.gen(function* () {

@@ -1,4 +1,4 @@
-import { Effect, ServiceMap } from "effect";
+import { Effect, Context } from "effect";
 import { Resource as SSTResource } from "sst";
 
 export type TaskEnvironmentName = "prod" | "dev" | "staging";
@@ -9,7 +9,7 @@ export const getEnvironmentFromStage = (stage: string): TaskEnvironmentName => {
   return "staging";
 };
 
-export class TaskEnvironment extends ServiceMap.Service<TaskEnvironment>()(
+export class TaskEnvironment extends Context.Service<TaskEnvironment>()(
   "@blikka/task-runtime/TaskEnvironment",
   {
     make: Effect.sync(() => ({

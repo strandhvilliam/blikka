@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
+import { Config, Effect, Layer, Option, Schema, Context } from "effect"
 import { Database, RuleConfig } from "@blikka/db"
 import {
   SubmissionState,
@@ -15,7 +15,7 @@ import {
 } from "@blikka/validation"
 import { KVStore } from "@blikka/kv-store"
 
-export class ValidationRunner extends ServiceMap.Service<ValidationRunner>()(
+export class ValidationRunner extends Context.Service<ValidationRunner>()(
   "@blikka/ValidationRunner",
   {
     make: Effect.gen(function* () {

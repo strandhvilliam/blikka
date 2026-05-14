@@ -10,7 +10,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@effect/opentelemetry": "4.0.0-beta.25",
+    "@effect/opentelemetry": "catalog:",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/api-logs": "^0.207.0",
     "@opentelemetry/exporter-logs-otlp-http": "^0.207.0",

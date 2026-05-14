@@ -1,10 +1,10 @@
-import { Effect, Layer, ServiceMap } from "effect";
+import { Effect, Layer, Context } from "effect";
 
 import { and, eq } from "drizzle-orm";
 
 import { DrizzleClient } from "../drizzle-client";
 
-export class ExportsQueries extends ServiceMap.Service<ExportsQueries>()(
+export class ExportsQueries extends Context.Service<ExportsQueries>()(
   "@blikka/db/exports-queries",
   {
     make: Effect.gen(function* () {

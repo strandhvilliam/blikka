@@ -1,10 +1,10 @@
 import "server-only"
 
 import { type NewDeviceGroup, Database } from "@blikka/db"
-import { Effect, Layer, Option, ServiceMap } from "effect"
+import { Effect, Layer, Option, Context } from "effect"
 import { DeviceGroupApiError } from "./schemas"
 
-export class DeviceGroupsApiService extends ServiceMap.Service<DeviceGroupsApiService>()(
+export class DeviceGroupsApiService extends Context.Service<DeviceGroupsApiService>()(
   "@blikka/api/DeviceGroupsApiService",
   {
     make: Effect.gen(function* () {

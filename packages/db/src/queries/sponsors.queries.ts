@@ -1,10 +1,10 @@
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Effect, Layer, Option, Context } from "effect";
 import { sponsors } from "../schema";
 import { DrizzleClient } from "../drizzle-client";
 import { eq } from "drizzle-orm";
 import type { NewSponsor } from "../types";
 import { DbError } from "../utils";
-export class SponsorsQueries extends ServiceMap.Service<SponsorsQueries>()(
+export class SponsorsQueries extends Context.Service<SponsorsQueries>()(
   "@blikka/db/sponsors-queries",
   {
     make: Effect.gen(function* () {

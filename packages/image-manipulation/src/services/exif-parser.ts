@@ -1,5 +1,5 @@
 import exifr from "exifr"
-import { ServiceMap, Effect, Schema, Layer } from "effect"
+import { Context, Effect, Schema, Layer } from "effect"
 
 export class ExifParseError extends Schema.TaggedErrorClass<ExifParseError>()("ExifParserError", {
   message: Schema.String,
@@ -11,7 +11,7 @@ export const ExifSchema = Schema.Record(Schema.String, Schema.Unknown)
 
 export type ExifData = typeof ExifSchema.Type
 
-export class ExifParser extends ServiceMap.Service<ExifParser>()(
+export class ExifParser extends Context.Service<ExifParser>()(
   "@blikka/exif-parser/exif-parser",
   {
     make: Effect.gen(function* () {

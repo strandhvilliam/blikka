@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Effect, Layer, Option, ServiceMap } from "effect"
+import { Effect, Layer, Option, Context } from "effect"
 import { Database, normalizeEmail } from "@blikka/db"
 import { RedisClient } from "@blikka/redis"
 import { UsersApiError } from "./schemas"
@@ -32,7 +32,7 @@ function parseAccessId(accessId: string) {
   })
 }
 
-export class UsersApiService extends ServiceMap.Service<UsersApiService>()(
+export class UsersApiService extends Context.Service<UsersApiService>()(
   "@blikka/api/UsersApiService",
   {
     make: Effect.gen(function* () {

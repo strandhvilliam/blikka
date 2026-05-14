@@ -7,7 +7,7 @@ import {
   OptInPhoneNumberCommand,
   type MessageAttributeValue,
 } from "@aws-sdk/client-sns"
-import { Data, Effect, Layer, Schema, ServiceMap } from "effect"
+import { Data, Effect, Layer, Schema, Context } from "effect"
 import { SNSEffectClient, SNSEffectError } from "./sns-client"
 
 export interface SendSMSParams {
@@ -29,7 +29,7 @@ export class SMSServiceError extends Schema.TaggedErrorClass<SMSServiceError>()(
 }) {
 }
 
-export class SMSService extends ServiceMap.Service<SMSService>()(
+export class SMSService extends Context.Service<SMSService>()(
   "@blikka/aws/sms-service",
   {
     make: Effect.gen(function* () {

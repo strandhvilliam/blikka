@@ -4,7 +4,7 @@ import {
   isCurrentUploadSession,
   UploadSessionRepository,
 } from "@blikka/kv-store"
-import { Effect, Layer, Option, Schema, ServiceMap } from "effect"
+import { Effect, Layer, Option, Schema, Context } from "effect"
 
 export class FailedToFinalizeParticipantError extends Schema.TaggedErrorClass<FailedToFinalizeParticipantError>()(
   "FailedToFinalizeParticipantError",
@@ -14,7 +14,7 @@ export class FailedToFinalizeParticipantError extends Schema.TaggedErrorClass<Fa
   },
 ) {}
 
-export class UploadFinalizerService extends ServiceMap.Service<UploadFinalizerService>()(
+export class UploadFinalizerService extends Context.Service<UploadFinalizerService>()(
   "@blikka/tasks/upload-finalizer/upload-finalizer-service",
   {
     make: Effect.gen(function* () {

@@ -1,5 +1,5 @@
 import exifr from "exifr"
-import { Effect, Schema, ServiceMap } from "effect"
+import { Effect, Schema, Context } from "effect"
 import { ExifSchema } from "./schemas"
 import { removeGpsData, sanitizeExifData } from "./utils"
 
@@ -9,7 +9,7 @@ export class ExifParseError extends Schema.TaggedErrorClass<ExifParseError>()("E
 }) {
 }
 
-export class ExifParser extends ServiceMap.Service<ExifParser>()(
+export class ExifParser extends Context.Service<ExifParser>()(
   "@blikka/exif-parser/exif-parser",
   {
     make: Effect.gen(function* () {

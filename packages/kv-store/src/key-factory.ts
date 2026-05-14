@@ -1,6 +1,6 @@
-import { Effect, Layer, ServiceMap } from "effect"
+import { Effect, Layer, Context } from "effect"
 
-export class KeyFactory extends ServiceMap.Service<KeyFactory>()(
+export class KeyFactory extends Context.Service<KeyFactory>()(
   "@blikka/packages/redis-store/key-factory",
   {
     make: Effect.sync(() => ({

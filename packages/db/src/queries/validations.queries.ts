@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from "effect";
+import { Effect, Layer, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import { and, notInArray, eq } from "drizzle-orm";
 import { participantVerifications, validationResults } from "../schema";
@@ -8,7 +8,7 @@ import type {
   ValidationResult,
 } from "../types";
 import { DbError } from "../utils";
-export class ValidationsQueries extends ServiceMap.Service<ValidationsQueries>()(
+export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
   "@blikka/db/validations-queries",
   {
     make: Effect.gen(function* () {

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect";
+import { Config, Effect, Layer, Option, Schema, Context } from "effect";
 import { Database, type NewJuryInvitation } from "@blikka/db";
 import { TRPCError } from "@trpc/server";
 import { SignJWT, jwtVerify } from "jose";
@@ -28,7 +28,7 @@ function mapTokenError(message: string, code: TRPCError["code"]) {
   });
 }
 
-export class JuryApiService extends ServiceMap.Service<JuryApiService>()(
+export class JuryApiService extends Context.Service<JuryApiService>()(
   "@blikka/api/JuryApiService",
   {
     make: Effect.gen(function* () {

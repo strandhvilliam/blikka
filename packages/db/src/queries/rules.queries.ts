@@ -1,11 +1,11 @@
-import { Effect, Layer, ServiceMap } from "effect";
+import { Effect, Layer, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import type { NewRuleConfig } from "../types";
 import { ruleConfigs } from "../schema";
 import { eq } from "drizzle-orm";
 import { DbError } from "../utils";
 import { conflictUpdateSetAllColumns, getDefaultRuleConfigs } from "../utils";
-export class RulesQueries extends ServiceMap.Service<RulesQueries>()(
+export class RulesQueries extends Context.Service<RulesQueries>()(
   "@blikka/db/rules-queries",
   {
     make: Effect.gen(function* () {

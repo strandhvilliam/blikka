@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
+import { Config, Effect, Layer, Option, Schema, Context } from "effect"
 import { SharpImageService } from "./sharp-image-service"
 import { S3Service } from "@blikka/aws"
 import {
@@ -29,7 +29,7 @@ export class InvalidSheetParamsError extends Schema.TaggedErrorClass<InvalidShee
 ) {
 }
 
-export class ContactSheetBuilder extends ServiceMap.Service<ContactSheetBuilder>()(
+export class ContactSheetBuilder extends Context.Service<ContactSheetBuilder>()(
   "@blikka/packages/image-manipulation/ContactSheetBuilder",
   {
     make: Effect.gen(function* () {

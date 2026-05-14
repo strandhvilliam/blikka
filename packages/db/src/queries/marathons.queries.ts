@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Effect, Layer, Option, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import { eq, inArray } from "drizzle-orm";
 import {
@@ -19,7 +19,7 @@ import { sponsors } from "../schema";
 import { participantVerifications } from "../schema";
 import type { NewMarathon } from "../types";
 import { DbError } from "../utils";
-export class MarathonsQueries extends ServiceMap.Service<MarathonsQueries>()(
+export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
   "@blikka/db/marathons-queries",
   {
     make: Effect.gen(function* () {

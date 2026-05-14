@@ -4,7 +4,7 @@ import {
   HeadObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3"
-import { Duration, Effect, Option, Schedule, Schema, ServiceMap, Layer } from "effect"
+import { Duration, Effect, Option, Schedule, Schema, Context, Layer } from "effect"
 import { S3EffectClient } from "./s3-effect-client"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
@@ -64,7 +64,7 @@ export function createSubmissionObjectKey({
   return `${domain}/${reference}/${formattedOrderIndex}/${prefix}${reference}_${formattedOrderIndex}_${dateTime}.${extension}`
 }
 
-export class S3Service extends ServiceMap.Service<S3Service>()("@blikka/aws/s3-service", {
+export class S3Service extends Context.Service<S3Service>()("@blikka/aws/s3-service", {
   make: Effect.gen(function* () {
     const s3Client = yield* S3EffectClient
 
@@ -155,7 +155,7 @@ export class S3Service extends ServiceMap.Service<S3Service>()("@blikka/aws/s3-s
         return yield* s3Client.use((client) => client.send(putObjectCommand))
       },
       Effect.retry(
-        Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
+        Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
       ),
       Effect.mapError((error) => {
         return new S3ClientError({
@@ -174,7 +174,7 @@ export class S3Service extends ServiceMap.Service<S3Service>()("@blikka/aws/s3-s
         return yield* s3Client.use((client) => client.send(deleteObjectCommand))
       },
       Effect.retry(
-        Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
+        Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
       ),
       Effect.mapError((error) => {
         return new S3ClientError({

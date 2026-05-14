@@ -1,7 +1,7 @@
 import { resolveSubmissionContentType, S3Service } from "@blikka/aws";
 import { Database } from "@blikka/db";
 import { ExifParser, SharpImageService } from "@blikka/image-manipulation";
-import { Config, Effect, Layer, Option, ServiceMap } from "effect";
+import { Config, Effect, Layer, Option, Context } from "effect";
 
 import { ValidationsApiService } from "../validations/service";
 import {
@@ -14,7 +14,7 @@ import {
 
 const THUMBNAIL_WIDTH = 400;
 
-export class SubmissionsApiService extends ServiceMap.Service<SubmissionsApiService>()(
+export class SubmissionsApiService extends Context.Service<SubmissionsApiService>()(
   "@blikka/api/submissions-api-service",
   {
     make: Effect.gen(function* () {

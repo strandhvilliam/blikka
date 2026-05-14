@@ -1,5 +1,5 @@
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge"
-import { Config, Console, Effect, Schema, ServiceMap, Layer } from "effect"
+import { Config, Console, Effect, Schema, Context, Layer } from "effect"
 
 export class EventBridgeEffectError extends Schema.TaggedErrorClass<EventBridgeEffectError>()("EventBridgeEffectError", {
   message: Schema.String,
@@ -7,7 +7,7 @@ export class EventBridgeEffectError extends Schema.TaggedErrorClass<EventBridgeE
 }) {
 }
 
-export class EventBridgeEffectClient extends ServiceMap.Service<EventBridgeEffectClient>()(
+export class EventBridgeEffectClient extends Context.Service<EventBridgeEffectClient>()(
   "@blikka/aws/eventbridge-effect-client",
   {
     make: Effect.gen(function* () {

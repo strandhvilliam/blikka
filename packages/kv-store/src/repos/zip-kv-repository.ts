@@ -1,9 +1,9 @@
-import { Effect, Option, Schedule, Duration, Schema, ServiceMap, Layer } from "effect"
+import { Effect, Option, Schedule, Duration, Schema, Context, Layer } from "effect"
 import { KeyFactory } from "../key-factory"
 import { RedisClient } from "@blikka/redis"
 import { makeInitialZipProgress } from "../schema"
 
-export class ZipKVRepository extends ServiceMap.Service<ZipKVRepository>()(
+export class ZipKVRepository extends Context.Service<ZipKVRepository>()(
   "@blikka/packages/kv-store/zip-kv-repository",
   {
     make: Effect.gen(function* () {
@@ -17,7 +17,7 @@ export class ZipKVRepository extends ServiceMap.Service<ZipKVRepository>()(
           return Option.fromNullishOr(result)
         },
         Effect.retryOrElse(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
+          Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
           () => Effect.succeed(Option.none<string>())
         )
       )
@@ -28,7 +28,7 @@ export class ZipKVRepository extends ServiceMap.Service<ZipKVRepository>()(
           return yield* redis.use((client) => client.hincrby(key, "progress", 1))
         },
         Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+          Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
         )
       )
 
@@ -38,7 +38,7 @@ export class ZipKVRepository extends ServiceMap.Service<ZipKVRepository>()(
           return yield* redis.use((client) => client.hset(key, { status: "completed" }))
         },
         Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+          Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
         )
       )
 
@@ -48,7 +48,7 @@ export class ZipKVRepository extends ServiceMap.Service<ZipKVRepository>()(
           return yield* redis.use((client) => client.hset(key, { errors }))
         },
         Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+          Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
         )
       )
 
@@ -58,7 +58,7 @@ export class ZipKVRepository extends ServiceMap.Service<ZipKVRepository>()(
           return yield* redis.use((client) => client.hset(key, makeInitialZipProgress(zipKey)))
         },
         Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+          Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
         )
       )
 

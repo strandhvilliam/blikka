@@ -1,4 +1,4 @@
-import { Effect, Layer, ServiceMap } from "effect";
+import { Effect, Layer, Context } from "effect";
 import { neon, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { DbError } from "./utils";
@@ -36,7 +36,7 @@ const createDrizzleClient = () => {
   return drizzle(sql, { schema: databaseSchema });
 };
 
-export class DrizzleClient extends ServiceMap.Service<DrizzleClient>()(
+export class DrizzleClient extends Context.Service<DrizzleClient>()(
   "@blikka/db/db",
   {
     make: Effect.gen(function* () {

@@ -1,8 +1,8 @@
-import { Effect, Layer, Option, ServiceMap } from "effect"
+import { Effect, Layer, Option, Context } from "effect"
 import { type NewCompetitionClass, Database } from "@blikka/db"
 import { CompetitionClassApiError } from "./schemas"
 
-export class CompetitionClassesApiService extends ServiceMap.Service<CompetitionClassesApiService>()(
+export class CompetitionClassesApiService extends Context.Service<CompetitionClassesApiService>()(
   "@blikka/api/CompetitionClassesApiService",
   {
     make: Effect.gen(function* () {

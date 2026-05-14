@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, ServiceMap } from "effect";
+import { Effect, Layer, Option, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import {
   marathons,
@@ -59,7 +59,7 @@ type SubmissionVoteStatsRow = {
   roundKind: string | null;
 };
 
-export class VotingQueries extends ServiceMap.Service<VotingQueries>()(
+export class VotingQueries extends Context.Service<VotingQueries>()(
   "@blikka/db/voting-queries",
   {
     make: Effect.gen(function* () {

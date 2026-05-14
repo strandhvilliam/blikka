@@ -1,4 +1,4 @@
-import { Effect, Schema, Option, ServiceMap, Layer } from "effect"
+import { Effect, Schema, Option, Context, Layer } from "effect"
 import { KeyFactory } from "../key-factory"
 import { RedisClient } from "@blikka/redis"
 import { ExifStateSchema, type ExifState } from "../schema"
@@ -11,7 +11,7 @@ export class ExifKVRepositoryError extends Schema.TaggedErrorClass<ExifKVReposit
   },
 ) {}
 
-export class ExifKVRepository extends ServiceMap.Service<ExifKVRepository>()(
+export class ExifKVRepository extends Context.Service<ExifKVRepository>()(
   "@blikka/packages/kv-store/exif-kv-repository",
   {
     make: Effect.gen(function* () {

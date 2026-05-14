@@ -48,11 +48,12 @@
   "packageManager": "bun@1.1.35",
   "workspaces": {
     "catalog": {
-      "effect": "4.0.0-beta.25",
-      "@effect/vitest": "4.0.0-beta.25",
-      "@effect-aws/lambda": "2.0.0-beta.2",
-      "@effect/platform-bun": "4.0.0-beta.25",
-      "@effect/platform-node": "4.0.0-beta.25"
+      "effect": "4.0.0-beta.66",
+      "@effect/vitest": "4.0.0-beta.66",
+      "@effect/opentelemetry": "4.0.0-beta.66",
+      "@effect-aws/lambda": "2.0.0-beta.4",
+      "@effect/platform-bun": "4.0.0-beta.66",
+      "@effect/platform-node": "4.0.0-beta.66"
     },
     "packages": [
       "apps/*",
@@ -67,5 +68,7 @@
     "@pulumi/pulumi": "^3.225.1",
     "sst": "^4.3.9"
   },
-  "overrides": {}
+  "overrides": {
+    "effect": "4.0.0-beta.66"
+  }
 }

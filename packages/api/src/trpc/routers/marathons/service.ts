@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Effect, Result, Option, Config, ServiceMap, Layer } from "effect"
+import { Effect, Result, Option, Config, Context, Layer } from "effect"
 import { Database, type NewMarathon } from "@blikka/db"
 import { S3Service } from "@blikka/aws"
 import { ContactSheetBuilder, SharpImageService } from "@blikka/image-manipulation"
@@ -28,7 +28,7 @@ function extractLogoVersion(currentKey?: string | null) {
   }
 }
 
-export class MarathonApiService extends ServiceMap.Service<MarathonApiService>()(
+export class MarathonApiService extends Context.Service<MarathonApiService>()(
   "@blikka/api/MarathonApiService",
   {
     make: Effect.gen(function* () {

@@ -1,4 +1,4 @@
-import { Config, Data, Effect, Layer, Schema, ServiceMap } from "effect";
+import { Config, Data, Effect, Layer, Schema, Context } from "effect";
 import {
   Resend,
   type CreateBatchOptions,
@@ -44,7 +44,7 @@ function sanitizeTags(tags: SendEmailParams["tags"]) {
   }));
 }
 
-export class EmailService extends ServiceMap.Service<EmailService>()(
+export class EmailService extends Context.Service<EmailService>()(
   "@blikka/email/email-service",
   {
     make: Effect.gen(function* () {

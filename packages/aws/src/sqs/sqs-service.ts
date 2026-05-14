@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, ServiceMap } from "effect"
+import { Effect, Layer, Schema, Context } from "effect"
 import { SQSEffectClient } from "./sqs-effect-client"
 import { SendMessageCommand } from "@aws-sdk/client-sqs"
 
@@ -8,7 +8,7 @@ export class SQSServiceError extends Schema.TaggedErrorClass<SQSServiceError>()(
 }) {
 }
 
-export class SQSService extends ServiceMap.Service<SQSService>()("@blikka/aws/sqs-service", {
+export class SQSService extends Context.Service<SQSService>()("@blikka/aws/sqs-service", {
   make: Effect.gen(function* () {
     const sqsClient = yield* SQSEffectClient
 

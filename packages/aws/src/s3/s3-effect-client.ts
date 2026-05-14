@@ -1,13 +1,12 @@
 import { S3Client } from "@aws-sdk/client-s3"
-import { Config, Console, ServiceMap, Effect, Schema, Layer } from "effect"
+import { Config, Console, Context, Effect, Schema, Layer } from "effect"
 
 export class S3EffectError extends Schema.TaggedErrorClass<S3EffectError>()("S3EffectError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
-}) {
-}
+}) {}
 
-export class S3EffectClient extends ServiceMap.Service<S3EffectClient>()(
+export class S3EffectClient extends Context.Service<S3EffectClient>()(
   "@blikka/aws/s3-effect-client",
   {
     make: Effect.gen(function* () {
@@ -15,11 +14,11 @@ export class S3EffectClient extends ServiceMap.Service<S3EffectClient>()(
 
       const client = yield* Effect.acquireRelease(
         Effect.sync(() => new S3Client({ region })),
-        (client) => Effect.sync(() => {
-          Console.log("Shutting down S3 client")
-          client.destroy()
-        }
-        ),
+        (client) =>
+          Effect.sync(() => {
+            Console.log("Shutting down S3 client")
+            client.destroy()
+          }),
       )
       const use = <T>(
         fn: (client: S3Client) => T,

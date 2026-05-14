@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, ServiceMap } from "effect";
+import { Config, Effect, Layer, Context } from "effect";
 
 export interface UploadsConfigShape {
   readonly submissionsBucketName: string;
@@ -6,7 +6,7 @@ export interface UploadsConfigShape {
   readonly contactSheetsBucketName: string;
 }
 
-export class UploadsConfig extends ServiceMap.Service<UploadsConfig>()(
+export class UploadsConfig extends Context.Service<UploadsConfig>()(
   "@blikka/uploads/UploadsConfig",
   {
     make: Effect.gen(function* () {

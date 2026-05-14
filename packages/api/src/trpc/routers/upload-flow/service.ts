@@ -1,4 +1,4 @@
-import { Array, Config, Effect, Layer, Option, Order, pipe, ServiceMap } from "effect"
+import { Array, Config, Effect, Layer, Option, Order, pipe, Context } from "effect"
 import { randomUUID } from "node:crypto"
 import {
   type CompetitionClass,
@@ -53,7 +53,7 @@ function hasExifFields(
   return exif !== null && exif !== undefined && Object.keys(exif).length > 0
 }
 
-export class UploadFlowApiService extends ServiceMap.Service<UploadFlowApiService>()(
+export class UploadFlowApiService extends Context.Service<UploadFlowApiService>()(
   "@blikka/api/UploadFlowApiService",
   {
     make: Effect.gen(function* () {

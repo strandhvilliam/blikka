@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, Option, Schema, ServiceMap } from "effect"
+import { Config, Effect, Layer, Option, Schema, Context } from "effect"
 import { type RuleConfig, type Submission, Database } from "@blikka/db"
 import { S3Service } from "@blikka/aws"
 import { RealtimeEventsService } from "@blikka/realtime"
@@ -14,7 +14,7 @@ import { ValidationsApiError } from "./schemas"
 import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract"
 import { sendParticipantVerifiedEmail } from "../participants/notifications"
 
-export class ValidationsApiService extends ServiceMap.Service<ValidationsApiService>()(
+export class ValidationsApiService extends Context.Service<ValidationsApiService>()(
   "@blikka/api/validations-api-service",
   {
     make: Effect.gen(function* () {

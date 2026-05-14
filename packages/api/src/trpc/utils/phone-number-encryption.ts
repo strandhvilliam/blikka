@@ -1,4 +1,4 @@
-import { Brand, Config, Effect, Layer, Schema, ServiceMap } from "effect"
+import { Brand, Config, Effect, Layer, Schema, Context } from "effect"
 import { createHmac, createCipheriv, createDecipheriv, randomBytes } from "crypto"
 
 import { parsePhoneNumberWithError } from "libphonenumber-js"
@@ -18,7 +18,7 @@ export const EncryptedPhoneNumber = Brand.nominal<EncryptedPhoneNumber>()
 export type PhoneHash = string & Brand.Brand<"PhoneHash">
 export const PhoneHash = Brand.nominal<PhoneHash>()
 
-export class PhoneNumberEncryptionService extends ServiceMap.Service<PhoneNumberEncryptionService>()(
+export class PhoneNumberEncryptionService extends Context.Service<PhoneNumberEncryptionService>()(
   "@blikka/api/PhoneNumberEncryptionService",
   {
     make: Effect.gen(function* () {
