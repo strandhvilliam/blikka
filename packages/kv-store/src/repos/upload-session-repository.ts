@@ -1,5 +1,5 @@
 import { Duration, Effect, Layer, Option, Schedule, Schema, ServiceMap, Struct } from "effect"
-import { RedisClient, RedisError } from "@blikka/redis"
+import { RedisClient } from "@blikka/redis"
 import { KeyFactory } from "../key-factory"
 import {
   IncrementResultSchema,
@@ -17,6 +17,14 @@ function isMissingHashResult(result: Record<string, unknown> | null | undefined)
   return !result || Object.keys(result).length === 0
 }
 
+export class UploadSessionRepositoryError extends Schema.TaggedErrorClass<UploadSessionRepositoryError>()(
+  "UploadSessionRepositoryError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
+
 export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRepository>()(
   "@blikka/packages/kv-store/upload-session-repository",
   {
@@ -29,7 +37,7 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
           domain: string,
           reference: string,
           uploadSessionId: string,
-          submissionKeys: readonly string[]
+          submissionKeys: readonly string[],
         ) {
           const map: Record<string, SubmissionState> = {}
           const submissionOrderIndexes: number[] = []
@@ -81,8 +89,8 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
           })
         },
         Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
-        )
+          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
+        ),
       )
 
       const setParticipantErrorState = Effect.fn("UploadSessionRepository.setErrorState")(
@@ -95,55 +103,57 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
           }
         },
         Effect.retry(
-          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
-        )
+          Schedule.compose(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)),
+        ),
       )
 
       const incrementParticipantState = Effect.fn(
-        "UploadSessionRepository.incrementParticipantState"
-      )(function* (domain: string, ref: string, orderIndex: number) {
-        const key = keyFactory.participant(domain, ref)
-        const result = yield* redis.use((client) =>
-          incrementParticipantScript.run(client, {
-            keys: { key },
-            args: { orderIndex },
-          })
-        )
-          .pipe(
-            Effect.mapError((error) => {
-              return new RedisError({
-                message: `[${domain}|${ref}|${orderIndex}] Failed to increment participant state: ${error.message}`,
-                cause: error.cause,
-              })
-            })
+        "UploadSessionRepository.incrementParticipantState",
+      )(
+        function* (domain: string, ref: string, orderIndex: number) {
+          const key = keyFactory.participant(domain, ref)
+          const result = yield* redis.use((client) =>
+            incrementParticipantScript.run(client, {
+              keys: { key },
+              args: { orderIndex },
+            }),
           )
-        const status = Schema.decodeUnknownSync(IncrementResultSchema)(result)
+          const status = Schema.decodeUnknownSync(IncrementResultSchema)(result)
 
-        switch (status) {
-          case "INVALID_ORDER_INDEX":
-            yield* setParticipantErrorState(domain, ref, status)
-            return yield* new RedisError({
-              message: `[${domain}|${ref}|${orderIndex}] Invalid order index provided: ${result}`,
-              cause: result,
-            })
-            break
-          case "MISSING_DATA":
-            yield* setParticipantErrorState(domain, ref, status)
-            return yield* new RedisError({
-              message: `[${domain}|${ref}|${orderIndex}] Missing data provided: ${result}`,
-              cause: result,
-            })
-            break
-          case "DUPLICATE_ORDER_INDEX":
-            yield* Effect.logWarning("Duplicate order index provided, skipping")
-            break
-          case "ALREADY_FINALIZED":
-            yield* Effect.logWarning(`[${domain}|${ref}|${orderIndex}] Already finalized, skipping`)
-            break
-        }
+          switch (status) {
+            case "INVALID_ORDER_INDEX":
+              yield* setParticipantErrorState(domain, ref, status)
+              return yield* new UploadSessionRepositoryError({
+                message: `[${domain}|${ref}|${orderIndex}] Invalid order index provided: ${result}`,
+                cause: result,
+              })
+              break
+            case "MISSING_DATA":
+              yield* setParticipantErrorState(domain, ref, status)
+              return yield* new UploadSessionRepositoryError({
+                message: `[${domain}|${ref}|${orderIndex}] Missing data provided: ${result}`,
+                cause: result,
+              })
+              break
+            case "DUPLICATE_ORDER_INDEX":
+              yield* Effect.logWarning("Duplicate order index provided, skipping")
+              break
+            case "ALREADY_FINALIZED":
+              yield* Effect.logWarning(
+                `[${domain}|${ref}|${orderIndex}] Already finalized, skipping`,
+              )
+              break
+          }
 
-        return { status }
-      })
+          return { status }
+        },
+        Effect.mapError((error) => {
+          return new UploadSessionRepositoryError({
+            message: `Failed to increment participant state`,
+            cause: error,
+          })
+        }),
+      )
 
       const getParticipantState = Effect.fn("UploadSessionRepository.getParticipantState")(
         function* (domain: string, ref: string) {
@@ -156,31 +166,41 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
 
           const parsed = Schema.decodeUnknownOption(ParticipantStateSchema)(result)
           return parsed
-        }
+        },
+        Effect.mapError((error) => {
+          return new UploadSessionRepositoryError({
+            message: `Failed to get participant state`,
+            cause: error,
+          })
+        }),
       )
 
-      const getSubmissionState = Effect.fn("UploadSessionRepository.getSubmissionState")(function* (
-        domain: string,
-        ref: string,
-        orderIndex: number
-      ) {
-        const formattedOrderIndex = (Number(orderIndex) + 1).toString().padStart(2, "0")
-        const key = keyFactory.submission(domain, ref, formattedOrderIndex)
-        const result = yield* redis.use((client) => client.hgetall(key))
-        if (isMissingHashResult(result)) {
-          return Option.none<SubmissionState>()
-        }
-        const parsed = Schema.decodeUnknownOption(SubmissionStateSchema)(result)
-        return parsed
-      })
+      const getSubmissionState = Effect.fn("UploadSessionRepository.getSubmissionState")(
+        function* (domain: string, ref: string, orderIndex: number) {
+          const formattedOrderIndex = (Number(orderIndex) + 1).toString().padStart(2, "0")
+          const key = keyFactory.submission(domain, ref, formattedOrderIndex)
+          const result = yield* redis.use((client) => client.hgetall(key))
+          if (isMissingHashResult(result)) {
+            return Option.none<SubmissionState>()
+          }
+          const parsed = Schema.decodeUnknownOption(SubmissionStateSchema)(result)
+          return parsed
+        },
+        Effect.mapError((error) => {
+          return new UploadSessionRepositoryError({
+            message: `Failed to get submission state`,
+            cause: error,
+          })
+        }),
+      )
 
       const getAllSubmissionStates = Effect.fn("UploadSessionRepository.getAllSubmissionStates")(
         function* (domain: string, ref: string, orderIndexes: number[]) {
           const formattedOrderIndexes = orderIndexes.map((orderIndex) =>
-            (Number(orderIndex) + 1).toString().padStart(2, "0")
+            (Number(orderIndex) + 1).toString().padStart(2, "0"),
           )
           const keys = formattedOrderIndexes.map((formattedOrderIndex) =>
-            keyFactory.submission(domain, ref, formattedOrderIndex)
+            keyFactory.submission(domain, ref, formattedOrderIndex),
           )
 
           const result = yield* redis.use((client) => {
@@ -202,14 +222,16 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
               onNone: () => [],
             })
           })
-        }
+        },
       )
 
       const updateParticipantSession = Effect.fn(
-        "UploadSessionRepository.updateParticipantSession"
+        "UploadSessionRepository.updateParticipantSession",
       )(function* (domain: string, ref: string, state: Partial<ParticipantState>) {
         const key = keyFactory.participant(domain, ref)
-        const encodedState = yield* Schema.encodeEffect(ParticipantStateSchema.mapFields(Struct.map(Schema.optional)))(state)
+        const encodedState = yield* Schema.encodeEffect(
+          ParticipantStateSchema.mapFields(Struct.map(Schema.optional)),
+        )(state)
         return yield* redis.use((client) => client.hset(key, encodedState))
       })
 
@@ -218,13 +240,21 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
           domain: string,
           ref: string,
           orderIndex: number,
-          state: Partial<SubmissionState>
+          state: Partial<SubmissionState>,
         ) {
           const formattedOrderIndex = (Number(orderIndex) + 1).toString().padStart(2, "0")
           const key = keyFactory.submission(domain, ref, formattedOrderIndex)
-          const encodedState = yield* Schema.encodeEffect(SubmissionStateSchema.mapFields(Struct.map(Schema.optional)))(state)
+          const encodedState = yield* Schema.encodeEffect(
+            SubmissionStateSchema.mapFields(Struct.map(Schema.optional)),
+          )(state)
           return yield* redis.use((client) => client.hset(key, encodedState))
-        }
+        },
+        Effect.mapError((error) => {
+          return new UploadSessionRepositoryError({
+            message: `Failed to update submission session`,
+            cause: error,
+          })
+        }),
       )
 
       return {
@@ -238,12 +268,9 @@ export class UploadSessionRepository extends ServiceMap.Service<UploadSessionRep
         updateSubmissionSession,
       } as const
     }),
-  }
+  },
 ) {
   static layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(
-      RedisClient.layer,
-      KeyFactory.layer,
-    ))
+    Layer.provide(Layer.mergeAll(RedisClient.layer, KeyFactory.layer)),
   )
 }

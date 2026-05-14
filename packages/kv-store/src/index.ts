@@ -28,11 +28,13 @@ export class KVStore extends ServiceMap.Service<KVStore>()("@blikka/packages/kv-
   }),
 }) {
   static layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(
-      UploadSessionRepository.layer,
-      ZipKVRepository.layer,
-      ExifKVRepository.layer,
-      DownloadStateRepository.layer,
-    ))
+    Layer.provide(
+      Layer.mergeAll(
+        UploadSessionRepository.layer,
+        ZipKVRepository.layer,
+        ExifKVRepository.layer,
+        DownloadStateRepository.layer,
+      ),
+    ),
   )
 }
