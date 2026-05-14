@@ -1,14 +1,22 @@
 {
-  "extends": "../../packages/typescript-config/base.json",
+  "$schema": "https://json.schemastore.org/tsconfig",
   "include": ["src", "."],
   "compilerOptions": {
+    "esModuleInterop": true,
+    "incremental": false,
+    "isolatedModules": true,
+    "lib": ["es2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
+    "moduleDetection": "force",
     "moduleResolution": "Bundler",
-    "baseUrl": ".",
+    "target": "ES2022",
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
     "noEmit": true,
     "allowJs": true,
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@blikka/aws": ["../../packages/aws/src"],
       "@blikka/kv-store": ["../../packages/kv-store/src"],
       "@blikka/db": ["../../packages/db/src"],
@@ -16,7 +24,8 @@
       "@blikka/realtime": ["../../packages/realtime/src"],
       "@blikka/telemetry": ["../../packages/telemetry/src"],
       "@blikka/task-runtime": ["../../packages/task-runtime/src"],
-      "@blikka/uploads": ["../../packages/uploads/src"]
+      "@blikka/uploads": ["../../packages/uploads/src"],
+      "*": ["./*"]
     },
     "strict": true
   },
