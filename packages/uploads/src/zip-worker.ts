@@ -50,16 +50,16 @@ export class ZipWorker extends Context.Service<ZipWorker, ZipWorkerShape>()(
   "@blikka/uploads/ZipWorker",
 ) {}
 
-function makeZipKey(domain: string, reference: string) {
+function createZipKey(domain: string, reference: string) {
   return `${domain}/${reference}.zip`
 }
 
-function makeZippedSubmissionDto(domain: string, participant: Participant) {
+function createZippedSubmissionDto(domain: string, participant: Participant) {
   return {
     data: {
       marathonId: participant.marathonId,
       participantId: participant.id,
-      key: makeZipKey(domain, participant.reference),
+      key: createZipKey(domain, participant.reference),
       exportType: "zip" as const,
       progress: 100,
       status: "completed" as const,
@@ -68,7 +68,7 @@ function makeZippedSubmissionDto(domain: string, participant: Participant) {
   }
 }
 
-function makeZipEntryPath(reference: string, submission: Submission, topics: readonly Topic[]) {
+function createZipEntryPath(reference: string, submission: Submission, topics: readonly Topic[]) {
   const orderIndex = Option.fromNullishOr(
     topics.find((topic) => topic.id === submission.topicId)?.orderIndex,
   )
@@ -122,7 +122,7 @@ const makeZipWorker = Effect.gen(function* () {
     submission: Submission,
     topics: readonly Topic[],
   ) {
-    const zipPath = makeZipEntryPath(reference, submission, topics)
+    const zipPath = createZipEntryPath(reference, submission, topics)
 
     if (Option.isNone(zipPath)) {
       return yield* new ZipWorkerDataNotFoundError({
@@ -162,7 +162,7 @@ const makeZipWorker = Effect.gen(function* () {
 
   const runZipTask: ZipWorkerShape["runZipTask"] = Effect.fn("ZipWorker.runZipTask")(
     function* ({ domain, reference }: RunZipTaskInput) {
-      const zipKey = makeZipKey(domain, reference)
+      const zipKey = createZipKey(domain, reference)
 
       const participantOpt = yield* db.participantsQueries.getParticipantByReference({
         reference,
@@ -191,7 +191,7 @@ const makeZipWorker = Effect.gen(function* () {
       const zipBuffer = yield* buildZipBuffer(domain, reference, entries)
       yield* s3.putFile(config.zipsBucketName, zipKey, zipBuffer)
 
-      const zipDto = makeZippedSubmissionDto(domain, participant)
+      const zipDto = createZippedSubmissionDto(domain, participant)
       yield* db.submissionsQueries.createZippedSubmission(zipDto).pipe(
         Effect.mapError(
           (cause) =>
