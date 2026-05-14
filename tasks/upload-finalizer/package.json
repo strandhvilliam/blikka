@@ -7,14 +7,16 @@
     "@types/bun": "latest"
   },
   "dependencies": {
+    "@blikka/aws": "workspace:*",
     "@blikka/db": "workspace:*",
+    "@blikka/kv-store": "workspace:*",
     "@blikka/pubsub": "workspace:*",
     "@blikka/realtime": "workspace:*",
+    "@blikka/task-runtime": "workspace:*",
     "@blikka/telemetry": "workspace:*",
-    "@blikka/kv-store": "workspace:*",
+    "@blikka/uploads": "workspace:*",
     "@effect-aws/lambda": "catalog:",
-    "effect": "catalog:",
-    "@blikka/aws": "workspace:*"
+    "effect": "catalog:"
   },
   "peerDependencies": {
     "typescript": "^5"
