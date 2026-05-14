@@ -95,7 +95,9 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
           }
 
           if (submissionStateOpt.value.uploaded) {
-            yield* Effect.logWarning("Submission already uploaded, continuing finalization", { key })
+            yield* Effect.logWarning("Submission already uploaded, continuing finalization", {
+              key,
+            })
           } else {
             const photo = yield* s3.getFile(submissionsBucketName, key).pipe(
               Effect.andThen(
@@ -149,7 +151,9 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
                     ),
                   onNone: () =>
                     exifParser.parse(photo).pipe(
-                      Effect.tap((exif) => exifKv.setExifState(domain, reference, orderIndex, exif)),
+                      Effect.tap((exif) =>
+                        exifKv.setExifState(domain, reference, orderIndex, exif),
+                      ),
                       Effect.map(Option.some),
                       Effect.catchCause((cause) =>
                         Effect.gen(function* () {
@@ -203,7 +207,9 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
                 exifProcessed: Option.isSome(exifResult),
               })
               .pipe(
-                Effect.catch((error) => Effect.logError("Failed to update submission state", error)),
+                Effect.catch((error) =>
+                  Effect.logError("Failed to update submission state", error),
+                ),
               )
           }
 
@@ -221,7 +227,10 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
             )
 
           if (status === "FINALIZED" || status === "ALREADY_FINALIZED") {
-            const currentParticipantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
+            const currentParticipantStateOpt = yield* uploadKv.getParticipantState(
+              domain,
+              reference,
+            )
             if (
               Option.isSome(currentParticipantStateOpt) &&
               getUploadSessionId(currentParticipantStateOpt.value) === uploadSessionId

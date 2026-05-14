@@ -16,9 +16,12 @@ export interface SqsRealtimeTaskOptions<Input extends TaskEventTarget, R> {
   taskName: string;
   spanName: string;
   eventKey: RealtimeEventKey;
-  decodeRecord: (record: SQSRecord) => Effect.Effect<Input, unknown, R>;
+  decodeRecord: (
+    record: SQSRecord,
+  ) => Effect.Effect<Input | ReadonlyArray<Input>, unknown, R>;
   run: (input: Input) => Effect.Effect<unknown, unknown, R>;
   recordConcurrency?: number;
+  inputConcurrency?: number;
 }
 
 export const makeSqsRealtimeTask =
@@ -32,16 +35,24 @@ export const makeSqsRealtimeTask =
 
       const processRecord = Effect.fn(`${options.taskName}.processSQSRecord`)(
         function* (record: SQSRecord) {
-          const input = yield* options.decodeRecord(record);
-          const workflow = options.run(input);
+          const decoded = yield* options.decodeRecord(record);
+          const inputs = Array.isArray(decoded) ? decoded : [decoded];
 
-          yield* realtimeEvents.withEventResult(workflow, {
-            eventKey: options.eventKey,
-            environment: taskEnvironment.environment,
-            domain: input.domain,
-            reference: input.reference,
-            metadata: input.metadata,
-          });
+          yield* Effect.forEach(
+            inputs,
+            (input) => {
+              const workflow = options.run(input);
+
+              return realtimeEvents.withEventResult(workflow, {
+                eventKey: options.eventKey,
+                environment: taskEnvironment.environment,
+                domain: input.domain,
+                reference: input.reference,
+                metadata: input.metadata,
+              });
+            },
+            { concurrency: options.inputConcurrency ?? 1 },
+          );
         },
       );
 
@@ -55,17 +66,17 @@ export const makeSqsRealtimeTask =
       ),
     );
 
-export interface LambdaTaskLayerOptions {
+export interface LambdaTaskLayerOptions<ROut, E, RIn> {
   taskName: string;
   environment: string;
-  workflowLayer: Layer.Layer<unknown, unknown, unknown>;
+  workflowLayer: Layer.Layer<ROut, E, RIn>;
 }
 
-export const makeLambdaTaskLayer = ({
+export const makeLambdaTaskLayer = <ROut, E, RIn>({
   taskName,
   environment,
   workflowLayer,
-}: LambdaTaskLayerOptions) =>
+}: LambdaTaskLayerOptions<ROut, E, RIn>) =>
   Layer.mergeAll(
     workflowLayer,
     RealtimeEventsService.layer,
