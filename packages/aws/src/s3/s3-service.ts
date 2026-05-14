@@ -8,7 +8,7 @@ import { Duration, Effect, Option, Schedule, Schema, Context, Layer } from "effe
 import { S3EffectClient } from "./s3-effect-client"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
-class S3ClientError extends Schema.TaggedErrorClass<S3ClientError>()("S3ClientError", {
+export class S3ClientError extends Schema.TaggedErrorClass<S3ClientError>()("S3ClientError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}

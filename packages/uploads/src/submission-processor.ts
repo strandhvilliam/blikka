@@ -1,14 +1,61 @@
-import { Cause, Effect, Layer, Option, Context } from "effect"
-import { BusService, S3Service } from "@blikka/aws"
+import { Cause, Effect, Layer, Option, Context, Schema } from "effect"
+import { BusService, EventBusError, S3Service } from "@blikka/aws"
 import {
   ExifKVRepository,
+  type ExifKVRepositoryError,
   type ExifState,
   type SubmissionState,
   UploadSessionRepository,
+  UploadSessionRepositoryError,
 } from "@blikka/kv-store"
 import { ExifParser, SharpImageService } from "@blikka/image-manipulation"
 import { UploadsConfig } from "./config"
-import { PhotoNotFoundError, type SubmissionProcessorError } from "./errors"
+
+export class PhotoNotFoundError extends Schema.TaggedErrorClass<PhotoNotFoundError>()(
+  "PhotoNotFoundError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+    key: Schema.String,
+  },
+) {}
+
+export type SubmissionProcessorError =
+  | PhotoNotFoundError
+  | EventBusError
+  | UploadSessionRepositoryError
+  | ExifKVRepositoryError
+
+export interface ProcessSubmissionInput {
+  readonly key: string
+  readonly domain: string
+  readonly reference: string
+  readonly orderIndex: number
+  readonly fileName: string
+}
+
+/** Submission + KV checks passed; safe to ingest photo and advance counters. */
+interface ReadySubmissionContext {
+  readonly params: ProcessSubmissionInput
+  readonly submission: SubmissionState
+  readonly uploadSessionId: string
+}
+
+export interface SubmissionProcessorShape {
+  /**
+   * Processes a submission normally triggered by S3 created event.
+   * Expects submission state to be initialized in KV store.
+   * Will send finalized event to bus if all photos are processed.
+   */
+  readonly process: (
+    params: ProcessSubmissionInput,
+  ) => Effect.Effect<void, SubmissionProcessorError>
+}
+
+export class SubmissionProcessor extends Context.Service<
+  SubmissionProcessor,
+  SubmissionProcessorShape
+>()("@blikka/uploads/SubmissionProcessor") {}
 
 const THUMBNAIL_WIDTH = 400
 
@@ -31,37 +78,6 @@ function makeThumbnailKey(params: {
 }): string {
   const formattedOrderIndex = (params.orderIndex + 1).toString().padStart(2, "0")
   return `${params.domain}/${params.reference}/${formattedOrderIndex}/thumbnail_${params.fileName}`
-}
-
-export interface ProcessSubmissionInput {
-  readonly key: string
-  readonly domain: string
-  readonly reference: string
-  readonly orderIndex: number
-  readonly fileName: string
-}
-
-export interface SubmissionProcessorShape {
-  /**
-   * Processes a submission normally triggered by S3 created event.
-   * Expects submission state to be initialized in KV store.
-   * Will send finalized event to bus if all photos are processed.
-   */
-  readonly process: (
-    params: ProcessSubmissionInput,
-  ) => Effect.Effect<void, SubmissionProcessorError>
-}
-
-export class SubmissionProcessor extends Context.Service<
-  SubmissionProcessor,
-  SubmissionProcessorShape
->()("@blikka/uploads/SubmissionProcessor") {}
-
-/** Submission + KV checks passed; safe to ingest photo and advance counters. */
-interface ReadySubmissionContext {
-  readonly params: ProcessSubmissionInput
-  readonly submission: SubmissionState
-  readonly uploadSessionId: string
 }
 
 const makeSubmissionProcessor = Effect.gen(function* () {

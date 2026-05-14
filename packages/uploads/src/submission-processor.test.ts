@@ -10,8 +10,8 @@ import {
 import { ExifParser, SharpImageService } from "@blikka/image-manipulation"
 import { Effect, Layer, Option, Ref } from "effect"
 import { UploadsConfig } from "./config"
-import { PhotoNotFoundError } from "./errors"
 import {
+  PhotoNotFoundError,
   type ProcessSubmissionInput,
   SubmissionProcessor,
   UploadProcessorLayer,

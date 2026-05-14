@@ -1,21 +1,43 @@
-import { Database, type NewSubmission, type Participant } from "@blikka/db"
+import { Database, type NewSubmission, type Participant, type DbError } from "@blikka/db"
 import {
   ExifKVRepository,
+  type ExifKVRepositoryError,
   type ExifState,
   type ParticipantState,
   type SubmissionState,
   UploadSessionRepository,
+  UploadSessionRepositoryError,
 } from "@blikka/kv-store"
-import { Context, Effect, Layer, Option } from "effect"
-import { FailedToFinalizeParticipantError, type UploadFinalizerError } from "./errors"
-
-export { FailedToFinalizeParticipantError } from "./errors"
+import { Context, Effect, Layer, Option, Schema } from "effect"
 
 export interface FinalizeParticipantInput {
   readonly domain: string
   readonly reference: string
   readonly uploadSessionId: string
 }
+
+type FinalizeSkipDecision =
+  | {
+      readonly shouldSkip: true
+      readonly message: string
+    }
+  | {
+      readonly shouldSkip: false
+    }
+
+export class FailedToFinalizeParticipantError extends Schema.TaggedErrorClass<FailedToFinalizeParticipantError>()(
+  "FailedToFinalizeParticipantError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
+
+export type UploadFinalizerError =
+  | FailedToFinalizeParticipantError
+  | UploadSessionRepositoryError
+  | ExifKVRepositoryError
+  | DbError
 
 export interface UploadFinalizerShape {
   /**
@@ -29,15 +51,6 @@ export interface UploadFinalizerShape {
 export class UploadFinalizer extends Context.Service<UploadFinalizer, UploadFinalizerShape>()(
   "@blikka/uploads/UploadFinalizer",
 ) {}
-
-type FinalizeSkipDecision =
-  | {
-      readonly shouldSkip: true
-      readonly message: string
-    }
-  | {
-      readonly shouldSkip: false
-    }
 
 function shouldSkipFinalize({
   participant,
@@ -105,20 +118,18 @@ const makeUploadFinalizer = Effect.gen(function* () {
   const finalize = Effect.fn("UploadFinalizer.finalizeParticipant")(
     function* ({ domain, reference, uploadSessionId }: FinalizeParticipantInput) {
       const participantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
+      if (Option.isNone(participantStateOpt)) {
+        return yield* new FailedToFinalizeParticipantError({
+          message: "Participant state not found",
+        })
+      }
       const participantOpt = yield* db.participantsQueries.getParticipantByReference({
         reference,
         domain,
       })
-
       if (Option.isNone(participantOpt)) {
         return yield* new FailedToFinalizeParticipantError({
           message: "Participant in db not found",
-        })
-      }
-
-      if (Option.isNone(participantStateOpt)) {
-        return yield* new FailedToFinalizeParticipantError({
-          message: "Participant state not found",
         })
       }
 

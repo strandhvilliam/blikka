@@ -1,22 +1,46 @@
 import { Database } from "@blikka/db"
-import type { RuleConfig } from "@blikka/db"
+import type { DbError, RuleConfig } from "@blikka/db"
 import { S3Service } from "@blikka/aws"
-import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
+import {
+  ExifKVRepository,
+  ExifKVRepositoryError,
+  UploadSessionRepository,
+  UploadSessionRepositoryError,
+} from "@blikka/kv-store"
 import { type ExifState, type SubmissionState } from "@blikka/kv-store"
 import {
   RuleKeySchema,
   ValidationEngine,
   ValidationInputSchema,
   ValidationRuleSchema,
+  type ValidationEngineError,
 } from "@blikka/validation"
 import { Context, Effect, Layer, Option, Schema } from "effect"
-
 import { UploadsConfig } from "./config"
-import {
-  ValidationRunnerInvalidDataError,
-  InvalidValidationRuleError,
-  type ValidationRunnerError,
-} from "./errors"
+
+export class ValidationRunnerInvalidDataError extends Schema.TaggedErrorClass<ValidationRunnerInvalidDataError>()(
+  "ValidationRunnerInvalidDataError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
+
+export class InvalidValidationRuleError extends Schema.TaggedErrorClass<InvalidValidationRuleError>()(
+  "InvalidValidationRuleError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
+
+export type ValidationRunnerError =
+  | ValidationRunnerInvalidDataError
+  | InvalidValidationRuleError
+  | UploadSessionRepositoryError
+  | ExifKVRepositoryError
+  | DbError
+  | ValidationEngineError
 
 export interface ValidateParticipantInput {
   readonly domain: string

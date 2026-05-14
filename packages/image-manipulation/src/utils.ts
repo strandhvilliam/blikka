@@ -38,24 +38,21 @@ export class InvalidKeyFormatError extends Schema.TaggedErrorClass<InvalidKeyFor
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
-  }
-) {
-}
+  },
+) {}
 
 export class SvgGenerationError extends Schema.TaggedErrorClass<SvgGenerationError>()(
   "SvgGenerationError",
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
-  }
-) {
-}
+  },
+) {}
 
 export const parseKey = (key: string) =>
   Effect.sync(() => {
     const parts = key.split("/")
-    const [domain, maybeSeedNamespace, maybeReference, maybeOrderIndex, maybeFileName] =
-      parts
+    const [domain, maybeSeedNamespace, maybeReference, maybeOrderIndex, maybeFileName] = parts
     const isSeedKey = maybeSeedNamespace === "__seed"
     const reference = isSeedKey ? maybeReference : maybeSeedNamespace
     const orderIndex = isSeedKey ? maybeOrderIndex : maybeReference
@@ -65,7 +62,7 @@ export const parseKey = (key: string) =>
       return Effect.fail(
         new InvalidKeyFormatError({
           message: `Missing: domain=${domain}, reference=${reference}, orderIndex=${orderIndex}, fileName=${fileName}`,
-        })
+        }),
       )
     }
     return Effect.succeed({ domain, reference, orderIndex, fileName })
@@ -95,7 +92,7 @@ export function escapeXml(unsafe: string) {
 
 export function getSponsorPosition(
   position: SponsorPosition,
-  isSmallGrid: boolean
+  isSmallGrid: boolean,
 ): { row: number; col: number } {
   const positions = {
     "bottom-left": {
@@ -126,7 +123,7 @@ export function getSponsorPosition(
 export function calculateSheetVariables(
   reference: string,
   cols: number,
-  rows: number
+  rows: number,
 ): SheetVariables {
   const textHeight = Math.round(CANVAS_HEIGHT * TEXT_HEIGHT_RATIO)
   const sequenceSpace = reference ? Math.round(CANVAS_HEIGHT * SEQUENCE_SPACE_RATIO) : 0
@@ -164,11 +161,12 @@ export function calculateSheetVariables(
 
 export const getImageLabel = Effect.fnUntraced(function* (
   orderIndex: number,
-  topics: { name: string; orderIndex: number }[]
+  topics: { name: string; orderIndex: number }[],
 ) {
-  const topic = yield* Array.findFirst(topics, (t) => t.orderIndex === orderIndex)
-  if (!topic) return Option.none()
-  return Option.some(`${topic.orderIndex + LABEL_INDEX_OFFSET} - ${topic.name}`)
+  // const topic = yield* Array.findFirst(topics, (t) => t.orderIndex === orderIndex)
+  const topic = topics.find((t) => t.orderIndex === orderIndex)
+  if (!topic) return Option.none<string>()
+  return Option.some<string>(`${topic.orderIndex + LABEL_INDEX_OFFSET} - ${topic.name}`)
 })
 
 export function calculateImagePosition({
@@ -221,7 +219,7 @@ export const generateParticipantReferenceSvg = ({ reference }: { reference: stri
     try: () => {
       const seqFontSize = Math.max(
         SEQUENCE_FONT_SIZE_MIN,
-        Math.floor(CANVAS_HEIGHT * SEQUENCE_FONT_SIZE_RATIO)
+        Math.floor(CANVAS_HEIGHT * SEQUENCE_FONT_SIZE_RATIO),
       )
       const seqWidth = Math.floor(CANVAS_WIDTH * SEQUENCE_WIDTH_RATIO)
       const seqHeight = Math.floor(CANVAS_HEIGHT)

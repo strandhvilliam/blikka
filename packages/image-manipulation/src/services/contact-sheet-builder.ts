@@ -26,8 +26,7 @@ export class InvalidSheetParamsError extends Schema.TaggedErrorClass<InvalidShee
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
-) {
-}
+) {}
 
 export class ContactSheetBuilder extends Context.Service<ContactSheetBuilder>()(
   "@blikka/packages/image-manipulation/ContactSheetBuilder",
