@@ -202,9 +202,8 @@ const makeSubmissionProcessor = Effect.gen(function* () {
         Effect.logWarning("Failed to get exif state. Continuing without EXIF.", {
           cause: Cause.pretty(error),
           key,
-        }),
+        }).pipe(Effect.as(Option.none<ExifState>())),
       ),
-      Effect.as(Option.none<ExifState>()),
     )
     const seededExif = Option.filter(existingExifState, hasExifFields)
 
