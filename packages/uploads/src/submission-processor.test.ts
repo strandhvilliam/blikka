@@ -121,17 +121,12 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         }))
         return Option.fromNullishOr(state.files[key])
       }),
-    getHead: () => Effect.die("getHead is not used by SubmissionProcessor tests"),
-    getPresignedUrl: () => Effect.die("getPresignedUrl is not used by SubmissionProcessor tests"),
     putFile: (bucket: string, key: string, file: Buffer) =>
       updateTestState(stateRef, (state) => ({
         ...state,
         thumbnailPuts: [...state.thumbnailPuts, { bucket, key, file }],
       })).pipe(Effect.as({} as S3PutFileOutput)),
-    deleteFile: () => Effect.die("deleteFile is not used by SubmissionProcessor tests"),
-    generateSubmissionKey: () =>
-      Effect.die("generateSubmissionKey is not used by SubmissionProcessor tests"),
-  } as S3Service["Service"])
+  } as unknown as S3Service["Service"])
 
   const uploadKv = UploadSessionRepository.of({
     getParticipantState: () =>
@@ -155,7 +150,6 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
           (submission): submission is SubmissionState => submission !== undefined,
         )
       }),
-    initializeState: () => Effect.void,
     incrementParticipantState: (_domain: string, _reference: string, orderIndex: number) =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
@@ -165,8 +159,6 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         }))
         return { status: state.incrementStatus }
       }),
-    setParticipantErrorState: () => Effect.void,
-    updateParticipantSession: () => Effect.succeed(0),
     updateSubmissionSession: (
       _domain: string,
       _reference: string,
@@ -184,7 +176,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         },
         submissionUpdates: [...state.submissionUpdates, { orderIndex, state: submission }],
       })).pipe(Effect.as(0)),
-  } as UploadSessionRepository["Service"])
+  } as unknown as UploadSessionRepository["Service"])
 
   const exifKv = ExifKVRepository.of({
     getExifState: (_domain: string, _reference: string, orderIndex: number) =>
@@ -200,9 +192,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
           [orderIndex]: exif,
         },
       })).pipe(Effect.as("OK")),
-    getAllExifStates: () => Effect.succeed([]),
-    deleteExifStates: () => Effect.succeed(0),
-  } as ExifKVRepository["Service"])
+  } as unknown as ExifKVRepository["Service"])
 
   const exifParser = ExifParser.of({
     parse: () =>
@@ -210,9 +200,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         const state = yield* Ref.get(stateRef)
         return yield* state.parseResult
       }),
-    parseExcludeLocationData: () =>
-      Effect.die("parseExcludeLocationData is not used by SubmissionProcessor tests"),
-  } as ExifParser["Service"])
+  } as unknown as ExifParser["Service"])
 
   const sharp = SharpImageService.of({
     resize: () =>
@@ -220,10 +208,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         const state = yield* Ref.get(stateRef)
         return yield* state.resizeResult
       }),
-    prepareForCanvas: () => Effect.die("prepareForCanvas is not used by SubmissionProcessor tests"),
-    createCanvasSheet: () =>
-      Effect.die("createCanvasSheet is not used by SubmissionProcessor tests"),
-  } as SharpImageService["Service"])
+  } as unknown as SharpImageService["Service"])
 
   const bus = BusService.of({
     sendFinalizedEvent: (domain: string, reference: string, finalizedUploadSessionId: string) =>

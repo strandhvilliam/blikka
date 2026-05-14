@@ -44,3 +44,19 @@ export type ValidationRunnerError =
   | ExifKVRepositoryError
   | DbError
   | ValidationEngineError
+
+/// UploadFinalizer errors
+
+export class FailedToFinalizeParticipantError extends Schema.TaggedErrorClass<FailedToFinalizeParticipantError>()(
+  "FailedToFinalizeParticipantError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
+
+export type UploadFinalizerError =
+  | FailedToFinalizeParticipantError
+  | UploadSessionRepositoryError
+  | ExifKVRepositoryError
+  | DbError

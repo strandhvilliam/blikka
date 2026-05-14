@@ -146,18 +146,11 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
   } as unknown as Database["Service"])
 
   const uploadKv = UploadSessionRepository.of({
-    initializeState: () => Effect.die("initializeState is not used by ValidationRunner tests"),
-    incrementParticipantState: () =>
-      Effect.die("incrementParticipantState is not used by ValidationRunner tests"),
-    setParticipantErrorState: () =>
-      Effect.die("setParticipantErrorState is not used by ValidationRunner tests"),
     getParticipantState: () =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
         return Option.fromNullishOr(state.participantState)
       }),
-    getSubmissionState: () =>
-      Effect.die("getSubmissionState is not used by ValidationRunner tests"),
     getAllSubmissionStates: () =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
@@ -172,23 +165,17 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         ...state,
         participantUpdates: [...state.participantUpdates, participantState],
       })).pipe(Effect.as(1)),
-    updateSubmissionSession: () =>
-      Effect.die("updateSubmissionSession is not used by ValidationRunner tests"),
-  } as UploadSessionRepository["Service"])
+  } as unknown as UploadSessionRepository["Service"])
 
   const exifKv = ExifKVRepository.of({
-    getExifState: () => Effect.die("getExifState is not used by ValidationRunner tests"),
     getAllExifStates: () =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
         return [...state.exifStates]
       }),
-    setExifState: () => Effect.die("setExifState is not used by ValidationRunner tests"),
-    deleteExifStates: () => Effect.die("deleteExifStates is not used by ValidationRunner tests"),
-  } as ExifKVRepository["Service"])
+  } as unknown as ExifKVRepository["Service"])
 
   const s3 = S3Service.of({
-    getFile: () => Effect.die("getFile is not used by ValidationRunner tests"),
     getHead: (bucket: string, key: string) =>
       updateTestState(stateRef, (state) => ({
         ...state,
@@ -199,12 +186,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
           ContentLength: 123,
         } as Effect.Success<ReturnType<S3Service["Service"]["getHead"]>>),
       ),
-    getPresignedUrl: () => Effect.die("getPresignedUrl is not used by ValidationRunner tests"),
-    putFile: () => Effect.die("putFile is not used by ValidationRunner tests"),
-    deleteFile: () => Effect.die("deleteFile is not used by ValidationRunner tests"),
-    generateSubmissionKey: () =>
-      Effect.die("generateSubmissionKey is not used by ValidationRunner tests"),
-  } as S3Service["Service"])
+  } as unknown as S3Service["Service"])
 
   const validationEngine = ValidationEngine.of({
     runValidations: (rules: ValidationRule[], validationInputs: ValidationInput[]) =>
