@@ -122,7 +122,7 @@ const makeValidationRunner = Effect.gen(function* () {
     ),
   )
 
-  const execute = Effect.fn("ValidationRunner.execute")(
+  const execute: ValidationRunnerShape["execute"] = Effect.fn("ValidationRunner.execute")(
     function* ({ domain, reference, uploadSessionId }: ValidateParticipantInput) {
       const participantState = yield* uploadKv.getParticipantState(domain, reference)
 

@@ -115,7 +115,9 @@ const makeUploadFinalizer = Effect.gen(function* () {
   const uploadKv = yield* UploadSessionRepository
   const exifKv = yield* ExifKVRepository
 
-  const finalize = Effect.fn("UploadFinalizer.finalizeParticipant")(
+  const finalize: UploadFinalizerShape["finalize"] = Effect.fn(
+    "UploadFinalizer.finalizeParticipant",
+  )(
     function* ({ domain, reference, uploadSessionId }: FinalizeParticipantInput) {
       const participantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
       if (Option.isNone(participantStateOpt)) {

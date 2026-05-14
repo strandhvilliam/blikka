@@ -135,7 +135,9 @@ const makeContactSheetGenerator = Effect.gen(function* () {
     }
   })
 
-  const generate = Effect.fn("ContactSheetGenerator.generate")(
+  const generate: ContactSheetGeneratorShape["generate"] = Effect.fn(
+    "ContactSheetGenerator.generate",
+  )(
     function* (params: GenerateContactSheetInput) {
       const { domain, reference, uploadSessionId } = params
 

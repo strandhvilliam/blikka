@@ -267,7 +267,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
     yield* bus.sendFinalizedEvent(domain, reference, uploadSessionId)
   })
 
-  const process = Effect.fn("SubmissionProcessor.process")(
+  const process: SubmissionProcessorShape["process"] = Effect.fn("SubmissionProcessor.process")(
     function* (params: ProcessSubmissionInput) {
       const readyContext = yield* resolveReadySubmissionContext(params)
       if (Option.isNone(readyContext)) return
