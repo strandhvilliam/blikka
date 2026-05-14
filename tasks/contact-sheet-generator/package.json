@@ -10,15 +10,17 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@blikka/aws": "workspace:*",
     "@blikka/db": "workspace:*",
     "@blikka/image-manipulation": "workspace:*",
     "@blikka/kv-store": "workspace:*",
-    "@blikka/telemetry": "workspace:*",
     "@blikka/pubsub": "workspace:*",
     "@blikka/realtime": "workspace:*",
+    "@blikka/task-runtime": "workspace:*",
+    "@blikka/telemetry": "workspace:*",
+    "@blikka/uploads": "workspace:*",
     "@effect-aws/lambda": "catalog:",
     "effect": "catalog:",
-    "sharp": "^0.34.3",
-    "@blikka/aws": "workspace:*"
+    "sharp": "^0.34.3"
   }
 }

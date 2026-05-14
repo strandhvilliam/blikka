@@ -1,13 +1,14 @@
 import { Effect, Layer } from "effect"
 import { Database } from "@blikka/db"
 import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
-import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
+import { FinalizedEventSchema } from "@blikka/aws"
 import { Resource as SSTResource } from "sst"
 import {
   getEnvironmentFromStage,
   makeLambdaHandler,
   makeLambdaTaskLayer,
   makeSqsRealtimeTask,
+  parseBusEvent,
 } from "@blikka/task-runtime"
 import { UploadFinalizer, UploadFinalizerLayer } from "@blikka/uploads"
 

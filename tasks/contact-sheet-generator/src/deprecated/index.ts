@@ -1,12 +1,11 @@
-import { LambdaHandler } from "@effect-aws/lambda"
 import { Effect, Layer } from "effect"
-import { type SQSEvent } from "@effect-aws/lambda"
-import { FinalizedEventSchema } from "@blikka/aws"
-import { parseBusEvent } from "@blikka/task-runtime"
-import { ValidationRunner } from "./service"
+import { type SQSEvent, LambdaHandler } from "@effect-aws/lambda"
+import { SheetGeneratorService } from "./sheet-generator-service"
 import { TelemetryLayer } from "@blikka/telemetry"
+import { FinalizedEventSchema } from "@blikka/aws"
 import { PubSubLoggerService } from "@blikka/pubsub"
 import { RealtimeEventsService } from "@blikka/realtime"
+import { parseBusEvent } from "@blikka/task-runtime"
 import { Resource as SSTResource } from "sst"
 import { type SQSRecord } from "aws-lambda"
 
@@ -17,16 +16,16 @@ const getEnvironment = (): "prod" | "dev" | "staging" => {
   return "staging"
 }
 
-const TASK_NAME = "validation-runner"
-const REALTIME_EVENT = "participant-validated"
+const TASK_NAME = "contact-sheet-generator"
+const REALTIME_EVENT = "contact-sheet-generated"
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
-    const validationRunner = yield* ValidationRunner
+    const sheetGeneratorService = yield* SheetGeneratorService
     const realtimeEvents = yield* RealtimeEventsService
     const environment = getEnvironment()
 
-    const processSQSRecord = Effect.fn("validation-runner.processSQSRecord")(function* (
+    const processSQSRecord = Effect.fn("contact-sheet-generator.processSQSRecord")(function* (
       record: SQSRecord,
     ) {
       const { domain, reference, uploadSessionId } = yield* parseBusEvent(
@@ -35,14 +34,16 @@ const effectHandler = (event: SQSEvent) =>
       )
 
       return yield* Effect.gen(function* () {
-        yield* Effect.logInfo("Executing validation")
+        yield* Effect.logInfo("Generating contact sheet")
 
-        const validateEffect = validationRunner.execute(domain, reference, uploadSessionId).pipe(
-          Effect.tap(() => Effect.logInfo("Validation executed")),
-          Effect.tapError((error) => Effect.logError("Error executing validation", error)),
-        )
+        const generateContactSheetEffect = sheetGeneratorService
+          .generateContactSheet({ domain, reference, uploadSessionId })
+          .pipe(
+            Effect.tap(() => Effect.logInfo("Contact sheet generated")),
+            Effect.tapError((error) => Effect.logError("Error generating contact sheet", error)),
+          )
 
-        return yield* realtimeEvents.withEventResult(validateEffect, {
+        return yield* realtimeEvents.withEventResult(generateContactSheetEffect, {
           eventKey: REALTIME_EVENT,
           environment,
           domain,
@@ -53,12 +54,12 @@ const effectHandler = (event: SQSEvent) =>
 
     yield* Effect.forEach(event.Records, (record) => processSQSRecord(record), { concurrency: 2 })
   }).pipe(
-    Effect.withSpan("ValidationRunner.handler"),
-    Effect.tapError((error) => Effect.logError("Validation runner failed", error)),
+    Effect.withSpan("ContactSheetGenerator.handler"),
+    Effect.tapError((error) => Effect.logError("Contact sheet generator failed", error)),
   )
 
 const serviceLayer = Layer.mergeAll(
-  ValidationRunner.layer,
+  SheetGeneratorService.layer,
   RealtimeEventsService.layer,
   PubSubLoggerService.withTaskName(TASK_NAME),
   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),

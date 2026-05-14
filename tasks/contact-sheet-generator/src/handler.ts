@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect"
 import { Database } from "@blikka/db"
 import { S3Service, FinalizedEventSchema } from "@blikka/aws"
-import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
-import { ValidationEngine } from "@blikka/validation"
+import { UploadSessionRepository } from "@blikka/kv-store"
+import { ContactSheetBuilder } from "@blikka/image-manipulation"
 import { Resource as SSTResource } from "sst"
 import {
   getEnvironmentFromStage,
@@ -11,26 +11,30 @@ import {
   makeSqsRealtimeTask,
   parseBusEvent,
 } from "@blikka/task-runtime"
-import { UploadsConfig, ValidationRunner, ValidationRunnerLayer } from "@blikka/uploads"
+import {
+  ContactSheetGenerator,
+  ContactSheetGeneratorLayer,
+  UploadsConfig,
+} from "@blikka/uploads"
 
-const TASK_NAME = "validation-runner"
-const REALTIME_EVENT = "participant-validated"
+const TASK_NAME = "contact-sheet-generator"
+const REALTIME_EVENT = "contact-sheet-generated"
 
 const effectHandler = makeSqsRealtimeTask({
   taskName: TASK_NAME,
-  spanName: "ValidationRunner.handler",
+  spanName: "ContactSheetGenerator.handler",
   eventKey: REALTIME_EVENT,
   recordConcurrency: 2,
   decodeRecord: (record) => parseBusEvent(record.body, FinalizedEventSchema),
   run: (input) =>
     Effect.gen(function* () {
-      const validationRunner = yield* ValidationRunner
+      const contactSheetGenerator = yield* ContactSheetGenerator
 
-      yield* Effect.logInfo("Executing validation")
+      yield* Effect.logInfo("Generating contact sheet")
 
-      yield* validationRunner.execute(input).pipe(
-        Effect.tap(() => Effect.logInfo("Validation executed")),
-        Effect.tapError((error) => Effect.logError("Error executing validation", error)),
+      yield* contactSheetGenerator.generate(input).pipe(
+        Effect.tap(() => Effect.logInfo("Contact sheet generated")),
+        Effect.tapError((error) => Effect.logError("Error generating contact sheet", error)),
       )
     }).pipe(Effect.annotateLogs({ ...input })),
 })
@@ -38,14 +42,13 @@ const effectHandler = makeSqsRealtimeTask({
 const serviceLayer = makeLambdaTaskLayer({
   taskName: TASK_NAME,
   environment: getEnvironmentFromStage(SSTResource.App.stage),
-  workflowLayer: ValidationRunnerLayer.pipe(
+  workflowLayer: ContactSheetGeneratorLayer.pipe(
     Layer.provide(
       Layer.mergeAll(
         Database.layer,
         S3Service.layer,
         UploadSessionRepository.layer,
-        ExifKVRepository.layer,
-        ValidationEngine.layer,
+        ContactSheetBuilder.layer,
         UploadsConfig.layer,
       ),
     ),

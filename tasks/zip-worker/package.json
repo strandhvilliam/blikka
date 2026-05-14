@@ -16,6 +16,7 @@
     "@blikka/telemetry": "workspace:*",
     "effect": "catalog:",
     "jszip": "^3.10.1",
-    "@blikka/aws": "workspace:*"
+    "@blikka/aws": "workspace:*",
+    "@blikka/task-runtime": "workspace:*"
   }
 }

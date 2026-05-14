@@ -1,5 +1,4 @@
 export * from "./bus-service"
 export * from "./schemas"
 export * from "./event-types"
-export * from "./utils"
 export * from "./eventbridge-effect-client"

@@ -7,7 +7,8 @@ import {
   UploadSessionRepository,
 } from "@blikka/kv-store"
 import { TelemetryLayer } from "@blikka/telemetry"
-import { FinalizedEventSchema, parseBusEvent } from "@blikka/aws"
+import { FinalizedEventSchema } from "@blikka/aws"
+import { parseBusEvent } from "@blikka/task-runtime"
 
 class UnableToRunZipHandlerTaskError extends Schema.TaggedErrorClass<UnableToRunZipHandlerTaskError>()("UnableToRunZipHandlerTaskError", {
   message: Schema.String,
