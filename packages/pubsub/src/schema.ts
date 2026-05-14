@@ -9,23 +9,24 @@ const PubSubChannelString = Schema.TemplateLiteral([
   Schema.Literal(":"),
   PubSubChannelType,
   Schema.Literal(":"),
-  Schema.String
+  Schema.String,
 ])
 
 type PubSubChannelEnvironment = Schema.Schema.Type<typeof PubSubChannelEnvironment>
 type PubSubChannelType = Schema.Schema.Type<typeof PubSubChannelType>
 type PubSubChannelString = Schema.Schema.Type<typeof PubSubChannelString>
 
-
 export class PubSubChannel extends Schema.Class<PubSubChannel>("PubSubChannel")({
   environment: PubSubChannelEnvironment,
   type: PubSubChannelType,
   identifier: Schema.String,
 }) {
-  static toString = Effect.fnUntraced(function* (channel: PubSubChannel) {
+  static override toString = Effect.fnUntraced(function* (channel: PubSubChannel) {
     return yield* Schema.encodeEffect(PubSubChannelString)(
-      `${channel.environment}:${channel.type}:${channel.identifier}`
-    ).pipe(Effect.mapError((error) => new ChannelParseError({ message: error.message, cause: error })))
+      `${channel.environment}:${channel.type}:${channel.identifier}`,
+    ).pipe(
+      Effect.mapError((error) => new ChannelParseError({ message: error.message, cause: error })),
+    )
   })
   static fromString = Effect.fnUntraced(function* (str: PubSubChannelString) {
     const parts = str.split(":")
@@ -37,21 +38,27 @@ export class PubSubChannel extends Schema.Class<PubSubChannel>("PubSubChannel")(
       environment,
       type,
       identifier,
-    }).pipe(Effect.mapError((error) => new ChannelParseError({ message: error.message, cause: error })))
+    }).pipe(
+      Effect.mapError((error) => new ChannelParseError({ message: error.message, cause: error })),
+    )
   })
 
   static parse = Effect.fnUntraced(function* (str: string) {
     return yield* Schema.decodeUnknownEffect(PubSubChannelString)(str)
-      .pipe(Effect.mapError((error) => new ChannelParseError({ message: error.message, cause: error })))
+      .pipe(
+        Effect.mapError((error) => new ChannelParseError({ message: error.message, cause: error })),
+      )
       .pipe(Effect.andThen(PubSubChannel.fromString))
   })
 }
 
-export class PubSubMessageError extends Schema.TaggedErrorClass<PubSubMessageError>()("PubSubMessageError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {
-}
+export class PubSubMessageError extends Schema.TaggedErrorClass<PubSubMessageError>()(
+  "PubSubMessageError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
 export class PubSubMessage extends Schema.Class<PubSubMessage>("PubSubMessage")({
   channel: PubSubChannelString,
   payload: Schema.Unknown,
@@ -62,7 +69,7 @@ export class PubSubMessage extends Schema.Class<PubSubMessage>("PubSubMessage")(
   static create = Effect.fnUntraced(function* <T>(
     channel: PubSubChannel,
     payload: T,
-    schema?: Schema.Codec<T, any, any, never>
+    schema?: Schema.Codec<T, any, any, never>,
   ) {
     const channelString = yield* PubSubChannel.toString(channel)
     const encodedPayload = schema ? yield* Schema.encodeEffect(schema)(payload) : payload
@@ -71,7 +78,8 @@ export class PubSubMessage extends Schema.Class<PubSubMessage>("PubSubMessage")(
       payload: encodedPayload,
       timestamp: Date.now(),
       messageId: crypto.randomUUID(),
-    })
-      .pipe(Effect.mapError((error) => new PubSubMessageError({ message: error.message, cause: error })))
+    }).pipe(
+      Effect.mapError((error) => new PubSubMessageError({ message: error.message, cause: error })),
+    )
   })
 }

@@ -1,60 +1,59 @@
-import { Config, Effect, Layer } from "effect"
-import { ZipWorker } from "./zip-worker"
-import { UploadSessionRepository } from "@blikka/kv-store"
-import { TelemetryLayer } from "@blikka/telemetry"
-import { PubSubLoggerService } from "@blikka/pubsub"
-import { RealtimeEventsService } from "@blikka/realtime"
-import { InvalidArgumentsError } from "./utils"
+import { Config, Effect, Layer, Schema } from "effect"
+import { S3Service } from "@blikka/aws"
+import { Database } from "@blikka/db"
+import { Resource as SSTResource } from "sst"
+import { ZipWorker, ZipWorkerLayer, UploadsConfig } from "@blikka/uploads"
+import {
+  getEnvironmentFromStage,
+  makeContainerRealtimeTask,
+  makeContainerTaskLayer,
+  runContainerTask,
+} from "@blikka/task-runtime"
 
-const mainLayer = Layer.mergeAll(
-  ZipWorker.layer,
-  UploadSessionRepository.layer,
-  RealtimeEventsService.layer,
-  PubSubLoggerService.withTaskName("zip-worker"),
-  TelemetryLayer("blikka-dev-zip-worker")
-)
+export class InvalidArgumentsError extends Schema.TaggedErrorClass<InvalidArgumentsError>()(
+  "InvalidArgumentsError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
 
-const getEnvironment = (stage: string): "prod" | "dev" | "staging" => {
-  if (stage === "production") return "prod"
-  if (stage === "dev" || stage === "development") return "dev"
-  return "staging"
-}
+const TASK_NAME = "zip-worker"
+const REALTIME_EVENT = "zip-generated"
 
-const parseArguments = Effect.fn("ZipWorker.parseArguments")(
+const parseInput = Effect.fn("ZipWorker.parseInput")(
   function* () {
     const domain = yield* Config.string("ARG_DOMAIN")
     const reference = yield* Config.string("ARG_REFERENCE")
     return { domain, reference }
   },
   Effect.mapError(
-    (error) => new InvalidArgumentsError({ message: "Failed to parse arguments", cause: error })
-  )
+    (error) => new InvalidArgumentsError({ message: "Failed to parse arguments", cause: error }),
+  ),
 )
 
-const runnable = Effect.gen(function* () {
-  const handler = yield* ZipWorker
-  const realtimeEvents = yield* RealtimeEventsService
-  const environment = getEnvironment("development")
+const runnable = makeContainerRealtimeTask({
+  taskName: TASK_NAME,
+  spanName: "ZipWorker.task",
+  eventKey: REALTIME_EVENT,
+  parseInput: parseInput(),
+  run: (input) =>
+    Effect.gen(function* () {
+      const worker = yield* ZipWorker
+      yield* Effect.logInfo("Running zip task")
 
-  const { domain, reference } = yield* parseArguments()
+      yield* worker.runZipTask(input)
 
-  return yield* Effect.gen(function* () {
-    yield* Effect.logInfo("Running zip task")
+      yield* Effect.logInfo("Zip task completed")
+    }),
+})
 
-    const runZipTaskEffect = handler.runZipTask(domain, reference).pipe(
-      Effect.tap(() => Effect.logInfo("Zip task completed")),
-      Effect.tapError((error) => Effect.logError("Error running zip task", error))
-    )
+const layer = makeContainerTaskLayer({
+  taskName: TASK_NAME,
+  environment: getEnvironmentFromStage(SSTResource.App.stage),
+  workflowLayer: ZipWorkerLayer.pipe(
+    Layer.provide(Layer.mergeAll(Database.layer, S3Service.layer, UploadsConfig.layer)),
+  ),
+})
 
-    yield* realtimeEvents
-      .withEventResult(runZipTaskEffect, {
-        eventKey: "zip-generated",
-        environment,
-        domain,
-        reference,
-      })
-      .pipe(Effect.catch((error) => Effect.logError("Error running zip task", error)))
-  }).pipe(Effect.annotateLogs({ domain, reference }))
-}).pipe(Effect.provide(mainLayer))
-
-Effect.runPromise(runnable)
+runContainerTask(runnable, layer)

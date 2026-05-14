@@ -1,10 +1,9 @@
 import { LambdaHandler, type SQSEvent } from "@effect-aws/lambda";
 import type { SQSRecord } from "aws-lambda";
 import { Effect, Layer } from "effect";
-import { PubSubLoggerService } from "@blikka/pubsub";
 import { RealtimeEventsService, type RealtimeEventKey } from "@blikka/realtime";
-import { TelemetryLayer } from "@blikka/telemetry";
 import { TaskEnvironment } from "./environment";
+import { makeTaskRuntimeLayer } from "./layer";
 
 export interface TaskEventTarget {
   domain: string;
@@ -23,6 +22,44 @@ export interface SqsRealtimeTaskOptions<Input extends TaskEventTarget, R> {
   recordConcurrency?: number;
   inputConcurrency?: number;
 }
+
+export interface SqsTaskOptions<Input, R> {
+  taskName: string;
+  spanName: string;
+  decodeRecord: (
+    record: SQSRecord,
+  ) => Effect.Effect<Input | ReadonlyArray<Input>, unknown, R>;
+  run: (input: Input) => Effect.Effect<unknown, unknown, R>;
+  recordConcurrency?: number;
+  inputConcurrency?: number;
+}
+
+export const makeSqsTask =
+  <Input, R>(options: SqsTaskOptions<Input, R>) =>
+  (event: SQSEvent) =>
+    Effect.gen(function* () {
+      const processRecord = Effect.fn(`${options.taskName}.processSQSRecord`)(
+        function* (record: SQSRecord) {
+          const decoded = yield* options.decodeRecord(record);
+          const inputs = (
+            Array.isArray(decoded) ? decoded : [decoded]
+          ) as ReadonlyArray<Input>;
+
+          yield* Effect.forEach(inputs, options.run, {
+            concurrency: options.inputConcurrency ?? 1,
+          });
+        },
+      );
+
+      yield* Effect.forEach(event.Records, processRecord, {
+        concurrency: options.recordConcurrency ?? 2,
+      });
+    }).pipe(
+      Effect.withSpan(options.spanName),
+      Effect.tapError((error) =>
+        Effect.logError(`${options.taskName} failed`, error),
+      ),
+    );
 
 export const makeSqsRealtimeTask =
   <Input extends TaskEventTarget, R>(
@@ -77,12 +114,6 @@ export const makeLambdaTaskLayer = <ROut, E, RIn>({
   environment,
   workflowLayer,
 }: LambdaTaskLayerOptions<ROut, E, RIn>) =>
-  Layer.mergeAll(
-    workflowLayer,
-    RealtimeEventsService.layer,
-    PubSubLoggerService.withTaskName(taskName),
-    TelemetryLayer(`blikka-${environment}-${taskName}`),
-    Layer.effect(TaskEnvironment, TaskEnvironment.make),
-  );
+  makeTaskRuntimeLayer({ taskName, environment, workflowLayer });
 
 export const makeLambdaHandler = LambdaHandler.make;

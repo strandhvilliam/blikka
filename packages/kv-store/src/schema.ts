@@ -1,4 +1,4 @@
-import { Schema, SchemaTransformation } from "effect";
+import { Schema, SchemaTransformation } from "effect"
 
 // ============================================================================
 // Redis Hash Encoding Strategy
@@ -22,15 +22,15 @@ import { Schema, SchemaTransformation } from "effect";
  * Encoded: "a,b,c" | ""
  * Decoded: ["a", "b", "c"] | []
  */
-export const StringArrayFromString = Schema.String.pipe(Schema.decodeTo(
-  Schema.Array(Schema.String),
-  SchemaTransformation.transform({
-    decode: (s) => (s === "" ? [] as readonly string[] : s.split(",") as readonly string[]),
-    encode: (arr) => arr.join(","),
-  }),
-));
-
-
+export const StringArrayFromString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Array(Schema.String),
+    SchemaTransformation.transform({
+      decode: (s) => (s === "" ? ([] as readonly string[]) : (s.split(",") as readonly string[])),
+      encode: (arr) => arr.join(","),
+    }),
+  ),
+)
 
 // ----------------------------------------------------------------------------
 // Upload/Submission Schemas (used with JSON storage, not HASH)
@@ -43,7 +43,7 @@ export const SubmissionStateSchema = Schema.Struct({
   uploaded: Schema.Boolean,
   thumbnailKey: Schema.NullOr(Schema.String),
   exifProcessed: Schema.Boolean,
-});
+})
 
 export const makeInitialSubmissionState = (
   uploadSessionId: string,
@@ -57,7 +57,7 @@ export const makeInitialSubmissionState = (
     orderIndex,
     thumbnailKey: null,
     exifProcessed: false,
-  });
+  })
 
 export const ParticipantStateSchema = Schema.Struct({
   uploadSessionId: Schema.String,
@@ -70,7 +70,7 @@ export const ParticipantStateSchema = Schema.Struct({
   errors: Schema.Array(Schema.String),
   finalized: Schema.Boolean,
   checkedAt: Schema.NullOr(Schema.String),
-});
+})
 
 export const makeInitialParticipantState = (
   uploadSessionId: string,
@@ -88,12 +88,38 @@ export const makeInitialParticipantState = (
     errors: [],
     finalized: false,
     checkedAt: null,
-  });
+  })
 
-export const ExifStateSchema = Schema.Record(
-  Schema.String,
-  Schema.Unknown,
-);
+export interface CurrentUploadSessionGuard {
+  readonly matched: boolean
+  readonly reason?: "missing-event-upload-session-id" | "stale-upload-session"
+}
+
+export const isCurrentUploadSession = ({
+  eventUploadSessionId,
+  participantState,
+}: {
+  readonly eventUploadSessionId?: string
+  readonly participantState: ParticipantState
+}): CurrentUploadSessionGuard => {
+  if (!eventUploadSessionId) {
+    return {
+      matched: false,
+      reason: "missing-event-upload-session-id",
+    }
+  }
+
+  if (participantState.uploadSessionId !== eventUploadSessionId) {
+    return {
+      matched: false,
+      reason: "stale-upload-session",
+    }
+  }
+
+  return { matched: true }
+}
+
+export const ExifStateSchema = Schema.Record(Schema.String, Schema.Unknown)
 
 export const IncrementResultSchema = Schema.Literals([
   "FINALIZED",
@@ -102,7 +128,7 @@ export const IncrementResultSchema = Schema.Literals([
   "ALREADY_FINALIZED",
   "INVALID_ORDER_INDEX",
   "MISSING_DATA",
-]);
+])
 
 // ----------------------------------------------------------------------------
 // Download State Schemas (stored as Redis HASH - all values are strings)
@@ -114,7 +140,7 @@ export const DownloadProcessStatusSchema = Schema.Literals([
   "completed",
   "failed",
   "cancelled",
-]);
+])
 
 /**
  * Competition class info stored in the download process.
@@ -124,7 +150,7 @@ const CompetitionClassSchema = Schema.Struct({
   competitionClassId: Schema.Number,
   competitionClassName: Schema.String,
   totalChunks: Schema.Number,
-});
+})
 
 // ----------------------------------------------------------------------------
 // ChunkState - Stored in Redis HASH
@@ -143,7 +169,7 @@ export const ChunkStateSchema = Schema.Struct({
   zipKey: Schema.String,
   chunkIndex: Schema.Number,
   totalChunks: Schema.Number,
-});
+})
 
 /**
  * ChunkState as stored in Redis HASH (all string values).
@@ -181,7 +207,7 @@ export const DownloadProcessStateSchema = Schema.Struct({
   jobIds: Schema.Array(Schema.String),
   failedJobIds: Schema.Array(Schema.String),
   competitionClasses: Schema.Array(CompetitionClassSchema),
-});
+})
 
 /**
  * DownloadProcessState as stored in Redis HASH (all string values).
@@ -206,12 +232,12 @@ export const DownloadProcessStateSchema = Schema.Struct({
 // Type Exports
 // ----------------------------------------------------------------------------
 
-export type SubmissionState = typeof SubmissionStateSchema.Type;
-export type ParticipantState = typeof ParticipantStateSchema.Type;
-export type ExifState = typeof ExifStateSchema.Type;
-export type ChunkState = typeof ChunkStateSchema.Type;
-export type DownloadProcessStatus = typeof DownloadProcessStatusSchema.Type;
-export type DownloadProcessState = typeof DownloadProcessStateSchema.Type;
+export type SubmissionState = typeof SubmissionStateSchema.Type
+export type ParticipantState = typeof ParticipantStateSchema.Type
+export type ExifState = typeof ExifStateSchema.Type
+export type ChunkState = typeof ChunkStateSchema.Type
+export type DownloadProcessStatus = typeof DownloadProcessStatusSchema.Type
+export type DownloadProcessState = typeof DownloadProcessStateSchema.Type
 
 // Also export the encoded types for clarity
 // export type ChunkStateEncoded = typeof ChunkStateRedisSchema.Encoded

@@ -11,11 +11,12 @@
   },
   "dependencies": {
     "@effect-aws/lambda": "catalog:",
+    "@blikka/db": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@blikka/realtime": "workspace:*",
     "@blikka/telemetry": "workspace:*",
+    "@blikka/uploads": "workspace:*",
     "effect": "catalog:",
-    "jszip": "^3.10.1",
     "@blikka/aws": "workspace:*",
     "@blikka/task-runtime": "workspace:*"
   }
