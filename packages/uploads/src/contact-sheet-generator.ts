@@ -4,6 +4,7 @@ import type { CompetitionClass } from "@blikka/db"
 import { S3ClientError, S3Service, S3ServiceLayer } from "@blikka/aws"
 import {
   UploadSessionRepository,
+  UploadSessionRepositoryLayer,
   type ParticipantState,
   type UploadSessionRepositoryError,
 } from "@blikka/kv-store"
@@ -225,7 +226,7 @@ export const ContactSheetGeneratorLayer = ContactSheetGeneratorLayerNoDeps.pipe(
   Layer.provide(
     Layer.mergeAll(
       Database.layer,
-      UploadSessionRepository.layer,
+      UploadSessionRepositoryLayer,
       S3ServiceLayer,
       UploadsConfig.layer,
       ContactSheetBuilder.layer,

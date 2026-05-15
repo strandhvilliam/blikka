@@ -1,4 +1,5 @@
 import { Schema, SchemaTransformation } from "effect"
+import { ParticipantState, ParticipantStateSchema } from "./upload-session-repository"
 
 // ============================================================================
 // Redis Hash Encoding Strategy
@@ -36,60 +37,6 @@ export const StringArrayFromString = Schema.String.pipe(
 // Upload/Submission Schemas (used with JSON storage, not HASH)
 // ----------------------------------------------------------------------------
 
-export const SubmissionStateSchema = Schema.Struct({
-  uploadSessionId: Schema.String,
-  key: Schema.String,
-  orderIndex: Schema.Number,
-  uploaded: Schema.Boolean,
-  thumbnailKey: Schema.NullOr(Schema.String),
-  exifProcessed: Schema.Boolean,
-})
-
-export const makeInitialSubmissionState = (
-  uploadSessionId: string,
-  key: string,
-  orderIndex: number,
-) =>
-  SubmissionStateSchema.make({
-    uploadSessionId,
-    key,
-    uploaded: false,
-    orderIndex,
-    thumbnailKey: null,
-    exifProcessed: false,
-  })
-
-export const ParticipantStateSchema = Schema.Struct({
-  uploadSessionId: Schema.String,
-  expectedCount: Schema.Number,
-  orderIndexes: Schema.Array(Schema.Number),
-  processedIndexes: Schema.Array(Schema.Number),
-  validated: Schema.Boolean,
-  zipKey: Schema.String,
-  contactSheetKey: Schema.String,
-  errors: Schema.Array(Schema.String),
-  finalized: Schema.Boolean,
-  checkedAt: Schema.NullOr(Schema.String),
-})
-
-export const makeInitialParticipantState = (
-  uploadSessionId: string,
-  expectedCount: number,
-  orderIndexes: number[],
-) =>
-  ParticipantStateSchema.make({
-    uploadSessionId,
-    expectedCount,
-    orderIndexes,
-    processedIndexes: Array.from({ length: expectedCount }, () => 0),
-    validated: false,
-    zipKey: "",
-    contactSheetKey: "",
-    errors: [],
-    finalized: false,
-    checkedAt: null,
-  })
-
 export interface CurrentUploadSessionGuard {
   readonly matched: boolean
   readonly reason?: "missing-event-upload-session-id" | "stale-upload-session"
@@ -120,15 +67,6 @@ export const isCurrentUploadSession = ({
 }
 
 export const ExifStateSchema = Schema.Record(Schema.String, Schema.Unknown)
-
-export const IncrementResultSchema = Schema.Literals([
-  "FINALIZED",
-  "PROCESSED_SUBMISSION",
-  "DUPLICATE_ORDER_INDEX",
-  "ALREADY_FINALIZED",
-  "INVALID_ORDER_INDEX",
-  "MISSING_DATA",
-])
 
 // ----------------------------------------------------------------------------
 // Download State Schemas (stored as Redis HASH - all values are strings)
@@ -232,8 +170,6 @@ export const DownloadProcessStateSchema = Schema.Struct({
 // Type Exports
 // ----------------------------------------------------------------------------
 
-export type SubmissionState = typeof SubmissionStateSchema.Type
-export type ParticipantState = typeof ParticipantStateSchema.Type
 export type ExifState = typeof ExifStateSchema.Type
 export type ChunkState = typeof ChunkStateSchema.Type
 export type DownloadProcessStatus = typeof DownloadProcessStatusSchema.Type

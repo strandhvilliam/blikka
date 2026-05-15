@@ -5,7 +5,8 @@ import {
   ExifKVRepository,
   ExifKVRepositoryError,
   UploadSessionRepository,
-  UploadSessionRepositoryError,
+  UploadSessionRepositoryLayer,
+  type UploadSessionRepositoryError,
 } from "@blikka/kv-store"
 import { type ExifState, type SubmissionState } from "@blikka/kv-store"
 import {
@@ -216,7 +217,7 @@ export const ValidationRunnerLayer = ValidationRunnerLayerNoDeps.pipe(
     Layer.mergeAll(
       Database.layer,
       S3ServiceLayer,
-      UploadSessionRepository.layer,
+      UploadSessionRepositoryLayer,
       ExifKVRepository.layer,
       ValidationEngine.layer,
       UploadsConfig.layer,

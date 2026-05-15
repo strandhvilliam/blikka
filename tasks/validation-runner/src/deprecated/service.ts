@@ -1,6 +1,13 @@
 import { Config, Effect, Layer, Option, Schema, Context } from "effect"
 import { Database, RuleConfig } from "@blikka/db"
-import { SubmissionState, ExifState, isCurrentUploadSession } from "@blikka/kv-store"
+import {
+  SubmissionState,
+  ExifState,
+  isCurrentUploadSession,
+  UploadSessionRepository,
+  UploadSessionRepositoryLayer,
+  ExifKVRepository,
+} from "@blikka/kv-store"
 import { InvalidDataFoundError, InvalidValidationRuleError } from "./utils"
 import { S3Service, S3ServiceLayer } from "@blikka/aws"
 import {
@@ -9,7 +16,6 @@ import {
   ValidationInputSchema,
   ValidationRuleSchema,
 } from "@blikka/validation"
-import { KVStore } from "@blikka/kv-store"
 
 export class ValidationRunner extends Context.Service<ValidationRunner>()(
   "@blikka/ValidationRunner",
@@ -17,7 +23,8 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
     make: Effect.gen(function* () {
       const db = yield* Database
       const s3 = yield* S3Service
-      const kv = yield* KVStore
+      const uploadRepository = yield* UploadSessionRepository
+      const exifRepository = yield* ExifKVRepository
       const validator = yield* ValidationEngine
 
       const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
@@ -102,7 +109,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
               ),
             )
 
-          const participantState = yield* kv.uploadRepository
+          const participantState = yield* uploadRepository
             .getParticipantState(domain, reference)
             .pipe(
               Effect.andThen(
@@ -148,8 +155,8 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
 
           const [exifStates, submissionStates] = yield* Effect.all(
             [
-              kv.exifRepository.getAllExifStates(domain, reference, orderIndexes),
-              kv.uploadRepository.getAllSubmissionStates(domain, reference, orderIndexes),
+              exifRepository.getAllExifStates(domain, reference, orderIndexes),
+              uploadRepository.getAllSubmissionStates(domain, reference, orderIndexes),
             ],
             { concurrency: 2 },
           )
@@ -187,7 +194,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
             reference,
           })
 
-          yield* kv.uploadRepository.updateParticipantSession(domain, reference, {
+          yield* uploadRepository.updateParticipantSession(domain, reference, {
             validated: true,
           })
         }).pipe(Effect.annotateLogs({ domain, reference }))
@@ -200,7 +207,13 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(
-      Layer.mergeAll(Database.layer, S3ServiceLayer, KVStore.layer, ValidationEngine.layer),
+      Layer.mergeAll(
+        Database.layer,
+        S3ServiceLayer,
+        UploadSessionRepositoryLayer,
+        ExifKVRepository.layer,
+        ValidationEngine.layer,
+      ),
     ),
   )
 }

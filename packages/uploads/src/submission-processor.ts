@@ -6,7 +6,8 @@ import {
   type ExifState,
   type SubmissionState,
   UploadSessionRepository,
-  UploadSessionRepositoryError,
+  UploadSessionRepositoryLayer,
+  type UploadSessionRepositoryError,
 } from "@blikka/kv-store"
 import { ExifParser, SharpImageService } from "@blikka/image-manipulation"
 import { UploadsConfig } from "./config"
@@ -287,7 +288,7 @@ export const SubmissionProcessorLayer = SubmissionProcessorLayerNoDeps.pipe(
   Layer.provide(
     Layer.mergeAll(
       S3ServiceLayer,
-      UploadSessionRepository.layer,
+      UploadSessionRepositoryLayer,
       ExifKVRepository.layer,
       ExifParser.layer,
       BusServiceLayer,

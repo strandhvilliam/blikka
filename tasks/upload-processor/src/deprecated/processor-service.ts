@@ -1,6 +1,6 @@
 import { Cause, Effect, Layer, Option, Context } from "effect"
-import { BusService, BusServiceLayer, S3Service } from "@blikka/aws"
-import { ExifKVRepository, ExifState, UploadSessionRepository } from "@blikka/kv-store"
+import { BusService, BusServiceLayer, S3Service, S3ServiceLayer } from "@blikka/aws"
+import { ExifKVRepository, ExifState, UploadSessionRepository, UploadSessionRepositoryLayer } from "@blikka/kv-store"
 import { ExifParser } from "@blikka/image-manipulation"
 import { makeThumbnailKey } from "./utils"
 import { FailedToIncrementParticipantStateError, PhotoNotFoundError } from "./errors"
@@ -249,8 +249,8 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
   static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(
       Layer.mergeAll(
-        S3Service.layer,
-        UploadSessionRepository.layer,
+        S3ServiceLayer,
+        UploadSessionRepositoryLayer,
         ExifKVRepository.layer,
         ExifParser.layer,
         BusServiceLayer,

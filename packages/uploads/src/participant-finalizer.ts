@@ -6,7 +6,8 @@ import {
   type ParticipantState,
   type SubmissionState,
   UploadSessionRepository,
-  UploadSessionRepositoryError,
+  UploadSessionRepositoryLayer,
+  type UploadSessionRepositoryError,
 } from "@blikka/kv-store"
 import { Context, Effect, Layer, Option, Schema } from "effect"
 
@@ -203,6 +204,6 @@ export const UploadFinalizerLayerNoDeps = Layer.effect(UploadFinalizer, makeUplo
 
 export const UploadFinalizerLayer = UploadFinalizerLayerNoDeps.pipe(
   Layer.provide(
-    Layer.mergeAll(Database.layer, UploadSessionRepository.layer, ExifKVRepository.layer),
+    Layer.mergeAll(Database.layer, UploadSessionRepositoryLayer, ExifKVRepository.layer),
   ),
 )

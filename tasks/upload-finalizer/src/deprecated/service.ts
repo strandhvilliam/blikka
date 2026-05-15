@@ -3,6 +3,7 @@ import {
   ExifKVRepository,
   isCurrentUploadSession,
   UploadSessionRepository,
+  UploadSessionRepositoryLayer,
 } from "@blikka/kv-store"
 import { Effect, Layer, Option, Schema, Context } from "effect"
 
@@ -160,7 +161,7 @@ export class UploadFinalizerService extends Context.Service<UploadFinalizerServi
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(
-      Layer.mergeAll(Database.layer, UploadSessionRepository.layer, ExifKVRepository.layer),
+      Layer.mergeAll(Database.layer, UploadSessionRepositoryLayer, ExifKVRepository.layer),
     ),
   )
 }

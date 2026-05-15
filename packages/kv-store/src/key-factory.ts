@@ -1,20 +1,15 @@
-import { Effect, Layer, Context } from "effect"
+export const formatOrderIndex = (orderIndex: number) =>
+  (Number(orderIndex) + 1).toString().padStart(2, "0");
 
-export class KeyFactory extends Context.Service<KeyFactory>()(
-  "@blikka/packages/redis-store/key-factory",
-  {
-    make: Effect.sync(() => ({
-      submission: (domain: string, ref: string, formattedOrderIndex: string) =>
-        `submission:${domain}:${ref}:${formattedOrderIndex}`,
-      exif: (domain: string, ref: string, formattedOrderIndex: string) =>
-        `exif:${domain}:${ref}:${formattedOrderIndex}`,
-      participant: (domain: string, ref: string) => `participant:${domain}:${ref}`,
-      downloadState: (jobId: string) => `download-state:${jobId}`,
-      downloadStateFiles: (jobId: string) => `download-state:${jobId}:files`,
-      downloadProcess: (processId: string) => `download-process:${processId}`,
-      activeDownloadProcess: (domain: string) => `active-download-process:${domain}`,
-    })),
-  }
-) {
-  static layer = Layer.effect(this, this.make)
-}
+export const Keys = {
+  submission: (domain: string, ref: string, orderIndex: number) =>
+    `submission:${domain}:${ref}:${formatOrderIndex(orderIndex)}`,
+  exif: (domain: string, ref: string, orderIndex: number) =>
+    `exif:${domain}:${ref}:${formatOrderIndex(orderIndex)}`,
+  participant: (domain: string, ref: string) => `participant:${domain}:${ref}`,
+  downloadState: (jobId: string) => `download-state:${jobId}`,
+  downloadStateFiles: (jobId: string) => `download-state:${jobId}:files`,
+  downloadProcess: (processId: string) => `download-process:${processId}`,
+  activeDownloadProcess: (domain: string) =>
+    `active-download-process:${domain}`,
+} as const;

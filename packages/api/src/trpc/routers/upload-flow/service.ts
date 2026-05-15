@@ -9,7 +9,7 @@ import {
   Database,
 } from "@blikka/db"
 import { S3Service, SQSService } from "@blikka/aws"
-import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
+import { ExifKVRepository, UploadSessionRepository, UploadSessionRepositoryLayer } from "@blikka/kv-store"
 import { RealtimeEventsService } from "@blikka/realtime"
 import { UploadFlowApiError, normalizeUploadContentType } from "./schemas"
 import { PhoneNumberEncryptionService } from "../../utils/phone-number-encryption"
@@ -1609,7 +1609,7 @@ export class UploadFlowApiService extends Context.Service<UploadFlowApiService>(
         Database.layer,
         S3Service.layer,
         SQSService.layer,
-        UploadSessionRepository.layer,
+        UploadSessionRepositoryLayer,
         ExifKVRepository.layer,
         RealtimeEventsService.layer,
         PhoneNumberEncryptionService.layer,

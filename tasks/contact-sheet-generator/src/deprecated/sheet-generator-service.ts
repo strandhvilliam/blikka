@@ -3,6 +3,7 @@ import { Database } from "@blikka/db"
 import {
   isCurrentUploadSession,
   UploadSessionRepository,
+  UploadSessionRepositoryLayer,
 } from "@blikka/kv-store"
 import { S3Service } from "@blikka/aws"
 import {
@@ -159,7 +160,7 @@ export class SheetGeneratorService extends Context.Service<SheetGeneratorService
     Layer.provide(
       Layer.mergeAll(
         Database.layer,
-        UploadSessionRepository.layer,
+        UploadSessionRepositoryLayer,
         S3Service.layer,
         ContactSheetBuilder.layer,
       ),
