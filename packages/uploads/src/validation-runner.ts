@@ -3,6 +3,7 @@ import type { DbError, RuleConfig } from "@blikka/db"
 import { S3Service, S3ServiceLayer } from "@blikka/aws"
 import {
   ExifKVRepository,
+  ExifKVRepositoryLayer,
   ExifKVRepositoryError,
   UploadSessionRepository,
   UploadSessionRepositoryLayer,
@@ -218,7 +219,7 @@ export const ValidationRunnerLayer = ValidationRunnerLayerNoDeps.pipe(
       Database.layer,
       S3ServiceLayer,
       UploadSessionRepositoryLayer,
-      ExifKVRepository.layer,
+      ExifKVRepositoryLayer,
       ValidationEngine.layer,
       UploadsConfig.layer,
     ),

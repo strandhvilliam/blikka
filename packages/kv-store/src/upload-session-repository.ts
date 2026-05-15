@@ -98,10 +98,6 @@ function isMissingHashResult(result: Record<string, unknown> | null | undefined)
   return !result || Object.keys(result).length === 0
 }
 
-function storeUnavailable(operation: string, cause?: unknown): UploadSessionStoreUnavailable {
-  return new UploadSessionStoreUnavailable({ operation, cause })
-}
-
 export class UploadSessionRepository extends Context.Service<
   UploadSessionRepository,
   {
@@ -211,7 +207,7 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         .use((client) => client.hgetall(key))
         .pipe(
           Effect.catchTag("RedisError", (e) =>
-            Effect.fail(storeUnavailable("getParticipantState", e)),
+            Effect.fail(new UploadSessionStoreUnavailable({ operation: "getParticipantState", cause: e })),
           ),
         )
 
@@ -234,7 +230,7 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         .use((client) => client.hgetall(key))
         .pipe(
           Effect.catchTag("RedisError", (e) =>
-            Effect.fail(storeUnavailable("getSubmissionState", e)),
+            Effect.fail(new UploadSessionStoreUnavailable({ operation: "getSubmissionState", cause: e })),
           ),
         )
       if (isMissingHashResult(result)) {
@@ -259,7 +255,9 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           })
           .pipe(
             Effect.catchTag("RedisError", (e) =>
-              Effect.fail(storeUnavailable("getAllSubmissionStates", e)),
+              Effect.fail(
+                new UploadSessionStoreUnavailable({ operation: "getAllSubmissionStates", cause: e }),
+              ),
             ),
           )
 
@@ -306,7 +304,9 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           .pipe(
             Effect.retry(retryPolicy),
             Effect.catchTag("RedisError", (e) =>
-              Effect.fail(storeUnavailable("updateParticipantSession", e)),
+              Effect.fail(
+                new UploadSessionStoreUnavailable({ operation: "updateParticipantSession", cause: e }),
+              ),
             ),
           )
       },
@@ -332,7 +332,9 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           .use((client) => client.hset(key, encodedState))
           .pipe(
             Effect.catchTag("RedisError", (e) =>
-              Effect.fail(storeUnavailable("updateSubmissionSession", e)),
+              Effect.fail(
+                new UploadSessionStoreUnavailable({ operation: "updateSubmissionSession", cause: e }),
+              ),
             ),
           )
       },
@@ -404,7 +406,9 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         })
         .pipe(
           Effect.retry(retryPolicy),
-          Effect.catchTag("RedisError", (e) => Effect.fail(storeUnavailable("initializeState", e))),
+          Effect.catchTag("RedisError", (e) =>
+            Effect.fail(new UploadSessionStoreUnavailable({ operation: "initializeState", cause: e })),
+          ),
         )
     },
     (
@@ -448,7 +452,9 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           )
           .pipe(
             Effect.catchTag("RedisError", (e) =>
-              Effect.fail(storeUnavailable("incrementParticipantState", e)),
+              Effect.fail(
+                new UploadSessionStoreUnavailable({ operation: "incrementParticipantState", cause: e }),
+              ),
             ),
           )
 

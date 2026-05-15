@@ -7,6 +7,7 @@ import {
   UploadSessionRepository,
   UploadSessionRepositoryLayer,
   ExifKVRepository,
+  ExifKVRepositoryLayer,
 } from "@blikka/kv-store"
 import { InvalidDataFoundError, InvalidValidationRuleError } from "./utils"
 import { S3Service, S3ServiceLayer } from "@blikka/aws"
@@ -211,7 +212,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
         Database.layer,
         S3ServiceLayer,
         UploadSessionRepositoryLayer,
-        ExifKVRepository.layer,
+        ExifKVRepositoryLayer,
         ValidationEngine.layer,
       ),
     ),

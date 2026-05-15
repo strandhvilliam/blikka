@@ -1,5 +1,5 @@
 import { Config, Effect, Schema, Option, Layer, Data } from "effect"
-import { DownloadStateRepository } from "@blikka/kv-store"
+import { DownloadStateRepository, DownloadStateRepositoryLayer } from "@blikka/kv-store"
 import { Database } from "@blikka/db"
 import { RedisClient } from "@blikka/redis"
 import { TelemetryLayer } from "@blikka/telemetry"
@@ -363,7 +363,7 @@ const handleJobFailure = (
 
 const mainLayer = Layer.mergeAll(
   Database.layer,
-  DownloadStateRepository.layer,
+  DownloadStateRepositoryLayer,
   RedisClient.layer,
   S3Service.layer,
   TelemetryLayer("blikka-dev-zip-downloader")

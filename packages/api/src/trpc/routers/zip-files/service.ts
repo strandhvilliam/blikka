@@ -1,6 +1,6 @@
 import { Effect, Array, Data, Option, Config, Context, Schema, Layer } from "effect"
 import { Database } from "@blikka/db"
-import { DownloadStateRepository } from "@blikka/kv-store"
+import { DownloadStateRepository, DownloadStateRepositoryLayer } from "@blikka/kv-store"
 import { S3Service } from "@blikka/aws"
 import { type AwsVpcConfiguration, ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs"
 import { ZipFilesApiError } from "./schemas"
@@ -490,7 +490,7 @@ export class ZipFilesApiService extends Context.Service<ZipFilesApiService>()(
   static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(Layer.mergeAll(
       Database.layer,
-      DownloadStateRepository.layer,
+      DownloadStateRepositoryLayer,
       S3Service.layer,
     ))
   )

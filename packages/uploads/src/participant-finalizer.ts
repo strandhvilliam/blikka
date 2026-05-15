@@ -1,6 +1,7 @@
 import { Database, type NewSubmission, type Participant, type DbError } from "@blikka/db"
 import {
   ExifKVRepository,
+  ExifKVRepositoryLayer,
   type ExifKVRepositoryError,
   type ExifState,
   type ParticipantState,
@@ -204,6 +205,6 @@ export const UploadFinalizerLayerNoDeps = Layer.effect(UploadFinalizer, makeUplo
 
 export const UploadFinalizerLayer = UploadFinalizerLayerNoDeps.pipe(
   Layer.provide(
-    Layer.mergeAll(Database.layer, UploadSessionRepositoryLayer, ExifKVRepository.layer),
+    Layer.mergeAll(Database.layer, UploadSessionRepositoryLayer, ExifKVRepositoryLayer),
   ),
 )
