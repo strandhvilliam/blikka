@@ -201,8 +201,10 @@
         "sst": "^4.3.9",
       },
       "devDependencies": {
+        "@effect/vitest": "catalog:",
         "@types/bun": "latest",
         "@types/node": "^25.8.0",
+        "vitest": "^3.2.4",
       },
       "peerDependencies": {
         "typescript": "^5",

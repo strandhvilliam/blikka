@@ -297,7 +297,7 @@ const makeSMSService = Effect.gen(function* () {
   ) {
     const optedOut = yield* isOptedOut(params.phoneNumber)
 
-    if (optedOut) {
+    if (optedOut.optedOut) {
       return yield* Effect.fail(
         new SMSServiceError({
           message: `Phone number ${params.phoneNumber} has opted out of SMS messages`,
@@ -320,6 +320,8 @@ const makeSMSService = Effect.gen(function* () {
   })
 })
 
-export const SMSServiceLayer = Layer.effect(SMSService, makeSMSService).pipe(
+export const SMSServiceLayerNoDeps = Layer.effect(SMSService, makeSMSService)
+
+export const SMSServiceLayer = SMSServiceLayerNoDeps.pipe(
   Layer.provide(SNSEffectClientLayer),
 )

@@ -3,6 +3,9 @@
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "test": "vitest"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./s3": "./src/s3/index.ts",
@@ -11,8 +14,10 @@
     "./sms": "./src/sms/index.ts"
   },
   "devDependencies": {
+    "@effect/vitest": "catalog:",
     "@types/bun": "latest",
-    "@types/node": "^25.8.0"
+    "@types/node": "^25.8.0",
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "typescript": "^5"

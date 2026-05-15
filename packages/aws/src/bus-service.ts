@@ -71,6 +71,8 @@ const makeBusService = Effect.gen(function* () {
   })
 })
 
-export const BusServiceLayer = Layer.effect(BusService, makeBusService).pipe(
+export const BusServiceLayerNoDeps = Layer.effect(BusService, makeBusService)
+
+export const BusServiceLayer = BusServiceLayerNoDeps.pipe(
   Layer.provide(EventBridgeEffectClientLayer),
 )
