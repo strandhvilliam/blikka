@@ -1,4 +1,4 @@
-import { S3Service, type S3ClientError } from "@blikka/aws"
+import { S3Service, S3ServiceLayer, type S3ClientError } from "@blikka/aws"
 import { Database, type DbError, type Participant, type Submission, type Topic } from "@blikka/db"
 import { Context, Effect, Layer, Option, Schema } from "effect"
 import JSZip from "jszip"
@@ -218,5 +218,5 @@ const makeZipWorker = Effect.gen(function* () {
 export const ZipWorkerLayerNoDeps = Layer.effect(ZipWorker, makeZipWorker)
 
 export const ZipWorkerLayer = ZipWorkerLayerNoDeps.pipe(
-  Layer.provide(Layer.mergeAll(Database.layer, S3Service.layer, UploadsConfig.layer)),
+  Layer.provide(Layer.mergeAll(Database.layer, S3ServiceLayer, UploadsConfig.layer)),
 )

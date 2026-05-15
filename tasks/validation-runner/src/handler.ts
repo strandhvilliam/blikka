@@ -1,8 +1,5 @@
-import { Effect, Layer } from "effect"
-import { Database } from "@blikka/db"
-import { S3Service, FinalizedEventSchema } from "@blikka/aws"
-import { ExifKVRepository, UploadSessionRepository } from "@blikka/kv-store"
-import { ValidationEngine } from "@blikka/validation"
+import { Effect } from "effect"
+import { FinalizedEventSchema } from "@blikka/aws"
 import { Resource as SSTResource } from "sst"
 import {
   getEnvironmentFromStage,
@@ -11,7 +8,7 @@ import {
   makeSqsRealtimeTask,
   parseBusEvent,
 } from "@blikka/task-runtime"
-import { UploadsConfig, ValidationRunner, ValidationRunnerLayer } from "@blikka/uploads"
+import { ValidationRunner, ValidationRunnerLayer } from "@blikka/uploads"
 
 const TASK_NAME = "validation-runner"
 const REALTIME_EVENT = "participant-validated"

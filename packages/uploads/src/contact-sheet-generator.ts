@@ -1,7 +1,7 @@
 import { Context, DateTime, Effect, Layer, Option, Schema } from "effect"
 import { Database, type DbError } from "@blikka/db"
 import type { CompetitionClass } from "@blikka/db"
-import { S3ClientError, S3Service } from "@blikka/aws"
+import { S3ClientError, S3Service, S3ServiceLayer } from "@blikka/aws"
 import {
   UploadSessionRepository,
   type ParticipantState,
@@ -226,7 +226,7 @@ export const ContactSheetGeneratorLayer = ContactSheetGeneratorLayerNoDeps.pipe(
     Layer.mergeAll(
       Database.layer,
       UploadSessionRepository.layer,
-      S3Service.layer,
+      S3ServiceLayer,
       UploadsConfig.layer,
       ContactSheetBuilder.layer,
     ),

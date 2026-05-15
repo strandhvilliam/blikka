@@ -2,7 +2,7 @@ import { Config, Effect, Layer, Option, Schema, Context } from "effect"
 import { Database, RuleConfig } from "@blikka/db"
 import { SubmissionState, ExifState, isCurrentUploadSession } from "@blikka/kv-store"
 import { InvalidDataFoundError, InvalidValidationRuleError } from "./utils"
-import { S3Service } from "@blikka/aws"
+import { S3Service, S3ServiceLayer } from "@blikka/aws"
 import {
   RuleKeySchema,
   ValidationEngine,
@@ -200,7 +200,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
     Layer.provide(
-      Layer.mergeAll(Database.layer, S3Service.layer, KVStore.layer, ValidationEngine.layer),
+      Layer.mergeAll(Database.layer, S3ServiceLayer, KVStore.layer, ValidationEngine.layer),
     ),
   )
 }

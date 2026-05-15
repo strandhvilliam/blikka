@@ -1,5 +1,5 @@
 import { Cause, Effect, Layer, Option, Context, Schema } from "effect"
-import { BusService, BusServiceLayer, EventBusError, S3Service } from "@blikka/aws"
+import { BusService, BusServiceLayer, EventBusError, S3Service, S3ServiceLayer } from "@blikka/aws"
 import {
   ExifKVRepository,
   type ExifKVRepositoryError,
@@ -286,7 +286,7 @@ export const SubmissionProcessorLayerNoDeps = Layer.effect(
 export const SubmissionProcessorLayer = SubmissionProcessorLayerNoDeps.pipe(
   Layer.provide(
     Layer.mergeAll(
-      S3Service.layer,
+      S3ServiceLayer,
       UploadSessionRepository.layer,
       ExifKVRepository.layer,
       ExifParser.layer,

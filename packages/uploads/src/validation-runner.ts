@@ -1,6 +1,6 @@
 import { Database } from "@blikka/db"
 import type { DbError, RuleConfig } from "@blikka/db"
-import { S3Service } from "@blikka/aws"
+import { S3Service, S3ServiceLayer } from "@blikka/aws"
 import {
   ExifKVRepository,
   ExifKVRepositoryError,
@@ -215,7 +215,7 @@ export const ValidationRunnerLayer = ValidationRunnerLayerNoDeps.pipe(
   Layer.provide(
     Layer.mergeAll(
       Database.layer,
-      S3Service.layer,
+      S3ServiceLayer,
       UploadSessionRepository.layer,
       ExifKVRepository.layer,
       ValidationEngine.layer,
