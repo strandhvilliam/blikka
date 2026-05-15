@@ -37,18 +37,21 @@ export interface RunZipTaskInput {
   readonly reference: string
 }
 
-export interface ZipWorkerShape {
-  readonly runZipTask: (input: RunZipTaskInput) => Effect.Effect<Buffer, ZipWorkerError>
-}
-
 interface ZipEntry {
   readonly path: string
   readonly data: Uint8Array<ArrayBufferLike>
 }
 
-export class ZipWorker extends Context.Service<ZipWorker, ZipWorkerShape>()(
-  "@blikka/uploads/ZipWorker",
-) {}
+export class ZipWorker extends Context.Service<
+  ZipWorker,
+  {
+    /**
+     * Runs the zip worker for a participant.
+     * Will zip the participant's submissions and save the zip to S3.
+     */
+    readonly runZipTask: (input: RunZipTaskInput) => Effect.Effect<Buffer, ZipWorkerError>
+  }
+>()("@blikka/uploads/ZipWorker") {}
 
 function createZipKey(domain: string, reference: string) {
   return `${domain}/${reference}.zip`
@@ -160,7 +163,7 @@ const makeZipWorker = Effect.gen(function* () {
     } satisfies ZipEntry
   })
 
-  const runZipTask: ZipWorkerShape["runZipTask"] = Effect.fn("ZipWorker.runZipTask")(
+  const runZipTask = Effect.fn("ZipWorker.runZipTask")(
     function* ({ domain, reference }: RunZipTaskInput) {
       const zipKey = createZipKey(domain, reference)
 
@@ -209,7 +212,7 @@ const makeZipWorker = Effect.gen(function* () {
     (effect, input) => Effect.annotateLogs(effect, { ...input }),
   )
 
-  return { runZipTask } satisfies ZipWorkerShape
+  return ZipWorker.of({ runZipTask })
 })
 
 export const ZipWorkerLayerNoDeps = Layer.effect(ZipWorker, makeZipWorker)

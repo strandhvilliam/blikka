@@ -49,20 +49,18 @@ type ContactSheetSkipDecision =
       readonly shouldSkip: false
     }
 
-export interface ContactSheetGeneratorShape {
-  /**
-   * Generates a participant's contact sheet and saves it to S3 and the key to the database.
-   * Will skip if the participant has already generated a contact sheet or is a single-photo participant (by-camera).
-   * Current valid photo counts are 8 and 24.
-   */
-  readonly generate: (
-    params: GenerateContactSheetInput,
-  ) => Effect.Effect<void, ContactSheetGeneratorError>
-}
-
 export class ContactSheetGenerator extends Context.Service<
   ContactSheetGenerator,
-  ContactSheetGeneratorShape
+  {
+    /**
+     * Generates a participant's contact sheet and saves it to S3 and the key to the database.
+     * Will skip if the participant has already generated a contact sheet or is a single-photo participant (by-camera).
+     * Current valid photo counts are 8 and 24.
+     */
+    readonly generate: (
+      params: GenerateContactSheetInput,
+    ) => Effect.Effect<void, ContactSheetGeneratorError>
+  }
 >()("@blikka/uploads/ContactSheetGenerator") {}
 
 const VALID_PHOTO_COUNTS = [8, 24]
@@ -135,9 +133,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
     }
   })
 
-  const generate: ContactSheetGeneratorShape["generate"] = Effect.fn(
-    "ContactSheetGenerator.generate",
-  )(
+  const generate = Effect.fn("ContactSheetGenerator.generate")(
     function* (params: GenerateContactSheetInput) {
       const { domain, reference, uploadSessionId } = params
 
@@ -217,7 +213,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
     (effect, params) => Effect.annotateLogs(effect, { ...params }),
   )
 
-  return { generate } satisfies ContactSheetGeneratorShape
+  return ContactSheetGenerator.of({ generate })
 })
 
 export const ContactSheetGeneratorLayerNoDeps = Layer.effect(

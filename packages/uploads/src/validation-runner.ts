@@ -48,13 +48,18 @@ export interface ValidateParticipantInput {
   readonly uploadSessionId: string
 }
 
-export interface ValidationRunnerShape {
-  readonly execute: (input: ValidateParticipantInput) => Effect.Effect<void, ValidationRunnerError>
-}
-
-export class ValidationRunner extends Context.Service<ValidationRunner, ValidationRunnerShape>()(
-  "@blikka/uploads/ValidationRunner",
-) {}
+export class ValidationRunner extends Context.Service<
+  ValidationRunner,
+  {
+    /**
+     * Executes the validation runner for a participant.
+     * Will validate the participant's submissions and update the participant state.
+     */
+    readonly execute: (
+      input: ValidateParticipantInput,
+    ) => Effect.Effect<void, ValidationRunnerError>
+  }
+>()("@blikka/uploads/ValidationRunner") {}
 
 const makeValidationRunner = Effect.gen(function* () {
   const db = yield* Database
@@ -122,7 +127,7 @@ const makeValidationRunner = Effect.gen(function* () {
     ),
   )
 
-  const execute: ValidationRunnerShape["execute"] = Effect.fn("ValidationRunner.execute")(
+  const execute = Effect.fn("ValidationRunner.execute")(
     function* ({ domain, reference, uploadSessionId }: ValidateParticipantInput) {
       const participantState = yield* uploadKv.getParticipantState(domain, reference)
 
@@ -201,7 +206,7 @@ const makeValidationRunner = Effect.gen(function* () {
     (effect, input) => Effect.annotateLogs(effect, { ...input }),
   )
 
-  return { execute } satisfies ValidationRunnerShape
+  return ValidationRunner.of({ execute })
 })
 
 export const ValidationRunnerLayerNoDeps = Layer.effect(ValidationRunner, makeValidationRunner)

@@ -39,18 +39,19 @@ export type UploadFinalizerError =
   | ExifKVRepositoryError
   | DbError
 
-export interface UploadFinalizerShape {
-  /**
-   * Finalizes a participant after all submissions are processed.
-   * Will update the participant status to "completed" and the submissions status to "uploaded".
-   * This is the step to also trigger realtime completion event, but validation and other steps are not neccessarily completed at this point.
-   */
-  readonly finalize: (input: FinalizeParticipantInput) => Effect.Effect<void, UploadFinalizerError>
-}
-
-export class UploadFinalizer extends Context.Service<UploadFinalizer, UploadFinalizerShape>()(
-  "@blikka/uploads/UploadFinalizer",
-) {}
+export class UploadFinalizer extends Context.Service<
+  UploadFinalizer,
+  {
+    /**
+     * Finalizes a participant after all submissions are processed.
+     * Will update the participant status to "completed" and the submissions status to "uploaded".
+     * This is the step to also trigger realtime completion event, but validation and other steps are not neccessarily completed at this point.
+     */
+    readonly finalize: (
+      input: FinalizeParticipantInput,
+    ) => Effect.Effect<void, UploadFinalizerError>
+  }
+>()("@blikka/uploads/UploadFinalizer") {}
 
 function shouldSkipFinalize({
   participant,
@@ -115,9 +116,7 @@ const makeUploadFinalizer = Effect.gen(function* () {
   const uploadKv = yield* UploadSessionRepository
   const exifKv = yield* ExifKVRepository
 
-  const finalize: UploadFinalizerShape["finalize"] = Effect.fn(
-    "UploadFinalizer.finalizeParticipant",
-  )(
+  const finalize = Effect.fn("UploadFinalizer.finalizeParticipant")(
     function* ({ domain, reference, uploadSessionId }: FinalizeParticipantInput) {
       const participantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
       if (Option.isNone(participantStateOpt)) {
@@ -197,7 +196,7 @@ const makeUploadFinalizer = Effect.gen(function* () {
     (effect, input) => Effect.annotateLogs(effect, { ...input }),
   )
 
-  return { finalize } satisfies UploadFinalizerShape
+  return UploadFinalizer.of({ finalize })
 })
 
 export const UploadFinalizerLayerNoDeps = Layer.effect(UploadFinalizer, makeUploadFinalizer)

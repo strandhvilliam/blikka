@@ -41,20 +41,18 @@ interface ReadySubmissionContext {
   readonly uploadSessionId: string
 }
 
-export interface SubmissionProcessorShape {
-  /**
-   * Processes a submission normally triggered by S3 created event.
-   * Expects submission state to be initialized in KV store.
-   * Will send finalized event to bus if all photos are processed.
-   */
-  readonly process: (
-    params: ProcessSubmissionInput,
-  ) => Effect.Effect<void, SubmissionProcessorError>
-}
-
 export class SubmissionProcessor extends Context.Service<
   SubmissionProcessor,
-  SubmissionProcessorShape
+  {
+    /**
+     * Processes a submission normally triggered by S3 created event.
+     * Expects submission state to be initialized in KV store.
+     * Will send finalized event to bus if all photos are processed.
+     */
+    readonly process: (
+      params: ProcessSubmissionInput,
+    ) => Effect.Effect<void, SubmissionProcessorError>
+  }
 >()("@blikka/uploads/SubmissionProcessor") {}
 
 const THUMBNAIL_WIDTH = 400
@@ -267,7 +265,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
     yield* bus.sendFinalizedEvent(domain, reference, uploadSessionId)
   })
 
-  const process: SubmissionProcessorShape["process"] = Effect.fn("SubmissionProcessor.process")(
+  const process = Effect.fn("SubmissionProcessor.process")(
     function* (params: ProcessSubmissionInput) {
       const readyContext = yield* resolveReadySubmissionContext(params)
       if (Option.isNone(readyContext)) return
@@ -277,7 +275,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
     (effect, param) => Effect.annotateLogs(effect, { ...param }),
   )
 
-  return { process } satisfies SubmissionProcessorShape
+  return SubmissionProcessor.of({ process })
 })
 
 export const SubmissionProcessorLayerNoDeps = Layer.effect(

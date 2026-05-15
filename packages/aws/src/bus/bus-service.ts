@@ -36,7 +36,7 @@ export class BusService extends Context.Service<BusService>()("@blikka/aws/bus-s
       Effect.mapError((error) => {
         return new EventBusError({
           cause: error,
-          message: "Unexpected EventBridge error",
+          message: `Unexpected EventBridge error: ${error.message}`,
         })
       }),
     )
