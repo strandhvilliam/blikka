@@ -8,8 +8,12 @@ export class UploadsConfig extends Context.Service<
     readonly contactSheetsBucketName: string
     readonly zipsBucketName: string
   }
->()("@blikka/uploads/UploadsConfig", {
-  make: Effect.gen(function* () {
+>()("@blikka/uploads/UploadsConfig") {}
+
+export const UploadsConfigLayer = Layer.effect(
+  UploadsConfig,
+
+  Effect.gen(function* () {
     const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
     const thumbnailsBucketName = yield* Config.string("THUMBNAILS_BUCKET_NAME")
     const contactSheetsBucketName = yield* Config.string("CONTACT_SHEETS_BUCKET_NAME")
@@ -21,6 +25,4 @@ export class UploadsConfig extends Context.Service<
       zipsBucketName,
     } as const
   }),
-}) {
-  static readonly layer = Layer.effect(this, this.make)
-}
+)

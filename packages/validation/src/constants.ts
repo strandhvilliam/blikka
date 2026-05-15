@@ -5,7 +5,7 @@ export const RULE_KEYS = {
   SAME_DEVICE: "same_device",
   WITHIN_TIMERANGE: "within_timerange",
   MODIFIED: "modified",
-} as const;
+} as const
 
 /** Short UI labels when a rule fails or is shown in summaries (aligned with validation messages). */
 export const RULE_KEY_DISPLAY_LABELS = {
@@ -15,7 +15,7 @@ export const RULE_KEY_DISPLAY_LABELS = {
   [RULE_KEYS.SAME_DEVICE]: "Multiple devices used",
   [RULE_KEYS.WITHIN_TIMERANGE]: "Outside configured timerange",
   [RULE_KEYS.MODIFIED]: "Possible editing or weak EXIF",
-} as const satisfies Record<(typeof RULE_KEYS)[keyof typeof RULE_KEYS], string>;
+} as const satisfies Record<(typeof RULE_KEYS)[keyof typeof RULE_KEYS], string>
 
 /** Short UI labels when a rule passes (counterpart to {@link RULE_KEY_DISPLAY_LABELS}). */
 export const RULE_KEY_PASSED_DISPLAY_LABELS = {
@@ -25,7 +25,7 @@ export const RULE_KEY_PASSED_DISPLAY_LABELS = {
   [RULE_KEYS.SAME_DEVICE]: "Same device",
   [RULE_KEYS.WITHIN_TIMERANGE]: "Within configured timerange",
   [RULE_KEYS.MODIFIED]: "No editing indicators",
-} as const satisfies Record<(typeof RULE_KEYS)[keyof typeof RULE_KEYS], string>;
+} as const satisfies Record<(typeof RULE_KEYS)[keyof typeof RULE_KEYS], string>
 
 export const IMAGE_EXTENSION_TO_MIME_TYPE = {
   jpg: "image/jpeg",
@@ -40,13 +40,13 @@ export const IMAGE_EXTENSION_TO_MIME_TYPE = {
   avif: "image/avif",
   heic: "image/heic",
   heif: "image/heif",
-} as const;
+} as const
 
 export const VALIDATION_OUTCOME = {
   PASSED: "passed",
   FAILED: "failed",
   SKIPPED: "skipped",
-} as const;
+} as const
 
 export const EDITING_SOFTWARE_KEYWORDS = [
   "photoshop",
@@ -59,4 +59,4 @@ export const EDITING_SOFTWARE_KEYWORDS = [
   "snapseed",
   "acdsee",
   "paintshop",
-] as const;
+] as const

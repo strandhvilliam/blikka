@@ -9,7 +9,7 @@ import {
   type UploadSessionRepositoryError,
 } from "@blikka/kv-store"
 import { ContactSheetBuilder, type SharpError } from "@blikka/image-manipulation"
-import { UploadsConfig } from "./config"
+import { UploadsConfig, UploadsConfigLayer } from "./config"
 
 export class InvalidSheetGenerationDataError extends Schema.TaggedErrorClass<InvalidSheetGenerationDataError>()(
   "InvalidSheetGenerationDataError",
@@ -228,7 +228,7 @@ export const ContactSheetGeneratorLayer = ContactSheetGeneratorLayerNoDeps.pipe(
       Database.layer,
       UploadSessionRepositoryLayer,
       S3ServiceLayer,
-      UploadsConfig.layer,
+      UploadsConfigLayer,
       ContactSheetBuilder.layer,
     ),
   ),

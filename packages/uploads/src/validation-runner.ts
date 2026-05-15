@@ -13,12 +13,13 @@ import { type ExifState, type SubmissionState } from "@blikka/kv-store"
 import {
   RuleKeySchema,
   ValidationEngine,
+  ValidationEngineLayer,
   ValidationInputSchema,
   ValidationRuleSchema,
   type ValidationEngineError,
 } from "@blikka/validation"
 import { Context, Effect, Layer, Option, Schema } from "effect"
-import { UploadsConfig } from "./config"
+import { UploadsConfig, UploadsConfigLayer } from "./config"
 
 export class ValidationRunnerInvalidDataError extends Schema.TaggedErrorClass<ValidationRunnerInvalidDataError>()(
   "ValidationRunnerInvalidDataError",
@@ -220,8 +221,8 @@ export const ValidationRunnerLayer = ValidationRunnerLayerNoDeps.pipe(
       S3ServiceLayer,
       UploadSessionRepositoryLayer,
       ExifKVRepositoryLayer,
-      ValidationEngine.layer,
-      UploadsConfig.layer,
+      ValidationEngineLayer,
+      UploadsConfigLayer,
     ),
   ),
 )

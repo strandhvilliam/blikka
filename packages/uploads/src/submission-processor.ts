@@ -11,7 +11,7 @@ import {
   type UploadSessionRepositoryError,
 } from "@blikka/kv-store"
 import { ExifParser, SharpImageService } from "@blikka/image-manipulation"
-import { UploadsConfig } from "./config"
+import { UploadsConfig, UploadsConfigLayer } from "./config"
 
 export class PhotoNotFoundError extends Schema.TaggedErrorClass<PhotoNotFoundError>()(
   "PhotoNotFoundError",
@@ -293,7 +293,7 @@ export const SubmissionProcessorLayer = SubmissionProcessorLayerNoDeps.pipe(
       ExifKVRepositoryLayer,
       ExifParser.layer,
       BusServiceLayer,
-      UploadsConfig.layer,
+      UploadsConfigLayer,
       SharpImageService.layer,
     ),
   ),
