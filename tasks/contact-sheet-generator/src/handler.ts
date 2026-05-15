@@ -11,7 +11,7 @@ import {
   makeSqsRealtimeTask,
   parseBusEvent,
 } from "@blikka/task-runtime"
-import { ContactSheetGenerator, ContactSheetGeneratorLayer, UploadsConfig } from "@blikka/uploads"
+import { ContactSheetGenerator, ContactSheetGeneratorLayer } from "@blikka/uploads"
 
 const TASK_NAME = "contact-sheet-generator"
 const REALTIME_EVENT = "contact-sheet-generated"

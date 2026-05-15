@@ -1,15 +1,13 @@
-import "server-only"
 import { Layer, ManagedRuntime } from "effect"
 import { DrizzleClient, Database } from "@blikka/db"
 import { EmailService } from "@blikka/email"
 import { RedisClient } from "@blikka/redis"
 import { NodeServices } from "@effect/platform-node"
 import { PubSubService } from "@blikka/pubsub"
-import { S3Service, SQSService } from "@blikka/aws"
+import { S3ServiceLayer, SQSServiceLayer, SMSServiceLayer } from "@blikka/aws"
 import { UploadSessionRepositoryLayer } from "@blikka/kv-store"
 import { ValidationEngine } from "@blikka/validation"
 import { SharpImageService, ContactSheetBuilder, ExifParser } from "@blikka/image-manipulation"
-import { SMSService } from "@blikka/aws"
 import { RealtimeEventsService } from "@blikka/realtime"
 
 // Core layer with all common services
@@ -20,14 +18,14 @@ export const CoreLayer = Layer.mergeAll(
   RedisClient.layer,
   PubSubService.layer,
   ValidationEngine.layer,
-  S3Service.layer,
-  SQSService.layer,
+  S3ServiceLayer,
+  SQSServiceLayer,
   UploadSessionRepositoryLayer,
   SharpImageService.layer,
   ContactSheetBuilder.layer,
   ExifParser.layer,
   RealtimeEventsService.layer,
-  SMSService.layer,
+  SMSServiceLayer,
 )
 
 // Derive CoreServices type from the CoreLayer
@@ -45,15 +43,16 @@ export interface RuntimeConfig<TAdditional = never> {
 }
 
 export function createRuntime<TAdditional = never>(
-  config: RuntimeConfig<TAdditional> = {}
+  config: RuntimeConfig<TAdditional> = {},
 ): AppRuntime<TAdditional> {
   const MainLayer = Layer.mergeAll(
     CoreLayer,
-    ...(config.additionalLayers ? [config.additionalLayers] : [])
-  ).pipe(
-    Layer.provide(NodeServices.layer),
-    Layer.orDie
-  ) as Layer.Layer<CoreServices | TAdditional, never, never>
+    ...(config.additionalLayers ? [config.additionalLayers] : []),
+  ).pipe(Layer.provide(NodeServices.layer), Layer.orDie) as Layer.Layer<
+    CoreServices | TAdditional,
+    never,
+    never
+  >
 
   return ManagedRuntime.make(MainLayer)
 }

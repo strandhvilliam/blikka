@@ -1,6 +1,6 @@
 import { Config, Effect, Layer, Option, Schema, Context } from "effect"
 import { SharpImageService } from "./sharp-image-service"
-import { S3Service } from "@blikka/aws"
+import { S3Service, S3ServiceLayer } from "@blikka/aws"
 import {
   calculateCoordinateValues,
   calculateSheetVariables,
@@ -227,6 +227,6 @@ export class ContactSheetBuilder extends Context.Service<ContactSheetBuilder>()(
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(SharpImageService.layer, S3Service.layer)),
+    Layer.provide(Layer.mergeAll(SharpImageService.layer, S3ServiceLayer)),
   )
 }

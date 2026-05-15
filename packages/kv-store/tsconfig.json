@@ -1,17 +1,26 @@
 {
-  "extends": "../../packages/typescript-config/base.json",
+  "$schema": "https://json.schemastore.org/tsconfig",
   "include": ["src", "."],
+  "exclude": ["node_modules"],
   "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["es2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "incremental": false,
     "noEmit": true,
     "allowJs": true,
     "paths": {
       "*": ["./*"],
       "@/*": ["./src/*"],
       "@blikka/redis": ["../../packages/redis/src"]
-    },
-    "strict": true
-  },
-  "exclude": ["node_modules"]
+    }
+  }
 }
