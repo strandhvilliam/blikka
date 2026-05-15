@@ -1,6 +1,6 @@
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3"
 import { Duration, Effect, Option, Schedule, Schema, Context, Layer } from "effect"
-import { S3EffectClient } from "./s3-effect-client"
+import { S3EffectClient, S3EffectClientLayer } from "./s3-effect-client"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
 class S3ClientError extends Schema.TaggedErrorClass<S3ClientError>()("S3ClientError", {
@@ -130,5 +130,5 @@ export class S3Service extends Context.Service<S3Service>()("@blikka/packages/s3
     } as const
   }),
 }) {
-  static readonly layer = Layer.effect(this, this.make).pipe(Layer.provide(S3EffectClient.layer))
+  static readonly layer = Layer.effect(this, this.make).pipe(Layer.provide(S3EffectClientLayer))
 }

@@ -1,13 +1,7 @@
 import { Cause, Effect, Layer, Option, Context } from "effect"
-import { S3Service } from "@blikka/aws"
-import {
-  ExifKVRepository,
-  ExifState,
-  getUploadSessionId,
-  UploadSessionRepository,
-} from "@blikka/kv-store"
+import { BusService, BusServiceLayer, S3Service } from "@blikka/aws"
+import { ExifKVRepository, ExifState, UploadSessionRepository } from "@blikka/kv-store"
 import { ExifParser } from "@blikka/image-manipulation"
-import { BusService } from "@blikka/aws"
 import { makeThumbnailKey } from "./utils"
 import { FailedToIncrementParticipantStateError, PhotoNotFoundError } from "./errors"
 import { SharpImageService } from "@blikka/image-manipulation/sharp"
@@ -89,7 +83,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
             return
           }
 
-          if (getUploadSessionId(participantStateOpt.value) !== uploadSessionId) {
+          if (participantStateOpt.value.uploadSessionId !== uploadSessionId) {
             yield* Effect.logWarning("Submission belongs to a stale upload session", { key })
             return
           }
@@ -233,7 +227,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
             )
             if (
               Option.isSome(currentParticipantStateOpt) &&
-              getUploadSessionId(currentParticipantStateOpt.value) === uploadSessionId
+              currentParticipantStateOpt.value.uploadSessionId === uploadSessionId
             ) {
               yield* bus.sendFinalizedEvent(domain, reference, uploadSessionId)
             } else {
@@ -259,7 +253,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
         UploadSessionRepository.layer,
         ExifKVRepository.layer,
         ExifParser.layer,
-        BusService.layer,
+        BusServiceLayer,
         SharpImageService.layer,
       ),
     ),

@@ -11,7 +11,8 @@
     "./sms": "./src/sms/index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node": "^25.8.0"
   },
   "peerDependencies": {
     "typescript": "^5"
