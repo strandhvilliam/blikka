@@ -3,7 +3,7 @@ import { DbLayer, DrizzleClient } from "@blikka/db";
 import { EmailService } from "@blikka/email";
 import { RedisClientLayer } from "@blikka/redis";
 import { NodeServices } from "@effect/platform-node";
-import { PubSubService } from "@blikka/pubsub";
+import { PubSubServiceLayer } from "@blikka/pubsub";
 import { S3ServiceLayer, SQSServiceLayer, SMSServiceLayer } from "@blikka/aws";
 import { UploadSessionRepositoryLayer } from "@blikka/kv-store";
 import { ValidationEngineLayer } from "@blikka/validation";
@@ -20,7 +20,7 @@ export const CoreLayer = Layer.mergeAll(
   DbLayer,
   EmailService.layer,
   RedisClientLayer,
-  PubSubService.layer,
+  PubSubServiceLayer,
   ValidationEngineLayer,
   S3ServiceLayer,
   SQSServiceLayer,

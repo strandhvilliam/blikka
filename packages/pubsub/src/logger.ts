@@ -1,5 +1,5 @@
 import { Effect, Layer, Logger, Context } from "effect"
-import { PubSubService } from "./pubsub-service"
+import { PubSubService, PubSubServiceLayer } from "./pubsub-service"
 import { PubSubChannel, PubSubMessage } from "./schema"
 
 export const makePubSubLogger = (taskName: string) =>
@@ -24,7 +24,7 @@ export const makePubSubLogger = (taskName: string) =>
         )
       })
     })
-  ], { mergeWithExisting: true }).pipe(Layer.provide(PubSubService.layer))
+  ], { mergeWithExisting: true }).pipe(Layer.provide(PubSubServiceLayer))
 
 export class PubSubLoggerService extends Context.Service<PubSubLoggerService>()(
   "@blikka/pubsub/logger",
