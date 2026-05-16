@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import { ChannelParseError } from "./utils"
+import { ChannelParseError } from "./errors"
 
 const PubSubChannelEnvironment = Schema.Literals(["prod", "dev", "staging"])
 const PubSubChannelType = Schema.Literals(["upload-flow", "logger"])
