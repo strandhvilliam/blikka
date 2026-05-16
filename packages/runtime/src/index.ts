@@ -1,12 +1,12 @@
 import { Layer, ManagedRuntime } from "effect"
 import { DrizzleClient, Database } from "@blikka/db"
 import { EmailService } from "@blikka/email"
-import { RedisClient } from "@blikka/redis"
+import { RedisClientLayer } from "@blikka/redis"
 import { NodeServices } from "@effect/platform-node"
 import { PubSubService } from "@blikka/pubsub"
 import { S3ServiceLayer, SQSServiceLayer, SMSServiceLayer } from "@blikka/aws"
 import { UploadSessionRepositoryLayer } from "@blikka/kv-store"
-import { ValidationEngine } from "@blikka/validation"
+import { ValidationEngineLayer } from "@blikka/validation"
 import { SharpImageService, ContactSheetBuilder, ExifParser } from "@blikka/image-manipulation"
 import { RealtimeEventsService } from "@blikka/realtime"
 
@@ -15,9 +15,9 @@ export const CoreLayer = Layer.mergeAll(
   DrizzleClient.layer,
   Database.layer,
   EmailService.layer,
-  RedisClient.layer,
+  RedisClientLayer,
   PubSubService.layer,
-  ValidationEngine.layer,
+  ValidationEngineLayer,
   S3ServiceLayer,
   SQSServiceLayer,
   UploadSessionRepositoryLayer,

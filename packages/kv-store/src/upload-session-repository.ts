@@ -1,5 +1,5 @@
 import { Context, Duration, Effect, Layer, Option, Schedule, Schema, Struct } from "effect"
-import { RedisClient } from "@blikka/redis"
+import { RedisClient, RedisClientLayer } from "@blikka/redis"
 import { Keys } from "./key-factory"
 import { incrementParticipantScript } from "./lua-scripts/lua-increment"
 
@@ -207,7 +207,9 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         .use((client) => client.hgetall(key))
         .pipe(
           Effect.catchTag("RedisError", (e) =>
-            Effect.fail(new UploadSessionStoreUnavailable({ operation: "getParticipantState", cause: e })),
+            Effect.fail(
+              new UploadSessionStoreUnavailable({ operation: "getParticipantState", cause: e }),
+            ),
           ),
         )
 
@@ -230,7 +232,9 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         .use((client) => client.hgetall(key))
         .pipe(
           Effect.catchTag("RedisError", (e) =>
-            Effect.fail(new UploadSessionStoreUnavailable({ operation: "getSubmissionState", cause: e })),
+            Effect.fail(
+              new UploadSessionStoreUnavailable({ operation: "getSubmissionState", cause: e }),
+            ),
           ),
         )
       if (isMissingHashResult(result)) {
@@ -256,7 +260,10 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           .pipe(
             Effect.catchTag("RedisError", (e) =>
               Effect.fail(
-                new UploadSessionStoreUnavailable({ operation: "getAllSubmissionStates", cause: e }),
+                new UploadSessionStoreUnavailable({
+                  operation: "getAllSubmissionStates",
+                  cause: e,
+                }),
               ),
             ),
           )
@@ -305,7 +312,10 @@ const makeUploadSessionRepository = Effect.gen(function* () {
             Effect.retry(retryPolicy),
             Effect.catchTag("RedisError", (e) =>
               Effect.fail(
-                new UploadSessionStoreUnavailable({ operation: "updateParticipantSession", cause: e }),
+                new UploadSessionStoreUnavailable({
+                  operation: "updateParticipantSession",
+                  cause: e,
+                }),
               ),
             ),
           )
@@ -333,7 +343,10 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           .pipe(
             Effect.catchTag("RedisError", (e) =>
               Effect.fail(
-                new UploadSessionStoreUnavailable({ operation: "updateSubmissionSession", cause: e }),
+                new UploadSessionStoreUnavailable({
+                  operation: "updateSubmissionSession",
+                  cause: e,
+                }),
               ),
             ),
           )
@@ -407,7 +420,9 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         .pipe(
           Effect.retry(retryPolicy),
           Effect.catchTag("RedisError", (e) =>
-            Effect.fail(new UploadSessionStoreUnavailable({ operation: "initializeState", cause: e })),
+            Effect.fail(
+              new UploadSessionStoreUnavailable({ operation: "initializeState", cause: e }),
+            ),
           ),
         )
     },
@@ -453,7 +468,10 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           .pipe(
             Effect.catchTag("RedisError", (e) =>
               Effect.fail(
-                new UploadSessionStoreUnavailable({ operation: "incrementParticipantState", cause: e }),
+                new UploadSessionStoreUnavailable({
+                  operation: "incrementParticipantState",
+                  cause: e,
+                }),
               ),
             ),
           )
@@ -517,5 +535,5 @@ export const UploadSessionRepositoryLayerNoDeps = Layer.effect(
 )
 
 export const UploadSessionRepositoryLayer = UploadSessionRepositoryLayerNoDeps.pipe(
-  Layer.provide(RedisClient.layer),
+  Layer.provide(RedisClientLayer),
 )

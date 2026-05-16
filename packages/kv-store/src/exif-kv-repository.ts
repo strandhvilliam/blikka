@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option, Schema } from "effect"
-import { RedisClient } from "@blikka/redis"
+import { RedisClient, RedisClientLayer } from "@blikka/redis"
 import { Keys } from "./key-factory"
 
 export class ExifKVRepositoryError extends Schema.TaggedErrorClass<ExifKVRepositoryError>()(
@@ -125,9 +125,11 @@ const makeExifKVRepository = Effect.gen(function* () {
       const key = Keys.exif(domain, ref, orderIndex)
       return yield* redis
         .use((client) => client.set(key, JSON.stringify(state)))
-        .pipe(Effect.catchTag("RedisError", (e) =>
-          Effect.fail(new ExifKVRepositoryError({ operation: "setExifState", cause: e })),
-        ))
+        .pipe(
+          Effect.catchTag("RedisError", (e) =>
+            Effect.fail(new ExifKVRepositoryError({ operation: "setExifState", cause: e })),
+          ),
+        )
     },
     (effect, domain, ref, orderIndex, _state) =>
       Effect.annotateLogs(effect, { domain, reference: ref, orderIndex }),
@@ -172,5 +174,5 @@ const makeExifKVRepository = Effect.gen(function* () {
 export const ExifKVRepositoryLayerNoDeps = Layer.effect(ExifKVRepository, makeExifKVRepository)
 
 export const ExifKVRepositoryLayer = ExifKVRepositoryLayerNoDeps.pipe(
-  Layer.provide(RedisClient.layer),
+  Layer.provide(RedisClientLayer),
 )

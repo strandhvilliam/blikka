@@ -8,7 +8,7 @@ import {
   Schema,
   SchemaTransformation,
 } from "effect"
-import { RedisClient } from "@blikka/redis"
+import { RedisClient, RedisClientLayer } from "@blikka/redis"
 import { Keys } from "./key-factory"
 import { atomicIncrementCompletedScript } from "./lua-scripts/atomic-increment-completed-script"
 import { atomicIncrementFailedScript } from "./lua-scripts/atomic-increment-failed-script"
@@ -599,5 +599,5 @@ export const DownloadStateRepositoryLayerNoDeps = Layer.effect(
 )
 
 export const DownloadStateRepositoryLayer = DownloadStateRepositoryLayerNoDeps.pipe(
-  Layer.provide(RedisClient.layer),
+  Layer.provide(RedisClientLayer),
 )

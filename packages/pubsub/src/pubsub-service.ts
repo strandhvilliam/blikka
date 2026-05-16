@@ -1,5 +1,18 @@
-import { Cause, Chunk, Console, Data, Duration, Effect, Layer, Queue, Schedule, Schema, Context, Stream } from "effect"
-import { RedisClient, RedisError } from "@blikka/redis"
+import {
+  Cause,
+  Chunk,
+  Console,
+  Data,
+  Duration,
+  Effect,
+  Layer,
+  Queue,
+  Schedule,
+  Schema,
+  Context,
+  Stream,
+} from "effect"
+import { RedisClient, RedisClientLayer, RedisError } from "@blikka/redis"
 import { PubSubChannel, PubSubMessage } from "./schema"
 import { ChannelParseError, PubSubError } from "./utils"
 
@@ -14,12 +27,10 @@ export class PubSubService extends Context.Service<PubSubService>()(
           const channelString = yield* PubSubChannel.toString(channel)
           return yield* redis.use((client) => client.publish(channelString, message))
         },
-        Effect.retry(
-          Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
-        ),
+        Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
         Effect.mapError(
-          (error) => new PubSubError({ cause: error, message: "Failed to publish message" })
-        )
+          (error) => new PubSubError({ cause: error, message: "Failed to publish message" }),
+        ),
       )
 
       const subscribe = (channel: PubSubChannel) =>
@@ -39,9 +50,9 @@ export class PubSubService extends Context.Service<PubSubService>()(
                     }),
                 }).pipe(
                   Effect.catch((error) =>
-                    Effect.logError("Failed to unsubscribe from channel", error)
-                  )
-                )
+                    Effect.logError("Failed to unsubscribe from channel", error),
+                  ),
+                ),
             )
 
             subscription.on("pmessage", (data) => {
@@ -54,11 +65,11 @@ export class PubSubService extends Context.Service<PubSubService>()(
               Queue.failCauseUnsafe(
                 queue,
                 Cause.fail(
-                  new PubSubError({ cause: error, message: "Failed to subscribe to channel" })
-                )
-              )
+                  new PubSubError({ cause: error, message: "Failed to subscribe to channel" }),
+                ),
+              ),
             )
-          })
+          }),
         )
 
       return {
@@ -66,9 +77,7 @@ export class PubSubService extends Context.Service<PubSubService>()(
         subscribe,
       } as const
     }),
-  }
+  },
 ) {
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(RedisClient.layer)
-  )
+  static readonly layer = Layer.effect(this, this.make).pipe(Layer.provide(RedisClientLayer))
 }
