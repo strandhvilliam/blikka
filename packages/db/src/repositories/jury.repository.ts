@@ -17,13 +17,13 @@ import type {
   Topic,
 } from "../types";
 import { DbError } from "../utils";
-export class JuryQueries extends Context.Service<JuryQueries>()(
-  "@blikka/db/jury-queries",
+export class JuryRepository extends Context.Service<JuryRepository>()(
+  "@blikka/db/jury-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
       const getJuryInvitationsByMarathonId = Effect.fn(
-        "JuryQueries.getJuryInvitatinosByMarathonId",
+        "JuryRepository.getJuryInvitatinosByMarathonId",
       )(function* ({ id }: { id: number }) {
         const result = yield* use((db) =>
           db.query.juryInvitations.findMany({
@@ -34,7 +34,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return result;
       });
       const getJuryInvitationById = Effect.fn(
-        "JuryQueries.getJuryInvitationById",
+        "JuryRepository.getJuryInvitationById",
       )(function* ({ id }: { id: number }) {
         const result = yield* use((db) =>
           db.query.juryInvitations.findFirst({
@@ -49,7 +49,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return Option.fromNullishOr(result);
       });
       const getJuryInvitationsByDomain = Effect.fn(
-        "JuryQueries.getJuryInvitationsByDomain",
+        "JuryRepository.getJuryInvitationsByDomain",
       )(function* ({ domain }: { domain: string }) {
         const marathon = yield* use((db) =>
           db
@@ -77,7 +77,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return result;
       });
       const createJuryInvitation = Effect.fn(
-        "JuryQueries.createJuryInvitation",
+        "JuryRepository.createJuryInvitation",
       )(function* ({ data }: { data: NewJuryInvitation }) {
         const [result] = yield* use((db) =>
           db
@@ -95,7 +95,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return result;
       });
       const updateJuryInvitation = Effect.fn(
-        "JuryQueries.updateJuryInvitation",
+        "JuryRepository.updateJuryInvitation",
       )(function* ({
         id,
         data,
@@ -120,7 +120,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return result;
       });
       const deleteJuryInvitation = Effect.fn(
-        "JuryQueries.deleteJuryInvitation",
+        "JuryRepository.deleteJuryInvitation",
       )(function* ({ id }: { id: number }) {
         const [result] = yield* use((db) =>
           db
@@ -138,7 +138,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return result;
       });
       const getJuryDataByTokenPayload = Effect.fn(
-        "JuryQueries.getJuryDataByToken",
+        "JuryRepository.getJuryDataByToken",
       )(function* ({
         domain,
         invitationId,
@@ -179,7 +179,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return invitation;
       });
       const getJuryParticipantSubmissions = Effect.fn(
-        "JuryQueries.getJuryParticipantSubmissions",
+        "JuryRepository.getJuryParticipantSubmissions",
       )(function* ({
         domain,
         invitationId,
@@ -268,7 +268,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
           invitation,
         };
       });
-      const createJuryRating = Effect.fn("JuryQueries.createJuryRating")(
+      const createJuryRating = Effect.fn("JuryRepository.createJuryRating")(
         function* ({
           invitationId,
           participantId,
@@ -314,7 +314,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
           return result;
         },
       );
-      const updateJuryRating = Effect.fn("JuryQueries.updateJuryRating")(
+      const updateJuryRating = Effect.fn("JuryRepository.updateJuryRating")(
         function* ({
           invitationId,
           participantId,
@@ -352,7 +352,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         },
       );
       const getJuryFinalRankingByParticipant = Effect.fn(
-        "JuryQueries.getJuryFinalRankingByParticipant",
+        "JuryRepository.getJuryFinalRankingByParticipant",
       )(function* ({
         invitationId,
         participantId,
@@ -372,7 +372,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return existing ?? null;
       });
       const getJuryFinalRankingByRank = Effect.fn(
-        "JuryQueries.getJuryFinalRankingByRank",
+        "JuryRepository.getJuryFinalRankingByRank",
       )(function* ({
         invitationId,
         rank,
@@ -397,7 +397,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return existing ?? null;
       });
       const createJuryFinalRanking = Effect.fn(
-        "JuryQueries.createJuryFinalRanking",
+        "JuryRepository.createJuryFinalRanking",
       )(function* ({
         invitationId,
         participantId,
@@ -440,7 +440,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return result;
       });
       const updateJuryFinalRanking = Effect.fn(
-        "JuryQueries.updateJuryFinalRanking",
+        "JuryRepository.updateJuryFinalRanking",
       )(function* ({
         invitationId,
         participantId,
@@ -472,7 +472,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return result;
       });
       const deleteJuryFinalRankingByParticipant = Effect.fn(
-        "JuryQueries.deleteJuryFinalRankingByParticipant",
+        "JuryRepository.deleteJuryFinalRankingByParticipant",
       )(function* ({
         invitationId,
         participantId,
@@ -493,38 +493,40 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         );
         return result;
       });
-      const getJuryRating = Effect.fn("JuryQueries.getJuryRating")(function* ({
-        invitationId,
-        participantId,
-      }: {
-        invitationId: number;
-        participantId: number;
-      }) {
-        const invitation = yield* use((db) =>
-          db.query.juryInvitations.findFirst({
-            where: (table, operators) => operators.eq(table.id, invitationId),
-          }),
-        );
-        if (!invitation) {
-          return yield* Effect.fail(
-            new DbError({
-              message: "Invitation not found",
+      const getJuryRating = Effect.fn("JuryRepository.getJuryRating")(
+        function* ({
+          invitationId,
+          participantId,
+        }: {
+          invitationId: number;
+          participantId: number;
+        }) {
+          const invitation = yield* use((db) =>
+            db.query.juryInvitations.findFirst({
+              where: (table, operators) => operators.eq(table.id, invitationId),
             }),
           );
-        }
-        const result = yield* use((db) =>
-          db.query.juryRatings.findFirst({
-            where: (table, operators) =>
-              operators.and(
-                operators.eq(table.invitationId, invitationId),
-                operators.eq(table.participantId, participantId),
-              ),
-          }),
-        );
-        return Option.fromNullishOr(result);
-      });
+          if (!invitation) {
+            return yield* Effect.fail(
+              new DbError({
+                message: "Invitation not found",
+              }),
+            );
+          }
+          const result = yield* use((db) =>
+            db.query.juryRatings.findFirst({
+              where: (table, operators) =>
+                operators.and(
+                  operators.eq(table.invitationId, invitationId),
+                  operators.eq(table.participantId, participantId),
+                ),
+            }),
+          );
+          return Option.fromNullishOr(result);
+        },
+      );
       const getJuryRatingsWithRankingsByInvitation = Effect.fn(
-        "JuryQueries.getJuryRatingsWithRankingsByInvitation",
+        "JuryRepository.getJuryRatingsWithRankingsByInvitation",
       )(function* ({ invitationId }: { invitationId: number }) {
         const invitation = yield* use((db) =>
           db.query.juryInvitations.findFirst({
@@ -625,7 +627,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
           );
         });
       });
-      const deleteJuryRating = Effect.fn("JuryQueries.deleteJuryRating")(
+      const deleteJuryRating = Effect.fn("JuryRepository.deleteJuryRating")(
         function* ({
           invitationId,
           participantId,
@@ -660,7 +662,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         },
       );
       const getJurySubmissionsWithoutFilters = Effect.fn(
-        "JuryQueries.getJurySubmissionWithouFilters",
+        "JuryRepository.getJurySubmissionWithouFilters",
       )(function* ({
         invitation,
         cursor,
@@ -831,7 +833,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         }
       });
       const getJurySubmissionsWithRatingFilters = Effect.fn(
-        "JuryQueries.getJurySubmissionsWithRatingFilters",
+        "JuryRepository.getJurySubmissionsWithRatingFilters",
       )(function* ({
         invitation,
         ratingFilter,
@@ -1037,7 +1039,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         }
       });
       const getJurySubmissionsFromToken = Effect.fn(
-        "JuryQueries.getJurySubmissionsFromToken",
+        "JuryRepository.getJurySubmissionsFromToken",
       )(function* ({
         invitationId,
         cursor,
@@ -1073,7 +1075,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         }
       });
       const getJuryRatingsByInvitation = Effect.fn(
-        "JuryQueries.getJuryRatingsByInvitation",
+        "JuryRepository.getJuryRatingsByInvitation",
       )(function* ({ invitationId }: { invitationId: number }) {
         const ratings = yield* getJuryRatingsWithRankingsByInvitation({
           invitationId,
@@ -1081,7 +1083,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return ratings;
       });
       const getJuryAssignedFinalRankings = Effect.fn(
-        "JuryQueries.getJuryAssignedFinalRankings",
+        "JuryRepository.getJuryAssignedFinalRankings",
       )(function* ({ invitationId }: { invitationId: number }) {
         const invitation = yield* use((db) =>
           db.query.juryInvitations.findFirst({
@@ -1117,7 +1119,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         );
       });
       const participantMatchesInvitationScope = Effect.fn(
-        "JuryQueries.participantMatchesInvitationScope",
+        "JuryRepository.participantMatchesInvitationScope",
       )(function* ({
         invitationId,
         participantId,
@@ -1198,7 +1200,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return Boolean(match);
       });
       const getJuryParticipantCount = Effect.fn(
-        "JuryQueries.getJuryParticipantCount",
+        "JuryRepository.getJuryParticipantCount",
       )(function* ({
         invitationId,
         ratingFilter,
@@ -1298,7 +1300,7 @@ export class JuryQueries extends Context.Service<JuryQueries>()(
         return { value: participantIds.length };
       });
       const getJuryInvitationStatistics = Effect.fn(
-        "JuryQueries.getJuryInvitationStatistics",
+        "JuryRepository.getJuryInvitationStatistics",
       )(function* ({ invitationId }: { invitationId: number }) {
         const invitation = yield* use((db) =>
           db.query.juryInvitations.findFirst({

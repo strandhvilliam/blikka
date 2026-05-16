@@ -9,13 +9,13 @@ import type {
 } from "../types";
 import { DbError } from "../utils";
 import { conflictUpdateSetAllColumns } from "../utils";
-export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
-  "@blikka/db/submissions-queries",
+export class SubmissionsRepository extends Context.Service<SubmissionsRepository>()(
+  "@blikka/db/submissions-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
       const getAllSubmissionKeysForMarathon = Effect.fn(
-        "SubmissionsQueries.getAllSubmissionKeysForMarathon",
+        "SubmissionsRepository.getAllSubmissionKeysForMarathon",
       )(function* ({ marathonId }: { marathonId: number }) {
         const result = yield* use((db) =>
           db.query.submissions.findMany({
@@ -31,7 +31,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const getSubmissionById = Effect.fn(
-        "SubmissionsQueries.getSubmissionById",
+        "SubmissionsRepository.getSubmissionById",
       )(function* ({ id }: { id: number }) {
         const result = yield* use((db) =>
           db.query.submissions.findFirst({
@@ -41,7 +41,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return Option.fromNullishOr(result);
       });
       const getSubmissionVoteRealtimePayloadById = Effect.fn(
-        "SubmissionsQueries.getSubmissionVoteRealtimePayloadById",
+        "SubmissionsRepository.getSubmissionVoteRealtimePayloadById",
       )(function* ({ id }: { id: number }) {
         const result = yield* use((db) =>
           db
@@ -55,13 +55,16 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
               participantLastName: participants.lastname,
             })
             .from(submissions)
-            .innerJoin(participants, eq(participants.id, submissions.participantId))
+            .innerJoin(
+              participants,
+              eq(participants.id, submissions.participantId),
+            )
             .where(eq(submissions.id, id)),
         );
         return Option.fromNullishOr(result[0]);
       });
       const getSubmissionByKey = Effect.fn(
-        "SubmissionsQueries.getSubmissionByKey",
+        "SubmissionsRepository.getSubmissionByKey",
       )(function* ({ key }: { key: string }) {
         const result = yield* use((db) =>
           db.query.submissions.findFirst({
@@ -71,7 +74,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return Option.fromNullishOr(result);
       });
       const getZippedSubmissionsByDomain = Effect.fn(
-        "SubmissionsQueries.getZippedSubmissionsByDomain",
+        "SubmissionsRepository.getZippedSubmissionsByDomain",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db.query.marathons.findFirst({
@@ -99,7 +102,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return Array.from(latestByParticipant.values());
       });
       const getZippedSubmissionsByMarathonId = Effect.fn(
-        "SubmissionsQueries.getZippedSubmissionsByMarathonId",
+        "SubmissionsRepository.getZippedSubmissionsByMarathonId",
       )(function* ({ marathonId }: { marathonId: number }) {
         const result = yield* use((db) =>
           db.query.zippedSubmissions.findMany({
@@ -110,7 +113,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const getManySubmissionsByKeys = Effect.fn(
-        "SubmissionsQueries.getManySubmissionsByKeys",
+        "SubmissionsRepository.getManySubmissionsByKeys",
       )(function* ({ keys }: { keys: string[] }) {
         const result = yield* use((db) =>
           db.query.submissions.findMany({
@@ -120,7 +123,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const getSubmissionsByParticipantId = Effect.fn(
-        "SubmissionsQueries.getSubmissionsByParticipantId",
+        "SubmissionsRepository.getSubmissionsByParticipantId",
       )(function* ({ participantId }: { participantId: number }) {
         const result = yield* use((db) =>
           db.query.submissions.findMany({
@@ -131,7 +134,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const getSubmissionByParticipantIdAndTopicId = Effect.fn(
-        "SubmissionsQueries.getSubmissionByParticipantIdAndTopicId",
+        "SubmissionsRepository.getSubmissionByParticipantIdAndTopicId",
       )(function* ({
         participantId,
         topicId,
@@ -151,7 +154,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return Option.fromNullishOr(result);
       });
       const getSubmissionsForJuryQuery = Effect.fn(
-        "SubmissionsQueries.getSubmissionsForJury",
+        "SubmissionsRepository.getSubmissionsForJury",
       )(function* ({
         filters,
       }: {
@@ -216,23 +219,23 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         }
         return filteredResult;
       });
-      const createSubmission = Effect.fn("SubmissionsQueries.createSubmission")(
-        function* ({ data }: { data: NewSubmission }) {
-          const [result] = yield* use((db) =>
-            db.insert(submissions).values(data).returning(),
+      const createSubmission = Effect.fn(
+        "SubmissionsRepository.createSubmission",
+      )(function* ({ data }: { data: NewSubmission }) {
+        const [result] = yield* use((db) =>
+          db.insert(submissions).values(data).returning(),
+        );
+        if (!result) {
+          return yield* Effect.fail(
+            new DbError({
+              message: "Failed to create submission",
+            }),
           );
-          if (!result) {
-            return yield* Effect.fail(
-              new DbError({
-                message: "Failed to create submission",
-              }),
-            );
-          }
-          return result;
-        },
-      );
+        }
+        return result;
+      });
       const createMultipleSubmissions = Effect.fn(
-        "SubmissionsQueries.createMultipleSubmissions",
+        "SubmissionsRepository.createMultipleSubmissions",
       )(function* ({ data }: { data: NewSubmission[] }) {
         const result = yield* use((db) =>
           db.insert(submissions).values(data).returning(),
@@ -247,7 +250,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const updateAllSubmissions = Effect.fn(
-        "SubmissionsQueries.updateAllSubmissions",
+        "SubmissionsRepository.updateAllSubmissions",
       )(function* ({
         updates,
         reference,
@@ -310,7 +313,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const updateSubmissionByKey = Effect.fn(
-        "SubmissionsQueries.updateSubmissionByKeyMutation",
+        "SubmissionsRepository.updateSubmissionByKeyMutation",
       )(function* ({
         key,
         data,
@@ -335,7 +338,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const updateSubmissionById = Effect.fn(
-        "SubmissionsQueries.updateSubmissionById",
+        "SubmissionsRepository.updateSubmissionById",
       )(function* ({ id, data }: { id: number; data: Partial<NewSubmission> }) {
         const [result] = yield* use((db) =>
           db
@@ -354,7 +357,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const createZippedSubmission = Effect.fn(
-        "SubmissionsQueries.createZippedSubmission",
+        "SubmissionsRepository.createZippedSubmission",
       )(function* ({ data }: { data: NewZippedSubmission }) {
         const [result] = yield* use((db) =>
           db.insert(zippedSubmissions).values(data).returning(),
@@ -369,7 +372,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const updateZippedSubmission = Effect.fn(
-        "SubmissionsQueries.updateZippedSubmission",
+        "SubmissionsRepository.updateZippedSubmission",
       )(function* ({
         id,
         data,
@@ -394,7 +397,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const getZippedSubmissionByParticipantRefQuery = Effect.fn(
-        "SubmissionsQueries.getZippedSubmissionByParticipantRefQuery",
+        "SubmissionsRepository.getZippedSubmissionByParticipantRefQuery",
       )(function* ({
         domain,
         participantRef,
@@ -420,7 +423,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return participant.zippedSubmissions;
       });
       const deleteSubmissionById = Effect.fn(
-        "SubmissionsQueries.deleteSubmissionById",
+        "SubmissionsRepository.deleteSubmissionById",
       )(function* ({ id }: { id: number }) {
         const [result] = yield* use((db) =>
           db.delete(submissions).where(eq(submissions.id, id)).returning(),
@@ -428,7 +431,7 @@ export class SubmissionsQueries extends Context.Service<SubmissionsQueries>()(
         return result;
       });
       const deleteMultipleSubmissions = Effect.fn(
-        "SubmissionsQueries.deleteMultipleSubmissions",
+        "SubmissionsRepository.deleteMultipleSubmissions",
       )(function* ({ ids }: { ids: number[] }) {
         const [result] = yield* use((db) =>
           db

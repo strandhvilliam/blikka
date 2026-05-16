@@ -8,13 +8,13 @@ import type {
   ValidationResult,
 } from "../types";
 import { DbError } from "../utils";
-export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
-  "@blikka/db/validations-queries",
+export class ValidationsRepository extends Context.Service<ValidationsRepository>()(
+  "@blikka/db/validations-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
       const getValidationResultsByParticipantId = Effect.fn(
-        "ValidationsQueries.getValidationResultsByParticipantId",
+        "ValidationsRepository.getValidationResultsByParticipantId",
       )(function* ({ participantId }: { participantId: number }) {
         const result = yield* use((db) =>
           db.query.validationResults.findMany({
@@ -25,7 +25,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
         return result;
       });
       const getValidationResultsByDomain = Effect.fn(
-        "ValidationsQueries.getValidationResultsByDomain",
+        "ValidationsRepository.getValidationResultsByDomain",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db.query.marathons.findFirst({
@@ -56,7 +56,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
         );
       });
       const getParticipantVerificationsByStaffId = Effect.fn(
-        "ValidationsQueries.getParticipantVerificationsByStaffId",
+        "ValidationsRepository.getParticipantVerificationsByStaffId",
       )(function* ({
         staffId,
         domain,
@@ -111,7 +111,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
         };
       });
       const createValidationResult = Effect.fn(
-        "ValidationsQueries.createValidationResult",
+        "ValidationsRepository.createValidationResult",
       )(function* ({ data }: { data: NewValidationResult }) {
         const [result] = yield* use((db) =>
           db.insert(validationResults).values(data).returning(),
@@ -126,7 +126,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
         return result;
       });
       const createMultipleValidationResults = Effect.fn(
-        "ValidationsQueries.createMultipleValidationResults",
+        "ValidationsRepository.createMultipleValidationResults",
       )(function* ({
         data,
         domain,
@@ -210,7 +210,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
         return result;
       });
       const updateValidationResult = Effect.fn(
-        "ValidationsQueries.updateValidationResult",
+        "ValidationsRepository.updateValidationResult",
       )(function* ({
         id,
         data,
@@ -235,7 +235,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
         return result;
       });
       const createParticipantVerification = Effect.fn(
-        "ValidationsQueries.createParticipantVerification",
+        "ValidationsRepository.createParticipantVerification",
       )(function* ({ data }: { data: NewParticipantVerification }) {
         const [result] = yield* use((db) =>
           db.insert(participantVerifications).values(data).returning(),
@@ -250,7 +250,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
         return result;
       });
       const clearNonEnabledRuleResults = Effect.fn(
-        "ValidationsQueries.clearNonEnabledRuleResults",
+        "ValidationsRepository.clearNonEnabledRuleResults",
       )(function* ({
         participantId,
         ruleKeys,
@@ -270,7 +270,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
         );
       });
       const getAllParticipantVerifications = Effect.fn(
-        "ValidationsQueries.getAllParticipantVerifications",
+        "ValidationsRepository.getAllParticipantVerifications",
       )(function* ({
         domain,
         page,
@@ -326,7 +326,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
         };
       });
       const getParticipantVerificationByReference = Effect.fn(
-        "ValidationsQueries.getParticipantVerificationByReference",
+        "ValidationsRepository.getParticipantVerificationByReference",
       )(function* ({
         domain,
         reference,
@@ -372,7 +372,7 @@ export class ValidationsQueries extends Context.Service<ValidationsQueries>()(
           : null;
       });
       const clearAllValidationResults = Effect.fn(
-        "ValidationsQueries.clearAllValidationResults",
+        "ValidationsRepository.clearAllValidationResults",
       )(function* ({ participantId }: { participantId: number }) {
         yield* use((db) =>
           db

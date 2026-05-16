@@ -4,13 +4,13 @@ import { deviceGroups, marathons } from "../schema";
 import { eq } from "drizzle-orm";
 import type { NewDeviceGroup } from "../types";
 import { DbError } from "../utils";
-export class DeviceGroupsQueries extends Context.Service<DeviceGroupsQueries>()(
+export class DeviceGroupsRepository extends Context.Service<DeviceGroupsRepository>()(
   "@blikka.app/db/device-group-queries",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
       const getDeviceGroupById = Effect.fn(
-        "DeviceGroupsQueries.getDeviceGroupById",
+        "DeviceGroupsRepository.getDeviceGroupById",
       )(function* ({ id }: { id: number }) {
         const result = yield* use((db) =>
           db.query.deviceGroups.findFirst({
@@ -20,7 +20,7 @@ export class DeviceGroupsQueries extends Context.Service<DeviceGroupsQueries>()(
         return Option.fromNullishOr(result);
       });
       const getDeviceGroupsByDomain = Effect.fn(
-        "DeviceGroupsQueries.getDeviceGroupsByDomain",
+        "DeviceGroupsRepository.getDeviceGroupsByDomain",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db
@@ -32,7 +32,7 @@ export class DeviceGroupsQueries extends Context.Service<DeviceGroupsQueries>()(
         return result.map((row) => row.device_groups);
       });
       const createDeviceGroup = Effect.fn(
-        "DeviceGroupsQueries.createDeviceGroup",
+        "DeviceGroupsRepository.createDeviceGroup",
       )(function* ({ data }: { data: NewDeviceGroup }) {
         const [result] = yield* use((db) =>
           db.insert(deviceGroups).values(data).returning(),
@@ -47,7 +47,7 @@ export class DeviceGroupsQueries extends Context.Service<DeviceGroupsQueries>()(
         return result;
       });
       const updateDeviceGroup = Effect.fn(
-        "DeviceGroupsQueries.updateDeviceGroup",
+        "DeviceGroupsRepository.updateDeviceGroup",
       )(function* ({
         id,
         data,
@@ -72,7 +72,7 @@ export class DeviceGroupsQueries extends Context.Service<DeviceGroupsQueries>()(
         return result;
       });
       const deleteDeviceGroup = Effect.fn(
-        "DeviceGroupsQueries.deleteDeviceGroup",
+        "DeviceGroupsRepository.deleteDeviceGroup",
       )(function* ({ id }: { id: number }) {
         const [result] = yield* use((db) =>
           db.delete(deviceGroups).where(eq(deviceGroups.id, id)).returning(),

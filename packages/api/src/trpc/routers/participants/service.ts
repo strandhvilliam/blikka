@@ -1,5 +1,9 @@
 import { Config, Effect, Layer, Option, Context } from "effect";
-import { Database } from "@blikka/db";
+import {
+  DbLayer,
+  ParticipantsRepository,
+  MarathonsRepository,
+} from "@blikka/db";
 import { RealtimeEventsService } from "@blikka/realtime";
 import { ParticipantApiError, PublicParticipantSchema } from "./schemas";
 import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract";
@@ -15,7 +19,8 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
   "@blikka/api/ParticipantsApiService",
   {
     make: Effect.gen(function* () {
-      const db = yield* Database;
+      const marathonsRepository = yield* MarathonsRepository;
+      const participantsRepository = yield* ParticipantsRepository;
       const phoneEncryption = yield* PhoneNumberEncryptionService;
       const realtimeEvents = yield* RealtimeEventsService;
       const environment = getRealtimeChannelEnvironmentFromNodeEnv(
@@ -27,7 +32,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
       const getPublicParticipantByReference = Effect.fn(
         "ParticipantsApiService.getPublicParticipantByReference",
       )(function* ({ reference, domain }) {
-        const result = yield* db.participantsQueries.getParticipantByReference({
+        const result = yield* participantsRepository.getParticipantByReference({
           reference,
           domain,
         });
@@ -87,21 +92,22 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
         hasValidationErrors,
         votedFilter,
       }) {
-        const page = yield* db.participantsQueries.getInfiniteParticipantsByDomain({
-          domain,
-          cursor,
-          limit,
-          search,
-          sortOrder,
-          competitionClassId,
-          deviceGroupId,
-          topicId,
-          statusFilter,
-          excludeStatuses,
-          includeStatuses,
-          hasValidationErrors,
-          votedFilter,
-        });
+        const page =
+          yield* participantsRepository.getInfiniteParticipantsByDomain({
+            domain,
+            cursor,
+            limit,
+            search,
+            sortOrder,
+            competitionClassId,
+            deviceGroupId,
+            topicId,
+            statusFilter,
+            excludeStatuses,
+            includeStatuses,
+            hasValidationErrors,
+            votedFilter,
+          });
 
         const participantsWithPhone = yield* Effect.forEach(
           page.participants,
@@ -136,13 +142,13 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
       const getDashboardOverview = Effect.fn(
         "ParticipantsApiService.getDashboardOverview",
       )(function* ({ domain }: { domain: string }) {
-        return yield* db.participantsQueries.getDashboardOverview({ domain });
+        return yield* participantsRepository.getDashboardOverview({ domain });
       });
 
       const getByReference = Effect.fn("ParticipantsApiService.getByReference")(
         function* ({ reference, domain }) {
           const result =
-            yield* db.participantsQueries.getParticipantByReference({
+            yield* participantsRepository.getParticipantByReference({
               reference,
               domain,
             });
@@ -164,7 +170,9 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
                   .decrypt({
                     encrypted: encrypted as EncryptedPhoneNumber,
                   })
-                  .pipe(Effect.catch(() => Effect.succeed<string | null>(null))),
+                  .pipe(
+                    Effect.catch(() => Effect.succeed<string | null>(null)),
+                  ),
             },
           );
           return { ...row, phoneNumber };
@@ -175,7 +183,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
         "ParticipantsApiService.deleteByReference",
       )(function* ({ reference, domain }) {
         const participant = yield* getByReference({ reference, domain });
-        return yield* db.participantsQueries.deleteParticipant({
+        return yield* participantsRepository.deleteParticipant({
           id: participant.id,
         });
       });
@@ -207,7 +215,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
           };
         }
 
-        const result = yield* db.participantsQueries.createParticipant({
+        const result = yield* participantsRepository.createParticipant({
           data: participantData,
         });
 
@@ -222,7 +230,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
           ids: readonly number[];
           domain: string;
         }) {
-          return yield* db.participantsQueries.batchDeleteParticipants({
+          return yield* participantsRepository.batchDeleteParticipants({
             ids: [...ids],
             domain,
           });
@@ -237,12 +245,12 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
           ids: readonly number[];
           domain: string;
         }) {
-          const result = yield* db.participantsQueries.batchVerifyParticipants({
+          const result = yield* participantsRepository.batchVerifyParticipants({
             ids: [...ids],
             domain,
           });
           const marathon = Option.getOrUndefined(
-            yield* db.marathonsQueries.getMarathonByDomain({
+            yield* marathonsRepository.getMarathonByDomain({
               domain,
             }),
           );
@@ -255,7 +263,8 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
                   return;
                 }
 
-                const participant = yield* db.participantsQueries.getParticipantById({ id });
+                const participant =
+                  yield* participantsRepository.getParticipantById({ id });
                 if (Option.isNone(participant)) {
                   return;
                 }
@@ -300,7 +309,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
         ids: readonly number[];
         domain: string;
       }) {
-        return yield* db.participantsQueries.batchMarkParticipantsCompleted({
+        return yield* participantsRepository.batchMarkParticipantsCompleted({
           ids: [...ids],
           domain,
         });
@@ -336,7 +345,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
           );
         }
 
-        const marathonOption = yield* db.marathonsQueries.getMarathonByDomain({
+        const marathonOption = yield* marathonsRepository.getMarathonByDomain({
           domain,
         });
         if (Option.isNone(marathonOption)) {
@@ -354,7 +363,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
         }
 
         const participantOption =
-          yield* db.participantsQueries.getParticipantByReference({
+          yield* participantsRepository.getParticipantByReference({
             reference,
             domain,
           });
@@ -367,7 +376,8 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
         if (participant.participantMode !== "by-camera") {
           return yield* Effect.fail(
             new ParticipantApiError({
-              message: "Only by-camera participants can be updated with this action",
+              message:
+                "Only by-camera participants can be updated with this action",
             }),
           );
         }
@@ -376,7 +386,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
           phoneNumber: phoneTrimmed,
         });
         const existingByPhone =
-          yield* db.participantsQueries.getByPhoneHashForByCamera({
+          yield* participantsRepository.getByPhoneHashForByCamera({
             marathonId: marathon.id,
             phoneHash,
           });
@@ -395,7 +405,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
           phoneNumber: phoneTrimmed,
         });
 
-        yield* db.participantsQueries.updateParticipantById({
+        yield* participantsRepository.updateParticipantById({
           id: participant.id,
           data: {
             firstname: first,
@@ -435,7 +445,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
           );
         }
 
-        const marathonOption = yield* db.marathonsQueries.getMarathonByDomain({
+        const marathonOption = yield* marathonsRepository.getMarathonByDomain({
           domain,
         });
         if (Option.isNone(marathonOption)) {
@@ -453,7 +463,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
         }
 
         const participantOption =
-          yield* db.participantsQueries.getParticipantByReference({
+          yield* participantsRepository.getParticipantByReference({
             reference,
             domain,
           });
@@ -472,7 +482,7 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
           );
         }
 
-        yield* db.participantsQueries.updateParticipantById({
+        yield* participantsRepository.updateParticipantById({
           id: participant.id,
           data: {
             firstname: first,
@@ -486,15 +496,17 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
       const verifyParticipant = Effect.fn(
         "ParticipantsApiService.verifyParticipant",
       )(function* ({ id, domain }: { id: number; domain: string }) {
-        const result = yield* db.participantsQueries.batchVerifyParticipants({
+        const result = yield* participantsRepository.batchVerifyParticipants({
           ids: [id],
           domain,
         });
 
         if (result.updatedCount > 0) {
-          const participant = yield* db.participantsQueries.getParticipantById({ id });
+          const participant = yield* participantsRepository.getParticipantById({
+            id,
+          });
           const marathon = Option.getOrUndefined(
-            yield* db.marathonsQueries.getMarathonByDomain({
+            yield* marathonsRepository.getMarathonByDomain({
               domain,
             }),
           );
@@ -545,11 +557,13 @@ export class ParticipantsApiService extends Context.Service<ParticipantsApiServi
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(
-      Database.layer,
-      RealtimeEventsService.layer,
-      PhoneNumberEncryptionService.layer,
-      EmailService.layer,
-    ))
-  )
+    Layer.provide(
+      Layer.mergeAll(
+        DbLayer,
+        RealtimeEventsService.layer,
+        PhoneNumberEncryptionService.layer,
+        EmailService.layer,
+      ),
+    ),
+  );
 }

@@ -1,11 +1,11 @@
-import { Cause, Effect, Option, Schema, SchemaIssue } from "effect"
-import { type BaseContext, type TRPCRequiredServices } from "./root"
-import { TRPCError } from "@trpc/server"
-import { BetterAuthService } from "@blikka/auth"
-import { Database } from "@blikka/db"
-import { RedisClient } from "@blikka/redis"
+import { Cause, Effect, Option, Schema, SchemaIssue } from "effect";
+import { type BaseContext, type TRPCRequiredServices } from "./root";
+import { TRPCError } from "@trpc/server";
+import { BetterAuthService } from "@blikka/auth";
+import { UsersRepository } from "@blikka/db";
+import { RedisClient } from "@blikka/redis";
 
-type ContextWithoutRuntimeHelper<T extends BaseContext> = Omit<T, "runtime">
+type ContextWithoutRuntimeHelper<T extends BaseContext> = Omit<T, "runtime">;
 
 export function trpcEffect<
   TInput,
@@ -15,56 +15,62 @@ export function trpcEffect<
   TCtx extends BaseContext = BaseContext,
 >(
   effectFn: (params: {
-    input: TInput
-    ctx: ContextWithoutRuntimeHelper<TCtx>
-  }) => Effect.Effect<A, E, R>
+    input: TInput;
+    ctx: ContextWithoutRuntimeHelper<TCtx>;
+  }) => Effect.Effect<A, E, R>,
 ) {
   return async (params: { input: TInput; ctx: TCtx }): Promise<A> => {
-    const { runtime, ...ctxRest } = params.ctx
+    const { runtime, ...ctxRest } = params.ctx;
     const exit = await runtime.runPromiseExit(
       effectFn({
         input: params.input,
         ctx: ctxRest as ContextWithoutRuntimeHelper<TCtx>,
-      })
-    )
+      }),
+    );
 
     if (exit._tag === "Failure") {
-      const error = Cause.squash(exit.cause)
-      throw mapEffectErrorToTRPC(error, exit.cause)
+      const error = Cause.squash(exit.cause);
+      throw mapEffectErrorToTRPC(error, exit.cause);
     }
-    return exit.value
-  }
+    return exit.value;
+  };
 }
 
-function mapEffectErrorToTRPC(error: unknown, cause?: Cause.Cause<unknown>): TRPCError {
+function mapEffectErrorToTRPC(
+  error: unknown,
+  cause?: Cause.Cause<unknown>,
+): TRPCError {
   if (error instanceof TRPCError) {
-    return error
+    return error;
   }
   if (Schema.isSchemaError(error)) {
-    const formatted = SchemaIssue.makeFormatterDefault()(error.issue)
-    console.error(`SchemaError: ${formatted}`)
+    const formatted = SchemaIssue.makeFormatterDefault()(error.issue);
+    console.error(`SchemaError: ${formatted}`);
     return new TRPCError({
       code: "BAD_REQUEST",
       message: error.message,
       cause: error,
-    })
+    });
   }
   if (cause) {
-    console.error(Cause.pretty(cause))
+    console.error(Cause.pretty(cause));
   } else {
-    console.error(error instanceof Error ? error.message : String(error))
+    console.error(error instanceof Error ? error.message : String(error));
   }
   return new TRPCError({
     code: "INTERNAL_SERVER_ERROR",
-    message: error instanceof Error ? error.message : "An unknown error occurred",
+    message:
+      error instanceof Error ? error.message : "An unknown error occurred",
     cause: error,
-  })
+  });
 }
 
-export const getSession = Effect.fnUntraced(function* ({ headers }: { headers: Headers }) {
-  const auth = yield* BetterAuthService
-
-
+export const getSession = Effect.fnUntraced(function* ({
+  headers,
+}: {
+  headers: Headers;
+}) {
+  const auth = yield* BetterAuthService;
 
   return yield* Effect.tryPromise({
     try: () =>
@@ -75,66 +81,75 @@ export const getSession = Effect.fnUntraced(function* ({ headers }: { headers: H
       Effect.fail(
         new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: error instanceof Error ? error.message : "An unknown error occurred",
+          message:
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred",
           cause: error,
-        })
+        }),
       ),
-  })
-})
+  });
+});
 
 export type Permission = {
-  userId: string
-  relationId: number
-  marathonId: number
-  domain: string
-  role: string
-}
+  userId: string;
+  relationId: number;
+  marathonId: number;
+  domain: string;
+  role: string;
+};
 
-export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(function* ({
-  userId,
-}: {
-  userId?: string
-}) {
-  const redis = yield* RedisClient
-  const db = yield* Database
+export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(
+  function* ({ userId }: { userId?: string }) {
+    const redis = yield* RedisClient;
+    const usersRepository = yield* UsersRepository;
 
-  if (!userId) {
-    return []
-  }
-  const result = yield* redis
-    .use((client) => client.get<Permission[] | null>(`permissions:${userId}`))
-    .pipe(
-      Effect.map(Option.fromNullishOr),
-      Effect.tapError((error) =>
-        Effect.logError("Error getting cached permissions: " + error.message)
+    if (!userId) {
+      return [];
+    }
+    const result = yield* redis
+      .use((client) => client.get<Permission[] | null>(`permissions:${userId}`))
+      .pipe(
+        Effect.map(Option.fromNullishOr),
+        Effect.tapError((error) =>
+          Effect.logError("Error getting cached permissions: " + error.message),
+        ),
+      );
+
+    if (Option.isSome(result)) {
+      return result.value;
+    }
+    const userWithMarathons = yield* usersRepository
+      .getUserWithMarathons({ userId })
+      .pipe(
+        Effect.tapError((error) =>
+          Effect.logError(
+            "Error getting user with marathons: " + error.message,
+          ),
+        ),
+      );
+    if (Option.isNone(userWithMarathons)) {
+      return [];
+    }
+    const user = userWithMarathons.value.userMarathons;
+
+    const permissions: Permission[] = user.map((userMarathon) => ({
+      userId: userMarathon.userId,
+      relationId: userMarathon.id,
+      marathonId: userMarathon.marathonId,
+      domain: userMarathon.marathon.domain,
+      role: userMarathon.role,
+    }));
+
+    yield* redis
+      .use((client) =>
+        client.set(`permissions:${userId}`, permissions, { ex: 60 * 5 }),
       )
-    )
-
-  if (Option.isSome(result)) {
-    return result.value
-  }
-  const userWithMarathons = yield* db.usersQueries.getUserWithMarathons({ userId }).pipe(
-    Effect.tapError((error) =>
-      Effect.logError("Error getting user with marathons: " + error.message)
-    ),
-  )
-  if (Option.isNone(userWithMarathons)) {
-    return []
-  }
-  const user = userWithMarathons.value.userMarathons
-
-  const permissions: Permission[] = user.map((userMarathon) => ({
-    userId: userMarathon.userId,
-    relationId: userMarathon.id,
-    marathonId: userMarathon.marathonId,
-    domain: userMarathon.marathon.domain,
-    role: userMarathon.role,
-  }))
-
-  yield* redis
-    .use((client) => client.set(`permissions:${userId}`, permissions, { ex: 60 * 5 }))
-    .pipe(
-      Effect.tapError((error) => Effect.logError("Error caching permissions: " + error.message))
-    )
-  return permissions
-})
+      .pipe(
+        Effect.tapError((error) =>
+          Effect.logError("Error caching permissions: " + error.message),
+        ),
+      );
+    return permissions;
+  },
+);

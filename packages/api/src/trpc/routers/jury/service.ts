@@ -1,7 +1,13 @@
 import "server-only";
 
 import { Config, Effect, Layer, Option, Schema, Context } from "effect";
-import { Database, type NewJuryInvitation } from "@blikka/db";
+import {
+  DbLayer,
+  ParticipantsRepository,
+  MarathonsRepository,
+  JuryRepository,
+  type NewJuryInvitation,
+} from "@blikka/db";
 import { TRPCError } from "@trpc/server";
 import { SignJWT, jwtVerify } from "jose";
 import { JuryApiError } from "./schemas";
@@ -32,7 +38,9 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
   "@blikka/api/JuryApiService",
   {
     make: Effect.gen(function* () {
-      const db = yield* Database;
+      const juryRepository = yield* JuryRepository;
+      const marathonsRepository = yield* MarathonsRepository;
+      const participantsRepository = yield* ParticipantsRepository;
 
       const _generateJuryToken = Effect.fn("JuryApiService._generateJuryToken")(
         function* (domain: string, invitationId: number) {
@@ -101,7 +109,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
       )(function* ({ token, domain }: { token: string; domain: string }) {
         const payload = yield* verifyTokenPayload({ token, domain });
 
-        const invitation = yield* db.juryQueries
+        const invitation = yield* juryRepository
           .getJuryDataByTokenPayload({
             domain,
             invitationId: payload.invitationId,
@@ -160,13 +168,13 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
       const getJuryInvitationsByDomain = Effect.fn(
         "JuryApiService.getJuryInvitationsByDomain",
       )(function* ({ domain }: { domain: string }) {
-        return yield* db.juryQueries.getJuryInvitationsByDomain({ domain });
+        return yield* juryRepository.getJuryInvitationsByDomain({ domain });
       });
 
       const getJuryInvitationById = Effect.fn(
         "JuryApiService.getJuryInvitationById",
       )(function* ({ id }: { id: number }) {
-        const result = yield* db.juryQueries.getJuryInvitationById({ id });
+        const result = yield* juryRepository.getJuryInvitationById({ id });
         return yield* Option.match(result, {
           onSome: (invitation) => Effect.succeed(invitation),
           onNone: () =>
@@ -181,7 +189,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
       const getJuryReviewResultsByInvitationId = Effect.fn(
         "JuryApiService.getJuryReviewResultsByInvitationId",
       )(function* ({ id }: { id: number }) {
-        const invitation = yield* db.juryQueries.getJuryInvitationById({ id });
+        const invitation = yield* juryRepository.getJuryInvitationById({ id });
 
         yield* Option.match(invitation, {
           onSome: () => Effect.void,
@@ -194,7 +202,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
         });
 
         const ratings =
-          yield* db.juryQueries.getJuryRatingsWithRankingsByInvitation({
+          yield* juryRepository.getJuryRatingsWithRankingsByInvitation({
             invitationId: id,
           });
 
@@ -219,7 +227,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
         participantId: number;
       }) {
         const matchesScope =
-          yield* db.juryQueries.participantMatchesInvitationScope({
+          yield* juryRepository.participantMatchesInvitationScope({
             invitationId,
             participantId,
           });
@@ -248,31 +256,31 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
         finalRanking: 1 | 2 | 3;
       }) {
         const existingRankHolder =
-          yield* db.juryQueries.getJuryFinalRankingByRank({
+          yield* juryRepository.getJuryFinalRankingByRank({
             invitationId,
             rank: finalRanking,
             excludeParticipantId: participantId,
           });
         if (existingRankHolder) {
-          yield* db.juryQueries.deleteJuryFinalRankingByParticipant({
+          yield* juryRepository.deleteJuryFinalRankingByParticipant({
             invitationId,
             participantId: existingRankHolder.participantId,
           });
         }
 
         const existingParticipantRanking =
-          yield* db.juryQueries.getJuryFinalRankingByParticipant({
+          yield* juryRepository.getJuryFinalRankingByParticipant({
             invitationId,
             participantId,
           });
 
         return existingParticipantRanking
-          ? yield* db.juryQueries.updateJuryFinalRanking({
+          ? yield* juryRepository.updateJuryFinalRanking({
               invitationId,
               participantId,
               rank: finalRanking,
             })
-          : yield* db.juryQueries.createJuryFinalRanking({
+          : yield* juryRepository.createJuryFinalRanking({
               invitationId,
               participantId,
               rank: finalRanking,
@@ -287,7 +295,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
           invitationId: number;
           participantId: number;
         }) {
-          return yield* db.juryQueries.deleteJuryFinalRankingByParticipant({
+          return yield* juryRepository.deleteJuryFinalRankingByParticipant({
             invitationId,
             participantId,
           });
@@ -367,7 +375,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
           }
         }
 
-        const marathon = yield* db.marathonsQueries.getMarathonByDomain({
+        const marathon = yield* marathonsRepository.getMarathonByDomain({
           domain,
         });
         const marathonId = yield* Option.match(marathon, {
@@ -394,17 +402,17 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
           token: "",
         };
 
-        const result = yield* db.juryQueries.createJuryInvitation({
+        const result = yield* juryRepository.createJuryInvitation({
           data: invitationData,
         });
         const token = yield* _generateJuryToken(domain, result.id);
 
-        yield* db.juryQueries.updateJuryInvitation({
+        yield* juryRepository.updateJuryInvitation({
           id: result.id,
           data: { token },
         });
 
-        const createdInvitation = yield* db.juryQueries.getJuryInvitationById({
+        const createdInvitation = yield* juryRepository.getJuryInvitationById({
           id: result.id,
         });
         return yield* Option.match(createdInvitation, {
@@ -427,7 +435,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
         id: number;
         data: Partial<NewJuryInvitation>;
       }) {
-        const existingInvitation = yield* db.juryQueries.getJuryInvitationById({
+        const existingInvitation = yield* juryRepository.getJuryInvitationById({
           id,
         });
         yield* Option.match(existingInvitation, {
@@ -445,7 +453,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
           updatedAt: new Date().toISOString(),
         } satisfies Partial<NewJuryInvitation>;
 
-        return yield* db.juryQueries.updateJuryInvitation({
+        return yield* juryRepository.updateJuryInvitation({
           id,
           data: updateData,
         });
@@ -454,7 +462,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
       const deleteJuryInvitation = Effect.fn(
         "JuryApiService.deleteJuryInvitation",
       )(function* ({ id }: { id: number }) {
-        const existingInvitation = yield* db.juryQueries.getJuryInvitationById({
+        const existingInvitation = yield* juryRepository.getJuryInvitationById({
           id,
         });
         yield* Option.match(existingInvitation, {
@@ -467,7 +475,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
             ),
         });
 
-        return yield* db.juryQueries.deleteJuryInvitation({ id });
+        return yield* juryRepository.deleteJuryInvitation({ id });
       });
 
       const verifyTokenAndGetInitialData = Effect.fn(
@@ -491,7 +499,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
       }) {
         const invitation = yield* getInvitationFromToken({ token, domain });
 
-        const result = yield* db.juryQueries.getJurySubmissionsFromToken({
+        const result = yield* juryRepository.getJurySubmissionsFromToken({
           invitationId: invitation.id,
           cursor,
           ratingFilter: ratingFilter ? [...ratingFilter] : undefined,
@@ -504,7 +512,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
         const participants = yield* Effect.forEach(
           result.participants,
           (participant) =>
-            db.participantsQueries
+            participantsRepository
               .getParticipantByReference({
                 domain,
                 reference: participant.reference,
@@ -546,7 +554,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
         "JuryApiService.getJuryRatingsByInvitation",
       )(function* ({ token, domain }: { token: string; domain: string }) {
         const invitation = yield* getInvitationFromToken({ token, domain });
-        const ratings = yield* db.juryQueries.getJuryRatingsByInvitation({
+        const ratings = yield* juryRepository.getJuryRatingsByInvitation({
           invitationId: invitation.id,
         });
         return {
@@ -571,7 +579,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
         ratingFilter?: readonly number[];
       }) {
         const invitation = yield* getInvitationFromToken({ token, domain });
-        return yield* db.juryQueries.getJuryParticipantCount({
+        return yield* juryRepository.getJuryParticipantCount({
           invitationId: invitation.id,
           ratingFilter: ratingFilter ? [...ratingFilter] : undefined,
         });
@@ -590,20 +598,20 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
           rating: number;
           notes?: string;
         }) {
-          const existing = yield* db.juryQueries.getJuryRating({
+          const existing = yield* juryRepository.getJuryRating({
             invitationId,
             participantId,
           });
           return yield* Option.match(existing, {
             onSome: () =>
-              db.juryQueries.updateJuryRating({
+              juryRepository.updateJuryRating({
                 invitationId,
                 participantId,
                 rating,
                 notes,
               }),
             onNone: () =>
-              db.juryQueries.createJuryRating({
+              juryRepository.createJuryRating({
                 invitationId,
                 participantId,
                 rating,
@@ -715,7 +723,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
             invitationId: invitation.id,
             participantId,
           });
-          const deleted = yield* db.juryQueries.deleteJuryRating({
+          const deleted = yield* juryRepository.deleteJuryRating({
             invitationId: invitation.id,
             participantId,
           });
@@ -751,7 +759,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
         participantId: number;
       }) {
         const invitation = yield* getInvitationFromToken({ token, domain });
-        const result = yield* db.juryQueries.getJuryRating({
+        const result = yield* juryRepository.getJuryRating({
           invitationId: invitation.id,
           participantId,
         });
@@ -773,7 +781,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
       }) {
         const invitation = yield* getInvitationFromToken({ token, domain });
         yield* ensureInvitationEditable({ invitation });
-        const deleted = yield* db.juryQueries.deleteJuryRating({
+        const deleted = yield* juryRepository.deleteJuryRating({
           invitationId: invitation.id,
           participantId,
         });
@@ -803,7 +811,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
         }
 
         if (status === "completed") {
-          const rankings = yield* db.juryQueries.getJuryAssignedFinalRankings({
+          const rankings = yield* juryRepository.getJuryAssignedFinalRankings({
             invitationId: invitation.id,
           });
 
@@ -817,7 +825,7 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
           }
         }
 
-        yield* db.juryQueries.updateJuryInvitation({
+        yield* juryRepository.updateJuryInvitation({
           id: invitation.id,
           data: {
             status,
@@ -850,6 +858,6 @@ export class JuryApiService extends Context.Service<JuryApiService>()(
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Database.layer),
+    Layer.provide(DbLayer),
   );
 }

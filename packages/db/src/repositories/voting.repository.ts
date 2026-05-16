@@ -59,8 +59,8 @@ type SubmissionVoteStatsRow = {
   roundKind: string | null;
 };
 
-export class VotingQueries extends Context.Service<VotingQueries>()(
-  "@blikka/db/voting-queries",
+export class VotingRepository extends Context.Service<VotingRepository>()(
+  "@blikka/db/voting-repository",
   {
     make: Effect.gen(function* () {
       const { client: db, use } = yield* DrizzleClient;
@@ -136,7 +136,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       };
 
       const getVotingSessionByToken = Effect.fn(
-        "VotingQueries.getVotingSessionByToken",
+        "VotingRepository.getVotingSessionByToken",
       )(function* ({ token }: { token: string }) {
         const result = yield* use((database) =>
           database.query.votingSession.findFirst({
@@ -152,7 +152,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotingSessionsByIdsWithMarathon = Effect.fn(
-        "VotingQueries.getVotingSessionsByIdsWithMarathon",
+        "VotingRepository.getVotingSessionsByIdsWithMarathon",
       )(function* ({ ids }: { ids: number[] }) {
         if (ids.length === 0) {
           return [];
@@ -180,7 +180,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getPublicMarathonByDomain = Effect.fn(
-        "VotingQueries.getPublicMarathonByDomain",
+        "VotingRepository.getPublicMarathonByDomain",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((database) =>
           database.query.marathons.findFirst({
@@ -201,7 +201,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getParticipantsWithSubmissionsByTopicId = Effect.fn(
-        "VotingQueries.getParticipantsWithSubmissionsByTopicId",
+        "VotingRepository.getParticipantsWithSubmissionsByTopicId",
       )(function* ({
         marathonId,
         topicId,
@@ -234,7 +234,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getParticipantsWithSubmissionsButNoVotingSession = Effect.fn(
-        "VotingQueries.getParticipantsWithSubmissionsButNoVotingSession",
+        "VotingRepository.getParticipantsWithSubmissionsButNoVotingSession",
       )(function* ({
         marathonId,
         topicId,
@@ -272,7 +272,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const createVotingSessions = Effect.fn(
-        "VotingQueries.createVotingSessions",
+        "VotingRepository.createVotingSessions",
       )(function* ({ sessions }: { sessions: NewVotingSession[] }) {
         if (sessions.length === 0) {
           return [];
@@ -293,7 +293,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const updateMultipleLastNotificationSentAt = Effect.fn(
-        "VotingQueries.updateLastNotificationSentAt",
+        "VotingRepository.updateLastNotificationSentAt",
       )(function* ({
         ids,
         notificationLastSentAt,
@@ -314,7 +314,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const countVotingSessionsForTopic = Effect.fn(
-        "VotingQueries.countVotingSessionsForTopic",
+        "VotingRepository.countVotingSessionsForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -338,7 +338,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotingSessionsForTopic = Effect.fn(
-        "VotingQueries.getVotingSessionsForTopic",
+        "VotingRepository.getVotingSessionsForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -368,7 +368,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
         );
       });
 
-      const createVotingRound = Effect.fn("VotingQueries.createVotingRound")(
+      const createVotingRound = Effect.fn("VotingRepository.createVotingRound")(
         function* (roundData: NewVotingRound) {
           const [result] = yield* use((database) =>
             database
@@ -385,7 +385,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       );
 
       const createVotingRoundSubmissions = Effect.fn(
-        "VotingQueries.createVotingRoundSubmissions",
+        "VotingRepository.createVotingRoundSubmissions",
       )(function* ({
         roundId,
         submissionIds,
@@ -419,7 +419,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const createVotingRoundVotes = Effect.fn(
-        "VotingQueries.createVotingRoundVotes",
+        "VotingRepository.createVotingRoundVotes",
       )(function* ({ votes }: { votes: NewVotingRoundVote[] }) {
         if (votes.length === 0) {
           return [];
@@ -430,33 +430,33 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
         );
       });
 
-      const getVotingRoundById = Effect.fn("VotingQueries.getVotingRoundById")(
-        function* ({
-          marathonId,
-          topicId,
-          roundId,
-        }: {
-          marathonId: number;
-          topicId: number;
-          roundId: number;
-        }) {
-          const result = yield* use((database) =>
-            database.query.votingRound.findFirst({
-              where: (table, operators) =>
-                operators.and(
-                  operators.eq(table.id, roundId),
-                  operators.eq(table.marathonId, marathonId),
-                  operators.eq(table.topicId, topicId),
-                ),
-            }),
-          );
+      const getVotingRoundById = Effect.fn(
+        "VotingRepository.getVotingRoundById",
+      )(function* ({
+        marathonId,
+        topicId,
+        roundId,
+      }: {
+        marathonId: number;
+        topicId: number;
+        roundId: number;
+      }) {
+        const result = yield* use((database) =>
+          database.query.votingRound.findFirst({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.id, roundId),
+                operators.eq(table.marathonId, marathonId),
+                operators.eq(table.topicId, topicId),
+              ),
+          }),
+        );
 
-          return Option.fromNullishOr(result);
-        },
-      );
+        return Option.fromNullishOr(result);
+      });
 
       const getLatestVotingRoundForTopic = Effect.fn(
-        "VotingQueries.getLatestVotingRoundForTopic",
+        "VotingRepository.getLatestVotingRoundForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -482,7 +482,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getActiveVotingRoundForTopic = Effect.fn(
-        "VotingQueries.getActiveVotingRoundForTopic",
+        "VotingRepository.getActiveVotingRoundForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -509,7 +509,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const resolveRoundForTopic = Effect.fn(
-        "VotingQueries.resolveRoundForTopic",
+        "VotingRepository.resolveRoundForTopic",
       )(function* ({ marathonId, topicId, roundId }: ResolveRoundInput) {
         if (roundId !== undefined && roundId !== null) {
           return yield* getVotingRoundById({
@@ -526,7 +526,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotingSessionStatsForTopic = Effect.fn(
-        "VotingQueries.getVotingSessionStatsForTopic",
+        "VotingRepository.getVotingSessionStatsForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -588,7 +588,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotingWindowForTopic = Effect.fn(
-        "VotingQueries.getVotingWindowForTopic",
+        "VotingRepository.getVotingWindowForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -613,7 +613,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const upsertTopicVotingWindow = Effect.fn(
-        "VotingQueries.upsertTopicVotingWindow",
+        "VotingRepository.upsertTopicVotingWindow",
       )(function* ({
         marathonId,
         topicId,
@@ -653,7 +653,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const updateVotingRoundWindow = Effect.fn(
-        "VotingQueries.updateVotingRoundWindow",
+        "VotingRepository.updateVotingRoundWindow",
       )(function* ({
         roundId,
         startedAt,
@@ -681,7 +681,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const closeTopicVotingWindow = Effect.fn(
-        "VotingQueries.closeTopicVotingWindow",
+        "VotingRepository.closeTopicVotingWindow",
       )(function* ({
         marathonId,
         topicId,
@@ -704,7 +704,8 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
         const updatedRound = yield* updateVotingRoundWindow({
           roundId: latestRound.id,
           startedAt:
-            new Date(latestRound.startedAt).getTime() >= new Date(nowIso).getTime()
+            new Date(latestRound.startedAt).getTime() >=
+            new Date(nowIso).getTime()
               ? new Date(new Date(nowIso).getTime() - 1000).toISOString()
               : undefined,
           endsAt: nowIso,
@@ -722,7 +723,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const reopenTopicVotingWindow = Effect.fn(
-        "VotingQueries.reopenTopicVotingWindow",
+        "VotingRepository.reopenTopicVotingWindow",
       )(function* ({
         marathonId,
         topicId,
@@ -759,7 +760,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const closeVotingWindowsForTopics = Effect.fn(
-        "VotingQueries.closeVotingWindowsForTopics",
+        "VotingRepository.closeVotingWindowsForTopics",
       )(function* ({
         marathonId,
         topicIds,
@@ -801,7 +802,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const countSubmissionsForTopic = Effect.fn(
-        "VotingQueries.countSubmissionsForTopic",
+        "VotingRepository.countSubmissionsForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -825,7 +826,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const countParticipantsWithSubmissionsForTopic = Effect.fn(
-        "VotingQueries.countParticipantsWithSubmissionsForTopic",
+        "VotingRepository.countParticipantsWithSubmissionsForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -854,7 +855,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const countVotingRoundSubmissionsForTopic = Effect.fn(
-        "VotingQueries.countVotingRoundSubmissionsForTopic",
+        "VotingRepository.countVotingRoundSubmissionsForTopic",
       )(function* ({ marathonId, topicId, roundId }: ResolveRoundInput) {
         const roundOpt = yield* resolveRoundForTopic({
           marathonId,
@@ -878,7 +879,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotingRoundsForTopic = Effect.fn(
-        "VotingQueries.getVotingRoundsForTopic",
+        "VotingRepository.getVotingRoundsForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -908,7 +909,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getLeaderboardPageForTopic = Effect.fn(
-        "VotingQueries.getLeaderboardPageForTopic",
+        "VotingRepository.getLeaderboardPageForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -963,7 +964,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getTopRanksPreviewForTopic = Effect.fn(
-        "VotingQueries.getTopRanksPreviewForTopic",
+        "VotingRepository.getTopRanksPreviewForTopic",
       )(function* ({ marathonId, topicId, roundId }: ResolveRoundInput) {
         const roundOpt = yield* resolveRoundForTopic({
           marathonId,
@@ -1029,7 +1030,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getLeadingTieForTopic = Effect.fn(
-        "VotingQueries.getLeadingTieForTopic",
+        "VotingRepository.getLeadingTieForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -1087,7 +1088,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotersPageForTopic = Effect.fn(
-        "VotingQueries.getVotersPageForTopic",
+        "VotingRepository.getVotersPageForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -1167,7 +1168,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotingSessionByIdForTopic = Effect.fn(
-        "VotingQueries.getVotingSessionByIdForTopic",
+        "VotingRepository.getVotingSessionByIdForTopic",
       )(function* ({
         marathonId,
         topicId,
@@ -1195,7 +1196,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getSubmissionVoteStats = Effect.fn(
-        "VotingQueries.getSubmissionVoteStats",
+        "VotingRepository.getSubmissionVoteStats",
       )(function* ({
         submissionId,
         domain,
@@ -1290,7 +1291,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getParticipantVoteInfo = Effect.fn(
-        "VotingQueries.getParticipantVoteInfo",
+        "VotingRepository.getParticipantVoteInfo",
       )(function* ({
         participantId,
         topicId,
@@ -1370,7 +1371,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotingSessionByParticipantId = Effect.fn(
-        "VotingQueries.getVotingSessionByParticipantId",
+        "VotingRepository.getVotingSessionByParticipantId",
       )(function* ({ participantId }: { participantId: number }) {
         const result = yield* use((database) =>
           database.query.votingSession.findFirst({
@@ -1384,7 +1385,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotingSessionByParticipantAndTopicId = Effect.fn(
-        "VotingQueries.getVotingSessionByParticipantAndTopicId",
+        "VotingRepository.getVotingSessionByParticipantAndTopicId",
       )(function* ({
         participantId,
         topicId,
@@ -1407,7 +1408,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getVotingRoundVoteForSession = Effect.fn(
-        "VotingQueries.getVotingRoundVoteForSession",
+        "VotingRepository.getVotingRoundVoteForSession",
       )(function* ({
         roundId,
         sessionId,
@@ -1429,7 +1430,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const upsertVotingSession = Effect.fn(
-        "VotingQueries.upsertVotingSession",
+        "VotingRepository.upsertVotingSession",
       )(function* (sessionData: NewVotingSession) {
         const result = yield* use((database) =>
           database
@@ -1459,7 +1460,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const getSubmissionsForVoting = Effect.fn(
-        "VotingQueries.getSubmissionsForVoting",
+        "VotingRepository.getSubmissionsForVoting",
       )(function* ({ marathonId, topicId, roundId }: ResolveRoundInput) {
         const roundOpt = yield* resolveRoundForTopic({
           marathonId,
@@ -1511,7 +1512,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
         );
       });
 
-      const recordVote = Effect.fn("VotingQueries.recordVote")(function* ({
+      const recordVote = Effect.fn("VotingRepository.recordVote")(function* ({
         roundId,
         sessionId,
         submissionId,
@@ -1535,7 +1536,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
         return result[0];
       });
 
-      const clearVote = Effect.fn("VotingQueries.clearVote")(function* ({
+      const clearVote = Effect.fn("VotingRepository.clearVote")(function* ({
         roundId,
         sessionId,
       }: {
@@ -1558,7 +1559,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const deleteVotingSession = Effect.fn(
-        "VotingQueries.deleteVotingSession",
+        "VotingRepository.deleteVotingSession",
       )(function* ({ sessionId }: { sessionId: number }) {
         const result = yield* use((database) =>
           database
@@ -1571,7 +1572,7 @@ export class VotingQueries extends Context.Service<VotingQueries>()(
       });
 
       const updateVotingSessionContact = Effect.fn(
-        "VotingQueries.updateVotingSessionContact",
+        "VotingRepository.updateVotingSessionContact",
       )(function* ({
         marathonId,
         topicId,

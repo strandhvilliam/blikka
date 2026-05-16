@@ -4,13 +4,13 @@ import { competitionClasses, marathons } from "../schema";
 import { eq } from "drizzle-orm";
 import type { NewCompetitionClass } from "../types";
 import { DbError } from "../utils";
-export class CompetitionClassesQueries extends Context.Service<CompetitionClassesQueries>()(
-  "@blikka/db/competition-classes-queries",
+export class CompetitionClassesRepository extends Context.Service<CompetitionClassesRepository>()(
+  "@blikka/db/competition-classes-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
       const getCompetitionClassById = Effect.fn(
-        "CompetitionClassesQueries.getCompetitionClassById",
+        "CompetitionClassesRepository.getCompetitionClassById",
       )(function* ({ id }: { id: number }) {
         const result = yield* use((db) =>
           db.query.competitionClasses.findFirst({
@@ -20,7 +20,7 @@ export class CompetitionClassesQueries extends Context.Service<CompetitionClasse
         return Option.fromNullishOr(result);
       });
       const getCompetitionClassesByDomain = Effect.fn(
-        "CompetitionClassesQueries.getCompetitionClassesByDomain",
+        "CompetitionClassesRepository.getCompetitionClassesByDomain",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db
@@ -35,7 +35,7 @@ export class CompetitionClassesQueries extends Context.Service<CompetitionClasse
         return result.map((row) => row.competition_classes);
       });
       const createCompetitionClass = Effect.fn(
-        "CompetitionClassesQueries.createCompetitionClass",
+        "CompetitionClassesRepository.createCompetitionClass",
       )(function* ({ data }: { data: NewCompetitionClass }) {
         const [result] = yield* use((db) =>
           db.insert(competitionClasses).values(data).returning(),
@@ -50,7 +50,7 @@ export class CompetitionClassesQueries extends Context.Service<CompetitionClasse
         return result;
       });
       const createMultipleCompetitionClasses = Effect.fn(
-        "CompetitionClassesQueries.createMultipleCompetitionClasses",
+        "CompetitionClassesRepository.createMultipleCompetitionClasses",
       )(function* ({ data }: { data: NewCompetitionClass[] }) {
         const result = yield* use((db) =>
           db.insert(competitionClasses).values(data).returning(),
@@ -65,7 +65,7 @@ export class CompetitionClassesQueries extends Context.Service<CompetitionClasse
         return result;
       });
       const updateCompetitionClass = Effect.fn(
-        "CompetitionClassesQueries.updateCompetitionClass",
+        "CompetitionClassesRepository.updateCompetitionClass",
       )(function* ({
         id,
         data,
@@ -90,7 +90,7 @@ export class CompetitionClassesQueries extends Context.Service<CompetitionClasse
         return result;
       });
       const deleteCompetitionClass = Effect.fn(
-        "CompetitionClassesQueries.deleteCompetitionClass",
+        "CompetitionClassesRepository.deleteCompetitionClass",
       )(function* ({ id }: { id: number }) {
         const [result] = yield* use((db) =>
           db

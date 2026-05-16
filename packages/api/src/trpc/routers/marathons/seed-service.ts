@@ -6,7 +6,18 @@ import { SharpImageService } from "@blikka/image-manipulation/sharp";
 import { S3Service } from "@blikka/aws";
 import { RULE_KEYS } from "@blikka/validation";
 import {
-  Database,
+  VotingRepository,
+  ContactSheetsRepository,
+  ParticipantsRepository,
+  CompetitionClassesRepository,
+  DeviceGroupsRepository,
+  TopicsRepository,
+  MarathonsRepository,
+  JuryRepository,
+  RulesRepository,
+  SubmissionsRepository,
+  ValidationsRepository,
+  UsersRepository,
   type CompetitionClass,
   type DeviceGroup,
   type NewParticipant,
@@ -342,8 +353,19 @@ function buildSubmissionCreatedAt({
 
 const getSortedStaffMembers = Effect.fn("SeedService.getSortedStaffMembers")(
   function* ({ domain }: { domain: string }) {
-    const db = yield* Database;
-    const staffMembers = yield* db.usersQueries.getStaffMembersByDomain({
+    const usersRepository = yield* UsersRepository;
+    const validationsRepository = yield* ValidationsRepository;
+    const submissionsRepository = yield* SubmissionsRepository;
+    const rulesRepository = yield* RulesRepository;
+    const juryRepository = yield* JuryRepository;
+    const marathonsRepository = yield* MarathonsRepository;
+    const topicsRepository = yield* TopicsRepository;
+    const deviceGroupsRepository = yield* DeviceGroupsRepository;
+    const competitionClassesRepository = yield* CompetitionClassesRepository;
+    const participantsRepository = yield* ParticipantsRepository;
+    const contactSheetsRepository = yield* ContactSheetsRepository;
+    const votingRepository = yield* VotingRepository;
+    const staffMembers = yield* usersRepository.getStaffMembersByDomain({
       domain,
     });
 
@@ -368,8 +390,19 @@ const getSortedStaffMembers = Effect.fn("SeedService.getSortedStaffMembers")(
 
 const getMarathonOrFail = Effect.fn("SeedService.getMarathonOrFail")(
   function* ({ domain }: { domain: string }) {
-    const db = yield* Database;
-    const marathon = yield* db.marathonsQueries.getMarathonByDomain({ domain });
+    const usersRepository = yield* UsersRepository;
+    const validationsRepository = yield* ValidationsRepository;
+    const submissionsRepository = yield* SubmissionsRepository;
+    const rulesRepository = yield* RulesRepository;
+    const juryRepository = yield* JuryRepository;
+    const marathonsRepository = yield* MarathonsRepository;
+    const topicsRepository = yield* TopicsRepository;
+    const deviceGroupsRepository = yield* DeviceGroupsRepository;
+    const competitionClassesRepository = yield* CompetitionClassesRepository;
+    const participantsRepository = yield* ParticipantsRepository;
+    const contactSheetsRepository = yield* ContactSheetsRepository;
+    const votingRepository = yield* VotingRepository;
+    const marathon = yield* marathonsRepository.getMarathonByDomain({ domain });
 
     return yield* Option.match(marathon, {
       onSome: Effect.succeed,
@@ -422,8 +455,19 @@ export const getSeedScenarioStatus = Effect.fn(
 
 const createDeviceGroups = Effect.fn("SeedService.createDeviceGroups")(
   function* ({ marathonId }: { marathonId: number }) {
-    const db = yield* Database;
-    const mobile = yield* db.deviceGroupsQueries.createDeviceGroup({
+    const usersRepository = yield* UsersRepository;
+    const validationsRepository = yield* ValidationsRepository;
+    const submissionsRepository = yield* SubmissionsRepository;
+    const rulesRepository = yield* RulesRepository;
+    const juryRepository = yield* JuryRepository;
+    const marathonsRepository = yield* MarathonsRepository;
+    const topicsRepository = yield* TopicsRepository;
+    const deviceGroupsRepository = yield* DeviceGroupsRepository;
+    const competitionClassesRepository = yield* CompetitionClassesRepository;
+    const participantsRepository = yield* ParticipantsRepository;
+    const contactSheetsRepository = yield* ContactSheetsRepository;
+    const votingRepository = yield* VotingRepository;
+    const mobile = yield* deviceGroupsRepository.createDeviceGroup({
       data: {
         marathonId,
         name: "Mobile",
@@ -431,7 +475,7 @@ const createDeviceGroups = Effect.fn("SeedService.createDeviceGroups")(
         description: "Smartphone or tablet devices",
       },
     });
-    const camera = yield* db.deviceGroupsQueries.createDeviceGroup({
+    const camera = yield* deviceGroupsRepository.createDeviceGroup({
       data: {
         marathonId,
         name: "Digital Camera",
@@ -450,9 +494,20 @@ const createDeviceGroups = Effect.fn("SeedService.createDeviceGroups")(
 const createCompetitionClasses = Effect.fn(
   "SeedService.createCompetitionClasses",
 )(function* ({ marathonId }: { marathonId: number }) {
-  const db = yield* Database;
+  const usersRepository = yield* UsersRepository;
+  const validationsRepository = yield* ValidationsRepository;
+  const submissionsRepository = yield* SubmissionsRepository;
+  const rulesRepository = yield* RulesRepository;
+  const juryRepository = yield* JuryRepository;
+  const marathonsRepository = yield* MarathonsRepository;
+  const topicsRepository = yield* TopicsRepository;
+  const deviceGroupsRepository = yield* DeviceGroupsRepository;
+  const competitionClassesRepository = yield* CompetitionClassesRepository;
+  const participantsRepository = yield* ParticipantsRepository;
+  const contactSheetsRepository = yield* ContactSheetsRepository;
+  const votingRepository = yield* VotingRepository;
   const createdClasses =
-    yield* db.competitionClassesQueries.createMultipleCompetitionClasses({
+    yield* competitionClassesRepository.createMultipleCompetitionClasses({
       data: [
         {
           marathonId,
@@ -493,7 +548,18 @@ const createTopics = Effect.fn("SeedService.createTopics")(function* ({
   mode: SeedMode;
   now: Date;
 }) {
-  const db = yield* Database;
+  const usersRepository = yield* UsersRepository;
+  const validationsRepository = yield* ValidationsRepository;
+  const submissionsRepository = yield* SubmissionsRepository;
+  const rulesRepository = yield* RulesRepository;
+  const juryRepository = yield* JuryRepository;
+  const marathonsRepository = yield* MarathonsRepository;
+  const topicsRepository = yield* TopicsRepository;
+  const deviceGroupsRepository = yield* DeviceGroupsRepository;
+  const competitionClassesRepository = yield* CompetitionClassesRepository;
+  const participantsRepository = yield* ParticipantsRepository;
+  const contactSheetsRepository = yield* ContactSheetsRepository;
+  const votingRepository = yield* VotingRepository;
   const topics = yield* Effect.forEach(
     SEED_TOPIC_NAMES,
     (name, orderIndex) => {
@@ -511,7 +577,7 @@ const createTopics = Effect.fn("SeedService.createTopics")(function* ({
           : timestamps.activatedAt,
       };
 
-      return db.topicsQueries.createTopic({
+      return topicsRepository.createTopic({
         data: topicData,
       });
     },
@@ -535,7 +601,18 @@ const createSeedParticipants = Effect.fn("SeedService.createSeedParticipants")(
     competitionClassesByName: Record<string, CompetitionClass>;
     deviceGroupsByName: Record<string, DeviceGroup>;
   }) {
-    const db = yield* Database;
+    const usersRepository = yield* UsersRepository;
+    const validationsRepository = yield* ValidationsRepository;
+    const submissionsRepository = yield* SubmissionsRepository;
+    const rulesRepository = yield* RulesRepository;
+    const juryRepository = yield* JuryRepository;
+    const marathonsRepository = yield* MarathonsRepository;
+    const topicsRepository = yield* TopicsRepository;
+    const deviceGroupsRepository = yield* DeviceGroupsRepository;
+    const competitionClassesRepository = yield* CompetitionClassesRepository;
+    const participantsRepository = yield* ParticipantsRepository;
+    const contactSheetsRepository = yield* ContactSheetsRepository;
+    const votingRepository = yield* VotingRepository;
 
     return yield* Effect.forEach(
       Array.from({ length: SEED_PREVIEW.participants }),
@@ -561,7 +638,7 @@ const createSeedParticipants = Effect.fn("SeedService.createSeedParticipants")(
             phoneHash: null,
           };
 
-          const participant = yield* db.participantsQueries.createParticipant({
+          const participant = yield* participantsRepository.createParticipant({
             data: participantData,
           });
 
@@ -682,7 +759,18 @@ const createSeedSubmissions = Effect.fn("SeedService.createSeedSubmissions")(
     mode: SeedMode;
     now: Date;
   }) {
-    const db = yield* Database;
+    const usersRepository = yield* UsersRepository;
+    const validationsRepository = yield* ValidationsRepository;
+    const submissionsRepository = yield* SubmissionsRepository;
+    const rulesRepository = yield* RulesRepository;
+    const juryRepository = yield* JuryRepository;
+    const marathonsRepository = yield* MarathonsRepository;
+    const topicsRepository = yield* TopicsRepository;
+    const deviceGroupsRepository = yield* DeviceGroupsRepository;
+    const competitionClassesRepository = yield* CompetitionClassesRepository;
+    const participantsRepository = yield* ParticipantsRepository;
+    const contactSheetsRepository = yield* ContactSheetsRepository;
+    const votingRepository = yield* VotingRepository;
     const uploadedPlans = yield* Effect.forEach(
       participants,
       (participant, participantIndex) =>
@@ -710,7 +798,7 @@ const createSeedSubmissions = Effect.fn("SeedService.createSeedSubmissions")(
     ).pipe(Effect.map((plans) => plans.flat()));
 
     const createdSubmissions =
-      yield* db.submissionsQueries.createMultipleSubmissions({
+      yield* submissionsRepository.createMultipleSubmissions({
         data: uploadedPlans.map(
           (plan) =>
             ({
@@ -751,8 +839,19 @@ const syncWithinTimerangeRule = Effect.fn(
   startDate: string;
   endDate: string;
 }) {
-  const db = yield* Database;
-  const rules = yield* db.rulesQueries.getRulesByDomain({ domain });
+  const usersRepository = yield* UsersRepository;
+  const validationsRepository = yield* ValidationsRepository;
+  const submissionsRepository = yield* SubmissionsRepository;
+  const rulesRepository = yield* RulesRepository;
+  const juryRepository = yield* JuryRepository;
+  const marathonsRepository = yield* MarathonsRepository;
+  const topicsRepository = yield* TopicsRepository;
+  const deviceGroupsRepository = yield* DeviceGroupsRepository;
+  const competitionClassesRepository = yield* CompetitionClassesRepository;
+  const participantsRepository = yield* ParticipantsRepository;
+  const contactSheetsRepository = yield* ContactSheetsRepository;
+  const votingRepository = yield* VotingRepository;
+  const rules = yield* rulesRepository.getRulesByDomain({ domain });
   const timerangeRule = rules.find(
     (rule) => rule.ruleKey === RULE_KEYS.WITHIN_TIMERANGE,
   );
@@ -761,7 +860,7 @@ const syncWithinTimerangeRule = Effect.fn(
     return rules;
   }
 
-  const updatedRule = yield* db.rulesQueries.updateRuleConfig({
+  const updatedRule = yield* rulesRepository.updateRuleConfig({
     id: timerangeRule.id,
     data: {
       params: {
@@ -797,7 +896,18 @@ const createSeedValidationResults = Effect.fn(
   startDate: string;
   endDate: string;
 }) {
-  const db = yield* Database;
+  const usersRepository = yield* UsersRepository;
+  const validationsRepository = yield* ValidationsRepository;
+  const submissionsRepository = yield* SubmissionsRepository;
+  const rulesRepository = yield* RulesRepository;
+  const juryRepository = yield* JuryRepository;
+  const marathonsRepository = yield* MarathonsRepository;
+  const topicsRepository = yield* TopicsRepository;
+  const deviceGroupsRepository = yield* DeviceGroupsRepository;
+  const competitionClassesRepository = yield* CompetitionClassesRepository;
+  const participantsRepository = yield* ParticipantsRepository;
+  const contactSheetsRepository = yield* ContactSheetsRepository;
+  const votingRepository = yield* VotingRepository;
   const enabledRules = rules.filter((rule) => rule.enabled);
 
   if (enabledRules.length === 0) {
@@ -958,7 +1068,7 @@ const createSeedValidationResults = Effect.fn(
   const createdCounts = yield* Effect.forEach(
     Array.from(resultsByReference.entries()),
     ([reference, results]) =>
-      db.validationsQueries
+      validationsRepository
         .createMultipleValidationResults({
           domain,
           reference,
@@ -980,7 +1090,18 @@ const createParticipantVerifications = Effect.fn(
   participants: SeedParticipantRecord[];
   staffMembers: SeedStaffMember[];
 }) {
-  const db = yield* Database;
+  const usersRepository = yield* UsersRepository;
+  const validationsRepository = yield* ValidationsRepository;
+  const submissionsRepository = yield* SubmissionsRepository;
+  const rulesRepository = yield* RulesRepository;
+  const juryRepository = yield* JuryRepository;
+  const marathonsRepository = yield* MarathonsRepository;
+  const topicsRepository = yield* TopicsRepository;
+  const deviceGroupsRepository = yield* DeviceGroupsRepository;
+  const competitionClassesRepository = yield* CompetitionClassesRepository;
+  const participantsRepository = yield* ParticipantsRepository;
+  const contactSheetsRepository = yield* ContactSheetsRepository;
+  const votingRepository = yield* VotingRepository;
   const verifiedParticipants = participants
     .filter((_, index) => index % 4 !== 3)
     .slice(0, SEED_VERIFIED_PARTICIPANT_COUNT);
@@ -990,14 +1111,14 @@ const createParticipantVerifications = Effect.fn(
     (participant, index) =>
       Effect.gen(function* () {
         const staffMember = staffMembers[index % staffMembers.length]!;
-        yield* db.validationsQueries.createParticipantVerification({
+        yield* validationsRepository.createParticipantVerification({
           data: {
             participantId: participant.id,
             staffId: staffMember.userId,
             notes: `Seed verification by ${staffMember.name}`,
           },
         });
-        yield* db.participantsQueries.updateParticipantById({
+        yield* participantsRepository.updateParticipantById({
           id: participant.id,
           data: {
             status: "verified",
@@ -1022,7 +1143,18 @@ const createContactSheets = Effect.fn("SeedService.createContactSheets")(
     plans: SubmissionSeedPlan[];
     topics: Topic[];
   }) {
-    const db = yield* Database;
+    const usersRepository = yield* UsersRepository;
+    const validationsRepository = yield* ValidationsRepository;
+    const submissionsRepository = yield* SubmissionsRepository;
+    const rulesRepository = yield* RulesRepository;
+    const juryRepository = yield* JuryRepository;
+    const marathonsRepository = yield* MarathonsRepository;
+    const topicsRepository = yield* TopicsRepository;
+    const deviceGroupsRepository = yield* DeviceGroupsRepository;
+    const competitionClassesRepository = yield* CompetitionClassesRepository;
+    const participantsRepository = yield* ParticipantsRepository;
+    const contactSheetsRepository = yield* ContactSheetsRepository;
+    const votingRepository = yield* VotingRepository;
     const contactSheetBuilder = yield* ContactSheetBuilder;
     const s3 = yield* S3Service;
     const contactSheetsBucketName = process.env.CONTACT_SHEETS_BUCKET_NAME;
@@ -1057,7 +1189,7 @@ const createContactSheets = Effect.fn("SeedService.createContactSheets")(
           });
           const key = buildContactSheetKey(domain, participant.reference);
           yield* s3.putFile(contactSheetsBucketName, key, sheetBuffer);
-          yield* db.contactSheetsQueries.save({
+          yield* contactSheetsRepository.save({
             data: {
               key,
               participantId: participant.id,
@@ -1083,7 +1215,18 @@ const createJuryInvitationsAndRatings = Effect.fn(
   participants: SeedParticipantRecord[];
   now: Date;
 }) {
-  const db = yield* Database;
+  const usersRepository = yield* UsersRepository;
+  const validationsRepository = yield* ValidationsRepository;
+  const submissionsRepository = yield* SubmissionsRepository;
+  const rulesRepository = yield* RulesRepository;
+  const juryRepository = yield* JuryRepository;
+  const marathonsRepository = yield* MarathonsRepository;
+  const topicsRepository = yield* TopicsRepository;
+  const deviceGroupsRepository = yield* DeviceGroupsRepository;
+  const competitionClassesRepository = yield* CompetitionClassesRepository;
+  const participantsRepository = yield* ParticipantsRepository;
+  const contactSheetsRepository = yield* ContactSheetsRepository;
+  const votingRepository = yield* VotingRepository;
   let ratingCount = 0;
 
   const invitations = yield* Effect.forEach(
@@ -1134,7 +1277,7 @@ const createJuryInvitationsAndRatings = Effect.fn(
           (participant, index) =>
             Effect.gen(function* () {
               const rating = 5 - ((index + participant.id) % 5);
-              yield* db.juryQueries.createJuryRating({
+              yield* juryRepository.createJuryRating({
                 invitationId: invitation.id,
                 participantId: participant.id,
                 rating,
@@ -1164,13 +1307,13 @@ const createJuryInvitationsAndRatings = Effect.fn(
             rankingOrder,
             ({ participant, rating }, rankingIndex) =>
               Effect.gen(function* () {
-                yield* db.juryQueries.updateJuryRating({
+                yield* juryRepository.updateJuryRating({
                   invitationId: invitation.id,
                   participantId: participant.id,
                   rating,
                   notes: "Seeded jury rating",
                 });
-                yield* db.juryQueries.createJuryFinalRanking({
+                yield* juryRepository.createJuryFinalRanking({
                   invitationId: invitation.id,
                   participantId: participant.id,
                   rank: rankingIndex + 1,
@@ -1203,7 +1346,18 @@ const createVotingSessions = Effect.fn("SeedService.createVotingSessions")(
     submissions: SeedSubmissionRecord[];
     now: Date;
   }) {
-    const db = yield* Database;
+    const usersRepository = yield* UsersRepository;
+    const validationsRepository = yield* ValidationsRepository;
+    const submissionsRepository = yield* SubmissionsRepository;
+    const rulesRepository = yield* RulesRepository;
+    const juryRepository = yield* JuryRepository;
+    const marathonsRepository = yield* MarathonsRepository;
+    const topicsRepository = yield* TopicsRepository;
+    const deviceGroupsRepository = yield* DeviceGroupsRepository;
+    const competitionClassesRepository = yield* CompetitionClassesRepository;
+    const participantsRepository = yield* ParticipantsRepository;
+    const contactSheetsRepository = yield* ContactSheetsRepository;
+    const votingRepository = yield* VotingRepository;
     const activeTopicSubmissions = submissions
       .filter((submission) => submission.topicId === activeTopic.id)
       .toSorted((left, right) => left.participantId - right.participantId);
@@ -1252,11 +1406,11 @@ const createVotingSessions = Effect.fn("SeedService.createVotingSessions")(
       };
     });
 
-    const createdSessions = yield* db.votingQueries.createVotingSessions({
+    const createdSessions = yield* votingRepository.createVotingSessions({
       sessions,
     });
 
-    const createdRound = yield* db.votingQueries.createVotingRound({
+    const createdRound = yield* votingRepository.createVotingRound({
       marathonId: activeTopic.marathonId,
       topicId: activeTopic.id,
       roundNumber: 1,
@@ -1273,7 +1427,7 @@ const createVotingSessions = Effect.fn("SeedService.createVotingSessions")(
       };
     }
 
-    yield* db.votingQueries.createVotingRoundSubmissions({
+    yield* votingRepository.createVotingRoundSubmissions({
       roundId: createdRound.id,
       submissionIds: activeTopicSubmissions.map((submission) => submission.id),
     });
@@ -1296,7 +1450,7 @@ const createVotingSessions = Effect.fn("SeedService.createVotingSessions")(
       },
     );
 
-    yield* db.votingQueries.createVotingRoundVotes({
+    yield* votingRepository.createVotingRoundVotes({
       votes: roundVotes,
     });
 
@@ -1316,7 +1470,18 @@ export const seedFinishedScenario = Effect.fn(
   domain: string;
   isAdminForDomain: boolean;
 }) {
-  const db = yield* Database;
+  const usersRepository = yield* UsersRepository;
+  const validationsRepository = yield* ValidationsRepository;
+  const submissionsRepository = yield* SubmissionsRepository;
+  const rulesRepository = yield* RulesRepository;
+  const juryRepository = yield* JuryRepository;
+  const marathonsRepository = yield* MarathonsRepository;
+  const topicsRepository = yield* TopicsRepository;
+  const deviceGroupsRepository = yield* DeviceGroupsRepository;
+  const competitionClassesRepository = yield* CompetitionClassesRepository;
+  const participantsRepository = yield* ParticipantsRepository;
+  const contactSheetsRepository = yield* ContactSheetsRepository;
+  const votingRepository = yield* VotingRepository;
   const marathon = yield* getMarathonOrFail({ domain });
   const mode = marathon.mode as SeedMode;
   const status = yield* getSeedScenarioStatus({
@@ -1337,10 +1502,10 @@ export const seedFinishedScenario = Effect.fn(
   const { startDate, endDate } = getModeWindow(mode, now);
 
   const runSeed = Effect.gen(function* () {
-    yield* db.marathonsQueries.clearOperationalSeedableData({
+    yield* marathonsRepository.clearOperationalSeedableData({
       id: marathon.id,
     });
-    yield* db.marathonsQueries.updateMarathonByDomain({
+    yield* marathonsRepository.updateMarathonByDomain({
       domain,
       data: {
         startDate: startDate.toISOString(),
@@ -1445,13 +1610,13 @@ export const seedFinishedScenario = Effect.fn(
 
   return yield* runSeed.pipe(
     Effect.catch((error) =>
-      db.marathonsQueries
+      marathonsRepository
         .clearOperationalSeedableData({
           id: marathon.id,
         })
         .pipe(
           Effect.flatMap(() =>
-            db.marathonsQueries.updateMarathonByDomain({
+            marathonsRepository.updateMarathonByDomain({
               domain,
               data: {
                 startDate: marathon.startDate,

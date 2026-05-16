@@ -4,14 +4,14 @@ import { and, eq } from "drizzle-orm";
 
 import { DrizzleClient } from "../drizzle-client";
 
-export class ExportsQueries extends Context.Service<ExportsQueries>()(
-  "@blikka/db/exports-queries",
+export class ExportsRepository extends Context.Service<ExportsRepository>()(
+  "@blikka/db/exports-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
 
       const getMarathonByDomain = Effect.fn(
-        "ExportsQueries.getMarathonByDomain",
+        "ExportsRepository.getMarathonByDomain",
       )(function* ({ domain }: { domain: string }) {
         return yield* use((db) =>
           db.query.marathons.findFirst({
@@ -21,7 +21,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       });
 
       const getParticipantValidationCounts = Effect.fn(
-        "ExportsQueries.getParticipantValidationCounts",
+        "ExportsRepository.getParticipantValidationCounts",
       )(function* ({ domain }: { domain: string }) {
         const participantsWithValidations = yield* use((db) =>
           db.query.participants.findMany({
@@ -147,7 +147,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       };
 
       const getParticipantsForExport = Effect.fn(
-        "ExportsQueries.getParticipantsForExport",
+        "ExportsRepository.getParticipantsForExport",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db.query.participants.findMany({
@@ -179,7 +179,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       });
 
       const getParticipantsForExportByTopic = Effect.fn(
-        "ExportsQueries.getParticipantsForExportByTopic",
+        "ExportsRepository.getParticipantsForExportByTopic",
       )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
         const result = yield* use((db) =>
           db.query.participants.findMany({
@@ -215,7 +215,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       });
 
       const getParticipantsForExportByCameraAllTopics = Effect.fn(
-        "ExportsQueries.getParticipantsForExportByCameraAllTopics",
+        "ExportsRepository.getParticipantsForExportByCameraAllTopics",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db.query.participants.findMany({
@@ -273,7 +273,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       });
 
       const getSubmissionsForExport = Effect.fn(
-        "ExportsQueries.getSubmissionsForExport",
+        "ExportsRepository.getSubmissionsForExport",
       )(function* ({ domain }: { domain: string }) {
         const marathon = yield* getMarathonByDomain({ domain });
 
@@ -309,7 +309,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       });
 
       const getSubmissionsForExportByTopic = Effect.fn(
-        "ExportsQueries.getSubmissionsForExportByTopic",
+        "ExportsRepository.getSubmissionsForExportByTopic",
       )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
         const marathon = yield* getMarathonByDomain({ domain });
 
@@ -348,7 +348,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       });
 
       const getExifDataForExport = Effect.fn(
-        "ExportsQueries.getExifDataForExport",
+        "ExportsRepository.getExifDataForExport",
       )(function* ({ domain }: { domain: string }) {
         const marathon = yield* getMarathonByDomain({ domain });
 
@@ -381,7 +381,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       });
 
       const getValidationResultsForExport = Effect.fn(
-        "ExportsQueries.getValidationResultsForExport",
+        "ExportsRepository.getValidationResultsForExport",
       )(function* ({
         domain,
         onlyFailed,
@@ -458,7 +458,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       });
 
       const getValidationResultsForExportByTopic = Effect.fn(
-        "ExportsQueries.getValidationResultsForExportByTopic",
+        "ExportsRepository.getValidationResultsForExportByTopic",
       )(function* ({
         domain,
         topicId,
@@ -556,7 +556,7 @@ export class ExportsQueries extends Context.Service<ExportsQueries>()(
       });
 
       const getSubmissionFilesForTopicExport = Effect.fn(
-        "ExportsQueries.getSubmissionFilesForTopicExport",
+        "ExportsRepository.getSubmissionFilesForTopicExport",
       )(function* ({ domain, topicId }: { domain: string; topicId: number }) {
         const marathon = yield* getMarathonByDomain({ domain });
 

@@ -31,34 +31,34 @@ type PendingStaffAccess = {
   status: "pending";
 };
 
-export class UsersQueries extends Context.Service<UsersQueries>()(
-  "@blikka/db/users-queries",
+export class UsersRepository extends Context.Service<UsersRepository>()(
+  "@blikka/db/users-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
 
-      const getUserPermissions = Effect.fn("UsersQueries.getUserPermissions")(
-        function* ({ userId }: { userId: string }) {
-          const rel = yield* use((db) =>
-            db.query.userMarathons.findMany({
-              where: (table, operators) => operators.eq(table.userId, userId),
-              with: {
-                marathon: true,
-              },
-            }),
-          );
+      const getUserPermissions = Effect.fn(
+        "UsersRepository.getUserPermissions",
+      )(function* ({ userId }: { userId: string }) {
+        const rel = yield* use((db) =>
+          db.query.userMarathons.findMany({
+            where: (table, operators) => operators.eq(table.userId, userId),
+            with: {
+              marathon: true,
+            },
+          }),
+        );
 
-          return rel.map((row) => ({
-            userId: row.userId,
-            relationId: row.id,
-            marathonId: row.marathonId,
-            domain: row.marathon.domain,
-            role: row.role,
-          }));
-        },
-      );
+        return rel.map((row) => ({
+          userId: row.userId,
+          relationId: row.id,
+          marathonId: row.marathonId,
+          domain: row.marathon.domain,
+          role: row.role,
+        }));
+      });
 
-      const getUserById = Effect.fn("UsersQueries.getUserById")(function* ({
+      const getUserById = Effect.fn("UsersRepository.getUserById")(function* ({
         id,
       }: {
         id: string;
@@ -73,7 +73,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const getUserWithMarathons = Effect.fn(
-        "UsersQueries.getUserWithMarathons",
+        "UsersRepository.getUserWithMarathons",
       )(function* ({ userId }: { userId: string }) {
         const result = yield* use((db) =>
           db.query.user.findFirst({
@@ -92,7 +92,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const getMarathonsByUserId = Effect.fn(
-        "UsersQueries.getMarathonsByUserId",
+        "UsersRepository.getMarathonsByUserId",
       )(function* ({ userId }: { userId: string }) {
         const result = yield* use((db) =>
           db.query.userMarathons.findMany({
@@ -110,7 +110,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const getUserByEmailWithMarathons = Effect.fn(
-        "UsersQueries.getUserByEmailWithMarathons",
+        "UsersRepository.getUserByEmailWithMarathons",
       )(function* ({ email }: { email: string }) {
         const normalizedEmail = normalizeEmail(email);
         const result = yield* use((db) =>
@@ -126,7 +126,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const getUserByNormalizedEmail = Effect.fn(
-        "UsersQueries.getUserByNormalizedEmail",
+        "UsersRepository.getUserByNormalizedEmail",
       )(function* ({ emailNormalized }: { emailNormalized: string }) {
         const result = yield* use((db) =>
           db.query.user.findFirst({
@@ -138,7 +138,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const getPendingUserMarathonsByEmailNormalized = Effect.fn(
-        "UsersQueries.getPendingUserMarathonsByEmailNormalized",
+        "UsersRepository.getPendingUserMarathonsByEmailNormalized",
       )(function* ({ emailNormalized }: { emailNormalized: string }) {
         return yield* use((db) =>
           db.query.pendingUserMarathons.findMany({
@@ -150,7 +150,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const getPendingUserMarathonsByDomain = Effect.fn(
-        "UsersQueries.getPendingUserMarathonsByDomain",
+        "UsersRepository.getPendingUserMarathonsByDomain",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db.query.marathons.findFirst({
@@ -167,12 +167,17 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const getPendingUserMarathonById = Effect.fn(
-        "UsersQueries.getPendingUserMarathonById",
-      )(function* ({ pendingId, domain }: { pendingId: number; domain: string }) {
+        "UsersRepository.getPendingUserMarathonById",
+      )(function* ({
+        pendingId,
+        domain,
+      }: {
+        pendingId: number;
+        domain: string;
+      }) {
         const result = yield* use((db) =>
           db.query.pendingUserMarathons.findFirst({
-            where: (table, operators) =>
-              operators.eq(table.id, pendingId),
+            where: (table, operators) => operators.eq(table.id, pendingId),
             with: {
               marathon: true,
             },
@@ -180,14 +185,14 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
         );
 
         if (!result || result.marathon.domain !== domain) {
-          return yield* Option.none();
+          return Option.none();
         }
 
         return Option.some(result);
       });
 
       const getStaffMembersByDomain = Effect.fn(
-        "UsersQueries.getStaffMembersByDomain",
+        "UsersRepository.getStaffMembersByDomain",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db.query.marathons.findFirst({
@@ -223,8 +228,8 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
           }),
         );
 
-        const pendingStaff: PendingStaffAccess[] = result.pendingUserMarathons.map(
-          (staff) => ({
+        const pendingStaff: PendingStaffAccess[] =
+          result.pendingUserMarathons.map((staff) => ({
             kind: "pending",
             id: `p:${staff.id}`,
             pendingId: staff.id,
@@ -233,62 +238,61 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
             role: staff.role,
             createdAt: staff.createdAt,
             status: "pending",
-          }),
-        );
+          }));
 
         return [...activeStaff, ...pendingStaff];
       });
 
-      const getStaffMemberById = Effect.fn("UsersQueries.getStaffMemberById")(
-        function* ({ staffId, domain }: { staffId: string; domain: string }) {
-          const marathon = yield* use((db) =>
-            db.query.marathons.findFirst({
-              where: (table, operators) => operators.eq(table.domain, domain),
-              columns: { id: true },
-            }),
-          );
+      const getStaffMemberById = Effect.fn(
+        "UsersRepository.getStaffMemberById",
+      )(function* ({ staffId, domain }: { staffId: string; domain: string }) {
+        const marathon = yield* use((db) =>
+          db.query.marathons.findFirst({
+            where: (table, operators) => operators.eq(table.domain, domain),
+            columns: { id: true },
+          }),
+        );
 
-          if (!marathon) {
-            return yield* Option.none();
-          }
+        if (!marathon) {
+          return Option.none();
+        }
 
-          const result = yield* use((db) =>
-            db.query.user.findFirst({
-              where: (table, operators) => operators.eq(table.id, staffId),
-              with: {
-                userMarathons: {
-                  where: (table, operators) =>
-                    operators.eq(table.marathonId, marathon.id),
-                },
-                participantVerifications: {
-                  with: {
-                    participant: true,
-                  },
+        const result = yield* use((db) =>
+          db.query.user.findFirst({
+            where: (table, operators) => operators.eq(table.id, staffId),
+            with: {
+              userMarathons: {
+                where: (table, operators) =>
+                  operators.eq(table.marathonId, marathon.id),
+              },
+              participantVerifications: {
+                with: {
+                  participant: true,
                 },
               },
-            }),
+            },
+          }),
+        );
+
+        if (!result?.userMarathons[0]) {
+          return Option.none();
+        }
+
+        const filteredParticipantVerifications =
+          result.participantVerifications.filter(
+            (pv) => pv.participant.marathonId === marathon.id,
           );
 
-          if (!result?.userMarathons[0]) {
-            return yield* Option.none();
-          }
+        return Option.some({
+          ...result.userMarathons[0],
+          user: {
+            ...result,
+            participantVerifications: filteredParticipantVerifications,
+          },
+        });
+      });
 
-          const filteredParticipantVerifications =
-            result.participantVerifications.filter(
-              (pv) => pv.participant.marathonId === marathon.id,
-            );
-
-          return Option.some({
-            ...result.userMarathons[0],
-            user: {
-              ...result,
-              participantVerifications: filteredParticipantVerifications,
-            },
-          });
-        },
-      );
-
-      const createUser = Effect.fn("UsersQueries.createUser")(function* ({
+      const createUser = Effect.fn("UsersRepository.createUser")(function* ({
         data,
       }: {
         data: NewUser;
@@ -308,7 +312,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
         return result;
       });
 
-      const updateUser = Effect.fn("UsersQueries.updateUser")(function* ({
+      const updateUser = Effect.fn("UsersRepository.updateUser")(function* ({
         id,
         data,
       }: {
@@ -330,7 +334,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
         return result;
       });
 
-      const deleteUser = Effect.fn("UsersQueries.deleteUser")(function* ({
+      const deleteUser = Effect.fn("UsersRepository.deleteUser")(function* ({
         id,
       }: {
         id: string;
@@ -351,7 +355,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const createUserMarathonRelation = Effect.fn(
-        "UsersQueries.createUserMarathonRelation",
+        "UsersRepository.createUserMarathonRelation",
       )(function* ({ data }: { data: NewUserMarathonRelation }) {
         const [result] = yield* use((db) =>
           db.insert(userMarathons).values(data).returning(),
@@ -369,7 +373,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const upsertUserMarathonRelation = Effect.fn(
-        "UsersQueries.upsertUserMarathonRelation",
+        "UsersRepository.upsertUserMarathonRelation",
       )(function* ({ data }: { data: NewUserMarathonRelation }) {
         const result = yield* use((db) =>
           db
@@ -388,7 +392,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const updateUserMarathonRelation = Effect.fn(
-        "UsersQueries.updateUserMarathonRelation",
+        "UsersRepository.updateUserMarathonRelation",
       )(function* ({
         userId,
         marathonId,
@@ -423,7 +427,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const deleteUserMarathonRelation = Effect.fn(
-        "UsersQueries.deleteUserMarathonRelation",
+        "UsersRepository.deleteUserMarathonRelation",
       )(function* ({
         userId,
         marathonId,
@@ -455,12 +459,8 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const upsertPendingUserMarathon = Effect.fn(
-        "UsersQueries.upsertPendingUserMarathon",
-      )(function* ({
-        data,
-      }: {
-        data: NewPendingUserMarathonRelation;
-      }) {
+        "UsersRepository.upsertPendingUserMarathon",
+      )(function* ({ data }: { data: NewPendingUserMarathonRelation }) {
         const normalizedEmail = normalizeEmail(data.email);
         const result = yield* use((db) =>
           db
@@ -491,7 +491,7 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const updatePendingUserMarathon = Effect.fn(
-        "UsersQueries.updatePendingUserMarathon",
+        "UsersRepository.updatePendingUserMarathon",
       )(function* ({
         id,
         data,
@@ -527,10 +527,13 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const deletePendingUserMarathon = Effect.fn(
-        "UsersQueries.deletePendingUserMarathon",
+        "UsersRepository.deletePendingUserMarathon",
       )(function* ({ id }: { id: number }) {
         const [result] = yield* use((db) =>
-          db.delete(pendingUserMarathons).where(eq(pendingUserMarathons.id, id)).returning(),
+          db
+            .delete(pendingUserMarathons)
+            .where(eq(pendingUserMarathons.id, id))
+            .returning(),
         );
 
         if (!result) {
@@ -545,14 +548,8 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
       });
 
       const claimPendingUserMarathonsForUser = Effect.fn(
-        "UsersQueries.claimPendingUserMarathonsForUser",
-      )(function* ({
-        userId,
-        email,
-      }: {
-        userId: string;
-        email: string;
-      }) {
+        "UsersRepository.claimPendingUserMarathonsForUser",
+      )(function* ({ userId, email }: { userId: string; email: string }) {
         const emailNormalized = normalizeEmail(email);
         const currentUser = yield* getUserById({ id: userId });
         const pendingRelations = yield* use((db) =>
@@ -566,7 +563,9 @@ export class UsersQueries extends Context.Service<UsersQueries>()(
           return [];
         }
 
-        const claimName = pendingRelations.find((relation) => relation.name.trim().length > 0)?.name;
+        const claimName = pendingRelations.find(
+          (relation) => relation.name.trim().length > 0,
+        )?.name;
         if (
           claimName &&
           Option.isSome(currentUser) &&

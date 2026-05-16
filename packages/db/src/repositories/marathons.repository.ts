@@ -19,12 +19,12 @@ import { sponsors } from "../schema";
 import { participantVerifications } from "../schema";
 import type { NewMarathon } from "../types";
 import { DbError } from "../utils";
-export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
-  "@blikka/db/marathons-queries",
+export class MarathonsRepository extends Context.Service<MarathonsRepository>()(
+  "@blikka/db/marathons-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
-      const getMarathons = Effect.fn("MarathonsQueries.getMarathons")(
+      const getMarathons = Effect.fn("MarathonsRepository.getMarathons")(
         function* () {
           return yield* use((db) =>
             db.query.marathons.findMany({
@@ -36,7 +36,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
           );
         },
       );
-      const getMarathonById = Effect.fn("MarathonsQueries.getMarathonById")(
+      const getMarathonById = Effect.fn("MarathonsRepository.getMarathonById")(
         function* ({ id }: { id: number }) {
           const result = yield* use((db) =>
             db.query.marathons.findFirst({
@@ -47,7 +47,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
         },
       );
       const getMarathonByDomain = Effect.fn(
-        "MarathonsQueries.getMarathonByDomain",
+        "MarathonsRepository.getMarathonByDomain",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db.query.marathons.findFirst({
@@ -57,7 +57,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
         return Option.fromNullishOr(result);
       });
       const getMarathonByDomainWithOptions = Effect.fn(
-        "MarathonsQueries.getMarathonByDomainWithOptions",
+        "MarathonsRepository.getMarathonByDomainWithOptions",
       )(function* ({ domain }: { domain: string }) {
         const result = yield* use((db) =>
           db.query.marathons.findFirst({
@@ -73,7 +73,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
         );
         return Option.fromNullishOr(result);
       });
-      const createMarathon = Effect.fn("MarathonsQueries.createMarathon")(
+      const createMarathon = Effect.fn("MarathonsRepository.createMarathon")(
         function* ({ data }: { data: NewMarathon }) {
           const [result] = yield* use((db) =>
             db.insert(marathons).values(data).returning(),
@@ -88,7 +88,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
           return result;
         },
       );
-      const updateMarathon = Effect.fn("MarathonsQueries.updateMarathon")(
+      const updateMarathon = Effect.fn("MarathonsRepository.updateMarathon")(
         function* ({ id, data }: { id: number; data: Partial<NewMarathon> }) {
           const [result] = yield* use((db) =>
             db
@@ -108,7 +108,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
         },
       );
       const updateMarathonByDomain = Effect.fn(
-        "MarathonsQueries.updateMarathonByDomain",
+        "MarathonsRepository.updateMarathonByDomain",
       )(function* ({
         domain,
         data,
@@ -135,7 +135,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
         }
         return result;
       });
-      const deleteMarathon = Effect.fn("MarathonsQueries.deleteMarathon")(
+      const deleteMarathon = Effect.fn("MarathonsRepository.deleteMarathon")(
         function* ({ id }: { id: number }) {
           const [result] = yield* use((db) =>
             db.delete(marathons).where(eq(marathons.id, id)).returning(),
@@ -150,7 +150,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
           return result;
         },
       );
-      const resetMarathon = Effect.fn("MarathonsQueries.resetMarathon")(
+      const resetMarathon = Effect.fn("MarathonsRepository.resetMarathon")(
         function* ({ id }: { id: number }) {
           const marathon = yield* use((db) =>
             db.query.marathons.findFirst({
@@ -245,7 +245,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
         },
       );
       const clearOperationalSeedableData = Effect.fn(
-        "MarathonsQueries.clearOperationalSeedableData",
+        "MarathonsRepository.clearOperationalSeedableData",
       )(function* ({ id }: { id: number }) {
         const marathon = yield* use((db) =>
           db.query.marathons.findFirst({
@@ -266,7 +266,9 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
             .from(participants)
             .where(eq(participants.marathonId, id)),
         );
-        const participantIds = marathonParticipants.map((participant) => participant.id);
+        const participantIds = marathonParticipants.map(
+          (participant) => participant.id,
+        );
 
         yield* use((db) =>
           db.delete(votingSession).where(eq(votingSession.marathonId, id)),
@@ -281,10 +283,14 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
           yield* use((db) =>
             db
               .delete(participantVerifications)
-              .where(inArray(participantVerifications.participantId, participantIds)),
+              .where(
+                inArray(participantVerifications.participantId, participantIds),
+              ),
           );
           yield* use((db) =>
-            db.delete(contactSheets).where(inArray(contactSheets.participantId, participantIds)),
+            db
+              .delete(contactSheets)
+              .where(inArray(contactSheets.participantId, participantIds)),
           );
           yield* use((db) =>
             db
@@ -302,9 +308,7 @@ export class MarathonsQueries extends Context.Service<MarathonsQueries>()(
         yield* use((db) =>
           db.delete(juryInvitations).where(eq(juryInvitations.marathonId, id)),
         );
-        yield* use((db) =>
-          db.delete(topics).where(eq(topics.marathonId, id)),
-        );
+        yield* use((db) => db.delete(topics).where(eq(topics.marathonId, id)));
         yield* use((db) =>
           db
             .delete(competitionClasses)

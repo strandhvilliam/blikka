@@ -5,13 +5,13 @@ import { count, eq } from "drizzle-orm";
 import { topics } from "../schema";
 import type { NewTopic } from "../types";
 import { DbError } from "../utils";
-export class TopicsQueries extends Context.Service<TopicsQueries>()(
-  "@blikka/db/topics-queries",
+export class TopicsRepository extends Context.Service<TopicsRepository>()(
+  "@blikka/db/topics-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
       const getTopicsByMarathonId = Effect.fn(
-        "TopicsQueries.getTopicsByMarathonId",
+        "TopicsRepository.getTopicsByMarathonId",
       )(function* ({ id }: { id: number }) {
         const result = yield* use((db) =>
           db.query.topics.findMany({
@@ -21,7 +21,7 @@ export class TopicsQueries extends Context.Service<TopicsQueries>()(
         );
         return result;
       });
-      const getTopicsByDomain = Effect.fn("TopicsQueries.getTopicsByDomain")(
+      const getTopicsByDomain = Effect.fn("TopicsRepository.getTopicsByDomain")(
         function* ({ domain }: { domain: string }) {
           const result = yield* use((db) =>
             db.query.marathons.findMany({
@@ -34,19 +34,17 @@ export class TopicsQueries extends Context.Service<TopicsQueries>()(
           return result.flatMap(({ topics }) => topics);
         },
       );
-      const getTopicById = Effect.fn("TopicsQueries.getTopicById")(function* ({
-        id,
-      }: {
-        id: number;
-      }) {
-        const result = yield* use((db) =>
-          db.query.topics.findFirst({
-            where: (table, operators) => operators.eq(table.id, id),
-          }),
-        );
-        return result ?? null;
-      });
-      const updateTopic = Effect.fn("TopicsQueries.updateTopic")(function* ({
+      const getTopicById = Effect.fn("TopicsRepository.getTopicById")(
+        function* ({ id }: { id: number }) {
+          const result = yield* use((db) =>
+            db.query.topics.findFirst({
+              where: (table, operators) => operators.eq(table.id, id),
+            }),
+          );
+          return result ?? null;
+        },
+      );
+      const updateTopic = Effect.fn("TopicsRepository.updateTopic")(function* ({
         id,
         data,
       }: {
@@ -65,7 +63,7 @@ export class TopicsQueries extends Context.Service<TopicsQueries>()(
         }
         return result;
       });
-      const updateTopicsOrder = Effect.fn("TopicsQueries.updateTopicsOrder")(
+      const updateTopicsOrder = Effect.fn("TopicsRepository.updateTopicsOrder")(
         function* ({
           topicIds,
           marathonId,
@@ -94,7 +92,7 @@ export class TopicsQueries extends Context.Service<TopicsQueries>()(
           );
         },
       );
-      const createTopic = Effect.fn("TopicQueries.createTopic")(function* ({
+      const createTopic = Effect.fn("TopicRepository.createTopic")(function* ({
         data,
       }: {
         data: NewTopic;
@@ -111,7 +109,7 @@ export class TopicsQueries extends Context.Service<TopicsQueries>()(
         }
         return result;
       });
-      const deleteTopic = Effect.fn("TopicQueries.deleteTopic")(function* ({
+      const deleteTopic = Effect.fn("TopicRepository.deleteTopic")(function* ({
         id,
       }: {
         id: number;
@@ -129,7 +127,7 @@ export class TopicsQueries extends Context.Service<TopicsQueries>()(
         return result;
       });
       const getTopicsWithSubmissionCount = Effect.fn(
-        "TopicQueries.getTopicsWithSubmissionCount",
+        "TopicRepository.getTopicsWithSubmissionCount",
       )(function* ({ domain }: { domain: string }) {
         const data = yield* use((db) =>
           db
@@ -146,7 +144,7 @@ export class TopicsQueries extends Context.Service<TopicsQueries>()(
         return data;
       });
       const getTotalSubmissionCount = Effect.fn(
-        "TopicQueries.getTotalSubmissionCount",
+        "TopicRepository.getTotalSubmissionCount",
       )(function* ({ marathonId }: { marathonId: number }) {
         const [result] = yield* use((db) =>
           db
@@ -156,20 +154,20 @@ export class TopicsQueries extends Context.Service<TopicsQueries>()(
         );
         return result?.count ?? 0;
       });
-      const getScheduledTopics = Effect.fn("TopicQueries.getScheduledTopics")(
-        function* () {
-          const [result] = yield* use((db) =>
-            db.query.topics.findMany({
-              where: (table, operators) =>
-                operators.eq(table.visibility, "scheduled"),
-              with: {
-                marathon: true,
-              },
-            }),
-          );
-          return result;
-        },
-      );
+      const getScheduledTopics = Effect.fn(
+        "TopicRepository.getScheduledTopics",
+      )(function* () {
+        const [result] = yield* use((db) =>
+          db.query.topics.findMany({
+            where: (table, operators) =>
+              operators.eq(table.visibility, "scheduled"),
+            with: {
+              marathon: true,
+            },
+          }),
+        );
+        return result;
+      });
       return {
         getTopicsByMarathonId,
         getTopicsByDomain,

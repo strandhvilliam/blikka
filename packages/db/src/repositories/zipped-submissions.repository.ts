@@ -2,13 +2,13 @@ import { Effect, Layer, Context } from "effect";
 import { DrizzleClient } from "../drizzle-client";
 import { participants } from "../schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-export class ZippedSubmissionsQueries extends Context.Service<ZippedSubmissionsQueries>()(
-  "@blikka/db/zipped-submissions-queries",
+export class ZippedSubmissionsRepository extends Context.Service<ZippedSubmissionsRepository>()(
+  "@blikka/db/zipped-submissions-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
       const getZippedSubmissionsByDomain = Effect.fn(
-        "ZippedSubmissionsQueries.getZippedSubmissionsByDomain",
+        "ZippedSubmissionsRepository.getZippedSubmissionsByDomain",
       )(function* ({ domain }: { domain: string }) {
         const marathon = yield* use((db) =>
           db.query.marathons.findFirst({
@@ -34,7 +34,7 @@ export class ZippedSubmissionsQueries extends Context.Service<ZippedSubmissionsQ
         return result;
       });
       const getZippedSubmissionsByReferenceRange = Effect.fn(
-        "ZippedSubmissionsQueries.getZippedSubmissionsByReferenceRange",
+        "ZippedSubmissionsRepository.getZippedSubmissionsByReferenceRange",
       )(function* ({
         domain,
         competitionClassId,
@@ -99,7 +99,7 @@ export class ZippedSubmissionsQueries extends Context.Service<ZippedSubmissionsQ
         );
       });
       const getZipSubmissionStatsByDomain = Effect.fn(
-        "ZippedSubmissionsQueries.getZipSubmissionStatsByDomain",
+        "ZippedSubmissionsRepository.getZipSubmissionStatsByDomain",
       )(function* ({ domain }: { domain: string }) {
         const marathon = yield* use((db) =>
           db.query.marathons.findFirst({

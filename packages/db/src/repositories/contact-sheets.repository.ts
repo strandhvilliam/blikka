@@ -4,13 +4,13 @@ import { Effect, Layer, Context } from "effect";
 import { contactSheets } from "../schema";
 import { DbError } from "../utils";
 
-export class ContactSheetsQueries extends Context.Service<ContactSheetsQueries>()(
-  "@blikka/db/contact-sheets-queries",
+export class ContactSheetsRepository extends Context.Service<ContactSheetsRepository>()(
+  "@blikka/db/contact-sheets-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
 
-      const save = Effect.fn("ContactSheetsQueries.save")(function* ({
+      const save = Effect.fn("ContactSheetsRepository.save")(function* ({
         data,
       }: {
         data: NewContactSheet;

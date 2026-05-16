@@ -5,12 +5,12 @@ import { ruleConfigs } from "../schema";
 import { eq } from "drizzle-orm";
 import { DbError } from "../utils";
 import { conflictUpdateSetAllColumns, getDefaultRuleConfigs } from "../utils";
-export class RulesQueries extends Context.Service<RulesQueries>()(
-  "@blikka/db/rules-queries",
+export class RulesRepository extends Context.Service<RulesRepository>()(
+  "@blikka/db/rules-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
-      const getRulesByDomain = Effect.fn("RulesQueries.getRulesByDomain")(
+      const getRulesByDomain = Effect.fn("RulesRepository.getRulesByDomain")(
         function* ({ domain }: { domain: string }) {
           const result = yield* use((db) =>
             db.query.marathons.findFirst({
@@ -57,7 +57,7 @@ export class RulesQueries extends Context.Service<RulesQueries>()(
           return rules;
         },
       );
-      const createRuleConfig = Effect.fn("RulesQueries.createRuleConfig")(
+      const createRuleConfig = Effect.fn("RulesRepository.createRuleConfig")(
         function* ({ data }: { data: NewRuleConfig }) {
           const [result] = yield* use((db) =>
             db.insert(ruleConfigs).values(data).returning(),
@@ -72,7 +72,7 @@ export class RulesQueries extends Context.Service<RulesQueries>()(
           return result;
         },
       );
-      const updateRuleConfig = Effect.fn("RulesQueries.updateRuleConfig")(
+      const updateRuleConfig = Effect.fn("RulesRepository.updateRuleConfig")(
         function* ({ id, data }: { id: number; data: Partial<NewRuleConfig> }) {
           const [result] = yield* use((db) =>
             db
@@ -92,7 +92,7 @@ export class RulesQueries extends Context.Service<RulesQueries>()(
         },
       );
       const updateMultipleRuleConfig = Effect.fn(
-        "RulesQueries.updateMultipleRuleConfig",
+        "RulesRepository.updateMultipleRuleConfig",
       )(function* ({ data }: { data: NewRuleConfig[] }) {
         const result = yield* use((db) =>
           db
@@ -106,7 +106,7 @@ export class RulesQueries extends Context.Service<RulesQueries>()(
         );
         return result;
       });
-      const deleteRuleConfig = Effect.fn("RulesQueries.deleteRuleConfig")(
+      const deleteRuleConfig = Effect.fn("RulesRepository.deleteRuleConfig")(
         function* ({ id }: { id: number }) {
           const [result] = yield* use((db) =>
             db.delete(ruleConfigs).where(eq(ruleConfigs.id, id)).returning(),

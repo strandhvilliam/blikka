@@ -4,13 +4,13 @@ import { DrizzleClient } from "../drizzle-client";
 import { eq } from "drizzle-orm";
 import type { NewSponsor } from "../types";
 import { DbError } from "../utils";
-export class SponsorsQueries extends Context.Service<SponsorsQueries>()(
-  "@blikka/db/sponsors-queries",
+export class SponsorsRepository extends Context.Service<SponsorsRepository>()(
+  "@blikka/db/sponsors-repository",
   {
     make: Effect.gen(function* () {
       const { use } = yield* DrizzleClient;
       const getSponsorsByMarathonId = Effect.fn(
-        "SponsorsQueries.getSponsorsByMarathonId",
+        "SponsorsRepository.getSponsorsByMarathonId",
       )(function* ({ marathonId }: { marathonId: number }) {
         const result = yield* use((db) =>
           db.query.sponsors.findMany({
@@ -21,7 +21,7 @@ export class SponsorsQueries extends Context.Service<SponsorsQueries>()(
         return result;
       });
       const getLatestSponsorByType = Effect.fn(
-        "SponsorsQueries.getLatestSponsorByType",
+        "SponsorsRepository.getLatestSponsorByType",
       )(function* ({ marathonId, type }: { marathonId: number; type: string }) {
         const result = yield* use((db) =>
           db.query.sponsors.findFirst({
@@ -35,21 +35,21 @@ export class SponsorsQueries extends Context.Service<SponsorsQueries>()(
         );
         return Option.fromNullishOr(result);
       });
-      const getSponsorsByType = Effect.fn("SponsorsQueries.getSponsorsByType")(
-        function* ({ marathonId, type }: { marathonId: number; type: string }) {
-          const result = yield* use((db) =>
-            db.query.sponsors.findMany({
-              where: (table, operators) =>
-                operators.and(
-                  operators.eq(table.marathonId, marathonId),
-                  operators.eq(table.type, type),
-                ),
-            }),
-          );
-          return result;
-        },
-      );
-      const getSponsorById = Effect.fn("SponsorsQueries.getSponsorById")(
+      const getSponsorsByType = Effect.fn(
+        "SponsorsRepository.getSponsorsByType",
+      )(function* ({ marathonId, type }: { marathonId: number; type: string }) {
+        const result = yield* use((db) =>
+          db.query.sponsors.findMany({
+            where: (table, operators) =>
+              operators.and(
+                operators.eq(table.marathonId, marathonId),
+                operators.eq(table.type, type),
+              ),
+          }),
+        );
+        return result;
+      });
+      const getSponsorById = Effect.fn("SponsorsRepository.getSponsorById")(
         function* ({ id }: { id: number }) {
           const result = yield* use((db) =>
             db.query.sponsors.findFirst({
@@ -59,7 +59,7 @@ export class SponsorsQueries extends Context.Service<SponsorsQueries>()(
           return Option.fromNullishOr(result);
         },
       );
-      const createSponsor = Effect.fn("SponsorsQueries.createSponsor")(
+      const createSponsor = Effect.fn("SponsorsRepository.createSponsor")(
         function* ({ data }: { data: NewSponsor }) {
           const [result] = yield* use((db) =>
             db
@@ -80,7 +80,7 @@ export class SponsorsQueries extends Context.Service<SponsorsQueries>()(
           return result;
         },
       );
-      const updateSponsor = Effect.fn("SponsorsQueries.updateSponsor")(
+      const updateSponsor = Effect.fn("SponsorsRepository.updateSponsor")(
         function* ({ id, data }: { id: number; data: Partial<NewSponsor> }) {
           const updateData = {
             ...data,
@@ -103,7 +103,7 @@ export class SponsorsQueries extends Context.Service<SponsorsQueries>()(
           return result;
         },
       );
-      const deleteSponsor = Effect.fn("SponsorsQueries.deleteSponsor")(
+      const deleteSponsor = Effect.fn("SponsorsRepository.deleteSponsor")(
         function* ({ id }: { id: number }) {
           const [result] = yield* use((db) =>
             db

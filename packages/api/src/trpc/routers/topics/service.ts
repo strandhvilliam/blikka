@@ -1,6 +1,12 @@
 import "server-only";
 
-import { Database, type NewTopic } from "@blikka/db";
+import {
+  DbLayer,
+  VotingRepository,
+  TopicsRepository,
+  MarathonsRepository,
+  type NewTopic,
+} from "@blikka/db";
 import { Effect, Layer, Option, Context } from "effect";
 import { TopicApiError } from "./schemas";
 
@@ -37,12 +43,14 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
   "@blikka/api/TopicsApiService",
   {
     make: Effect.gen(function* () {
-      const db = yield* Database;
+      const marathonsRepository = yield* MarathonsRepository;
+      const topicsRepository = yield* TopicsRepository;
+      const votingRepository = yield* VotingRepository;
 
       const getTopicsWithSubmissionCount = Effect.fn(
         "TopicsApiService.getTopicsWithSubmissionCount",
       )(function* ({ domain }: { domain: string }) {
-        const marathon = yield* db.marathonsQueries.getMarathonByDomain({
+        const marathon = yield* marathonsRepository.getMarathonByDomain({
           domain,
         });
 
@@ -54,7 +62,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           );
         }
 
-        const data = yield* db.topicsQueries.getTopicsWithSubmissionCount({
+        const data = yield* topicsRepository.getTopicsWithSubmissionCount({
           domain,
         });
 
@@ -78,7 +86,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           orderIndex?: number;
         };
       }) {
-        const marathon = yield* db.marathonsQueries.getMarathonByDomain({
+        const marathon = yield* marathonsRepository.getMarathonByDomain({
           domain,
         });
 
@@ -90,7 +98,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           );
         }
 
-        const existingTopics = yield* db.topicsQueries.getTopicsByMarathonId({
+        const existingTopics = yield* topicsRepository.getTopicsByMarathonId({
           id: marathon.value.id,
         });
 
@@ -113,7 +121,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
         const createVisibility =
           createData.visibility === "active" ? "public" : createData.visibility;
 
-        const createdTopic = yield* db.topicsQueries.createTopic({
+        const createdTopic = yield* topicsRepository.createTopic({
           data: {
             ...createData,
             visibility: createVisibility,
@@ -132,7 +140,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
         yield* Effect.forEach(
           currentlyActiveTopics,
           (activeTopic) =>
-            db.topicsQueries.updateTopic({
+            topicsRepository.updateTopic({
               id: activeTopic.id,
               data: { visibility: "public" },
             }),
@@ -140,13 +148,13 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
         );
 
         const activatedAt = new Date().toISOString();
-        yield* db.votingQueries.closeVotingWindowsForTopics({
+        yield* votingRepository.closeVotingWindowsForTopics({
           marathonId: marathon.value.id,
           topicIds: currentlyActiveTopics.map((activeTopic) => activeTopic.id),
           nowIso: activatedAt,
         });
 
-        return yield* db.topicsQueries.updateTopic({
+        return yield* topicsRepository.updateTopic({
           id: createdTopic.id,
           data: {
             activatedAt,
@@ -168,7 +176,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           orderIndex?: number;
         };
       }) {
-        const topic = yield* db.topicsQueries.getTopicById({ id });
+        const topic = yield* topicsRepository.getTopicById({ id });
 
         if (!topic) {
           return yield* Effect.fail(
@@ -188,7 +196,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
             : data.scheduledEnd;
 
         const latestVotingRoundOpt =
-          yield* db.votingQueries.getLatestVotingRoundForTopic({
+          yield* votingRepository.getLatestVotingRoundForTopic({
             marathonId: topic.marathonId,
             topicId: topic.id,
           });
@@ -220,7 +228,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
         };
 
         if (updateData.visibility === "active") {
-          const siblingTopics = yield* db.topicsQueries.getTopicsByMarathonId({
+          const siblingTopics = yield* topicsRepository.getTopicsByMarathonId({
             id: topic.marathonId,
           });
           const currentlyActiveTopics = siblingTopics.filter(
@@ -232,7 +240,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           yield* Effect.forEach(
             currentlyActiveTopics,
             (activeTopic) =>
-              db.topicsQueries.updateTopic({
+              topicsRepository.updateTopic({
                 id: activeTopic.id,
                 data: { visibility: "public" },
               }),
@@ -242,7 +250,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           const activatedAt =
             updateData.activatedAt ?? new Date().toISOString();
           updateData.activatedAt = activatedAt;
-          yield* db.votingQueries.closeVotingWindowsForTopics({
+          yield* votingRepository.closeVotingWindowsForTopics({
             marathonId: topic.marathonId,
             topicIds: currentlyActiveTopics.map(
               (activeTopic) => activeTopic.id,
@@ -251,7 +259,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           });
         }
 
-        return yield* db.topicsQueries.updateTopic({
+        return yield* topicsRepository.updateTopic({
           id,
           data: updateData,
         });
@@ -259,7 +267,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
 
       const activateTopic = Effect.fn("TopicsApiService.activateTopic")(
         function* ({ id }: { id: number }) {
-          const topic = yield* db.topicsQueries.getTopicById({ id });
+          const topic = yield* topicsRepository.getTopicById({ id });
 
           if (!topic) {
             return yield* Effect.fail(
@@ -269,7 +277,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
             );
           }
 
-          const topics = yield* db.topicsQueries.getTopicsByMarathonId({
+          const topics = yield* topicsRepository.getTopicsByMarathonId({
             id: topic.marathonId,
           });
           const currentlyActiveTopics = topics.filter(
@@ -280,7 +288,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           yield* Effect.forEach(
             currentlyActiveTopics,
             (activeTopic) =>
-              db.topicsQueries.updateTopic({
+              topicsRepository.updateTopic({
                 id: activeTopic.id,
                 data: { visibility: "public" },
               }),
@@ -288,7 +296,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           );
 
           const activatedAt = new Date().toISOString();
-          yield* db.votingQueries.closeVotingWindowsForTopics({
+          yield* votingRepository.closeVotingWindowsForTopics({
             marathonId: topic.marathonId,
             topicIds: currentlyActiveTopics.map(
               (activeTopic) => activeTopic.id,
@@ -296,7 +304,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
             nowIso: activatedAt,
           });
 
-          return yield* db.topicsQueries.updateTopic({
+          return yield* topicsRepository.updateTopic({
             id,
             data: {
               activatedAt,
@@ -313,7 +321,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
         id: number;
         domain: string;
       }) {
-        const topic = yield* db.topicsQueries.getTopicById({ id });
+        const topic = yield* topicsRepository.getTopicById({ id });
 
         if (!topic) {
           return yield* Effect.fail(
@@ -323,7 +331,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           );
         }
 
-        const marathon = yield* db.marathonsQueries.getMarathonByDomain({
+        const marathon = yield* marathonsRepository.getMarathonByDomain({
           domain,
         });
 
@@ -335,7 +343,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           );
         }
 
-        return yield* db.topicsQueries.deleteTopic({
+        return yield* topicsRepository.deleteTopic({
           id,
         });
       });
@@ -348,7 +356,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
           domain: string;
           topicIds: readonly number[];
         }) {
-          const marathon = yield* db.marathonsQueries.getMarathonByDomain({
+          const marathon = yield* marathonsRepository.getMarathonByDomain({
             domain,
           });
 
@@ -360,7 +368,7 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
             );
           }
 
-          return yield* db.topicsQueries.updateTopicsOrder({
+          return yield* topicsRepository.updateTopicsOrder({
             topicIds: [...topicIds],
             marathonId: marathon.value.id,
           });
@@ -379,6 +387,6 @@ export class TopicsApiService extends Context.Service<TopicsApiService>()(
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Database.layer),
+    Layer.provide(DbLayer),
   );
 }
