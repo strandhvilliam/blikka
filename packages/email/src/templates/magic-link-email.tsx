@@ -96,7 +96,3 @@ export function MagicLinkEmail({
     </Html>
   )
 }
-
-export function magicLinkEmailSubject(props: MagicLinkEmailProps): string {
-  return `Sign in to ${props.companyName || "Your Account"}`
-}

@@ -1,4 +1,4 @@
-import React from "react";
+import React from "react"
 import {
   Body,
   Button,
@@ -10,15 +10,15 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
-import { Tailwind } from "@react-email/tailwind";
+} from "@react-email/components"
+import { Tailwind } from "@react-email/tailwind"
 
 export interface VotingInviteEmailProps {
-  participantName: string;
-  marathonName: string;
-  votingUrl: string;
-  marathonLogoUrl?: string | null;
-  topicName?: string | null;
+  participantName: string
+  marathonName: string
+  votingUrl: string
+  marathonLogoUrl?: string | null
+  topicName?: string | null
 }
 
 export function VotingInviteEmail({
@@ -28,10 +28,10 @@ export function VotingInviteEmail({
   marathonLogoUrl,
   topicName,
 }: VotingInviteEmailProps) {
-  const previewText = `Voting is now open for ${marathonName}.`;
+  const previewText = `Voting is now open for ${marathonName}.`
   const intro = topicName
     ? `Voting is now open for ${topicName} in ${marathonName}.`
-    : `Voting is now open for ${marathonName}.`;
+    : `Voting is now open for ${marathonName}.`
 
   return (
     <Html>
@@ -54,9 +54,7 @@ export function VotingInviteEmail({
               Voting is open
             </Heading>
 
-            <Text className="m-0 mb-6 text-center text-sm text-slate-600">
-              {marathonName}
-            </Text>
+            <Text className="m-0 mb-6 text-center text-sm text-slate-600">{marathonName}</Text>
 
             <Text className="mb-4 text-base leading-7 text-slate-700">
               Hello {participantName},
@@ -79,14 +77,12 @@ export function VotingInviteEmail({
               <Text className="m-0 mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
                 Your personal voting link
               </Text>
-              <Text className="m-0 break-all text-sm leading-6 text-slate-800">
-                {votingUrl}
-              </Text>
+              <Text className="m-0 break-all text-sm leading-6 text-slate-800">{votingUrl}</Text>
             </Section>
 
             <Text className="mb-6 text-sm leading-6 text-slate-600">
-              This link is personal to your voting session. Please use this
-              email to access the voting page.
+              This link is personal to your voting session. Please use this email to access the
+              voting page.
             </Text>
 
             <Hr className="my-6 border-slate-200" />
@@ -98,11 +94,9 @@ export function VotingInviteEmail({
         </Body>
       </Tailwind>
     </Html>
-  );
+  )
 }
 
-export function votingInviteEmailSubject(
-  props: VotingInviteEmailProps,
-): string {
-  return `Voting is now open for ${props.marathonName}`;
+export function votingInviteEmailSubject(props: VotingInviteEmailProps): string {
+  return `Voting is now open for ${props.marathonName}`
 }

@@ -1,4 +1,4 @@
 export * from "./schema"
 export * from "./pubsub-service"
-export * from "./utils"
+export * from "./errors"
 export * from "./logger"

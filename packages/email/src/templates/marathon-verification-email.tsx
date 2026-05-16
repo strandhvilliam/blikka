@@ -1,4 +1,4 @@
-import React from "react";
+import React from "react"
 import {
   Body,
   Container,
@@ -9,14 +9,14 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
-import { Tailwind } from "@react-email/tailwind";
+} from "@react-email/components"
+import { Tailwind } from "@react-email/tailwind"
 
 export interface MarathonVerificationEmailProps {
-  participantName: string;
-  participantReference: string;
-  marathonName: string;
-  marathonLogoUrl?: string | null;
+  participantName: string
+  participantReference: string
+  marathonName: string
+  marathonLogoUrl?: string | null
 }
 
 export function MarathonVerificationEmail({
@@ -25,7 +25,7 @@ export function MarathonVerificationEmail({
   marathonName,
   marathonLogoUrl,
 }: MarathonVerificationEmailProps) {
-  const previewText = `Your submission for ${marathonName} has been verified.`;
+  const previewText = `Your submission for ${marathonName} has been verified.`
 
   return (
     <Html>
@@ -48,17 +48,15 @@ export function MarathonVerificationEmail({
               Submission verified
             </Heading>
 
-            <Text className="m-0 mb-6 text-center text-sm text-slate-600">
-              {marathonName}
-            </Text>
+            <Text className="m-0 mb-6 text-center text-sm text-slate-600">{marathonName}</Text>
 
             <Text className="mb-4 text-base leading-7 text-slate-700">
               Hello {participantName},
             </Text>
 
             <Text className="mb-6 text-base leading-7 text-slate-700">
-              Thank you for participating in <strong>{marathonName}</strong>.
-              Your submission has now been verified by the event team.
+              Thank you for participating in <strong>{marathonName}</strong>. Your submission has
+              now been verified by the event team.
             </Text>
 
             <Section className="mb-6 rounded-xl bg-slate-50 px-5 py-4">
@@ -71,8 +69,7 @@ export function MarathonVerificationEmail({
             </Section>
 
             <Text className="mb-6 text-base leading-7 text-slate-700">
-              We will contact you if there are further updates related to your
-              participation.
+              We will contact you if there are further updates related to your participation.
             </Text>
 
             <Hr className="my-6 border-slate-200" />
@@ -84,11 +81,9 @@ export function MarathonVerificationEmail({
         </Body>
       </Tailwind>
     </Html>
-  );
+  )
 }
 
-export function marathonVerificationEmailSubject(
-  props: MarathonVerificationEmailProps,
-): string {
-  return `Your submission for ${props.marathonName} is verified`;
+export function marathonVerificationEmailSubject(props: MarathonVerificationEmailProps): string {
+  return `Your submission for ${props.marathonName} is verified`
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React from "react"
 import {
   Body,
   Container,
@@ -9,15 +9,15 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components";
-import { Tailwind } from "@react-email/tailwind";
+} from "@react-email/components"
+import { Tailwind } from "@react-email/tailwind"
 
 export interface OTPEmailProps {
-  otp: string;
-  username?: string;
-  expiryMinutes?: number;
-  companyName?: string;
-  companyLogoUrl?: string;
+  otp: string
+  username?: string
+  expiryMinutes?: number
+  companyName?: string
+  companyLogoUrl?: string
 }
 
 export function OTPEmail({
@@ -27,7 +27,7 @@ export function OTPEmail({
   companyName = "Your Company",
   companyLogoUrl = "https://example.com/logo.png",
 }: OTPEmailProps) {
-  const previewText = `Your verification code: ${otp}`;
+  const previewText = `Your verification code: ${otp}`
 
   return (
     <Html>
@@ -38,11 +38,7 @@ export function OTPEmail({
           <Container className="mx-auto my-10 max-w-[600px] rounded-lg bg-white p-8 shadow-lg">
             {companyLogoUrl && (
               <Section className="mb-6 text-center">
-                <img
-                  src={companyLogoUrl}
-                  alt={`${companyName} Logo`}
-                  className="mx-auto h-12"
-                />
+                <img src={companyLogoUrl} alt={`${companyName} Logo`} className="mx-auto h-12" />
               </Section>
             )}
 
@@ -55,8 +51,7 @@ export function OTPEmail({
             </Text>
 
             <Text className="mb-6 text-center text-gray-600">
-              Please use the following verification code to complete your
-              authentication:
+              Please use the following verification code to complete your authentication:
             </Text>
 
             <Section className="mb-8 text-center">
@@ -78,8 +73,7 @@ export function OTPEmail({
             <Hr className="my-6 border-gray-200" />
 
             <Text className="text-center text-xs text-gray-500">
-              &copy; {new Date().getFullYear()} {companyName}. All rights
-              reserved.
+              &copy; {new Date().getFullYear()} {companyName}. All rights reserved.
             </Text>
 
             <Text className="text-center text-xs text-gray-500">
@@ -89,10 +83,9 @@ export function OTPEmail({
         </Body>
       </Tailwind>
     </Html>
-  );
+  )
 }
 
 export function otpEmailSubject(props: OTPEmailProps): string {
-  return `Your verification code: ${props.otp}`;
+  return `Your verification code: ${props.otp}`
 }
-
