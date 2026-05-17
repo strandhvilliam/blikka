@@ -8,8 +8,7 @@ export default async function AdminLayout({
   const session = await getAppSession()
 
   if (!session) {
-    console.log("redirecting to login")
-    redirect("/auth/login", RedirectType.replace)
+    redirect("/auth/login?next=/admin", RedirectType.replace)
   }
   return <>{children}</>
 }

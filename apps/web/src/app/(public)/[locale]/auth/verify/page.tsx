@@ -1,9 +1,8 @@
 import { getAppSession } from "@/lib/auth/server"
-import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
-import { getPermissions } from "@blikka/api/trpc/utils"
+import { getDefaultPostLoginPath, sanitizeRedirectPath } from "@/lib/auth/redirect"
+import { getUserPermissions } from "@/lib/auth/permissions"
 import { VerifyForm } from "./verify-form"
 import { redirect } from "next/navigation"
-import { serverRuntime } from "@/lib/server-runtime"
 
 export default async function VerifyPage({
   searchParams,
@@ -11,12 +10,10 @@ export default async function VerifyPage({
   const session = await getAppSession()
   const params = await searchParams
   const email = typeof params.email === "string" ? params.email : undefined
-  const next = typeof params.next === "string" ? params.next : undefined
+  const next = sanitizeRedirectPath(typeof params.next === "string" ? params.next : undefined)
 
   if (session) {
-    const permissions = await serverRuntime.runPromise(
-      getPermissions({ userId: session.user.id }),
-    )
+    const permissions = await getUserPermissions(session.user.id)
     redirect(next ?? getDefaultPostLoginPath(permissions))
   }
 

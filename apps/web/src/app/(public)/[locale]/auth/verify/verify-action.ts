@@ -1,49 +1,28 @@
 "use server"
 
-import { getAuth } from "@/lib/auth/server"
-import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
-import { serverRuntime } from "@/lib/server-runtime"
-import { getPermissions } from "@blikka/api/trpc/utils"
+import { sanitizeRedirectPath } from "@/lib/auth/redirect"
+import { getPostLoginPathForCurrentUser } from "@/lib/auth/permissions"
+import { signInWithEmailOtp } from "@/lib/auth/server"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
-type EmailOtpApi = {
-  signInEmailOTP(input: {
-    headers: Headers
-    body: {
-      email: string
-      otp: string
-    }
-  }): Promise<unknown>
-}
-
 export async function verifyAction(input: { email: string; otp: string; next?: string }) {
-  let userId: string | undefined
-
   try {
-    const auth = await getAuth()
-    const authApi = auth.api as typeof auth.api & EmailOtpApi
     const readonlyHeaders = await headers()
 
-    await authApi.signInEmailOTP({
-      headers: readonlyHeaders,
-      body: {
-        email: input.email,
-        otp: input.otp,
-      },
-    })
-
-    const session = await auth.api.getSession({
+    await signInWithEmailOtp({
+      email: input.email,
+      otp: input.otp,
       headers: readonlyHeaders,
     })
-    userId = session?.user.id
   } catch (error) {
+    console.error(error)
+
     return {
       data: undefined,
-      error: error instanceof Error ? error.message : String(error),
+      error: "Invalid verification code. Please try again.",
     }
   }
 
-  const permissions = await serverRuntime.runPromise(getPermissions({ userId }))
-  redirect(input.next ?? getDefaultPostLoginPath(permissions))
+  redirect(sanitizeRedirectPath(input.next) ?? (await getPostLoginPathForCurrentUser()))
 }

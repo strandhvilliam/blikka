@@ -1,23 +1,11 @@
 "use server"
 
-import { getAuth } from "@/lib/auth/server"
+import { sendSignInOtp } from "@/lib/auth/server"
 import { loginRatelimit, getClientIp } from "@/lib/ratelimit"
 import { headers } from "next/headers"
 
-type EmailOtpApi = {
-  sendVerificationOTP(input: {
-    headers: Headers
-    body: {
-      email: string
-      type: "sign-in"
-    }
-  }): Promise<unknown>
-}
-
 export async function loginAction(input: { email: string }) {
   try {
-    const auth = await getAuth()
-    const authApi = auth.api as typeof auth.api & EmailOtpApi
     const readonlyHeaders = await headers()
     const ip = getClientIp(readonlyHeaders)
     const allowed = await loginRatelimit.limit(ip)
@@ -26,19 +14,25 @@ export async function loginAction(input: { email: string }) {
       throw new Error("Too many login attempts. Please try again later.")
     }
 
-    await authApi.sendVerificationOTP({
+    await sendSignInOtp({
+      email: input.email,
       headers: readonlyHeaders,
-      body: {
-        email: input.email,
-        type: "sign-in",
-      },
     })
 
     return { data: undefined, error: null }
   } catch (error) {
+    if (error instanceof Error && error.message === "Too many login attempts. Please try again later.") {
+      return {
+        data: undefined,
+        error: error.message,
+      }
+    }
+
+    console.error(error)
+
     return {
       data: undefined,
-      error: error instanceof Error ? error.message : String(error),
+      error: "Unable to send verification code. Please try again.",
     }
   }
 }

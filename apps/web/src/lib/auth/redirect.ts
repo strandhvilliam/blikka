@@ -31,6 +31,30 @@ export function getDefaultPostLoginPath(permissions: readonly PermissionLike[]):
   return `/${getDefaultPortalFromPermissions(permissions)}`
 }
 
+export function sanitizeRedirectPath(value: string | null | undefined): string | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  try {
+    const decoded = decodeURIComponent(value)
+
+    if (!decoded.startsWith("/") || decoded.startsWith("//")) {
+      return undefined
+    }
+
+    const parsed = new URL(decoded, "http://localhost")
+
+    if (parsed.origin !== "http://localhost") {
+      return undefined
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return undefined
+  }
+}
+
 export function getMarathonDestination(marathon: MarathonAccessLike): string {
   const portal = getPortalForRole(marathon.role)
   const pathname = portal === "admin" ? "/admin/dashboard" : "/staff"

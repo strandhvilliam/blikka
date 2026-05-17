@@ -1,12 +1,12 @@
 import Image from "next/image"
 import { LoginForm } from "./login-form"
 import { getAppSession } from "@/lib/auth/server"
-import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
-import { getPermissions } from "@blikka/api/trpc/utils"
+import { sanitizeRedirectPath } from "@/lib/auth/redirect"
+import { getUserPermissions } from "@/lib/auth/permissions"
 import { redirect } from "next/navigation"
 import { DotPattern } from "@/components/dot-pattern"
 import { cn } from "@/lib/utils"
-import { serverRuntime } from "@/lib/server-runtime"
+import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
 
 function NoiseCardShell({
   children,
@@ -137,12 +137,10 @@ export default async function LoginPage({
 }: PageProps<"/[locale]/auth/login">) {
   const session = await getAppSession()
   const params = await searchParams
-  const next = typeof params.next === "string" ? params.next : undefined
+  const next = sanitizeRedirectPath(typeof params.next === "string" ? params.next : undefined)
 
   if (session) {
-    const permissions = await serverRuntime.runPromise(
-      getPermissions({ userId: session.user.id }),
-    )
+    const permissions = await getUserPermissions(session.user.id)
     redirect(next ?? getDefaultPostLoginPath(permissions))
   }
 

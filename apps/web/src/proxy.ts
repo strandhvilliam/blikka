@@ -26,7 +26,9 @@ export async function proxy(request: NextRequest) {
     const requestWithDomainHeader = withDomainHeader(request, subdomain)
 
     if (pathname.startsWith("/auth")) {
-      const authUrl = new URL(`${protocol}://www.${rootDomain}/${pathname}`)
+      const authUrl = new URL(
+        `${protocol}://www.${rootDomain}${pathname}${request.nextUrl.search}`,
+      )
       return NextResponse.redirect(authUrl)
     }
 
