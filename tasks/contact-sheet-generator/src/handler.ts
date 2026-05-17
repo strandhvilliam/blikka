@@ -1,24 +1,24 @@
-import { Effect, Layer } from "effect"
-import { Database } from "@blikka/db"
-import { S3Service, FinalizedEventSchema } from "@blikka/aws"
-import { UploadSessionRepository } from "@blikka/kv-store"
-import { ContactSheetBuilder } from "@blikka/image-manipulation"
-import { Resource as SSTResource } from "sst"
+import { Effect, Layer } from 'effect'
+import { Database } from '@blikka/db'
+import { S3Service, FinalizedEventSchema } from '@blikka/aws'
+import { UploadSessionRepository } from '@blikka/kv-store'
+import { ContactSheetBuilder } from '@blikka/image-manipulation'
+import { Resource as SSTResource } from 'sst'
 import {
   getEnvironmentFromStage,
   makeLambdaHandler,
   makeLambdaTaskLayer,
   makeSqsRealtimeTask,
   parseBusEvent,
-} from "@blikka/task-runtime"
-import { ContactSheetGenerator, ContactSheetGeneratorLayer } from "@blikka/uploads"
+} from '@blikka/task-runtime'
+import { ContactSheetGenerator, ContactSheetGeneratorLayer } from '@blikka/uploads'
 
-const TASK_NAME = "contact-sheet-generator"
-const REALTIME_EVENT = "contact-sheet-generated"
+const TASK_NAME = 'contact-sheet-generator'
+const REALTIME_EVENT = 'contact-sheet-generated'
 
 const effectHandler = makeSqsRealtimeTask({
   taskName: TASK_NAME,
-  spanName: "ContactSheetGenerator.handler",
+  spanName: 'ContactSheetGenerator.handler',
   eventKey: REALTIME_EVENT,
   recordConcurrency: 2,
   decodeRecord: (record) => parseBusEvent(record.body, FinalizedEventSchema),
@@ -26,11 +26,11 @@ const effectHandler = makeSqsRealtimeTask({
     Effect.gen(function* () {
       const contactSheetGenerator = yield* ContactSheetGenerator
 
-      yield* Effect.logInfo("Generating contact sheet")
+      yield* Effect.logInfo('Generating contact sheet')
 
       yield* contactSheetGenerator.generate(input).pipe(
-        Effect.tap(() => Effect.logInfo("Contact sheet generated")),
-        Effect.tapError((error) => Effect.logError("Error generating contact sheet", error)),
+        Effect.tap(() => Effect.logInfo('Contact sheet generated')),
+        Effect.tapError((error) => Effect.logError('Error generating contact sheet', error)),
       )
     }).pipe(Effect.annotateLogs({ ...input })),
 })

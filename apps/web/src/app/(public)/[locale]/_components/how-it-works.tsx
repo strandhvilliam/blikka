@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { FadeIn } from "./fade-in"
+import { FadeIn } from './fade-in'
 
 type WorkflowStep = {
   step: string
@@ -10,28 +10,28 @@ type WorkflowStep = {
 
 const steps: WorkflowStep[] = [
   {
-    step: "01",
-    title: "Set Up Your Event",
+    step: '01',
+    title: 'Set Up Your Event',
     description:
-      "Define categories, deadlines, participant rules, and event branding before submissions open.",
+      'Define categories, deadlines, participant rules, and event branding before submissions open.',
   },
   {
-    step: "02",
-    title: "Share The Upload Link",
+    step: '02',
+    title: 'Share The Upload Link',
     description:
-      "Participants submit directly from any device through a branded upload flow built for mobile.",
+      'Participants submit directly from any device through a branded upload flow built for mobile.',
   },
   {
-    step: "03",
-    title: "Review And Judge",
+    step: '03',
+    title: 'Review And Judge',
     description:
-      "Track incoming submissions, flag problems early, and invite judges into a structured scoring workflow.",
+      'Track incoming submissions, flag problems early, and invite judges into a structured scoring workflow.',
   },
   {
-    step: "04",
-    title: "Publish Results",
+    step: '04',
+    title: 'Publish Results',
     description:
-      "Move from selected winners to a polished showcase without rebuilding the event story somewhere else.",
+      'Move from selected winners to a polished showcase without rebuilding the event story somewhere else.',
   },
 ]
 
@@ -66,7 +66,7 @@ export function HowItWorks() {
           <div
             aria-hidden
             className="pointer-events-none absolute top-[1.625rem] hidden h-px border-t border-dashed border-border lg:block"
-            style={{ left: "1.625rem", width: "75%" }}
+            style={{ left: '1.625rem', width: '75%' }}
           />
           {/* soft brand-primary halo behind the number row */}
           <div
@@ -74,8 +74,8 @@ export function HowItWorks() {
             className="pointer-events-none absolute -top-10 left-1/2 hidden h-24 w-2/3 -translate-x-1/2 rounded-full lg:block"
             style={{
               background:
-                "radial-gradient(ellipse at center, color-mix(in oklch, var(--brand-primary) 10%, transparent), transparent 70%)",
-              filter: "blur(32px)",
+                'radial-gradient(ellipse at center, color-mix(in oklch, var(--brand-primary) 10%, transparent), transparent 70%)',
+              filter: 'blur(32px)',
             }}
           />
           {steps.map((step, index) => (
@@ -85,9 +85,7 @@ export function HowItWorks() {
                   <div className="relative z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-brand-primary/30 bg-background text-lg font-semibold text-brand-primary transition-[background-color,border-color,box-shadow] duration-300 group-hover:border-brand-primary group-hover:bg-brand-primary/5 group-hover:shadow-[0_0_0_6px_color-mix(in_oklch,var(--brand-primary)_10%,transparent)] lg:static">
                     {step.step}
                   </div>
-                  {index < steps.length - 1 && (
-                    <div className="h-full w-px bg-border lg:hidden" />
-                  )}
+                  {index < steps.length - 1 && <div className="h-full w-px bg-border lg:hidden" />}
                 </div>
 
                 <div className="lg:mt-0">

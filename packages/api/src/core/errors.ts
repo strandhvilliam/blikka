@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from "effect"
+import { Effect, Option, Schema } from 'effect'
 
 /**
  * HTTP-style codes used to translate API errors at the transport boundary
@@ -7,13 +7,13 @@ import { Effect, Option, Schema } from "effect"
  * pick between status codes by string.
  */
 export const apiErrorCodes = [
-  "BAD_REQUEST",
-  "UNAUTHORIZED",
-  "FORBIDDEN",
-  "NOT_FOUND",
-  "CONFLICT",
-  "PRECONDITION_FAILED",
-  "INTERNAL_SERVER_ERROR",
+  'BAD_REQUEST',
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+  'NOT_FOUND',
+  'CONFLICT',
+  'PRECONDITION_FAILED',
+  'INTERNAL_SERVER_ERROR',
 ] as const
 
 export type ApiErrorCode = (typeof apiErrorCodes)[number]
@@ -35,7 +35,7 @@ const IdentifierSchema = Schema.Record(
  * Maps to HTTP 404 / tRPC `NOT_FOUND`.
  */
 export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()(
-  "@blikka/api/NotFoundError",
+  '@blikka/api/NotFoundError',
   {
     resource: Schema.String,
     identifier: Schema.optional(IdentifierSchema),
@@ -46,7 +46,7 @@ export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()(
     if (this.identifier) {
       const pairs = Object.entries(this.identifier)
         .map(([key, value]) => `${key}=${String(value)}`)
-        .join(", ")
+        .join(', ')
       return `${this.resource} not found (${pairs})`
     }
     return `${this.resource} not found`
@@ -60,7 +60,7 @@ export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()(
  * Maps to HTTP 400 / tRPC `BAD_REQUEST`.
  */
 export class BadRequestError extends Schema.TaggedErrorClass<BadRequestError>()(
-  "@blikka/api/BadRequestError",
+  '@blikka/api/BadRequestError',
   {
     message: Schema.String,
     details: Schema.optional(IdentifierSchema),
@@ -75,7 +75,7 @@ export class BadRequestError extends Schema.TaggedErrorClass<BadRequestError>()(
  * Maps to HTTP 401 / tRPC `UNAUTHORIZED`.
  */
 export class UnauthorizedError extends Schema.TaggedErrorClass<UnauthorizedError>()(
-  "@blikka/api/UnauthorizedError",
+  '@blikka/api/UnauthorizedError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -89,7 +89,7 @@ export class UnauthorizedError extends Schema.TaggedErrorClass<UnauthorizedError
  * Maps to HTTP 403 / tRPC `FORBIDDEN`.
  */
 export class ForbiddenError extends Schema.TaggedErrorClass<ForbiddenError>()(
-  "@blikka/api/ForbiddenError",
+  '@blikka/api/ForbiddenError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -103,7 +103,7 @@ export class ForbiddenError extends Schema.TaggedErrorClass<ForbiddenError>()(
  * Maps to HTTP 409 / tRPC `CONFLICT`.
  */
 export class ConflictError extends Schema.TaggedErrorClass<ConflictError>()(
-  "@blikka/api/ConflictError",
+  '@blikka/api/ConflictError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -117,7 +117,7 @@ export class ConflictError extends Schema.TaggedErrorClass<ConflictError>()(
  * Maps to HTTP 412 / tRPC `PRECONDITION_FAILED`.
  */
 export class PreconditionFailedError extends Schema.TaggedErrorClass<PreconditionFailedError>()(
-  "@blikka/api/PreconditionFailedError",
+  '@blikka/api/PreconditionFailedError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -133,7 +133,7 @@ export class PreconditionFailedError extends Schema.TaggedErrorClass<Preconditio
  * Maps to HTTP 500 / tRPC `INTERNAL_SERVER_ERROR`.
  */
 export class InternalApiError extends Schema.TaggedErrorClass<InternalApiError>()(
-  "@blikka/api/InternalApiError",
+  '@blikka/api/InternalApiError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),

@@ -1,16 +1,9 @@
-"use client"
+'use client'
 
 /* eslint-disable react/no-children-prop -- TanStack Form Field/Subscribe require children prop to avoid parser conflict with HTML form element */
-import { useState } from "react"
-import { useForm } from "@tanstack/react-form"
-import {
-  ArrowRight,
-  CalendarDays,
-  CheckCircle2,
-  Clock3,
-  Loader2,
-  Users,
-} from "lucide-react"
+import { useState } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { ArrowRight, CalendarDays, CheckCircle2, Clock3, Loader2, Users } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -18,31 +11,31 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { getStartedAction } from "./get-started-action"
+} from '@/components/ui/select'
+import { getStartedAction } from './get-started-action'
 
 const eventTypes = [
-  { value: "photo-competition", label: "Photo competition" },
-  { value: "corporate-event", label: "Corporate event" },
-  { value: "school-education", label: "School / Education" },
-  { value: "other", label: "Other" },
+  { value: 'photo-competition', label: 'Photo competition' },
+  { value: 'corporate-event', label: 'Corporate event' },
+  { value: 'school-education', label: 'School / Education' },
+  { value: 'other', label: 'Other' },
 ] as const
 
 const participantRanges = [
-  { value: "1-50", label: "1 – 50" },
-  { value: "51-150", label: "51 – 150" },
-  { value: "151-500", label: "151 – 500" },
-  { value: "500+", label: "500+" },
+  { value: '1-50', label: '1 – 50' },
+  { value: '51-150', label: '51 – 150' },
+  { value: '151-500', label: '151 – 500' },
+  { value: '500+', label: '500+' },
 ] as const
 
 export function GetStartedDialog({ children }: { children: React.ReactNode }) {
@@ -52,13 +45,13 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
 
   const form = useForm({
     defaultValues: {
-      name: "",
-      email: "",
-      organization: "",
-      website: "",
-      eventType: "",
-      estimatedParticipants: "",
-      message: "",
+      name: '',
+      email: '',
+      organization: '',
+      website: '',
+      eventType: '',
+      estimatedParticipants: '',
+      message: '',
     },
     onSubmit: async ({ value }) => {
       setError(null)
@@ -100,12 +93,10 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
               <CheckCircle2 className="h-7 w-7 text-brand-primary" />
             </div>
             <div>
-              <DialogTitle className="text-2xl text-brand-black">
-                We will be in touch!
-              </DialogTitle>
+              <DialogTitle className="text-2xl text-brand-black">We will be in touch!</DialogTitle>
               <DialogDescription className="mx-auto mt-3 max-w-md text-base text-brand-black/50">
-                Thanks for reaching out. We typically respond within one
-                business day with a tailored walkthrough and pricing.
+                Thanks for reaching out. We typically respond within one business day with a
+                tailored walkthrough and pricing.
               </DialogDescription>
             </div>
             <button
@@ -127,8 +118,8 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                 Let us set up your first event together
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-brand-black/50">
-                Fill in the form and we will schedule a 20-minute call to walk
-                through the platform, map your setup, and share a clear quote.
+                Fill in the form and we will schedule a 20-minute call to walk through the platform,
+                map your setup, and share a clear quote.
               </p>
 
               <ul className="mt-8 grid gap-4 text-sm text-brand-black/70">
@@ -138,9 +129,7 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                     aria-hidden="true"
                   />
                   <span>
-                    <span className="font-medium text-brand-black">
-                      Live walkthrough
-                    </span>
+                    <span className="font-medium text-brand-black">Live walkthrough</span>
                     <br />
                     See the full participant and organizer flow
                   </span>
@@ -151,9 +140,7 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                     aria-hidden="true"
                   />
                   <span>
-                    <span className="font-medium text-brand-black">
-                      Rollout plan
-                    </span>
+                    <span className="font-medium text-brand-black">Rollout plan</span>
                     <br />
                     A suggested timeline for your launch
                   </span>
@@ -164,9 +151,7 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                     aria-hidden="true"
                   />
                   <span>
-                    <span className="font-medium text-brand-black">
-                      Custom pricing
-                    </span>
+                    <span className="font-medium text-brand-black">Custom pricing</span>
                     <br />
                     Matched to your event size and format
                   </span>
@@ -174,12 +159,8 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
               </ul>
 
               <div className="mt-10 rounded-xl border border-brand-black/6 bg-brand-white px-5 py-4">
-                <p className="text-xs font-medium text-brand-black/40">
-                  Average response time
-                </p>
-                <p className="mt-1 text-lg font-semibold text-brand-black">
-                  One week
-                </p>
+                <p className="text-xs font-medium text-brand-black/40">Average response time</p>
+                <p className="mt-1 text-lg font-semibold text-brand-black">One week</p>
               </div>
             </div>
 
@@ -190,8 +171,7 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                   Tell us about your event
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-sm text-brand-black/45">
-                  We will get back to you with a walkthrough and pricing
-                  tailored to your needs.
+                  We will get back to you with a walkthrough and pricing tailored to your needs.
                 </DialogDescription>
               </DialogHeader>
 
@@ -208,8 +188,7 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                   <form.Field
                     name="name"
                     validators={{
-                      onChange: ({ value }) =>
-                        !value ? "Full name is required" : undefined,
+                      onChange: ({ value }) => (!value ? 'Full name is required' : undefined),
                     }}
                     children={(field) => (
                       <fieldset className="grid gap-2">
@@ -224,15 +203,12 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                           placeholder="Jane Andersson"
                           className="h-11 border-brand-black/12 bg-brand-white text-brand-black placeholder:text-brand-black/25 focus-visible:border-brand-primary focus-visible:ring-brand-primary/20"
                         />
-                        {field.state.meta.isTouched &&
-                          field.state.meta.errors.length > 0 && (
-                            <p className="text-xs text-red-600">
-                              {field.state.meta.errors.join(", ")}
-                            </p>
-                          )}
-                        <p className="text-xs text-brand-black/35">
-                          So we know what to call you!
-                        </p>
+                        {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                          <p className="text-xs text-red-600">
+                            {field.state.meta.errors.join(', ')}
+                          </p>
+                        )}
+                        <p className="text-xs text-brand-black/35">So we know what to call you!</p>
                       </fieldset>
                     )}
                   />
@@ -240,9 +216,9 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                     name="email"
                     validators={{
                       onChange: ({ value }) => {
-                        if (!value) return "Work email is required"
+                        if (!value) return 'Work email is required'
                         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                          return "Invalid email address"
+                          return 'Invalid email address'
                         }
                         return undefined
                       },
@@ -261,12 +237,11 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                           placeholder="jane@organization.com"
                           className="h-11 border-brand-black/12 bg-brand-white text-brand-black placeholder:text-brand-black/25 focus-visible:border-brand-primary focus-visible:ring-brand-primary/20"
                         />
-                        {field.state.meta.isTouched &&
-                          field.state.meta.errors.length > 0 && (
-                            <p className="text-xs text-red-600">
-                              {field.state.meta.errors.join(", ")}
-                            </p>
-                          )}
+                        {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                          <p className="text-xs text-red-600">
+                            {field.state.meta.errors.join(', ')}
+                          </p>
+                        )}
                         <p className="text-xs text-brand-black/35">
                           We will send the meeting invite here.
                         </p>
@@ -279,8 +254,7 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                 <form.Field
                   name="organization"
                   validators={{
-                    onChange: ({ value }) =>
-                      !value ? "Organization is required" : undefined,
+                    onChange: ({ value }) => (!value ? 'Organization is required' : undefined),
                   }}
                   children={(field) => (
                     <fieldset className="grid gap-2">
@@ -295,12 +269,9 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                         placeholder="Stockholm Photography Club"
                         className="h-11 border-brand-black/12 bg-brand-white text-brand-black placeholder:text-brand-black/25 focus-visible:border-brand-primary focus-visible:ring-brand-primary/20"
                       />
-                      {field.state.meta.isTouched &&
-                        field.state.meta.errors.length > 0 && (
-                          <p className="text-xs text-red-600">
-                            {field.state.meta.errors.join(", ")}
-                          </p>
-                        )}
+                      {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                        <p className="text-xs text-red-600">{field.state.meta.errors.join(', ')}</p>
+                      )}
                       <p className="text-xs text-brand-black/35">
                         The company, association, or school organizing the event.
                       </p>
@@ -314,10 +285,7 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                   children={(field) => (
                     <fieldset className="grid gap-2">
                       <Label className="text-brand-black">
-                        Website{" "}
-                        <span className="font-normal text-brand-black/35">
-                          Optional
-                        </span>
+                        Website <span className="font-normal text-brand-black/35">Optional</span>
                       </Label>
                       <Input
                         id="gs-website"
@@ -339,8 +307,7 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                   <form.Field
                     name="eventType"
                     validators={{
-                      onChange: ({ value }) =>
-                        !value ? "Event type is required" : undefined,
+                      onChange: ({ value }) => (!value ? 'Event type is required' : undefined),
                     }}
                     children={(field) => (
                       <fieldset className="grid gap-2">
@@ -360,12 +327,11 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                             ))}
                           </SelectContent>
                         </Select>
-                        {field.state.meta.isTouched &&
-                          field.state.meta.errors.length > 0 && (
-                            <p className="text-xs text-red-600">
-                              {field.state.meta.errors.join(", ")}
-                            </p>
-                          )}
+                        {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                          <p className="text-xs text-red-600">
+                            {field.state.meta.errors.join(', ')}
+                          </p>
+                        )}
                         <p className="text-xs text-brand-black/35">
                           Helps us prepare the right demo flow for you.
                         </p>
@@ -376,13 +342,11 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                     name="estimatedParticipants"
                     validators={{
                       onChange: ({ value }) =>
-                        !value ? "Expected participants is required" : undefined,
+                        !value ? 'Expected participants is required' : undefined,
                     }}
                     children={(field) => (
                       <fieldset className="grid gap-2">
-                        <Label className="text-brand-black">
-                          Expected participants
-                        </Label>
+                        <Label className="text-brand-black">Expected participants</Label>
                         <Select
                           value={field.state.value}
                           onValueChange={(value) => field.handleChange(() => value)}
@@ -398,12 +362,11 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                             ))}
                           </SelectContent>
                         </Select>
-                        {field.state.meta.isTouched &&
-                          field.state.meta.errors.length > 0 && (
-                            <p className="text-xs text-red-600">
-                              {field.state.meta.errors.join(", ")}
-                            </p>
-                          )}
+                        {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                          <p className="text-xs text-red-600">
+                            {field.state.meta.errors.join(', ')}
+                          </p>
+                        )}
                         <p className="text-xs text-brand-black/35">
                           A rough estimate is fine — pricing scales with size.
                         </p>
@@ -418,10 +381,8 @@ export function GetStartedDialog({ children }: { children: React.ReactNode }) {
                   children={(field) => (
                     <fieldset className="grid gap-2">
                       <Label className="text-brand-black">
-                        Anything else?{" "}
-                        <span className="font-normal text-brand-black/35">
-                          Optional
-                        </span>
+                        Anything else?{' '}
+                        <span className="font-normal text-brand-black/35">Optional</span>
                       </Label>
                       <Textarea
                         id="gs-message"

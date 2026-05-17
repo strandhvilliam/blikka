@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from '@/components/ui/skeleton'
 
 export function ParticipantHeaderSkeleton() {
   return (
@@ -21,10 +21,7 @@ export function ParticipantHeaderSkeleton() {
 
       <div className="flex flex-wrap gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex rounded-xl border border-border min-w-[260px] bg-white p-4"
-          >
+          <div key={i} className="flex rounded-xl border border-border min-w-[260px] bg-white p-4">
             <div className="flex items-center gap-3">
               <Skeleton className="h-9 w-9 rounded-lg" />
               <div className="flex-1 min-w-0 space-y-1.5">

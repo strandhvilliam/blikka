@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useForm } from "@tanstack/react-form"
-import { Button } from "@/components/ui/button"
+import { useForm } from '@tanstack/react-form'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,24 +9,24 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useEffect } from "react"
-import { Plus, Minus } from "lucide-react"
-import NumberFlow from "@number-flow/react"
-import type { CompetitionClass } from "@blikka/db"
+} from '@/components/ui/select'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useEffect } from 'react'
+import { Plus, Minus } from 'lucide-react'
+import NumberFlow from '@number-flow/react'
+import type { CompetitionClass } from '@blikka/db'
 
 interface EditCompetitionClassDialogProps {
   competitionClassId: number | null
@@ -54,12 +54,12 @@ export function CompetitionClassEditDialog({
   const { mutate: updateCompetitionClass, isPending: isUpdating } = useMutation(
     trpc.competitionClasses.update.mutationOptions({
       onError: (error) => {
-        toast.error("Failed to update competition class", {
+        toast.error('Failed to update competition class', {
           description: error.message,
         })
       },
       onSuccess: () => {
-        toast.success("Competition class updated")
+        toast.success('Competition class updated')
         onOpenChange(false)
       },
       onSettled: () => {
@@ -67,13 +67,13 @@ export function CompetitionClassEditDialog({
           queryKey: trpc.marathons.pathKey(),
         })
       },
-    })
+    }),
   )
 
   const form = useForm({
     defaultValues: {
-      name: competitionClass?.name || "",
-      description: competitionClass?.description || "",
+      name: competitionClass?.name || '',
+      description: competitionClass?.description || '',
       numberOfPhotos: competitionClass?.numberOfPhotos || 24,
       topicStartIndex: competitionClass?.topicStartIndex || 0,
     },
@@ -95,10 +95,10 @@ export function CompetitionClassEditDialog({
 
   useEffect(() => {
     if (competitionClass) {
-      form.setFieldValue("name", competitionClass.name)
-      form.setFieldValue("description", competitionClass.description || "")
-      form.setFieldValue("numberOfPhotos", competitionClass.numberOfPhotos)
-      form.setFieldValue("topicStartIndex", competitionClass.topicStartIndex)
+      form.setFieldValue('name', competitionClass.name)
+      form.setFieldValue('description', competitionClass.description || '')
+      form.setFieldValue('numberOfPhotos', competitionClass.numberOfPhotos)
+      form.setFieldValue('topicStartIndex', competitionClass.topicStartIndex)
     }
   }, [competitionClass, form])
 
@@ -128,7 +128,7 @@ export function CompetitionClassEditDialog({
             validators={{
               onChange: ({ value }) => {
                 if (!value || value.length < 1) {
-                  return "Name is required"
+                  return 'Name is required'
                 }
                 return undefined
               },
@@ -151,7 +151,7 @@ export function CompetitionClassEditDialog({
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length ? (
                   <p className="text-sm text-destructive mt-1">
-                    {field.state.meta.errors.join(", ")}
+                    {field.state.meta.errors.join(', ')}
                   </p>
                 ) : null}
               </div>
@@ -185,7 +185,7 @@ export function CompetitionClassEditDialog({
             validators={{
               onChange: ({ value }) => {
                 if (value < 1 || value > 100) {
-                  return "Number of photos must be between 1 and 100"
+                  return 'Number of photos must be between 1 and 100'
                 }
                 return undefined
               },
@@ -232,7 +232,7 @@ export function CompetitionClassEditDialog({
                 </div>
                 {field.state.meta.isTouched && field.state.meta.errors.length ? (
                   <p className="text-sm text-destructive mt-1">
-                    {field.state.meta.errors.join(", ")}
+                    {field.state.meta.errors.join(', ')}
                   </p>
                 ) : null}
               </div>
@@ -257,7 +257,7 @@ export function CompetitionClassEditDialog({
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
-                        topics.length === 0 ? "No topics available" : "Select starting topic"
+                        topics.length === 0 ? 'No topics available' : 'Select starting topic'
                       }
                     />
                   </SelectTrigger>
@@ -273,8 +273,8 @@ export function CompetitionClassEditDialog({
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   {topics.length === 0
-                    ? "Create topics first to set a starting topic for this class."
-                    : "The topic number where this class will start from."}
+                    ? 'Create topics first to set a starting topic for this class.'
+                    : 'The topic number where this class will start from.'}
                 </p>
               </div>
             )}
@@ -285,7 +285,7 @@ export function CompetitionClassEditDialog({
               Cancel
             </Button>
             <PrimaryButton type="submit" disabled={isUpdating}>
-              {isUpdating ? "Saving..." : "Save changes"}
+              {isUpdating ? 'Saving...' : 'Save changes'}
             </PrimaryButton>
           </DialogFooter>
         </form>

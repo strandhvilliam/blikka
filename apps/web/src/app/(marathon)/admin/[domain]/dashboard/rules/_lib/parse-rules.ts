@@ -1,49 +1,49 @@
-import type { RuleConfig } from "@blikka/db"
-import { normalizeAllowedFileTypes, RULE_KEYS } from "@blikka/validation"
-import type { RuleKey } from "@blikka/validation"
+import type { RuleConfig } from '@blikka/db'
+import { normalizeAllowedFileTypes, RULE_KEYS } from '@blikka/validation'
+import type { RuleKey } from '@blikka/validation'
 import {
   allowedFileTypesParamsSchema,
   maxFileSizeParamsSchema,
   RulesFormValues,
   withinTimerangeParamsSchema,
-} from "./schemas"
+} from './schemas'
 
 const DEFAULT_RULE_CONFIGS: RulesFormValues = {
   max_file_size: {
     enabled: false,
-    severity: "error",
+    severity: 'error',
     params: {
       maxBytes: 1024 * 1024 * 5,
     },
   },
   allowed_file_types: {
     enabled: false,
-    severity: "error",
+    severity: 'error',
     params: {
-      allowedFileTypes: ["jpg"],
+      allowedFileTypes: ['jpg'],
     },
   },
   within_timerange: {
     enabled: false,
-    severity: "error",
+    severity: 'error',
     params: {
-      start: "",
-      end: "",
+      start: '',
+      end: '',
     },
   },
   same_device: {
     enabled: false,
-    severity: "error",
+    severity: 'error',
     params: null,
   },
   modified: {
     enabled: false,
-    severity: "error",
+    severity: 'error',
     params: null,
   },
   strict_timestamp_ordering: {
     enabled: false,
-    severity: "error",
+    severity: 'error',
     params: null,
   },
 }
@@ -106,8 +106,8 @@ export function parseRules(
         RULE_KEYS.WITHIN_TIMERANGE,
         (params) => ({
           ...params,
-          start: marathon.startDate ?? "",
-          end: marathon.endDate ?? "",
+          start: marathon.startDate ?? '',
+          end: marathon.endDate ?? '',
         }),
       ),
     [RULE_KEYS.SAME_DEVICE]: (rule) => parseSimpleRule(RULE_KEYS.SAME_DEVICE, rule),
@@ -130,8 +130,8 @@ export function parseRules(
     within_timerange: {
       ...DEFAULT_RULE_CONFIGS.within_timerange,
       params: {
-        start: marathon.startDate ?? "",
-        end: marathon.endDate ?? "",
+        start: marathon.startDate ?? '',
+        end: marathon.endDate ?? '',
       },
     },
   }

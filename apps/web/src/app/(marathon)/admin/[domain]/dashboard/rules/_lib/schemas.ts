@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from 'zod'
 
 export const rulesFormSchema = z.object({
   max_file_size: z.object({

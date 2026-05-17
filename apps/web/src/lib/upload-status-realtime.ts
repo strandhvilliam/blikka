@@ -1,46 +1,42 @@
-"use client";
+'use client'
 
-import { z } from "zod";
+import { z } from 'zod'
 
 const uploadRealtimeEventDataSchema = z
   .object({
     reference: z.string().nullish(),
     orderIndex: z.number().nullish(),
-    outcome: z.enum(["success", "error"]).optional(),
+    outcome: z.enum(['success', 'error']).optional(),
   })
-  .loose();
+  .loose()
 
-export type UploadRealtimeEventData = z.infer<
-  typeof uploadRealtimeEventDataSchema
->;
+export type UploadRealtimeEventData = z.infer<typeof uploadRealtimeEventDataSchema>
 
 export interface UploadRealtimeFileSnapshot<TPhase extends string = string> {
-  key: string;
-  orderIndex: number;
-  phase: TPhase;
+  key: string
+  orderIndex: number
+  phase: TPhase
 }
 
 export interface UploadStatusSubmissionSnapshot {
-  key: string;
-  uploaded: boolean;
+  key: string
+  uploaded: boolean
 }
 
-export function parseUploadRealtimeEventData(
-  raw: unknown,
-): UploadRealtimeEventData | null {
+export function parseUploadRealtimeEventData(raw: unknown): UploadRealtimeEventData | null {
   const parsedData =
-    typeof raw === "string"
+    typeof raw === 'string'
       ? (() => {
           try {
-            return JSON.parse(raw) as unknown;
+            return JSON.parse(raw) as unknown
           } catch {
-            return null;
+            return null
           }
         })()
-      : raw;
+      : raw
 
-  const parsed = uploadRealtimeEventDataSchema.safeParse(parsedData);
-  return parsed.success ? parsed.data : null;
+  const parsed = uploadRealtimeEventDataSchema.safeParse(parsedData)
+  return parsed.success ? parsed.data : null
 }
 
 export function getRealtimeSubmissionCompletion<TPhase extends string>(
@@ -49,18 +45,18 @@ export function getRealtimeSubmissionCompletion<TPhase extends string>(
   completedPhase: TPhase,
 ): { key: string; shouldUpdate: boolean } | null {
   if (orderIndex === null || orderIndex === undefined) {
-    return null;
+    return null
   }
 
-  const file = files.find((candidate) => candidate.orderIndex === orderIndex);
+  const file = files.find((candidate) => candidate.orderIndex === orderIndex)
   if (!file) {
-    return null;
+    return null
   }
 
   return {
     key: file.key,
     shouldUpdate: file.phase !== completedPhase,
-  };
+  }
 }
 
 export function getPollingCompletionKeys<TPhase extends string>(
@@ -69,16 +65,12 @@ export function getPollingCompletionKeys<TPhase extends string>(
   completedPhase: TPhase,
 ): string[] {
   const completedKeys = new Set(
-    files
-      .filter((file) => file.phase === completedPhase)
-      .map((file) => file.key),
-  );
+    files.filter((file) => file.phase === completedPhase).map((file) => file.key),
+  )
 
   return submissions
-    .filter(
-      (submission) => submission.uploaded && !completedKeys.has(submission.key),
-    )
-    .map((submission) => submission.key);
+    .filter((submission) => submission.uploaded && !completedKeys.has(submission.key))
+    .map((submission) => submission.key)
 }
 
 export function shouldCompleteUploadFlow<TPhase extends string>(
@@ -87,14 +79,10 @@ export function shouldCompleteUploadFlow<TPhase extends string>(
   completedPhase: TPhase,
 ): boolean {
   return (
-    participantFinalized &&
-    files.length > 0 &&
-    files.every((file) => file.phase === completedPhase)
-  );
+    participantFinalized && files.length > 0 && files.every((file) => file.phase === completedPhase)
+  )
 }
 
-export function shouldReconcileUploadStatus(
-  outcome: UploadRealtimeEventData["outcome"],
-): boolean {
-  return outcome === "error";
+export function shouldReconcileUploadStatus(outcome: UploadRealtimeEventData['outcome']): boolean {
+  return outcome === 'error'
 }

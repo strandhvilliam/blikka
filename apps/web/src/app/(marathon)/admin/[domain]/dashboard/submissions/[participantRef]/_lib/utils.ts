@@ -10,7 +10,7 @@ import {
   Zap,
   Camera,
   XCircle,
-} from "lucide-react"
+} from 'lucide-react'
 
 import type {
   Participant,
@@ -20,7 +20,7 @@ import type {
   Submission,
   ContactSheet,
   ZippedSubmission,
-} from "@blikka/db"
+} from '@blikka/db'
 
 export type ParticipantWithRelations = Participant & {
   validationResults: ValidationResult[]
@@ -44,51 +44,51 @@ const statusConfigMap: Record<
 > = {
   prepared: {
     icon: Clock,
-    label: "Prepared",
-    description: "Participant details are saved and waiting for organizer-assisted upload",
-    color: "text-amber-700",
-    bgColor: "bg-amber-50",
-    borderColor: "border-amber-200",
+    label: 'Prepared',
+    description: 'Participant details are saved and waiting for organizer-assisted upload',
+    color: 'text-amber-700',
+    bgColor: 'bg-amber-50',
+    borderColor: 'border-amber-200',
   },
   initialized: {
     icon: Clock,
-    label: "Initialized",
-    description: "Upload session started and waiting for images",
-    color: "text-gray-600",
-    bgColor: "bg-gray-100",
-    borderColor: "border-gray-200",
+    label: 'Initialized',
+    description: 'Upload session started and waiting for images',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-100',
+    borderColor: 'border-gray-200',
   },
   ready_to_upload: {
     icon: Upload,
-    label: "Ready to Upload",
-    description: "Participant can start uploading photos",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
+    label: 'Ready to Upload',
+    description: 'Participant can start uploading photos',
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
   },
   processing: {
     icon: Loader2,
-    label: "Processing",
-    description: "Photos are being processed and validated",
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-50",
-    borderColor: "border-yellow-200",
+    label: 'Processing',
+    description: 'Photos are being processed and validated',
+    color: 'text-yellow-600',
+    bgColor: 'bg-yellow-50',
+    borderColor: 'border-yellow-200',
   },
   completed: {
     icon: Shield,
-    label: "Submitted",
-    description: "All photos uploaded, awaiting staff verification",
-    color: "text-orange-600",
-    bgColor: "bg-orange-50",
-    borderColor: "border-orange-200",
+    label: 'Submitted',
+    description: 'All photos uploaded, awaiting staff verification',
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-50',
+    borderColor: 'border-orange-200',
   },
   verified: {
     icon: CheckCircle,
-    label: "Verified",
-    description: "Submission has been uploaded and verified",
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-    borderColor: "border-green-200",
+    label: 'Verified',
+    description: 'Submission has been uploaded and verified',
+    color: 'text-green-600',
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-200',
   },
 } as const
 
@@ -97,18 +97,18 @@ export const getStatusConfig = (status: string) => {
     statusConfigMap[status as keyof typeof statusConfigMap] || {
       icon: AlertTriangle,
       label: status,
-      description: "Unknown status",
-      color: "text-gray-600",
-      bgColor: "bg-gray-100",
-      borderColor: "border-gray-200",
+      description: 'Unknown status',
+      color: 'text-gray-600',
+      bgColor: 'bg-gray-100',
+      borderColor: 'border-gray-200',
     }
   )
 }
 
 function getValidationBadgeColor(allPassed: boolean, hasErrors: boolean) {
-  if (allPassed) return "bg-green-500/15 text-green-600 hover:bg-green-500/20"
-  if (hasErrors) return "bg-destructive/15 text-destructive hover:bg-destructive/20"
-  return "bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20"
+  if (allPassed) return 'bg-green-500/15 text-green-600 hover:bg-green-500/20'
+  if (hasErrors) return 'bg-destructive/15 text-destructive hover:bg-destructive/20'
+  return 'bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20'
 }
 
 function getValidationBadgeIcon(allPassed: boolean, hasErrors: boolean): LucideIcon {
@@ -118,16 +118,16 @@ function getValidationBadgeIcon(allPassed: boolean, hasErrors: boolean): LucideI
 }
 
 function getValidationBadgeLabel(allPassed: boolean, hasErrors: boolean) {
-  if (allPassed) return "Valid"
-  if (hasErrors) return "Error"
-  return "Warning"
+  if (allPassed) return 'Valid'
+  if (hasErrors) return 'Error'
+  return 'Warning'
 }
 
 export const getValidationBadgeConfig = (validationResults: ValidationResult[]) => {
   const globalValidations = validationResults.filter((result) => !result.fileName)
-  const hasFailedValidations = globalValidations.some((result) => result.outcome === "failed")
+  const hasFailedValidations = globalValidations.some((result) => result.outcome === 'failed')
   const hasErrors = globalValidations.some(
-    (result) => result.severity === "error" && result.outcome === "failed",
+    (result) => result.severity === 'error' && result.outcome === 'failed',
   )
   const allPassed = globalValidations.length > 0 && !hasFailedValidations
 

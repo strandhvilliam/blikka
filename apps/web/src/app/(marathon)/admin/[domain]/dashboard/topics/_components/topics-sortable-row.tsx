@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
-import { useSortable } from "@dnd-kit/sortable"
-import type { Row } from "@tanstack/react-table"
-import type { Topic } from "@blikka/db"
-import type { UniqueIdentifier } from "@dnd-kit/core"
-import { cn } from "@/lib/utils"
-import { flexRender } from "@tanstack/react-table"
-import { TableCell, TableRow } from "@/components/ui/table"
-import { CSS } from "@dnd-kit/utilities"
-import { SortableRowContext } from "./topics-sortable-context"
+import { useSortable } from '@dnd-kit/sortable'
+import type { Row } from '@tanstack/react-table'
+import type { Topic } from '@blikka/db'
+import type { UniqueIdentifier } from '@dnd-kit/core'
+import { cn } from '@/lib/utils'
+import { flexRender } from '@tanstack/react-table'
+import { TableCell, TableRow } from '@/components/ui/table'
+import { CSS } from '@dnd-kit/utilities'
+import { SortableRowContext } from './topics-sortable-context'
 
 interface TopicsSortableRowProps {
   row: Row<Topic>
@@ -17,14 +17,7 @@ interface TopicsSortableRowProps {
 }
 
 export function TopicsSortableRow({ row }: TopicsSortableRowProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: row.original.id,
   })
 
@@ -46,10 +39,7 @@ export function TopicsSortableRow({ row }: TopicsSortableRowProps) {
         key={row.original.id}
         ref={setNodeRef}
         style={style}
-        className={cn(
-          "bg-background cursor-default",
-          isDragging && "opacity-50"
-        )}
+        className={cn('bg-background cursor-default', isDragging && 'opacity-50')}
         data-order-index={row.original.orderIndex}
       >
         {row.getVisibleCells().map((cell) => (
@@ -61,4 +51,3 @@ export function TopicsSortableRow({ row }: TopicsSortableRowProps) {
     </SortableRowContext.Provider>
   )
 }
-

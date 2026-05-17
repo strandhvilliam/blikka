@@ -1,21 +1,21 @@
-"use client"
+'use client'
 
-import Image from "next/image"
-import { cn } from "@/lib/utils"
-import { Star, Info, Languages, Check } from "lucide-react"
-import { VotingInfoDrawer } from "./voting-info-drawer"
-import { useVotingSearchParams } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params"
-import { useLocale, Locale, useTranslations } from "next-intl"
-import { useTransition } from "react"
-import ReactCountryFlag from "react-country-flag"
-import { changeLocaleAction } from "@/lib/actions/change-locale-action"
-import { useRouter } from "next/navigation"
+import Image from 'next/image'
+import { cn } from '@/lib/utils'
+import { Star, Info, Languages, Check } from 'lucide-react'
+import { VotingInfoDrawer } from './voting-info-drawer'
+import { useVotingSearchParams } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params'
+import { useLocale, Locale, useTranslations } from 'next-intl'
+import { useTransition } from 'react'
+import ReactCountryFlag from 'react-country-flag'
+import { changeLocaleAction } from '@/lib/actions/change-locale-action'
+import { useRouter } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu'
 
 interface FilterBarProps {
   ratingCounts: Record<number, number>
@@ -26,12 +26,12 @@ interface FilterBarProps {
 }
 
 const filterOptions = [
-  { value: null, labelKey: "all" },
-  { value: 5, label: "5" },
-  { value: 4, label: "4" },
-  { value: 3, label: "3" },
-  { value: 2, label: "2" },
-  { value: 1, label: "1" },
+  { value: null, labelKey: 'all' },
+  { value: 5, label: '5' },
+  { value: 4, label: '4' },
+  { value: 3, label: '3' },
+  { value: 2, label: '2' },
+  { value: 1, label: '1' },
 ]
 
 export function FilterBar({
@@ -54,14 +54,14 @@ export function FilterBar({
   const locale = useLocale()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const t = useTranslations("VotingViewerPage")
+  const t = useTranslations('VotingViewerPage')
 
   const setLocale = (newLocale: Locale) => {
     if (newLocale === locale || isPending) return
     startTransition(async () => {
       const response = await changeLocaleAction(newLocale)
       if (response.error) {
-        console.error("Failed to change locale:", response.error)
+        console.error('Failed to change locale:', response.error)
         return
       }
       router.refresh()
@@ -83,26 +83,26 @@ export function FilterBar({
         key={String(option.value)}
         onClick={() => handleFilterChange(option.value)}
         className={cn(
-          "flex shrink-0 items-center gap-0.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+          'flex shrink-0 items-center gap-0.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all',
           isActive
-            ? "bg-foreground text-background"
-            : "bg-muted/50 text-muted-foreground hover:bg-muted",
+            ? 'bg-foreground text-background'
+            : 'bg-muted/50 text-muted-foreground hover:bg-muted',
         )}
       >
         {option.value !== null && <Star className="h-3 w-3 fill-current" />}
-        {option.value === null ? t("filterBar.all") : option.label}
+        {option.value === null ? t('filterBar.all') : option.label}
         {count > 0 && <span className="ml-0.5 opacity-60">({count})</span>}
       </button>
     )
   }
 
   return (
-    <div className={cn("border-b border-border bg-background px-4 py-3", className)}>
+    <div className={cn('border-b border-border bg-background px-4 py-3', className)}>
       <div className="mb-3 flex items-center justify-between">
         <VotingInfoDrawer votingInfo={{ rated: ratedCount, total: reviewTotalCount }}>
           <button
             className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/50 shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
-            aria-label={t("infoDrawer.triggerLabel")}
+            aria-label={t('infoDrawer.triggerLabel')}
           >
             <Info className="h-5 w-5" />
           </button>
@@ -124,27 +124,33 @@ export function FilterBar({
             <button
               disabled={isPending}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/50 shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
-              aria-label={t("filterBar.changeLanguage")}
+              aria-label={t('filterBar.changeLanguage')}
             >
               <Languages className="h-5 w-5" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[140px]">
             <DropdownMenuItem
-              onClick={() => setLocale("en")}
-              className={cn("flex cursor-pointer items-center gap-2", locale === "en" && "bg-accent")}
+              onClick={() => setLocale('en')}
+              className={cn(
+                'flex cursor-pointer items-center gap-2',
+                locale === 'en' && 'bg-accent',
+              )}
             >
               <ReactCountryFlag countryCode="GB" svg className="h-5 w-5" />
               <span className="flex-1">English</span>
-              {locale === "en" && <Check className="h-4 w-4" />}
+              {locale === 'en' && <Check className="h-4 w-4" />}
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => setLocale("sv")}
-              className={cn("flex cursor-pointer items-center gap-2", locale === "sv" && "bg-accent")}
+              onClick={() => setLocale('sv')}
+              className={cn(
+                'flex cursor-pointer items-center gap-2',
+                locale === 'sv' && 'bg-accent',
+              )}
             >
               <ReactCountryFlag countryCode="SE" svg className="h-5 w-5" />
               <span className="flex-1">Svenska</span>
-              {locale === "sv" && <Check className="h-4 w-4" />}
+              {locale === 'sv' && <Check className="h-4 w-4" />}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -154,7 +160,7 @@ export function FilterBar({
       <div className="mb-3">
         <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
           <span className="font-medium text-foreground">
-            {t("filterBar.photoProgress", {
+            {t('filterBar.photoProgress', {
               current: visibleCurrentIndex,
               total: totalCount,
             })}
@@ -170,7 +176,7 @@ export function FilterBar({
       </div>
 
       {/* Filters */}
-      <p className="mb-1.5 text-xs text-muted-foreground">{t("filterBar.ratingFilterHint")}</p>
+      <p className="mb-1.5 text-xs text-muted-foreground">{t('filterBar.ratingFilterHint')}</p>
       <div className="scrollbar-hide flex items-center gap-1.5 overflow-x-auto">
         {filterOptions.map((option) => renderFilterOption(option))}
       </div>

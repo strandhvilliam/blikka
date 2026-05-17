@@ -12,11 +12,11 @@ function latestOfType<T extends { type: string; createdAt: string }>(
 
 /** Preference order: canonical slot first, then legacy multi-slot types. */
 const LANDING_TYPE_PRIORITY = [
-  "live-landing",
-  "live-initial-1",
-  "live-initial-2",
-  "live-initial-3",
-  "live-initial-4",
+  'live-landing',
+  'live-initial-1',
+  'live-initial-2',
+  'live-initial-3',
+  'live-initial-4',
 ] as const
 
 /**

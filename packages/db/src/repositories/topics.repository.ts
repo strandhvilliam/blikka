@@ -1,10 +1,10 @@
-import { Effect, Layer, Context } from "effect"
-import { DrizzleClient } from "../drizzle-client"
-import { marathons, submissions } from "../schema"
-import { count, eq } from "drizzle-orm"
-import { topics } from "../schema"
-import type { Marathon, NewTopic, Topic } from "../types"
-import { DbError } from "../utils"
+import { Effect, Layer, Context } from 'effect'
+import { DrizzleClient } from '../drizzle-client'
+import { marathons, submissions } from '../schema'
+import { count, eq } from 'drizzle-orm'
+import { topics } from '../schema'
+import type { Marathon, NewTopic, Topic } from '../types'
+import { DbError } from '../utils'
 interface ScheduledTopic extends Topic {
   marathon: Marathon
 }
@@ -43,13 +43,13 @@ export class TopicsRepository extends Context.Service<
     /** First scheduled topic with its marathon, or undefined if none exist. */
     readonly getScheduledTopics: () => Effect.Effect<ScheduledTopic | undefined, DbError>
   }
->()("@blikka/db/topics-repository") {}
+>()('@blikka/db/topics-repository') {}
 
 const makeTopicsRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
 
-  const getTopicsByMarathonId: TopicsRepository["Service"]["getTopicsByMarathonId"] = Effect.fn(
-    "TopicsRepository.getTopicsByMarathonId",
+  const getTopicsByMarathonId: TopicsRepository['Service']['getTopicsByMarathonId'] = Effect.fn(
+    'TopicsRepository.getTopicsByMarathonId',
   )(function* ({ id }) {
     const result = yield* use((db) =>
       db.query.topics.findMany({
@@ -60,8 +60,8 @@ const makeTopicsRepository = Effect.gen(function* () {
     return result
   })
 
-  const getTopicsByDomain: TopicsRepository["Service"]["getTopicsByDomain"] = Effect.fn(
-    "TopicsRepository.getTopicsByDomain",
+  const getTopicsByDomain: TopicsRepository['Service']['getTopicsByDomain'] = Effect.fn(
+    'TopicsRepository.getTopicsByDomain',
   )(function* ({ domain }) {
     const result = yield* use((db) =>
       db.query.marathons.findMany({
@@ -74,8 +74,8 @@ const makeTopicsRepository = Effect.gen(function* () {
     return result.flatMap(({ topics }) => topics)
   })
 
-  const getTopicById: TopicsRepository["Service"]["getTopicById"] = Effect.fn(
-    "TopicsRepository.getTopicById",
+  const getTopicById: TopicsRepository['Service']['getTopicById'] = Effect.fn(
+    'TopicsRepository.getTopicById',
   )(function* ({ id }) {
     const result = yield* use((db) =>
       db.query.topics.findFirst({
@@ -85,8 +85,8 @@ const makeTopicsRepository = Effect.gen(function* () {
     return result ?? null
   })
 
-  const updateTopic: TopicsRepository["Service"]["updateTopic"] = Effect.fn(
-    "TopicsRepository.updateTopic",
+  const updateTopic: TopicsRepository['Service']['updateTopic'] = Effect.fn(
+    'TopicsRepository.updateTopic',
   )(function* ({ id, data }) {
     const [result] = yield* use((db) =>
       db.update(topics).set(data).where(eq(topics.id, id)).returning(),
@@ -94,15 +94,15 @@ const makeTopicsRepository = Effect.gen(function* () {
     if (!result) {
       return yield* Effect.fail(
         new DbError({
-          message: "Failed to update topic",
+          message: 'Failed to update topic',
         }),
       )
     }
     return result
   })
 
-  const updateTopicsOrder: TopicsRepository["Service"]["updateTopicsOrder"] = Effect.fn(
-    "TopicsRepository.updateTopicsOrder",
+  const updateTopicsOrder: TopicsRepository['Service']['updateTopicsOrder'] = Effect.fn(
+    'TopicsRepository.updateTopicsOrder',
   )(function* ({ topicIds, marathonId }) {
     for (let index = 0; index < topicIds.length; index++) {
       const topicId = topicIds[index]
@@ -119,36 +119,36 @@ const makeTopicsRepository = Effect.gen(function* () {
     )
   })
 
-  const createTopic: TopicsRepository["Service"]["createTopic"] = Effect.fn(
-    "TopicRepository.createTopic",
+  const createTopic: TopicsRepository['Service']['createTopic'] = Effect.fn(
+    'TopicRepository.createTopic',
   )(function* ({ data }) {
     const [result] = yield* use((db) => db.insert(topics).values(data).returning())
     if (!result) {
       return yield* Effect.fail(
         new DbError({
-          message: "Failed to create topic",
+          message: 'Failed to create topic',
         }),
       )
     }
     return result
   })
 
-  const deleteTopic: TopicsRepository["Service"]["deleteTopic"] = Effect.fn(
-    "TopicRepository.deleteTopic",
+  const deleteTopic: TopicsRepository['Service']['deleteTopic'] = Effect.fn(
+    'TopicRepository.deleteTopic',
   )(function* ({ id }) {
     const [result] = yield* use((db) => db.delete(topics).where(eq(topics.id, id)).returning())
     if (!result) {
       return yield* Effect.fail(
         new DbError({
-          message: "Failed to delete topic",
+          message: 'Failed to delete topic',
         }),
       )
     }
     return result
   })
 
-  const getTopicsWithSubmissionCount: TopicsRepository["Service"]["getTopicsWithSubmissionCount"] =
-    Effect.fn("TopicRepository.getTopicsWithSubmissionCount")(function* ({ domain }) {
+  const getTopicsWithSubmissionCount: TopicsRepository['Service']['getTopicsWithSubmissionCount'] =
+    Effect.fn('TopicRepository.getTopicsWithSubmissionCount')(function* ({ domain }) {
       const data = yield* use((db) =>
         db
           .select({
@@ -164,8 +164,8 @@ const makeTopicsRepository = Effect.gen(function* () {
       return data
     })
 
-  const getTotalSubmissionCount: TopicsRepository["Service"]["getTotalSubmissionCount"] = Effect.fn(
-    "TopicRepository.getTotalSubmissionCount",
+  const getTotalSubmissionCount: TopicsRepository['Service']['getTotalSubmissionCount'] = Effect.fn(
+    'TopicRepository.getTotalSubmissionCount',
   )(function* ({ marathonId }) {
     const [result] = yield* use((db) =>
       db
@@ -176,12 +176,12 @@ const makeTopicsRepository = Effect.gen(function* () {
     return result?.count ?? 0
   })
 
-  const getScheduledTopics: TopicsRepository["Service"]["getScheduledTopics"] = Effect.fn(
-    "TopicRepository.getScheduledTopics",
+  const getScheduledTopics: TopicsRepository['Service']['getScheduledTopics'] = Effect.fn(
+    'TopicRepository.getScheduledTopics',
   )(function* () {
     const [result] = yield* use((db) =>
       db.query.topics.findMany({
-        where: (table, operators) => operators.eq(table.visibility, "scheduled"),
+        where: (table, operators) => operators.eq(table.visibility, 'scheduled'),
         with: {
           marathon: true,
         },

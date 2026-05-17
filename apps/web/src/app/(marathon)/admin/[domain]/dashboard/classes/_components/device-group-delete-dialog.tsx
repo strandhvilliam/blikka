@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import type { DeviceGroup } from "@blikka/db"
-import { AlertTriangle } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from 'react'
+import type { DeviceGroup } from '@blikka/db'
+import { AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface DeleteDeviceGroupDialogProps {
   group: DeviceGroup | null
@@ -27,17 +27,17 @@ export function DeviceGroupDeleteDialog({
   onOpenChange,
   onConfirm,
 }: DeleteDeviceGroupDialogProps) {
-  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
 
   const handleConfirm = () => {
     if (!group || deleteConfirmation !== group.name) return
     onConfirm(group)
-    setDeleteConfirmation("")
+    setDeleteConfirmation('')
   }
 
   useEffect(() => {
     if (!isOpen) {
-      setDeleteConfirmation("")
+      setDeleteConfirmation('')
     }
   }, [isOpen])
 
@@ -63,7 +63,7 @@ export function DeviceGroupDeleteDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="confirmDelete" className="text-sm text-foreground">
-                  To confirm, type the device group name:{" "}
+                  To confirm, type the device group name:{' '}
                   <span className="font-semibold">{group?.name}</span>
                 </Label>
                 <Input
@@ -94,4 +94,3 @@ export function DeviceGroupDeleteDialog({
     </Dialog>
   )
 }
-

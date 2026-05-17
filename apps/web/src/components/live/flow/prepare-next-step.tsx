@@ -1,33 +1,33 @@
-"use client"
+'use client'
 
-import type { ReactNode } from "react"
-import { useMutation } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
-import { Loader2 } from "lucide-react"
+import type { ReactNode } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
+import { Loader2 } from 'lucide-react'
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { formatDomainPathname } from "@/lib/utils"
-import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
-import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
-import { useStepState } from "@/lib/flow/step-state-context"
-import type { CompetitionClass, DeviceGroup } from "@blikka/db"
-import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+} from '@/components/ui/card'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { formatDomainPathname } from '@/lib/utils'
+import { flowStateClientParamSerializer } from '@/lib/flow-state-params-client'
+import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
+import { useStepState } from '@/lib/flow/step-state-context'
+import type { CompetitionClass, DeviceGroup } from '@blikka/db'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 import {
   buildPrepareCompletedSearchParamsResult,
   buildPrepareUploadFlowInputResult,
   getUploadFlowIssueMessageKeys,
-} from "@/lib/flow/upload-flow-state"
+} from '@/lib/flow/upload-flow-state'
 
 interface PrepareNextStepProps {
   competitionClass: CompetitionClass
@@ -35,8 +35,8 @@ interface PrepareNextStepProps {
 }
 
 export function PrepareNextStep({ competitionClass, deviceGroup }: PrepareNextStepProps) {
-  const t = useTranslations("FlowPage.prepareStep")
-  const commonT = useTranslations("FlowPage.uploadStep")
+  const t = useTranslations('FlowPage.prepareStep')
+  const commonT = useTranslations('FlowPage.uploadStep')
   const trpc = useTRPC()
   const domain = useDomain()
   const router = useRouter()
@@ -46,7 +46,7 @@ export function PrepareNextStep({ competitionClass, deviceGroup }: PrepareNextSt
   const { mutateAsync: prepareUploadFlow, isPending } = useMutation(
     trpc.uploadFlow.prepareUploadFlow.mutationOptions({
       onError: (error) => {
-        toast.error(error.message || t("saveFailed"))
+        toast.error(error.message || t('saveFailed'))
       },
     }),
   )
@@ -75,10 +75,10 @@ export function PrepareNextStep({ competitionClass, deviceGroup }: PrepareNextSt
 
       toast.error(
         issueLabels.length > 0
-          ? commonT("missingRequiredInfoDetailed", {
-              fields: issueLabels.join(", "),
+          ? commonT('missingRequiredInfoDetailed', {
+              fields: issueLabels.join(', '),
             })
-          : commonT("missingRequiredInfo"),
+          : commonT('missingRequiredInfo'),
       )
       return
     }
@@ -89,7 +89,7 @@ export function PrepareNextStep({ competitionClass, deviceGroup }: PrepareNextSt
       const serializedParams = flowStateClientParamSerializer(completedSearchParamsResult.data)
 
       router.replace(
-        formatDomainPathname(`/live/marathon/prepare/completed${serializedParams}`, domain, "live"),
+        formatDomainPathname(`/live/marathon/prepare/completed${serializedParams}`, domain, 'live'),
       )
     } catch {
       return
@@ -100,15 +100,15 @@ export function PrepareNextStep({ competitionClass, deviceGroup }: PrepareNextSt
     <div className="max-w-md mx-auto min-h-[70dvh] space-y-10 flex flex-col justify-center">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-rocgrotesk font-bold text-center">
-          {t("reviewTitle")}
+          {t('reviewTitle')}
         </CardTitle>
-        <CardDescription className="text-center">{t("reviewDescription")}</CardDescription>
+        <CardDescription className="text-center">{t('reviewDescription')}</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
         <div className="rounded-xl border border-border bg-muted/50 px-5 py-4 text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            {t("participantNumberLabel")}
+            {t('participantNumberLabel')}
           </p>
           <p className="mt-2 font-mono text-4xl font-bold tracking-[0.3em] text-foreground">
             {uploadFlowState.participantRef}
@@ -116,15 +116,15 @@ export function PrepareNextStep({ competitionClass, deviceGroup }: PrepareNextSt
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <InfoRow label={t("participantLabel")}>
+          <InfoRow label={t('participantLabel')}>
             {uploadFlowState.participantFirstName} {uploadFlowState.participantLastName}
           </InfoRow>
-          <InfoRow label={t("emailLabel")}>{uploadFlowState.participantEmail}</InfoRow>
-          <InfoRow label={t("classLabel")}>{competitionClass.name}</InfoRow>
-          <InfoRow label={t("deviceLabel")}>{deviceGroup.name}</InfoRow>
+          <InfoRow label={t('emailLabel')}>{uploadFlowState.participantEmail}</InfoRow>
+          <InfoRow label={t('classLabel')}>{competitionClass.name}</InfoRow>
+          <InfoRow label={t('deviceLabel')}>{deviceGroup.name}</InfoRow>
         </div>
 
-        <p className="text-sm text-muted-foreground text-center pt-2">{t("nextBody")}</p>
+        <p className="text-sm text-muted-foreground text-center pt-2">{t('nextBody')}</p>
       </CardContent>
 
       <CardFooter className="flex flex-col gap-3">
@@ -133,7 +133,7 @@ export function PrepareNextStep({ competitionClass, deviceGroup }: PrepareNextSt
           disabled={isPending}
           className="w-full py-3.5 text-base sm:text-lg rounded-full"
         >
-          {isPending ? <Loader2 className="animate-spin" /> : t("confirm")}
+          {isPending ? <Loader2 className="animate-spin" /> : t('confirm')}
         </PrimaryButton>
         <Button
           variant="ghost"
@@ -142,7 +142,7 @@ export function PrepareNextStep({ competitionClass, deviceGroup }: PrepareNextSt
           disabled={isPending}
           className="w-full sm:w-[220px]"
         >
-          {t("back")}
+          {t('back')}
         </Button>
       </CardFooter>
     </div>

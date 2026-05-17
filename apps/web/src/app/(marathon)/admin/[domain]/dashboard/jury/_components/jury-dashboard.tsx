@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
-import { useState, Suspense } from "react"
-import { parseAsInteger, useQueryState } from "nuqs"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Gavel, Plus, Mail } from "lucide-react"
-import { JuryInvitationCreateDialog } from "./jury-invitation-create-dialog"
-import { JuryList } from "./jury-list"
-import { JuryListSkeleton } from "./jury-list-skeleton"
-import { JuryInvitationDetailsContent } from "./jury-invitation-details-content"
-import { JuryInvitationDetailsSkeleton } from "./jury-invitation-details-skeleton"
+import { useState, Suspense } from 'react'
+import { parseAsInteger, useQueryState } from 'nuqs'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Gavel, Plus, Mail } from 'lucide-react'
+import { JuryInvitationCreateDialog } from './jury-invitation-create-dialog'
+import { JuryList } from './jury-list'
+import { JuryListSkeleton } from './jury-list-skeleton'
+import { JuryInvitationDetailsContent } from './jury-invitation-details-content'
+import { JuryInvitationDetailsSkeleton } from './jury-invitation-details-skeleton'
 
 function JuryEmptySelection() {
   return (
@@ -26,7 +26,7 @@ function JuryEmptySelection() {
 
 export function JuryDashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [invitationId, setInvitationId] = useQueryState("invitation", parseAsInteger)
+  const [invitationId, setInvitationId] = useQueryState('invitation', parseAsInteger)
 
   return (
     <div className="mx-auto w-full max-w-[1400px] h-full flex flex-col px-4 py-3 sm:px-6 sm:py-4">

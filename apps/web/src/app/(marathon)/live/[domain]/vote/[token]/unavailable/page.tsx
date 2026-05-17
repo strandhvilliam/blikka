@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { useEffect } from "react"
-import { Clock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Image from "next/image"
-import { useRouter, useParams, useSearchParams } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { getVotingUnavailableReason } from "@/lib/voting-lifecycle"
-import { formatDomainPathname } from "@/lib/utils"
-import { getVotingUnavailableContent } from "@/lib/vote/voting-unavailable"
+import { useEffect } from 'react'
+import { Clock } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import Image from 'next/image'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { getVotingUnavailableReason } from '@/lib/voting-lifecycle'
+import { formatDomainPathname } from '@/lib/utils'
+import { getVotingUnavailableContent } from '@/lib/vote/voting-unavailable'
 
 export default function UnavailablePage() {
   const router = useRouter()
@@ -18,11 +18,11 @@ export default function UnavailablePage() {
   const trpc = useTRPC()
   const domain = params?.domain as string | undefined
   const token = params?.token as string | undefined
-  const reason = searchParams.get("reason")
+  const reason = searchParams.get('reason')
   const content = getVotingUnavailableContent(reason)
 
   const { data: votingSession } = useQuery({
-    ...trpc.voting.getVotingSession.queryOptions({ token: token ?? "" }),
+    ...trpc.voting.getVotingSession.queryOptions({ token: token ?? '' }),
     enabled: Boolean(token),
     refetchOnWindowFocus: true,
   })
@@ -35,7 +35,7 @@ export default function UnavailablePage() {
     if (!pathDomain) return
 
     if (votingSession.voteSubmissionId && votingSession.votedAt) {
-      router.replace(formatDomainPathname(`/live/vote/${token}/completed`, pathDomain, "live"))
+      router.replace(formatDomainPathname(`/live/vote/${token}/completed`, pathDomain, 'live'))
       return
     }
 
@@ -45,7 +45,7 @@ export default function UnavailablePage() {
     })
 
     if (!unavailableReason) {
-      router.replace(formatDomainPathname(`/live/vote/${token}`, pathDomain, "live"))
+      router.replace(formatDomainPathname(`/live/vote/${token}`, pathDomain, 'live'))
     }
   }, [votingSession, domain, token, router])
 
@@ -53,7 +53,7 @@ export default function UnavailablePage() {
     if (domain) {
       router.push(`/live/${domain}`)
     } else {
-      router.push("/")
+      router.push('/')
     }
   }
 
@@ -75,11 +75,7 @@ export default function UnavailablePage() {
               <p className="text-center text-sm text-muted-foreground">{content.hint}</p>
             </div>
             <div className="mt-6">
-              <Button
-                onClick={handleGoToLanding}
-                variant="outline"
-                className="w-full rounded-full"
-              >
+              <Button onClick={handleGoToLanding} variant="outline" className="w-full rounded-full">
                 Go to home page
               </Button>
             </div>

@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { startTransition, useEffect, useMemo, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { startTransition, useEffect, useMemo, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   getDomainRealtimeChannel,
   getRealtimeChannelEnvironmentFromNodeEnv,
   getVotingVoteCastEventName,
-} from "@blikka/realtime/contract";
-import { useDebouncedInvalidate } from "@/hooks/use-debounced-invalidate";
-import { useRealtime } from "@/lib/realtime-client";
-import { useTRPC } from "@/lib/trpc/client";
-import { VOTING_PAGE_SIZE } from "../_lib/utils";
+} from '@blikka/realtime/contract'
+import { useDebouncedInvalidate } from '@/hooks/use-debounced-invalidate'
+import { useRealtime } from '@/lib/realtime-client'
+import { useTRPC } from '@/lib/trpc/client'
+import { VOTING_PAGE_SIZE } from '../_lib/utils'
 import {
   applyVotingLeaderboardRealtimeBatch,
   applyVotingSummaryRealtimeBatch,
@@ -21,24 +21,24 @@ import {
   type VotingLeaderboardPageData,
   type VotingVoteCastEventData,
   type VotingVotersPageData,
-} from "../_lib/voting-realtime";
+} from '../_lib/voting-realtime'
 
 const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(
-  typeof process !== "undefined" ? process.env.NODE_ENV : undefined,
-);
+  typeof process !== 'undefined' ? process.env.NODE_ENV : undefined,
+)
 
-const VOTING_VOTE_CAST_EVENT = getVotingVoteCastEventName();
-const VOTING_REALTIME_BATCH_WINDOW_MS = 250;
-const VOTING_REALTIME_RECONCILE_DEBOUNCE_MS = 1000;
-const MAX_PENDING_VOTING_REALTIME_EVENTS = 200;
-const MAX_TRACKED_VOTING_REALTIME_EVENT_IDS = 1000;
+const VOTING_VOTE_CAST_EVENT = getVotingVoteCastEventName()
+const VOTING_REALTIME_BATCH_WINDOW_MS = 250
+const VOTING_REALTIME_RECONCILE_DEBOUNCE_MS = 1000
+const MAX_PENDING_VOTING_REALTIME_EVENTS = 200
+const MAX_TRACKED_VOTING_REALTIME_EVENT_IDS = 1000
 
 interface UseVotingRealtimeOptions {
-  domain: string;
-  topicId: number;
-  leaderboardPage: number;
-  leaderboardRoundId: number | null;
-  votersPage: number;
+  domain: string
+  topicId: number
+  leaderboardPage: number
+  leaderboardRoundId: number | null
+  votersPage: number
 }
 
 export function useVotingRealtime({
@@ -48,17 +48,14 @@ export function useVotingRealtime({
   leaderboardRoundId,
   votersPage,
 }: UseVotingRealtimeOptions) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const trackedEventIdsRef = useRef<ReadonlySet<string>>(new Set());
-  const queuedVoteEventsRef = useRef<VotingVoteCastEventData[]>([]);
-  const batchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const queueOverflowedRef = useRef(false);
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const trackedEventIdsRef = useRef<ReadonlySet<string>>(new Set())
+  const queuedVoteEventsRef = useRef<VotingVoteCastEventData[]>([])
+  const batchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const queueOverflowedRef = useRef(false)
 
-  const channel = useMemo(
-    () => getDomainRealtimeChannel(REALTIME_CHANNEL_ENV, domain),
-    [domain],
-  );
+  const channel = useMemo(() => getDomainRealtimeChannel(REALTIME_CHANNEL_ENV, domain), [domain])
 
   const summaryQueryOptions = useMemo(
     () =>
@@ -67,7 +64,7 @@ export function useVotingRealtime({
         topicId,
       }),
     [domain, topicId, trpc],
-  );
+  )
 
   const roundsQueryOptions = useMemo(
     () =>
@@ -76,7 +73,7 @@ export function useVotingRealtime({
         topicId,
       }),
     [domain, topicId, trpc],
-  );
+  )
 
   const leaderboardQueryOptions = useMemo(
     () =>
@@ -88,7 +85,7 @@ export function useVotingRealtime({
         ...(leaderboardRoundId != null ? { roundId: leaderboardRoundId } : {}),
       }),
     [domain, leaderboardPage, topicId, trpc, leaderboardRoundId],
-  );
+  )
 
   const votersQueryOptions = useMemo(
     () =>
@@ -99,143 +96,137 @@ export function useVotingRealtime({
         limit: VOTING_PAGE_SIZE,
       }),
     [domain, topicId, trpc, votersPage],
-  );
+  )
 
   const invalidateSummary = useDebouncedInvalidate(
     queryClient,
     summaryQueryOptions.queryKey,
     VOTING_REALTIME_RECONCILE_DEBOUNCE_MS,
-  );
+  )
   const invalidateLeaderboard = useDebouncedInvalidate(
     queryClient,
     leaderboardQueryOptions.queryKey,
     VOTING_REALTIME_RECONCILE_DEBOUNCE_MS,
-  );
+  )
   const invalidateRounds = useDebouncedInvalidate(
     queryClient,
     roundsQueryOptions.queryKey,
     VOTING_REALTIME_RECONCILE_DEBOUNCE_MS,
-  );
+  )
   const invalidateVoters = useDebouncedInvalidate(
     queryClient,
     votersQueryOptions.queryKey,
     VOTING_REALTIME_RECONCILE_DEBOUNCE_MS,
-  );
+  )
 
   useEffect(() => {
     return () => {
       if (batchTimeoutRef.current) {
-        clearTimeout(batchTimeoutRef.current);
+        clearTimeout(batchTimeoutRef.current)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   useEffect(() => {
     if (batchTimeoutRef.current) {
-      clearTimeout(batchTimeoutRef.current);
-      batchTimeoutRef.current = null;
+      clearTimeout(batchTimeoutRef.current)
+      batchTimeoutRef.current = null
     }
-    queuedVoteEventsRef.current = [];
-    queueOverflowedRef.current = false;
-  }, [domain, topicId, leaderboardPage, leaderboardRoundId, votersPage]);
+    queuedVoteEventsRef.current = []
+    queueOverflowedRef.current = false
+  }, [domain, topicId, leaderboardPage, leaderboardRoundId, votersPage])
 
   useRealtime({
     events: [VOTING_VOTE_CAST_EVENT],
     channels: [channel],
     enabled: Boolean(domain) && topicId > 0,
     onData: ({ data: rawData }) => {
-      const voteEvent = parseVotingVoteCastEventData(rawData);
+      const voteEvent = parseVotingVoteCastEventData(rawData)
       if (!voteEvent || voteEvent.topicId !== topicId) {
-        return;
+        return
       }
 
       const dedupedEvents = dedupeVotingVoteCastEvents(
         trackedEventIdsRef.current,
         [voteEvent],
         MAX_TRACKED_VOTING_REALTIME_EVENT_IDS,
-      );
-      trackedEventIdsRef.current = dedupedEvents.trackedEventIds;
+      )
+      trackedEventIdsRef.current = dedupedEvents.trackedEventIds
 
       if (dedupedEvents.events.length === 0) {
-        return;
+        return
       }
 
       if (queueOverflowedRef.current) {
         if (!batchTimeoutRef.current) {
           batchTimeoutRef.current = setTimeout(() => {
-            batchTimeoutRef.current = null;
+            batchTimeoutRef.current = null
 
             startTransition(() => {
-              invalidateSummary();
-              invalidateLeaderboard();
-              invalidateRounds();
-              invalidateVoters();
-            });
-          }, VOTING_REALTIME_BATCH_WINDOW_MS);
+              invalidateSummary()
+              invalidateLeaderboard()
+              invalidateRounds()
+              invalidateVoters()
+            })
+          }, VOTING_REALTIME_BATCH_WINDOW_MS)
         }
 
-        return;
+        return
       }
 
       if (
         queuedVoteEventsRef.current.length + dedupedEvents.events.length >
         MAX_PENDING_VOTING_REALTIME_EVENTS
       ) {
-        queueOverflowedRef.current = true;
-        queuedVoteEventsRef.current = [];
+        queueOverflowedRef.current = true
+        queuedVoteEventsRef.current = []
       } else {
-        queuedVoteEventsRef.current.push(...dedupedEvents.events);
+        queuedVoteEventsRef.current.push(...dedupedEvents.events)
       }
 
       if (batchTimeoutRef.current) {
-        return;
+        return
       }
 
       batchTimeoutRef.current = setTimeout(() => {
-        batchTimeoutRef.current = null;
+        batchTimeoutRef.current = null
 
-        const queuedVoteEvents = queuedVoteEventsRef.current;
-        const queueOverflowed = queueOverflowedRef.current;
+        const queuedVoteEvents = queuedVoteEventsRef.current
+        const queueOverflowed = queueOverflowedRef.current
 
-        queuedVoteEventsRef.current = [];
-        queueOverflowedRef.current = false;
+        queuedVoteEventsRef.current = []
+        queueOverflowedRef.current = false
 
         startTransition(() => {
           if (!queueOverflowed && queuedVoteEvents.length > 0) {
             if (queryClient.getQueryState(summaryQueryOptions.queryKey)) {
               queryClient.setQueryData<VotingAdminSummaryData | undefined>(
                 summaryQueryOptions.queryKey,
-                (current) =>
-                  applyVotingSummaryRealtimeBatch(current, queuedVoteEvents),
-              );
+                (current) => applyVotingSummaryRealtimeBatch(current, queuedVoteEvents),
+              )
             }
 
             if (queryClient.getQueryState(votersQueryOptions.queryKey)) {
               queryClient.setQueryData<VotingVotersPageData | undefined>(
                 votersQueryOptions.queryKey,
-                (current) =>
-                  applyVotingVotersPageRealtimeBatch(current, queuedVoteEvents),
-              );
+                (current) => applyVotingVotersPageRealtimeBatch(current, queuedVoteEvents),
+              )
             }
 
             if (queryClient.getQueryState(leaderboardQueryOptions.queryKey)) {
               queryClient.setQueryData<VotingLeaderboardPageData | undefined>(
                 leaderboardQueryOptions.queryKey,
-                (current) =>
-                  applyVotingLeaderboardRealtimeBatch(
-                    current,
-                    queuedVoteEvents,
-                  ),
-              );
+                (current) => applyVotingLeaderboardRealtimeBatch(current, queuedVoteEvents),
+              )
             }
           }
 
-          invalidateSummary();
-          invalidateLeaderboard();
-          invalidateRounds();
-          invalidateVoters();
-        });
-      }, VOTING_REALTIME_BATCH_WINDOW_MS);
+          invalidateSummary()
+          invalidateLeaderboard()
+          invalidateRounds()
+          invalidateVoters()
+        })
+      }, VOTING_REALTIME_BATCH_WINDOW_MS)
     },
-  });
+  })
 }

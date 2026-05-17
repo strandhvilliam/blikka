@@ -1,8 +1,8 @@
-import { useMemo } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import type { CompetitionClass, DeviceGroup, Marathon, Topic } from "@blikka/db"
+import { useMemo } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import type { CompetitionClass, DeviceGroup, Marathon, Topic } from '@blikka/db'
 
-import { useTRPC } from "@/lib/trpc/client"
+import { useTRPC } from '@/lib/trpc/client'
 
 export interface RequiredAction {
   action: string
@@ -38,8 +38,8 @@ function checkConfiguration({
       isConfigured: false,
       requiredActions: [
         {
-          action: "missing_dates",
-          description: "Add the start and end dates to the marathon",
+          action: 'missing_dates',
+          description: 'Add the start and end dates to the marathon',
         },
       ],
     }
@@ -51,8 +51,8 @@ function checkConfiguration({
       isConfigured: false,
       requiredActions: [
         {
-          action: "missing_name",
-          description: "Add the name to the marathon",
+          action: 'missing_name',
+          description: 'Add the name to the marathon',
         },
       ],
     }
@@ -64,8 +64,8 @@ function checkConfiguration({
       isConfigured: false,
       requiredActions: [
         {
-          action: "missing_device_groups",
-          description: "Add device groups to the marathon",
+          action: 'missing_device_groups',
+          description: 'Add device groups to the marathon',
         },
       ],
     }
@@ -77,8 +77,8 @@ function checkConfiguration({
       isConfigured: false,
       requiredActions: [
         {
-          action: "missing_competition_classes",
-          description: "Add competition classes to the marathon",
+          action: 'missing_competition_classes',
+          description: 'Add competition classes to the marathon',
         },
       ],
     }
@@ -90,8 +90,8 @@ function checkConfiguration({
       isConfigured: false,
       requiredActions: [
         {
-          action: "missing_topics",
-          description: "Add topics to the marathon",
+          action: 'missing_topics',
+          description: 'Add topics to the marathon',
         },
       ],
     }
@@ -105,9 +105,9 @@ function checkConfiguration({
       isConfigured: false,
       requiredActions: [
         {
-          action: "missing_competition_class_topics",
+          action: 'missing_competition_class_topics',
           description:
-            "Add topics to the competition classes to minimally match the number of photos required for each competition class",
+            'Add topics to the competition classes to minimally match the number of photos required for each competition class',
         },
       ],
     }

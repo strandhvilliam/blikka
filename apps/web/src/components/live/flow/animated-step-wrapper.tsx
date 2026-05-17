@@ -1,12 +1,12 @@
-"use client";
-import { motion } from "motion/react";
+'use client'
+import { motion } from 'motion/react'
 
 export function AnimatedStepWrapper({
   children,
   direction,
 }: {
-  children: React.ReactNode;
-  direction: number;
+  children: React.ReactNode
+  direction: number
 }) {
   const cardVariants = {
     enter: (direction: number) => ({
@@ -23,7 +23,7 @@ export function AnimatedStepWrapper({
       x: direction < 0 ? 100 : -100,
       opacity: 0,
     }),
-  };
+  }
   return (
     <motion.div
       custom={direction}
@@ -32,11 +32,11 @@ export function AnimatedStepWrapper({
       animate="center"
       exit="exit"
       transition={{
-        x: { type: "tween", stiffness: 300, damping: 20, duration: 0.2 },
+        x: { type: 'tween', stiffness: 300, damping: 20, duration: 0.2 },
         opacity: { duration: 0.2 },
       }}
     >
       {children}
     </motion.div>
-  );
+  )
 }

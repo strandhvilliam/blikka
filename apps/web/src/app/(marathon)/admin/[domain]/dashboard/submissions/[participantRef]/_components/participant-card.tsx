@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils"
-import type { ReactNode } from "react"
+import { cn } from '@/lib/utils'
+import type { ReactNode } from 'react'
 
 interface ParticipantCardProps {
   icon: ReactNode
@@ -12,7 +12,7 @@ interface ParticipantCardProps {
 
 export function ParticipantCard({
   icon,
-  iconContainerClassName = "p-2 rounded-lg bg-muted/80 border border-border/60",
+  iconContainerClassName = 'p-2 rounded-lg bg-muted/80 border border-border/60',
   title,
   description,
   action,
@@ -21,7 +21,7 @@ export function ParticipantCard({
   return (
     <div
       className={cn(
-        "items-center flex rounded-xl border border-border min-w-[260px] bg-white transition-shadow duration-200 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]",
+        'items-center flex rounded-xl border border-border min-w-[260px] bg-white transition-shadow duration-200 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]',
         className,
       )}
     >

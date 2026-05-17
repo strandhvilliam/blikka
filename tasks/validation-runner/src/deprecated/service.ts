@@ -1,5 +1,5 @@
-import { Config, Effect, Layer, Option, Schema, Context } from "effect"
-import { Database, RuleConfig } from "@blikka/db"
+import { Config, Effect, Layer, Option, Schema, Context } from 'effect'
+import { Database, RuleConfig } from '@blikka/db'
 import {
   SubmissionState,
   ExifState,
@@ -8,18 +8,18 @@ import {
   UploadSessionRepositoryLayer,
   ExifKVRepository,
   ExifKVRepositoryLayer,
-} from "@blikka/kv-store"
-import { InvalidDataFoundError, InvalidValidationRuleError } from "./utils"
-import { S3Service, S3ServiceLayer } from "@blikka/aws"
+} from '@blikka/kv-store'
+import { InvalidDataFoundError, InvalidValidationRuleError } from './utils'
+import { S3Service, S3ServiceLayer } from '@blikka/aws'
 import {
   RuleKeySchema,
   ValidationEngine,
   ValidationInputSchema,
   ValidationRuleSchema,
-} from "@blikka/validation"
+} from '@blikka/validation'
 
 export class ValidationRunner extends Context.Service<ValidationRunner>()(
-  "@blikka/ValidationRunner",
+  '@blikka/ValidationRunner',
   {
     make: Effect.gen(function* () {
       const db = yield* Database
@@ -28,9 +28,9 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
       const exifRepository = yield* ExifKVRepository
       const validator = yield* ValidationEngine
 
-      const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
+      const submissionsBucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
 
-      const makeValidationRules = Effect.fn("ValidationRunner.makeValidationRules")(
+      const makeValidationRules = Effect.fn('ValidationRunner.makeValidationRules')(
         function* (rules: RuleConfig[]) {
           const validationRules = yield* Effect.forEach(
             rules,
@@ -49,7 +49,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
                 })
                 return parsed
               }),
-            { concurrency: "unbounded" },
+            { concurrency: 'unbounded' },
           )
           return validationRules
         },
@@ -58,7 +58,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
         ),
       )
 
-      const makeValidationInputs = Effect.fn("ValidationRunner.makeValidationInputs")(function* (
+      const makeValidationInputs = Effect.fn('ValidationRunner.makeValidationInputs')(function* (
         exifStates: { orderIndex: number; exif: ExifState }[],
         submissionStates: readonly SubmissionState[],
       ) {
@@ -77,7 +77,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
               const validationInput = ValidationInputSchema.make({
                 exif: exifState?.exif ?? {},
                 fileName,
-                mimeType: mimeType ?? "image/jpeg",
+                mimeType: mimeType ?? 'image/jpeg',
                 fileSize: fileSize ?? 0,
                 orderIndex: submissionState.orderIndex,
               })
@@ -88,7 +88,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
         return validationInputs
       })
 
-      const execute = Effect.fn("ValidationRunner.execute")(function* (
+      const execute = Effect.fn('ValidationRunner.execute')(function* (
         domain: string,
         reference: string,
         uploadSessionId: string,
@@ -103,7 +103,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
                   onNone: () =>
                     Effect.fail(
                       new InvalidDataFoundError({
-                        message: "Participant not found",
+                        message: 'Participant not found',
                       }),
                     ),
                 }),
@@ -119,7 +119,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
                   onNone: () =>
                     Effect.fail(
                       new InvalidDataFoundError({
-                        message: "Participant state not found",
+                        message: 'Participant state not found',
                       }),
                     ),
                 }),
@@ -127,7 +127,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
             )
 
           if (!participantState.finalized) {
-            yield* Effect.logWarning("Participant state not finalized, skipping validation")
+            yield* Effect.logWarning('Participant state not finalized, skipping validation')
             return
           }
 
@@ -136,7 +136,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
             participantState,
           })
           if (!sessionGuard.matched) {
-            yield* Effect.logWarning("Dropping validation event for non-current upload session", {
+            yield* Effect.logWarning('Dropping validation event for non-current upload session', {
               reason: sessionGuard.reason,
               uploadSessionId,
             })
@@ -144,7 +144,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
           }
 
           if (participantState.validated) {
-            yield* Effect.logWarning("Participant already validated, skipping")
+            yield* Effect.logWarning('Participant already validated, skipping')
             return
           }
 
@@ -164,7 +164,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
 
           if (submissionStates.length === 0) {
             return yield* new InvalidDataFoundError({
-              message: "Submission states not found",
+              message: 'Submission states not found',
             })
           }
 
@@ -175,7 +175,7 @@ export class ValidationRunner extends Context.Service<ValidationRunner>()(
 
           if (missingExifOrderIndexes.length > 0) {
             yield* Effect.logWarning(
-              "Missing EXIF state during validation; continuing with empty EXIF data",
+              'Missing EXIF state during validation; continuing with empty EXIF data',
               {
                 missingExifOrderIndexes,
               },

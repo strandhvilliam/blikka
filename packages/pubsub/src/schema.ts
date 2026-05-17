@@ -1,14 +1,14 @@
-import { Effect, Schema } from "effect"
-import { ChannelParseError } from "./errors"
+import { Effect, Schema } from 'effect'
+import { ChannelParseError } from './errors'
 
-const PubSubChannelEnvironment = Schema.Literals(["prod", "dev", "staging"])
-const PubSubChannelType = Schema.Literals(["upload-flow", "logger"])
+const PubSubChannelEnvironment = Schema.Literals(['prod', 'dev', 'staging'])
+const PubSubChannelType = Schema.Literals(['upload-flow', 'logger'])
 
 const PubSubChannelString = Schema.TemplateLiteral([
   PubSubChannelEnvironment,
-  Schema.Literal(":"),
+  Schema.Literal(':'),
   PubSubChannelType,
-  Schema.Literal(":"),
+  Schema.Literal(':'),
   Schema.String,
 ])
 
@@ -16,7 +16,7 @@ type PubSubChannelEnvironment = Schema.Schema.Type<typeof PubSubChannelEnvironme
 type PubSubChannelType = Schema.Schema.Type<typeof PubSubChannelType>
 type PubSubChannelString = Schema.Schema.Type<typeof PubSubChannelString>
 
-export class PubSubChannel extends Schema.Class<PubSubChannel>("PubSubChannel")({
+export class PubSubChannel extends Schema.Class<PubSubChannel>('PubSubChannel')({
   environment: PubSubChannelEnvironment,
   type: PubSubChannelType,
   identifier: Schema.String,
@@ -29,9 +29,9 @@ export class PubSubChannel extends Schema.Class<PubSubChannel>("PubSubChannel")(
     )
   })
   static fromString = Effect.fnUntraced(function* (str: PubSubChannelString) {
-    const parts = str.split(":")
+    const parts = str.split(':')
     if (parts.length !== 3) {
-      return yield* new ChannelParseError({ message: "Invalid pubsub channel string" })
+      return yield* new ChannelParseError({ message: 'Invalid pubsub channel string' })
     }
     const [environment, type, identifier] = parts
     return yield* Schema.decodeUnknownEffect(PubSubChannel)({
@@ -53,13 +53,13 @@ export class PubSubChannel extends Schema.Class<PubSubChannel>("PubSubChannel")(
 }
 
 export class PubSubMessageError extends Schema.TaggedErrorClass<PubSubMessageError>()(
-  "PubSubMessageError",
+  'PubSubMessageError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
 ) {}
-export class PubSubMessage extends Schema.Class<PubSubMessage>("PubSubMessage")({
+export class PubSubMessage extends Schema.Class<PubSubMessage>('PubSubMessage')({
   channel: PubSubChannelString,
   payload: Schema.Unknown,
   timestamp: Schema.Number,

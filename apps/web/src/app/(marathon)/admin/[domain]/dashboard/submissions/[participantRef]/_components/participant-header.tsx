@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import {
   AlertTriangle,
@@ -21,27 +21,27 @@ import {
   Trash2,
   Zap,
   Smartphone,
-} from "lucide-react"
-import type { Participant, ValidationResult } from "@blikka/db"
-import { useTRPC } from "@/lib/trpc/client"
+} from 'lucide-react'
+import type { Participant, ValidationResult } from '@blikka/db'
+import { useTRPC } from '@/lib/trpc/client'
 import {
   useSuspenseQuery,
   useMutation,
   useQueryClient,
   type UseMutationResult,
-} from "@tanstack/react-query"
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { cn, formatDomainPathname } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
+} from '@tanstack/react-query'
+import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { cn, formatDomainPathname } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,21 +51,21 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { toast } from "sonner"
-import { useDomain } from "@/lib/domain-provider"
+} from '@/components/ui/alert-dialog'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { toast } from 'sonner'
+import { useDomain } from '@/lib/domain-provider'
 import {
   getStatusConfig,
   getValidationBadgeConfig,
   type ParticipantWithRelations,
-} from "../_lib/utils"
-import { ParticipantCard } from "./participant-card"
-import { ParticipantVerifyDialog } from "./participant-verify-dialog"
+} from '../_lib/utils'
+import { ParticipantCard } from './participant-card'
+import { ParticipantVerifyDialog } from './participant-verify-dialog'
 import {
   ParticipantContactEditDialog,
   type ParticipantWithPhoneNumber,
-} from "../[submissionId]/_components/participant-contact-edit-dialog"
+} from '../[submissionId]/_components/participant-contact-edit-dialog'
 
 export function ParticipantHeader({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
@@ -100,7 +100,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
       { domain, reference: participantRef },
       {
         onSuccess: () => {
-          toast.success("Validations completed successfully")
+          toast.success('Validations completed successfully')
           queryClient.invalidateQueries({
             queryKey: trpc.validations.pathKey(),
           })
@@ -109,7 +109,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
           })
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : "Failed to run validations")
+          toast.error(error instanceof Error ? error.message : 'Failed to run validations')
         },
       },
     )
@@ -119,7 +119,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
       { domain, reference: participantRef },
       {
         onSuccess: () => {
-          toast.success("Contact sheet generated successfully")
+          toast.success('Contact sheet generated successfully')
           queryClient.invalidateQueries({
             queryKey: trpc.contactSheets.pathKey(),
           })
@@ -128,7 +128,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
           })
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : "Failed to generate contact sheet")
+          toast.error(error instanceof Error ? error.message : 'Failed to generate contact sheet')
         },
       },
     )
@@ -138,7 +138,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
       { domain, reference: participantRef },
       {
         onSuccess: () => {
-          toast.success("Participant deleted successfully")
+          toast.success('Participant deleted successfully')
           queryClient.invalidateQueries({
             queryKey: trpc.participants.pathKey(),
           })
@@ -148,7 +148,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
           router.push(formatDomainPathname(`/admin/dashboard/submissions`, domain))
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : "Failed to delete participant")
+          toast.error(error instanceof Error ? error.message : 'Failed to delete participant')
         },
       },
     )
@@ -158,7 +158,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         <ParticipantHeaderInfo participant={participant} />
         <ParticipantHeaderActions
           participant={participant}
-          marathonMode={marathon?.mode ?? ""}
+          marathonMode={marathon?.mode ?? ''}
           onEditParticipant={() => setIsEditContactOpen(true)}
           onRunValidations={handleRunValidations}
           isRunningValidations={runValidationsMutation.isPending}
@@ -189,7 +189,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         <ParticipantThumbnailsIndicator participant={participant} />
         <ParticipantExifIndicator participant={participant} />
       </div>
-      {marathon?.mode === "marathon" ? (
+      {marathon?.mode === 'marathon' ? (
         <ParticipantContactEditDialog
           participantRef={participantRef}
           participant={participant as ParticipantWithPhoneNumber}
@@ -208,7 +208,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Participant</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete participant #{participant.reference} -{" "}
+              Are you sure you want to delete participant #{participant.reference} -{' '}
               {participant.firstname} {participant.lastname}? This action cannot be undone and will
               permanently delete all associated data including submissions, validations, and contact
               sheets.
@@ -264,7 +264,7 @@ function ParticipantHeaderInfo({
             Participant #{participant.reference}
           </p>
           {badgeConfig.hasValidations && (
-            <Badge className={cn("text-[10px]", badgeConfig.badgeColor)}>
+            <Badge className={cn('text-[10px]', badgeConfig.badgeColor)}>
               <badgeConfig.icon className="h-3 w-3 mr-1" />
               {badgeConfig.label}
             </Badge>
@@ -312,12 +312,12 @@ function ParticipantHeaderActions({
 
   const handleExport = () => {
     // TODO: Implement export functionality
-    console.log("Export clicked")
+    console.log('Export clicked')
   }
 
   return (
     <div className="flex items-center gap-2">
-      {marathonMode === "marathon" ? (
+      {marathonMode === 'marathon' ? (
         <Button variant="outline" size="sm" onClick={onEditParticipant} className="text-xs">
           <UserPen className="h-3.5 w-3.5 mr-1.5" />
           Edit details
@@ -340,7 +340,7 @@ function ParticipantHeaderActions({
             onClick={onRunValidations}
             disabled={isRunningValidations || !hasSubmissions}
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", isRunningValidations && "animate-spin")} />
+            <RefreshCw className={cn('h-4 w-4 mr-2', isRunningValidations && 'animate-spin')} />
             Re-run validations
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -372,13 +372,13 @@ function ParticipantCompetitionClassCard({
     <ParticipantCard
       icon={
         <span className="w-5 h-5 text-center text-sm font-bold font-mono flex items-center justify-center">
-          {participant.competitionClass?.numberOfPhotos || "?"}
+          {participant.competitionClass?.numberOfPhotos || '?'}
         </span>
       }
       title={
         <>
-          <span className="font-normal text-muted-foreground">Class:</span>{" "}
-          {participant.competitionClass?.name || "No class assigned"}
+          <span className="font-normal text-muted-foreground">Class:</span>{' '}
+          {participant.competitionClass?.name || 'No class assigned'}
         </>
       }
       description={participant.competitionClass?.description}
@@ -388,9 +388,9 @@ function ParticipantCompetitionClassCard({
 
 export const DeviceIcon = ({ icon }: { icon?: string }): React.ReactNode => {
   switch (icon) {
-    case "smartphone":
+    case 'smartphone':
       return <Smartphone className="h-5 w-5" />
-    case "action-camera":
+    case 'action-camera':
       return <Zap className="h-5 w-5" />
     default:
       return <Camera className="h-5 w-5" />
@@ -403,8 +403,8 @@ function ParticipantDeviceGroupCard({ participant }: { participant: ParticipantW
       icon={DeviceIcon({ icon: participant.deviceGroup?.icon })}
       title={
         <>
-          <span className="font-normal text-muted-foreground">Device:</span>{" "}
-          {participant.deviceGroup?.name || "No device group"}
+          <span className="font-normal text-muted-foreground">Device:</span>{' '}
+          {participant.deviceGroup?.name || 'No device group'}
         </>
       }
       description={participant.deviceGroup?.description}
@@ -433,7 +433,7 @@ function ParticipantContactSheetIndicator({
   }
 
   const icon = <Grid3x3 className="h-5 w-5 text-orange-600" />
-  const iconContainerClassName = "p-2 rounded-lg bg-orange-500/10 border border-orange-200"
+  const iconContainerClassName = 'p-2 rounded-lg bg-orange-500/10 border border-orange-200'
 
   if (!isValidPhotoCount) {
     return (
@@ -448,7 +448,7 @@ function ParticipantContactSheetIndicator({
         }
         description={
           <>
-            Contact sheets require {VALID_CONTACT_SHEET_PHOTO_AMOUNT.join(" or ")} photos. Current:{" "}
+            Contact sheets require {VALID_CONTACT_SHEET_PHOTO_AMOUNT.join(' or ')} photos. Current:{' '}
             {submissionCount}
           </>
         }
@@ -537,7 +537,7 @@ function ParticipantThumbnailsIndicator({
       }
       description={
         <>
-          {missingThumbnails.length} submission{missingThumbnails.length !== 1 ? "s" : ""} without
+          {missingThumbnails.length} submission{missingThumbnails.length !== 1 ? 's' : ''} without
           thumbnails
         </>
       }
@@ -566,7 +566,7 @@ function ParticipantExifIndicator({ participant }: { participant: ParticipantWit
       }
       description={
         <>
-          {missingExif.length} submission{missingExif.length !== 1 ? "s" : ""} without EXIF
+          {missingExif.length} submission{missingExif.length !== 1 ? 's' : ''} without EXIF
         </>
       }
     />
@@ -619,7 +619,7 @@ function ParticipantValidationIndicator({
       }
       description={
         isRunningValidations
-          ? "Please wait while validations complete"
+          ? 'Please wait while validations complete'
           : "Click 'Run validations' to start"
       }
       action={
@@ -658,23 +658,23 @@ function ParticipantStatusIndicator({
   return (
     <ParticipantCard
       icon={Icon}
-      iconContainerClassName={cn("p-2 rounded-lg bg-muted border", statusConfig.color)}
+      iconContainerClassName={cn('p-2 rounded-lg bg-muted border', statusConfig.color)}
       title={
         <span className={cn(statusConfig.color)}>
           <span className="font-normal text-muted-foreground">Status:</span> {statusConfig.label}
         </span>
       }
       description={statusConfig.description}
-      className={cn("border-2", statusConfig.borderColor, statusConfig.bgColor)}
+      className={cn('border-2', statusConfig.borderColor, statusConfig.bgColor)}
       action={
         <>
-          {participant.status === "processing" && (
+          {participant.status === 'processing' && (
             <PrimaryButton className="w-fit h-8 text-xs" onClick={() => {}}>
               <Shield className="h-3.5 w-3.5" />
               Mark as completed
             </PrimaryButton>
           )}
-          {participant.status === "completed" && (
+          {participant.status === 'completed' && (
             <PrimaryButton className="w-fit h-8 text-xs" onClick={handleOpenVerifyDialog}>
               <Shield className="h-3.5 w-3.5" />
               Verify Now

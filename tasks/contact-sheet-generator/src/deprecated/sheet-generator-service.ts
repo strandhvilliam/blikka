@@ -1,32 +1,32 @@
-import { Config, Effect, Layer, Option, Context } from "effect"
-import { Database } from "@blikka/db"
+import { Config, Effect, Layer, Option, Context } from 'effect'
+import { Database } from '@blikka/db'
 import {
   isCurrentUploadSession,
   UploadSessionRepository,
   UploadSessionRepositoryLayer,
-} from "@blikka/kv-store"
-import { S3Service } from "@blikka/aws"
+} from '@blikka/kv-store'
+import { S3Service } from '@blikka/aws'
 import {
   ensureReadyForSheetGeneration,
   generateContactSheetKey,
   InvalidSheetGenerationData,
   validatePhotoCount,
-} from "./utils"
-import { ContactSheetBuilder } from "@blikka/image-manipulation"
+} from './utils'
+import { ContactSheetBuilder } from '@blikka/image-manipulation'
 
 export class SheetGeneratorService extends Context.Service<SheetGeneratorService>()(
-  "@blikka/contact-sheet-generator/sheet-generator-service",
+  '@blikka/contact-sheet-generator/sheet-generator-service',
   {
     make: Effect.gen(function* () {
       const db = yield* Database
       const kvStore = yield* UploadSessionRepository
       const s3 = yield* S3Service
-      const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
-      const sponsorsBucketName = yield* Config.string("SPONSORS_BUCKET_NAME")
-      const contactSheetsBucketName = yield* Config.string("CONTACT_SHEETS_BUCKET_NAME")
+      const submissionsBucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
+      const sponsorsBucketName = yield* Config.string('SPONSORS_BUCKET_NAME')
+      const contactSheetsBucketName = yield* Config.string('CONTACT_SHEETS_BUCKET_NAME')
       const contactSheetBuilder = yield* ContactSheetBuilder
 
-      const generateContactSheet = Effect.fn("SheetGeneratorService.generateContactSheet")(
+      const generateContactSheet = Effect.fn('SheetGeneratorService.generateContactSheet')(
         function* (params: { domain: string; reference: string; uploadSessionId: string }) {
           return yield* Effect.gen(function* () {
             const participantState = yield* kvStore
@@ -38,7 +38,7 @@ export class SheetGeneratorService extends Context.Service<SheetGeneratorService
                     onNone: () =>
                       Effect.fail(
                         new InvalidSheetGenerationData({
-                          message: "Participant state not found",
+                          message: 'Participant state not found',
                         }),
                       ),
                   }),
@@ -52,7 +52,7 @@ export class SheetGeneratorService extends Context.Service<SheetGeneratorService
             )
 
             if (shouldSkip) {
-              return yield* Effect.logInfo("Skipping contact sheet generation")
+              return yield* Effect.logInfo('Skipping contact sheet generation')
             }
 
             const participant = yield* db.participantsQueries
@@ -67,7 +67,7 @@ export class SheetGeneratorService extends Context.Service<SheetGeneratorService
                     onNone: () =>
                       Effect.fail(
                         new InvalidSheetGenerationData({
-                          message: "Participant not found",
+                          message: 'Participant not found',
                         }),
                       ),
                   }),
@@ -80,7 +80,7 @@ export class SheetGeneratorService extends Context.Service<SheetGeneratorService
             })
             if (!sessionGuard.matched) {
               yield* Effect.logWarning(
-                "Dropping contact sheet event for non-current upload session",
+                'Dropping contact sheet event for non-current upload session',
                 {
                   reason: sessionGuard.reason,
                   uploadSessionId: params.uploadSessionId,
@@ -91,7 +91,7 @@ export class SheetGeneratorService extends Context.Service<SheetGeneratorService
 
             const sponsor = yield* db.sponsorsQueries.getLatestSponsorByType({
               marathonId: participant.marathonId,
-              type: "contact-sheets",
+              type: 'contact-sheets',
             })
 
             const topics = yield* db.topicsQueries
@@ -159,7 +159,7 @@ export class SheetGeneratorService extends Context.Service<SheetGeneratorService
                 reference: params.reference,
                 images,
                 sponsorImage,
-                sponsorPosition: "bottom-right",
+                sponsorPosition: 'bottom-right',
                 topics,
               })
               .pipe(

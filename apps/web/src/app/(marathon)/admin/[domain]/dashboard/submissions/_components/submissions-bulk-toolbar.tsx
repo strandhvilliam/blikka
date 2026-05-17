@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog'
 import {
   Trash2,
   CheckCircle,
@@ -18,8 +18,8 @@ import {
   FileCode,
   FileImage,
   ClipboardCheck,
-} from "lucide-react"
-import { useState } from "react"
+} from 'lucide-react'
+import { useState } from 'react'
 
 interface SubmissionsBulkToolbarProps {
   marathonMode?: string
@@ -70,7 +70,7 @@ export function SubmissionsBulkToolbar({
 }: SubmissionsBulkToolbarProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showMarkCompletedDialog, setShowMarkCompletedDialog] = useState(false)
-  const isByCameraMode = marathonMode === "by-camera"
+  const isByCameraMode = marathonMode === 'by-camera'
 
   const handleDeleteClick = () => {
     setShowDeleteDialog(true)
@@ -215,7 +215,7 @@ export function SubmissionsBulkToolbar({
             <DialogTitle>Delete Participants</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete {selectedCount} participant
-              {selectedCount === 1 ? "" : "s"}? This action cannot be undone.
+              {selectedCount === 1 ? '' : 's'}? This action cannot be undone.
               {!isByCameraMode && canVerify === false && selectedCount > 0 && (
                 <span className="block mt-2 text-destructive">
                   Note: Some selected participants are not in &quot;completed&quot; status and
@@ -235,7 +235,7 @@ export function SubmissionsBulkToolbar({
             <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
               {isDeleting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Delete {selectedCount} Participant
-              {selectedCount === 1 ? "" : "s"}
+              {selectedCount === 1 ? '' : 's'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -247,7 +247,7 @@ export function SubmissionsBulkToolbar({
             <DialogTitle>Mark Participants Completed</DialogTitle>
             <DialogDescription>
               This will set {completableCount} selected participant
-              {completableCount === 1 ? "" : "s"} to completed. Only do this when you are sure their
+              {completableCount === 1 ? '' : 's'} to completed. Only do this when you are sure their
               uploads are actually complete.
             </DialogDescription>
           </DialogHeader>

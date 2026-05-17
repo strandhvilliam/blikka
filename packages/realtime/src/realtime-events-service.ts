@@ -1,7 +1,7 @@
-import { Cause, Effect, Exit, Layer, Context } from "effect"
-import { RealtimeService, RealtimeServiceLayer } from "./realtime-service"
-import { RealtimeChannel, RealtimeError } from "./channel"
-import { getRealtimeResultEventName, getVotingVoteCastEventName } from "./contract"
+import { Cause, Effect, Exit, Layer, Context } from 'effect'
+import { RealtimeService, RealtimeServiceLayer } from './realtime-service'
+import { RealtimeChannel, RealtimeError } from './channel'
+import { getRealtimeResultEventName, getVotingVoteCastEventName } from './contract'
 import type {
   RealtimeChannelEnv,
   RealtimeEventChannels,
@@ -9,7 +9,7 @@ import type {
   RealtimeEventResultPayload,
   RealtimeResultOutcome,
   VotingVoteCastPayload,
-} from "./contract"
+} from './contract'
 
 interface RealtimeTarget {
   environment: RealtimeChannelEnv
@@ -51,7 +51,7 @@ function resolveChannels(
   channels: RealtimeEventChannels | undefined,
   reference: string | undefined,
 ): RealtimeEventChannels {
-  return channels ?? (reference ? "both" : "domain")
+  return channels ?? (reference ? 'both' : 'domain')
 }
 
 export class RealtimeEventsService extends Context.Service<
@@ -64,12 +64,12 @@ export class RealtimeEventsService extends Context.Service<
       options: WithEventResultOptions,
     ) => Effect.Effect<A, E, R>
   }
->()("@blikka/realtime/RealtimeEventsService") {}
+>()('@blikka/realtime/RealtimeEventsService') {}
 
 const makeRealtimeEventsService = Effect.gen(function* () {
   const realtime = yield* RealtimeService
 
-  const emitToChannels = Effect.fn("RealtimeEventsService.emitToChannels")(function* (
+  const emitToChannels = Effect.fn('RealtimeEventsService.emitToChannels')(function* (
     { environment, domain, reference, channels }: RealtimeTarget,
     eventName: string,
     payload: unknown,
@@ -77,15 +77,15 @@ const makeRealtimeEventsService = Effect.gen(function* () {
     const resolved = resolveChannels(channels, reference)
     const effects: Effect.Effect<void, RealtimeError>[] = []
 
-    if (resolved === "domain" || resolved === "both") {
+    if (resolved === 'domain' || resolved === 'both') {
       const channel = yield* RealtimeChannel.domain(environment, domain)
       effects.push(realtime.emit(channel, eventName, payload))
     }
 
-    if (resolved === "participant" || resolved === "both") {
+    if (resolved === 'participant' || resolved === 'both') {
       if (!reference) {
         return yield* new RealtimeError({
-          message: "Participant channel emission requires a reference",
+          message: 'Participant channel emission requires a reference',
         })
       }
       const channel = yield* RealtimeChannel.participant(environment, domain, reference)
@@ -95,13 +95,13 @@ const makeRealtimeEventsService = Effect.gen(function* () {
     yield* Effect.all(effects, { concurrency: 2 })
   })
 
-  const emitEventResult = Effect.fn("RealtimeEventsService.emitEventResult")(function* (
+  const emitEventResult = Effect.fn('RealtimeEventsService.emitEventResult')(function* (
     options: EmitEventResultOptions,
   ) {
     const { eventKey, domain, reference, metadata, outcome, timestamp, duration, error } = options
 
     const payload: RealtimeEventResultPayload =
-      outcome === "success"
+      outcome === 'success'
         ? {
             eventKey,
             outcome,
@@ -119,13 +119,13 @@ const makeRealtimeEventsService = Effect.gen(function* () {
             orderIndex: metadata?.orderIndex ?? null,
             timestamp,
             duration: duration ?? null,
-            error: error ?? "Unknown error",
+            error: error ?? 'Unknown error',
           }
 
     yield* emitToChannels(options, getRealtimeResultEventName(eventKey), payload)
   })
 
-  const emitVotingVoteCast = Effect.fn("RealtimeEventsService.emitVotingVoteCast")(function* (
+  const emitVotingVoteCast = Effect.fn('RealtimeEventsService.emitVotingVoteCast')(function* (
     options: EmitVotingVoteCastOptions,
   ) {
     const payload: VotingVoteCastPayload = {
@@ -144,7 +144,7 @@ const makeRealtimeEventsService = Effect.gen(function* () {
     }
 
     yield* emitToChannels(
-      { environment: options.environment, domain: options.domain, channels: "domain" },
+      { environment: options.environment, domain: options.domain, channels: 'domain' },
       getVotingVoteCastEventName(),
       payload,
     )
@@ -156,7 +156,7 @@ const makeRealtimeEventsService = Effect.gen(function* () {
   ) =>
     Effect.gen(function* () {
       const startTime = Date.now()
-      const logTag = `[${options.eventKey}:${options.domain}:${options.reference ?? "domain"}]`
+      const logTag = `[${options.eventKey}:${options.domain}:${options.reference ?? 'domain'}]`
 
       return yield* effect.pipe(
         Effect.onExit((exit) => {
@@ -165,13 +165,13 @@ const makeRealtimeEventsService = Effect.gen(function* () {
 
           const { outcome, error } = Exit.match(exit, {
             onSuccess: () => ({
-              outcome: "success" as const,
+              outcome: 'success' as const,
               error: undefined,
             }),
             onFailure: (cause) => {
               const err = Cause.squash(cause)
               return {
-                outcome: "error" as const,
+                outcome: 'error' as const,
                 error: err instanceof Error ? err.message : String(err),
               }
             },

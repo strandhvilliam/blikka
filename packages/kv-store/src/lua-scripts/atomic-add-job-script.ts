@@ -1,9 +1,9 @@
-import { Schema } from "effect"
-import { defineScript, lua } from "upstash-lua"
-import { NumberToStringSchema } from "./utils"
+import { Schema } from 'effect'
+import { defineScript, lua } from 'upstash-lua'
+import { NumberToStringSchema } from './utils'
 
 export const atomicAddJobScript = defineScript({
-  name: "atomicAddJob",
+  name: 'atomicAddJob',
   keys: {
     key: Schema.toStandardSchemaV1(Schema.String),
   },

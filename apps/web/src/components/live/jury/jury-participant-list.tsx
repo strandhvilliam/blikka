@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, useMemo, useState } from "react"
-import { useVirtualizer } from "@tanstack/react-virtual"
-import { Grid2x2, List, Loader2 } from "lucide-react"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useTRPC } from "@/lib/trpc/client"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useDomain } from "@/lib/domain-provider"
-import { useJuryClientToken } from "./jury-client-token-provider"
-import type { JuryListParticipant, ViewMode } from "@/lib/jury/jury-types"
-import { useJuryReviewQueryState } from "@/hooks/live/jury/use-jury-review-query-state"
-import { useJuryReviewData } from "./jury-review-data-provider"
-import { JuryParticipantCard } from "./jury-participant-card"
-import { RatingFilterBar } from "./rating-filter"
+import { useEffect, useRef, useMemo, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { Grid2x2, List, Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useTRPC } from '@/lib/trpc/client'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useDomain } from '@/lib/domain-provider'
+import { useJuryClientToken } from './jury-client-token-provider'
+import type { JuryListParticipant, ViewMode } from '@/lib/jury/jury-types'
+import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
+import { useJuryReviewData } from './jury-review-data-provider'
+import { JuryParticipantCard } from './jury-participant-card'
+import { RatingFilterBar } from './rating-filter'
 const COMPACT_ROW_HEIGHT = 68
 const GRID_ROW_HEIGHT = 260
 const GAP = 12
@@ -31,7 +31,7 @@ function useGridColumnCount(viewMode: ViewMode) {
   const [columnCount, setColumnCount] = useState(3)
 
   useEffect(() => {
-    if (viewMode !== "grid") return
+    if (viewMode !== 'grid') return
 
     const update = () => {
       const width = window.innerWidth
@@ -42,18 +42,14 @@ function useGridColumnCount(viewMode: ViewMode) {
     }
 
     update()
-    window.addEventListener("resize", update)
-    return () => window.removeEventListener("resize", update)
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
   }, [viewMode])
 
-  return viewMode === "compact" ? 1 : columnCount
+  return viewMode === 'compact' ? 1 : columnCount
 }
 
-export function JuryParticipantList({
-  isRefreshingResults,
-}: {
-  isRefreshingResults: boolean
-}) {
+export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResults: boolean }) {
   const {
     participants,
     fetchNextPage,
@@ -64,8 +60,7 @@ export function JuryParticipantList({
     error,
   } = useJuryReviewData()
   const isClientMounted = useIsClientMounted()
-  const { viewMode, selectedRatings, selectParticipant } =
-    useJuryReviewQueryState()
+  const { viewMode, selectedRatings, selectParticipant } = useJuryReviewQueryState()
   const domain = useDomain()
   const token = useJuryClientToken()
   const trpc = useTRPC()
@@ -73,17 +68,11 @@ export function JuryParticipantList({
     trpc.jury.getJuryRatingsByInvitation.queryOptions({ domain, token }),
   )
   const ratingByParticipantId = useMemo(
-    () =>
-      new Map(
-        ratingsData.ratings.map(
-          (rating) => [rating.participantId, rating] as const,
-        ),
-      ),
+    () => new Map(ratingsData.ratings.map((rating) => [rating.participantId, rating] as const)),
     [ratingsData.ratings],
   )
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const totalMatchingParticipants =
-    totalParticipants?.value ?? participants.length
+  const totalMatchingParticipants = totalParticipants?.value ?? participants.length
   const participantSummary =
     participants.length < totalMatchingParticipants
       ? `Showing ${participants.length} of ${totalMatchingParticipants} participants`
@@ -92,7 +81,7 @@ export function JuryParticipantList({
   const gridCols = useGridColumnCount(viewMode)
 
   const rows = useMemo(() => {
-    if (viewMode === "compact") {
+    if (viewMode === 'compact') {
       return participants.map((p, i) => ({ participants: [{ participant: p, index: i }] }))
     }
     const result: { participants: { participant: JuryListParticipant; index: number }[] }[] = []
@@ -109,7 +98,7 @@ export function JuryParticipantList({
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: () => (viewMode === "compact" ? COMPACT_ROW_HEIGHT : GRID_ROW_HEIGHT),
+    estimateSize: () => (viewMode === 'compact' ? COMPACT_ROW_HEIGHT : GRID_ROW_HEIGHT),
     gap: GAP,
     overscan: 5,
   })
@@ -128,8 +117,8 @@ export function JuryParticipantList({
     }
 
     maybeFetchNext()
-    el.addEventListener("scroll", maybeFetchNext, { passive: true })
-    return () => el.removeEventListener("scroll", maybeFetchNext)
+    el.addEventListener('scroll', maybeFetchNext, { passive: true })
+    return () => el.removeEventListener('scroll', maybeFetchNext)
   }, [rowVirtualizer, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   if (error) {
@@ -139,14 +128,13 @@ export function JuryParticipantList({
           Failed to load participants
         </h2>
         <p className="mt-2 text-sm text-brand-gray">
-          {error.message || "An unknown error occurred"}
+          {error.message || 'An unknown error occurred'}
         </p>
       </div>
     )
   }
 
-  const isInitialLoading =
-    !isClientMounted || (isPendingParticipants && participants.length === 0)
+  const isInitialLoading = !isClientMounted || (isPendingParticipants && participants.length === 0)
 
   if (!isInitialLoading && participants.length === 0) {
     return (
@@ -155,18 +143,16 @@ export function JuryParticipantList({
           participantSummary={
             totalMatchingParticipants > 0
               ? `Showing 0 of ${totalMatchingParticipants} participants`
-              : "0 participants"
+              : '0 participants'
           }
           isRefreshingResults={isRefreshingResults}
         />
         <div className="rounded-2xl border border-border/60 bg-white px-6 py-16 text-center">
-          <h2 className="font-gothic text-xl font-bold text-brand-black">
-            No participants found
-          </h2>
+          <h2 className="font-gothic text-xl font-bold text-brand-black">No participants found</h2>
           <p className="mt-2 text-sm text-brand-gray">
             {selectedRatings.length > 0
-              ? "Try adjusting the rating filters."
-              : "There are no participants to review yet."}
+              ? 'Try adjusting the rating filters.'
+              : 'There are no participants to review yet.'}
           </p>
         </div>
       </div>
@@ -176,15 +162,12 @@ export function JuryParticipantList({
   return (
     <div className="space-y-4">
       <ListToolbar
-        participantSummary={isInitialLoading ? "" : participantSummary}
+        participantSummary={isInitialLoading ? '' : participantSummary}
         isRefreshingResults={isInitialLoading ? false : isRefreshingResults}
         isPending={isInitialLoading}
       />
 
-      <div
-        ref={scrollContainerRef}
-        className="max-h-[calc(100vh-220px)] overflow-auto rounded-2xl"
-      >
+      <div ref={scrollContainerRef} className="max-h-[calc(100vh-220px)] overflow-auto rounded-2xl">
         {isInitialLoading ? (
           <div className="grid grid-cols-1 gap-3 p-1">
             {Array.from({ length: 8 }, (_, index) => (
@@ -202,10 +185,7 @@ export function JuryParticipantList({
           </div>
         ) : (
           <>
-            <div
-              className="relative w-full"
-              style={{ height: rowVirtualizer.getTotalSize() }}
-            >
+            <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 const row = rows[virtualRow.index]
                 if (!row) return null
@@ -214,9 +194,9 @@ export function JuryParticipantList({
                   <div
                     key={virtualRow.key}
                     className={`absolute left-0 top-0 w-full ${
-                      viewMode === "grid"
-                        ? "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-                        : ""
+                      viewMode === 'grid'
+                        ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                        : ''
                     }`}
                     style={{
                       height: virtualRow.size,
@@ -235,9 +215,7 @@ export function JuryParticipantList({
                           participant={participant}
                           rating={rating}
                           finalRanking={finalRanking}
-                          onClick={() =>
-                            selectParticipant(participant.id, index)
-                          }
+                          onClick={() => selectParticipant(participant.id, index)}
                           variant={viewMode}
                         />
                       )
@@ -271,13 +249,8 @@ function ListToolbar({
   isRefreshingResults: boolean
   isPending?: boolean
 }) {
-  const {
-    viewMode,
-    setViewMode,
-    selectedRatings,
-    toggleRatingFilter,
-    clearRatingFilter,
-  } = useJuryReviewQueryState()
+  const { viewMode, setViewMode, selectedRatings, toggleRatingFilter, clearRatingFilter } =
+    useJuryReviewQueryState()
 
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -315,11 +288,11 @@ function ListToolbar({
         <div className="flex items-center rounded-xl border border-border/60 bg-white">
           <button
             type="button"
-            onClick={() => void setViewMode("grid")}
+            onClick={() => void setViewMode('grid')}
             className={`rounded-l-xl px-2.5 py-2 transition-colors ${
-              viewMode === "grid"
-                ? "bg-neutral-100 text-brand-black"
-                : "text-brand-gray hover:text-brand-black"
+              viewMode === 'grid'
+                ? 'bg-neutral-100 text-brand-black'
+                : 'text-brand-gray hover:text-brand-black'
             }`}
             aria-label="Grid view"
           >
@@ -327,11 +300,11 @@ function ListToolbar({
           </button>
           <button
             type="button"
-            onClick={() => void setViewMode("compact")}
+            onClick={() => void setViewMode('compact')}
             className={`rounded-r-xl px-2.5 py-2 transition-colors ${
-              viewMode === "compact"
-                ? "bg-neutral-100 text-brand-black"
-                : "text-brand-gray hover:text-brand-black"
+              viewMode === 'compact'
+                ? 'bg-neutral-100 text-brand-black'
+                : 'text-brand-gray hover:text-brand-black'
             }`}
             aria-label="Compact list view"
           >

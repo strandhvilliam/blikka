@@ -1,11 +1,11 @@
-import "server-only"
-import { initTRPC, TRPCError } from "@trpc/server"
-import { getPermissions, getSession, type Permission } from "./utils"
-import type { ManagedRuntime, Layer } from "effect"
-import type { BetterAuthService, Session } from "@blikka/auth"
-import type { CoreServices } from "@blikka/runtime"
-import { ApiLayer } from "../layer"
-import { assertMatchingInputDomain } from "./domain-input-middleware"
+import 'server-only'
+import { initTRPC, TRPCError } from '@trpc/server'
+import { getPermissions, getSession, type Permission } from './utils'
+import type { ManagedRuntime, Layer } from 'effect'
+import type { BetterAuthService, Session } from '@blikka/auth'
+import type { CoreServices } from '@blikka/runtime'
+import { ApiLayer } from '../layer'
+import { assertMatchingInputDomain } from './domain-input-middleware'
 
 type ApiLayerServices = Layer.Success<typeof ApiLayer>
 
@@ -23,7 +23,7 @@ export const createTRPCContext = async <
   const session = await runtime.runPromise(getSession({ headers }))
 
   const permissions = await runtime.runPromise(getPermissions({ userId: session?.user.id }))
-  const domain = headers.get("x-marathon-domain")
+  const domain = headers.get('x-marathon-domain')
 
   return { runtime, session, permissions, domain }
 }
@@ -53,8 +53,8 @@ export const publicProcedure = t.procedure
 export const authProcedure = t.procedure.use(async ({ next, ctx }) => {
   if (!ctx.session) {
     throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "You must be authenticated to access this resource",
+      code: 'UNAUTHORIZED',
+      message: 'You must be authenticated to access this resource',
     })
   }
 
@@ -76,14 +76,14 @@ export const requireMatchingInputDomainMiddleware = t.middleware(async ({ next, 
 export const domainProcedure = authProcedure.use(async ({ next, ctx }) => {
   if (!ctx.domain) {
     throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Domain header is required for this endpoint",
+      code: 'BAD_REQUEST',
+      message: 'Domain header is required for this endpoint',
     })
   }
 
   if (!ctx.permissions.some((permission) => permission.domain === ctx.domain)) {
     throw new TRPCError({
-      code: "FORBIDDEN",
+      code: 'FORBIDDEN',
       message: `You do not have access to domain: ${ctx.domain}`,
     })
   }

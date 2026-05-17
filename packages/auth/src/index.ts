@@ -1,12 +1,12 @@
-import { type BetterAuthOptions, betterAuth } from "better-auth"
-import { Context, Effect, Layer, Schema } from "effect"
-import { DbLayer, UsersRepository, DrizzleClient, schema } from "@blikka/db"
-import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { EmailService, EmailServiceLayer, OTPEmail } from "@blikka/email"
-import { nextCookies } from "better-auth/next-js"
-import { RedisClient, RedisClientLayer } from "@blikka/redis"
-import { bearer, emailOTP } from "better-auth/plugins"
-import { createAuthMiddleware } from "better-auth/api"
+import { type BetterAuthOptions, betterAuth } from 'better-auth'
+import { Context, Effect, Layer, Schema } from 'effect'
+import { DbLayer, UsersRepository, DrizzleClient, schema } from '@blikka/db'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { EmailService, EmailServiceLayer, OTPEmail } from '@blikka/email'
+import { nextCookies } from 'better-auth/next-js'
+import { RedisClient, RedisClientLayer } from '@blikka/redis'
+import { bearer, emailOTP } from 'better-auth/plugins'
+import { createAuthMiddleware } from 'better-auth/api'
 
 export class AuthConfig extends Context.Service<
   AuthConfig,
@@ -18,10 +18,10 @@ export class AuthConfig extends Context.Service<
       companyLogoUrl: string
     }
   }
->()("@blikka/auth/auth-config") {}
+>()('@blikka/auth/auth-config') {}
 
 export class AuthConfigurationError extends Schema.TaggedErrorClass<AuthConfigurationError>()(
-  "AuthConfigurationError",
+  'AuthConfigurationError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -29,7 +29,7 @@ export class AuthConfigurationError extends Schema.TaggedErrorClass<AuthConfigur
 ) {}
 
 export class AuthCallbackError extends Schema.TaggedErrorClass<AuthCallbackError>()(
-  "AuthCallbackError",
+  'AuthCallbackError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -54,7 +54,7 @@ type VerificationOTPParams = {
   readonly type: string
 }
 
-const getRequiredEnv = Effect.fn("BetterAuthService.getRequiredEnv")(function* (name: string) {
+const getRequiredEnv = Effect.fn('BetterAuthService.getRequiredEnv')(function* (name: string) {
   const value = process.env[name]?.trim()
   if (!value) {
     return yield* new AuthConfigurationError({
@@ -65,14 +65,14 @@ const getRequiredEnv = Effect.fn("BetterAuthService.getRequiredEnv")(function* (
   return value
 })
 
-const makeAuthRuntimeConfig = Effect.fn("BetterAuthService.makeAuthRuntimeConfig")(function* () {
-  const isProduction = process.env.NODE_ENV === "production"
+const makeAuthRuntimeConfig = Effect.fn('BetterAuthService.makeAuthRuntimeConfig')(function* () {
+  const isProduction = process.env.NODE_ENV === 'production'
   const rootDomain = isProduction
-    ? yield* getRequiredEnv("NEXT_PUBLIC_BLIKKA_PRODUCTION_URL")
-    : "localhost:3002"
+    ? yield* getRequiredEnv('NEXT_PUBLIC_BLIKKA_PRODUCTION_URL')
+    : 'localhost:3002'
 
-  const googleClientId = yield* getRequiredEnv("GOOGLE_CLIENT_ID")
-  const googleClientSecret = yield* getRequiredEnv("GOOGLE_CLIENT_SECRET")
+  const googleClientId = yield* getRequiredEnv('GOOGLE_CLIENT_ID')
+  const googleClientSecret = yield* getRequiredEnv('GOOGLE_CLIENT_SECRET')
 
   return {
     isProduction,
@@ -96,12 +96,12 @@ const makeCookieOptions = (runtimeConfig: AuthRuntimeConfig) =>
     },
     defaultCookieAttributes: {
       secure: runtimeConfig.isProduction,
-      sameSite: "lax",
+      sameSite: 'lax',
     },
-  }) satisfies BetterAuthOptions["advanced"]
+  }) satisfies BetterAuthOptions['advanced']
 
 export class BetterAuthService extends Context.Service<BetterAuthService>()(
-  "@blikka/auth/better-auth-service",
+  '@blikka/auth/better-auth-service',
   {
     make: Effect.gen(function* () {
       const authConfig = yield* AuthConfig
@@ -111,7 +111,7 @@ export class BetterAuthService extends Context.Service<BetterAuthService>()(
       const emailService = yield* EmailService
       const redis = yield* RedisClient
 
-      const afterAuth = Effect.fn("BetterAuthService.afterAuth")(function* (
+      const afterAuth = Effect.fn('BetterAuthService.afterAuth')(function* (
         user: SessionUser | undefined,
       ) {
         if (!user?.id) {
@@ -128,16 +128,16 @@ export class BetterAuthService extends Context.Service<BetterAuthService>()(
         yield* redis.use((client) => client.del(`permissions:${user.id}`))
       })
 
-      const sendVerificationOTP = Effect.fn("BetterAuthService.sendVerificationOTP")(function* ({
+      const sendVerificationOTP = Effect.fn('BetterAuthService.sendVerificationOTP')(function* ({
         email,
         otp,
         type,
       }: VerificationOTPParams) {
         switch (type) {
-          case "sign-in": {
+          case 'sign-in': {
             yield* emailService.send({
               to: email,
-              subject: "Sign in to Your Account",
+              subject: 'Sign in to Your Account',
               template: OTPEmail({
                 otp,
                 username: email,
@@ -147,11 +147,11 @@ export class BetterAuthService extends Context.Service<BetterAuthService>()(
             })
             return
           }
-          case "forget-password": {
+          case 'forget-password': {
             yield* Effect.logInfo(`Register OTP for ${email}: ${otp}`)
             return
           }
-          case "email-verification": {
+          case 'email-verification': {
             yield* Effect.logInfo(`Reset OTP for ${email}: ${otp}`)
             return
           }
@@ -165,7 +165,7 @@ export class BetterAuthService extends Context.Service<BetterAuthService>()(
       const makeBetterAuthOptions = () =>
         ({
           database: drizzleAdapter(client, {
-            provider: "pg",
+            provider: 'pg',
             schema: {
               user: schema.user,
               account: schema.account,
@@ -187,7 +187,7 @@ export class BetterAuthService extends Context.Service<BetterAuthService>()(
             google: {
               clientId: runtimeConfig.googleClientId,
               clientSecret: runtimeConfig.googleClientSecret,
-              prompt: "select_account",
+              prompt: 'select_account',
             },
           },
 
@@ -219,4 +219,4 @@ export const BetterAuthServiceLayer = BetterAuthServiceLayerNoDeps.pipe(
   Layer.provide(Layer.mergeAll(DrizzleClient.layer, DbLayer, EmailServiceLayer, RedisClientLayer)),
 )
 
-export type Session = ReturnType<typeof betterAuth>["$Infer"]["Session"]
+export type Session = ReturnType<typeof betterAuth>['$Infer']['Session']

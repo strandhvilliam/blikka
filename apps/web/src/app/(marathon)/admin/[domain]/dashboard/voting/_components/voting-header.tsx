@@ -1,30 +1,30 @@
-"use client"
+'use client'
 
-import type { Topic } from "@blikka/db"
-import { RefreshCw, UserPlus, Vote } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { InviteDialog } from "./invite-dialog"
-import { useTRPC } from "@/lib/trpc/client"
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { useState } from "react"
-import { useDomain } from "@/lib/domain-provider"
-import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
+import type { Topic } from '@blikka/db'
+import { RefreshCw, UserPlus, Vote } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { InviteDialog } from './invite-dialog'
+import { useTRPC } from '@/lib/trpc/client'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useDomain } from '@/lib/domain-provider'
+import { getVotingLifecycleState } from '@/lib/voting-lifecycle'
 
 interface VotingHeaderProps {
   activeTopic: Topic
 }
 
 const STATE_BADGE_STYLES = {
-  "not-started": "border-slate-200 bg-slate-50 text-slate-700",
-  active: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  ended: "border-amber-200 bg-amber-50 text-amber-700",
+  'not-started': 'border-slate-200 bg-slate-50 text-slate-700',
+  active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  ended: 'border-amber-200 bg-amber-50 text-amber-700',
 } as const
 
 const STATE_LABELS = {
-  "not-started": "Not Started",
-  active: "Active",
-  ended: "Ended",
+  'not-started': 'Not Started',
+  active: 'Active',
+  ended: 'Ended',
 } as const
 
 export function VotingHeader({ activeTopic }: VotingHeaderProps) {
@@ -43,7 +43,7 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
 
   const votingState = getVotingLifecycleState(summary.votingWindow)
   const currentRoundLabel = summary.currentRound
-    ? summary.currentRound.kind === "tiebreak"
+    ? summary.currentRound.kind === 'tiebreak'
       ? `Tie-break ${summary.currentRound.roundNumber}`
       : `Round ${summary.currentRound.roundNumber}`
     : null
@@ -91,17 +91,17 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
         <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 w-full max-w-full">
             <p className="text-pretty text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
-              Manage voting for{" "}
-              <span className="font-medium text-foreground">
-                {activeTopic.name}
-              </span>
+              Manage voting for{' '}
+              <span className="font-medium text-foreground">{activeTopic.name}</span>
             </p>
             <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
               <Badge variant="secondary" className="text-[10px]">
                 Topic {activeTopic.orderIndex + 1}
               </Badge>
               {currentRoundLabel && (
-                <Badge variant="outline" className="text-[10px]">{currentRoundLabel}</Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  {currentRoundLabel}
+                </Badge>
               )}
               <span
                 className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATE_BADGE_STYLES[votingState]}`}
@@ -109,7 +109,7 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
                 {STATE_LABELS[votingState]}
               </span>
             </div>
-            {summary.currentRound?.kind === "tiebreak" && (
+            {summary.currentRound?.kind === 'tiebreak' && (
               <p className="mt-2 text-[11px] text-muted-foreground/70">
                 Latest round is a tie-break. Only the tied leading submissions are eligible.
               </p>
@@ -133,7 +133,7 @@ export function VotingHeader({ activeTopic }: VotingHeaderProps) {
               variant="outline"
               size="sm"
               onClick={() => setIsInviteDialogOpen(true)}
-              disabled={votingState !== "active"}
+              disabled={votingState !== 'active'}
               className="min-w-0 px-2 text-xs whitespace-normal sm:px-3"
             >
               <UserPlus className="mr-1.5 h-3.5 w-3.5 shrink-0" />

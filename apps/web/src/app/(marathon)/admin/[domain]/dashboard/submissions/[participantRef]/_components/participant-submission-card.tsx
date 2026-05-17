@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
-import { AlertTriangle, CheckCircle } from "lucide-react"
-import Link from "next/link"
-import { motion } from "motion/react"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import type { Submission, ValidationResult, Topic } from "@blikka/db"
-import { cn, formatDomainPathname } from "@/lib/utils"
-import { useDomain } from "@/lib/domain-provider"
+import { AlertTriangle, CheckCircle } from 'lucide-react'
+import Link from 'next/link'
+import { motion } from 'motion/react'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import type { Submission, ValidationResult, Topic } from '@blikka/db'
+import { cn, formatDomainPathname } from '@/lib/utils'
+import { useDomain } from '@/lib/domain-provider'
 
 interface ParticipantSubmissionCardProps {
   submission: Submission & { topic: Topic }
@@ -16,7 +16,7 @@ interface ParticipantSubmissionCardProps {
   participantRef: string
 }
 
-const AWS_S3_BASE_URL = "https://s3.eu-north-1.amazonaws.com"
+const AWS_S3_BASE_URL = 'https://s3.eu-north-1.amazonaws.com'
 
 function getImageUrl(submission: Submission): string | null {
   const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
@@ -38,12 +38,12 @@ export function ParticipantSubmissionCard({
 }: ParticipantSubmissionCardProps) {
   const domain = useDomain()
 
-  const hasFailedValidations = validationResults.some((result) => result.outcome === "failed")
+  const hasFailedValidations = validationResults.some((result) => result.outcome === 'failed')
   const hasErrors = validationResults.some(
-    (result) => result.severity === "error" && result.outcome === "failed",
+    (result) => result.severity === 'error' && result.outcome === 'failed',
   )
   const hasWarnings = validationResults.some(
-    (result) => result.severity === "warning" && result.outcome === "failed",
+    (result) => result.severity === 'warning' && result.outcome === 'failed',
   )
   const allPassed = validationResults.length > 0 && !hasFailedValidations
   const imageUrl = getImageUrl(submission)
@@ -68,7 +68,7 @@ export function ParticipantSubmissionCard({
           <CardContent className="relative p-0 flex items-center justify-center aspect-4/3 bg-muted/30 border-b border-border overflow-hidden">
             <div className="absolute top-2 left-2 z-10">
               <Badge variant="outline" className="bg-white/80 backdrop-blur-sm">
-                #{submission.topic?.orderIndex.toString() ? submission.topic.orderIndex + 1 : "?"}
+                #{submission.topic?.orderIndex.toString() ? submission.topic.orderIndex + 1 : '?'}
               </Badge>
             </div>
 
@@ -82,15 +82,15 @@ export function ParticipantSubmissionCard({
                 animate={{ opacity: 1 }}
                 transition={{ opacity: { delay: 0.5, duration: 0.3 } }}
                 layout
-                className={cn("w-full h-full object-contain rounded-t-lg")}
+                className={cn('w-full h-full object-contain rounded-t-lg')}
                 src={imageUrl}
-                alt={submission.topic?.name ?? ""}
+                alt={submission.topic?.name ?? ''}
               />
             )}
           </CardContent>
           <CardFooter className="px-4 pb-2 flex flex-col items-start gap-2 ">
             <div className="flex items-center justify-between w-full">
-              <h3 className="font-medium">{submission.topic?.name ?? "Untitled Topic"}</h3>
+              <h3 className="font-medium">{submission.topic?.name ?? 'Untitled Topic'}</h3>
               {validationResults.length > 0 && (
                 <TooltipProvider>
                   <Tooltip>
@@ -124,15 +124,15 @@ export function ParticipantSubmissionCard({
                           <div>
                             <p
                               className={cn(
-                                "font-semibold",
-                                hasErrors ? "text-destructive" : "text-yellow-500",
+                                'font-semibold',
+                                hasErrors ? 'text-destructive' : 'text-yellow-500',
                               )}
                             >
-                              {hasErrors ? "Errors:" : "Warnings:"}
+                              {hasErrors ? 'Errors:' : 'Warnings:'}
                             </p>
                             <ul className="list-disc pl-4 space-y-1">
                               {validationResults
-                                .filter((result) => result.outcome === "failed")
+                                .filter((result) => result.outcome === 'failed')
                                 .map((result, i) => (
                                   <li key={i} className="text-sm">
                                     {result.message}

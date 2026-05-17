@@ -1,7 +1,7 @@
-import { Schema, Struct } from "effect"
-import { IMAGE_EXTENSION_TO_MIME_TYPE, RULE_KEYS, VALIDATION_OUTCOME } from "./constants"
+import { Schema, Struct } from 'effect'
+import { IMAGE_EXTENSION_TO_MIME_TYPE, RULE_KEYS, VALIDATION_OUTCOME } from './constants'
 
-export const SeverityLevelSchema = Schema.Literals(["error", "warning"])
+export const SeverityLevelSchema = Schema.Literals(['error', 'warning'])
 
 export const RuleKeySchema = Schema.Literals([
   RULE_KEYS.MAX_FILE_SIZE,
@@ -18,7 +18,7 @@ export const RuleParamsSchema = Schema.Struct({
       Schema.String.pipe(
         Schema.check(
           Schema.makeFilter((ext) => ext in IMAGE_EXTENSION_TO_MIME_TYPE, {
-            message: "Invalid file extension",
+            message: 'Invalid file extension',
           }),
         ),
       ),
@@ -101,7 +101,7 @@ export interface ValidationRule<K extends RuleKey = RuleKey> {
 }
 
 export class ValidationFailure extends Schema.TaggedErrorClass<ValidationFailure>()(
-  "ValidationFailure",
+  'ValidationFailure',
   {
     ruleKey: RuleKeySchema,
     message: Schema.String,
@@ -110,7 +110,7 @@ export class ValidationFailure extends Schema.TaggedErrorClass<ValidationFailure
 ) {}
 
 export class ValidationSkipped extends Schema.TaggedErrorClass<ValidationSkipped>()(
-  "ValidationSkipped",
+  'ValidationSkipped',
   {
     ruleKey: RuleKeySchema,
     reason: Schema.String,

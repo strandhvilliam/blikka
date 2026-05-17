@@ -10,4 +10,4 @@ export interface SheetVariables {
   availableHeight: number
 }
 
-export type SponsorPosition = "bottom-right" | "bottom-left" | "top-right" | "top-left" | "center"
+export type SponsorPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center'

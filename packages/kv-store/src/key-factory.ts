@@ -1,5 +1,5 @@
 export const formatOrderIndex = (orderIndex: number) =>
-  (Number(orderIndex) + 1).toString().padStart(2, "0");
+  (Number(orderIndex) + 1).toString().padStart(2, '0')
 
 export const Keys = {
   submission: (domain: string, ref: string, orderIndex: number) =>
@@ -10,6 +10,5 @@ export const Keys = {
   downloadState: (jobId: string) => `download-state:${jobId}`,
   downloadStateFiles: (jobId: string) => `download-state:${jobId}:files`,
   downloadProcess: (processId: string) => `download-process:${processId}`,
-  activeDownloadProcess: (domain: string) =>
-    `active-download-process:${domain}`,
-} as const;
+  activeDownloadProcess: (domain: string) => `active-download-process:${domain}`,
+} as const

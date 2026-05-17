@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { Plus, Circle, Tag } from "lucide-react"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { Plus, Circle, Tag } from 'lucide-react'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 type TopicsByCameraHeaderProps = {
   onCreateClick: () => void
@@ -43,7 +43,7 @@ export function TopicsByCameraHeader({ onCreateClick, isLoading }: TopicsByCamer
               <Circle className="h-2 w-2 fill-brand-primary text-brand-primary" />
               <span className="font-medium">{topicCount}</span>
             </div>
-            <span>{topicCount === 1 ? "topic" : "topics"}</span>
+            <span>{topicCount === 1 ? 'topic' : 'topics'}</span>
           </div>
           <PrimaryButton
             onClick={onCreateClick}

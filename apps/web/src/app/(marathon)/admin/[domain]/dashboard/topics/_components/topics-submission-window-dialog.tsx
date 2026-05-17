@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import type { Topic } from "@blikka/db"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, Lock, Play, RotateCcw, Square } from "lucide-react"
-import { toast } from "sonner"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import type { Topic } from '@blikka/db'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { AlertCircle, Lock, Play, RotateCcw, Square } from 'lucide-react'
+import { toast } from 'sonner'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -13,11 +13,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
+} from '@/components/ui/dialog'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
+import { getByCameraSubmissionWindowState } from '@/lib/by-camera/by-camera-submission-window-state'
 
 interface TopicsSubmissionWindowDialogProps {
   topic: Topic | null
@@ -39,11 +39,11 @@ export function TopicsSubmissionWindowDialog({
   const { mutate: updateTopic, isPending: isUpdatingTopic } = useMutation(
     trpc.topics.update.mutationOptions({
       onSuccess: () => {
-        toast.success("Submission window updated")
+        toast.success('Submission window updated')
         onOpenChange(false)
       },
       onError: (error) => {
-        toast.error("Failed to update submission window", {
+        toast.error('Failed to update submission window', {
           description: error.message,
         })
       },
@@ -58,14 +58,11 @@ export function TopicsSubmissionWindowDialog({
     }),
   )
 
-  const isActiveTopic = topic?.visibility === "active"
-  const submissionState = topic
-    ? getByCameraSubmissionWindowState(topic)
-    : null
-  const isSubmissionClosed = submissionState === "closed"
+  const isActiveTopic = topic?.visibility === 'active'
+  const submissionState = topic ? getByCameraSubmissionWindowState(topic) : null
+  const isSubmissionClosed = submissionState === 'closed'
   const submissionClosedReadOnly = isSubmissionClosed && votingHasStarted
-  const canReopenAfterClose =
-    isActiveTopic && isSubmissionClosed && !votingHasStarted
+  const canReopenAfterClose = isActiveTopic && isSubmissionClosed && !votingHasStarted
   const isCurrentlyOpen =
     isActiveTopic &&
     topic &&
@@ -73,34 +70,30 @@ export function TopicsSubmissionWindowDialog({
     new Date(topic.scheduledStart) <= new Date() &&
     (topic.scheduledEnd == null || new Date(topic.scheduledEnd) > new Date())
   const canOpenSubmissions =
-    isActiveTopic &&
-    !submissionClosedReadOnly &&
-    !canReopenAfterClose &&
-    !isCurrentlyOpen
+    isActiveTopic && !submissionClosedReadOnly && !canReopenAfterClose && !isCurrentlyOpen
 
   const dialogTitle = submissionClosedReadOnly
-    ? "Submission window closed"
+    ? 'Submission window closed'
     : canReopenAfterClose
-      ? "Reopen submissions"
+      ? 'Reopen submissions'
       : isCurrentlyOpen
-        ? "Close submissions"
-        : "Open submissions"
+        ? 'Close submissions'
+        : 'Open submissions'
 
   const handleOpenNow = () => {
     if (!topic || !isActiveTopic) {
       return
     }
 
-    if (topic.visibility !== "active") {
-      toast.error("Only the active topic can manage submissions")
+    if (topic.visibility !== 'active') {
+      toast.error('Only the active topic can manage submissions')
       return
     }
 
-    const submissionClosed =
-      getByCameraSubmissionWindowState(topic) === "closed"
+    const submissionClosed = getByCameraSubmissionWindowState(topic) === 'closed'
 
     if (submissionClosed && votingHasStarted) {
-      toast.error("Voting has already started; submissions cannot be reopened")
+      toast.error('Voting has already started; submissions cannot be reopened')
       return
     }
 
@@ -147,12 +140,12 @@ export function TopicsSubmissionWindowDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {submissionClosedReadOnly
-              ? `Voting is underway for ${topic?.name ?? "this topic"}. Submissions cannot be reopened from here.`
+              ? `Voting is underway for ${topic?.name ?? 'this topic'}. Submissions cannot be reopened from here.`
               : canReopenAfterClose
-                ? `Submissions closed for ${topic?.name ?? "this topic"}. You can open them again until voting starts.`
+                ? `Submissions closed for ${topic?.name ?? 'this topic'}. You can open them again until voting starts.`
                 : isCurrentlyOpen
-                  ? `Submissions are open for ${topic?.name ?? "this topic"}. Close when uploads should no longer be accepted.`
-                  : `Open submissions for ${topic?.name ?? "this topic"} now.`}
+                  ? `Submissions are open for ${topic?.name ?? 'this topic'}. Close when uploads should no longer be accepted.`
+                  : `Open submissions for ${topic?.name ?? 'this topic'} now.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -166,11 +159,7 @@ export function TopicsSubmissionWindowDialog({
               </AlertDescription>
             </Alert>
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Close
               </Button>
             </DialogFooter>
@@ -183,17 +172,12 @@ export function TopicsSubmissionWindowDialog({
               <Lock />
               <AlertTitle>Voting has started</AlertTitle>
               <AlertDescription>
-                The submission window cannot be reopened because voting is
-                already underway for this topic. Manage deadlines from the
-                voting page if you need to adjust voting.
+                The submission window cannot be reopened because voting is already underway for this
+                topic. Manage deadlines from the voting page if you need to adjust voting.
               </AlertDescription>
             </Alert>
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Close
               </Button>
             </DialogFooter>
@@ -218,7 +202,7 @@ export function TopicsSubmissionWindowDialog({
                 disabled={isUpdatingTopic}
               >
                 <RotateCcw className="size-3.5" />
-                {isUpdatingTopic ? "Updating…" : "Reopen submissions"}
+                {isUpdatingTopic ? 'Updating…' : 'Reopen submissions'}
               </PrimaryButton>
             </DialogFooter>
           </>
@@ -242,7 +226,7 @@ export function TopicsSubmissionWindowDialog({
               className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
               <Square className="size-3.5 fill-current" />
-              {isUpdatingTopic ? "Closing…" : "Close now"}
+              {isUpdatingTopic ? 'Closing…' : 'Close now'}
             </Button>
           </DialogFooter>
         ) : null}
@@ -264,7 +248,7 @@ export function TopicsSubmissionWindowDialog({
               disabled={isUpdatingTopic}
             >
               <Play className="size-3.5" />
-              {isUpdatingTopic ? "Opening…" : "Open now"}
+              {isUpdatingTopic ? 'Opening…' : 'Open now'}
             </PrimaryButton>
           </DialogFooter>
         ) : null}

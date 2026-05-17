@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Grid2x2 } from "lucide-react"
-import Link from "next/link"
-import type { Submission, Topic } from "@blikka/db"
+import { Button } from '@/components/ui/button'
+import { ChevronLeft, ChevronRight, Grid2x2 } from 'lucide-react'
+import Link from 'next/link'
+import type { Submission, Topic } from '@blikka/db'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { formatDomainPathname } from "@/lib/utils"
-import { useDomain } from "@/lib/domain-provider"
+} from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
+import { formatDomainPathname } from '@/lib/utils'
+import { useDomain } from '@/lib/domain-provider'
 
 interface SubmissionNavigationControlsProps {
   currentIndex: number
@@ -82,13 +82,13 @@ export function SubmissionNavigationControls({
                   className="flex items-center gap-3 px-3 py-2"
                 >
                   <Badge
-                    variant={idx === currentIndex ? "default" : "outline"}
+                    variant={idx === currentIndex ? 'default' : 'outline'}
                     className="font-mono w-12 justify-center"
                   >
                     #{(sub.topic?.orderIndex ?? 0) + 1}
                   </Badge>
-                  <span className={idx === currentIndex ? "font-semibold" : ""}>
-                    {sub.topic?.name || "Untitled"}
+                  <span className={idx === currentIndex ? 'font-semibold' : ''}>
+                    {sub.topic?.name || 'Untitled'}
                   </span>
                 </Link>
               </DropdownMenuItem>

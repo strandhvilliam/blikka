@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { Plus, Circle, Tag } from "lucide-react"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { Plus, Circle, Tag } from 'lucide-react'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 type TopicsHeaderProps = {
   onAddTopic: () => void
@@ -33,7 +33,7 @@ export function TopicsHeader({ onAddTopic }: TopicsHeaderProps) {
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <p className="text-sm leading-relaxed text-muted-foreground sm:max-w-lg">
-          Manage and organize your marathon topics.{" "}
+          Manage and organize your marathon topics.{' '}
           <span className="hidden sm:inline">Drag topics to reorder them.</span>
           <span className="sm:hidden">Drag to reorder on a larger screen.</span>
         </p>
@@ -43,7 +43,7 @@ export function TopicsHeader({ onAddTopic }: TopicsHeaderProps) {
               <Circle className="h-2 w-2 fill-brand-primary text-brand-primary" />
               <span className="font-medium">{topicCount}</span>
             </div>
-            <span>{topicCount === 1 ? "topic" : "topics"}</span>
+            <span>{topicCount === 1 ? 'topic' : 'topics'}</span>
           </div>
           <PrimaryButton onClick={onAddTopic} className="h-9 shrink-0 px-3 text-xs sm:h-8">
             <Plus className="size-3.5" />

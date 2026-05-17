@@ -1,19 +1,19 @@
-"use client";
+'use client'
 
-import type { Topic } from "@blikka/db";
-import { CircleDot, Pencil, Trash2, Zap } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatTimestamp, VISIBILITY_LABELS } from "../_lib/formatting";
+import type { Topic } from '@blikka/db'
+import { CircleDot, Pencil, Trash2, Zap } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { formatTimestamp, VISIBILITY_LABELS } from '../_lib/formatting'
 
 type TopicListItemProps = {
-  topic: Topic;
-  submissionCount: number;
-  onActivate: (topic: Topic) => void;
-  onEdit: (topic: Topic) => void;
-  onDelete: (topic: Topic) => void;
-  isLoading: boolean;
-};
+  topic: Topic
+  submissionCount: number
+  onActivate: (topic: Topic) => void
+  onEdit: (topic: Topic) => void
+  onDelete: (topic: Topic) => void
+  isLoading: boolean
+}
 
 export function TopicListItem({
   topic,
@@ -32,18 +32,9 @@ export function TopicListItem({
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-sm font-semibold text-foreground">
-                {topic.name}
-              </span>
-              <Badge
-                variant="outline"
-                className="h-5 rounded-full px-2 text-[10px] tracking-wider"
-              >
-                {
-                  VISIBILITY_LABELS[
-                    topic.visibility as keyof typeof VISIBILITY_LABELS
-                  ]
-                }
+              <span className="truncate text-sm font-semibold text-foreground">{topic.name}</span>
+              <Badge variant="outline" className="h-5 rounded-full px-2 text-[10px] tracking-wider">
+                {VISIBILITY_LABELS[topic.visibility as keyof typeof VISIBILITY_LABELS]}
               </Badge>
             </div>
             <div className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -58,9 +49,7 @@ export function TopicListItem({
               {topic.scheduledEnd ? (
                 <span>Closed {formatTimestamp(topic.scheduledEnd)}</span>
               ) : null}
-              <span className="tabular-nums">
-                {submissionCount} submissions
-              </span>
+              <span className="tabular-nums">{submissionCount} submissions</span>
             </div>
           </div>
         </div>
@@ -100,5 +89,5 @@ export function TopicListItem({
         </div>
       </div>
     </div>
-  );
+  )
 }

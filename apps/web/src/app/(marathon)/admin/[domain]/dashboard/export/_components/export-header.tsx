@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { Download, Circle } from "lucide-react"
+import { Download, Circle } from 'lucide-react'
 
 interface ExportHeaderProps {
   domain: string
@@ -25,7 +25,7 @@ export function ExportHeader({ marathonName, exportCount }: ExportHeaderProps) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
           Generate on-demand exports for analysis, auditing, and record keeping.
-          {marathonName ? ` Data scoped to ${marathonName}.` : ""}
+          {marathonName ? ` Data scoped to ${marathonName}.` : ''}
         </p>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70 tabular-nums">
           <div className="flex items-center gap-1">

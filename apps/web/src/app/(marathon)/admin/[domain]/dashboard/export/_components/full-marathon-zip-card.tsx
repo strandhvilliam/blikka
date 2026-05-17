@@ -1,27 +1,23 @@
-"use client"
+'use client'
 
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { cn } from "@/lib/utils"
-import { Archive, Loader2, RefreshCw } from "lucide-react"
-import { toast } from "sonner"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Button } from "@/components/ui/button"
-import { useZipDownloadProcess } from "../_lib/use-zip-download-process"
-import { StatusDisplay } from "./status-display"
-import { ProgressDisplay } from "./progress-display"
-import { DownloadUrlsPopover } from "./download-urls-popover"
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { cn } from '@/lib/utils'
+import { Archive, Loader2, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Button } from '@/components/ui/button'
+import { useZipDownloadProcess } from '../_lib/use-zip-download-process'
+import { StatusDisplay } from './status-display'
+import { ProgressDisplay } from './progress-display'
+import { DownloadUrlsPopover } from './download-urls-popover'
 
-export type {
-  ProgressData,
-  DownloadUrl,
-  ZipSubmissionStatus,
-} from "../_lib/types"
-export { useZipDownloadProcess } from "../_lib/use-zip-download-process"
-export { StatusDisplay } from "./status-display"
-export { ProgressDisplay } from "./progress-display"
-export { DownloadUrlsPopover } from "./download-urls-popover"
+export type { ProgressData, DownloadUrl, ZipSubmissionStatus } from '../_lib/types'
+export { useZipDownloadProcess } from '../_lib/use-zip-download-process'
+export { StatusDisplay } from './status-display'
+export { ProgressDisplay } from './progress-display'
+export { DownloadUrlsPopover } from './download-urls-popover'
 
 interface FullMarathonZipCardProps {
   disabled?: boolean
@@ -41,11 +37,8 @@ export function FullMarathonZipCard({ disabled }: FullMarathonZipCardProps) {
     try {
       await zipProcess.actions.start()
     } catch (error) {
-      toast.error("Failed to start zip generation", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
+      toast.error('Failed to start zip generation', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       })
     }
   }
@@ -54,11 +47,8 @@ export function FullMarathonZipCard({ disabled }: FullMarathonZipCardProps) {
     try {
       await zipProcess.actions.cancel()
     } catch (error) {
-      toast.error("Failed to cancel", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
+      toast.error('Failed to cancel', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       })
     }
   }
@@ -66,10 +56,10 @@ export function FullMarathonZipCard({ disabled }: FullMarathonZipCardProps) {
   return (
     <div
       className={cn(
-        "group relative rounded-xl border bg-white transition-shadow duration-200",
+        'group relative rounded-xl border bg-white transition-shadow duration-200',
         disabled
-          ? "border-border/60 opacity-60 cursor-not-allowed"
-          : "border-border hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]"
+          ? 'border-border/60 opacity-60 cursor-not-allowed'
+          : 'border-border hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]',
       )}
     >
       <div className="flex items-start gap-4 p-5">
@@ -107,8 +97,8 @@ export function FullMarathonZipCard({ disabled }: FullMarathonZipCardProps) {
         <div className="flex items-center justify-between gap-3">
           <p className="text-[11px] text-muted-foreground/70">
             {zipProcess.isProcessing
-              ? "Generating zip files. This may take several minutes."
-              : "All participants must have zipped submissions before generating."}
+              ? 'Generating zip files. This may take several minutes.'
+              : 'All participants must have zipped submissions before generating.'}
           </p>
           <div className="flex gap-2 shrink-0">
             {zipProcess.isCompleted ? (
@@ -153,11 +143,7 @@ export function FullMarathonZipCard({ disabled }: FullMarathonZipCardProps) {
             ) : (
               <PrimaryButton
                 onClick={handleGenerateZip}
-                disabled={
-                  zipProcess.isPending ||
-                  disabled ||
-                  status.missingReferences.length > 0
-                }
+                disabled={zipProcess.isPending || disabled || status.missingReferences.length > 0}
                 className="h-8 px-3 text-xs"
               >
                 {zipProcess.isPending ? (

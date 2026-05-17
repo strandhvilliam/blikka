@@ -1,16 +1,16 @@
-"use client"
+'use client'
 
-import { ImageIcon, Star } from "lucide-react"
-import type { JuryListParticipant, ViewMode } from "@/lib/jury/jury-types"
+import { ImageIcon, Star } from 'lucide-react'
+import type { JuryListParticipant, ViewMode } from '@/lib/jury/jury-types'
 import {
   getFinalRankingLabel,
   getParticipantPreview,
   juryRankChipCardBadge,
-} from "@/lib/jury/jury-utils"
-import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
+} from '@/lib/jury/jury-utils'
+import { JuryRankTrophyBadge } from './jury-rank-trophy-badge'
 
-function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "xs" }) {
-  const iconClass = size === "sm" ? "h-3.5 w-3.5" : "h-3 w-3"
+function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'xs' }) {
+  const iconClass = size === 'sm' ? 'h-3.5 w-3.5' : 'h-3 w-3'
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -168,7 +168,7 @@ export function JuryParticipantCard({
   rating,
   finalRanking,
   onClick,
-  variant = "grid",
+  variant = 'grid',
 }: {
   participant: JuryListParticipant
   rating: number
@@ -176,7 +176,7 @@ export function JuryParticipantCard({
   onClick: () => void
   variant?: ViewMode
 }) {
-  if (variant === "grid") {
+  if (variant === 'grid') {
     return (
       <GridCard
         participant={participant}

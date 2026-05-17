@@ -1,28 +1,28 @@
-import { getExifDate, parseExifData, type ExifData } from "./exif-parsing"
+import { getExifDate, parseExifData, type ExifData } from './exif-parsing'
 import {
   byCameraThumbnailBreadcrumb,
   fileSummaryForSentry,
   serializeUnknownErrorForLog,
-} from "./sentry-by-camera"
+} from './sentry-by-camera'
 
 export const COMMON_IMAGE_EXTENSIONS = [
-  "jpg",
-  "jpeg",
-  "heic",
-  "heif",
-  "png",
-  "gif",
-  "webp",
+  'jpg',
+  'jpeg',
+  'heic',
+  'heif',
+  'png',
+  'gif',
+  'webp',
 ] as const
 
 const CONTENT_TYPE_BY_EXTENSION = {
-  gif: "image/gif",
-  heic: "image/heic",
-  heif: "image/heif",
-  jpeg: "image/jpeg",
-  jpg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
+  gif: 'image/gif',
+  heic: 'image/heic',
+  heif: 'image/heif',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
 } as const
 
 const SUPPORTED_IMAGE_CONTENT_TYPES = new Set(
@@ -35,7 +35,7 @@ export interface NormalizedImageCandidate {
 }
 
 export function createClientPhotoId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID()
   }
 
@@ -44,8 +44,8 @@ export function createClientPhotoId() {
 
 export function isHeicFile(file: File): boolean {
   return (
-    file.type === "image/heic" ||
-    file.type === "image/heif" ||
+    file.type === 'image/heic' ||
+    file.type === 'image/heif' ||
     /\.heic$/i.test(file.name) ||
     /\.heif$/i.test(file.name)
   )
@@ -55,11 +55,11 @@ export function isSupportedImageFile(
   file: File,
   supportedExtensions: readonly string[] = COMMON_IMAGE_EXTENSIONS,
 ): boolean {
-  if (file.type.startsWith("image/")) {
+  if (file.type.startsWith('image/')) {
     return true
   }
 
-  const extension = file.name.split(".").pop()?.toLowerCase()
+  const extension = file.name.split('.').pop()?.toLowerCase()
   return extension ? supportedExtensions.includes(extension) : false
 }
 
@@ -67,17 +67,17 @@ export function resolveSelectedImageContentType(file: {
   type?: string | null
   name: string
 }): (typeof CONTENT_TYPE_BY_EXTENSION)[keyof typeof CONTENT_TYPE_BY_EXTENSION] | null {
-  const normalizedType = (file.type ?? "").trim().toLowerCase()
+  const normalizedType = (file.type ?? '').trim().toLowerCase()
 
-  if (normalizedType === "image/jpg") {
-    return "image/jpeg"
+  if (normalizedType === 'image/jpg') {
+    return 'image/jpeg'
   }
 
   if (SUPPORTED_IMAGE_CONTENT_TYPES.has(normalizedType)) {
     return normalizedType as (typeof CONTENT_TYPE_BY_EXTENSION)[keyof typeof CONTENT_TYPE_BY_EXTENSION]
   }
 
-  const extension = file.name.split(".").pop()?.toLowerCase()
+  const extension = file.name.split('.').pop()?.toLowerCase()
   if (!extension) {
     return null
   }
@@ -89,16 +89,16 @@ const HEIC_CONVERSION_TIMEOUT_MS = 60_000
 
 export async function convertHeicToJpeg(file: File): Promise<File | null> {
   try {
-    const heic2any = await import("heic2any")
+    const heic2any = await import('heic2any')
 
     const conversionPromise = heic2any.default({
       blob: file,
-      toType: "image/jpeg",
+      toType: 'image/jpeg',
       quality: 1,
     })
 
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("HEIC conversion timed out")), HEIC_CONVERSION_TIMEOUT_MS)
+      setTimeout(() => reject(new Error('HEIC conversion timed out')), HEIC_CONVERSION_TIMEOUT_MS)
     })
 
     const result = await Promise.race([conversionPromise, timeoutPromise])
@@ -108,8 +108,8 @@ export async function convertHeicToJpeg(file: File): Promise<File | null> {
       return null
     }
 
-    return new File([blob], file.name.replace(/\.heic$/i, ".jpg").replace(/\.heif$/i, ".jpg"), {
-      type: "image/jpeg",
+    return new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), {
+      type: 'image/jpeg',
     })
   } catch (error) {
     console.error(`Failed to convert HEIC file ${file.name}:`, error)
@@ -237,25 +237,25 @@ const THUMBNAIL_MAX_DIMENSION = 400
 
 async function imageBitmapToJpegObjectUrl(bitmap: ImageBitmap): Promise<string> {
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-  const ctx = canvas.getContext("2d")
+  const ctx = canvas.getContext('2d')
 
   if (!ctx) {
-    byCameraThumbnailBreadcrumb("fallback_no_2d_context", {
+    byCameraThumbnailBreadcrumb('fallback_no_2d_context', {
       w: bitmap.width,
       h: bitmap.height,
     })
     bitmap.close()
-    throw new Error("no_2d_context")
+    throw new Error('no_2d_context')
   }
 
   ctx.drawImage(bitmap, 0, 0)
   bitmap.close()
 
   const blob = await canvas.convertToBlob({
-    type: "image/jpeg",
+    type: 'image/jpeg',
     quality: 0.7,
   })
-  byCameraThumbnailBreadcrumb("jpeg_thumbnail", {
+  byCameraThumbnailBreadcrumb('jpeg_thumbnail', {
     thumbBytes: blob.size,
   })
   return URL.createObjectURL(blob)
@@ -273,12 +273,12 @@ export async function generateThumbnailUrl(
   try {
     const bitmap = await createImageBitmap(file, {
       resizeWidth: maxDimension,
-      resizeQuality: "medium",
-      imageOrientation: "from-image",
+      resizeQuality: 'medium',
+      imageOrientation: 'from-image',
     })
     return await imageBitmapToJpegObjectUrl(bitmap)
   } catch (cause) {
-    byCameraThumbnailBreadcrumb("fallback_after_exception", {
+    byCameraThumbnailBreadcrumb('fallback_after_exception', {
       error: serializeUnknownErrorForLog(cause),
       file: fileSummaryForSentry(file),
     })

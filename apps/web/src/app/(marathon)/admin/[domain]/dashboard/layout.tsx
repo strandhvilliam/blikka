@@ -1,10 +1,13 @@
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { SidebarInset } from "@/components/ui/sidebar"
-import { DashboardSidebar } from "./_components/dashboard-sidebar"
-import { DashboardHeader } from "./_components/dashboard-header"
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
+import { SidebarProvider } from '@/components/ui/sidebar'
+import { SidebarInset } from '@/components/ui/sidebar'
+import { DashboardSidebar } from './_components/dashboard-sidebar'
+import { DashboardHeader } from './_components/dashboard-header'
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
 
-export default async function DashboardLayout({ children, params }: LayoutProps<"/admin/[domain]/dashboard">) {
+export default async function DashboardLayout({
+  children,
+  params,
+}: LayoutProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
   prefetch(trpc.marathons.getUserMarathons.queryOptions())
   prefetch(trpc.marathons.getByDomain.queryOptions({ domain }))

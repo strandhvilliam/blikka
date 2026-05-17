@@ -1,50 +1,50 @@
-import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation"
-import type { ParticipantUploadFileState } from "./participant-upload-types"
-import { PARTICIPANT_UPLOAD_PHASE } from "./participant-upload-types"
-import type { UploadMarathonMode } from "./types"
+import { VALIDATION_OUTCOME, type ValidationResult } from '@blikka/validation'
+import type { ParticipantUploadFileState } from './participant-upload-types'
+import { PARTICIPANT_UPLOAD_PHASE } from './participant-upload-types'
+import type { UploadMarathonMode } from './types'
 
 export function formatRuleKey(ruleKey: string) {
   return ruleKey
-    .split("_")
+    .split('_')
     .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
-    .join(" ")
+    .join(' ')
 }
 
-export function getUploadPhaseLabel(phase: ParticipantUploadFileState["phase"]) {
-  if (phase === PARTICIPANT_UPLOAD_PHASE.PRESIGNED) return "Ready"
-  if (phase === PARTICIPANT_UPLOAD_PHASE.UPLOADING) return "Uploading"
-  if (phase === PARTICIPANT_UPLOAD_PHASE.PROCESSING) return "Processing"
-  if (phase === PARTICIPANT_UPLOAD_PHASE.COMPLETED) return "Completed"
-  if (phase === PARTICIPANT_UPLOAD_PHASE.ERROR) return "Failed"
-  return "Unknown"
+export function getUploadPhaseLabel(phase: ParticipantUploadFileState['phase']) {
+  if (phase === PARTICIPANT_UPLOAD_PHASE.PRESIGNED) return 'Ready'
+  if (phase === PARTICIPANT_UPLOAD_PHASE.UPLOADING) return 'Uploading'
+  if (phase === PARTICIPANT_UPLOAD_PHASE.PROCESSING) return 'Processing'
+  if (phase === PARTICIPANT_UPLOAD_PHASE.COMPLETED) return 'Completed'
+  if (phase === PARTICIPANT_UPLOAD_PHASE.ERROR) return 'Failed'
+  return 'Unknown'
 }
 
-export function getUploadPhaseClassName(phase: ParticipantUploadFileState["phase"]) {
+export function getUploadPhaseClassName(phase: ParticipantUploadFileState['phase']) {
   if (phase === PARTICIPANT_UPLOAD_PHASE.COMPLETED) {
-    return "bg-emerald-50 text-emerald-700 border-emerald-200"
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200'
   }
   if (phase === PARTICIPANT_UPLOAD_PHASE.ERROR) {
-    return "bg-rose-50 text-rose-700 border-rose-200"
+    return 'bg-rose-50 text-rose-700 border-rose-200'
   }
   if (
     phase === PARTICIPANT_UPLOAD_PHASE.UPLOADING ||
     phase === PARTICIPANT_UPLOAD_PHASE.PROCESSING
   ) {
-    return "bg-amber-50 text-amber-700 border-amber-200"
+    return 'bg-amber-50 text-amber-700 border-amber-200'
   }
-  return "bg-slate-100 text-slate-700 border-slate-200"
+  return 'bg-slate-100 text-slate-700 border-slate-200'
 }
 
 export function getValidationRowClass(result: ValidationResult) {
   if (result.outcome !== VALIDATION_OUTCOME.FAILED) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700"
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   }
 
-  if (result.severity === "error") {
-    return "border-rose-200 bg-rose-50 text-rose-700"
+  if (result.severity === 'error') {
+    return 'border-rose-200 bg-rose-50 text-rose-700'
   }
 
-  return "border-amber-200 bg-amber-50 text-amber-700"
+  return 'border-amber-200 bg-amber-50 text-amber-700'
 }
 
 type Topic = { orderIndex: number }
@@ -58,13 +58,13 @@ export function getDropzoneDisabledReason(params: {
   const { deviceGroupId, marathonMode, competitionClassId, activeByCameraTopic } = params
 
   if (!deviceGroupId) {
-    return "Select a device group to enable image selection."
+    return 'Select a device group to enable image selection.'
   }
-  if (marathonMode === "marathon" && !competitionClassId) {
-    return "Select a competition class to enable image selection."
+  if (marathonMode === 'marathon' && !competitionClassId) {
+    return 'Select a competition class to enable image selection.'
   }
-  if (marathonMode === "by-camera" && !activeByCameraTopic) {
-    return "No active topic is available for by-camera upload."
+  if (marathonMode === 'by-camera' && !activeByCameraTopic) {
+    return 'No active topic is available for by-camera upload.'
   }
   return null
 }
@@ -74,14 +74,14 @@ export function getDropzoneVariant(params: {
   isMaxImagesReached: boolean
   uploadComplete: boolean
   isBusy: boolean
-}): "disabled" | "complete" | "success" | "processing" | "ready" {
+}): 'disabled' | 'complete' | 'success' | 'processing' | 'ready' {
   const { canSelectFiles, isMaxImagesReached, uploadComplete, isBusy } = params
 
-  if (!canSelectFiles) return "disabled"
-  if (isMaxImagesReached) return "complete"
-  if (uploadComplete) return "success"
-  if (isBusy) return "processing"
-  return "ready"
+  if (!canSelectFiles) return 'disabled'
+  if (isMaxImagesReached) return 'complete'
+  if (uploadComplete) return 'success'
+  if (isBusy) return 'processing'
+  return 'ready'
 }
 
 type TopicWithOrderIndex = {
@@ -99,7 +99,7 @@ export function getSelectedTopics<T extends TopicWithOrderIndex>(
   selectedCompetitionClass: CompetitionClassWithTopicRange | null,
   sortedTopics: T[],
 ): T[] {
-  if (marathonMode === "by-camera") {
+  if (marathonMode === 'by-camera') {
     return activeByCameraTopic ? [activeByCameraTopic] : []
   }
 
@@ -118,7 +118,7 @@ export function getExpectedPhotoCount(
   activeByCameraTopic: TopicWithOrderIndex | null,
   selectedCompetitionClass: { numberOfPhotos: number } | null,
 ): number {
-  if (marathonMode === "by-camera") {
+  if (marathonMode === 'by-camera') {
     return activeByCameraTopic ? 1 : 0
   }
 

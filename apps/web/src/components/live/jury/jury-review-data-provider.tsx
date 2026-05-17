@@ -1,18 +1,13 @@
-"use client"
+'use client'
 
-import {
-  createContext,
-  useContext,
-  useMemo,
-  type ReactNode,
-} from "react"
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useJuryClientToken } from "./jury-client-token-provider"
-import { useJuryReviewQueryState } from "@/hooks/live/jury/use-jury-review-query-state"
-import { useJurySubmissionsInfiniteQuery } from "@/hooks/live/jury/use-jury-submissions-infinite-query"
-import type { JuryListParticipant } from "@/lib/jury/jury-types"
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useJuryClientToken } from './jury-client-token-provider'
+import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
+import { useJurySubmissionsInfiniteQuery } from '@/hooks/live/jury/use-jury-submissions-infinite-query'
+import type { JuryListParticipant } from '@/lib/jury/jury-types'
 
 export type JuryReviewDataContextValue = {
   participants: JuryListParticipant[]
@@ -29,9 +24,7 @@ export type JuryReviewDataContextValue = {
   isFetchingParticipantCount: boolean
 }
 
-const JuryReviewDataContext = createContext<JuryReviewDataContextValue | null>(
-  null,
-)
+const JuryReviewDataContext = createContext<JuryReviewDataContextValue | null>(null)
 
 export function JuryReviewDataProvider({ children }: { children: ReactNode }) {
   const trpc = useTRPC()
@@ -46,10 +39,7 @@ export function JuryReviewDataProvider({ children }: { children: ReactNode }) {
     }),
   )
 
-  const {
-    data: filteredParticipantCount,
-    isFetching: isFetchingParticipantCount,
-  } = useQuery(
+  const { data: filteredParticipantCount, isFetching: isFetchingParticipantCount } = useQuery(
     trpc.jury.getJuryParticipantCount.queryOptions(
       {
         domain,
@@ -85,15 +75,8 @@ export function JuryReviewDataProvider({ children }: { children: ReactNode }) {
   })
 
   const reviewSetTotalParticipants = useMemo(
-    () =>
-      reviewSetParticipantCount?.value ??
-      totalParticipants?.value ??
-      participants.length,
-    [
-      reviewSetParticipantCount?.value,
-      totalParticipants?.value,
-      participants.length,
-    ],
+    () => reviewSetParticipantCount?.value ?? totalParticipants?.value ?? participants.length,
+    [reviewSetParticipantCount?.value, totalParticipants?.value, participants.length],
   )
 
   const value = useMemo(
@@ -123,17 +106,13 @@ export function JuryReviewDataProvider({ children }: { children: ReactNode }) {
     ],
   )
 
-  return (
-    <JuryReviewDataContext.Provider value={value}>
-      {children}
-    </JuryReviewDataContext.Provider>
-  )
+  return <JuryReviewDataContext.Provider value={value}>{children}</JuryReviewDataContext.Provider>
 }
 
 export function useJuryReviewData() {
   const ctx = useContext(JuryReviewDataContext)
   if (!ctx) {
-    throw new Error("useJuryReviewData must be used within JuryReviewDataProvider")
+    throw new Error('useJuryReviewData must be used within JuryReviewDataProvider')
   }
   return ctx
 }

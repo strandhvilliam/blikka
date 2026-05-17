@@ -1,43 +1,43 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from 'vitest'
 
-import { getVotingReviewStats, sanitizeVotingState } from "./voting-review-state"
-import type { VotingSubmission } from "./voting-submission"
+import { getVotingReviewStats, sanitizeVotingState } from './voting-review-state'
+import type { VotingSubmission } from './voting-submission'
 
 const submissions: VotingSubmission[] = [
   {
     submissionId: 1,
     participantId: 11,
     topicId: 101,
-    topicName: "Topic",
-    url: "https://example.com/1.jpg",
-    thumbnailUrl: "https://example.com/1-thumb.jpg",
-    previewUrl: "https://example.com/1-preview.jpg",
+    topicName: 'Topic',
+    url: 'https://example.com/1.jpg',
+    thumbnailUrl: 'https://example.com/1-thumb.jpg',
+    previewUrl: 'https://example.com/1-preview.jpg',
     isOwnSubmission: false,
   },
   {
     submissionId: 2,
     participantId: 22,
     topicId: 101,
-    topicName: "Topic",
-    url: "https://example.com/2.jpg",
-    thumbnailUrl: "https://example.com/2-thumb.jpg",
-    previewUrl: "https://example.com/2-preview.jpg",
+    topicName: 'Topic',
+    url: 'https://example.com/2.jpg',
+    thumbnailUrl: 'https://example.com/2-thumb.jpg',
+    previewUrl: 'https://example.com/2-preview.jpg',
     isOwnSubmission: true,
   },
   {
     submissionId: 3,
     participantId: 33,
     topicId: 101,
-    topicName: "Topic",
-    url: "https://example.com/3.jpg",
-    thumbnailUrl: "https://example.com/3-thumb.jpg",
-    previewUrl: "https://example.com/3-preview.jpg",
+    topicName: 'Topic',
+    url: 'https://example.com/3.jpg',
+    thumbnailUrl: 'https://example.com/3-thumb.jpg',
+    previewUrl: 'https://example.com/3-preview.jpg',
     isOwnSubmission: false,
   },
 ]
 
-describe("voting review state", () => {
-  it("removes stale ratings and selections for own submissions", () => {
+describe('voting review state', () => {
+  it('removes stale ratings and selections for own submissions', () => {
     expect(
       sanitizeVotingState({
         submissions,
@@ -57,7 +57,7 @@ describe("voting review state", () => {
     })
   })
 
-  it("counts review progress only across rateable submissions", () => {
+  it('counts review progress only across rateable submissions', () => {
     expect(
       getVotingReviewStats({
         submissions,

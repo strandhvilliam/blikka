@@ -1,23 +1,19 @@
-import "server-only"
+import 'server-only'
 
-import { Effect, Layer, Context } from "effect"
+import { Effect, Layer, Context } from 'effect'
 import {
   DbLayer,
   DeviceGroupsRepository,
   MarathonsRepository,
   DbError,
   type DeviceGroup,
-} from "@blikka/db"
+} from '@blikka/db'
 import type {
   CreateDeviceGroupInput,
   DeleteDeviceGroupInput,
   UpdateDeviceGroupInput,
-} from "./contracts"
-import {
-  ForbiddenError,
-  NotFoundError,
-  failNotFoundIfNone,
-} from "../errors"
+} from './contracts'
+import { ForbiddenError, NotFoundError, failNotFoundIfNone } from '../errors'
 
 export class DeviceGroupsService extends Context.Service<
   DeviceGroupsService,
@@ -36,37 +32,29 @@ export class DeviceGroupsService extends Context.Service<
      */
     readonly updateDeviceGroup: (
       input: UpdateDeviceGroupInput,
-    ) => Effect.Effect<
-      DeviceGroup,
-      DbError | NotFoundError | ForbiddenError,
-      never
-    >
+    ) => Effect.Effect<DeviceGroup, DbError | NotFoundError | ForbiddenError, never>
 
     /** Deletes a device group after verifying marathon ownership via `domain`. */
     readonly deleteDeviceGroup: (
       input: DeleteDeviceGroupInput,
-    ) => Effect.Effect<
-      DeviceGroup,
-      DbError | NotFoundError | ForbiddenError,
-      never
-    >
+    ) => Effect.Effect<DeviceGroup, DbError | NotFoundError | ForbiddenError, never>
   }
->()("@blikka/api/DeviceGroupsService") {}
+>()('@blikka/api/DeviceGroupsService') {}
 
 const makeDeviceGroupsService = Effect.gen(function* () {
   const marathonsRepository = yield* MarathonsRepository
   const deviceGroupsRepository = yield* DeviceGroupsRepository
 
   const ensureDeviceGroupBelongsToDomain = Effect.fn(
-    "DeviceGroupsService.ensureDeviceGroupBelongsToDomain",
+    'DeviceGroupsService.ensureDeviceGroupBelongsToDomain',
   )(function* ({ id, domain }: { id: number; domain: string }) {
     const deviceGroup = yield* deviceGroupsRepository
       .getDeviceGroupById({ id })
-      .pipe(failNotFoundIfNone("DeviceGroup", { id }))
+      .pipe(failNotFoundIfNone('DeviceGroup', { id }))
 
     const marathon = yield* marathonsRepository
       .getMarathonByDomain({ domain })
-      .pipe(failNotFoundIfNone("Marathon", { domain }))
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
     if (marathon.id !== deviceGroup.marathonId) {
       return yield* Effect.fail(
@@ -79,41 +67,38 @@ const makeDeviceGroupsService = Effect.gen(function* () {
     return deviceGroup
   })
 
-  const createDeviceGroup: DeviceGroupsService["Service"]["createDeviceGroup"] =
-    Effect.fn("DeviceGroupsService.createDeviceGroup")(
-      function* ({ domain, data }) {
-        const marathon = yield* marathonsRepository
-          .getMarathonByDomain({ domain })
-          .pipe(failNotFoundIfNone("Marathon", { domain }))
+  const createDeviceGroup: DeviceGroupsService['Service']['createDeviceGroup'] = Effect.fn(
+    'DeviceGroupsService.createDeviceGroup',
+  )(function* ({ domain, data }) {
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-        return yield* deviceGroupsRepository.createDeviceGroup({
-          data: {
-            ...data,
-            marathonId: marathon.id,
-            icon: data.icon ?? "camera",
-          },
-        })
+    return yield* deviceGroupsRepository.createDeviceGroup({
+      data: {
+        ...data,
+        marathonId: marathon.id,
+        icon: data.icon ?? 'camera',
       },
-    )
+    })
+  })
 
-  const updateDeviceGroup: DeviceGroupsService["Service"]["updateDeviceGroup"] =
-    Effect.fn("DeviceGroupsService.updateDeviceGroup")(
-      function* ({ domain, id, data }) {
-        yield* ensureDeviceGroupBelongsToDomain({ id, domain })
-        return yield* deviceGroupsRepository.updateDeviceGroup({
-          id,
-          data,
-        })
-      },
-    )
+  const updateDeviceGroup: DeviceGroupsService['Service']['updateDeviceGroup'] = Effect.fn(
+    'DeviceGroupsService.updateDeviceGroup',
+  )(function* ({ domain, id, data }) {
+    yield* ensureDeviceGroupBelongsToDomain({ id, domain })
+    return yield* deviceGroupsRepository.updateDeviceGroup({
+      id,
+      data,
+    })
+  })
 
-  const deleteDeviceGroup: DeviceGroupsService["Service"]["deleteDeviceGroup"] =
-    Effect.fn("DeviceGroupsService.deleteDeviceGroup")(
-      function* ({ domain, id }) {
-        yield* ensureDeviceGroupBelongsToDomain({ id, domain })
-        return yield* deviceGroupsRepository.deleteDeviceGroup({ id })
-      },
-    )
+  const deleteDeviceGroup: DeviceGroupsService['Service']['deleteDeviceGroup'] = Effect.fn(
+    'DeviceGroupsService.deleteDeviceGroup',
+  )(function* ({ domain, id }) {
+    yield* ensureDeviceGroupBelongsToDomain({ id, domain })
+    return yield* deviceGroupsRepository.deleteDeviceGroup({ id })
+  })
 
   return DeviceGroupsService.of({
     createDeviceGroup,
@@ -127,6 +112,4 @@ export const DeviceGroupsServiceLayerNoDeps = Layer.effect(
   makeDeviceGroupsService,
 )
 
-export const DeviceGroupsServiceLayer = DeviceGroupsServiceLayerNoDeps.pipe(
-  Layer.provide(DbLayer),
-)
+export const DeviceGroupsServiceLayer = DeviceGroupsServiceLayerNoDeps.pipe(Layer.provide(DbLayer))

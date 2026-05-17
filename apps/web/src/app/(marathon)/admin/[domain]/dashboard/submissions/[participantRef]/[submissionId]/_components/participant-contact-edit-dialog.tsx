@@ -1,13 +1,13 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useForm } from "@tanstack/react-form"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { isPossiblePhoneNumber } from "react-phone-number-input"
-import { z } from "zod"
-import { toast } from "sonner"
+import { useEffect, useState } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { isPossiblePhoneNumber } from 'react-phone-number-input'
+import { z } from 'zod'
+import { toast } from 'sonner'
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -15,34 +15,34 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { PhoneInput } from "@/components/ui/phone-input"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import type { Participant } from "@blikka/db"
-import { PrimaryButton } from "@/components/ui/primary-button"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { PhoneInput } from '@/components/ui/phone-input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2 } from 'lucide-react'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import type { Participant } from '@blikka/db'
+import { PrimaryButton } from '@/components/ui/primary-button'
 
 const marathonContactSchema = z.object({
-  firstname: z.string().trim().min(1, "First name is required"),
-  lastname: z.string().trim().min(1, "Last name is required"),
-  email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
+  firstname: z.string().trim().min(1, 'First name is required'),
+  lastname: z.string().trim().min(1, 'Last name is required'),
+  email: z.string().trim().min(1, 'Email is required').email('Enter a valid email address'),
 })
 
 const byCameraContactSchema = marathonContactSchema.extend({
   phone: z
     .string()
-    .min(1, "Phone number is required")
-    .refine(isPossiblePhoneNumber, "Enter a valid phone number"),
+    .min(1, 'Phone number is required')
+    .refine(isPossiblePhoneNumber, 'Enter a valid phone number'),
 })
 
 export type ParticipantWithPhoneNumber = Participant & {
   phoneNumber?: string | null
 }
 
-export type ParticipantContactEditMode = "by-camera" | "marathon"
+export type ParticipantContactEditMode = 'by-camera' | 'marathon'
 
 interface ParticipantContactEditDialogProps {
   participantRef: string
@@ -58,7 +58,7 @@ export function ParticipantContactEditDialog({
   participant,
   isOpen,
   onOpenChange,
-  mode = "by-camera",
+  mode = 'by-camera',
 }: ParticipantContactEditDialogProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -69,12 +69,12 @@ export function ParticipantContactEditDialog({
     defaultValues: {
       firstname: participant.firstname,
       lastname: participant.lastname,
-      email: participant.email ?? "",
-      phone: participant.phoneNumber ?? "",
+      email: participant.email ?? '',
+      phone: participant.phoneNumber ?? '',
     },
     validators: {
       onSubmit: ({ value }) => {
-        if (mode === "marathon") {
+        if (mode === 'marathon') {
           const result = marathonContactSchema.safeParse(value)
           if (result.success) return undefined
           const fieldErrors = result.error.flatten().fieldErrors
@@ -100,7 +100,7 @@ export function ParticipantContactEditDialog({
       },
     },
     onSubmit: async ({ value }) => {
-      if (mode === "marathon") {
+      if (mode === 'marathon') {
         const parsed = marathonContactSchema.safeParse(value)
         if (!parsed.success) return
         setErrorMessage(null)
@@ -131,10 +131,10 @@ export function ParticipantContactEditDialog({
     if (!isOpen) {
       return
     }
-    form.setFieldValue("firstname", participant.firstname)
-    form.setFieldValue("lastname", participant.lastname)
-    form.setFieldValue("email", participant.email ?? "")
-    form.setFieldValue("phone", participant.phoneNumber ?? "")
+    form.setFieldValue('firstname', participant.firstname)
+    form.setFieldValue('lastname', participant.lastname)
+    form.setFieldValue('email', participant.email ?? '')
+    form.setFieldValue('phone', participant.phoneNumber ?? '')
   }, [form, participant, isOpen])
 
   const invalidateParticipantQueries = () => {
@@ -152,13 +152,13 @@ export function ParticipantContactEditDialog({
   const { mutate: updateByCameraContact, isPending: isByCameraPending } = useMutation(
     trpc.participants.updateByCameraParticipantContact.mutationOptions({
       onSuccess: () => {
-        toast.success("Participant details updated")
+        toast.success('Participant details updated')
         invalidateParticipantQueries()
         onOpenChange(false)
         setErrorMessage(null)
       },
       onError: (error) => {
-        setErrorMessage(error.message || "Failed to update participant")
+        setErrorMessage(error.message || 'Failed to update participant')
       },
     }),
   )
@@ -166,18 +166,18 @@ export function ParticipantContactEditDialog({
   const { mutate: updateMarathonContact, isPending: isMarathonPending } = useMutation(
     trpc.participants.updateMarathonParticipantContact.mutationOptions({
       onSuccess: () => {
-        toast.success("Participant details updated")
+        toast.success('Participant details updated')
         invalidateParticipantQueries()
         onOpenChange(false)
         setErrorMessage(null)
       },
       onError: (error) => {
-        setErrorMessage(error.message || "Failed to update participant")
+        setErrorMessage(error.message || 'Failed to update participant')
       },
     }),
   )
 
-  const isPending = mode === "by-camera" ? isByCameraPending : isMarathonPending
+  const isPending = mode === 'by-camera' ? isByCameraPending : isMarathonPending
 
   const handleOpenChange = (open: boolean) => {
     onOpenChange(open)
@@ -186,8 +186,8 @@ export function ParticipantContactEditDialog({
       form.reset({
         firstname: participant.firstname,
         lastname: participant.lastname,
-        email: participant.email ?? "",
-        phone: participant.phoneNumber ?? "",
+        email: participant.email ?? '',
+        phone: participant.phoneNumber ?? '',
       })
     }
   }
@@ -198,7 +198,7 @@ export function ParticipantContactEditDialog({
         <DialogHeader>
           <DialogTitle className="font-gothic">Edit participant details</DialogTitle>
           <DialogDescription>
-            {mode === "by-camera" ? (
+            {mode === 'by-camera' ? (
               <>
                 Update name, email, and phone for this by-camera participant. The phone number must
                 stay unique within this marathon.
@@ -237,7 +237,7 @@ export function ParticipantContactEditDialog({
                   autoComplete="given-name"
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(", ")}</p>
+                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
                 ) : null}
               </div>
             )}
@@ -258,7 +258,7 @@ export function ParticipantContactEditDialog({
                   autoComplete="family-name"
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(", ")}</p>
+                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
                 ) : null}
               </div>
             )}
@@ -280,13 +280,13 @@ export function ParticipantContactEditDialog({
                   autoComplete="email"
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
-                  <p className="text-sm text-destructive">{field.state.meta.errors.join(", ")}</p>
+                  <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
                 ) : null}
               </div>
             )}
           </form.Field>
 
-          {mode === "by-camera" ? (
+          {mode === 'by-camera' ? (
             <form.Field name="phone">
               {(field) => (
                 <div className="space-y-2">
@@ -299,10 +299,10 @@ export function ParticipantContactEditDialog({
                     defaultCountry="SE"
                     value={field.state.value || undefined}
                     onBlur={field.handleBlur}
-                    onChange={(v) => field.handleChange(v ?? "")}
+                    onChange={(v) => field.handleChange(v ?? '')}
                   />
                   {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
-                    <p className="text-sm text-destructive">{field.state.meta.errors.join(", ")}</p>
+                    <p className="text-sm text-destructive">{field.state.meta.errors.join(', ')}</p>
                   ) : null}
                 </div>
               )}
@@ -320,7 +320,7 @@ export function ParticipantContactEditDialog({
                   Saving…
                 </>
               ) : (
-                "Save"
+                'Save'
               )}
             </PrimaryButton>
           </DialogFooter>

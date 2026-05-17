@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { create } from "zustand"
-import { convertHeicToJpeg, isHeicFile } from "@/lib/file-processing"
-import { parseExifData } from "@/lib/exif-parsing"
+import { create } from 'zustand'
+import { convertHeicToJpeg, isHeicFile } from '@/lib/file-processing'
+import { parseExifData } from '@/lib/exif-parsing'
 
 export interface ConvertedFile {
   file: File

@@ -1,5 +1,5 @@
-import { Array, Config, Context, Effect, Layer, Option, Order, pipe } from "effect"
-import { randomUUID } from "node:crypto"
+import { Array, Config, Context, Effect, Layer, Option, Order, pipe } from 'effect'
+import { randomUUID } from 'node:crypto'
 import {
   DbError,
   DbLayer,
@@ -11,7 +11,7 @@ import {
   type NewParticipant,
   type Participant,
   type Topic,
-} from "@blikka/db"
+} from '@blikka/db'
 import {
   S3ClientError,
   S3Service,
@@ -19,7 +19,7 @@ import {
   SQSService,
   SQSServiceError,
   SQSServiceLayer,
-} from "@blikka/aws"
+} from '@blikka/aws'
 import {
   ExifKVRepository,
   ExifKVRepositoryError,
@@ -28,8 +28,8 @@ import {
   UploadSessionRepository,
   UploadSessionRepositoryLayer,
   type UploadSessionRepositoryError,
-} from "@blikka/kv-store"
-import { RealtimeEventsService, RealtimeEventsServiceLayer } from "@blikka/realtime"
+} from '@blikka/kv-store'
+import { RealtimeEventsService, RealtimeEventsServiceLayer } from '@blikka/realtime'
 import {
   normalizeUploadContentType,
   type CheckParticipantExists,
@@ -42,25 +42,25 @@ import {
   type RefreshPresignedUploads,
   type ResolveByCameraParticipantByPhone,
   type ReTriggerUploadFlow,
-} from "./contracts"
-import { BadRequestError, ConflictError, NotFoundError, PreconditionFailedError } from "../errors"
+} from './contracts'
+import { BadRequestError, ConflictError, NotFoundError, PreconditionFailedError } from '../errors'
 import {
   PhoneNumberEncryptionService,
   PhoneNumberEncryptionServiceLayer,
   type PhoneNumberEncryptionError,
-} from "../utils/phone-number-encryption"
+} from '../utils/phone-number-encryption'
 
 const ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE =
-  "You have already uploaded a photo for the current topic."
+  'You have already uploaded a photo for the current topic.'
 
 const MAX_REFERENCE_GENERATION_ATTEMPTS = 25
 
-const PLATFORM_TERMS_VERSION = "blikka-terms-2026-05-01"
+const PLATFORM_TERMS_VERSION = 'blikka-terms-2026-05-01'
 
 function createRandomReference() {
   return Math.floor(Math.random() * 10_000)
     .toString()
-    .padStart(4, "0")
+    .padStart(4, '0')
 }
 
 function createUploadSessionId() {
@@ -79,8 +79,8 @@ function normalizeAcceptedLocale(locale?: string | null) {
   return normalizedLocale ? normalizedLocale : null
 }
 
-function isParticipantFinalized(status: Participant["status"]) {
-  return status === "completed" || status === "verified"
+function isParticipantFinalized(status: Participant['status']) {
+  return status === 'completed' || status === 'verified'
 }
 
 function hasExifFields(
@@ -90,7 +90,7 @@ function hasExifFields(
 }
 
 /** Marathon row with `topics` replaced for public upload entry (redaction / by-camera slice). */
-interface PublicMarathonForClient extends Omit<Marathon, "topics"> {
+interface PublicMarathonForClient extends Omit<Marathon, 'topics'> {
   topics: Topic[]
 }
 
@@ -188,7 +188,7 @@ export class UploadFlowService extends Context.Service<
           match: true
           participantId: number
           reference: string
-          activeTopicUploadState: "eligible" | "already-uploaded"
+          activeTopicUploadState: 'eligible' | 'already-uploaded'
         },
       DbError | PhoneNumberEncryptionError | BadRequestError | UploadSessionRepositoryError,
       never
@@ -250,7 +250,7 @@ export class UploadFlowService extends Context.Service<
       never
     >
   }
->()("@blikka/api/UploadFlowService") {}
+>()('@blikka/api/UploadFlowService') {}
 
 const makeUploadFlowService = Effect.gen(function* () {
   const submissionsRepository = yield* SubmissionsRepository
@@ -262,13 +262,13 @@ const makeUploadFlowService = Effect.gen(function* () {
   const exifKv = yield* ExifKVRepository
   const phoneEncryption = yield* PhoneNumberEncryptionService
   const realtimeEvents = yield* RealtimeEventsService
-  const bucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
-  const queueUrl = yield* Config.string("UPLOAD_PROCESSOR_QUEUE_URL")
-  const environment = yield* Config.string("NODE_ENV").pipe(
-    Config.map((env) => (env === "production" ? "prod" : "dev")),
+  const bucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
+  const queueUrl = yield* Config.string('UPLOAD_PROCESSOR_QUEUE_URL')
+  const environment = yield* Config.string('NODE_ENV').pipe(
+    Config.map((env) => (env === 'production' ? 'prod' : 'dev')),
   )
 
-  const getMarathonByDomainOrFail = Effect.fn("UploadFlowService.getMarathonByDomainOrFail")(
+  const getMarathonByDomainOrFail = Effect.fn('UploadFlowService.getMarathonByDomainOrFail')(
     function* (domain: string) {
       return yield* marathonsRepository
         .getMarathonByDomainWithOptions({
@@ -290,7 +290,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     },
   )
 
-  const resetAndSeedUploadExif = Effect.fn("UploadFlowService.resetAndSeedUploadExif")(function* ({
+  const resetAndSeedUploadExif = Effect.fn('UploadFlowService.resetAndSeedUploadExif')(function* ({
     domain,
     reference,
     staleOrderIndexes,
@@ -321,12 +321,12 @@ const makeUploadFlowService = Effect.gen(function* () {
     yield* Effect.forEach(
       exifEntries,
       ({ orderIndex, exif }) => exifKv.setExifState(domain, reference, orderIndex, exif),
-      { concurrency: "unbounded" },
+      { concurrency: 'unbounded' },
     )
   })
 
   const maybeRecordParticipantTermsAcceptance = Effect.fn(
-    "UploadFlowService.maybeRecordParticipantTermsAcceptance",
+    'UploadFlowService.maybeRecordParticipantTermsAcceptance',
   )(function* ({
     participant,
     marathon,
@@ -340,7 +340,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     domain: string
     termsAccepted?: boolean
     acceptedLocale?: string | null
-    source: "participant" | "staff-on-behalf"
+    source: 'participant' | 'staff-on-behalf'
   }) {
     if (termsAccepted !== true) {
       return
@@ -360,7 +360,7 @@ const makeUploadFlowService = Effect.gen(function* () {
   })
 
   const ensureMarathonIsOpenForUploads = Effect.fn(
-    "UploadFlowService.ensureMarathonIsOpenForUploads",
+    'UploadFlowService.ensureMarathonIsOpenForUploads',
   )(function* ({
     domain,
     marathon,
@@ -378,7 +378,7 @@ const makeUploadFlowService = Effect.gen(function* () {
       )
     }
 
-    if (marathon.mode === "marathon") {
+    if (marathon.mode === 'marathon') {
       if (!marathon.startDate || !marathon.endDate) {
         return yield* Effect.fail(
           new BadRequestError({
@@ -408,7 +408,7 @@ const makeUploadFlowService = Effect.gen(function* () {
       }
     }
 
-    if (marathon.mode === "by-camera") {
+    if (marathon.mode === 'by-camera') {
       if (!activeTopic) {
         return yield* Effect.fail(
           new BadRequestError({
@@ -416,7 +416,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           }),
         )
       }
-      if (activeTopic.visibility !== "active") {
+      if (activeTopic.visibility !== 'active') {
         return yield* Effect.fail(
           new BadRequestError({
             message: `[${domain}] Active topic is not active`,
@@ -447,7 +447,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     }
   })
 
-  const getActiveByCameraTopicOrFail = Effect.fn("UploadFlowService.getActiveByCameraTopicOrFail")(
+  const getActiveByCameraTopicOrFail = Effect.fn('UploadFlowService.getActiveByCameraTopicOrFail')(
     function* ({
       domain,
       marathon,
@@ -457,7 +457,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         topics: Topic[]
       }
     }) {
-      const activeTopic = marathon.topics.find((topic) => topic.visibility === "active")
+      const activeTopic = marathon.topics.find((topic) => topic.visibility === 'active')
 
       if (!activeTopic) {
         return yield* Effect.fail(
@@ -472,7 +472,7 @@ const makeUploadFlowService = Effect.gen(function* () {
   )
 
   const getByCameraCompetitionClassIdOrFail = Effect.fn(
-    "UploadFlowService.getByCameraCompetitionClassIdOrFail",
+    'UploadFlowService.getByCameraCompetitionClassIdOrFail',
   )(function* ({
     domain,
     marathon,
@@ -495,7 +495,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     return competitionClass.id
   })
 
-  const ensureDeviceGroupExists = Effect.fn("UploadFlowService.ensureDeviceGroupExists")(
+  const ensureDeviceGroupExists = Effect.fn('UploadFlowService.ensureDeviceGroupExists')(
     function* ({
       domain,
       marathon,
@@ -525,7 +525,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     },
   )
 
-  const getCompetitionClassOrFail = Effect.fn("UploadFlowService.getCompetitionClassOrFail")(
+  const getCompetitionClassOrFail = Effect.fn('UploadFlowService.getCompetitionClassOrFail')(
     function* ({
       domain,
       marathon,
@@ -551,7 +551,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     },
   )
 
-  const encryptPhoneNumber = Effect.fn("UploadFlowService.encryptPhoneNumber")(function* (
+  const encryptPhoneNumber = Effect.fn('UploadFlowService.encryptPhoneNumber')(function* (
     phoneNumber?: string | null,
   ) {
     return yield* Option.match(Option.fromNullishOr(normalizeOptionalPhoneNumber(phoneNumber)), {
@@ -566,7 +566,7 @@ const makeUploadFlowService = Effect.gen(function* () {
   })
 
   const hasSuccessfulActiveTopicUpload = Effect.fn(
-    "UploadFlowService.hasSuccessfulActiveTopicUpload",
+    'UploadFlowService.hasSuccessfulActiveTopicUpload',
   )(function* ({
     domain,
     reference,
@@ -578,7 +578,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     activeTopic: { id: number; orderIndex: number; visibility: string }
     submissionStatus?: string | null
   }) {
-    if (submissionStatus && submissionStatus !== "initialized") {
+    if (submissionStatus && submissionStatus !== 'initialized') {
       return true
     }
 
@@ -602,11 +602,11 @@ const makeUploadFlowService = Effect.gen(function* () {
   })
 
   const resolveExistingByCameraParticipant = Effect.fn(
-    "UploadFlowService.resolveExistingByCameraParticipant",
+    'UploadFlowService.resolveExistingByCameraParticipant',
   )(function* ({ domain, phoneNumber }: { domain: string; phoneNumber: string }) {
     const marathon = yield* getMarathonByDomainOrFail(domain)
 
-    if (marathon.mode !== "by-camera") {
+    if (marathon.mode !== 'by-camera') {
       return yield* Effect.fail(
         new BadRequestError({
           message: `[${domain}] Marathon is not in by-camera mode`,
@@ -631,7 +631,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         phoneHash,
         existingParticipant: null,
         activeTopicSubmission: null,
-        activeTopicUploadState: "eligible" as const,
+        activeTopicUploadState: 'eligible' as const,
       }
     }
 
@@ -663,13 +663,13 @@ const makeUploadFlowService = Effect.gen(function* () {
       existingParticipant: existingParticipant.value,
       activeTopicSubmission,
       activeTopicUploadState: alreadyUploaded
-        ? ("already-uploaded" as const)
-        : ("eligible" as const),
+        ? ('already-uploaded' as const)
+        : ('eligible' as const),
     }
   })
 
   const createByCameraParticipantWithGeneratedReference = Effect.fn(
-    "UploadFlowService.createByCameraParticipantWithGeneratedReference",
+    'UploadFlowService.createByCameraParticipantWithGeneratedReference',
   )(function* ({
     domain,
     marathonId,
@@ -708,11 +708,11 @@ const makeUploadFlowService = Effect.gen(function* () {
         competitionClassId,
         deviceGroupId,
         marathonId,
-        participantMode: "by-camera",
+        participantMode: 'by-camera',
         firstname,
         lastname,
         email,
-        status: "initialized",
+        status: 'initialized',
         phoneHash,
         phoneEncrypted,
       } satisfies NewParticipant
@@ -723,7 +723,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           Effect.map((participant) => ({ participant, reference })),
           Effect.catch((error) => {
             const message = error instanceof Error ? error.message : String(error)
-            if (message.includes("participants_domain_reference_key")) {
+            if (message.includes('participants_domain_reference_key')) {
               return Effect.succeed(null)
             }
             return Effect.fail(error)
@@ -742,17 +742,17 @@ const makeUploadFlowService = Effect.gen(function* () {
     )
   })
 
-  const getPublicMarathon: UploadFlowService["Service"]["getPublicMarathon"] = Effect.fn(
-    "UploadFlowService.getPublicMarathon",
+  const getPublicMarathon: UploadFlowService['Service']['getPublicMarathon'] = Effect.fn(
+    'UploadFlowService.getPublicMarathon',
   )(function* ({ domain }) {
     const marathon = yield* getMarathonByDomainOrFail(domain)
 
     const processedTopics = marathon.topics
       .reduce((acc, topic) => {
-        if (topic.visibility !== "public" && topic.visibility !== "active") {
+        if (topic.visibility !== 'public' && topic.visibility !== 'active') {
           acc.push({
             ...topic,
-            name: "Redacted",
+            name: 'Redacted',
           })
         } else {
           acc.push(topic)
@@ -762,8 +762,8 @@ const makeUploadFlowService = Effect.gen(function* () {
       .sort((a, b) => a.orderIndex - b.orderIndex)
 
     const topics =
-      marathon.mode === "by-camera"
-        ? processedTopics.filter((topic) => topic.visibility === "active").slice(0, 1)
+      marathon.mode === 'by-camera'
+        ? processedTopics.filter((topic) => topic.visibility === 'active').slice(0, 1)
         : processedTopics
 
     return {
@@ -772,8 +772,8 @@ const makeUploadFlowService = Effect.gen(function* () {
     }
   })
 
-  const checkParticipantExists: UploadFlowService["Service"]["checkParticipantExists"] = Effect.fn(
-    "UploadFlowService.checkParticipantExists",
+  const checkParticipantExists: UploadFlowService['Service']['checkParticipantExists'] = Effect.fn(
+    'UploadFlowService.checkParticipantExists',
   )(function* ({ domain, reference }) {
     const participant = yield* participantsRepository.getParticipantByReference({
       domain,
@@ -792,8 +792,8 @@ const makeUploadFlowService = Effect.gen(function* () {
     })
   })
 
-  const prepareUploadFlow: UploadFlowService["Service"]["prepareUploadFlow"] = Effect.fn(
-    "UploadFlowService.prepareUploadFlow",
+  const prepareUploadFlow: UploadFlowService['Service']['prepareUploadFlow'] = Effect.fn(
+    'UploadFlowService.prepareUploadFlow',
   )(function* ({
     domain,
     reference,
@@ -809,7 +809,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     const executeEffect = Effect.gen(function* () {
       const marathon = yield* getMarathonByDomainOrFail(domain)
 
-      if (marathon.mode !== "marathon") {
+      if (marathon.mode !== 'marathon') {
         return yield* Effect.fail(
           new BadRequestError({
             message: `[${domain}] Prepare flow is only available in marathon mode`,
@@ -835,8 +835,8 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (Option.isSome(existingParticipant)) {
         if (
-          existingParticipant.value.status === "completed" ||
-          existingParticipant.value.status === "verified"
+          existingParticipant.value.status === 'completed' ||
+          existingParticipant.value.status === 'verified'
         ) {
           return yield* Effect.fail(
             new BadRequestError({
@@ -845,7 +845,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           )
         }
 
-        if (existingParticipant.value.status === "initialized") {
+        if (existingParticipant.value.status === 'initialized') {
           return yield* Effect.fail(
             new BadRequestError({
               message: `[${domain}|${reference}] Participant already started upload flow`,
@@ -865,7 +865,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         firstname,
         lastname,
         email,
-        status: "prepared",
+        status: 'prepared',
         phoneHash: hash,
         phoneEncrypted: encrypted,
       } satisfies NewParticipant
@@ -888,7 +888,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         domain,
         termsAccepted,
         acceptedLocale,
-        source: "participant",
+        source: 'participant',
       })
 
       return {
@@ -898,15 +898,15 @@ const makeUploadFlowService = Effect.gen(function* () {
     })
 
     return yield* realtimeEvents.withEventResult(executeEffect, {
-      eventKey: "participant-prepared",
+      eventKey: 'participant-prepared',
       environment,
       domain,
       reference,
     })
   })
 
-  const initializeUploadFlow: UploadFlowService["Service"]["initializeUploadFlow"] = Effect.fn(
-    "UploadFlowService.initializeUploadFlow",
+  const initializeUploadFlow: UploadFlowService['Service']['initializeUploadFlow'] = Effect.fn(
+    'UploadFlowService.initializeUploadFlow',
   )(function* ({
     domain,
     reference,
@@ -969,14 +969,14 @@ const makeUploadFlowService = Effect.gen(function* () {
         firstname,
         lastname,
         email,
-        status: "initialized",
+        status: 'initialized',
         phoneHash: hash,
         phoneEncrypted: encrypted,
       } satisfies NewParticipant
 
       const participant: Participant = yield* Option.match(existingParticipant, {
         onSome: (existing) => {
-          if (existing.status === "completed" || existing.status === "verified") {
+          if (existing.status === 'completed' || existing.status === 'verified') {
             return Effect.fail(
               new BadRequestError({
                 message: `[${domain}|${reference}] Participant already completed upload flow`,
@@ -1000,7 +1000,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         domain,
         termsAccepted,
         acceptedLocale,
-        source: termsAcceptanceSource === "staff-on-behalf" ? "staff-on-behalf" : "participant",
+        source: termsAcceptanceSource === 'staff-on-behalf' ? 'staff-on-behalf' : 'participant',
       })
 
       const topics = pipe(
@@ -1029,7 +1029,7 @@ const makeUploadFlowService = Effect.gen(function* () {
       const submissionKeys = yield* Effect.forEach(
         topics,
         (topic) => s3.generateSubmissionKey(domain, reference, topic.orderIndex),
-        { concurrency: "unbounded" },
+        { concurrency: 'unbounded' },
       )
 
       if (existingSubmissions.length > 0) {
@@ -1044,7 +1044,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           key: submissionKeys[index]!,
           marathonId: marathon.id,
           topicId: topic.id,
-          status: "initialized",
+          status: 'initialized',
         })),
       })
 
@@ -1060,7 +1060,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       const resolvedContentTypes =
         uploadContentTypes === undefined
-          ? topics.map(() => "image/jpeg")
+          ? topics.map(() => 'image/jpeg')
           : uploadContentTypes.map((raw: string) => normalizeUploadContentType(raw))
 
       const presignedUrls = yield* Effect.forEach(
@@ -1068,8 +1068,8 @@ const makeUploadFlowService = Effect.gen(function* () {
           key,
           contentType: resolvedContentTypes[index]!,
         })),
-        ({ key, contentType }) => s3.getPresignedUrl(bucketName, key, "PUT", { contentType }),
-        { concurrency: "unbounded" },
+        ({ key, contentType }) => s3.getPresignedUrl(bucketName, key, 'PUT', { contentType }),
+        { concurrency: 'unbounded' },
       )
 
       return {
@@ -1084,15 +1084,15 @@ const makeUploadFlowService = Effect.gen(function* () {
     })
 
     return yield* realtimeEvents.withEventResult(executeEffect, {
-      eventKey: "upload-flow-initialized",
+      eventKey: 'upload-flow-initialized',
       environment,
       domain,
       reference,
     })
   })
 
-  const resolveByCameraParticipantByPhone: UploadFlowService["Service"]["resolveByCameraParticipantByPhone"] =
-    Effect.fn("UploadFlowService.resolveByCameraParticipantByPhone")(function* ({
+  const resolveByCameraParticipantByPhone: UploadFlowService['Service']['resolveByCameraParticipantByPhone'] =
+    Effect.fn('UploadFlowService.resolveByCameraParticipantByPhone')(function* ({
       domain,
       phoneNumber,
     }) {
@@ -1115,8 +1115,8 @@ const makeUploadFlowService = Effect.gen(function* () {
       }
     })
 
-  const getUploadStatus: UploadFlowService["Service"]["getUploadStatus"] = Effect.fn(
-    "UploadFlowService.getUploadStatus",
+  const getUploadStatus: UploadFlowService['Service']['getUploadStatus'] = Effect.fn(
+    'UploadFlowService.getUploadStatus',
   )(function* ({ domain, reference, orderIndexes }) {
     const participantState = yield* kv.getParticipantState(domain, reference)
     const submissionStates = yield* kv.getAllSubmissionStates(domain, reference, [...orderIndexes])
@@ -1124,7 +1124,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     return {
       participant: Option.match(participantState, {
         onSome: (state) => ({
-          uploadSessionId: state.uploadSessionId ?? "",
+          uploadSessionId: state.uploadSessionId ?? '',
           expectedCount: state.expectedCount,
           processedIndexes: state.processedIndexes,
           validated: state.validated,
@@ -1135,7 +1135,7 @@ const makeUploadFlowService = Effect.gen(function* () {
       }),
       submissions: submissionStates.map((state) => ({
         key: state.key,
-        uploadSessionId: state.uploadSessionId ?? "",
+        uploadSessionId: state.uploadSessionId ?? '',
         orderIndex: state.orderIndex,
         uploaded: state.uploaded,
         thumbnailKey: state.thumbnailKey,
@@ -1144,8 +1144,8 @@ const makeUploadFlowService = Effect.gen(function* () {
     }
   })
 
-  const initializeByCameraUpload: UploadFlowService["Service"]["initializeByCameraUpload"] =
-    Effect.fn("UploadFlowService.initializeByCameraUpload")(function* ({
+  const initializeByCameraUpload: UploadFlowService['Service']['initializeByCameraUpload'] =
+    Effect.fn('UploadFlowService.initializeByCameraUpload')(function* ({
       domain,
       firstname,
       lastname,
@@ -1178,7 +1178,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         })
 
         if (
-          resolved.activeTopicUploadState === "already-uploaded" &&
+          resolved.activeTopicUploadState === 'already-uploaded' &&
           !replaceExistingActiveTopicUpload
         ) {
           return yield* Effect.fail(
@@ -1221,7 +1221,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
         const resolvedContentType =
           uploadContentTypes === undefined || uploadContentTypes.length === 0
-            ? "image/jpeg"
+            ? 'image/jpeg'
             : normalizeUploadContentType(uploadContentTypes[0])
 
         let participant: Participant
@@ -1244,8 +1244,8 @@ const makeUploadFlowService = Effect.gen(function* () {
               firstname,
               lastname,
               email,
-              participantMode: "by-camera",
-              status: "initialized",
+              participantMode: 'by-camera',
+              status: 'initialized',
               phoneHash: hash,
               phoneEncrypted: encrypted,
             },
@@ -1273,7 +1273,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           domain,
           termsAccepted,
           acceptedLocale,
-          source: "participant",
+          source: 'participant',
         })
 
         if (resolved.activeTopicSubmission) {
@@ -1297,7 +1297,7 @@ const makeUploadFlowService = Effect.gen(function* () {
             key: submissionKey,
             marathonId: marathon.id,
             topicId: activeTopic.id,
-            status: "initialized",
+            status: 'initialized',
           },
         })
 
@@ -1311,7 +1311,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           uploadExif,
         })
 
-        const presignedUrl = yield* s3.getPresignedUrl(bucketName, submissionKey, "PUT", {
+        const presignedUrl = yield* s3.getPresignedUrl(bucketName, submissionKey, 'PUT', {
           contentType: resolvedContentType,
         })
 
@@ -1330,14 +1330,14 @@ const makeUploadFlowService = Effect.gen(function* () {
       })
 
       return yield* realtimeEvents.withEventResult(executeEffect, {
-        eventKey: "upload-flow-initialized",
+        eventKey: 'upload-flow-initialized',
         environment,
         domain,
       })
     })
 
-  const initializeStaffByCameraUpload: UploadFlowService["Service"]["initializeStaffByCameraUpload"] =
-    Effect.fn("UploadFlowService.initializeStaffByCameraUpload")(function* ({
+  const initializeStaffByCameraUpload: UploadFlowService['Service']['initializeStaffByCameraUpload'] =
+    Effect.fn('UploadFlowService.initializeStaffByCameraUpload')(function* ({
       domain,
       reference,
       firstname,
@@ -1356,7 +1356,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         const allowReplaceFinalized = replaceFinalizedParticipantUpload === true
         const marathon = yield* getMarathonByDomainOrFail(domain)
 
-        if (marathon.mode !== "by-camera") {
+        if (marathon.mode !== 'by-camera') {
           return yield* Effect.fail(
             new BadRequestError({
               message: `[${domain}] Staff by-camera upload is only available in by-camera mode`,
@@ -1397,7 +1397,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         }
 
         if (uploadContentTypes !== undefined && uploadContentTypes.length !== 1) {
-          const refLabel = reference.trim() === "" ? "new" : reference
+          const refLabel = reference.trim() === '' ? 'new' : reference
           return yield* Effect.fail(
             new BadRequestError({
               message: `[${domain}|${refLabel}] uploadContentTypes must contain exactly one entry for by-camera staff upload`,
@@ -1406,7 +1406,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         }
 
         if (uploadExif !== undefined && uploadExif.length !== 1) {
-          const refLabel = reference.trim() === "" ? "new" : reference
+          const refLabel = reference.trim() === '' ? 'new' : reference
           return yield* Effect.fail(
             new BadRequestError({
               message: `[${domain}|${refLabel}] uploadExif must contain exactly one entry for by-camera staff upload`,
@@ -1416,7 +1416,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
         const resolvedContentType =
           uploadContentTypes === undefined || uploadContentTypes.length === 0
-            ? "image/jpeg"
+            ? 'image/jpeg'
             : normalizeUploadContentType(uploadContentTypes[0])
 
         const existingParticipant = yield* participantsRepository.getParticipantByReference({
@@ -1431,7 +1431,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         if (Option.isSome(existingParticipant)) {
           const row = existingParticipant.value
 
-          if (row.status === "completed" || row.status === "verified") {
+          if (row.status === 'completed' || row.status === 'verified') {
             if (!allowReplaceFinalized) {
               return yield* Effect.fail(
                 new BadRequestError({
@@ -1441,7 +1441,7 @@ const makeUploadFlowService = Effect.gen(function* () {
             }
           }
 
-          if (row.participantMode !== "by-camera") {
+          if (row.participantMode !== 'by-camera') {
             return yield* Effect.fail(
               new BadRequestError({
                 message: `[${domain}|${reference}] Participant is not in by-camera mode`,
@@ -1457,7 +1457,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           if (Option.isSome(otherWithPhone) && otherWithPhone.value.id !== row.id) {
             return yield* Effect.fail(
               new BadRequestError({
-                message: "Another participant already uses this phone number",
+                message: 'Another participant already uses this phone number',
               }),
             )
           }
@@ -1499,8 +1499,8 @@ const makeUploadFlowService = Effect.gen(function* () {
               firstname,
               lastname,
               email,
-              participantMode: "by-camera",
-              status: "initialized",
+              participantMode: 'by-camera',
+              status: 'initialized',
               phoneHash: hash,
               phoneEncrypted: encrypted,
             },
@@ -1526,7 +1526,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           if (Option.isSome(otherWithPhone)) {
             return yield* Effect.fail(
               new BadRequestError({
-                message: "Another participant already uses this phone number",
+                message: 'Another participant already uses this phone number',
               }),
             )
           }
@@ -1552,7 +1552,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           domain,
           termsAccepted,
           acceptedLocale,
-          source: "staff-on-behalf",
+          source: 'staff-on-behalf',
         })
 
         const submissionKey = yield* s3.generateSubmissionKey(
@@ -1567,7 +1567,7 @@ const makeUploadFlowService = Effect.gen(function* () {
             key: submissionKey,
             marathonId: marathon.id,
             topicId: activeTopic.id,
-            status: "initialized",
+            status: 'initialized',
           },
         })
 
@@ -1581,7 +1581,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           uploadExif,
         })
 
-        const presignedUrl = yield* s3.getPresignedUrl(bucketName, submissionKey, "PUT", {
+        const presignedUrl = yield* s3.getPresignedUrl(bucketName, submissionKey, 'PUT', {
           contentType: resolvedContentType,
         })
 
@@ -1600,14 +1600,14 @@ const makeUploadFlowService = Effect.gen(function* () {
       })
 
       return yield* realtimeEvents.withEventResult(executeEffect, {
-        eventKey: "upload-flow-initialized",
+        eventKey: 'upload-flow-initialized',
         environment,
         domain,
       })
     })
 
-  const refreshPresignedUploads: UploadFlowService["Service"]["refreshPresignedUploads"] =
-    Effect.fn("UploadFlowService.refreshPresignedUploads")(function* ({
+  const refreshPresignedUploads: UploadFlowService['Service']['refreshPresignedUploads'] =
+    Effect.fn('UploadFlowService.refreshPresignedUploads')(function* ({
       domain,
       reference,
       orderIndexes,
@@ -1692,14 +1692,14 @@ const makeUploadFlowService = Effect.gen(function* () {
       if (missingOrderIndexes.length > 0) {
         return yield* Effect.fail(
           new BadRequestError({
-            message: `[${domain}|${reference}] Missing submissions for order indexes: ${missingOrderIndexes.join(", ")}`,
+            message: `[${domain}|${reference}] Missing submissions for order indexes: ${missingOrderIndexes.join(', ')}`,
           }),
         )
       }
 
       const resolvedContentTypes =
         uploadContentTypes === undefined
-          ? orderIndexes.map(() => "image/jpeg")
+          ? orderIndexes.map(() => 'image/jpeg')
           : uploadContentTypes.map((raw: string) => normalizeUploadContentType(raw))
 
       const presignedUploadRequests: Array<{
@@ -1716,7 +1716,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         presignedUploadRequests,
         ({ submissionState, contentType }) =>
           s3
-            .getPresignedUrl(bucketName, submissionState.key, "PUT", {
+            .getPresignedUrl(bucketName, submissionState.key, 'PUT', {
               contentType,
             })
             .pipe(
@@ -1726,12 +1726,12 @@ const makeUploadFlowService = Effect.gen(function* () {
                 contentType,
               })),
             ),
-        { concurrency: "unbounded" },
+        { concurrency: 'unbounded' },
       )
     })
 
-  const reTriggerUploadFlow: UploadFlowService["Service"]["reTriggerUploadFlow"] = Effect.fn(
-    "UploadFlowService.reTriggerUploadFlow",
+  const reTriggerUploadFlow: UploadFlowService['Service']['reTriggerUploadFlow'] = Effect.fn(
+    'UploadFlowService.reTriggerUploadFlow',
   )(function* ({ domain, reference }) {
     const participantState = yield* kv.getParticipantState(domain, reference)
     if (Option.isNone(participantState)) {

@@ -1,19 +1,19 @@
-import type { NextRequest } from "next/server"
-import { fetchRequestHandler } from "@trpc/server/adapters/fetch"
+import type { NextRequest } from 'next/server'
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
 
-import { appRouter, createTRPCContext } from "@blikka/api/trpc"
-import { serverRuntime } from "@/lib/server-runtime"
-import { getTRPCCorsHeaders } from "../cors"
+import { appRouter, createTRPCContext } from '@blikka/api/trpc'
+import { serverRuntime } from '@/lib/server-runtime'
+import { getTRPCCorsHeaders } from '../cors'
 
 const setCorsHeaders = (res: Response, origin: string | null) => {
   const headers = getTRPCCorsHeaders(origin)
 
   if (!origin) return
-  res.headers.append("Vary", "Origin")
+  res.headers.append('Vary', 'Origin')
   if (!headers) return
 
   headers.forEach((value, key) => {
-    if (key.toLowerCase() === "vary") {
+    if (key.toLowerCase() === 'vary') {
       res.headers.set(key, value)
       return
     }
@@ -23,7 +23,7 @@ const setCorsHeaders = (res: Response, origin: string | null) => {
 }
 
 export const OPTIONS = (req: NextRequest) => {
-  const origin = req.headers.get("origin")
+  const origin = req.headers.get('origin')
   const headers = getTRPCCorsHeaders(origin)
 
   if (origin && !headers) {
@@ -43,7 +43,7 @@ export const OPTIONS = (req: NextRequest) => {
 
 const handler = async (req: NextRequest) => {
   const response = await fetchRequestHandler({
-    endpoint: "/api/trpc",
+    endpoint: '/api/trpc',
     router: appRouter,
     req,
     createContext: () =>
@@ -56,7 +56,7 @@ const handler = async (req: NextRequest) => {
     // },
   })
 
-  setCorsHeaders(response, req.headers.get("origin"))
+  setCorsHeaders(response, req.headers.get('origin'))
   return response
 }
 

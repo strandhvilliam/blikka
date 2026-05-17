@@ -1,9 +1,9 @@
-import "server-only"
+import 'server-only'
 
-import { BetterAuthService, type Session } from "@blikka/auth"
-import { headers } from "next/headers"
-import { serverRuntime } from "@/lib/server-runtime"
-export { AuthConfigLayer, AuthLayer } from "./layer"
+import { BetterAuthService, type Session } from '@blikka/auth'
+import { headers } from 'next/headers'
+import { serverRuntime } from '@/lib/server-runtime'
+export { AuthConfigLayer, AuthLayer } from './layer'
 
 export function getAuth() {
   return serverRuntime.runPromise(BetterAuthService)
@@ -16,20 +16,14 @@ export async function getAppSession(): Promise<Session | null> {
   })
 }
 
-export async function sendSignInOtp({
-  email,
-  headers,
-}: {
-  email: string
-  headers: Headers
-}) {
+export async function sendSignInOtp({ email, headers }: { email: string; headers: Headers }) {
   const auth = await getAuth()
 
   return auth.api.sendVerificationOTP({
     headers,
     body: {
       email,
-      type: "sign-in",
+      type: 'sign-in',
     },
   })
 }

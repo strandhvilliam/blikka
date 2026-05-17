@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import type { ValidationResult } from "@blikka/db"
-import { AlertTriangle, CheckCircle2, InfoIcon, Star, XCircle } from "lucide-react"
+import type { ValidationResult } from '@blikka/db'
+import { AlertTriangle, CheckCircle2, InfoIcon, Star, XCircle } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -9,8 +9,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 
 export function SubmissionValidationSteps({
   validationResults,
@@ -18,16 +18,16 @@ export function SubmissionValidationSteps({
   validationResults: ValidationResult[]
 }) {
   const getStatusIcon = (severity: string, outcome: string) => {
-    if (outcome === "passed") {
+    if (outcome === 'passed') {
       return <CheckCircle2 className="h-5 w-5 text-green-500" />
     }
 
     switch (severity) {
-      case "warning":
+      case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />
-      case "error":
+      case 'error':
         return <XCircle className="h-5 w-5 text-red-500" />
-      case "info":
+      case 'info':
         return <InfoIcon className="h-5 w-5 text-blue-500" />
       default:
         return <Star className="h-5 w-5 text-purple-500" />
@@ -35,18 +35,18 @@ export function SubmissionValidationSteps({
   }
 
   const getStatusBadge = (severity: string, outcome: string) => {
-    if (outcome === "passed") {
+    if (outcome === 'passed') {
       return <Badge className="bg-green-500/15 text-green-600 border-green-200">Passed</Badge>
     }
 
     switch (severity) {
-      case "warning":
+      case 'warning':
         return <Badge className="bg-yellow-500/15 text-yellow-600 border-yellow-200">Warning</Badge>
-      case "error":
+      case 'error':
         return (
           <Badge className="bg-destructive/15 text-destructive border-destructive/20">Error</Badge>
         )
-      case "info":
+      case 'info':
         return <Badge className="bg-blue-500/15 text-blue-600 border-blue-200">Info</Badge>
       default:
         return <Badge variant="outline">Unknown</Badge>
@@ -71,7 +71,7 @@ export function SubmissionValidationSteps({
                 <TableCell>{getStatusIcon(result.severity, result.outcome)}</TableCell>
                 <TableCell>{getStatusBadge(result.severity, result.outcome)}</TableCell>
                 <TableCell className="font-medium">
-                  {result.ruleKey.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                  {result.ruleKey.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{result.message}</TableCell>
               </TableRow>

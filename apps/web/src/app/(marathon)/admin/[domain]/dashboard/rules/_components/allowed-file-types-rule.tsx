@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { motion } from "motion/react"
-import { CheckCircle, AlertCircle, FileImage } from "lucide-react"
-import { toast } from "sonner"
-import { cn } from "@/lib/utils"
-import { RuleCard, type RuleValue } from "./rule-card"
-import type { AllowedFileTypesParams } from "../_lib/schemas"
+import { motion } from 'motion/react'
+import { CheckCircle, AlertCircle, FileImage } from 'lucide-react'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { RuleCard, type RuleValue } from './rule-card'
+import type { AllowedFileTypesParams } from '../_lib/schemas'
 
 const FILE_TYPE_OPTIONS = [
-  { value: "jpg", label: "JPG" },
-  { value: "png", label: "PNG" },
+  { value: 'jpg', label: 'JPG' },
+  { value: 'png', label: 'PNG' },
 ]
 
 type AllowedFileTypesValue = RuleValue<AllowedFileTypesParams>
@@ -33,15 +33,15 @@ export function AllowedFileTypesRule({ value, onChange }: AllowedFileTypesRulePr
         <div className="flex flex-wrap gap-2">
           {FILE_TYPE_OPTIONS.map((option) => {
             const isSelected = value.params.allowedFileTypes.includes(option.value)
-            const pngUnavailable = option.value === "png" && !isSelected
+            const pngUnavailable = option.value === 'png' && !isSelected
             return (
               <motion.button
                 key={option.value}
                 type="button"
                 aria-disabled={pngUnavailable}
                 onClick={() => {
-                  if (option.value === "png" && !isSelected) {
-                    toast.message("PNG is not available at the moment.")
+                  if (option.value === 'png' && !isSelected) {
+                    toast.message('PNG is not available at the moment.')
                     return
                   }
 
@@ -62,12 +62,12 @@ export function AllowedFileTypesRule({ value, onChange }: AllowedFileTypesRulePr
                   })
                 }}
                 className={cn(
-                  "rounded-lg px-3.5 py-1.5 text-sm font-medium",
-                  "border flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none transition-colors duration-150",
+                  'rounded-lg px-3.5 py-1.5 text-sm font-medium',
+                  'border flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none transition-colors duration-150',
                   isSelected
-                    ? "bg-foreground text-background border-transparent shadow-sm"
-                    : "bg-muted/40 hover:bg-muted text-muted-foreground border-border/40",
-                  pngUnavailable && "cursor-not-allowed opacity-50 hover:bg-muted/40",
+                    ? 'bg-foreground text-background border-transparent shadow-sm'
+                    : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border/40',
+                  pngUnavailable && 'cursor-not-allowed opacity-50 hover:bg-muted/40',
                 )}
                 whileTap={pngUnavailable ? undefined : { scale: 0.97 }}
               >

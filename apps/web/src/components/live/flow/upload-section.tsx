@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { cn } from "@/lib/utils"
-import { Check, CloudUpload, Loader2 } from "lucide-react"
-import { useTranslations } from "next-intl"
-import { AnimatePresence, motion } from "motion/react"
-import { usePhotoStore } from "@/lib/flow/photo-store"
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { cn } from '@/lib/utils'
+import { Check, CloudUpload, Loader2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { AnimatePresence, motion } from 'motion/react'
+import { usePhotoStore } from '@/lib/flow/photo-store'
 
 interface UploadSectionProps {
   maxPhotos: number
@@ -14,7 +14,7 @@ interface UploadSectionProps {
 }
 
 export function UploadSection({ maxPhotos, onUploadClick, isProcessingFiles }: UploadSectionProps) {
-  const t = useTranslations("FlowPage.uploadStep")
+  const t = useTranslations('FlowPage.uploadStep')
   const photos = usePhotoStore((state) => state.photos)
 
   const allPhotosSelected = photos.length === maxPhotos && photos.length > 0
@@ -35,9 +35,9 @@ export function UploadSection({ maxPhotos, onUploadClick, isProcessingFiles }: U
               <Check className="h-6 w-6 text-white" strokeWidth={3} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-emerald-800">{t("allPhotosSelected")}</p>
+              <p className="text-sm font-semibold text-emerald-800">{t('allPhotosSelected')}</p>
               <p className="mt-0.5 text-xs text-emerald-700">
-                {t("readyToSubmit", { count: maxPhotos })}
+                {t('readyToSubmit', { count: maxPhotos })}
               </p>
             </div>
           </div>
@@ -52,9 +52,9 @@ export function UploadSection({ maxPhotos, onUploadClick, isProcessingFiles }: U
         >
           <div
             className={cn(
-              "flex flex-col items-center rounded-2xl border-2 border-dashed border-foreground/20 bg-white px-6 py-10 transition-all",
-              !isDisabled && "cursor-pointer hover:border-foreground/40",
-              isDisabled && "pointer-events-none opacity-50",
+              'flex flex-col items-center rounded-2xl border-2 border-dashed border-foreground/20 bg-white px-6 py-10 transition-all',
+              !isDisabled && 'cursor-pointer hover:border-foreground/40',
+              isDisabled && 'pointer-events-none opacity-50',
             )}
             onClick={(e) => {
               e.preventDefault()
@@ -69,13 +69,13 @@ export function UploadSection({ maxPhotos, onUploadClick, isProcessingFiles }: U
               )}
             </div>
             <p className="mt-4 text-sm font-medium text-foreground">
-              {isProcessingFiles ? "Preparing previews..." : t("clickToSelect")}
+              {isProcessingFiles ? 'Preparing previews...' : t('clickToSelect')}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {t("photoCount", { current: photos.length, max: maxPhotos })}
+              {t('photoCount', { current: photos.length, max: maxPhotos })}
             </p>
             <PrimaryButton disabled={isDisabled} className="mt-5 rounded-full px-8">
-              {t("selectPhotos")}
+              {t('selectPhotos')}
             </PrimaryButton>
           </div>
         </motion.div>

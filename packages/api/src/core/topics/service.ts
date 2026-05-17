@@ -1,4 +1,4 @@
-import "server-only"
+import 'server-only'
 
 import {
   DbLayer,
@@ -8,15 +8,15 @@ import {
   DbError,
   type NewTopic,
   type Topic,
-} from "@blikka/db"
-import { Effect, Layer, Context } from "effect"
+} from '@blikka/db'
+import { Effect, Layer, Context } from 'effect'
 import {
   BadRequestError,
   ForbiddenError,
   NotFoundError,
   PreconditionFailedError,
   failNotFoundIfNone,
-} from "../errors"
+} from '../errors'
 import type {
   ActivateTopicInput,
   CreateTopicInput,
@@ -24,9 +24,9 @@ import type {
   GetTopicsWithSubmissionCountInput,
   UpdateTopicInput,
   UpdateTopicsOrderInput,
-} from "./contracts"
+} from './contracts'
 
-const validateSubmissionWindow = Effect.fn("TopicsService.validateSubmissionWindow")(function* ({
+const validateSubmissionWindow = Effect.fn('TopicsService.validateSubmissionWindow')(function* ({
   scheduledStart,
   scheduledEnd,
 }: {
@@ -41,13 +41,13 @@ const validateSubmissionWindow = Effect.fn("TopicsService.validateSubmissionWind
   const end = new Date(scheduledEnd)
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return yield* Effect.fail(new BadRequestError({ message: "Invalid submission window" }))
+    return yield* Effect.fail(new BadRequestError({ message: 'Invalid submission window' }))
   }
 
   if (end <= start) {
     return yield* Effect.fail(
       new BadRequestError({
-        message: "Submission end must be after the submission start",
+        message: 'Submission end must be after the submission start',
       }),
     )
   }
@@ -90,18 +90,18 @@ export class TopicsService extends Context.Service<
       input: UpdateTopicsOrderInput,
     ) => Effect.Effect<Topic[], DbError | NotFoundError, never>
   }
->()("@blikka/api/TopicsService") {}
+>()('@blikka/api/TopicsService') {}
 
 const makeTopicsService = Effect.gen(function* () {
   const marathonsRepository = yield* MarathonsRepository
   const topicsRepository = yield* TopicsRepository
   const votingRepository = yield* VotingRepository
 
-  const getTopicsWithSubmissionCount: TopicsService["Service"]["getTopicsWithSubmissionCount"] =
-    Effect.fn("TopicsService.getTopicsWithSubmissionCount")(function* ({ domain }) {
+  const getTopicsWithSubmissionCount: TopicsService['Service']['getTopicsWithSubmissionCount'] =
+    Effect.fn('TopicsService.getTopicsWithSubmissionCount')(function* ({ domain }) {
       yield* marathonsRepository
         .getMarathonByDomain({ domain })
-        .pipe(failNotFoundIfNone("Marathon", { domain }))
+        .pipe(failNotFoundIfNone('Marathon', { domain }))
 
       const data = yield* topicsRepository.getTopicsWithSubmissionCount({
         domain,
@@ -113,12 +113,12 @@ const makeTopicsService = Effect.gen(function* () {
       }))
     })
 
-  const createTopic: TopicsService["Service"]["createTopic"] = Effect.fn(
-    "TopicsService.createTopic",
+  const createTopic: TopicsService['Service']['createTopic'] = Effect.fn(
+    'TopicsService.createTopic',
   )(function* ({ domain, data }) {
     const marathon = yield* marathonsRepository
       .getMarathonByDomain({ domain })
-      .pipe(failNotFoundIfNone("Marathon", { domain }))
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
     const existingTopics = yield* topicsRepository.getTopicsByMarathonId({
       id: marathon.id,
@@ -134,11 +134,11 @@ const makeTopicsService = Effect.gen(function* () {
       scheduledEnd: data.scheduledEnd,
     })
 
-    const isByCamera = marathon.mode === "by-camera"
-    const shouldActivate = isByCamera && (data.activate === true || data.visibility === "active")
+    const isByCamera = marathon.mode === 'by-camera'
+    const shouldActivate = isByCamera && (data.activate === true || data.visibility === 'active')
 
     const { activate: _, ...createData } = data
-    const createVisibility = createData.visibility === "active" ? "public" : createData.visibility
+    const createVisibility = createData.visibility === 'active' ? 'public' : createData.visibility
 
     const createdTopic = yield* topicsRepository.createTopic({
       data: {
@@ -153,13 +153,13 @@ const makeTopicsService = Effect.gen(function* () {
       return createdTopic
     }
 
-    const currentlyActiveTopics = existingTopics.filter((topic) => topic.visibility === "active")
+    const currentlyActiveTopics = existingTopics.filter((topic) => topic.visibility === 'active')
     yield* Effect.forEach(
       currentlyActiveTopics,
       (activeTopic) =>
         topicsRepository.updateTopic({
           id: activeTopic.id,
-          data: { visibility: "public" },
+          data: { visibility: 'public' },
         }),
       { concurrency: 1 },
     )
@@ -175,18 +175,18 @@ const makeTopicsService = Effect.gen(function* () {
       id: createdTopic.id,
       data: {
         activatedAt,
-        visibility: "active",
+        visibility: 'active',
       },
     })
   })
 
-  const updateTopic: TopicsService["Service"]["updateTopic"] = Effect.fn(
-    "TopicsService.updateTopic",
+  const updateTopic: TopicsService['Service']['updateTopic'] = Effect.fn(
+    'TopicsService.updateTopic',
   )(function* ({ id, data }) {
     const topic = yield* topicsRepository.getTopicById({ id })
 
     if (!topic) {
-      return yield* Effect.fail(new NotFoundError({ resource: "Topic", identifier: { id } }))
+      return yield* Effect.fail(new NotFoundError({ resource: 'Topic', identifier: { id } }))
     }
 
     const nextScheduledStart =
@@ -199,13 +199,13 @@ const makeTopicsService = Effect.gen(function* () {
       topicId: topic.id,
     })
 
-    if (latestVotingRoundOpt._tag === "Some") {
+    if (latestVotingRoundOpt._tag === 'Some') {
       const startChanged = nextScheduledStart !== topic.scheduledStart
       const endChanged = nextScheduledEnd !== topic.scheduledEnd
       if (startChanged || endChanged) {
         return yield* Effect.fail(
           new PreconditionFailedError({
-            message: "Submission window cannot be changed after voting has started for this topic",
+            message: 'Submission window cannot be changed after voting has started for this topic',
           }),
         )
       }
@@ -222,12 +222,12 @@ const makeTopicsService = Effect.gen(function* () {
       scheduledEnd: data.scheduledEnd === undefined ? undefined : data.scheduledEnd,
     }
 
-    if (updateData.visibility === "active") {
+    if (updateData.visibility === 'active') {
       const siblingTopics = yield* topicsRepository.getTopicsByMarathonId({
         id: topic.marathonId,
       })
       const currentlyActiveTopics = siblingTopics.filter(
-        (siblingTopic) => siblingTopic.id !== topic.id && siblingTopic.visibility === "active",
+        (siblingTopic) => siblingTopic.id !== topic.id && siblingTopic.visibility === 'active',
       )
 
       yield* Effect.forEach(
@@ -235,7 +235,7 @@ const makeTopicsService = Effect.gen(function* () {
         (activeTopic) =>
           topicsRepository.updateTopic({
             id: activeTopic.id,
-            data: { visibility: "public" },
+            data: { visibility: 'public' },
           }),
         { concurrency: 1 },
       )
@@ -255,27 +255,27 @@ const makeTopicsService = Effect.gen(function* () {
     })
   })
 
-  const activateTopic: TopicsService["Service"]["activateTopic"] = Effect.fn(
-    "TopicsService.activateTopic",
+  const activateTopic: TopicsService['Service']['activateTopic'] = Effect.fn(
+    'TopicsService.activateTopic',
   )(function* ({ id }) {
     const topic = yield* topicsRepository.getTopicById({ id })
 
     if (!topic) {
-      return yield* Effect.fail(new NotFoundError({ resource: "Topic", identifier: { id } }))
+      return yield* Effect.fail(new NotFoundError({ resource: 'Topic', identifier: { id } }))
     }
 
     const topics = yield* topicsRepository.getTopicsByMarathonId({
       id: topic.marathonId,
     })
     const currentlyActiveTopics = topics.filter(
-      (candidateTopic) => candidateTopic.id !== id && candidateTopic.visibility === "active",
+      (candidateTopic) => candidateTopic.id !== id && candidateTopic.visibility === 'active',
     )
     yield* Effect.forEach(
       currentlyActiveTopics,
       (activeTopic) =>
         topicsRepository.updateTopic({
           id: activeTopic.id,
-          data: { visibility: "public" },
+          data: { visibility: 'public' },
         }),
       { concurrency: 1 },
     )
@@ -291,23 +291,23 @@ const makeTopicsService = Effect.gen(function* () {
       id,
       data: {
         activatedAt,
-        visibility: "active",
+        visibility: 'active',
       },
     })
   })
 
-  const deleteTopic: TopicsService["Service"]["deleteTopic"] = Effect.fn(
-    "TopicsService.deleteTopic",
+  const deleteTopic: TopicsService['Service']['deleteTopic'] = Effect.fn(
+    'TopicsService.deleteTopic',
   )(function* ({ id, domain }) {
     const topic = yield* topicsRepository.getTopicById({ id })
 
     if (!topic) {
-      return yield* Effect.fail(new NotFoundError({ resource: "Topic", identifier: { id } }))
+      return yield* Effect.fail(new NotFoundError({ resource: 'Topic', identifier: { id } }))
     }
 
     const marathon = yield* marathonsRepository
       .getMarathonByDomain({ domain })
-      .pipe(failNotFoundIfNone("Marathon", { domain }))
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
     if (marathon.id !== topic.marathonId) {
       return yield* Effect.fail(
@@ -322,12 +322,12 @@ const makeTopicsService = Effect.gen(function* () {
     })
   })
 
-  const updateTopicsOrder: TopicsService["Service"]["updateTopicsOrder"] = Effect.fn(
-    "TopicsService.updateTopicsOrder",
+  const updateTopicsOrder: TopicsService['Service']['updateTopicsOrder'] = Effect.fn(
+    'TopicsService.updateTopicsOrder',
   )(function* ({ domain, topicIds }) {
     const marathon = yield* marathonsRepository
       .getMarathonByDomain({ domain })
-      .pipe(failNotFoundIfNone("Marathon", { domain }))
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
     return yield* topicsRepository.updateTopicsOrder({
       topicIds: [...topicIds],

@@ -1,7 +1,7 @@
-import { Cause, Console, Duration, Effect, Layer, Queue, Schedule, Context, Stream } from "effect"
-import { RedisClient, RedisClientLayer, RedisError } from "@blikka/redis"
-import { PubSubChannel, PubSubMessage } from "./schema"
-import { ChannelParseError, PubSubError } from "./errors"
+import { Cause, Console, Duration, Effect, Layer, Queue, Schedule, Context, Stream } from 'effect'
+import { RedisClient, RedisClientLayer, RedisError } from '@blikka/redis'
+import { PubSubChannel, PubSubMessage } from './schema'
+import { ChannelParseError, PubSubError } from './errors'
 
 export class PubSubService extends Context.Service<
   PubSubService,
@@ -16,19 +16,19 @@ export class PubSubService extends Context.Service<
       channel: PubSubChannel,
     ) => Stream.Stream<PubSubMessage, ChannelParseError | PubSubError | RedisError>
   }
->()("@blikka/pubsub/pubsub-service") {}
+>()('@blikka/pubsub/pubsub-service') {}
 
 const makePubSubService = Effect.gen(function* () {
   const redis = yield* RedisClient
 
-  const publish = Effect.fn("PubSubService.publish")(
+  const publish = Effect.fn('PubSubService.publish')(
     function* (channel: PubSubChannel, message: PubSubMessage) {
       const channelString = yield* PubSubChannel.toString(channel)
       return yield* redis.use((client) => client.publish(channelString, message))
     },
     Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
     Effect.mapError(
-      (error) => new PubSubError({ cause: error, message: "Failed to publish message" }),
+      (error) => new PubSubError({ cause: error, message: 'Failed to publish message' }),
     ),
   )
 
@@ -45,24 +45,24 @@ const makePubSubService = Effect.gen(function* () {
               catch: (error) =>
                 new RedisError({
                   cause: error,
-                  message: "Failed to unsubscribe from channel",
+                  message: 'Failed to unsubscribe from channel',
                 }),
             }).pipe(
-              Effect.catch((error) => Effect.logError("Failed to unsubscribe from channel", error)),
+              Effect.catch((error) => Effect.logError('Failed to unsubscribe from channel', error)),
             ),
         )
 
-        subscription.on("pmessage", (data) => {
+        subscription.on('pmessage', (data) => {
           if (data.message instanceof Error) {
-            Console.error("Error in pmessage", data.message.message)
+            Console.error('Error in pmessage', data.message.message)
           }
           Queue.offerUnsafe(queue, data.message)
         })
-        subscription.on("error", (error) =>
+        subscription.on('error', (error) =>
           Queue.failCauseUnsafe(
             queue,
             Cause.fail(
-              new PubSubError({ cause: error, message: "Failed to subscribe to channel" }),
+              new PubSubError({ cause: error, message: 'Failed to subscribe to channel' }),
             ),
           ),
         )

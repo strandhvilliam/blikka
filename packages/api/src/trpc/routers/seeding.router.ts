@@ -1,28 +1,24 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
-import {
-  createTRPCRouter,
-  domainProcedure,
-  requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+import { Effect, Schema } from 'effect'
+import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'
+import { trpcEffect } from '../utils'
 import {
   GetSeedScenarioStatusInputSchema,
   SeedFinishedScenarioInputSchema,
-} from "../../core/seeding/contracts";
-import { SeedingService } from "../../core/seeding/service";
+} from '../../core/seeding/contracts'
+import { SeedingService } from '../../core/seeding/service'
 
 function isAdminForDomain({
   domain,
   permissions,
 }: {
-  domain: string;
-  permissions: ReadonlyArray<{ domain: string; role: string }>;
+  domain: string
+  permissions: ReadonlyArray<{ domain: string; role: string }>
 }) {
   return permissions.some(
-    (permission) => permission.domain === domain && permission.role === "admin",
-  );
+    (permission) => permission.domain === domain && permission.role === 'admin',
+  )
 }
 
 export const seedingRouter = createTRPCRouter({
@@ -31,7 +27,7 @@ export const seedingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("SeedingRouter.getStatus")(function* ({ input, ctx }) {
+        Effect.fn('SeedingRouter.getStatus')(function* ({ input, ctx }) {
           return yield* SeedingService.use((s) =>
             s.getStatus({
               domain: input.domain,
@@ -40,7 +36,7 @@ export const seedingRouter = createTRPCRouter({
                 permissions: ctx.permissions,
               }),
             }),
-          );
+          )
         }),
       ),
     ),
@@ -49,10 +45,7 @@ export const seedingRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("SeedingRouter.seedFinishedScenario")(function* ({
-          input,
-          ctx,
-        }) {
+        Effect.fn('SeedingRouter.seedFinishedScenario')(function* ({ input, ctx }) {
           return yield* SeedingService.use((s) =>
             s.seedFinishedScenarioForDomain({
               domain: input.domain,
@@ -61,8 +54,8 @@ export const seedingRouter = createTRPCRouter({
                 permissions: ctx.permissions,
               }),
             }),
-          );
+          )
         }),
       ),
     ),
-});
+})

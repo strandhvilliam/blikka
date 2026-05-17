@@ -1,13 +1,13 @@
-import { defaultShouldDehydrateQuery, QueryCache, QueryClient } from "@tanstack/react-query"
-import { TRPCClientError } from "@trpc/client"
-import SuperJSON from "superjson"
+import { defaultShouldDehydrateQuery, QueryCache, QueryClient } from '@tanstack/react-query'
+import { TRPCClientError } from '@trpc/client'
+import SuperJSON from 'superjson'
 
 export const createQueryClient = (/*unauthorizedCallback?: () => void*/) =>
   new QueryClient({
     queryCache: new QueryCache({
       onError: (error) => {
         if (error instanceof TRPCClientError) {
-          if (error.data.code === "UNAUTHORIZED") {
+          if (error.data.code === 'UNAUTHORIZED') {
             // unauthorizedCallback?.()
           }
         }
@@ -23,7 +23,7 @@ export const createQueryClient = (/*unauthorizedCallback?: () => void*/) =>
       dehydrate: {
         serializeData: SuperJSON.serialize,
         shouldDehydrateQuery: (query) =>
-          defaultShouldDehydrateQuery(query) || query.state.status === "pending",
+          defaultShouldDehydrateQuery(query) || query.state.status === 'pending',
         shouldRedactErrors: () => {
           // We should not catch Next.js server errors
           // as that's how Next.js detects dynamic pages

@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import {
   Sidebar,
@@ -6,17 +6,17 @@ import {
   SidebarMenuItem,
   SidebarMenu,
   SidebarFooter,
-} from "@/components/ui/sidebar"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { DashboardSidebarHeader } from "./dashboard-sidebar-header"
-import SidebarLinks from "./sidebar-links"
-import { SidebarNavUser } from "./sidebar-nav-user"
+} from '@/components/ui/sidebar'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { DashboardSidebarHeader } from './dashboard-sidebar-header'
+import SidebarLinks from './sidebar-links'
+import { SidebarNavUser } from './sidebar-nav-user'
 
-export { DashboardSidebarHeader } from "./dashboard-sidebar-header"
-export { DomainSwitchDropdown } from "./domain-switch-dropdown"
-export { NAV_LINKS } from "./sidebar-links"
-export { default as SidebarLinks } from "./sidebar-links"
-export { SidebarNavUser } from "./sidebar-nav-user"
+export { DashboardSidebarHeader } from './dashboard-sidebar-header'
+export { DomainSwitchDropdown } from './domain-switch-dropdown'
+export { NAV_LINKS } from './sidebar-links'
+export { default as SidebarLinks } from './sidebar-links'
+export { SidebarNavUser } from './sidebar-nav-user'
 
 export function DashboardSidebar() {
   return (

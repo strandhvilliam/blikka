@@ -1,5 +1,5 @@
-import { getCapturedAtDate } from "@/lib/exif-parsing"
-import { reassignOrderIndexes } from "@/lib/file-processing"
+import { getCapturedAtDate } from '@/lib/exif-parsing'
+import { reassignOrderIndexes } from '@/lib/file-processing'
 
 export interface PhotoWithExifLike {
   exif: Record<string, unknown>
@@ -23,8 +23,8 @@ export function reassignPhotosToTopicOrder<T extends PhotoWithOrderIndex>(
   }))
 }
 
-export function moveItemInArray<T>(items: T[], index: number, direction: "up" | "down") {
-  const targetIndex = direction === "up" ? index - 1 : index + 1
+export function moveItemInArray<T>(items: T[], index: number, direction: 'up' | 'down') {
+  const targetIndex = direction === 'up' ? index - 1 : index + 1
 
   if (index < 0 || index >= items.length || targetIndex < 0 || targetIndex >= items.length) {
     return items

@@ -1,56 +1,56 @@
-"use client"
+'use client'
 /* eslint-disable @next/next/no-img-element */
 
-import { Button } from "@/components/ui/button"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useTranslations } from "next-intl"
-import { motion } from "motion/react"
-import { useRef, useState, useMemo, type RefObject } from "react"
-import { AlertTriangle, ChevronDown, ChevronUp, CloudUpload, Info, Loader2, X } from "lucide-react"
-import { format } from "date-fns"
-import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
-import { BY_CAMERA_PREVIEW_MAX_HEIGHT_CLASS } from "@/lib/flow/constants"
-import { cn } from "@/lib/utils"
-import { ValidationStatusBadge } from "./validation-status-badge"
-import type { SelectedPhoto } from "@/lib/flow/types"
-import { VALIDATION_OUTCOME } from "@blikka/validation"
+import { Button } from '@/components/ui/button'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useTranslations } from 'next-intl'
+import { motion } from 'motion/react'
+import { useRef, useState, useMemo, type RefObject } from 'react'
+import { AlertTriangle, ChevronDown, ChevronUp, CloudUpload, Info, Loader2, X } from 'lucide-react'
+import { format } from 'date-fns'
+import { COMMON_IMAGE_EXTENSIONS } from '@/lib/file-processing'
+import { BY_CAMERA_PREVIEW_MAX_HEIGHT_CLASS } from '@/lib/flow/constants'
+import { cn } from '@/lib/utils'
+import { ValidationStatusBadge } from './validation-status-badge'
+import type { SelectedPhoto } from '@/lib/flow/types'
+import { VALIDATION_OUTCOME } from '@blikka/validation'
 import {
   byCameraBreadcrumb,
   captureByCameraMessage,
   fileSummaryForSentry,
   summarizeFileListForSentry,
-} from "@/lib/sentry-by-camera"
+} from '@/lib/sentry-by-camera'
 
 interface ValidationSummary {
-  status: "pending" | "passed" | "warning" | "error"
+  status: 'pending' | 'passed' | 'warning' | 'error'
   outcome?: (typeof VALIDATION_OUTCOME)[keyof typeof VALIDATION_OUTCOME]
-  severity?: "error" | "warning"
+  severity?: 'error' | 'warning'
   messages: string[]
 }
 
 function getValidationSummary(
   validationResults: Array<{
     outcome: (typeof VALIDATION_OUTCOME)[keyof typeof VALIDATION_OUTCOME]
-    severity?: "error" | "warning"
+    severity?: 'error' | 'warning'
     message: string
   }>,
   hasValidationRules: boolean,
 ): ValidationSummary {
   if (validationResults.length === 0) {
     if (!hasValidationRules) {
-      return { status: "passed", outcome: VALIDATION_OUTCOME.PASSED, messages: [] }
+      return { status: 'passed', outcome: VALIDATION_OUTCOME.PASSED, messages: [] }
     }
-    return { status: "pending", messages: [] }
+    return { status: 'pending', messages: [] }
   }
 
   const blockingError = validationResults.find(
-    (r) => r.outcome === VALIDATION_OUTCOME.FAILED && r.severity === "error",
+    (r) => r.outcome === VALIDATION_OUTCOME.FAILED && r.severity === 'error',
   )
   if (blockingError) {
     return {
-      status: "error",
+      status: 'error',
       outcome: blockingError.outcome,
-      severity: "error",
+      severity: 'error',
       messages: validationResults
         .filter((r) => r.outcome !== VALIDATION_OUTCOME.PASSED)
         .map((r) => r.message),
@@ -60,16 +60,16 @@ function getValidationSummary(
   const warning = validationResults.find((r) => r.outcome !== VALIDATION_OUTCOME.PASSED)
   if (warning) {
     return {
-      status: "warning",
+      status: 'warning',
       outcome: warning.outcome,
-      severity: warning.severity ?? "warning",
+      severity: warning.severity ?? 'warning',
       messages: validationResults
         .filter((r) => r.outcome !== VALIDATION_OUTCOME.PASSED)
         .map((r) => r.message),
     }
   }
 
-  return { status: "passed", outcome: VALIDATION_OUTCOME.PASSED, messages: [] }
+  return { status: 'passed', outcome: VALIDATION_OUTCOME.PASSED, messages: [] }
 }
 
 function getTimeTaken(exif?: Record<string, unknown>): Date | null {
@@ -88,61 +88,61 @@ function getRelevantExifData(exif: Record<string, unknown>): Record<string, stri
   const relevantData: Record<string, string> = {}
   if (!exif) return relevantData
 
-  if (exif.Make && typeof exif.Make === "string") relevantData["Camera Make"] = exif.Make
-  if (exif.Model && typeof exif.Model === "string") relevantData["Camera Model"] = exif.Model
+  if (exif.Make && typeof exif.Make === 'string') relevantData['Camera Make'] = exif.Make
+  if (exif.Model && typeof exif.Model === 'string') relevantData['Camera Model'] = exif.Model
 
-  if (exif.ExposureTime && typeof exif.ExposureTime === "number") {
+  if (exif.ExposureTime && typeof exif.ExposureTime === 'number') {
     const exposureValue = exif.ExposureTime
-    relevantData["Exposure"] =
+    relevantData['Exposure'] =
       exposureValue < 1 ? `1/${Math.round(1 / exposureValue)}s` : `${exposureValue}s`
   }
 
-  if (exif.FNumber && typeof exif.FNumber === "number")
-    relevantData["Aperture"] = `f/${exif.FNumber}`
+  if (exif.FNumber && typeof exif.FNumber === 'number')
+    relevantData['Aperture'] = `f/${exif.FNumber}`
 
-  if (exif.ISO && (typeof exif.ISO === "number" || typeof exif.ISO === "string"))
-    relevantData["ISO"] = `ISO ${exif.ISO}`
+  if (exif.ISO && (typeof exif.ISO === 'number' || typeof exif.ISO === 'string'))
+    relevantData['ISO'] = `ISO ${exif.ISO}`
 
-  if (exif.FocalLength && typeof exif.FocalLength === "number")
-    relevantData["Focal Length"] = `${exif.FocalLength}mm`
+  if (exif.FocalLength && typeof exif.FocalLength === 'number')
+    relevantData['Focal Length'] = `${exif.FocalLength}mm`
 
   if (exif.DateTimeOriginal) {
     try {
       const dateString = String(exif.DateTimeOriginal)
       const date = new Date(dateString)
       if (!Number.isNaN(date.getTime())) {
-        relevantData["Date Taken"] = date.toLocaleDateString()
-        relevantData["Time Taken"] = date.toLocaleTimeString()
+        relevantData['Date Taken'] = date.toLocaleDateString()
+        relevantData['Time Taken'] = date.toLocaleTimeString()
       }
     } catch {
       // Skip
     }
   }
 
-  if (exif.LensModel && typeof exif.LensModel === "string") relevantData["Lens"] = exif.LensModel
+  if (exif.LensModel && typeof exif.LensModel === 'string') relevantData['Lens'] = exif.LensModel
 
   if (
     exif.latitude &&
     exif.longitude &&
-    typeof exif.latitude === "number" &&
-    typeof exif.longitude === "number"
+    typeof exif.latitude === 'number' &&
+    typeof exif.longitude === 'number'
   ) {
-    relevantData["GPS"] = `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
+    relevantData['GPS'] = `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
   }
 
   return relevantData
 }
 
 function ByCameraSelectedPhotoPreview({ photo }: { photo: SelectedPhoto }) {
-  const t = useTranslations("FlowPage.uploadStep")
+  const t = useTranslations('FlowPage.uploadStep')
   const [previewLoadFailed, setPreviewLoadFailed] = useState(false)
 
   if (previewLoadFailed) {
     return (
       <div className="flex min-h-[min(52dvh,12rem)] w-full flex-col items-center justify-center gap-2 bg-muted px-6 py-10 text-center">
         <Info className="h-8 w-8 text-muted-foreground" aria-hidden />
-        <p className="text-sm font-medium text-foreground">{t("previewUnavailable")}</p>
-        <p className="text-xs text-muted-foreground">{t("previewUnavailableHint")}</p>
+        <p className="text-sm font-medium text-foreground">{t('previewUnavailable')}</p>
+        <p className="text-xs text-muted-foreground">{t('previewUnavailableHint')}</p>
       </div>
     )
   }
@@ -151,15 +151,15 @@ function ByCameraSelectedPhotoPreview({ photo }: { photo: SelectedPhoto }) {
     <div className="w-full bg-muted">
       <img
         src={photo.preview}
-        alt={t("photoPreview")}
+        alt={t('photoPreview')}
         className={cn(
-          "mx-auto block h-auto w-auto max-w-full object-contain",
+          'mx-auto block h-auto w-auto max-w-full object-contain',
           BY_CAMERA_PREVIEW_MAX_HEIGHT_CLASS,
         )}
         onError={() => {
           setPreviewLoadFailed(true)
-          captureByCameraMessage("by_camera_preview_img_error", {
-            level: "info",
+          captureByCameraMessage('by_camera_preview_img_error', {
+            level: 'info',
             extra: {
               file: fileSummaryForSentry(photo.file),
             },
@@ -174,7 +174,7 @@ interface UploadInputProps {
   photo: SelectedPhoto | null
   validationResults: Array<{
     outcome: (typeof VALIDATION_OUTCOME)[keyof typeof VALIDATION_OUTCOME]
-    severity?: "error" | "warning"
+    severity?: 'error' | 'warning'
     message: string
   }>
   hasValidationRules: boolean
@@ -193,7 +193,7 @@ export function ByCameraUploadInput({
   onFileSelect,
   onRemovePhoto,
 }: UploadInputProps) {
-  const t = useTranslations("FlowPage.uploadStep")
+  const t = useTranslations('FlowPage.uploadStep')
   const internalFileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = fileInputRef ?? internalFileInputRef
   const [isDragOver, setIsDragOver] = useState(false)
@@ -227,7 +227,7 @@ export function ByCameraUploadInput({
   return (
     <>
       <motion.div
-        key={photo ? "preview" : "dropzone"}
+        key={photo ? 'preview' : 'dropzone'}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -236,12 +236,12 @@ export function ByCameraUploadInput({
         {!photo ? (
           <div
             className={cn(
-              "flex flex-col items-center rounded-2xl border-2 border-dashed bg-white px-6 py-10 text-center transition-all",
-              isProcessing && "cursor-progress opacity-70",
-              !isProcessing && "cursor-pointer",
+              'flex flex-col items-center rounded-2xl border-2 border-dashed bg-white px-6 py-10 text-center transition-all',
+              isProcessing && 'cursor-progress opacity-70',
+              !isProcessing && 'cursor-pointer',
               isDragOver
-                ? "border-foreground/40 scale-[1.01]"
-                : "border-foreground/20 hover:border-foreground/40",
+                ? 'border-foreground/40 scale-[1.01]'
+                : 'border-foreground/20 hover:border-foreground/40',
             )}
             onClick={handleChooseClick}
             onDragEnter={(e) => {
@@ -263,7 +263,7 @@ export function ByCameraUploadInput({
               )}
             </div>
 
-            <p className="mt-4 text-sm font-medium text-foreground">{t("selectPhotoPrompt")}</p>
+            <p className="mt-4 text-sm font-medium text-foreground">{t('selectPhotoPrompt')}</p>
 
             <PrimaryButton
               type="button"
@@ -274,24 +274,24 @@ export function ByCameraUploadInput({
               disabled={isProcessing}
               className="mt-5 rounded-full px-8"
             >
-              {t("chooseFromLibrary")}
+              {t('chooseFromLibrary')}
             </PrimaryButton>
 
             <p className="mt-4 text-[11px] text-muted-foreground">
-              {t("supportedFormatsShort", {
-                formats: COMMON_IMAGE_EXTENSIONS.map((ext) => ext.toUpperCase()).join(", "),
+              {t('supportedFormatsShort', {
+                formats: COMMON_IMAGE_EXTENSIONS.map((ext) => ext.toUpperCase()).join(', '),
               })}
             </p>
           </div>
         ) : (
           <div
             className={cn(
-              "relative overflow-hidden rounded-2xl border-2 bg-white",
-              validationSummary.status === "error"
-                ? "border-destructive/40"
-                : validationSummary.status === "warning"
-                  ? "border-amber-300/60"
-                  : "border-border",
+              'relative overflow-hidden rounded-2xl border-2 bg-white',
+              validationSummary.status === 'error'
+                ? 'border-destructive/40'
+                : validationSummary.status === 'warning'
+                  ? 'border-amber-300/60'
+                  : 'border-border',
             )}
           >
             {/* Remove button */}
@@ -301,7 +301,7 @@ export function ByCameraUploadInput({
               className="absolute top-2.5 right-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-colors hover:bg-white"
             >
               <X className="h-4 w-4 text-muted-foreground" />
-              <span className="sr-only">{t("remove")}</span>
+              <span className="sr-only">{t('remove')}</span>
             </button>
 
             {/* Image — cap height so very tall screenshots stay on-screen */}
@@ -311,7 +311,7 @@ export function ByCameraUploadInput({
             <div className="px-4 py-3.5 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-base font-semibold text-foreground">{t("yourPhoto")}</p>
+                  <p className="text-base font-semibold text-foreground">{t('yourPhoto')}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{photo.file.name}</p>
                 </div>
                 <div className="shrink-0">
@@ -324,18 +324,18 @@ export function ByCameraUploadInput({
 
               {takenAt && (
                 <p className="text-xs text-muted-foreground">
-                  {t("taken")} {format(takenAt, "yyyy-MM-dd HH:mm")}
+                  {t('taken')} {format(takenAt, 'yyyy-MM-dd HH:mm')}
                 </p>
               )}
 
               {validationSummary.messages.length > 0 && (
                 <div
                   className={cn(
-                    "rounded-xl border p-3 text-xs",
-                    validationSummary.status === "error" &&
-                      "border-destructive/30 bg-destructive/5 text-destructive",
-                    validationSummary.status === "warning" &&
-                      "border-amber-300/50 bg-amber-50 text-amber-900",
+                    'rounded-xl border p-3 text-xs',
+                    validationSummary.status === 'error' &&
+                      'border-destructive/30 bg-destructive/5 text-destructive',
+                    validationSummary.status === 'warning' &&
+                      'border-amber-300/50 bg-amber-50 text-amber-900',
                   )}
                 >
                   <div className="flex items-start gap-2">
@@ -360,7 +360,7 @@ export function ByCameraUploadInput({
                     className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
                     aria-hidden
                   />
-                  <span className="leading-snug">{t("noExifData")}</span>
+                  <span className="leading-snug">{t('noExifData')}</span>
                 </div>
               )}
             </div>
@@ -375,7 +375,7 @@ export function ByCameraUploadInput({
                   onClick={() => setExifExpanded(!exifExpanded)}
                 >
                   <Info className="h-3.5 w-3.5" />
-                  <span>{t("photoDetails")}</span>
+                  <span>{t('photoDetails')}</span>
                   {exifExpanded ? (
                     <ChevronUp className="h-3.5 w-3.5" />
                   ) : (
@@ -388,7 +388,7 @@ export function ByCameraUploadInput({
             {exifExpanded && hasExifData && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
+                animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 className="border-t border-border px-4 pb-3"
               >
@@ -416,12 +416,12 @@ export function ByCameraUploadInput({
           const target = e.currentTarget
           const picked = target.files
           if (picked && picked.length > 0) {
-            byCameraBreadcrumb("native_file_input_change", {
+            byCameraBreadcrumb('native_file_input_change', {
               ...summarizeFileListForSentry(Array.from(picked)),
             })
           }
           await onFileSelect(picked)
-          target.value = ""
+          target.value = ''
         }}
         disabled={isProcessing}
         className="hidden"

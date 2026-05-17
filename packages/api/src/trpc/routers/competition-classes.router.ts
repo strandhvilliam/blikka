@@ -1,18 +1,14 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
-import {
-  createTRPCRouter,
-  domainProcedure,
-  requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+import { Effect, Schema } from 'effect'
+import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'
+import { trpcEffect } from '../utils'
 import {
   CreateCompetitionClassInputSchema,
   UpdateCompetitionClassInputSchema,
   DeleteCompetitionClassInputSchema,
-} from "../../core/competition-classes/contracts";
-import { CompetitionClassesService } from "../../core/competition-classes/service";
+} from '../../core/competition-classes/contracts'
+import { CompetitionClassesService } from '../../core/competition-classes/service'
 
 export const competitionClassesRouter = createTRPCRouter({
   create: domainProcedure
@@ -20,13 +16,13 @@ export const competitionClassesRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("CompetitionClassesRouter.create")(function* ({ input }) {
+        Effect.fn('CompetitionClassesRouter.create')(function* ({ input }) {
           return yield* CompetitionClassesService.use((s) =>
             s.createCompetitionClass({
               data: input.data,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -36,14 +32,14 @@ export const competitionClassesRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("CompetitionClassesRouter.update")(function* ({ input }) {
+        Effect.fn('CompetitionClassesRouter.update')(function* ({ input }) {
           return yield* CompetitionClassesService.use((s) =>
             s.updateCompetitionClass({
               id: input.id,
               data: input.data,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -53,14 +49,14 @@ export const competitionClassesRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("CompetitionClassesRouter.delete")(function* ({ input }) {
+        Effect.fn('CompetitionClassesRouter.delete')(function* ({ input }) {
           return yield* CompetitionClassesService.use((s) =>
             s.deleteCompetitionClass({
               id: input.id,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
-});
+})

@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { createContext, useContext } from "react"
+import { createContext, useContext } from 'react'
 
 const DomainProviderContext = createContext<string | null>(null)
 
@@ -18,7 +18,7 @@ export function DomainProvider({
 export function useDomain(): string {
   const context = useContext(DomainProviderContext)
   if (context === null) {
-    throw new Error("useDomain must be used within a DomainProvider")
+    throw new Error('useDomain must be used within a DomainProvider')
   }
   return context
 }

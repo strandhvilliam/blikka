@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import Image from "next/image"
-import type { MouseEvent, TouchEvent, WheelEvent } from "react"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { X, ZoomIn, ZoomOut } from "lucide-react"
+import Image from 'next/image'
+import type { MouseEvent, TouchEvent, WheelEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { X, ZoomIn, ZoomOut } from 'lucide-react'
 
 export type FullscreenImageProps = {
   src: string
@@ -13,16 +13,9 @@ export type FullscreenImageProps = {
 }
 
 const isFullscreenSupported =
-  typeof document !== "undefined" &&
-  "fullscreenEnabled" in document &&
-  document.fullscreenEnabled
+  typeof document !== 'undefined' && 'fullscreenEnabled' in document && document.fullscreenEnabled
 
-export function FullscreenImage({
-  src,
-  alt,
-  isOpen,
-  onClose,
-}: FullscreenImageProps) {
+export function FullscreenImage({ src, alt, isOpen, onClose }: FullscreenImageProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
   const [position, setPosition] = useState({ x: 0, y: 0 })
@@ -52,9 +45,9 @@ export function FullscreenImage({
       }
     }
 
-    document.addEventListener("fullscreenchange", handleFullscreenChange)
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
     return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange)
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }
   }, [isOpen, onClose])
 
@@ -67,11 +60,11 @@ export function FullscreenImage({
     const originalHeight = document.body.style.height
     const originalTouchAction = document.body.style.touchAction
 
-    document.body.style.overflow = "hidden"
-    document.body.style.position = "fixed"
-    document.body.style.width = "100%"
-    document.body.style.height = "100%"
-    document.body.style.touchAction = "none"
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+    document.body.style.height = '100%'
+    document.body.style.touchAction = 'none'
 
     return () => {
       document.body.style.overflow = originalOverflow
@@ -86,11 +79,11 @@ export function FullscreenImage({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return
 
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         onClose()
-      } else if (e.key === "+" || e.key === "=") {
+      } else if (e.key === '+' || e.key === '=') {
         setScale((s) => Math.min(s * 1.2, 5))
-      } else if (e.key === "-" || e.key === "_") {
+      } else if (e.key === '-' || e.key === '_') {
         setScale((s) => {
           const newScale = Math.max(s / 1.2, 1)
           if (newScale === 1) {
@@ -101,8 +94,8 @@ export function FullscreenImage({
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
   const handleWheel = useCallback((e: WheelEvent) => {

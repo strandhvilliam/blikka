@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useMemo, useState, useEffect, useCallback } from "react"
-import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
+import { useMemo, useState, useEffect, useCallback } from 'react'
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import {
   Table,
   TableBody,
@@ -9,24 +9,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Pencil, Trash2, MoreVertical, Download } from "lucide-react"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import type { Topic } from "@blikka/db"
-import { TopicsEditDialog } from "./topics-edit-dialog"
-import { TopicsDeleteDialog } from "./topics-delete-dialog"
+} from '@/components/ui/dropdown-menu'
+import { Pencil, Trash2, MoreVertical, Download } from 'lucide-react'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import type { Topic } from '@blikka/db'
+import { TopicsEditDialog } from './topics-edit-dialog'
+import { TopicsDeleteDialog } from './topics-delete-dialog'
 import {
   closestCenter,
   KeyboardSensor,
@@ -36,20 +36,20 @@ import {
   DragEndEvent,
   UniqueIdentifier,
   DndContext,
-} from "@dnd-kit/core"
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
+} from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   arrayMove,
   SortableContext,
-} from "@dnd-kit/sortable"
-import { cn } from "@/lib/utils"
-import { TopicsDragHandle } from "./topics-drag-handle"
-import { TopicsSortableRow } from "./topics-sortable-row"
-import { TopicsMarathonEmptyState } from "./topics-marathon-empty-state"
-import { TopicsMobileSortableCard } from "./topics-mobile-sortable-card"
-import { useIsMobile } from "@/hooks/use-mobile"
+} from '@dnd-kit/sortable'
+import { cn } from '@/lib/utils'
+import { TopicsDragHandle } from './topics-drag-handle'
+import { TopicsSortableRow } from './topics-sortable-row'
+import { TopicsMarathonEmptyState } from './topics-marathon-empty-state'
+import { TopicsMobileSortableCard } from './topics-mobile-sortable-card'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 type TopicsTableProps = {
   onCreateTopic: () => void
@@ -64,7 +64,7 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({
       domain,
-    })
+    }),
   )
 
   const initialTopics = useMemo(() => {
@@ -81,39 +81,39 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
   const { mutate: updateTopic, isPending: isUpdatingTopic } = useMutation(
     trpc.topics.update.mutationOptions({
       onError: (error) => {
-        toast.error("Failed to update topic", {
+        toast.error('Failed to update topic', {
           description: error.message,
         })
         setTopics(initialTopics)
       },
       onSuccess: () => {
-        toast.success("Topic updated")
+        toast.success('Topic updated')
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
         })
       },
-    })
+    }),
   )
 
   const { mutate: deleteTopic, isPending: isDeletingTopic } = useMutation(
     trpc.topics.delete.mutationOptions({
       onError: (error) => {
-        toast.error("Failed to delete topic", {
+        toast.error('Failed to delete topic', {
           description: error.message,
         })
         setTopics(initialTopics)
       },
       onSuccess: () => {
-        toast.success("Topic deleted")
+        toast.success('Topic deleted')
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
         })
       },
-    })
+    }),
   )
 
   const handleDeleteTopic = (topicId: number) => {
@@ -124,31 +124,31 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
   const { mutate: updateTopicsOrder, isPending: isUpdatingOrder } = useMutation(
     trpc.topics.updateOrder.mutationOptions({
       onError: (error) => {
-        toast.error("Failed to update topics order", {
+        toast.error('Failed to update topics order', {
           description: error.message,
         })
         setTopics(initialTopics)
       },
       onSuccess: () => {
-        toast.success("Topics order updated")
+        toast.success('Topics order updated')
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
         })
       },
-    })
+    }),
   )
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   )
 
   const dataIds: UniqueIdentifier[] = useMemo(() => topics.map((t) => t.id), [topics])
-  const tableKey = useMemo(() => `${dataIds.join("-")}`, [dataIds])
+  const tableKey = useMemo(() => `${dataIds.join('-')}`, [dataIds])
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -169,7 +169,7 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
         topicIds: newData.map((t) => t.id),
       })
     },
-    [dataIds, topics, updateTopicsOrder, domain]
+    [dataIds, topics, updateTopicsOrder, domain],
   )
 
   const isLoading = isUpdatingTopic || isDeletingTopic || isUpdatingOrder
@@ -196,49 +196,43 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
   const columns: ColumnDef<Topic>[] = useMemo(
     () => [
       {
-        id: "order",
-        header: "Order",
+        id: 'order',
+        header: 'Order',
         cell: ({ row }) => {
           return <TopicsDragHandle id={row.original.id} orderIndex={row.original.orderIndex} />
         },
       },
       {
-        accessorKey: "name",
-        header: "Topic",
+        accessorKey: 'name',
+        header: 'Topic',
         cell: ({ row }) => {
           const topic = row.original
           return <div className="font-medium">{topic.name}</div>
         },
       },
       {
-        id: "status",
-        header: "Visibility",
+        id: 'status',
+        header: 'Visibility',
         cell: ({ row }) => {
           const VISIBILITY_LABELS = {
-            active: "Active",
-            public: "Public",
-            scheduled: "Scheduled",
-            private: "Private",
+            active: 'Active',
+            public: 'Public',
+            scheduled: 'Scheduled',
+            private: 'Private',
           } as const
           const visibility = row.original.visibility as keyof typeof VISIBILITY_LABELS
 
           const label = VISIBILITY_LABELS[visibility]
 
           return (
-            <Badge
-              variant={
-                label === "Public" || label === "Active"
-                  ? "default"
-                  : "secondary"
-              }
-            >
+            <Badge variant={label === 'Public' || label === 'Active' ? 'default' : 'secondary'}>
               {label}
             </Badge>
           )
         },
       },
       {
-        id: "actions",
+        id: 'actions',
         header: () => null,
         cell: ({ row }) => {
           const topic = row.original
@@ -264,7 +258,7 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
                     disabled
                     onClick={() => {
                       // TODO: Implement download zip functionality
-                      console.log("Download zip for topic:", topic.id)
+                      console.log('Download zip for topic:', topic.id)
                     }}
                   >
                     <Download className="h-4 w-4" />
@@ -286,7 +280,7 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
         },
       },
     ],
-    [isLoading]
+    [isLoading],
   )
 
   const table = useReactTable({
@@ -327,14 +321,16 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
               isLoading={isLoading}
             />
           ))
-        : table.getRowModel().rows.map((row) => (
-            <TopicsSortableRow
-              key={row.original.id}
-              row={row}
-              index={row.original.orderIndex}
-              dataIds={dataIds}
-            />
-          ))}
+        : table
+            .getRowModel()
+            .rows.map((row) => (
+              <TopicsSortableRow
+                key={row.original.id}
+                row={row}
+                index={row.original.orderIndex}
+                dataIds={dataIds}
+              />
+            ))}
     </SortableContext>
   )
 
@@ -342,14 +338,14 @@ export function TopicsTable({ onCreateTopic }: TopicsTableProps) {
     <>
       <div
         className={cn(
-          "relative flex h-full min-h-0 flex-col overflow-hidden rounded-md border bg-card shadow-sm",
-          isLoading && "pointer-events-none",
+          'relative flex h-full min-h-0 flex-col overflow-hidden rounded-md border bg-card shadow-sm',
+          isLoading && 'pointer-events-none',
         )}
       >
         <div
           className={cn(
-            "min-h-0 flex-1 overflow-y-auto",
-            isMobile ? "overflow-x-hidden p-2 sm:p-3" : "overflow-x-auto",
+            'min-h-0 flex-1 overflow-y-auto',
+            isMobile ? 'overflow-x-hidden p-2 sm:p-3' : 'overflow-x-auto',
           )}
         >
           {topics.length === 0 ? (

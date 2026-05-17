@@ -10,8 +10,8 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components"
-import { Tailwind } from "@react-email/tailwind"
+} from '@react-email/components'
+import { Tailwind } from '@react-email/tailwind'
 
 export interface MagicLinkEmailProps {
   url: string
@@ -27,7 +27,7 @@ export function MagicLinkEmail({
   email,
   username,
   expiryMinutes = 15,
-  companyName = "Your Company",
+  companyName = 'Your Company',
   companyLogoUrl,
 }: MagicLinkEmailProps) {
   const previewText = `Sign in to ${companyName}`
@@ -50,11 +50,11 @@ export function MagicLinkEmail({
             </Heading>
 
             <Text className="mb-6 text-center text-gray-600">
-              {username ? `Hello ${username},` : "Hello,"}
+              {username ? `Hello ${username},` : 'Hello,'}
             </Text>
 
             <Text className="mb-6 text-center text-gray-600">
-              Click the button below to sign in to your account. This link will expire in{" "}
+              Click the button below to sign in to your account. This link will expire in{' '}
               {expiryMinutes} minutes.
             </Text>
 

@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
-import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
-import { FadeIn } from "./fade-in"
+} from '@/components/ui/accordion'
+import { FadeIn } from './fade-in'
 
 type FAQItem = {
   question: string
@@ -17,34 +17,34 @@ type FAQItem = {
 
 const items: FAQItem[] = [
   {
-    question: "How does pricing work?",
+    question: 'How does pricing work?',
     answer:
-      "Pricing is scoped around your event format, expected participant volume, and how often you run events. The demo call ends with a recommended setup and a clear quote.",
+      'Pricing is scoped around your event format, expected participant volume, and how often you run events. The demo call ends with a recommended setup and a clear quote.',
   },
   {
-    question: "Do participants need to install an app?",
+    question: 'Do participants need to install an app?',
     answer:
-      "No. Participants use a branded upload link that works directly in the browser, which keeps the submission flow lightweight and easier to complete on mobile.",
+      'No. Participants use a branded upload link that works directly in the browser, which keeps the submission flow lightweight and easier to complete on mobile.',
   },
   {
-    question: "How does judging work?",
+    question: 'How does judging work?',
     answer:
-      "Organizers can review submissions centrally and invite judges by link. Judges score within the platform while submissions stay organized by participant, category, and event rules.",
+      'Organizers can review submissions centrally and invite judges by link. Judges score within the platform while submissions stay organized by participant, category, and event rules.',
   },
   {
-    question: "Can the experience match our brand and event format?",
+    question: 'Can the experience match our brand and event format?',
     answer:
-      "Yes. The setup can be tailored around your categories, deadlines, and participant flow, and the upload experience can be branded to feel like part of your event rather than a generic tool.",
+      'Yes. The setup can be tailored around your categories, deadlines, and participant flow, and the upload experience can be branded to feel like part of your event rather than a generic tool.',
   },
   {
-    question: "Is Blikka only for large events?",
+    question: 'Is Blikka only for large events?',
     answer:
-      "No. It works for smaller competitions too, especially when you want a cleaner participant experience and less manual admin work without building your own workflow.",
+      'No. It works for smaller competitions too, especially when you want a cleaner participant experience and less manual admin work without building your own workflow.',
   },
   {
-    question: "What does onboarding look like?",
+    question: 'What does onboarding look like?',
     answer:
-      "The first call maps your event format and operational needs. From there, the onboarding focuses on event setup, judging flow, and making sure the participant journey is ready before launch.",
+      'The first call maps your event format and operational needs. From there, the onboarding focuses on event setup, judging flow, and making sure the participant journey is ready before launch.',
   },
 ]
 

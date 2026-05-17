@@ -1,28 +1,28 @@
-"use client"
+'use client'
 
-import Image from "next/image"
-import Link from "next/link"
-import { FadeIn } from "./fade-in"
+import Image from 'next/image'
+import Link from 'next/link'
+import { FadeIn } from './fade-in'
 
 const footerLinks = {
   Product: [
-    { label: "Features", href: "#features" },
-    { label: "How It Works", href: "#how-it-works" },
-    { label: "Who It's For", href: "#who-its-for" },
-    { label: "FAQ", href: "#faq" },
-    { label: "Pricing", href: "#pricing" },
+    { label: 'Features', href: '#features' },
+    { label: 'How It Works', href: '#how-it-works' },
+    { label: "Who It's For", href: '#who-its-for' },
+    { label: 'FAQ', href: '#faq' },
+    { label: 'Pricing', href: '#pricing' },
   ],
   Contact: [
-    { label: "hello@blikka.app", href: "mailto:hello@blikka.app" },
-    { label: "Book A Demo", href: "#pricing" },
+    { label: 'hello@blikka.app', href: 'mailto:hello@blikka.app' },
+    { label: 'Book A Demo', href: '#pricing' },
   ],
 }
 
 const socialLinks = [
-  { label: "Twitter", href: "https://x.com/villiamstrandh" },
-  { label: "Instagram", href: "https://www.instagram.com/stockholmfotomaraton" },
-  { label: "LinkedIn", href: "https://www.linkedin.com/in/villiam-strandh/" },
-  { label: "GitHub", href: "https://github.com/strandhvilliam/blikka" },
+  { label: 'Twitter', href: 'https://x.com/villiamstrandh' },
+  { label: 'Instagram', href: 'https://www.instagram.com/stockholmfotomaraton' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/villiam-strandh/' },
+  { label: 'GitHub', href: 'https://github.com/strandhvilliam/blikka' },
 ]
 
 export function Footer() {

@@ -1,12 +1,12 @@
-import { Effect, Schema } from "effect"
+import { Effect, Schema } from 'effect'
 import {
   RealtimeChannelEnvSchema,
   getDomainRealtimeChannel,
   getParticipantRealtimeChannel,
-} from "./contract"
-import type { RealtimeChannelEnv } from "./contract"
+} from './contract'
+import type { RealtimeChannelEnv } from './contract'
 
-export class RealtimeError extends Schema.TaggedErrorClass<RealtimeError>()("RealtimeError", {
+export class RealtimeError extends Schema.TaggedErrorClass<RealtimeError>()('RealtimeError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -16,7 +16,7 @@ export class RealtimeError extends Schema.TaggedErrorClass<RealtimeError>()("Rea
  *   domain-level:      {env}:{domain}
  *   participant-level:  {env}:{domain}:{reference}
  */
-export class RealtimeChannel extends Schema.Class<RealtimeChannel>("RealtimeChannel")({
+export class RealtimeChannel extends Schema.Class<RealtimeChannel>('RealtimeChannel')({
   environment: RealtimeChannelEnvSchema,
   domain: Schema.String,
   reference: Schema.optional(Schema.String),
@@ -27,7 +27,7 @@ export class RealtimeChannel extends Schema.Class<RealtimeChannel>("RealtimeChan
       : getDomainRealtimeChannel(this.environment, this.domain)
   }
 
-  static domain = Effect.fn("RealtimeChannel.domain")(function* (
+  static domain = Effect.fn('RealtimeChannel.domain')(function* (
     environment: RealtimeChannelEnv,
     domain: string,
   ) {
@@ -37,7 +37,7 @@ export class RealtimeChannel extends Schema.Class<RealtimeChannel>("RealtimeChan
     }).pipe(Effect.mapError((error) => new RealtimeError({ message: error.message, cause: error })))
   })
 
-  static participant = Effect.fn("RealtimeChannel.participant")(function* (
+  static participant = Effect.fn('RealtimeChannel.participant')(function* (
     environment: RealtimeChannelEnv,
     domain: string,
     reference: string,

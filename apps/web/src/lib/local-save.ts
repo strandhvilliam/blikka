@@ -1,4 +1,4 @@
-import type { ParticipantSelectedPhoto } from "./participant-upload-types"
+import type { ParticipantSelectedPhoto } from './participant-upload-types'
 
 export interface LocalSaveEntry<TFile = File> {
   path: string
@@ -12,7 +12,7 @@ type DirectoryPickerWindow = Window &
   }
 
 export function formatTopicOrderIndex(orderIndex: number) {
-  return String(orderIndex).padStart(2, "0")
+  return String(orderIndex).padStart(2, '0')
 }
 
 export function buildLocalSavePath(params: {
@@ -29,7 +29,7 @@ export function buildLocalSavePath(params: {
   ] as const
 
   return {
-    path: pathSegments.join("/"),
+    path: pathSegments.join('/'),
     pathSegments,
   }
 }
@@ -55,16 +55,16 @@ export function buildLocalSaveEntries<TFile extends { name: string }>(params: {
 }
 
 export function supportsDirectoryPicker(
-  pickerWindow?: Pick<DirectoryPickerWindow, "showDirectoryPicker">,
+  pickerWindow?: Pick<DirectoryPickerWindow, 'showDirectoryPicker'>,
 ) {
   if (!pickerWindow) {
     return (
-      typeof window !== "undefined" &&
-      typeof (window as DirectoryPickerWindow).showDirectoryPicker === "function"
+      typeof window !== 'undefined' &&
+      typeof (window as DirectoryPickerWindow).showDirectoryPicker === 'function'
     )
   }
 
-  return typeof pickerWindow.showDirectoryPicker === "function"
+  return typeof pickerWindow.showDirectoryPicker === 'function'
 }
 
 export function getCollisionSafeFileName(requestedName: string, existingNames: Set<string>) {
@@ -72,10 +72,10 @@ export function getCollisionSafeFileName(requestedName: string, existingNames: S
     return requestedName
   }
 
-  const extensionIndex = requestedName.lastIndexOf(".")
+  const extensionIndex = requestedName.lastIndexOf('.')
   const hasExtension = extensionIndex > 0
   const baseName = hasExtension ? requestedName.slice(0, extensionIndex) : requestedName
-  const extension = hasExtension ? requestedName.slice(extensionIndex) : ""
+  const extension = hasExtension ? requestedName.slice(extensionIndex) : ''
 
   let suffix = 1
   let candidate = `${baseName}-${suffix}${extension}`
@@ -121,23 +121,23 @@ async function writeEntriesToDirectory(
 }
 
 async function downloadEntriesAsZip(entries: LocalSaveEntry[], archiveName: string) {
-  const JSZip = (await import("jszip")).default
+  const JSZip = (await import('jszip')).default
   const zip = new JSZip()
   const createdByFolder = new Map<string, Set<string>>()
 
   for (const entry of entries) {
-    const folderKey = entry.pathSegments.slice(0, 3).join("/")
+    const folderKey = entry.pathSegments.slice(0, 3).join('/')
     const existingNames = createdByFolder.get(folderKey) ?? new Set<string>()
     const safeFileName = getCollisionSafeFileName(entry.pathSegments[3], existingNames)
     existingNames.add(safeFileName)
     createdByFolder.set(folderKey, existingNames)
 
-    zip.file([...entry.pathSegments.slice(0, 3), safeFileName].join("/"), entry.file)
+    zip.file([...entry.pathSegments.slice(0, 3), safeFileName].join('/'), entry.file)
   }
 
-  const blob = await zip.generateAsync({ type: "blob" })
+  const blob = await zip.generateAsync({ type: 'blob' })
   const objectUrl = URL.createObjectURL(blob)
-  const anchor = document.createElement("a")
+  const anchor = document.createElement('a')
   anchor.href = objectUrl
   anchor.download = archiveName
   anchor.click()
@@ -148,7 +148,7 @@ export async function saveParticipantPhotosLocally(params: {
   domain: string
   participantReference: string
   photos: ParticipantSelectedPhoto[]
-  pickerWindow?: Pick<DirectoryPickerWindow, "showDirectoryPicker">
+  pickerWindow?: Pick<DirectoryPickerWindow, 'showDirectoryPicker'>
 }) {
   const entries = buildLocalSaveEntries({
     domain: params.domain,
@@ -158,15 +158,15 @@ export async function saveParticipantPhotosLocally(params: {
 
   const pickerWindow =
     params.pickerWindow ??
-    (typeof window !== "undefined" ? (window as DirectoryPickerWindow) : undefined)
+    (typeof window !== 'undefined' ? (window as DirectoryPickerWindow) : undefined)
 
   if (pickerWindow && supportsDirectoryPicker(pickerWindow)) {
     const directoryHandle = await pickerWindow.showDirectoryPicker!()
     await writeEntriesToDirectory(directoryHandle, entries)
-    return { mode: "directory" as const, entries }
+    return { mode: 'directory' as const, entries }
   }
 
   const archiveName = `${params.domain}-${params.participantReference}-upload-backup.zip`
   await downloadEntriesAsZip(entries, archiveName)
-  return { mode: "zip" as const, entries }
+  return { mode: 'zip' as const, entries }
 }

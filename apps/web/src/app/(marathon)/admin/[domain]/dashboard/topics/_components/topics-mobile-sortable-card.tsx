@@ -1,22 +1,22 @@
-"use client"
+'use client'
 
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
-import type { Topic } from "@blikka/db"
-import { Download, MoreVertical, Pencil, Trash2 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import type { Topic } from '@blikka/db'
+import { Download, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
-import { VISIBILITY_LABELS } from "../_lib/formatting"
-import { SortableRowContext } from "./topics-sortable-context"
-import { TopicsDragHandle } from "./topics-drag-handle"
+} from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
+import { VISIBILITY_LABELS } from '../_lib/formatting'
+import { SortableRowContext } from './topics-sortable-context'
+import { TopicsDragHandle } from './topics-drag-handle'
 
 type TopicsMobileSortableCardProps = {
   topic: Topic
@@ -50,8 +50,8 @@ export function TopicsMobileSortableCard({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "rounded-lg border border-border bg-card p-3 shadow-sm",
-          isDragging && "opacity-50",
+          'rounded-lg border border-border bg-card p-3 shadow-sm',
+          isDragging && 'opacity-50',
         )}
       >
         <div className="flex gap-2 sm:gap-3">
@@ -59,7 +59,7 @@ export function TopicsMobileSortableCard({
           <div className="min-w-0 flex-1 space-y-2">
             <div className="font-medium leading-snug text-foreground">{topic.name}</div>
             <Badge
-              variant={label === "Public" || label === "Active" ? "default" : "secondary"}
+              variant={label === 'Public' || label === 'Active' ? 'default' : 'secondary'}
               className="text-[10px]"
             >
               {label}
@@ -79,7 +79,12 @@ export function TopicsMobileSortableCard({
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" disabled={isLoading} className="h-9 w-9 shrink-0">
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={isLoading}
+                className="h-9 w-9 shrink-0"
+              >
                 <MoreVertical className="h-4 w-4" />
                 <span className="sr-only">More actions</span>
               </Button>
@@ -88,7 +93,7 @@ export function TopicsMobileSortableCard({
               <DropdownMenuItem
                 disabled
                 onClick={() => {
-                  console.log("Download zip for topic:", topic.id)
+                  console.log('Download zip for topic:', topic.id)
                 }}
               >
                 <Download className="h-4 w-4" />

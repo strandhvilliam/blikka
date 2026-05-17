@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { ActiveRatingFilterBadge } from "./rating-filter"
-import { ArrowLeft, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react"
+import { ActiveRatingFilterBadge } from './rating-filter'
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react'
 
 type JurySubmissionCompactNavProps = {
   onBack: () => void
@@ -63,7 +63,7 @@ export function JurySubmissionCompactNav({
         <span className="font-gothic text-sm font-bold tabular-nums text-brand-black">
           {currentParticipantIndex + 1}
           <span className="font-sans font-normal text-brand-gray">
-            {" / "}
+            {' / '}
             {visibleTotal}
           </span>
         </span>

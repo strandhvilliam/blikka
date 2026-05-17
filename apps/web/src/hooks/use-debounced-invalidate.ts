@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useRef } from "react"
-import type { QueryClient, QueryKey } from "@tanstack/react-query"
+import { useCallback, useEffect, useRef } from 'react'
+import type { QueryClient, QueryKey } from '@tanstack/react-query'
 
 export function useDebouncedInvalidate(
   queryClient: QueryClient,

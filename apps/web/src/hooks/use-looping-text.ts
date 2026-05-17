@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react'
 
 export function useLoopingText(texts: string[], intervalMs = 2000) {
   const [index, setIndex] = useState(0)

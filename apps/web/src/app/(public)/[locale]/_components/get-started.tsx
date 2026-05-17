@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import { ArrowRight } from "lucide-react"
-import { FadeIn } from "./fade-in"
-import { GetStartedDialog } from "./get-started-dialog"
-import { NoiseOverlay } from "./noise-overlay"
+import { ArrowRight } from 'lucide-react'
+import { FadeIn } from './fade-in'
+import { GetStartedDialog } from './get-started-dialog'
+import { NoiseOverlay } from './noise-overlay'
 
 export function GetStarted() {
   return (

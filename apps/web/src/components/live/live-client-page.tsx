@@ -1,133 +1,121 @@
-"use client";
+'use client'
 
-import { useEffect, useState, useTransition } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { useTRPC } from "@/lib/trpc/client";
-import { useTranslations, useLocale, Locale } from "next-intl";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { PrimaryButton } from "@/components/ui/primary-button";
+import { useEffect, useState, useTransition } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { useTranslations, useLocale, Locale } from 'next-intl'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { PrimaryButton } from '@/components/ui/primary-button'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 import {
   cn,
   formatDomainLink,
   formatDomainPathname,
   formatPlatformTermsPathname,
-} from "@/lib/utils";
-import { format } from "date-fns";
-import { enUS, sv, type Locale as DateFnsLocale } from "date-fns/locale";
-import { Info, ImageIcon, Play } from "lucide-react";
-import ReactCountryFlag from "react-country-flag";
-import Image from "next/image";
-import { changeLocaleAction } from "@/lib/actions/change-locale-action";
-import { useRouter } from "next/navigation";
-import { useDomain } from "@/lib/domain-provider";
+} from '@/lib/utils'
+import { format } from 'date-fns'
+import { enUS, sv, type Locale as DateFnsLocale } from 'date-fns/locale'
+import { Info, ImageIcon, Play } from 'lucide-react'
+import ReactCountryFlag from 'react-country-flag'
+import Image from 'next/image'
+import { changeLocaleAction } from '@/lib/actions/change-locale-action'
+import { useRouter } from 'next/navigation'
+import { useDomain } from '@/lib/domain-provider'
 import {
   getByCameraLiveAccessState,
   type ByCameraLiveAccessResult,
-} from "@/lib/by-camera/by-camera-live-access-state";
-import { resolveLiveLandingSponsor } from "@/lib/sponsors/live-landing-sponsor";
+} from '@/lib/by-camera/by-camera-live-access-state'
+import { resolveLiveLandingSponsor } from '@/lib/sponsors/live-landing-sponsor'
 
-const BUCKET_NAME = process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME;
+const BUCKET_NAME = process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
 
 export function LiveClientPage() {
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const locale = useLocale();
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const locale = useLocale()
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
-    console.info("[LiveClientPage] browser diagnostics", {
+    console.info('[LiveClientPage] browser diagnostics', {
       userAgent: navigator.userAgent,
-      userAgentData: "userAgentData" in navigator ? navigator.userAgentData : undefined,
+      userAgentData: 'userAgentData' in navigator ? navigator.userAgentData : undefined,
       arrayAt: typeof Array.prototype.at,
       createImageBitmap: typeof window.createImageBitmap,
       offscreenCanvas: typeof window.OffscreenCanvas,
       promiseAllSettled: typeof Promise.allSettled,
-    });
-  }, []);
+    })
+  }, [])
 
   const setLocale = (locale: Locale) => {
     startTransition(async () => {
-      const response = await changeLocaleAction(locale);
+      const response = await changeLocaleAction(locale)
 
       if (response.error) {
-        console.error("Failed to change locale:", response.error);
-        return;
+        console.error('Failed to change locale:', response.error)
+        return
       }
 
-      router.refresh();
-    });
-  };
+      router.refresh()
+    })
+  }
 
   const { data: marathon } = useSuspenseQuery(
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
-  );
+  )
 
   const byCameraAccessState =
-    marathon.mode === "by-camera" ? getByCameraLiveAccessState(marathon) : null;
+    marathon.mode === 'by-camera' ? getByCameraLiveAccessState(marathon) : null
 
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   const withTermsAcceptanceParams = (pathname: string) => {
     const params = new URLSearchParams({
-      ta: "true",
+      ta: 'true',
       tl: locale,
-    });
-    return `${pathname}?${params.toString()}`;
-  };
+    })
+    return `${pathname}?${params.toString()}`
+  }
 
   const handleStartUpload = () => {
     if (termsAccepted) {
       switch (marathon.mode) {
-        case "marathon":
+        case 'marathon':
           router.push(
-            formatDomainPathname(
-              withTermsAcceptanceParams(`/live/marathon`),
-              domain,
-              "live",
-            ),
-          );
-          break;
-        case "by-camera":
-          if (byCameraAccessState?.state !== "open") {
-            return;
+            formatDomainPathname(withTermsAcceptanceParams(`/live/marathon`), domain, 'live'),
+          )
+          break
+        case 'by-camera':
+          if (byCameraAccessState?.state !== 'open') {
+            return
           }
 
           router.push(
-            formatDomainPathname(
-              withTermsAcceptanceParams(`/live/by-camera`),
-              domain,
-              "live",
-            ),
-          );
-          break;
+            formatDomainPathname(withTermsAcceptanceParams(`/live/by-camera`), domain, 'live'),
+          )
+          break
       }
     }
-  };
+  }
 
   const handleStartPrepare = () => {
-    if (!termsAccepted || marathon.mode !== "marathon") {
-      return;
+    if (!termsAccepted || marathon.mode !== 'marathon') {
+      return
     }
 
     router.push(
-      formatDomainPathname(
-        withTermsAcceptanceParams(`/live/marathon/prepare`),
-        domain,
-        "live",
-      ),
-    );
-  };
+      formatDomainPathname(withTermsAcceptanceParams(`/live/marathon/prepare`), domain, 'live'),
+    )
+  }
 
-  const landingSponsor = resolveLiveLandingSponsor(marathon.sponsors);
+  const landingSponsor = resolveLiveLandingSponsor(marathon.sponsors)
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
@@ -137,20 +125,16 @@ export function LiveClientPage() {
           <div className="px-3 sm:px-6 max-w-md mx-auto w-full">
             <LogoAndEventInfo
               marathon={marathon}
-              mode={marathon.mode as "marathon" | "by-camera"}
+              mode={marathon.mode as 'marathon' | 'by-camera'}
               activeTopicName={
-                marathon.mode === "by-camera"
+                marathon.mode === 'by-camera'
                   ? (byCameraAccessState?.activeTopic?.name ?? null)
                   : null
               }
             />
 
             <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
-              <LanguageSelection
-                locale={locale}
-                setLocale={setLocale}
-                isPending={isPending}
-              />
+              <LanguageSelection locale={locale} setLocale={setLocale} isPending={isPending} />
 
               <RulesAndInformation description={marathon.description} />
 
@@ -164,7 +148,7 @@ export function LiveClientPage() {
               <OfficialBrowserTip />
 
               <StartButtons
-                marathonMode={marathon.mode as "marathon" | "by-camera"}
+                marathonMode={marathon.mode as 'marathon' | 'by-camera'}
                 onUploadClick={handleStartUpload}
                 onPrepareClick={handleStartPrepare}
                 disabled={!termsAccepted}
@@ -178,7 +162,7 @@ export function LiveClientPage() {
         </main>
       </div>
     </div>
-  );
+  )
 }
 
 function LogoAndEventInfo({
@@ -187,21 +171,21 @@ function LogoAndEventInfo({
   activeTopicName,
 }: {
   marathon: {
-    logoUrl: string | null;
-    name: string;
-    startDate: string | null;
-    endDate: string | null;
-  };
-  mode: "marathon" | "by-camera";
-  activeTopicName: string | null;
+    logoUrl: string | null
+    name: string
+    startDate: string | null
+    endDate: string | null
+  }
+  mode: 'marathon' | 'by-camera'
+  activeTopicName: string | null
 }) {
-  const t = useTranslations("LivePage");
+  const t = useTranslations('LivePage')
   const subtitle =
-    mode === "by-camera"
-      ? (activeTopicName ?? t("noTopicOpen"))
+    mode === 'by-camera'
+      ? (activeTopicName ?? t('noTopicOpen'))
       : marathon.startDate && marathon.endDate
-        ? `${format(new Date(marathon.startDate), "dd MMMM yyyy")} - ${format(new Date(marathon.endDate), "dd MMMM yyyy")}`
-        : t("datesToBeAnnounced");
+        ? `${format(new Date(marathon.startDate), 'dd MMMM yyyy')} - ${format(new Date(marathon.endDate), 'dd MMMM yyyy')}`
+        : t('datesToBeAnnounced')
 
   return (
     <div className="flex flex-col items-center pb-8">
@@ -217,11 +201,9 @@ function LogoAndEventInfo({
       <h1 className="text-2xl font-gothic font-medium text-foreground text-center mt-2 tracking-tight">
         {marathon.name}
       </h1>
-      <p className="text-center text-lg mt-1 font-medium tracking-wide">
-        {subtitle}
-      </p>
+      <p className="text-center text-lg mt-1 font-medium tracking-wide">{subtitle}</p>
     </div>
-  );
+  )
 }
 
 function LanguageSelection({
@@ -229,35 +211,31 @@ function LanguageSelection({
   setLocale,
   isPending,
 }: {
-  locale: string;
-  setLocale: (locale: Locale) => void;
-  isPending: boolean;
+  locale: string
+  setLocale: (locale: Locale) => void
+  isPending: boolean
 }) {
-  const t = useTranslations("LivePage");
+  const t = useTranslations('LivePage')
   return (
     <section className="mb-3 sm:mb-5">
       <p
         id="live-language-label"
         className="text-center text-sm font-medium text-muted-foreground mb-2 sm:mb-3"
       >
-        {t("selectLanguage")}
+        {t('selectLanguage')}
       </p>
-      <div
-        className="flex gap-2 sm:gap-3"
-        role="group"
-        aria-labelledby="live-language-label"
-      >
+      <div className="flex gap-2 sm:gap-3" role="group" aria-labelledby="live-language-label">
         <Button
           type="button"
           variant="outline"
-          aria-pressed={locale === "en"}
+          aria-pressed={locale === 'en'}
           className={cn(
-            "min-w-0 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors",
-            locale === "en"
-              ? "border-primary bg-primary/5 font-medium shadow-xs"
-              : "border-border hover:bg-accent/40",
+            'min-w-0 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors',
+            locale === 'en'
+              ? 'border-primary bg-primary/5 font-medium shadow-xs'
+              : 'border-border hover:bg-accent/40',
           )}
-          onClick={() => setLocale("en")}
+          onClick={() => setLocale('en')}
           disabled={isPending}
         >
           <ReactCountryFlag countryCode="GB" svg />
@@ -266,14 +244,14 @@ function LanguageSelection({
         <Button
           type="button"
           variant="outline"
-          aria-pressed={locale === "sv"}
+          aria-pressed={locale === 'sv'}
           className={cn(
-            "min-w-0 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors",
-            locale === "sv"
-              ? "border-primary bg-primary/5 font-medium shadow-xs"
-              : "border-border hover:bg-accent/40",
+            'min-w-0 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors',
+            locale === 'sv'
+              ? 'border-primary bg-primary/5 font-medium shadow-xs'
+              : 'border-border hover:bg-accent/40',
           )}
-          onClick={() => setLocale("sv")}
+          onClick={() => setLocale('sv')}
           disabled={isPending}
         >
           <ReactCountryFlag countryCode="SE" svg />
@@ -281,12 +259,12 @@ function LanguageSelection({
         </Button>
       </div>
     </section>
-  );
+  )
 }
 
 function RulesAndInformation({ description }: { description: string | null }) {
-  const t = useTranslations("LivePage");
-  if (!description) return null;
+  const t = useTranslations('LivePage')
+  if (!description) return null
 
   return (
     <section className="mb-3 sm:mb-5">
@@ -297,24 +275,24 @@ function RulesAndInformation({ description }: { description: string | null }) {
             className="w-full flex gap-2 py-4 justify-start underline underline-offset-1"
           >
             <Info size={16} />
-            {t("rulesAndInformation")}
+            {t('rulesAndInformation')}
           </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Info size={20} />
-              {t("rulesAndInformation")}
+              {t('rulesAndInformation')}
             </DialogTitle>
           </DialogHeader>
           <div className="prose prose-sm max-w-none">{description}</div>
         </DialogContent>
       </Dialog>
     </section>
-  );
+  )
 }
 
-const dateFnsLocales: Record<"en" | "sv", DateFnsLocale> = { en: enUS, sv };
+const dateFnsLocales: Record<'en' | 'sv', DateFnsLocale> = { en: enUS, sv }
 
 function StartButtons({
   marathonMode,
@@ -324,18 +302,18 @@ function StartButtons({
   byCameraAccessState,
   activeTopic,
 }: {
-  marathonMode: "marathon" | "by-camera";
-  onUploadClick: () => void;
-  onPrepareClick: () => void;
-  disabled: boolean;
-  byCameraAccessState?: ByCameraLiveAccessResult | null;
+  marathonMode: 'marathon' | 'by-camera'
+  onUploadClick: () => void
+  onPrepareClick: () => void
+  disabled: boolean
+  byCameraAccessState?: ByCameraLiveAccessResult | null
   activeTopic?: {
-    scheduledStart: string | null;
-  } | null;
+    scheduledStart: string | null
+  } | null
 }) {
-  const t = useTranslations("LivePage");
-  const locale = useLocale();
-  if (marathonMode === "marathon") {
+  const t = useTranslations('LivePage')
+  const locale = useLocale()
+  if (marathonMode === 'marathon') {
     return (
       <div className="flex flex-col gap-3">
         <PrimaryButton
@@ -343,7 +321,7 @@ function StartButtons({
           disabled={disabled}
           className="w-full py-3 text-base text-white rounded-full"
         >
-          {t("beginUpload")}
+          {t('beginUpload')}
           <Play className="h-4 w-4" />
         </PrimaryButton>
         <Button
@@ -352,33 +330,28 @@ function StartButtons({
           disabled={disabled}
           className="w-full py-3 text-base rounded-full"
         >
-          {t("prepareForLater")}
+          {t('prepareForLater')}
         </Button>
       </div>
-    );
+    )
   }
 
-  if (byCameraAccessState?.state !== "open") {
-    let message = t("submissionsUnavailable");
+  if (byCameraAccessState?.state !== 'open') {
+    let message = t('submissionsUnavailable')
 
-    if (
-      byCameraAccessState?.state === "scheduled" &&
-      activeTopic?.scheduledStart
-    ) {
-      message = t("submissionsScheduled", {
-        date: format(new Date(activeTopic.scheduledStart), "PPp", {
-          locale: dateFnsLocales[locale as "en" | "sv"] ?? enUS,
+    if (byCameraAccessState?.state === 'scheduled' && activeTopic?.scheduledStart) {
+      message = t('submissionsScheduled', {
+        date: format(new Date(activeTopic.scheduledStart), 'PPp', {
+          locale: dateFnsLocales[locale as 'en' | 'sv'] ?? enUS,
         }),
-      });
-    } else if (byCameraAccessState?.reason === "missing-scheduled-start") {
-      message = t("submissionsNotOpenYet");
-    } else if (byCameraAccessState?.state === "closed") {
-      message = t("submissionsClosed");
+      })
+    } else if (byCameraAccessState?.reason === 'missing-scheduled-start') {
+      message = t('submissionsNotOpenYet')
+    } else if (byCameraAccessState?.state === 'closed') {
+      message = t('submissionsClosed')
     }
 
-    return (
-      <p className="text-center text-muted-foreground py-4 px-2">{message}</p>
-    );
+    return <p className="text-center text-muted-foreground py-4 px-2">{message}</p>
   }
 
   return (
@@ -387,20 +360,20 @@ function StartButtons({
       disabled={disabled}
       className="w-full py-3 text-base text-white rounded-full"
     >
-      {t("begin")}
+      {t('begin')}
       <Play className="h-4 w-4" />
     </PrimaryButton>
-  );
+  )
 }
 
 function OfficialBrowserTip() {
-  const t = useTranslations("LivePage");
+  const t = useTranslations('LivePage')
   return (
     <div className="mx-auto w-full space-y-1 text-balance text-center text-xs sm:text-xs text-muted-foreground leading-snug px-1 mb-4 sm:mb-5">
-      <p>{t("officialBrowserTip")}</p>
-      <p>{t("minimumDeviceTip")}</p>
+      <p>{t('officialBrowserTip')}</p>
+      <p>{t('minimumDeviceTip')}</p>
     </div>
-  );
+  )
 }
 
 function TermsCheckbox({
@@ -409,12 +382,12 @@ function TermsCheckbox({
   domain,
   locale,
 }: {
-  termsAccepted: boolean;
-  setTermsAccepted: (value: boolean) => void;
-  domain: string;
-  locale: string;
+  termsAccepted: boolean
+  setTermsAccepted: (value: boolean) => void
+  domain: string
+  locale: string
 }) {
-  const t = useTranslations("LivePage");
+  const t = useTranslations('LivePage')
   return (
     <section className="mb-4 sm:mb-6 space-y-4">
       <label htmlFor="platform-terms" className="text-sm font-medium">
@@ -426,53 +399,49 @@ function TermsCheckbox({
             onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
           />
           <span className="text-pretty leading-snug">
-            {t("termsAccept")}{" "}
+            {t('termsAccept')}{' '}
             <a
               target="_blank"
               rel="noopener noreferrer"
-              href={formatDomainLink("/terms", domain, "terms")}
+              href={formatDomainLink('/terms', domain, 'terms')}
               className="underline font-semibold"
             >
-              {t("organizerTerms")}
-            </a>{" "}
-            {t("termsAcceptAnd")}{" "}
+              {t('organizerTerms')}
+            </a>{' '}
+            {t('termsAcceptAnd')}{' '}
             <a
               target="_blank"
               rel="noopener noreferrer"
               href={formatPlatformTermsPathname(locale)}
               className="underline font-semibold"
             >
-              {t("blikkaTerms")}
+              {t('blikkaTerms')}
             </a>
           </span>
         </div>
       </label>
     </section>
-  );
+  )
 }
 
-function SponsorsSection({
-  sponsor,
-}: {
-  sponsor: { id: number; key: string } | undefined;
-}) {
-  const t = useTranslations("LivePage");
-  if (!sponsor) return null;
+function SponsorsSection({ sponsor }: { sponsor: { id: number; key: string } | undefined }) {
+  const t = useTranslations('LivePage')
+  if (!sponsor) return null
 
   return (
     <div className="mt-5 sm:mt-8 w-full max-w-4xl mx-auto px-3 sm:px-6 flex flex-col items-center">
       <p className="text-center text-sm font-medium text-muted-foreground mb-3 sm:mb-4">
-        {t("sponsors")}
+        {t('sponsors')}
       </p>
       <div className="w-full flex justify-center">
         <img
           src={`https://s3.eu-north-1.amazonaws.com/${BUCKET_NAME}/${sponsor.key}`}
-          alt={t("sponsors")}
+          alt={t('sponsors')}
           className="w-full h-auto max-h-48 sm:max-h-64 object-contain rounded-xl border border-border/35 bg-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.05)]"
         />
       </div>
     </div>
-  );
+  )
 }
 
 function PoweredByBlikka() {
@@ -480,12 +449,9 @@ function PoweredByBlikka() {
     <div className="pointer-events-none absolute left-4 top-4 z-30 flex items-center gap-1 sm:left-6 sm:top-5">
       <p className="sr-only">Blikka</p>
       <Image src="/blikka-logo.svg" alt="" width={18} height={15} aria-hidden />
-      <span
-        className="font-special-gothic text-sm tracking-tight text-foreground/90"
-        aria-hidden
-      >
+      <span className="font-special-gothic text-sm tracking-tight text-foreground/90" aria-hidden>
         blikka
       </span>
     </div>
-  );
+  )
 }

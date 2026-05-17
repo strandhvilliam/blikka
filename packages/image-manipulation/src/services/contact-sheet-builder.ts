@@ -1,7 +1,7 @@
-import { Effect, Layer, Schema, Context } from "effect"
-import { SharpImageService, SharpImageServiceLayer } from "./sharp-image-service"
-import type { SponsorPosition, SheetVariables } from "../types"
-import type { SharpError } from "./sharp-image-service"
+import { Effect, Layer, Schema, Context } from 'effect'
+import { SharpImageService, SharpImageServiceLayer } from './sharp-image-service'
+import type { SponsorPosition, SheetVariables } from '../types'
+import type { SharpError } from './sharp-image-service'
 
 const CANVAS_WIDTH = 3986
 const CANVAS_HEIGHT = 2657
@@ -40,10 +40,10 @@ const SEQUENCE_WIDTH_RATIO = 0.12
 const TEXT_VERTICAL_POSITION = 0.45
 const LABEL_INDEX_OFFSET = 1
 
-const WHITE_BACKGROUND = "#ffffff"
+const WHITE_BACKGROUND = '#ffffff'
 
 export class InvalidSheetParamsError extends Schema.TaggedErrorClass<InvalidSheetParamsError>()(
-  "InvalidSheetParamsError",
+  'InvalidSheetParamsError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -51,7 +51,7 @@ export class InvalidSheetParamsError extends Schema.TaggedErrorClass<InvalidShee
 ) {}
 
 export class ContactSheetBuildError extends Schema.TaggedErrorClass<ContactSheetBuildError>()(
-  "ContactSheetBuildError",
+  'ContactSheetBuildError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -84,15 +84,15 @@ function getSponsorPosition(
   isSmallGrid: boolean,
 ): { row: number; col: number } {
   const positions = {
-    "bottom-left": {
+    'bottom-left': {
       row: isSmallGrid ? BOTTOM_ROW_SMALL : BOTTOM_ROW_LARGE,
       col: LEFT_COL,
     },
-    "top-right": {
+    'top-right': {
       row: TOP_ROW,
       col: isSmallGrid ? RIGHT_COL_SMALL : RIGHT_COL_LARGE,
     },
-    "top-left": {
+    'top-left': {
       row: TOP_ROW,
       col: LEFT_COL,
     },
@@ -100,7 +100,7 @@ function getSponsorPosition(
       row: isSmallGrid ? MIDDLE_ROW : CENTER_ROW_LARGE,
       col: isSmallGrid ? MIDDLE_COL : CENTER_COL_LARGE,
     },
-    "bottom-right": {
+    'bottom-right': {
       row: isSmallGrid ? BOTTOM_ROW_SMALL : BOTTOM_ROW_LARGE,
       col: isSmallGrid ? RIGHT_COL_SMALL : RIGHT_COL_LARGE,
     },
@@ -124,11 +124,11 @@ function getGridConfig(sponsorPosition: SponsorPosition, imageCount: number) {
 
 function escapeXml(unsafe: string) {
   return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
 }
 
 function calculateSheetVariables(reference: string, cols: number, rows: number): SheetVariables {
@@ -269,12 +269,12 @@ export class ContactSheetBuilder extends Context.Service<
     /** Create a contact sheet from a list of image files. */
     readonly createSheet: (params: CreateSheetParams) => Effect.Effect<Buffer, ContactSheetError>
   }
->()("@blikka/packages/image-manipulation/ContactSheetBuilder") {}
+>()('@blikka/packages/image-manipulation/ContactSheetBuilder') {}
 
 const makeContactSheetBuilder = Effect.gen(function* () {
   const sharp = yield* SharpImageService
 
-  const validateAndSortImageFiles = Effect.fn("ContactSheetBuilder.validateAndSortImageFiles")(
+  const validateAndSortImageFiles = Effect.fn('ContactSheetBuilder.validateAndSortImageFiles')(
     function* (images: ReadonlyArray<ContactSheetImageFile>) {
       if (images.length !== SMALL_IMAGE_COUNT && images.length !== LARGE_IMAGE_COUNT) {
         return yield* new InvalidSheetParamsError({
@@ -286,7 +286,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
     },
   )
 
-  const processSponsorImage = Effect.fn("ContactSheetBuilder.processSponsorImage")(function* (
+  const processSponsorImage = Effect.fn('ContactSheetBuilder.processSponsorImage')(function* (
     sponsorFile: Buffer,
     sheetVariables: SheetVariables,
   ) {
@@ -294,12 +294,12 @@ const makeContactSheetBuilder = Effect.gen(function* () {
       Buffer.from(sponsorFile),
       sheetVariables.cellWidth,
       sheetVariables.cellHeight,
-      "inside",
+      'inside',
       WHITE_BACKGROUND,
     )
   })
 
-  const processImage = Effect.fn("ContactSheetBuilder.processImage")(function* (
+  const processImage = Effect.fn('ContactSheetBuilder.processImage')(function* (
     imageFile: Buffer,
     orderIndex: number,
     topics: ReadonlyArray<{ name: string; orderIndex: number }>,
@@ -309,7 +309,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
       Buffer.from(imageFile),
       sheetVariables.cellWidth,
       sheetVariables.availableImageHeight,
-      "inside",
+      'inside',
       WHITE_BACKGROUND,
     )
 
@@ -331,8 +331,8 @@ const makeContactSheetBuilder = Effect.gen(function* () {
     }
   })
 
-  const createSheet: ContactSheetBuilder["Service"]["createSheet"] = Effect.fn(
-    "ContactSheetBuilder.createSheet",
+  const createSheet: ContactSheetBuilder['Service']['createSheet'] = Effect.fn(
+    'ContactSheetBuilder.createSheet',
   )(
     function* (params: CreateSheetParams) {
       const { reference, images, sponsorImage, sponsorPosition, topics } = params
@@ -373,7 +373,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
               if (!sponsorImage) {
                 return yield* Effect.fail(
                   new InvalidSheetParamsError({
-                    message: "Sponsor image not found",
+                    message: 'Sponsor image not found',
                   }),
                 )
               }
@@ -389,7 +389,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
               if (!file) {
                 return yield* Effect.fail(
                   new InvalidSheetParamsError({
-                    message: "Image not found when processing",
+                    message: 'Image not found when processing',
                   }),
                 )
               }

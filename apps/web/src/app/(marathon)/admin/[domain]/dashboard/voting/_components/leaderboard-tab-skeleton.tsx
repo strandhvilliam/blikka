@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -9,7 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from '@/components/ui/table'
 
 export function LeaderboardTabSkeleton() {
   return (
@@ -60,29 +60,16 @@ export function LeaderboardTabSkeleton() {
               <Table className="min-w-[760px]">
                 <TableHeader className="bg-muted/40">
                   <TableRow className="border-b border-border/70 bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="h-10 px-4 text-xs font-semibold">
-                      Rank
-                    </TableHead>
-                    <TableHead className="h-10 px-4 text-xs font-semibold">
-                      Participant
-                    </TableHead>
-                    <TableHead className="h-10 px-4 text-xs font-semibold">
-                      Reference
-                    </TableHead>
-                    <TableHead className="h-10 px-4 text-xs font-semibold">
-                      Uploaded
-                    </TableHead>
-                    <TableHead className="h-10 px-4 text-xs font-semibold">
-                      Votes
-                    </TableHead>
+                    <TableHead className="h-10 px-4 text-xs font-semibold">Rank</TableHead>
+                    <TableHead className="h-10 px-4 text-xs font-semibold">Participant</TableHead>
+                    <TableHead className="h-10 px-4 text-xs font-semibold">Reference</TableHead>
+                    <TableHead className="h-10 px-4 text-xs font-semibold">Uploaded</TableHead>
+                    <TableHead className="h-10 px-4 text-xs font-semibold">Votes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow
-                      key={index}
-                      className="border-b border-border/70 hover:bg-muted/30"
-                    >
+                    <TableRow key={index} className="border-b border-border/70 hover:bg-muted/30">
                       <TableCell className="px-4 py-3">
                         <Skeleton className="h-4 w-8" />
                       </TableCell>

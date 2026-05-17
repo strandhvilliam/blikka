@@ -1,20 +1,20 @@
-"use client"
+'use client'
 
-import { DownloadIcon, Loader2, RefreshCw } from "lucide-react"
-import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useDomain } from "@/lib/domain-provider"
-import { getUploadPhaseClassName, getUploadPhaseLabel } from "@/lib/upload-utils"
-import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload-types"
-import { uploadManualFiles } from "@/lib/manual-upload"
-import { saveParticipantPhotosLocally } from "@/lib/local-save"
-import { cn } from "@/lib/utils"
-import { StaffParticipantCard } from "@/components/staff/staff-participant-card"
-import { useStaffUploadParticipantSummary } from "@/hooks/staff/use-staff-upload-participant-summary"
-import { useStaffUploadStep } from "@/hooks/staff/use-staff-upload-step"
-import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
+import { DownloadIcon, Loader2, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useDomain } from '@/lib/domain-provider'
+import { getUploadPhaseClassName, getUploadPhaseLabel } from '@/lib/upload-utils'
+import { PARTICIPANT_UPLOAD_PHASE } from '@/lib/participant-upload-types'
+import { uploadManualFiles } from '@/lib/manual-upload'
+import { saveParticipantPhotosLocally } from '@/lib/local-save'
+import { cn } from '@/lib/utils'
+import { StaffParticipantCard } from '@/components/staff/staff-participant-card'
+import { useStaffUploadParticipantSummary } from '@/hooks/staff/use-staff-upload-participant-summary'
+import { useStaffUploadStep } from '@/hooks/staff/use-staff-upload-step'
+import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
 
 export function UploadProgressPanel() {
   const domain = useDomain()
@@ -31,10 +31,10 @@ export function UploadProgressPanel() {
   const updateUploadFileState = useStaffUploadStore((s) => s.updateUploadFileState)
   const patchUpload = useStaffUploadStore((s) => s.patchUpload)
 
-  const completed = files.filter((file) => file.phase === "completed").length
+  const completed = files.filter((file) => file.phase === 'completed').length
   const total = files.length
   const isWorking = isUploadingFiles || isPollingStatus
-  const canRetryFailedUploads = files.some((file) => file.phase === "error")
+  const canRetryFailedUploads = files.some((file) => file.phase === 'error')
   const canSaveLocally =
     (Boolean(uploadErrorMessage) || canRetryFailedUploads) &&
     !isSavingLocally &&
@@ -60,7 +60,7 @@ export function UploadProgressPanel() {
 
       if (failedKeys.length === 0) return
 
-      const message = `${failedKeys.length} photo${failedKeys.length === 1 ? "" : "s"} still failing`
+      const message = `${failedKeys.length} photo${failedKeys.length === 1 ? '' : 's'} still failing`
       patchUpload({ uploadErrorMessage: message })
       toast.error(message)
     } finally {
@@ -80,13 +80,13 @@ export function UploadProgressPanel() {
       })
 
       toast.success(
-        result.mode === "directory"
-          ? "Files saved to the selected folder."
-          : "Backup zip downloaded.",
+        result.mode === 'directory'
+          ? 'Files saved to the selected folder.'
+          : 'Backup zip downloaded.',
       )
     } catch (error) {
       console.error(error)
-      toast.error(error instanceof Error ? error.message : "Failed to save files locally.")
+      toast.error(error instanceof Error ? error.message : 'Failed to save files locally.')
     } finally {
       patchUpload({ isSavingLocally: false })
     }
@@ -111,7 +111,7 @@ export function UploadProgressPanel() {
                 {completed}/{total || files.length || 0}
               </span>
               <Badge variant="outline" className="border-border bg-muted text-muted-foreground">
-                {isWorking ? "In progress" : "Paused"}
+                {isWorking ? 'In progress' : 'Paused'}
               </Badge>
             </div>
           </div>
@@ -147,7 +147,7 @@ export function UploadProgressPanel() {
                 type="button"
                 variant="outline"
                 className="rounded-full text-sm"
-                onClick={() => void setStep("upload")}
+                onClick={() => void setStep('upload')}
               >
                 Back to photos
               </Button>
@@ -158,8 +158,8 @@ export function UploadProgressPanel() {
         <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-muted">
           <div
             className={cn(
-              "h-full rounded-full transition-all duration-500",
-              isWorking ? "bg-foreground" : "bg-emerald-500",
+              'h-full rounded-full transition-all duration-500',
+              isWorking ? 'bg-foreground' : 'bg-emerald-500',
             )}
             style={{ width: `${progressPercent}%` }}
           />
@@ -186,9 +186,9 @@ export function UploadProgressPanel() {
                 </div>
                 <Badge
                   variant="outline"
-                  className={cn("shrink-0 text-xs", getUploadPhaseClassName(file.phase))}
+                  className={cn('shrink-0 text-xs', getUploadPhaseClassName(file.phase))}
                 >
-                  {file.phase === "uploading" ? (
+                  {file.phase === 'uploading' ? (
                     <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                   ) : null}
                   {getUploadPhaseLabel(file.phase)}

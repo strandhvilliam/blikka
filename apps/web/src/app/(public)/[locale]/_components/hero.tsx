@@ -1,7 +1,7 @@
-import Image from "next/image"
-import Link from "next/link"
-import { ArrowRight, CalendarDays, Ticket } from "lucide-react"
-import { NoiseOverlay } from "./noise-overlay"
+import Image from 'next/image'
+import Link from 'next/link'
+import { ArrowRight, CalendarDays, Ticket } from 'lucide-react'
+import { NoiseOverlay } from './noise-overlay'
 
 export function Hero() {
   return (

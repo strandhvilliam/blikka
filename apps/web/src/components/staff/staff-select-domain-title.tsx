@@ -1,14 +1,10 @@
-"use client"
+'use client'
 
-import { motion } from "motion/react"
+import { motion } from 'motion/react'
 
 export function StaffSelectDomainTitle() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="z-10 text-center"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="z-10 text-center">
       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
         Staff desk
       </p>

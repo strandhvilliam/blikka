@@ -1,8 +1,8 @@
 import type {
   ParticipantSelectedPhoto,
   ProcessSelectedFilesResult,
-} from "./participant-upload-types"
-import { type ExifData, parseExifData } from "./exif-parsing"
+} from './participant-upload-types'
+import { type ExifData, parseExifData } from './exif-parsing'
 import {
   COMMON_IMAGE_EXTENSIONS,
   createClientPhotoId,
@@ -13,7 +13,7 @@ import {
   reassignOrderIndexes,
   sortByExifDate,
   type NormalizedImageCandidate,
-} from "./file-processing"
+} from './file-processing'
 
 interface ProcessSelectedFilesInput {
   fileList: FileList | File[] | null
@@ -90,7 +90,7 @@ export async function prepareParticipantSelectedPhotos({
     return {
       photos: existingPhotos,
       warnings,
-      errors: ["No valid image files available"],
+      errors: ['No valid image files available'],
     }
   }
 
@@ -105,7 +105,7 @@ export async function prepareParticipantSelectedPhotos({
 
   const remainingSlots = Math.max(0, maxPhotos - existingPhotos.length)
   if (remainingSlots === 0) {
-    warnings.push("Maximum number of images already selected")
+    warnings.push('Maximum number of images already selected')
     return {
       photos: existingPhotos,
       warnings,
@@ -153,7 +153,7 @@ export async function processSelectedFiles({
     return {
       photos: existingPhotos,
       warnings,
-      errors: ["No files selected"],
+      errors: ['No files selected'],
     }
   }
 
@@ -161,7 +161,7 @@ export async function processSelectedFiles({
     return {
       photos: existingPhotos,
       warnings,
-      errors: ["Select required class/topic before adding images"],
+      errors: ['Select required class/topic before adding images'],
     }
   }
 

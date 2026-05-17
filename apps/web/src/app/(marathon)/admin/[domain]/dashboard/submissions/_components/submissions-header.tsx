@@ -1,24 +1,18 @@
-"use client"
+'use client'
 
-import { ChevronDown, Images, RefreshCw, Upload } from "lucide-react"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import { useQueryStates } from "nuqs"
-import { submissionSearchParams } from "../_lib/search-params"
-import { useEffect, useState } from "react"
-import { ManualUploadDialog } from "./manual-upload-dialog"
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { ChevronDown, Images, RefreshCw, Upload } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { useQueryStates } from 'nuqs'
+import { submissionSearchParams } from '../_lib/search-params'
+import { useEffect, useState } from 'react'
+import { ManualUploadDialog } from './manual-upload-dialog'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 function getActiveTopicDisplayText({
   activeTopicName,
@@ -27,21 +21,21 @@ function getActiveTopicDisplayText({
   activeTopicName: string | null
   activeTopicOrderIndex: number | null
 }) {
-  if (!activeTopicName) return "No active topic"
-  const orderPrefix = activeTopicOrderIndex !== null ? `#${activeTopicOrderIndex + 1} ` : ""
+  if (!activeTopicName) return 'No active topic'
+  const orderPrefix = activeTopicOrderIndex !== null ? `#${activeTopicOrderIndex + 1} ` : ''
   return `${orderPrefix}${activeTopicName}`
 }
 
 const TAB = {
-  ALL: "all",
-  PREPARED: "prepared",
-  INITIALIZED: "initialized",
-  UPLOADED: "uploaded",
-  NOT_VERIFIED: "not-verified",
-  VERIFIED: "verified",
-  NOT_VOTED: "not-voted",
-  VOTED: "voted",
-  VALIDATION_ERRORS: "validation-errors",
+  ALL: 'all',
+  PREPARED: 'prepared',
+  INITIALIZED: 'initialized',
+  UPLOADED: 'uploaded',
+  NOT_VERIFIED: 'not-verified',
+  VERIFIED: 'verified',
+  NOT_VOTED: 'not-voted',
+  VOTED: 'voted',
+  VALIDATION_ERRORS: 'validation-errors',
 } as const
 
 type Tab = (typeof TAB)[keyof typeof TAB]
@@ -57,14 +51,14 @@ export function SubmissionsHeader() {
   const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   const activeByCameraTopic =
-    marathon.mode === "by-camera"
-      ? (marathon.topics.find((topic) => topic.visibility === "active") ?? null)
+    marathon.mode === 'by-camera'
+      ? (marathon.topics.find((topic) => topic.visibility === 'active') ?? null)
       : null
   const activeTopicName = activeByCameraTopic?.name ?? null
   const activeTopicOrderIndex = activeByCameraTopic?.orderIndex ?? null
 
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
-    history: "push",
+    history: 'push',
   })
   const [isCreateUploadDialogOpen, setIsCreateUploadDialogOpen] = useState(false)
   const [isViewSheetOpen, setIsViewSheetOpen] = useState(false)
@@ -76,45 +70,44 @@ export function SubmissionsHeader() {
   }
 
   const marathonTabs: { value: Tab; label: string }[] = [
-    { value: TAB.ALL, label: "All Submissions" },
-    { value: TAB.PREPARED, label: "Prepared" },
-    { value: TAB.INITIALIZED, label: "Initialized" },
-    { value: TAB.UPLOADED, label: "Uploaded" },
-    { value: TAB.NOT_VERIFIED, label: "Not Verified" },
-    { value: TAB.VERIFIED, label: "Verified" },
-    { value: TAB.VALIDATION_ERRORS, label: "Validation Errors" },
+    { value: TAB.ALL, label: 'All Submissions' },
+    { value: TAB.PREPARED, label: 'Prepared' },
+    { value: TAB.INITIALIZED, label: 'Initialized' },
+    { value: TAB.UPLOADED, label: 'Uploaded' },
+    { value: TAB.NOT_VERIFIED, label: 'Not Verified' },
+    { value: TAB.VERIFIED, label: 'Verified' },
+    { value: TAB.VALIDATION_ERRORS, label: 'Validation Errors' },
   ]
 
   const byCameraTabs: { value: Tab; label: string }[] = [
-    { value: TAB.ALL, label: "All Submissions" },
-    { value: TAB.INITIALIZED, label: "Initialized" },
-    { value: TAB.UPLOADED, label: "Uploaded" },
-    { value: TAB.NOT_VOTED, label: "Not Voted" },
-    { value: TAB.VOTED, label: "Voted" },
-    { value: TAB.VALIDATION_ERRORS, label: "Validation Errors" },
+    { value: TAB.ALL, label: 'All Submissions' },
+    { value: TAB.INITIALIZED, label: 'Initialized' },
+    { value: TAB.UPLOADED, label: 'Uploaded' },
+    { value: TAB.NOT_VOTED, label: 'Not Voted' },
+    { value: TAB.VOTED, label: 'Voted' },
+    { value: TAB.VALIDATION_ERRORS, label: 'Validation Errors' },
   ]
 
-  const tabs = marathon.mode === "by-camera" ? byCameraTabs : marathonTabs
+  const tabs = marathon.mode === 'by-camera' ? byCameraTabs : marathonTabs
 
   const effectiveTab =
-    marathon.mode === "by-camera" &&
+    marathon.mode === 'by-camera' &&
     (activeTab === TAB.PREPARED || activeTab === TAB.NOT_VERIFIED || activeTab === TAB.VERIFIED)
       ? TAB.ALL
-      : marathon.mode !== "by-camera" && (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
+      : marathon.mode !== 'by-camera' && (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
         ? TAB.ALL
         : activeTab
 
-  const activeTabLabel =
-    tabs.find((t) => t.value === effectiveTab)?.label ?? "All Submissions"
+  const activeTabLabel = tabs.find((t) => t.value === effectiveTab)?.label ?? 'All Submissions'
 
   useEffect(() => {
     if (
-      marathon.mode === "by-camera" &&
+      marathon.mode === 'by-camera' &&
       (activeTab === TAB.PREPARED || activeTab === TAB.NOT_VERIFIED || activeTab === TAB.VERIFIED)
     ) {
       setQueryState({ tab: TAB.ALL })
     } else if (
-      marathon.mode !== "by-camera" &&
+      marathon.mode !== 'by-camera' &&
       (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
     ) {
       setQueryState({ tab: TAB.ALL })
@@ -149,9 +142,9 @@ export function SubmissionsHeader() {
               </h1>
             </div>
           </div>
-          {marathon.mode === "by-camera" ? (
+          {marathon.mode === 'by-camera' ? (
             <p className="text-sm text-muted-foreground">
-              Viewing active topic:{" "}
+              Viewing active topic:{' '}
               <span className="font-medium text-foreground">
                 {getActiveTopicDisplayText({
                   activeTopicName,
@@ -173,7 +166,7 @@ export function SubmissionsHeader() {
             disabled={isRefreshing}
             className="text-xs min-h-9 flex-1 items-center justify-center gap-1.5 md:flex-initial"
           >
-            <RefreshCw className={`h-3.5 w-3.5 shrink-0 ${isRefreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <PrimaryButton
@@ -222,16 +215,19 @@ export function SubmissionsHeader() {
             <SheetHeader className="text-left border-b border-border pb-3">
               <SheetTitle className="text-base">Submission view</SheetTitle>
             </SheetHeader>
-            <nav className="flex flex-col gap-0.5 overflow-y-auto py-2 pb-6" aria-label="Submission views">
+            <nav
+              className="flex flex-col gap-0.5 overflow-y-auto py-2 pb-6"
+              aria-label="Submission views"
+            >
               {tabs.map((tab) => (
                 <button
                   key={tab.value}
                   type="button"
                   className={cn(
-                    "flex w-full rounded-lg px-3 py-3 text-left text-sm transition-colors",
+                    'flex w-full rounded-lg px-3 py-3 text-left text-sm transition-colors',
                     effectiveTab === tab.value
-                      ? "bg-muted font-medium text-foreground"
-                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                      ? 'bg-muted font-medium text-foreground'
+                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                   )}
                   onClick={() => {
                     onTabChange(tab.value)

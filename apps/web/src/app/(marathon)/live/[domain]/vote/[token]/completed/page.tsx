@@ -1,19 +1,19 @@
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { CheckCircle2 } from "lucide-react"
-import { fetchServerQuery } from "@/lib/trpc/server"
-import Image from "next/image"
-import { notFound, redirect } from "next/navigation"
-import { formatDomainPathname } from "@/lib/utils"
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { CheckCircle2 } from 'lucide-react'
+import { fetchServerQuery } from '@/lib/trpc/server'
+import Image from 'next/image'
+import { notFound, redirect } from 'next/navigation'
+import { formatDomainPathname } from '@/lib/utils'
 
 function obfuscateEmail(email: string): string {
-  if (!email || !email.includes("@")) return email
+  if (!email || !email.includes('@')) return email
 
-  const [localPart, domain] = email.split("@")
+  const [localPart, domain] = email.split('@')
   if (!domain) return email
 
-  const obfuscatedLocal = localPart.length > 1 ? `${localPart[0]}***` : "***"
+  const obfuscatedLocal = localPart.length > 1 ? `${localPart[0]}***` : '***'
 
-  const domainParts = domain.split(".")
+  const domainParts = domain.split('.')
   if (domainParts.length >= 2) {
     const tld = domainParts.pop()
     const obfuscatedDomain = `***.${tld}`
@@ -33,24 +33,22 @@ export default async function VoteCompletedPage({
   const votingSession = await fetchServerQuery(
     trpc.voting.getVotingSession.queryOptions({ token }),
   ).catch((error) => {
-    console.error("Failed to fetch voting session:", error)
+    console.error('Failed to fetch voting session:', error)
     notFound()
   })
 
   const sessionDomain = votingSession.marathon?.domain
 
   if (sessionDomain && sessionDomain !== domain) {
-    return redirect(
-      formatDomainPathname(`/live/vote/${token}/completed`, sessionDomain, "live"),
-    )
+    return redirect(formatDomainPathname(`/live/vote/${token}/completed`, sessionDomain, 'live'))
   }
 
   if (!votingSession.voteSubmissionId || !votingSession.votedAt) {
-    return redirect(formatDomainPathname(`/live/vote/${token}`, domain, "live"))
+    return redirect(formatDomainPathname(`/live/vote/${token}`, domain, 'live'))
   }
 
-  const firstName = votingSession?.firstName ?? ""
-  const email = votingSession?.email ?? ""
+  const firstName = votingSession?.firstName ?? ''
+  const email = votingSession?.email ?? ''
   const obfuscatedEmail = obfuscateEmail(email)
 
   prefetch(trpc.voting.getVotingSession.queryOptions({ token }))
@@ -72,7 +70,7 @@ export default async function VoteCompletedPage({
               </div>
 
               <h1 className="text-center font-gothic text-2xl font-medium tracking-tight text-foreground">
-                {firstName ? `Thank you, ${firstName}!` : "Thank you!"}
+                {firstName ? `Thank you, ${firstName}!` : 'Thank you!'}
               </h1>
               <p className="mt-2 text-center text-sm text-muted-foreground">
                 Your vote has been recorded successfully.
@@ -103,4 +101,5 @@ export default async function VoteCompletedPage({
         </main>
       </div>
     </HydrateClient>
-  )}
+  )
+}

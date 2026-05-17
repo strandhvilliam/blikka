@@ -1,11 +1,11 @@
-import { Context, Effect, Layer } from "effect"
-import { neon, neonConfig } from "@neondatabase/serverless"
-import { drizzle } from "drizzle-orm/neon-http"
-import { DbError } from "./utils"
-import * as schema from "./schema"
-import * as relations from "./relations"
+import { Context, Effect, Layer } from 'effect'
+import { neon, neonConfig } from '@neondatabase/serverless'
+import { drizzle } from 'drizzle-orm/neon-http'
+import { DbError } from './utils'
+import * as schema from './schema'
+import * as relations from './relations'
 
-export type DatabaseProvider = "neon" | "planetscale"
+export type DatabaseProvider = 'neon' | 'planetscale'
 
 const databaseSchema = { ...schema, ...relations }
 
@@ -15,9 +15,9 @@ interface DrizzleClientConfig {
 }
 
 const parseDatabaseProvider = Effect.fnUntraced(function* (value: string | undefined) {
-  const provider = value?.trim() || "neon"
+  const provider = value?.trim() || 'neon'
 
-  if (provider === "neon" || provider === "planetscale") {
+  if (provider === 'neon' || provider === 'planetscale') {
     return provider
   }
 
@@ -31,7 +31,7 @@ const makeConfig = Effect.fnUntraced(function* () {
 
   if (!databaseUrl) {
     return yield* new DbError({
-      message: "DATABASE_URL is required.",
+      message: 'DATABASE_URL is required.',
     })
   }
 
@@ -44,7 +44,7 @@ const makeConfig = Effect.fnUntraced(function* () {
 })
 
 const createDrizzleDatabase = ({ databaseUrl, provider }: DrizzleClientConfig) => {
-  if (provider === "planetscale") {
+  if (provider === 'planetscale') {
     neonConfig.fetchEndpoint = (host) => `https://${host}/sql`
   }
 
@@ -63,7 +63,7 @@ const makeDrizzleClient = Effect.gen(function* () {
       try: () => fn(client),
       catch: (cause) =>
         new DbError({
-          message: cause instanceof Error ? cause.message : "Unknown database error",
+          message: cause instanceof Error ? cause.message : 'Unknown database error',
           cause,
         }),
     })
@@ -80,7 +80,7 @@ export class DrizzleClient extends Context.Service<
     readonly client: DrizzleDatabase
     readonly use: <T>(fn: (db: DrizzleDatabase) => Promise<T>) => Effect.Effect<T, DbError>
   }
->()("@blikka/db/DrizzleClient") {
+>()('@blikka/db/DrizzleClient') {
   static readonly layerNoDeps = Layer.effect(this, makeDrizzleClient)
   static readonly layer = this.layerNoDeps
 }

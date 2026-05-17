@@ -1,20 +1,20 @@
-import { Brand, Config, Effect, Layer, Schema, Context } from "effect"
-import { createHmac, createCipheriv, createDecipheriv, randomBytes } from "crypto"
+import { Brand, Config, Effect, Layer, Schema, Context } from 'effect'
+import { createHmac, createCipheriv, createDecipheriv, randomBytes } from 'crypto'
 
-import { parsePhoneNumberWithError } from "libphonenumber-js"
+import { parsePhoneNumberWithError } from 'libphonenumber-js'
 
 export class PhoneNumberEncryptionError extends Schema.TaggedErrorClass<PhoneNumberEncryptionError>()(
-  "@blikka/api/PhoneNumberEncryptionError",
+  '@blikka/api/PhoneNumberEncryptionError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
 ) {}
 
-export type EncryptedPhoneNumber = string & Brand.Brand<"EncryptedPhoneNumber">
+export type EncryptedPhoneNumber = string & Brand.Brand<'EncryptedPhoneNumber'>
 export const EncryptedPhoneNumber = Brand.nominal<EncryptedPhoneNumber>()
 
-export type PhoneHash = string & Brand.Brand<"PhoneHash">
+export type PhoneHash = string & Brand.Brand<'PhoneHash'>
 export const PhoneHash = Brand.nominal<PhoneHash>()
 
 export class PhoneNumberEncryptionService extends Context.Service<
@@ -36,39 +36,39 @@ export class PhoneNumberEncryptionService extends Context.Service<
       phoneNumber: string
     }) => Effect.Effect<PhoneHash, PhoneNumberEncryptionError>
   }
->()("@blikka/api/PhoneNumberEncryptionService") {}
+>()('@blikka/api/PhoneNumberEncryptionService') {}
 
 const makePhoneNumberEncryptionService = Effect.gen(function* () {
-  const rawEncryptionKey = yield* Config.string("ENCRYPTION_KEY")
-  const encryptionKey = Buffer.from(rawEncryptionKey, "hex")
-  const hmacKey = yield* Config.string("HMAC_KEY")
+  const rawEncryptionKey = yield* Config.string('ENCRYPTION_KEY')
+  const encryptionKey = Buffer.from(rawEncryptionKey, 'hex')
+  const hmacKey = yield* Config.string('HMAC_KEY')
 
-  const encrypt = Effect.fn("PhoneNumberEncryptionService.encrypt")(
+  const encrypt = Effect.fn('PhoneNumberEncryptionService.encrypt')(
     function* ({ phoneNumber }: { phoneNumber: string }) {
       const parsed = yield* Effect.try({
         try: () => parsePhoneNumberWithError(phoneNumber),
         catch: (error) =>
           new PhoneNumberEncryptionError({
-            message: "Failed to parse phone number",
+            message: 'Failed to parse phone number',
             cause: error,
           }),
       })
-      const e164 = parsed.format("E.164")
+      const e164 = parsed.format('E.164')
 
-      const hash = PhoneHash(createHmac("sha256", hmacKey).update(e164).digest("base64url"))
+      const hash = PhoneHash(createHmac('sha256', hmacKey).update(e164).digest('base64url'))
 
       const version = Buffer.from([1])
       const nonce = yield* Effect.try({
         try: () => randomBytes(12),
         catch: (error) =>
-          new PhoneNumberEncryptionError({ message: "Failed to generate nonce", cause: error }),
+          new PhoneNumberEncryptionError({ message: 'Failed to generate nonce', cause: error }),
       })
-      const cipher = createCipheriv("aes-256-gcm", encryptionKey, nonce)
-      const cipherText = Buffer.concat([cipher.update(e164, "utf8"), cipher.final()])
+      const cipher = createCipheriv('aes-256-gcm', encryptionKey, nonce)
+      const cipherText = Buffer.concat([cipher.update(e164, 'utf8'), cipher.final()])
       const authTag = cipher.getAuthTag()
       const blob = Buffer.concat([version, nonce, cipherText, authTag])
 
-      const encrypted = EncryptedPhoneNumber(blob.toString("base64url"))
+      const encrypted = EncryptedPhoneNumber(blob.toString('base64url'))
 
       return { encrypted, hash }
     },
@@ -82,33 +82,33 @@ const makePhoneNumberEncryptionService = Effect.gen(function* () {
     ),
   )
 
-  const decrypt = Effect.fn("PhoneNumberEncryptionService.decrypt")(
+  const decrypt = Effect.fn('PhoneNumberEncryptionService.decrypt')(
     function* ({ encrypted }: { encrypted: EncryptedPhoneNumber }) {
       const blob = yield* Effect.try({
-        try: () => Buffer.from(encrypted, "base64url"),
+        try: () => Buffer.from(encrypted, 'base64url'),
         catch: (error) =>
           new PhoneNumberEncryptionError({
-            message: "Failed to decrypt phone number",
+            message: 'Failed to decrypt phone number',
             cause: error,
           }),
       })
 
       const version = blob[0]
       if (version !== 1) {
-        return yield* Effect.fail(new PhoneNumberEncryptionError({ message: "Invalid version" }))
+        return yield* Effect.fail(new PhoneNumberEncryptionError({ message: 'Invalid version' }))
       }
       const nonce = blob.subarray(1, 13)
       const authTag = blob.subarray(blob.length - 16)
       const cipherText = blob.subarray(13, blob.length - 16)
 
-      const decipher = createDecipheriv("aes-256-gcm", encryptionKey, nonce)
+      const decipher = createDecipheriv('aes-256-gcm', encryptionKey, nonce)
       decipher.setAuthTag(authTag)
 
       const result = yield* Effect.try({
-        try: () => Buffer.concat([decipher.update(cipherText), decipher.final()]).toString("utf8"),
+        try: () => Buffer.concat([decipher.update(cipherText), decipher.final()]).toString('utf8'),
         catch: (error) =>
           new PhoneNumberEncryptionError({
-            message: "Failed to decrypt phone number",
+            message: 'Failed to decrypt phone number',
             cause: error,
           }),
       })
@@ -124,18 +124,18 @@ const makePhoneNumberEncryptionService = Effect.gen(function* () {
     ),
   )
 
-  const hashLookup = Effect.fn("PhoneNumberEncryptionService.hashLookup")(
+  const hashLookup = Effect.fn('PhoneNumberEncryptionService.hashLookup')(
     function* ({ phoneNumber }: { phoneNumber: string }) {
       const parsed = yield* Effect.try({
         try: () => parsePhoneNumberWithError(phoneNumber),
         catch: (error) =>
           new PhoneNumberEncryptionError({
-            message: "Failed to parse phone number",
+            message: 'Failed to parse phone number',
             cause: error,
           }),
       })
-      const e164 = parsed.format("E.164")
-      const hash = PhoneHash(createHmac("sha256", hmacKey).update(e164).digest("base64url"))
+      const e164 = parsed.format('E.164')
+      const hash = PhoneHash(createHmac('sha256', hmacKey).update(e164).digest('base64url'))
       return hash
     },
     Effect.catch((error) =>

@@ -1,16 +1,16 @@
-import { type SQSEvent, type SQSRecord } from "aws-lambda"
-import { Effect, Layer } from "effect"
-import { LambdaHandler } from "@effect-aws/lambda"
-import { PubSubLoggerService } from "@blikka/pubsub"
-import { RealtimeEventsService } from "@blikka/realtime"
-import { TelemetryLayer } from "@blikka/telemetry"
-import { FinalizedEventSchema } from "@blikka/aws"
-import { parseBusEvent } from "@blikka/task-runtime"
-import { getEnvironment } from "./utils"
-import { UploadFinalizerService } from "./service"
+import { type SQSEvent, type SQSRecord } from 'aws-lambda'
+import { Effect, Layer } from 'effect'
+import { LambdaHandler } from '@effect-aws/lambda'
+import { PubSubLoggerService } from '@blikka/pubsub'
+import { RealtimeEventsService } from '@blikka/realtime'
+import { TelemetryLayer } from '@blikka/telemetry'
+import { FinalizedEventSchema } from '@blikka/aws'
+import { parseBusEvent } from '@blikka/task-runtime'
+import { getEnvironment } from './utils'
+import { UploadFinalizerService } from './service'
 
-const TASK_NAME = "upload-finalizer"
-const REALTIME_EVENT = "participant-finalized"
+const TASK_NAME = 'upload-finalizer'
+const REALTIME_EVENT = 'participant-finalized'
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
@@ -18,7 +18,7 @@ const effectHandler = (event: SQSEvent) =>
     const realtimeEvents = yield* RealtimeEventsService
     const uploadFinalizerService = yield* UploadFinalizerService
 
-    const processSQSRecord = Effect.fn("upload-finalizer.processSQSRecord")(function* (
+    const processSQSRecord = Effect.fn('upload-finalizer.processSQSRecord')(function* (
       record: SQSRecord,
     ) {
       const { domain, reference, uploadSessionId } = yield* parseBusEvent(
@@ -27,13 +27,13 @@ const effectHandler = (event: SQSEvent) =>
       )
 
       return yield* Effect.gen(function* () {
-        yield* Effect.logInfo("Finalizing participant")
+        yield* Effect.logInfo('Finalizing participant')
 
         const finalizeEffect = uploadFinalizerService
           .finalizeParticipant(domain, reference, uploadSessionId)
           .pipe(
-            Effect.tap(() => Effect.logInfo("Participant finalized")),
-            Effect.tapError((error) => Effect.logError("Error finalizing participant", error)),
+            Effect.tap(() => Effect.logInfo('Participant finalized')),
+            Effect.tapError((error) => Effect.logError('Error finalizing participant', error)),
           )
 
         return yield* realtimeEvents.withEventResult(finalizeEffect, {
@@ -49,8 +49,8 @@ const effectHandler = (event: SQSEvent) =>
       concurrency: 2,
     })
   }).pipe(
-    Effect.withSpan("UploadFinalizer.handler"),
-    Effect.tapError((error) => Effect.logError("Upload finalizer failed", error)),
+    Effect.withSpan('UploadFinalizer.handler'),
+    Effect.tapError((error) => Effect.logError('Upload finalizer failed', error)),
   )
 
 const serviceLayer = Layer.mergeAll(

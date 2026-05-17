@@ -1,17 +1,17 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useRef } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useUploadStore } from "@/lib/flow/upload-store"
-import type { UploadFileState } from "@/lib/flow/types"
-import { UPLOAD_PHASE } from "@/lib/flow/types"
+import { useCallback, useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { useUploadStore } from '@/lib/flow/upload-store'
+import type { UploadFileState } from '@/lib/flow/types'
+import { UPLOAD_PHASE } from '@/lib/flow/types'
 import {
   UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
   UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
   UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS,
-} from "@/lib/flow/constants"
-import { useUploadStatusRealtime } from "@/lib/use-upload-status-realtime"
+} from '@/lib/flow/constants'
+import { useUploadStatusRealtime } from '@/lib/use-upload-status-realtime'
 
 interface UseUploadProcessingReconciliationOptions {
   domain: string
@@ -84,14 +84,14 @@ export function useUploadProcessingReconciliation({
     reference,
     enabled: processingStatusEnabled,
     onSubmissionProcessed: ({ orderIndex }) => {
-      console.log("onSubmissionProcessed", orderIndex)
+      console.log('onSubmissionProcessed', orderIndex)
       const handled = markFileProcessingCompleteByOrderIndex(orderIndex)
       if (!handled) {
         void refetchUploadStatus()
       }
     },
     onParticipantFinalized: () => {
-      console.log("onParticipantFinalized")
+      console.log('onParticipantFinalized')
       for (const file of filesRef.current.values()) {
         if (file.phase === UPLOAD_PHASE.UPLOADED) {
           setFileProcessingComplete(file.key)

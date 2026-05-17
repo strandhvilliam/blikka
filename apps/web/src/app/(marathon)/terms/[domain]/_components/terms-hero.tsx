@@ -1,6 +1,6 @@
-import { ArrowLeft } from "lucide-react"
-import { BLIKKA_PLATFORM_TERMS_URL } from "@/config"
-import { formatDomainLink } from "@/lib/utils"
+import { ArrowLeft } from 'lucide-react'
+import { BLIKKA_PLATFORM_TERMS_URL } from '@/config'
+import { formatDomainLink } from '@/lib/utils'
 
 type TermsHeroProps = {
   domain: string
@@ -9,7 +9,7 @@ type TermsHeroProps = {
 }
 
 export function TermsHero({ domain, marathonName, logoUrl }: TermsHeroProps) {
-  const eventHomeHref = formatDomainLink("/", domain, "live")
+  const eventHomeHref = formatDomainLink('/', domain, 'live')
 
   return (
     <header className="border-b border-border pb-8">
@@ -35,7 +35,11 @@ export function TermsHero({ domain, marathonName, logoUrl }: TermsHeroProps) {
         <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted text-lg font-semibold text-muted-foreground">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- external S3 marathon logos; no stable remotePatterns
-            <img src={logoUrl} alt={`${marathonName} logo`} className="h-full w-full object-cover" />
+            <img
+              src={logoUrl}
+              alt={`${marathonName} logo`}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <span className="font-rocgrotesk font-bold text-foreground/70" aria-hidden="true">
               {marathonName.slice(0, 1)}

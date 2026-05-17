@@ -1,34 +1,34 @@
-"use client"
+'use client'
 
-import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Button } from "@/components/ui/button"
+import { useTRPC } from '@/lib/trpc/client'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select"
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
-import { toast } from "sonner"
-import { useDomain } from "@/lib/domain-provider"
-import { Input } from "@/components/ui/input"
-import { Gavel, Send, Users, Tag } from "lucide-react"
-import { addDays } from "date-fns"
-import { useForm } from "@tanstack/react-form"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
-import { cn } from "@/lib/utils"
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Separator } from '@/components/ui/separator'
+import { toast } from 'sonner'
+import { useDomain } from '@/lib/domain-provider'
+import { Input } from '@/components/ui/input'
+import { Gavel, Send, Users, Tag } from 'lucide-react'
+import { addDays } from 'date-fns'
+import { useForm } from '@tanstack/react-form'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
 interface JuryInvitationCreateDialogProps {
   open: boolean
@@ -37,7 +37,7 @@ interface JuryInvitationCreateDialogProps {
 }
 
 type FormValues = {
-  inviteType: "topic" | "class"
+  inviteType: 'topic' | 'class'
   displayName: string
   email: string
   notes: string
@@ -49,7 +49,9 @@ type FormValues = {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/80">{children}</p>
+    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/80">
+      {children}
+    </p>
   )
 }
 
@@ -72,11 +74,11 @@ export function JuryInvitationCreateDialog({
     trpc.jury.createJuryInvitation.mutationOptions({
       onSuccess: async (invitationData) => {
         if (!invitationData) {
-          toast.error("Failed to create jury invitation")
+          toast.error('Failed to create jury invitation')
           return
         }
 
-        toast.success("Jury invitation created successfully")
+        toast.success('Jury invitation created successfully')
         form.reset()
         onOpenChange(false)
         onInvitationCreated?.(invitationData.id)
@@ -86,20 +88,20 @@ export function JuryInvitationCreateDialog({
       },
       onError: (error) => {
         console.error(error)
-        toast.error(error.message || "Failed to create jury invitation")
+        toast.error(error.message || 'Failed to create jury invitation')
       },
     }),
   )
 
   const form = useForm({
     defaultValues: {
-      inviteType: "topic",
-      displayName: "",
-      email: "",
-      notes: "",
-      topicId: "",
-      competitionClassId: "",
-      deviceGroupId: "",
+      inviteType: 'topic',
+      displayName: '',
+      email: '',
+      notes: '',
+      topicId: '',
+      competitionClassId: '',
+      deviceGroupId: '',
       expiryDays: 14,
     } as FormValues,
     onSubmit: async ({ value }) => {
@@ -107,22 +109,22 @@ export function JuryInvitationCreateDialog({
       let parsedDeviceGroupId: number | undefined
       let parsedTopicId: number | undefined
 
-      if (value.inviteType === "topic") {
-        if (!value.topicId || value.topicId === "all") {
-          toast.error("Please select a topic for the invitation")
+      if (value.inviteType === 'topic') {
+        if (!value.topicId || value.topicId === 'all') {
+          toast.error('Please select a topic for the invitation')
           return
         }
         parsedTopicId = parseInt(value.topicId)
         parsedCompetitionClassId = undefined
         parsedDeviceGroupId = undefined
-      } else if (value.inviteType === "class") {
-        if (!value.competitionClassId || value.competitionClassId === "all") {
-          toast.error("Please select a competition class for the invitation")
+      } else if (value.inviteType === 'class') {
+        if (!value.competitionClassId || value.competitionClassId === 'all') {
+          toast.error('Please select a competition class for the invitation')
           return
         }
         parsedCompetitionClassId = parseInt(value.competitionClassId)
         parsedDeviceGroupId =
-          !value.deviceGroupId || value.deviceGroupId === "all"
+          !value.deviceGroupId || value.deviceGroupId === 'all'
             ? undefined
             : parseInt(value.deviceGroupId)
         parsedTopicId = undefined
@@ -136,13 +138,13 @@ export function JuryInvitationCreateDialog({
         data: {
           displayName: value.displayName,
           email: value.email,
-          inviteType: value.inviteType as "topic" | "class",
+          inviteType: value.inviteType as 'topic' | 'class',
           expiresAt: expiresAt.toISOString(),
           competitionClassId: parsedCompetitionClassId,
           deviceGroupId: parsedDeviceGroupId,
           topicId: parsedTopicId,
           notes: value.notes || undefined,
-          status: "pending",
+          status: 'pending',
         },
       })
     },
@@ -161,8 +163,8 @@ export function JuryInvitationCreateDialog({
       <DialogContent
         showCloseButton={!isCreatingJuryInvitation}
         className={cn(
-          "flex max-h-[min(88dvh,780px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[480px]",
-          "border-border shadow-lg",
+          'flex max-h-[min(88dvh,780px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[480px]',
+          'border-border shadow-lg',
         )}
       >
         <div className="shrink-0 border-b border-border bg-muted/25 px-6 pb-4 pt-5">
@@ -197,7 +199,7 @@ export function JuryInvitationCreateDialog({
                 name="inviteType"
                 validators={{
                   onChange: ({ value }) => {
-                    return !value ? "Please select an invite type" : undefined
+                    return !value ? 'Please select an invite type' : undefined
                   },
                 }}
               >
@@ -209,7 +211,7 @@ export function JuryInvitationCreateDialog({
                       {(inviteType) => (
                         <Tabs
                           value={inviteType}
-                          onValueChange={(value) => field.handleChange(value as "topic" | "class")}
+                          onValueChange={(value) => field.handleChange(value as 'topic' | 'class')}
                           className="w-full"
                         >
                           <TabsList className="grid h-10 w-full grid-cols-2 rounded-lg bg-muted/60 p-1">
@@ -233,9 +235,9 @@ export function JuryInvitationCreateDialog({
                     </form.Subscribe>
                     {field.state.meta.errors.length > 0 && (
                       <p className="text-sm text-destructive">
-                        {typeof field.state.meta.errors[0] === "string"
+                        {typeof field.state.meta.errors[0] === 'string'
                           ? field.state.meta.errors[0]
-                          : "Invalid input"}
+                          : 'Invalid input'}
                       </p>
                     )}
                   </div>
@@ -251,7 +253,7 @@ export function JuryInvitationCreateDialog({
                   name="displayName"
                   validators={{
                     onChange: ({ value }) => {
-                      return !value ? "Display name is required" : undefined
+                      return !value ? 'Display name is required' : undefined
                     },
                   }}
                 >
@@ -270,9 +272,9 @@ export function JuryInvitationCreateDialog({
                       />
                       {field.state.meta.errors.length > 0 && (
                         <p className="text-sm text-destructive">
-                          {typeof field.state.meta.errors[0] === "string"
+                          {typeof field.state.meta.errors[0] === 'string'
                             ? field.state.meta.errors[0]
-                            : "Invalid input"}
+                            : 'Invalid input'}
                         </p>
                       )}
                     </div>
@@ -283,9 +285,9 @@ export function JuryInvitationCreateDialog({
                   name="email"
                   validators={{
                     onChange: ({ value }) => {
-                      if (!value) return "Email is required"
+                      if (!value) return 'Email is required'
                       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                      return !emailRegex.test(value) ? "Invalid email address" : undefined
+                      return !emailRegex.test(value) ? 'Invalid email address' : undefined
                     },
                   }}
                 >
@@ -305,9 +307,9 @@ export function JuryInvitationCreateDialog({
                       />
                       {field.state.meta.errors.length > 0 && (
                         <p className="text-sm text-destructive">
-                          {typeof field.state.meta.errors[0] === "string"
+                          {typeof field.state.meta.errors[0] === 'string'
                             ? field.state.meta.errors[0]
-                            : "Invalid input"}
+                            : 'Invalid input'}
                         </p>
                       )}
                     </div>
@@ -322,12 +324,12 @@ export function JuryInvitationCreateDialog({
                     <div className="space-y-4">
                       <SectionLabel>Assignment</SectionLabel>
 
-                      {inviteType === "topic" && (
+                      {inviteType === 'topic' && (
                         <form.Field
                           name="topicId"
                           validators={{
                             onChange: ({ value }) => {
-                              return !value ? "Please select a topic" : undefined
+                              return !value ? 'Please select a topic' : undefined
                             },
                           }}
                         >
@@ -355,9 +357,9 @@ export function JuryInvitationCreateDialog({
                               </Select>
                               {field.state.meta.errors.length > 0 && (
                                 <p className="text-sm text-destructive">
-                                  {typeof field.state.meta.errors[0] === "string"
+                                  {typeof field.state.meta.errors[0] === 'string'
                                     ? field.state.meta.errors[0]
-                                    : "Invalid input"}
+                                    : 'Invalid input'}
                                 </p>
                               )}
                             </div>
@@ -365,13 +367,13 @@ export function JuryInvitationCreateDialog({
                         </form.Field>
                       )}
 
-                      {inviteType === "class" && (
+                      {inviteType === 'class' && (
                         <>
                           <form.Field
                             name="competitionClassId"
                             validators={{
                               onChange: ({ value }) => {
-                                return !value ? "Please select a competition class" : undefined
+                                return !value ? 'Please select a competition class' : undefined
                               },
                             }}
                           >
@@ -383,7 +385,10 @@ export function JuryInvitationCreateDialog({
                                 <p className="text-xs text-muted-foreground">
                                   Participants in this class, as a contact sheet view.
                                 </p>
-                                <Select value={field.state.value} onValueChange={field.handleChange}>
+                                <Select
+                                  value={field.state.value}
+                                  onValueChange={field.handleChange}
+                                >
                                   <SelectTrigger className="h-10 w-full">
                                     <SelectValue placeholder="Select a class" />
                                   </SelectTrigger>
@@ -397,9 +402,9 @@ export function JuryInvitationCreateDialog({
                                 </Select>
                                 {field.state.meta.errors.length > 0 && (
                                   <p className="text-sm text-destructive">
-                                    {typeof field.state.meta.errors[0] === "string"
+                                    {typeof field.state.meta.errors[0] === 'string'
                                       ? field.state.meta.errors[0]
-                                      : "Invalid input"}
+                                      : 'Invalid input'}
                                   </p>
                                 )}
                               </div>
@@ -413,7 +418,10 @@ export function JuryInvitationCreateDialog({
                                 <p className="text-xs text-muted-foreground">
                                   Optional filter within the class.
                                 </p>
-                                <Select value={field.state.value} onValueChange={field.handleChange}>
+                                <Select
+                                  value={field.state.value}
+                                  onValueChange={field.handleChange}
+                                >
                                   <SelectTrigger className="h-10 w-full">
                                     <SelectValue placeholder="All device groups" />
                                   </SelectTrigger>
@@ -446,8 +454,8 @@ export function JuryInvitationCreateDialog({
                   validators={{
                     onChange: ({ value }) => {
                       const num = Number(value)
-                      if (num < 1) return "Expiry must be at least 1 day"
-                      if (num > 90) return "Expiry cannot exceed 90 days"
+                      if (num < 1) return 'Expiry must be at least 1 day'
+                      if (num > 90) return 'Expiry cannot exceed 90 days'
                       return undefined
                     },
                   }}
@@ -457,7 +465,9 @@ export function JuryInvitationCreateDialog({
                       <Label htmlFor="jury-dialog-expiry" className="text-sm font-medium">
                         Expires in (days)
                       </Label>
-                      <p className="text-xs text-muted-foreground">1–90. Link stops working after this.</p>
+                      <p className="text-xs text-muted-foreground">
+                        1–90. Link stops working after this.
+                      </p>
                       <Input
                         id="jury-dialog-expiry"
                         type="number"
@@ -470,9 +480,9 @@ export function JuryInvitationCreateDialog({
                       />
                       {field.state.meta.errors.length > 0 && (
                         <p className="text-sm text-destructive">
-                          {typeof field.state.meta.errors[0] === "string"
+                          {typeof field.state.meta.errors[0] === 'string'
                             ? field.state.meta.errors[0]
-                            : "Invalid input"}
+                            : 'Invalid input'}
                         </p>
                       )}
                     </div>
@@ -511,7 +521,9 @@ export function JuryInvitationCreateDialog({
               >
                 Cancel
               </Button>
-              <form.Subscribe selector={(formState) => [formState.canSubmit, formState.isSubmitting]}>
+              <form.Subscribe
+                selector={(formState) => [formState.canSubmit, formState.isSubmitting]}
+              >
                 {([canSubmit, isSubmitting]) => (
                   <PrimaryButton
                     type="submit"
@@ -519,7 +531,7 @@ export function JuryInvitationCreateDialog({
                     className="gap-2 min-w-[140px]"
                   >
                     <Send className="h-4 w-4" />
-                    {isSubmitting || isCreatingJuryInvitation ? "Creating…" : "Create invitation"}
+                    {isSubmitting || isCreatingJuryInvitation ? 'Creating…' : 'Create invitation'}
                   </PrimaryButton>
                 )}
               </form.Subscribe>

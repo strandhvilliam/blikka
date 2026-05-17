@@ -1,17 +1,20 @@
-import { Suspense } from "react"
-import { HydrateClient } from "@/lib/trpc/server"
+import { Suspense } from 'react'
+import { HydrateClient } from '@/lib/trpc/server'
 
-import { getQueryClient, prefetch, trpc } from "@/lib/trpc/server"
-import { Splash } from "@/components/splash"
-import { flowStateServerLoader, flowStateServerParamSerializer } from "@/lib/flow-state-params-server"
-import { notFound, redirect } from "next/navigation"
-import { VerificationClient } from "@/components/live/verification-client"
-import { formatDomainPathname } from "@/lib/utils";
+import { getQueryClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Splash } from '@/components/splash'
+import {
+  flowStateServerLoader,
+  flowStateServerParamSerializer,
+} from '@/lib/flow-state-params-server'
+import { notFound, redirect } from 'next/navigation'
+import { VerificationClient } from '@/components/live/verification-client'
+import { formatDomainPathname } from '@/lib/utils'
 
 export default async function VerificationPage({
   params,
   searchParams,
-}: PageProps<"/live/[domain]/verification">) {
+}: PageProps<'/live/[domain]/verification'>) {
   const { domain } = await params
   const queryParams = await flowStateServerLoader(searchParams)
 
@@ -23,7 +26,7 @@ export default async function VerificationPage({
     trpc.participants.getPublicParticipantByReference.queryOptions({
       domain,
       reference: queryParams.participantRef,
-    })
+    }),
   )
 
   const queryClient = getQueryClient()
@@ -31,7 +34,7 @@ export default async function VerificationPage({
     trpc.participants.getPublicParticipantByReference.queryOptions({
       domain,
       reference: queryParams.participantRef!,
-    })
+    }),
   )
 
   if (!participant) {
@@ -39,7 +42,7 @@ export default async function VerificationPage({
   }
 
   // If already verified, redirect to confirmation
-  if (participant.status === "verified") {
+  if (participant.status === 'verified') {
     const redirectParams = flowStateServerParamSerializer(queryParams)
     redirect(formatDomainPathname(`/live/confirmation${redirectParams}`, domain))
   }
@@ -53,4 +56,5 @@ export default async function VerificationPage({
         />
       </Suspense>
     </HydrateClient>
-  )}
+  )
+}

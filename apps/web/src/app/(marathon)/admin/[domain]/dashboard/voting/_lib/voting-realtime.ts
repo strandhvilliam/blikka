@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
-import type { RouterOutputs } from "@blikka/api/trpc";
-import { z } from "zod";
+import type { RouterOutputs } from '@blikka/api/trpc'
+import { z } from 'zod'
 
 const votingVoteCastEventDataSchema = z.object({
   eventId: z.string(),
@@ -16,34 +16,28 @@ const votingVoteCastEventDataSchema = z.object({
   submissionCreatedAt: z.string(),
   submissionKey: z.string().nullable(),
   submissionThumbnailKey: z.string().nullable(),
-});
+})
 
-export type VotingVoteCastEventData = z.infer<
-  typeof votingVoteCastEventDataSchema
->;
+export type VotingVoteCastEventData = z.infer<typeof votingVoteCastEventDataSchema>
 
-export type VotingAdminSummaryData =
-  RouterOutputs["voting"]["getVotingAdminSummary"];
-export type VotingLeaderboardPageData =
-  RouterOutputs["voting"]["getVotingLeaderboardPage"];
-export type VotingVotersPageData = RouterOutputs["voting"]["getVotingVotersPage"];
+export type VotingAdminSummaryData = RouterOutputs['voting']['getVotingAdminSummary']
+export type VotingLeaderboardPageData = RouterOutputs['voting']['getVotingLeaderboardPage']
+export type VotingVotersPageData = RouterOutputs['voting']['getVotingVotersPage']
 
-export function parseVotingVoteCastEventData(
-  raw: unknown,
-): VotingVoteCastEventData | null {
+export function parseVotingVoteCastEventData(raw: unknown): VotingVoteCastEventData | null {
   const parsedData =
-    typeof raw === "string"
+    typeof raw === 'string'
       ? (() => {
           try {
-            return JSON.parse(raw) as unknown;
+            return JSON.parse(raw) as unknown
           } catch {
-            return null;
+            return null
           }
         })()
-      : raw;
+      : raw
 
-  const parsed = votingVoteCastEventDataSchema.safeParse(parsedData);
-  return parsed.success ? parsed.data : null;
+  const parsed = votingVoteCastEventDataSchema.safeParse(parsedData)
+  return parsed.success ? parsed.data : null
 }
 
 export function dedupeVotingVoteCastEvents(
@@ -51,45 +45,45 @@ export function dedupeVotingVoteCastEvents(
   incomingEvents: readonly VotingVoteCastEventData[],
   maxTrackedEventIds: number,
 ): {
-  trackedEventIds: ReadonlySet<string>;
-  events: VotingVoteCastEventData[];
+  trackedEventIds: ReadonlySet<string>
+  events: VotingVoteCastEventData[]
 } {
-  let nextTrackedEventIds: ReadonlySet<string> | Set<string> = trackedEventIds;
-  const events: VotingVoteCastEventData[] = [];
+  let nextTrackedEventIds: ReadonlySet<string> | Set<string> = trackedEventIds
+  const events: VotingVoteCastEventData[] = []
 
   const ensureMutableTrackedEventIds = (): Set<string> => {
     if (nextTrackedEventIds === trackedEventIds) {
-      nextTrackedEventIds = new Set(trackedEventIds);
+      nextTrackedEventIds = new Set(trackedEventIds)
     }
 
-    return nextTrackedEventIds as Set<string>;
-  };
+    return nextTrackedEventIds as Set<string>
+  }
 
   for (const event of incomingEvents) {
     if (nextTrackedEventIds.has(event.eventId)) {
-      continue;
+      continue
     }
 
-    ensureMutableTrackedEventIds().add(event.eventId);
-    events.push(event);
+    ensureMutableTrackedEventIds().add(event.eventId)
+    events.push(event)
   }
 
   if (nextTrackedEventIds !== trackedEventIds) {
-    const mutableTrackedEventIds = nextTrackedEventIds as Set<string>;
+    const mutableTrackedEventIds = nextTrackedEventIds as Set<string>
 
     while (mutableTrackedEventIds.size > maxTrackedEventIds) {
-      const oldestEventId = mutableTrackedEventIds.values().next().value;
+      const oldestEventId = mutableTrackedEventIds.values().next().value
       if (oldestEventId === undefined) {
-        break;
+        break
       }
-      mutableTrackedEventIds.delete(oldestEventId);
+      mutableTrackedEventIds.delete(oldestEventId)
     }
   }
 
   return {
     trackedEventIds: nextTrackedEventIds,
     events,
-  };
+  }
 }
 
 export function applyVotingSummaryRealtimeBatch(
@@ -97,10 +91,10 @@ export function applyVotingSummaryRealtimeBatch(
   voteEvents: readonly VotingVoteCastEventData[],
 ): VotingAdminSummaryData | undefined {
   if (!summary || voteEvents.length === 0) {
-    return summary;
+    return summary
   }
 
-  const batchCount = voteEvents.length;
+  const batchCount = voteEvents.length
 
   return {
     ...summary,
@@ -113,7 +107,7 @@ export function applyVotingSummaryRealtimeBatch(
       ...summary.voteStats,
       totalVotes: summary.voteStats.totalVotes + batchCount,
     },
-  };
+  }
 }
 
 export function applyVotingVotersPageRealtimeBatch(
@@ -121,18 +115,16 @@ export function applyVotingVotersPageRealtimeBatch(
   voteEvents: readonly VotingVoteCastEventData[],
 ): VotingVotersPageData | undefined {
   if (!page || voteEvents.length === 0) {
-    return page;
+    return page
   }
 
-  const eventsBySessionId = new Map(
-    voteEvents.map((event) => [event.sessionId, event] as const),
-  );
+  const eventsBySessionId = new Map(voteEvents.map((event) => [event.sessionId, event] as const))
 
-  let didChange = false;
+  let didChange = false
   const items = page.items.map((item) => {
-    const voteEvent = eventsBySessionId.get(item.sessionId);
+    const voteEvent = eventsBySessionId.get(item.sessionId)
     if (!voteEvent) {
-      return item;
+      return item
     }
 
     const nextVoteSubmission = {
@@ -141,37 +133,34 @@ export function applyVotingVotersPageRealtimeBatch(
       participantFirstName: voteEvent.participantFirstName,
       participantLastName: voteEvent.participantLastName,
       thumbnailKey: voteEvent.submissionThumbnailKey,
-      key: voteEvent.submissionKey ?? item.voteSubmission?.key ?? "",
+      key: voteEvent.submissionKey ?? item.voteSubmission?.key ?? '',
       createdAt: voteEvent.submissionCreatedAt,
-    };
+    }
 
     const isUnchanged =
       item.votedAt === voteEvent.votedAt &&
       item.voteSubmission?.submissionId === nextVoteSubmission.submissionId &&
-      item.voteSubmission?.participantReference ===
-        nextVoteSubmission.participantReference &&
-      item.voteSubmission?.participantFirstName ===
-        nextVoteSubmission.participantFirstName &&
-      item.voteSubmission?.participantLastName ===
-        nextVoteSubmission.participantLastName &&
+      item.voteSubmission?.participantReference === nextVoteSubmission.participantReference &&
+      item.voteSubmission?.participantFirstName === nextVoteSubmission.participantFirstName &&
+      item.voteSubmission?.participantLastName === nextVoteSubmission.participantLastName &&
       item.voteSubmission?.thumbnailKey === nextVoteSubmission.thumbnailKey &&
       item.voteSubmission?.key === nextVoteSubmission.key &&
-      item.voteSubmission?.createdAt === nextVoteSubmission.createdAt;
+      item.voteSubmission?.createdAt === nextVoteSubmission.createdAt
 
     if (isUnchanged) {
-      return item;
+      return item
     }
 
-    didChange = true;
+    didChange = true
 
     return {
       ...item,
       votedAt: voteEvent.votedAt,
       voteSubmission: nextVoteSubmission,
-    };
-  });
+    }
+  })
 
-  return didChange ? { ...page, items } : page;
+  return didChange ? { ...page, items } : page
 }
 
 export function applyVotingLeaderboardRealtimeBatch(
@@ -179,30 +168,30 @@ export function applyVotingLeaderboardRealtimeBatch(
   voteEvents: readonly VotingVoteCastEventData[],
 ): VotingLeaderboardPageData | undefined {
   if (!page || voteEvents.length === 0) {
-    return page;
+    return page
   }
 
-  const voteCountsBySubmissionId = new Map<number, number>();
+  const voteCountsBySubmissionId = new Map<number, number>()
 
   for (const voteEvent of voteEvents) {
-    const currentCount = voteCountsBySubmissionId.get(voteEvent.submissionId) ?? 0;
-    voteCountsBySubmissionId.set(voteEvent.submissionId, currentCount + 1);
+    const currentCount = voteCountsBySubmissionId.get(voteEvent.submissionId) ?? 0
+    voteCountsBySubmissionId.set(voteEvent.submissionId, currentCount + 1)
   }
 
-  let didChange = false;
+  let didChange = false
   const items = page.items.map((item) => {
-    const increment = voteCountsBySubmissionId.get(item.submissionId);
+    const increment = voteCountsBySubmissionId.get(item.submissionId)
     if (!increment) {
-      return item;
+      return item
     }
 
-    didChange = true;
+    didChange = true
 
     return {
       ...item,
       voteCount: item.voteCount + increment,
-    };
-  });
+    }
+  })
 
-  return didChange ? { ...page, items } : page;
+  return didChange ? { ...page, items } : page
 }

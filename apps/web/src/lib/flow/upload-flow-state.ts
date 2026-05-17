@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from 'zod'
 
 export interface UploadFlowStateSnapshot {
   competitionClassId: number | null
@@ -30,25 +30,25 @@ interface ParticipantPatchOptions {
 }
 
 export type UploadFlowIssueField =
-  | "participantRef"
-  | "participantFirstName"
-  | "participantLastName"
-  | "participantEmail"
-  | "participantPhone"
-  | "competitionClassId"
-  | "deviceGroupId"
+  | 'participantRef'
+  | 'participantFirstName'
+  | 'participantLastName'
+  | 'participantEmail'
+  | 'participantPhone'
+  | 'competitionClassId'
+  | 'deviceGroupId'
 
-export type UploadFlowIssueCode = "missing" | "invalid"
+export type UploadFlowIssueCode = 'missing' | 'invalid'
 
 export type UploadFlowIssueMessageKey =
-  | "missingParticipantNumber"
-  | "missingFirstName"
-  | "missingLastName"
-  | "missingEmail"
-  | "missingPhoneNumber"
-  | "missingClassSelection"
-  | "missingDeviceSelection"
-  | "invalidParticipantEmail"
+  | 'missingParticipantNumber'
+  | 'missingFirstName'
+  | 'missingLastName'
+  | 'missingEmail'
+  | 'missingPhoneNumber'
+  | 'missingClassSelection'
+  | 'missingDeviceSelection'
+  | 'invalidParticipantEmail'
 
 export interface UploadFlowIssue {
   field: UploadFlowIssueField
@@ -75,13 +75,13 @@ interface NormalizedUploadFlowState {
 }
 
 const uploadFlowIssueFields = new Set<UploadFlowIssueField>([
-  "participantRef",
-  "participantFirstName",
-  "participantLastName",
-  "participantEmail",
-  "participantPhone",
-  "competitionClassId",
-  "deviceGroupId",
+  'participantRef',
+  'participantFirstName',
+  'participantLastName',
+  'participantEmail',
+  'participantPhone',
+  'competitionClassId',
+  'deviceGroupId',
 ])
 
 const requiredTextSchema = z.string().min(1)
@@ -117,13 +117,13 @@ const byCameraDeviceSelectionStateSchema = participantIdentitySchema.extend({
 })
 
 const missingMessageKeyByField: Record<UploadFlowIssueField, UploadFlowIssueMessageKey> = {
-  participantRef: "missingParticipantNumber",
-  participantFirstName: "missingFirstName",
-  participantLastName: "missingLastName",
-  participantEmail: "missingEmail",
-  participantPhone: "missingPhoneNumber",
-  competitionClassId: "missingClassSelection",
-  deviceGroupId: "missingDeviceSelection",
+  participantRef: 'missingParticipantNumber',
+  participantFirstName: 'missingFirstName',
+  participantLastName: 'missingLastName',
+  participantEmail: 'missingEmail',
+  participantPhone: 'missingPhoneNumber',
+  competitionClassId: 'missingClassSelection',
+  deviceGroupId: 'missingDeviceSelection',
 }
 
 const marathonStepByField: Record<UploadFlowIssueField, number> = {
@@ -147,7 +147,7 @@ const byCameraStepByField: Record<UploadFlowIssueField, number> = {
 }
 
 function normalizeText(value: string | null | undefined): string | null {
-  if (typeof value !== "string") return null
+  if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
 }
@@ -172,22 +172,22 @@ export function normalizeUploadFlowState(
 }
 
 function toIssueCode(field: UploadFlowIssueField, value: unknown): UploadFlowIssueCode {
-  if (value == null) return "missing"
-  if (typeof value === "string" && value.trim().length === 0) return "missing"
+  if (value == null) return 'missing'
+  if (typeof value === 'string' && value.trim().length === 0) return 'missing'
 
-  if (field === "participantEmail") {
-    return "invalid"
+  if (field === 'participantEmail') {
+    return 'invalid'
   }
 
-  return "invalid"
+  return 'invalid'
 }
 
 function toIssueMessageKey(
   field: UploadFlowIssueField,
   code: UploadFlowIssueCode,
 ): UploadFlowIssueMessageKey {
-  if (field === "participantEmail" && code === "invalid") {
-    return "invalidParticipantEmail"
+  if (field === 'participantEmail' && code === 'invalid') {
+    return 'invalidParticipantEmail'
   }
   return missingMessageKeyByField[field]
 }
@@ -203,7 +203,7 @@ function toUploadFlowIssues(
   for (const issue of error.issues) {
     const pathField = issue.path[0]
     if (
-      typeof pathField !== "string" ||
+      typeof pathField !== 'string' ||
       !uploadFlowIssueFields.has(pathField as UploadFlowIssueField)
     ) {
       continue
@@ -301,9 +301,9 @@ export function toParticipantFlowStatePatch(
     participantLastName: values.lastname,
     participantEmail: values.email,
     participantPhone: phoneValue,
-    ...("participantId" in options ? { participantId: options.participantId ?? null } : {}),
-    ...("participantRef" in options ? { participantRef: options.participantRef ?? null } : {}),
-    ...("replaceExistingActiveTopicUpload" in options
+    ...('participantId' in options ? { participantId: options.participantId ?? null } : {}),
+    ...('participantRef' in options ? { participantRef: options.participantRef ?? null } : {}),
+    ...('replaceExistingActiveTopicUpload' in options
       ? {
           replaceExistingActiveTopicUpload: options.replaceExistingActiveTopicUpload ?? null,
         }

@@ -1,7 +1,7 @@
-"use server"
+'use server'
 
-import { LOCALE_COOKIE_NAME } from "@/config"
-import { cookies } from "next/headers"
+import { LOCALE_COOKIE_NAME } from '@/config'
+import { cookies } from 'next/headers'
 
 type FnProps = {
   locale: string

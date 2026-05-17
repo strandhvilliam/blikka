@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Dialog,
@@ -7,98 +7,94 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Loader2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { useEffect, useRef, useState } from 'react'
 
 interface UploadConfirmationDialogProps {
-  open: boolean;
-  isInitializing: boolean;
-  participantRef?: string;
-  numberOfPhotos: number;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void | Promise<void>;
+  open: boolean
+  isInitializing: boolean
+  participantRef?: string
+  numberOfPhotos: number
+  onOpenChange: (open: boolean) => void
+  onConfirm: () => void | Promise<void>
 }
 
 export function UploadConfirmationDialog({
   open,
   isInitializing,
-  participantRef = "",
+  participantRef = '',
   numberOfPhotos,
   onOpenChange,
   onConfirm,
 }: UploadConfirmationDialogProps) {
-  const t = useTranslations("FlowPage.uploadStep");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const isSubmittingRef = useRef(false);
-  const isMountedRef = useRef(true);
+  const t = useTranslations('FlowPage.uploadStep')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isSubmittingRef = useRef(false)
+  const isMountedRef = useRef(true)
 
   useEffect(() => {
     return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+      isMountedRef.current = false
+    }
+  }, [])
 
-  const isDisabled = isInitializing || isSubmitting;
+  const isDisabled = isInitializing || isSubmitting
 
   const handleConfirmClick = async () => {
     if (isSubmittingRef.current || isInitializing) {
-      return;
+      return
     }
 
-    isSubmittingRef.current = true;
-    setIsSubmitting(true);
+    isSubmittingRef.current = true
+    setIsSubmitting(true)
 
     try {
-      await onConfirm();
+      await onConfirm()
     } finally {
-      isSubmittingRef.current = false;
+      isSubmittingRef.current = false
 
       if (isMountedRef.current) {
-        setIsSubmitting(false);
+        setIsSubmitting(false)
       }
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("confirmUpload")}</DialogTitle>
+          <DialogTitle>{t('confirmUpload')}</DialogTitle>
           <DialogDescription>
             {participantRef
-              ? t("confirmUploadDescription", {
+              ? t('confirmUploadDescription', {
                   ref: participantRef,
                   count: numberOfPhotos,
                 })
-              : t("confirmUploadDescriptionGeneric", {
+              : t('confirmUploadDescriptionGeneric', {
                   count: numberOfPhotos,
                 })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isDisabled}
-          >
-            {t("cancel")}
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDisabled}>
+            {t('cancel')}
           </Button>
           <PrimaryButton onClick={handleConfirmClick} disabled={isDisabled}>
             {isDisabled ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t("initializing")}
+                {t('initializing')}
               </>
             ) : (
-              t("confirmAndUpload")
+              t('confirmAndUpload')
             )}
           </PrimaryButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

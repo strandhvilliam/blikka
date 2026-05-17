@@ -1,24 +1,24 @@
-"use client"
+'use client'
 
-import { useEffect, useMemo, useState } from "react"
-import { ChevronDown, ChevronUp } from "lucide-react"
-import { useTranslations } from "next-intl"
-import type { Topic } from "@blikka/db"
+import { useEffect, useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import type { Topic } from '@blikka/db'
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { getCapturedAtDate } from "@/lib/exif-parsing"
-import { cn } from "@/lib/utils"
+} from '@/components/ui/dialog'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { getCapturedAtDate } from '@/lib/exif-parsing'
+import { cn } from '@/lib/utils'
 
-import { moveItemInArray } from "@/lib/flow/photo-ordering"
-import type { SelectedPhoto } from "@/lib/flow/types"
+import { moveItemInArray } from '@/lib/flow/photo-ordering'
+import type { SelectedPhoto } from '@/lib/flow/types'
 
 interface ManualPhotoOrderDialogProps {
   open: boolean
@@ -35,7 +35,7 @@ export function ManualPhotoOrderDialog({
   onClose,
   onContinue,
 }: ManualPhotoOrderDialogProps) {
-  const t = useTranslations("FlowPage.uploadStep")
+  const t = useTranslations('FlowPage.uploadStep')
   const [draftPhotos, setDraftPhotos] = useState(photos)
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function ManualPhotoOrderDialog({
     [topics],
   )
 
-  const handleMove = (index: number, direction: "up" | "down") => {
+  const handleMove = (index: number, direction: 'up' | 'down') => {
     setDraftPhotos((current) => moveItemInArray(current, index, direction))
   }
 
@@ -61,10 +61,10 @@ export function ManualPhotoOrderDialog({
       >
         <DialogHeader className="shrink-0 px-5 pt-5 pb-3 text-left">
           <DialogTitle className="text-lg font-bold tracking-tight text-foreground">
-            {t("manualOrderTitle")}
+            {t('manualOrderTitle')}
           </DialogTitle>
           <DialogDescription className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            {t("manualOrderDescription")}
+            {t('manualOrderDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -84,30 +84,30 @@ export function ManualPhotoOrderDialog({
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted/30">
                     <img
                       src={photo.preview}
-                      alt={t("uploadPreviewAlt", { index: index + 1 })}
+                      alt={t('uploadPreviewAlt', { index: index + 1 })}
                       className="h-full w-full object-cover"
                     />
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground">
-                      <span className="text-muted-foreground">#{index + 1}</span>{" "}
-                      {topic?.name ?? t("topicLabel")}
+                      <span className="text-muted-foreground">#{index + 1}</span>{' '}
+                      {topic?.name ?? t('topicLabel')}
                     </p>
                     <p className="mt-0.5 flex items-center gap-1.5 text-xs">
                       <span
                         className={cn(
-                          "shrink-0",
-                          capturedAt ? "text-emerald-600" : "text-amber-600",
+                          'shrink-0',
+                          capturedAt ? 'text-emerald-600' : 'text-amber-600',
                         )}
                       >
                         {capturedAt
                           ? capturedAt.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
+                              hour: '2-digit',
+                              minute: '2-digit',
                               hour12: false,
                             })
-                          : t("noCaptureTime")}
+                          : t('noCaptureTime')}
                       </span>
                       <span className="truncate text-muted-foreground/60">{photo.file.name}</span>
                     </p>
@@ -116,19 +116,19 @@ export function ManualPhotoOrderDialog({
                   <div className="flex shrink-0 flex-col">
                     <button
                       type="button"
-                      aria-label={t("movePhotoUp", { index: index + 1 })}
+                      aria-label={t('movePhotoUp', { index: index + 1 })}
                       className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-25"
                       disabled={isFirst}
-                      onClick={() => handleMove(index, "up")}
+                      onClick={() => handleMove(index, 'up')}
                     >
                       <ChevronUp className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
-                      aria-label={t("movePhotoDown", { index: index + 1 })}
+                      aria-label={t('movePhotoDown', { index: index + 1 })}
                       className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-25"
                       disabled={isLast}
-                      onClick={() => handleMove(index, "down")}
+                      onClick={() => handleMove(index, 'down')}
                     >
                       <ChevronDown className="h-4 w-4" />
                     </button>
@@ -146,14 +146,14 @@ export function ManualPhotoOrderDialog({
             className="h-12 flex-1 rounded-full"
             onClick={onClose}
           >
-            {t("cancel")}
+            {t('cancel')}
           </Button>
           <PrimaryButton
             type="button"
             className="h-12 flex-1 rounded-full text-base font-medium"
             onClick={() => onContinue(draftPhotos)}
           >
-            {t("continueAfterManualOrder")}
+            {t('continueAfterManualOrder')}
           </PrimaryButton>
         </div>
       </DialogContent>

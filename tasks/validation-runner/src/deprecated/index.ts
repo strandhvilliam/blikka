@@ -1,24 +1,24 @@
-import { LambdaHandler } from "@effect-aws/lambda"
-import { Effect, Layer } from "effect"
-import { type SQSEvent } from "@effect-aws/lambda"
-import { FinalizedEventSchema } from "@blikka/aws"
-import { parseBusEvent } from "@blikka/task-runtime"
-import { ValidationRunner } from "./service"
-import { TelemetryLayer } from "@blikka/telemetry"
-import { PubSubLoggerService } from "@blikka/pubsub"
-import { RealtimeEventsService } from "@blikka/realtime"
-import { Resource as SSTResource } from "sst"
-import { type SQSRecord } from "aws-lambda"
+import { LambdaHandler } from '@effect-aws/lambda'
+import { Effect, Layer } from 'effect'
+import { type SQSEvent } from '@effect-aws/lambda'
+import { FinalizedEventSchema } from '@blikka/aws'
+import { parseBusEvent } from '@blikka/task-runtime'
+import { ValidationRunner } from './service'
+import { TelemetryLayer } from '@blikka/telemetry'
+import { PubSubLoggerService } from '@blikka/pubsub'
+import { RealtimeEventsService } from '@blikka/realtime'
+import { Resource as SSTResource } from 'sst'
+import { type SQSRecord } from 'aws-lambda'
 
-const getEnvironment = (): "prod" | "dev" | "staging" => {
+const getEnvironment = (): 'prod' | 'dev' | 'staging' => {
   const stage = SSTResource.App.stage
-  if (stage === "production") return "prod"
-  if (stage === "dev" || stage === "development") return "dev"
-  return "staging"
+  if (stage === 'production') return 'prod'
+  if (stage === 'dev' || stage === 'development') return 'dev'
+  return 'staging'
 }
 
-const TASK_NAME = "validation-runner"
-const REALTIME_EVENT = "participant-validated"
+const TASK_NAME = 'validation-runner'
+const REALTIME_EVENT = 'participant-validated'
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
@@ -26,7 +26,7 @@ const effectHandler = (event: SQSEvent) =>
     const realtimeEvents = yield* RealtimeEventsService
     const environment = getEnvironment()
 
-    const processSQSRecord = Effect.fn("validation-runner.processSQSRecord")(function* (
+    const processSQSRecord = Effect.fn('validation-runner.processSQSRecord')(function* (
       record: SQSRecord,
     ) {
       const { domain, reference, uploadSessionId } = yield* parseBusEvent(
@@ -35,11 +35,11 @@ const effectHandler = (event: SQSEvent) =>
       )
 
       return yield* Effect.gen(function* () {
-        yield* Effect.logInfo("Executing validation")
+        yield* Effect.logInfo('Executing validation')
 
         const validateEffect = validationRunner.execute(domain, reference, uploadSessionId).pipe(
-          Effect.tap(() => Effect.logInfo("Validation executed")),
-          Effect.tapError((error) => Effect.logError("Error executing validation", error)),
+          Effect.tap(() => Effect.logInfo('Validation executed')),
+          Effect.tapError((error) => Effect.logError('Error executing validation', error)),
         )
 
         return yield* realtimeEvents.withEventResult(validateEffect, {
@@ -53,8 +53,8 @@ const effectHandler = (event: SQSEvent) =>
 
     yield* Effect.forEach(event.Records, (record) => processSQSRecord(record), { concurrency: 2 })
   }).pipe(
-    Effect.withSpan("ValidationRunner.handler"),
-    Effect.tapError((error) => Effect.logError("Validation runner failed", error)),
+    Effect.withSpan('ValidationRunner.handler'),
+    Effect.tapError((error) => Effect.logError('Validation runner failed', error)),
   )
 
 const serviceLayer = Layer.mergeAll(

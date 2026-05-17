@@ -6,25 +6,25 @@ import {
   type DeleteObjectCommandOutput,
   type HeadObjectCommandOutput,
   type PutObjectCommandOutput,
-} from "@aws-sdk/client-s3"
-import { Duration, Effect, Option, Schedule, Schema, Context, Layer } from "effect"
-import { S3EffectClient, S3EffectClientLayer } from "./clients/s3-effect-client"
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+} from '@aws-sdk/client-s3'
+import { Duration, Effect, Option, Schedule, Schema, Context, Layer } from 'effect'
+import { S3EffectClient, S3EffectClientLayer } from './clients/s3-effect-client'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-export class S3ClientError extends Schema.TaggedErrorClass<S3ClientError>()("S3ClientError", {
+export class S3ClientError extends Schema.TaggedErrorClass<S3ClientError>()('S3ClientError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
-const DEFAULT_SUBMISSION_CONTENT_TYPE = "image/jpeg"
+const DEFAULT_SUBMISSION_CONTENT_TYPE = 'image/jpeg'
 
 const SUBMISSION_CONTENT_TYPE_EXTENSION_MAP = {
-  "image/gif": "gif",
-  "image/heic": "heic",
-  "image/heif": "heif",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
+  'image/gif': 'gif',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
 } as const
 
 type SupportedSubmissionContentType = keyof typeof SUBMISSION_CONTENT_TYPE_EXTENSION_MAP
@@ -59,9 +59,9 @@ export function createSubmissionObjectKey({
   filenamePrefix?: string
   contentType?: string
 }): string {
-  const dateTime = new Date().toISOString().replace(/[:.]/g, "-")
-  const formattedOrderIndex = (orderIndex + 1).toString().padStart(2, "0")
-  const prefix = filenamePrefix ? `${filenamePrefix}_` : ""
+  const dateTime = new Date().toISOString().replace(/[:.]/g, '-')
+  const formattedOrderIndex = (orderIndex + 1).toString().padStart(2, '0')
+  const prefix = filenamePrefix ? `${filenamePrefix}_` : ''
   const extension = resolveSubmissionExtension(contentType)
 
   return `${domain}/${reference}/${formattedOrderIndex}/${prefix}${reference}_${formattedOrderIndex}_${dateTime}.${extension}`
@@ -90,7 +90,7 @@ export class S3Service extends Context.Service<
     readonly getPresignedUrl: (
       bucket: string,
       key: string,
-      method: "GET" | "PUT",
+      method: 'GET' | 'PUT',
       options?: { expiresIn?: number; contentType?: string },
     ) => Effect.Effect<string, S3ClientError, never>
     /**
@@ -118,12 +118,12 @@ export class S3Service extends Context.Service<
       options?: { filenamePrefix?: string; contentType?: string },
     ) => Effect.Effect<string, S3ClientError, never>
   }
->()("@blikka/aws/s3-service") {}
+>()('@blikka/aws/s3-service') {}
 
 const makeS3Service = Effect.gen(function* () {
   const s3Client = yield* S3EffectClient
 
-  const getFile = Effect.fn("S3Service.getFile")(
+  const getFile = Effect.fn('S3Service.getFile')(
     function* (bucket: string, key: string) {
       const file = yield* s3Client.use((client) =>
         client.send(new GetObjectCommand({ Bucket: bucket, Key: key })),
@@ -139,7 +139,7 @@ const makeS3Service = Effect.gen(function* () {
         catch: (error) =>
           new S3ClientError({
             cause: error,
-            message: "Failed to transform to byte array",
+            message: 'Failed to transform to byte array',
           }),
       })
       return Option.some<Uint8Array>(buffer)
@@ -147,12 +147,12 @@ const makeS3Service = Effect.gen(function* () {
     Effect.mapError((error) => {
       return new S3ClientError({
         cause: error,
-        message: "Unexpected S3 error",
+        message: 'Unexpected S3 error',
       })
     }),
   )
 
-  const getHead = Effect.fn("S3Service.getHead")(
+  const getHead = Effect.fn('S3Service.getHead')(
     function* (bucket: string, key: string) {
       const head = yield* s3Client.use((client) =>
         client.send(new HeadObjectCommand({ Bucket: bucket, Key: key })),
@@ -162,20 +162,20 @@ const makeS3Service = Effect.gen(function* () {
     Effect.mapError((error) => {
       return new S3ClientError({
         cause: error,
-        message: "Unexpected S3 error",
+        message: 'Unexpected S3 error',
       })
     }),
   )
 
-  const getPresignedUrl = Effect.fn("S3Service.getPresignedUrl")(
+  const getPresignedUrl = Effect.fn('S3Service.getPresignedUrl')(
     function* (
       bucket: string,
       key: string,
-      method: "GET" | "PUT" = "GET",
+      method: 'GET' | 'PUT' = 'GET',
       options?: { expiresIn?: number; contentType?: string },
     ) {
       const command =
-        method === "GET"
+        method === 'GET'
           ? new GetObjectCommand({
               Bucket: bucket,
               Key: key,
@@ -195,12 +195,12 @@ const makeS3Service = Effect.gen(function* () {
     Effect.mapError((error) => {
       return new S3ClientError({
         cause: error,
-        message: "Unexpected S3 error",
+        message: 'Unexpected S3 error',
       })
     }),
   )
 
-  const putFile = Effect.fn("S3Service.putFile")(
+  const putFile = Effect.fn('S3Service.putFile')(
     function* (bucket: string, key: string, file: Buffer) {
       const putObjectCommand = new PutObjectCommand({
         Bucket: bucket,
@@ -213,12 +213,12 @@ const makeS3Service = Effect.gen(function* () {
     Effect.mapError((error) => {
       return new S3ClientError({
         cause: error,
-        message: "Unexpected S3 error",
+        message: 'Unexpected S3 error',
       })
     }),
   )
 
-  const deleteFile = Effect.fn("S3Service.deleteFile")(
+  const deleteFile = Effect.fn('S3Service.deleteFile')(
     function* (bucket: string, key: string) {
       const deleteObjectCommand = new DeleteObjectCommand({
         Bucket: bucket,
@@ -230,7 +230,7 @@ const makeS3Service = Effect.gen(function* () {
     Effect.mapError((error) => {
       return new S3ClientError({
         cause: error,
-        message: "Unexpected S3 error",
+        message: 'Unexpected S3 error',
       })
     }),
   )

@@ -1,6 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { StaffListSkeleton } from "./staff-list-skeleton"
-import { StaffDetailsSkeleton } from "../[accessId]/_components/staff-details-skeleton"
+import { Skeleton } from '@/components/ui/skeleton'
+import { StaffListSkeleton } from './staff-list-skeleton'
+import { StaffDetailsSkeleton } from '../[accessId]/_components/staff-details-skeleton'
 
 export function StaffPageSkeleton() {
   return (

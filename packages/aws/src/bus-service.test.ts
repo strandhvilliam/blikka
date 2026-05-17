@@ -1,28 +1,28 @@
-import { vi } from "vitest"
+import { vi } from 'vitest'
 
-vi.mock("sst", () => ({
+vi.mock('sst', () => ({
   Resource: {
-    SubmissionFinalizedBus: { name: "test-submission-finalized-bus" },
+    SubmissionFinalizedBus: { name: 'test-submission-finalized-bus' },
   },
 }))
 
-import { assert, describe, it } from "@effect/vitest"
-import { PutEventsCommand, type EventBridgeClient } from "@aws-sdk/client-eventbridge"
-import { Effect, Layer } from "effect"
+import { assert, describe, it } from '@effect/vitest'
+import { PutEventsCommand, type EventBridgeClient } from '@aws-sdk/client-eventbridge'
+import { Effect, Layer } from 'effect'
 
 import {
   BusService,
   BusServiceLayerNoDeps,
   EventBusDetailTypes,
   FinalizedEventSchema,
-} from "./bus-service"
+} from './bus-service'
 import {
   EventBridgeEffectClient,
   EventBridgeEffectError,
-} from "./clients/eventbridge-effect-client"
+} from './clients/eventbridge-effect-client'
 
-describe("BusService", () => {
-  it.effect("sendFinalizedEvent publishes expected EventBridge entry", () => {
+describe('BusService', () => {
+  it.effect('sendFinalizedEvent publishes expected EventBridge entry', () => {
     const sent: Array<PutEventsCommand> = []
 
     const fakeEb = EventBridgeEffectClient.of({
@@ -40,7 +40,7 @@ describe("BusService", () => {
               try: () => result,
               catch: (e) =>
                 new EventBridgeEffectError({
-                  message: e instanceof Error ? e.message : "eventbridge error",
+                  message: e instanceof Error ? e.message : 'eventbridge error',
                   cause: e,
                 }),
             })
@@ -55,22 +55,22 @@ describe("BusService", () => {
 
     return Effect.gen(function* () {
       const bus = yield* BusService
-      yield* bus.sendFinalizedEvent("demo", "REF1", "sess-1")
+      yield* bus.sendFinalizedEvent('demo', 'REF1', 'sess-1')
 
       assert.strictEqual(sent.length, 1)
       const entry = sent[0]?.input.Entries?.[0]
       assert.ok(entry !== undefined)
-      assert.strictEqual(entry.EventBusName, "test-submission-finalized-bus")
+      assert.strictEqual(entry.EventBusName, 'test-submission-finalized-bus')
       assert.strictEqual(entry.Source, EventBusDetailTypes.Finalized)
       assert.strictEqual(entry.DetailType, EventBusDetailTypes.Finalized)
 
-      const detail = JSON.parse(entry.Detail ?? "{}")
+      const detail = JSON.parse(entry.Detail ?? '{}')
       assert.deepStrictEqual(
         detail,
         FinalizedEventSchema.make({
-          domain: "demo",
-          reference: "REF1",
-          uploadSessionId: "sess-1",
+          domain: 'demo',
+          reference: 'REF1',
+          uploadSessionId: 'sess-1',
         }),
       )
     }).pipe(Effect.provide(layer))

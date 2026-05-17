@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react'
 
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { normalizeParticipantReference } from '@/lib/staff/staff-utils'
 
 interface StaffManualEntryDialogProps {
   open: boolean
@@ -19,11 +19,11 @@ export function StaffManualEntryDialog({
   onOpenChange,
   onEnterAction,
 }: StaffManualEntryDialogProps) {
-  const [reference, setReference] = useState("")
+  const [reference, setReference] = useState('')
 
   useEffect(() => {
     if (open) {
-      setReference("")
+      setReference('')
     }
   }, [open])
 
@@ -42,7 +42,9 @@ export function StaffManualEntryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="top-[40%] max-w-sm border-none bg-[#fbfaf7]">
         <DialogHeader className="text-center">
-          <DialogTitle className="font-gothic text-xl font-medium tracking-tight">Enter participant number</DialogTitle>
+          <DialogTitle className="font-gothic text-xl font-medium tracking-tight">
+            Enter participant number
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-4">

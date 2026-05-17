@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 type FakeSvgImage = {
   href: string
@@ -11,10 +11,10 @@ type FakeSvgImage = {
 function createFakeSvgImage(initialHref: string): FakeSvgImage {
   const image = {
     href: initialHref,
-    getAttribute: vi.fn((name: string) => (name === "href" ? image.href : null)),
+    getAttribute: vi.fn((name: string) => (name === 'href' ? image.href : null)),
     getAttributeNS: vi.fn(() => null),
     setAttribute: vi.fn((name: string, value: string) => {
-      if (name === "href") {
+      if (name === 'href') {
         image.href = value
       }
     }),
@@ -30,14 +30,14 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe("downloadQrPng", () => {
-  it("downloads a png from the QR svg and inlines logo images first", async () => {
-    const originalImage = createFakeSvgImage("/blikka-logo-dark-qr.svg")
-    const clonedImage = createFakeSvgImage("/blikka-logo-dark-qr.svg")
+describe('downloadQrPng', () => {
+  it('downloads a png from the QR svg and inlines logo images first', async () => {
+    const originalImage = createFakeSvgImage('/blikka-logo-dark-qr.svg')
+    const clonedImage = createFakeSvgImage('/blikka-logo-dark-qr.svg')
     const clonedSvg = {
       getAttribute: vi.fn((name: string) => {
-        if (name === "width" || name === "height") {
-          return "512"
+        if (name === 'width' || name === 'height') {
+          return '512'
         }
 
         return null
@@ -57,8 +57,8 @@ describe("downloadQrPng", () => {
     const scale = vi.fn()
     const anchor = {
       click: anchorClick,
-      download: "",
-      href: "",
+      download: '',
+      href: '',
     }
     const canvas = {
       width: 0,
@@ -69,21 +69,21 @@ describe("downloadQrPng", () => {
         scale,
       })),
       toBlob: vi.fn((callback: BlobCallback) => {
-        callback(new Blob(["png"], { type: "image/png" }))
+        callback(new Blob(['png'], { type: 'image/png' }))
       }),
     }
 
-    vi.stubGlobal("document", {
+    vi.stubGlobal('document', {
       body: {
         appendChild,
         removeChild,
       },
       createElement: vi.fn((tagName: string) => {
-        if (tagName === "a") {
+        if (tagName === 'a') {
           return anchor
         }
 
-        if (tagName === "canvas") {
+        if (tagName === 'canvas') {
           return canvas
         }
 
@@ -91,51 +91,51 @@ describe("downloadQrPng", () => {
       }),
     })
 
-    vi.stubGlobal("window", {
+    vi.stubGlobal('window', {
       location: {
-        href: "https://blikka.app/admin/demo/dashboard",
+        href: 'https://blikka.app/admin/demo/dashboard',
       },
       URL,
     })
 
     const createObjectURL = vi
-      .spyOn(URL, "createObjectURL")
-      .mockReturnValueOnce("blob:svg")
-      .mockReturnValueOnce("blob:png")
-    const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {})
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValueOnce('blob:svg')
+      .mockReturnValueOnce('blob:png')
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
 
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        blob: vi.fn().mockResolvedValue(new Blob(["logo"], { type: "image/svg+xml" })),
+        blob: vi.fn().mockResolvedValue(new Blob(['logo'], { type: 'image/svg+xml' })),
       }),
     )
 
-    const serializeToString = vi.fn(() => "<svg />")
+    const serializeToString = vi.fn(() => '<svg />')
     vi.stubGlobal(
-      "XMLSerializer",
+      'XMLSerializer',
       class {
         serializeToString = serializeToString
       },
     )
 
     vi.stubGlobal(
-      "FileReader",
+      'FileReader',
       class {
         result: string | ArrayBuffer | null = null
         onload: null | (() => void) = null
         onerror: null | (() => void) = null
 
         readAsDataURL() {
-          this.result = "data:image/svg+xml;base64,PHN2Zy8+"
+          this.result = 'data:image/svg+xml;base64,PHN2Zy8+'
           this.onload?.()
         }
       },
     )
 
     vi.stubGlobal(
-      "Image",
+      'Image',
       class {
         onload: null | (() => void) = null
         onerror: null | (() => void) = null
@@ -146,33 +146,33 @@ describe("downloadQrPng", () => {
       },
     )
 
-    const { downloadQrPng } = await import("./download-qr-png")
+    const { downloadQrPng } = await import('./download-qr-png')
 
     await downloadQrPng({
-      filename: "live-upload-qr.png",
+      filename: 'live-upload-qr.png',
       svg,
     })
 
-    expect(fetch).toHaveBeenCalledWith("https://blikka.app/blikka-logo-dark-qr.svg")
+    expect(fetch).toHaveBeenCalledWith('https://blikka.app/blikka-logo-dark-qr.svg')
     expect(clonedImage.setAttribute).toHaveBeenCalledWith(
-      "href",
-      "data:image/svg+xml;base64,PHN2Zy8+",
+      'href',
+      'data:image/svg+xml;base64,PHN2Zy8+',
     )
     expect(serializeToString).toHaveBeenCalledWith(clonedSvg)
     expect(scale).toHaveBeenCalledWith(2, 2)
     expect(fillRect).toHaveBeenCalledWith(0, 0, 512, 512)
     expect(drawImage).toHaveBeenCalledTimes(1)
-    expect(anchor.download).toBe("live-upload-qr.png")
-    expect(anchor.href).toBe("blob:png")
+    expect(anchor.download).toBe('live-upload-qr.png')
+    expect(anchor.href).toBe('blob:png')
     expect(anchorClick).toHaveBeenCalledTimes(1)
     expect(appendChild).toHaveBeenCalledWith(anchor)
     expect(removeChild).toHaveBeenCalledWith(anchor)
     expect(createObjectURL).toHaveBeenCalledTimes(2)
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:svg")
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:png")
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:svg')
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:png')
   })
 
-  it("throws when the qr svg has no size information", async () => {
+  it('throws when the qr svg has no size information', async () => {
     const svg = {
       cloneNode: vi.fn(() => ({
         getAttribute: vi.fn(() => null),
@@ -180,13 +180,13 @@ describe("downloadQrPng", () => {
       })),
     } as unknown as SVGSVGElement
 
-    const { downloadQrPng } = await import("./download-qr-png")
+    const { downloadQrPng } = await import('./download-qr-png')
 
     await expect(
       downloadQrPng({
-        filename: "live-upload-qr.png",
+        filename: 'live-upload-qr.png',
         svg,
       }),
-    ).rejects.toThrow("QR code size could not be determined")
+    ).rejects.toThrow('QR code size could not be determined')
   })
 })

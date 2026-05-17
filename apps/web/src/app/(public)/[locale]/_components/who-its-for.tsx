@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import Image from "next/image"
-import { FadeIn } from "./fade-in"
+import Image from 'next/image'
+import { FadeIn } from './fade-in'
 
 type AudienceRow = {
   title: string
@@ -13,28 +13,28 @@ type AudienceRow = {
 
 const audiences: AudienceRow[] = [
   {
-    title: "Photomarathons",
+    title: 'Photomarathons',
     description:
-      "Run timed categories, high upload volume, and winner selection without juggling folders, spreadsheets, and manual checks.",
-    detail: "Best for day-long competitions with deadlines, judges, and public results.",
-    image: "/photo-event-4.jpg",
-    alt: "Crowd at a large photography event",
+      'Run timed categories, high upload volume, and winner selection without juggling folders, spreadsheets, and manual checks.',
+    detail: 'Best for day-long competitions with deadlines, judges, and public results.',
+    image: '/photo-event-4.jpg',
+    alt: 'Crowd at a large photography event',
   },
   {
-    title: "Camera Clubs & Associations",
+    title: 'Camera Clubs & Associations',
     description:
-      "Collect themed submissions, manage member participation, and keep judging rounds organized from one place.",
-    detail: "Useful for recurring competitions, seasonal challenges, and club showcases.",
-    image: "/photo-event-1.jpg",
-    alt: "Photographers reviewing images together",
+      'Collect themed submissions, manage member participation, and keep judging rounds organized from one place.',
+    detail: 'Useful for recurring competitions, seasonal challenges, and club showcases.',
+    image: '/photo-event-1.jpg',
+    alt: 'Photographers reviewing images together',
   },
   {
-    title: "Schools, Festivals & Workshops",
+    title: 'Schools, Festivals & Workshops',
     description:
-      "Give participants a simple upload flow while your team keeps track of classes, categories, deadlines, and approvals.",
-    detail: "Works well for education programs, cultural festivals, and guided photo events.",
-    image: "/photo-event-6.jpg",
-    alt: "Workshop setting with participants learning photography",
+      'Give participants a simple upload flow while your team keeps track of classes, categories, deadlines, and approvals.',
+    detail: 'Works well for education programs, cultural festivals, and guided photo events.',
+    image: '/photo-event-6.jpg',
+    alt: 'Workshop setting with participants learning photography',
   },
 ]
 
@@ -62,9 +62,9 @@ export function WhoItsFor() {
             return (
               <FadeIn key={audience.title} delay={index * 80}>
                 <div
-                  className={`grid items-center gap-8 md:grid-cols-2 md:gap-10 lg:gap-16 ${isReversed ? "md:[direction:rtl]" : ""}`}
+                  className={`grid items-center gap-8 md:grid-cols-2 md:gap-10 lg:gap-16 ${isReversed ? 'md:[direction:rtl]' : ''}`}
                 >
-                  <div className={isReversed ? "md:[direction:ltr]" : ""}>
+                  <div className={isReversed ? 'md:[direction:ltr]' : ''}>
                     <div className="relative aspect-3/2 overflow-hidden rounded-2xl md:aspect-4/3">
                       <Image
                         src={audience.image}
@@ -75,9 +75,9 @@ export function WhoItsFor() {
                     </div>
                   </div>
 
-                  <div className={isReversed ? "md:[direction:ltr]" : ""}>
+                  <div className={isReversed ? 'md:[direction:ltr]' : ''}>
                     <p className="text-xs font-semibold uppercase tracking-widest text-brand-primary">
-                      Use Case {String(index + 1).padStart(2, "0")}
+                      Use Case {String(index + 1).padStart(2, '0')}
                     </p>
                     <h3 className="mt-4 text-2xl leading-tight font-semibold text-foreground lg:text-3xl">
                       {audience.title}

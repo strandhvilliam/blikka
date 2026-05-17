@@ -1,9 +1,9 @@
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { TopicsSkeleton } from "./_components/topics-skeleton"
-import { TopicsContent } from "./_components/topics-content"
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { TopicsSkeleton } from './_components/topics-skeleton'
+import { TopicsContent } from './_components/topics-content'
 
-export default async function TopicsPage({ params }: PageProps<"/admin/[domain]/dashboard">) {
+export default async function TopicsPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
 
   prefetch(

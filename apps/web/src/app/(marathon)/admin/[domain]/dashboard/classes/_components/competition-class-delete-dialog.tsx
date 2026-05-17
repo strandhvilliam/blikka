@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import type { CompetitionClass } from "@blikka/db"
-import { AlertTriangle } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from 'react'
+import type { CompetitionClass } from '@blikka/db'
+import { AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface DeleteCompetitionClassDialogProps {
   classItem: CompetitionClass | null
@@ -27,17 +27,17 @@ export function CompetitionClassDeleteDialog({
   onOpenChange,
   onConfirm,
 }: DeleteCompetitionClassDialogProps) {
-  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
 
   const handleConfirm = () => {
     if (!classItem || deleteConfirmation !== classItem.name) return
     onConfirm(classItem)
-    setDeleteConfirmation("")
+    setDeleteConfirmation('')
   }
 
   useEffect(() => {
     if (!isOpen) {
-      setDeleteConfirmation("")
+      setDeleteConfirmation('')
     }
   }, [isOpen])
 
@@ -63,7 +63,7 @@ export function CompetitionClassDeleteDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="confirmDelete" className="text-sm text-foreground">
-                  To confirm, type the competition class name:{" "}
+                  To confirm, type the competition class name:{' '}
                   <span className="font-semibold">{classItem?.name}</span>
                 </Label>
                 <Input
@@ -94,4 +94,3 @@ export function CompetitionClassDeleteDialog({
     </Dialog>
   )
 }
-

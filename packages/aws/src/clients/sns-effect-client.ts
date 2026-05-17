@@ -1,8 +1,8 @@
-import { SNSClient } from "@aws-sdk/client-sns"
-import { Console, Effect, Layer, Schema, Context } from "effect"
-import { AwsSdkConfig, AwsSdkConfigLayer, awsSdkClientConstructorOptions } from "../aws-sdk-config"
+import { SNSClient } from '@aws-sdk/client-sns'
+import { Console, Effect, Layer, Schema, Context } from 'effect'
+import { AwsSdkConfig, AwsSdkConfigLayer, awsSdkClientConstructorOptions } from '../aws-sdk-config'
 
-export class SNSEffectError extends Schema.TaggedErrorClass<SNSEffectError>()("SNSEffectError", {
+export class SNSEffectError extends Schema.TaggedErrorClass<SNSEffectError>()('SNSEffectError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -17,7 +17,7 @@ export class SNSEffectClient extends Context.Service<
       fn: (client: SNSClient) => T,
     ) => Effect.Effect<Awaited<T>, SNSEffectError, never>
   }
->()("@blikka/aws/sns-client") {}
+>()('@blikka/aws/sns-client') {}
 
 const makeSNSEffectClient = Effect.gen(function* () {
   const aws = yield* AwsSdkConfig
@@ -26,7 +26,7 @@ const makeSNSEffectClient = Effect.gen(function* () {
     Effect.sync(() => new SNSClient(awsSdkClientConstructorOptions(aws))),
     (client) =>
       Effect.sync(() => {
-        Console.log("Shutting down SNS client")
+        Console.log('Shutting down SNS client')
         client.destroy()
       }),
   )
@@ -37,7 +37,7 @@ const makeSNSEffectClient = Effect.gen(function* () {
         catch: (error) =>
           new SNSEffectError({
             cause: error,
-            message: error instanceof Error ? error.message : "Unknown error in SNS Effect Client",
+            message: error instanceof Error ? error.message : 'Unknown error in SNS Effect Client',
           }),
       })
       if (result instanceof Promise) {
@@ -47,7 +47,7 @@ const makeSNSEffectClient = Effect.gen(function* () {
             new SNSEffectError({
               cause: e,
               message:
-                e instanceof Error ? e.message : "Unknown error in SNS Effect Client (Async)",
+                e instanceof Error ? e.message : 'Unknown error in SNS Effect Client (Async)',
             }),
         })
       }

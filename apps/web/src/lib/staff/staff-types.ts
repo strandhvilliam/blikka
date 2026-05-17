@@ -6,7 +6,7 @@ import type {
   Submission,
   Topic,
   ValidationResult,
-} from "@blikka/db"
+} from '@blikka/db'
 
 export type StaffSubmission = Submission & {
   topic?: Topic | null

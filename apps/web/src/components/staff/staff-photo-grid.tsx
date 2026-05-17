@@ -1,16 +1,16 @@
-"use client"
+'use client'
 /* eslint-disable @next/next/no-img-element */
 
-import { Trash2 } from "lucide-react"
-import { motion, AnimatePresence } from "motion/react"
+import { Trash2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
 
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { getExifDate } from "@/lib/exif-parsing"
-import type { ParticipantSelectedPhoto } from "@/lib/participant-upload-types"
-import type { ValidationResult } from "@blikka/validation"
-import { VALIDATION_OUTCOME } from "@blikka/validation"
-import type { Topic } from "@blikka/db"
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { getExifDate } from '@/lib/exif-parsing'
+import type { ParticipantSelectedPhoto } from '@/lib/participant-upload-types'
+import type { ValidationResult } from '@blikka/validation'
+import { VALIDATION_OUTCOME } from '@blikka/validation'
+import type { Topic } from '@blikka/db'
 
 interface StaffPhotoListProps {
   photos: ParticipantSelectedPhoto[]
@@ -21,32 +21,32 @@ interface StaffPhotoListProps {
   onRemove: (photoId: string) => void
 }
 
-type PhotoStatus = "ok" | "warning" | "error"
+type PhotoStatus = 'ok' | 'warning' | 'error'
 
 function getPhotoStatus(validations: ValidationResult[]): PhotoStatus {
   const hasError = validations.some(
-    (r) => r.outcome === VALIDATION_OUTCOME.FAILED && r.severity === "error",
+    (r) => r.outcome === VALIDATION_OUTCOME.FAILED && r.severity === 'error',
   )
-  if (hasError) return "error"
+  if (hasError) return 'error'
 
   const hasWarning = validations.some(
-    (r) => r.outcome === VALIDATION_OUTCOME.FAILED && r.severity === "warning",
+    (r) => r.outcome === VALIDATION_OUTCOME.FAILED && r.severity === 'warning',
   )
-  if (hasWarning) return "warning"
+  if (hasWarning) return 'warning'
 
-  return "ok"
+  return 'ok'
 }
 
 const STATUS_BORDER: Record<PhotoStatus, string> = {
-  ok: "border-border",
-  warning: "border-amber-300",
-  error: "border-rose-300",
+  ok: 'border-border',
+  warning: 'border-amber-300',
+  error: 'border-rose-300',
 }
 
 const STATUS_LABEL: Record<PhotoStatus, { text: string; className: string } | null> = {
   ok: null,
-  warning: { text: "Warning", className: "text-amber-600 bg-amber-50 border-amber-200" },
-  error: { text: "Issue found", className: "text-rose-600 bg-rose-50 border-rose-200" },
+  warning: { text: 'Warning', className: 'text-amber-600 bg-amber-50 border-amber-200' },
+  error: { text: 'Issue found', className: 'text-rose-600 bg-rose-50 border-rose-200' },
 }
 
 function resolveTopicName(orderIndex: number, topics: Topic[]): string | null {
@@ -63,10 +63,10 @@ function formatCaptureDate(date: Date): string | null {
   try {
     if (Number.isNaN(date.getTime())) return null
     const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, "0")
-    const d = String(date.getDate()).padStart(2, "0")
-    const h = String(date.getHours()).padStart(2, "0")
-    const min = String(date.getMinutes()).padStart(2, "0")
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    const h = String(date.getHours()).padStart(2, '0')
+    const min = String(date.getMinutes()).padStart(2, '0')
     return `${y}-${m}-${d} ${h}:${min}`
   } catch {
     return null
@@ -119,7 +119,7 @@ export function StaffPhotoList({
                 exit={{ opacity: 0, x: -12 }}
                 transition={{ duration: 0.15 }}
                 className={cn(
-                  "group flex items-start gap-4 rounded-xl border bg-card px-3 py-3",
+                  'group flex items-start gap-4 rounded-xl border bg-card px-3 py-3',
                   STATUS_BORDER[status],
                 )}
               >
@@ -138,7 +138,7 @@ export function StaffPhotoList({
                         #{photo.orderIndex + 1}
                         {topicName ? (
                           <span className="font-normal text-muted-foreground">
-                            {" "}
+                            {' '}
                             &mdash; {topicName}
                           </span>
                         ) : null}
@@ -174,14 +174,14 @@ export function StaffPhotoList({
                   {statusLabel ? (
                     <span
                       className={cn(
-                        "mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                        'mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium',
                         statusLabel.className,
                       )}
                     >
                       <span
                         className={cn(
-                          "h-1.5 w-1.5 rounded-full",
-                          status === "error" ? "bg-rose-500" : "bg-amber-500",
+                          'h-1.5 w-1.5 rounded-full',
+                          status === 'error' ? 'bg-rose-500' : 'bg-amber-500',
                         )}
                       />
                       {statusLabel.text}

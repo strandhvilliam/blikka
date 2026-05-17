@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import type { ReactNode } from "react"
-import { XIcon } from "lucide-react"
+import type { ReactNode } from 'react'
+import { XIcon } from 'lucide-react'
 
-import { Button } from "@/components/ui/button"
-import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
-import { cn } from "@/lib/utils"
+import { Button } from '@/components/ui/button'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
+import { cn } from '@/lib/utils'
 
 interface DrawerLayoutProps {
   open: boolean
@@ -31,8 +31,8 @@ export function DrawerLayout({
       <DrawerContent
         dragHandleClassName={dragHandleClassName}
         className={cn(
-          "flex h-[97dvh] flex-col overflow-hidden rounded-t-[2rem] border-none bg-white p-0 shadow-2xl",
-          contentClassName
+          'flex h-[97dvh] flex-col overflow-hidden rounded-t-[2rem] border-none bg-white p-0 shadow-2xl',
+          contentClassName,
         )}
       >
         <Button

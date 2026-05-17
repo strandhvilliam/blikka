@@ -1,21 +1,21 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { AnimatePresence, motion } from "motion/react"
-import { useTranslations } from "next-intl"
-import { ArrowRight, Check, Clock, MoreVertical, Recycle } from "lucide-react"
-import { Icon } from "@iconify/react"
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useTranslations } from 'next-intl'
+import { ArrowRight, Check, Clock, MoreVertical, Recycle } from 'lucide-react'
+import { Icon } from '@iconify/react'
 
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Button } from "@/components/ui/button"
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu'
 
-import { ConfirmationDetailsDialog } from "./confirmation-details-dialog"
+import { ConfirmationDetailsDialog } from './confirmation-details-dialog'
 
 export interface ConfirmationImage {
   imageUrl: string | undefined
@@ -46,7 +46,7 @@ export function ConfirmationMarathonClient({
   submissionsCount,
   handleRedirect,
 }: ConfirmationMarathonClientProps) {
-  const t = useTranslations("ConfirmationPage")
+  const t = useTranslations('ConfirmationPage')
   const [selectedImage, setSelectedImage] = useState<ConfirmationImage | null>(null)
   return (
     <div className="mx-auto flex min-h-dvh max-w-[540px] flex-col px-6 py-8">
@@ -60,14 +60,14 @@ export function ConfirmationMarathonClient({
               className="h-8 w-8 rounded-full text-muted-foreground"
             >
               <MoreVertical className="h-4 w-4" />
-              <span className="sr-only">{t("menu")}</span>
+              <span className="sr-only">{t('menu')}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
               <button onClick={handleRedirect}>
                 <Recycle className="h-4 w-4" />
-                {t("startAgain")}
+                {t('startAgain')}
               </button>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -87,7 +87,7 @@ export function ConfirmationMarathonClient({
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.15, type: "spring", stiffness: 180, damping: 14 }}
+              transition={{ delay: 0.15, type: 'spring', stiffness: 180, damping: 14 }}
               className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-600"
             >
               <Check className="h-10 w-10 text-white" strokeWidth={3} />
@@ -95,13 +95,13 @@ export function ConfirmationMarathonClient({
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: [1, 1.035, 1], opacity: [1, 0.72, 1] }}
-              transition={{ delay: 0.4, duration: 3.8, ease: "easeInOut", repeat: Infinity }}
+              transition={{ delay: 0.4, duration: 3.8, ease: 'easeInOut', repeat: Infinity }}
               className="absolute inset-0 scale-[1.35] rounded-full border-2 border-emerald-600/30"
             />
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: [1, 1.025, 1], opacity: [1, 0.7, 1] }}
-              transition={{ delay: 0.75, duration: 4.6, ease: "easeInOut", repeat: Infinity }}
+              transition={{ delay: 0.75, duration: 4.6, ease: 'easeInOut', repeat: Infinity }}
               className="absolute inset-0 scale-[1.7] rounded-full border border-emerald-600/15"
             />
           </div>
@@ -112,7 +112,7 @@ export function ConfirmationMarathonClient({
             transition={{ delay: 0.3 }}
             className="mt-8 font-gothic text-3xl font-medium tracking-tight text-foreground"
           >
-            {t("congratulations")}
+            {t('congratulations')}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 8 }}
@@ -120,7 +120,7 @@ export function ConfirmationMarathonClient({
             transition={{ delay: 0.4 }}
             className="mt-2 text-sm text-muted-foreground"
           >
-            {t("photosUploaded", { count: submissionsCount })}
+            {t('photosUploaded', { count: submissionsCount })}
           </motion.p>
         </motion.div>
 
@@ -129,7 +129,7 @@ export function ConfirmationMarathonClient({
           key="participant-info"
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.5, type: "spring", stiffness: 200, damping: 24 }}
+          transition={{ delay: 0.5, duration: 0.5, type: 'spring', stiffness: 200, damping: 24 }}
           className="mt-8"
         >
           <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
@@ -172,7 +172,7 @@ export function ConfirmationMarathonClient({
             className="mt-5"
           >
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              {t("yourPhotos")}
+              {t('yourPhotos')}
             </p>
             <motion.div
               variants={{
@@ -229,7 +229,7 @@ export function ConfirmationMarathonClient({
         >
           <div className="rounded-2xl border border-border bg-muted/30 px-5 py-4">
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              {t("whatsNext")}
+              {t('whatsNext')}
             </p>
             <div className="flex flex-col gap-3">
               {[1, 2, 3, 4].map((step) => (
@@ -239,9 +239,9 @@ export function ConfirmationMarathonClient({
                   </span>
                   <p className="text-sm leading-snug text-foreground">
                     {step === 3
-                      ? t("steps.3", { juryDate: "31/8", resultsDate: "1/9" })
+                      ? t('steps.3', { juryDate: '31/8', resultsDate: '1/9' })
                       : step === 4
-                        ? t("steps.4", { prizeDate: "20/8" })
+                        ? t('steps.4', { prizeDate: '20/8' })
                         : t(`steps.${step}`)}
                   </p>
                 </div>
@@ -254,7 +254,7 @@ export function ConfirmationMarathonClient({
       <ConfirmationDetailsDialog
         image={{
           imageUrl: selectedImage?.imageUrl,
-          name: selectedImage?.name ?? "",
+          name: selectedImage?.name ?? '',
           orderIndex: selectedImage?.orderIndex ?? 0,
         }}
         open={!!selectedImage}

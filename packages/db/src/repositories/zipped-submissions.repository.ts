@@ -1,9 +1,9 @@
-import { Effect, Layer, Context } from "effect"
-import { DrizzleClient } from "../drizzle-client"
-import { participants } from "../schema"
-import type { CompetitionClass, Participant, ZippedSubmission } from "../types"
-import { eq, and, gte, lte, sql } from "drizzle-orm"
-import { DbError } from "../utils"
+import { Effect, Layer, Context } from 'effect'
+import { DrizzleClient } from '../drizzle-client'
+import { participants } from '../schema'
+import type { CompetitionClass, Participant, ZippedSubmission } from '../types'
+import { eq, and, gte, lte, sql } from 'drizzle-orm'
+import { DbError } from '../utils'
 
 interface ParticipantWithCompetitionClass extends Participant {
   competitionClass: CompetitionClass | null
@@ -37,12 +37,12 @@ export class ZippedSubmissionsRepository extends Context.Service<
       DbError
     >
   }
->()("@blikka/db/zipped-submissions-repository") {}
+>()('@blikka/db/zipped-submissions-repository') {}
 
 const makeZippedSubmissionsRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
-  const getZippedSubmissionsByDomain: ZippedSubmissionsRepository["Service"]["getZippedSubmissionsByDomain"] =
-    Effect.fn("ZippedSubmissionsRepository.getZippedSubmissionsByDomain")(function* ({ domain }) {
+  const getZippedSubmissionsByDomain: ZippedSubmissionsRepository['Service']['getZippedSubmissionsByDomain'] =
+    Effect.fn('ZippedSubmissionsRepository.getZippedSubmissionsByDomain')(function* ({ domain }) {
       const marathon = yield* use((db) =>
         db.query.marathons.findFirst({
           where: (table, operators) => operators.eq(table.domain, domain),
@@ -66,8 +66,8 @@ const makeZippedSubmissionsRepository = Effect.gen(function* () {
       return result
     })
 
-  const getZippedSubmissionsByReferenceRange: ZippedSubmissionsRepository["Service"]["getZippedSubmissionsByReferenceRange"] =
-    Effect.fn("ZippedSubmissionsRepository.getZippedSubmissionsByReferenceRange")(function* ({
+  const getZippedSubmissionsByReferenceRange: ZippedSubmissionsRepository['Service']['getZippedSubmissionsByReferenceRange'] =
+    Effect.fn('ZippedSubmissionsRepository.getZippedSubmissionsByReferenceRange')(function* ({
       domain,
       competitionClassId,
       minReference,
@@ -119,8 +119,8 @@ const makeZippedSubmissionsRepository = Effect.gen(function* () {
       )
     })
 
-  const getZipSubmissionStatsByDomain: ZippedSubmissionsRepository["Service"]["getZipSubmissionStatsByDomain"] =
-    Effect.fn("ZippedSubmissionsRepository.getZipSubmissionStatsByDomain")(function* ({ domain }) {
+  const getZipSubmissionStatsByDomain: ZippedSubmissionsRepository['Service']['getZipSubmissionStatsByDomain'] =
+    Effect.fn('ZippedSubmissionsRepository.getZipSubmissionStatsByDomain')(function* ({ domain }) {
       const marathon = yield* use((db) =>
         db.query.marathons.findFirst({
           where: (table, operators) => operators.eq(table.domain, domain),

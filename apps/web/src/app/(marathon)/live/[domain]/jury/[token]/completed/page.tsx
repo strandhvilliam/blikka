@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation"
-import Image from "next/image"
-import { CheckCircle2 } from "lucide-react"
-import { getJuryInvitationForRoute } from "@/lib/jury/jury-server"
-import { getJuryEntryPath } from "@/lib/jury/jury-utils"
+import { redirect } from 'next/navigation'
+import Image from 'next/image'
+import { CheckCircle2 } from 'lucide-react'
+import { getJuryInvitationForRoute } from '@/lib/jury/jury-server'
+import { getJuryEntryPath } from '@/lib/jury/jury-utils'
 
 export default async function JuryCompletedPage({
   params,
@@ -13,7 +13,7 @@ export default async function JuryCompletedPage({
 
   const invitation = await getJuryInvitationForRoute({ domain, token })
 
-  if (invitation.status !== "completed") {
+  if (invitation.status !== 'completed') {
     return redirect(getJuryEntryPath(domain, token))
   }
 
@@ -61,4 +61,5 @@ export default async function JuryCompletedPage({
         </main>
       </div>
     </div>
-  )}
+  )
+}

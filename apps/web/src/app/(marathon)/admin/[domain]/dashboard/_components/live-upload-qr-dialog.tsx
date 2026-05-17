@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { Check, Copy, Download, XIcon } from "lucide-react"
-import { useRef, useState, type ReactNode } from "react"
-import { downloadQrPng } from "../_lib/download-qr-png"
-import { QrCodeGenerator } from "@/components/qr-code-generator"
-import { Button } from "@/components/ui/button"
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { Check, Copy, Download, XIcon } from 'lucide-react'
+import { useRef, useState, type ReactNode } from 'react'
+import { downloadQrPng } from '../_lib/download-qr-png'
+import { QrCodeGenerator } from '@/components/qr-code-generator'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogDescription,
@@ -13,15 +13,15 @@ import {
   DialogOverlay,
   DialogPortal,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
+} from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 
 const defaultParticipantDescription = (
   <>
-    This QR code and URL point at your marathon&apos;s{" "}
+    This QR code and URL point at your marathon&apos;s{' '}
     <span className="font-medium text-brand-black/85 dark:text-foreground">live</span> site — the
-    page participants open in a browser to register and upload their photos during the event.
-    Share it on a poster, slide, or chat, or open{" "}
+    page participants open in a browser to register and upload their photos during the event. Share
+    it on a poster, slide, or chat, or open{' '}
     <span className="font-medium text-brand-black/85 dark:text-foreground">Upload</span> in the
     header for the same address.
   </>
@@ -39,7 +39,7 @@ export function LiveUploadQrDialog({
   uploadUrl,
   open,
   onOpenChange,
-  heading = "Participant upload link",
+  heading = 'Participant upload link',
   description = defaultParticipantDescription,
 }: LiveUploadQrDialogProps) {
   const [copied, setCopied] = useState(false)
@@ -58,10 +58,10 @@ export function LiveUploadQrDialog({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
           <DialogPrimitive.Content
             className={cn(
-              "pointer-events-auto relative z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border shadow-lg duration-200",
-              "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-              "max-h-[min(90dvh,calc(100dvh-2rem))] max-w-4xl gap-0 overflow-x-hidden overflow-y-auto border-brand-black/10 bg-brand-white p-0",
-              "shadow-[0_24px_70px_rgba(0,0,0,0.14)] sm:max-w-4xl dark:border-white/12 dark:bg-card dark:shadow-[0_24px_70px_rgba(0,0,0,0.45)]",
+              'pointer-events-auto relative z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border shadow-lg duration-200',
+              'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+              'max-h-[min(90dvh,calc(100dvh-2rem))] max-w-4xl gap-0 overflow-x-hidden overflow-y-auto border-brand-black/10 bg-brand-white p-0',
+              'shadow-[0_24px_70px_rgba(0,0,0,0.14)] sm:max-w-4xl dark:border-white/12 dark:bg-card dark:shadow-[0_24px_70px_rgba(0,0,0,0.45)]',
             )}
           >
             <DialogHeader className="sr-only">
@@ -92,9 +92,9 @@ export function LiveUploadQrDialogBody({
   uploadUrl,
   onCopy,
   copied = false,
-  heading = "Participant upload link",
+  heading = 'Participant upload link',
   description = defaultParticipantDescription,
-}: Omit<LiveUploadQrDialogProps, "open" | "onOpenChange"> & {
+}: Omit<LiveUploadQrDialogProps, 'open' | 'onOpenChange'> & {
   onCopy?: () => void | Promise<void>
   copied?: boolean
 }) {
@@ -107,15 +107,15 @@ export function LiveUploadQrDialogBody({
     setIsDownloading(true)
 
     try {
-      const svg = qrCodeRef.current?.querySelector("svg")
+      const svg = qrCodeRef.current?.querySelector('svg')
 
       await downloadQrPng({
-        filename: "live-upload-qr.png",
+        filename: 'live-upload-qr.png',
         svg: svg ?? null,
       })
     } catch (error) {
-      console.error("Failed to download live upload QR code", error)
-      setDownloadError("Could not download the QR code. Please try again.")
+      console.error('Failed to download live upload QR code', error)
+      setDownloadError('Could not download the QR code. Please try again.')
     } finally {
       setIsDownloading(false)
     }
@@ -150,7 +150,7 @@ export function LiveUploadQrDialogBody({
             className="min-w-44 gap-2 rounded-full border-brand-black/15 bg-white text-brand-black shadow-none hover:bg-brand-black/[0.04] dark:border-white/15 dark:bg-card dark:text-foreground dark:hover:bg-white/8"
           >
             <Download className="size-4" />
-            <span>{isDownloading ? "Preparing PNG..." : "Download PNG"}</span>
+            <span>{isDownloading ? 'Preparing PNG...' : 'Download PNG'}</span>
           </Button>
           <Button
             type="button"
@@ -159,7 +159,7 @@ export function LiveUploadQrDialogBody({
             className="min-w-44 gap-2 rounded-full border-brand-black/15 bg-white text-brand-black shadow-none hover:bg-brand-black/[0.04] dark:border-white/15 dark:bg-card dark:text-foreground dark:hover:bg-white/8"
           >
             {copied ? <Check className="size-4 text-brand-primary" /> : <Copy className="size-4" />}
-            <span>{copied ? "Copied" : "Copy link"}</span>
+            <span>{copied ? 'Copied' : 'Copy link'}</span>
           </Button>
         </div>
         {downloadError ? (

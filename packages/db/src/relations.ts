@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm"
-import * as schema from "./schema"
+import { relations } from 'drizzle-orm'
+import * as schema from './schema'
 
 export const juryRatingsRelations = relations(schema.juryRatings, ({ one }) => ({
   juryInvitation: one(schema.juryInvitations, {
@@ -289,10 +289,10 @@ export const votingRoundRelations = relations(schema.votingRound, ({ one, many }
   sourceRound: one(schema.votingRound, {
     fields: [schema.votingRound.sourceRoundId],
     references: [schema.votingRound.id],
-    relationName: "voting_round_source_round",
+    relationName: 'voting_round_source_round',
   }),
   derivedRounds: many(schema.votingRound, {
-    relationName: "voting_round_source_round",
+    relationName: 'voting_round_source_round',
   }),
   roundSubmissions: many(schema.votingRoundSubmission),
   roundVotes: many(schema.votingRoundVote),

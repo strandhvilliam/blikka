@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, useState } from "react"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { toast } from "sonner"
-import { useDomain } from "@/lib/domain-provider"
-import { useQueryClient, useSuspenseQuery, useMutation } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { TermsHeader } from "./terms-header"
-import { TermsImportField } from "../../settings/_components/terms-import-field"
+import { useEffect, useRef, useState } from 'react'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
+import { useDomain } from '@/lib/domain-provider'
+import { useQueryClient, useSuspenseQuery, useMutation } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { TermsHeader } from './terms-header'
+import { TermsImportField } from '../../settings/_components/terms-import-field'
 
 export function TermsContent() {
   const trpc = useTRPC()
@@ -39,11 +39,11 @@ export function TermsContent() {
   const { mutate: updateMarathonSettings, isPending: isUpdating } = useMutation(
     trpc.marathons.update.mutationOptions({
       onSuccess: () => {
-        toast.success("Terms and conditions updated successfully")
+        toast.success('Terms and conditions updated successfully')
         setHasChanged(false)
       },
       onError: (error) => {
-        toast.error(error.message || "Something went wrong")
+        toast.error(error.message || 'Something went wrong')
       },
       onSettled: () => {
         queryClient.invalidateQueries({
@@ -64,16 +64,16 @@ export function TermsContent() {
       const { key, url } = result
 
       await fetch(url as string, {
-        method: "PUT",
+        method: 'PUT',
         body: file,
         headers: {
-          "Content-Type": file.type || "text/markdown",
+          'Content-Type': file.type || 'text/markdown',
         },
       })
 
       return key
     } catch {
-      toast.error("Failed to upload terms and conditions")
+      toast.error('Failed to upload terms and conditions')
       return null
     } finally {
       setIsUploading(false)
@@ -83,8 +83,8 @@ export function TermsContent() {
   const handleSave = async () => {
     if (!hasChanged || !termsMarkdown.trim()) return
 
-    const termsFile = new File([termsMarkdown], "terms-and-conditions.md", {
-      type: "text/markdown",
+    const termsFile = new File([termsMarkdown], 'terms-and-conditions.md', {
+      type: 'text/markdown',
     })
     const termsKey = await handleTermsUpload(termsFile)
     if (!termsKey) return

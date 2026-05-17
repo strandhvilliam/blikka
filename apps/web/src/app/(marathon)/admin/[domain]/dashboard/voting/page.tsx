@@ -1,9 +1,9 @@
-import { fetchServerQuery, HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { VotingContent } from "./_components/voting-content"
-import { VotingSkeleton } from "./_components/voting-skeleton"
+import { fetchServerQuery, HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { VotingContent } from './_components/voting-content'
+import { VotingSkeleton } from './_components/voting-skeleton'
 
-export default async function VotingPage({ params }: PageProps<"/admin/[domain]/dashboard">) {
+export default async function VotingPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
 
   const marathon = await fetchServerQuery(
@@ -18,8 +18,8 @@ export default async function VotingPage({ params }: PageProps<"/admin/[domain]/
     }),
   )
 
-  if (marathon.mode === "by-camera") {
-    const activeTopic = marathon.topics.find((topic) => topic.visibility === "active")
+  if (marathon.mode === 'by-camera') {
+    const activeTopic = marathon.topics.find((topic) => topic.visibility === 'active')
     if (activeTopic) {
       prefetch(
         trpc.voting.getVotingAdminSummary.queryOptions({
@@ -52,4 +52,5 @@ export default async function VotingPage({ params }: PageProps<"/admin/[domain]/
         </div>
       </Suspense>
     </HydrateClient>
-  )}
+  )
+}

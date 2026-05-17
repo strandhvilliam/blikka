@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils'
 
 interface StaffParticipantCardProps {
   reference: string
@@ -10,13 +10,13 @@ interface StaffParticipantCardProps {
   detailChip: { label: string; value: string }
   deviceGroupName: string
   statusLabel: string
-  statusTone?: "default" | "warning" | "success"
+  statusTone?: 'default' | 'warning' | 'success'
 }
 
 const STATUS_STYLES = {
-  default: "border-stone-200 bg-stone-50 text-stone-600",
-  warning: "border-amber-300 bg-amber-50 text-amber-700",
-  success: "border-emerald-300 bg-emerald-50 text-emerald-700",
+  default: 'border-stone-200 bg-stone-50 text-stone-600',
+  warning: 'border-amber-300 bg-amber-50 text-amber-700',
+  success: 'border-emerald-300 bg-emerald-50 text-emerald-700',
 } as const
 
 export function StaffParticipantCard({
@@ -27,7 +27,7 @@ export function StaffParticipantCard({
   detailChip,
   deviceGroupName,
   statusLabel,
-  statusTone = "default",
+  statusTone = 'default',
 }: StaffParticipantCardProps) {
   return (
     <div className="rounded-2xl border border-border bg-card shadow-sm">
@@ -37,7 +37,7 @@ export function StaffParticipantCard({
             No.
           </span>
           <span className="mt-1 font-mono text-4xl font-bold leading-none tracking-wide text-foreground sm:text-5xl">
-            {reference.length > 0 ? reference : "New"}
+            {reference.length > 0 ? reference : 'New'}
           </span>
         </div>
 
@@ -51,7 +51,7 @@ export function StaffParticipantCard({
             </div>
             <span
               className={cn(
-                "shrink-0 rounded-full border px-3 py-1 text-xs font-semibold",
+                'shrink-0 rounded-full border px-3 py-1 text-xs font-semibold',
                 STATUS_STYLES[statusTone],
               )}
             >

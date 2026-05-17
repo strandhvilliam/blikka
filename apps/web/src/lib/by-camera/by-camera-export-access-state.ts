@@ -1,11 +1,11 @@
-import type { Marathon, Topic } from "@blikka/db"
+import type { Marathon, Topic } from '@blikka/db'
 
 import {
   getByCameraSubmissionWindowState,
   type ByCameraSubmissionWindowState,
-} from "./by-camera-submission-window-state"
+} from './by-camera-submission-window-state'
 
-type ByCameraExportMarathon = Pick<Marathon, "mode"> & {
+type ByCameraExportMarathon = Pick<Marathon, 'mode'> & {
   topics: Topic[]
 }
 
@@ -26,46 +26,46 @@ export function getByCameraExportAccessState(
   now = new Date(),
 ): ByCameraExportAccessResult {
   const activeTopic =
-    marathon.mode === "by-camera"
-      ? (marathon.topics.find((topic) => topic.visibility === "active") ?? null)
+    marathon.mode === 'by-camera'
+      ? (marathon.topics.find((topic) => topic.visibility === 'active') ?? null)
       : null
 
   const state = getByCameraSubmissionWindowState(activeTopic, now)
 
   switch (state) {
-    case "no-active-topic":
+    case 'no-active-topic':
       return {
         activeTopic,
         isExportAllowed: false,
         message: {
-          title: "Exports unavailable",
-          description: "Activate a topic in Topics before downloading by-camera exports.",
+          title: 'Exports unavailable',
+          description: 'Activate a topic in Topics before downloading by-camera exports.',
         },
         state,
       }
-    case "not-opened":
+    case 'not-opened':
       return {
         activeTopic,
         isExportAllowed: false,
         message: {
-          title: "Schedule required",
+          title: 'Schedule required',
           description:
-            "Set a scheduled start time for the active topic before downloading exports.",
+            'Set a scheduled start time for the active topic before downloading exports.',
         },
         state,
       }
-    case "open":
+    case 'open':
       return {
         activeTopic,
         isExportAllowed: false,
         message: {
-          title: "Exports unavailable",
-          description: "Exports are disabled while the active topic is open for submissions.",
+          title: 'Exports unavailable',
+          description: 'Exports are disabled while the active topic is open for submissions.',
         },
         state,
       }
-    case "scheduled":
-    case "closed":
+    case 'scheduled':
+    case 'closed':
       return {
         activeTopic,
         isExportAllowed: true,

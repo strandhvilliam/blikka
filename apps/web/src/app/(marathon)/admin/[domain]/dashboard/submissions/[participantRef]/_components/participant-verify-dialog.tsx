@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { useSession } from "@/lib/auth/client"
-import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { Shield, Loader2 } from "lucide-react"
+import { useSession } from '@/lib/auth/client'
+import { useTRPC } from '@/lib/trpc/client'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { Shield, Loader2 } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,8 +14,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import type { ParticipantWithRelations } from "../_lib/utils"
+} from '@/components/ui/alert-dialog'
+import type { ParticipantWithRelations } from '../_lib/utils'
 
 interface ParticipantVerifyDialogProps {
   participant: ParticipantWithRelations
@@ -36,11 +36,11 @@ export function ParticipantVerifyDialog({
   const { mutate: verifyParticipant, isPending: isVerifying } = useMutation(
     trpc.validations.createParticipantVerification.mutationOptions({
       onSuccess: () => {
-        toast.success("Participant verified successfully")
+        toast.success('Participant verified successfully')
         onOpenChange(false)
       },
       onError: () => {
-        toast.error("Failed to verify participant")
+        toast.error('Failed to verify participant')
         onOpenChange(false)
       },
       onSettled: () => {
@@ -56,7 +56,7 @@ export function ParticipantVerifyDialog({
 
   const handleVerifyParticipant = () => {
     if (!user?.id) {
-      toast.error("Unable to determine logged in user")
+      toast.error('Unable to determine logged in user')
       return
     }
 
@@ -64,7 +64,7 @@ export function ParticipantVerifyDialog({
       data: {
         participantId: participant.id,
         staffId: user.id,
-        notes: "Verified from admin panel",
+        notes: 'Verified from admin panel',
       },
     })
   }

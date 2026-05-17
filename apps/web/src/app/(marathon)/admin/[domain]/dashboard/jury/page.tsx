@@ -1,10 +1,13 @@
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { loadJurySearchParams } from "./_lib/search-params"
-import { JuryDashboard } from "./_components/jury-dashboard"
-import { JuryPageSkeleton } from "./_components/jury-page-skeleton"
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { loadJurySearchParams } from './_lib/search-params'
+import { JuryDashboard } from './_components/jury-dashboard'
+import { JuryPageSkeleton } from './_components/jury-page-skeleton'
 
-export default async function JuryPage({ params, searchParams }: PageProps<"/admin/[domain]/dashboard/jury">) {
+export default async function JuryPage({
+  params,
+  searchParams,
+}: PageProps<'/admin/[domain]/dashboard/jury'>) {
   const { domain } = await params
   const queryParams = await loadJurySearchParams(searchParams)
 
@@ -36,4 +39,5 @@ export default async function JuryPage({ params, searchParams }: PageProps<"/adm
         <JuryDashboard />
       </Suspense>
     </HydrateClient>
-  )}
+  )
+}

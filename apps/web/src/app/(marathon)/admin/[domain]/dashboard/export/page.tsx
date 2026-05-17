@@ -1,9 +1,9 @@
-import { fetchServerQuery, HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { ExportContent } from "./_components/export-content"
-import { ExportSkeleton } from "./_components/export-skeleton"
+import { fetchServerQuery, HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { ExportContent } from './_components/export-content'
+import { ExportSkeleton } from './_components/export-skeleton'
 
-export default async function ExportPage({ params }: PageProps<"/admin/[domain]/dashboard">) {
+export default async function ExportPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
 
   const marathon = await fetchServerQuery(
@@ -12,9 +12,9 @@ export default async function ExportPage({ params }: PageProps<"/admin/[domain]/
     }),
   )
 
-  if (marathon.mode !== "by-camera") {
+  if (marathon.mode !== 'by-camera') {
     prefetch(trpc.zipFiles.getZipSubmissionStatus.queryOptions({ domain }))
-    prefetch(trpc.zipFiles.getZipDownloadProgress.queryOptions({ domain, processId: "" }))
+    prefetch(trpc.zipFiles.getZipDownloadProgress.queryOptions({ domain, processId: '' }))
   }
 
   return (
@@ -25,4 +25,5 @@ export default async function ExportPage({ params }: PageProps<"/admin/[domain]/
         </div>
       </Suspense>
     </HydrateClient>
-  )}
+  )
+}

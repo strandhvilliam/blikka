@@ -1,26 +1,26 @@
-"use client"
+'use client'
 
-import Image from "next/image"
-import { FadeIn } from "./fade-in"
+import Image from 'next/image'
+import { FadeIn } from './fade-in'
 
 const testimonials = [
   {
     quote:
-      "The amount of administrative work around uploads is reduced by a lot. That matters when you have a large participant base and a lot of entries to manage.",
-    name: "Emil Gyllenberg",
-    role: "Co-owner, Stockholm Fotomaraton",
+      'The amount of administrative work around uploads is reduced by a lot. That matters when you have a large participant base and a lot of entries to manage.',
+    name: 'Emil Gyllenberg',
+    role: 'Co-owner, Stockholm Fotomaraton',
   },
   {
     quote:
-      "Our participants notice the difference immediately. The mobile upload flow is a big improvement over the older process.",
-    name: "Deeped Strandh",
-    role: "Co-owner, Stockholm Fotomaraton",
+      'Our participants notice the difference immediately. The mobile upload flow is a big improvement over the older process.',
+    name: 'Deeped Strandh',
+    role: 'Co-owner, Stockholm Fotomaraton',
   },
 ]
 
 const metrics = [
-  { value: "10,000+", label: "Photos managed" },
-  { value: "800+", label: "Participants served" },
+  { value: '10,000+', label: 'Photos managed' },
+  { value: '800+', label: 'Participants served' },
 ]
 
 export function SocialProof() {

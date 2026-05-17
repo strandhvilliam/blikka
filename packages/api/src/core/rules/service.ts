@@ -1,6 +1,6 @@
-import "server-only"
+import 'server-only'
 
-import { Effect, Layer, Context } from "effect"
+import { Effect, Layer, Context } from 'effect'
 import {
   DbLayer,
   MarathonsRepository,
@@ -8,9 +8,9 @@ import {
   type NewRuleConfig,
   type RuleConfig,
   DbError,
-} from "@blikka/db"
-import { NotFoundError, failNotFoundIfNone } from "../errors"
-import type { GetByDomainInput, UpdateMultipleInput } from "./contracts"
+} from '@blikka/db'
+import { NotFoundError, failNotFoundIfNone } from '../errors'
+import type { GetByDomainInput, UpdateMultipleInput } from './contracts'
 
 export class RulesService extends Context.Service<
   RulesService,
@@ -26,20 +26,20 @@ export class RulesService extends Context.Service<
       input: UpdateMultipleInput,
     ) => Effect.Effect<RuleConfig[], DbError | NotFoundError, never>
   }
->()("@blikka/api/RulesService") {}
+>()('@blikka/api/RulesService') {}
 
 const makeRulesService = Effect.gen(function* () {
   const rulesRepository = yield* RulesRepository
   const marathonsRepository = yield* MarathonsRepository
 
-  const getRulesByDomain: RulesService["Service"]["getRulesByDomain"] = Effect.fn(
-    "RulesService.getRulesByDomain",
+  const getRulesByDomain: RulesService['Service']['getRulesByDomain'] = Effect.fn(
+    'RulesService.getRulesByDomain',
   )(function* ({ domain }) {
     return yield* rulesRepository.getRulesByDomain({ domain })
   })
 
-  const updateMultipleRules: RulesService["Service"]["updateMultipleRules"] = Effect.fn(
-    "RulesService.updateMultipleRules",
+  const updateMultipleRules: RulesService['Service']['updateMultipleRules'] = Effect.fn(
+    'RulesService.updateMultipleRules',
   )(function* ({ domain, data }) {
     const existingRules = yield* rulesRepository.getRulesByDomain({
       domain,
@@ -47,7 +47,7 @@ const makeRulesService = Effect.gen(function* () {
 
     const marathon = yield* marathonsRepository
       .getMarathonByDomainWithOptions({ domain })
-      .pipe(failNotFoundIfNone("Marathon", { domain }))
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
     const now = new Date().toISOString()
     const rulesToUpdate: NewRuleConfig[] = existingRules.reduce((acc, rule) => {

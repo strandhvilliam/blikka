@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { Star } from "lucide-react"
+import { Star } from 'lucide-react'
 
 export function RatingFilterBar({
   selectedRatings,
@@ -23,15 +23,15 @@ export function RatingFilterBar({
             aria-busy={isPending}
             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
               isActive
-                ? "bg-brand-primary text-white"
-                : "bg-neutral-50 text-brand-gray hover:bg-neutral-100 hover:text-brand-black"
-            } ${isPending ? "opacity-80" : ""}`}
+                ? 'bg-brand-primary text-white'
+                : 'bg-neutral-50 text-brand-gray hover:bg-neutral-100 hover:text-brand-black'
+            } ${isPending ? 'opacity-80' : ''}`}
           >
             {rating === 0 ? (
-              "Unrated"
+              'Unrated'
             ) : (
               <>
-                <Star className={`h-3 w-3 ${isActive ? "fill-white" : "fill-current"}`} />
+                <Star className={`h-3 w-3 ${isActive ? 'fill-white' : 'fill-current'}`} />
                 {rating}
               </>
             )}
@@ -52,7 +52,7 @@ export function ActiveRatingFilterBadge({ selectedRatings }: { selectedRatings: 
   return (
     <div className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-neutral-50 px-3 py-2 text-xs font-medium text-brand-gray">
       {rating === 0 ? (
-        "Unrated only"
+        'Unrated only'
       ) : (
         <>
           <Star className="h-3 w-3 fill-current" />

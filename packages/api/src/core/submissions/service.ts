@@ -1,43 +1,35 @@
-import "server-only"
+import 'server-only'
 
-import {
-  resolveSubmissionContentType,
-  S3Service,
-  S3ServiceLayer,
-  S3ClientError,
-} from "@blikka/aws"
+import { resolveSubmissionContentType, S3Service, S3ServiceLayer, S3ClientError } from '@blikka/aws'
 import {
   DbLayer,
   ParticipantsRepository,
   TopicsRepository,
   SubmissionsRepository,
   DbError,
-} from "@blikka/db"
+} from '@blikka/db'
 import {
   ExifParser,
   ExifParserLayer,
   SharpImageService,
   SharpImageServiceLayer,
-} from "@blikka/image-manipulation"
-import type { ValidationEngineError } from "@blikka/validation"
-import { Config, Effect, Layer, Option, Context, Schema } from "effect"
+} from '@blikka/image-manipulation'
+import type { ValidationEngineError } from '@blikka/validation'
+import { Config, Effect, Layer, Option, Context, Schema } from 'effect'
 
-import {
-  ValidationsService,
-  ValidationsServiceLayer,
-} from "../validations/service"
-import { NotFoundError } from "../errors"
+import { ValidationsService, ValidationsServiceLayer } from '../validations/service'
+import { NotFoundError } from '../errors'
 import {
   type BeginAdminReplaceUploadServiceInput,
   type CompleteAdminReplaceUploadServiceInput,
   type RegenerateSubmissionAssetsServiceInput,
-} from "./contracts"
+} from './contracts'
 import {
   AdminReplaceSubmissionError,
   assertReplaceTargetMatchesSubmission,
   makeThumbnailKey,
   parseSubmissionStorageKey,
-} from "./replace-submission"
+} from './replace-submission'
 
 const THUMBNAIL_WIDTH = 400
 
@@ -48,19 +40,17 @@ export class SubmissionsService extends Context.Service<
      * Starts an admin replacement upload: validates domain admin, returns a presigned PUT URL and
      * staging `key` for the replacement object.
      */
-    readonly beginAdminReplaceUpload: (
-      input: BeginAdminReplaceUploadServiceInput,
-    ) => Effect.Effect<
+    readonly beginAdminReplaceUpload: (input: BeginAdminReplaceUploadServiceInput) => Effect.Effect<
       {
         key: string
         presignedPutUrl: string
         contentType:
-          | "image/jpeg"
-          | "image/gif"
-          | "image/heic"
-          | "image/heif"
-          | "image/png"
-          | "image/webp"
+          | 'image/jpeg'
+          | 'image/gif'
+          | 'image/heic'
+          | 'image/heif'
+          | 'image/png'
+          | 'image/webp'
         previousKey: string
       },
       DbError | S3ClientError | Config.ConfigError | AdminReplaceSubmissionError,
@@ -116,7 +106,7 @@ export class SubmissionsService extends Context.Service<
       ValidationsService
     >
   }
->()("@blikka/api/SubmissionsService") {}
+>()('@blikka/api/SubmissionsService') {}
 
 const makeSubmissionsService = Effect.gen(function* () {
   const submissionsRepository = yield* SubmissionsRepository
@@ -126,9 +116,10 @@ const makeSubmissionsService = Effect.gen(function* () {
   const exifParser = yield* ExifParser
   const sharp = yield* SharpImageService
 
-  const requireAdminForDomain = Effect.fn(
-    "SubmissionsService.requireAdminForDomain",
-  )(function* ({ domain, isAdminForDomain }) {
+  const requireAdminForDomain = Effect.fn('SubmissionsService.requireAdminForDomain')(function* ({
+    domain,
+    isAdminForDomain,
+  }) {
     if (!isAdminForDomain) {
       return yield* Effect.fail(
         new AdminReplaceSubmissionError({
@@ -138,9 +129,10 @@ const makeSubmissionsService = Effect.gen(function* () {
     }
   })
 
-  const getSubmissionContext = Effect.fn(
-    "SubmissionsService.getSubmissionContext",
-  )(function* ({ domain, submissionId }) {
+  const getSubmissionContext = Effect.fn('SubmissionsService.getSubmissionContext')(function* ({
+    domain,
+    submissionId,
+  }) {
     const submissionOption = yield* submissionsRepository.getSubmissionById({
       id: submissionId,
     })
@@ -148,7 +140,7 @@ const makeSubmissionsService = Effect.gen(function* () {
     if (Option.isNone(submissionOption)) {
       return yield* Effect.fail(
         new AdminReplaceSubmissionError({
-          message: "Submission not found",
+          message: 'Submission not found',
         }),
       )
     }
@@ -161,7 +153,7 @@ const makeSubmissionsService = Effect.gen(function* () {
     if (Option.isNone(participantOption)) {
       return yield* Effect.fail(
         new AdminReplaceSubmissionError({
-          message: "Submission participant not found",
+          message: 'Submission participant not found',
         }),
       )
     }
@@ -171,7 +163,7 @@ const makeSubmissionsService = Effect.gen(function* () {
     if (participant.domain !== domain) {
       return yield* Effect.fail(
         new AdminReplaceSubmissionError({
-          message: "Submission does not belong to this domain",
+          message: 'Submission does not belong to this domain',
         }),
       )
     }
@@ -183,7 +175,7 @@ const makeSubmissionsService = Effect.gen(function* () {
     if (!topic) {
       return yield* Effect.fail(
         new AdminReplaceSubmissionError({
-          message: "Submission topic not found",
+          message: 'Submission topic not found',
         }),
       )
     }
@@ -195,23 +187,25 @@ const makeSubmissionsService = Effect.gen(function* () {
     }
   })
 
-  const getReplacementHead = Effect.fn("SubmissionsService.getReplacementHead")(
-    function* ({ bucketName, key }) {
-      return yield* s3.getHead(bucketName, key).pipe(
-        Effect.mapError(
-          (error) =>
-            new AdminReplaceSubmissionError({
-              message: `Replacement upload not found: ${key}`,
-              cause: error,
-            }),
-        ),
-      )
-    },
-  )
+  const getReplacementHead = Effect.fn('SubmissionsService.getReplacementHead')(function* ({
+    bucketName,
+    key,
+  }) {
+    return yield* s3.getHead(bucketName, key).pipe(
+      Effect.mapError(
+        (error) =>
+          new AdminReplaceSubmissionError({
+            message: `Replacement upload not found: ${key}`,
+            cause: error,
+          }),
+      ),
+    )
+  })
 
-  const getReplacementBytes = Effect.fn(
-    "SubmissionsService.getReplacementBytes",
-  )(function* ({ bucketName, key }) {
+  const getReplacementBytes = Effect.fn('SubmissionsService.getReplacementBytes')(function* ({
+    bucketName,
+    key,
+  }) {
     const fileOption = yield* s3.getFile(bucketName, key).pipe(
       Effect.mapError(
         (error) =>
@@ -233,181 +227,157 @@ const makeSubmissionsService = Effect.gen(function* () {
     return fileOption.value
   })
 
-  const processReplacementImage = Effect.fn(
-    "SubmissionsService.processReplacementImage",
-  )(function* ({
-    bytes,
-    parsedKey,
-    thumbnailsBucketName,
-  }: {
-    bytes: Uint8Array<ArrayBufferLike>
-    parsedKey: ReturnType<typeof parseSubmissionStorageKey>
-    thumbnailsBucketName: string
-  }) {
-    const nextThumbnailKey = makeThumbnailKey(parsedKey)
+  const processReplacementImage = Effect.fn('SubmissionsService.processReplacementImage')(
+    function* ({
+      bytes,
+      parsedKey,
+      thumbnailsBucketName,
+    }: {
+      bytes: Uint8Array<ArrayBufferLike>
+      parsedKey: ReturnType<typeof parseSubmissionStorageKey>
+      thumbnailsBucketName: string
+    }) {
+      const nextThumbnailKey = makeThumbnailKey(parsedKey)
 
-    const [exif, thumbnailKey] = yield* Effect.all(
-      [
-        exifParser
-          .parse(bytes)
-          .pipe(
-            Effect.catch(() =>
-              Effect.logWarning(
-                `Failed to parse EXIF for replacement: ${parsedKey.fileName}`,
-              ).pipe(
-                Effect.andThen(Effect.succeed<Record<string, unknown>>({})),
+      const [exif, thumbnailKey] = yield* Effect.all(
+        [
+          exifParser
+            .parse(bytes)
+            .pipe(
+              Effect.catch(() =>
+                Effect.logWarning(
+                  `Failed to parse EXIF for replacement: ${parsedKey.fileName}`,
+                ).pipe(Effect.andThen(Effect.succeed<Record<string, unknown>>({}))),
               ),
             ),
+          sharp.resize(bytes, { width: THUMBNAIL_WIDTH }).pipe(
+            Effect.andThen((thumbnailBuffer) =>
+              s3
+                .putFile(thumbnailsBucketName, nextThumbnailKey, thumbnailBuffer)
+                .pipe(Effect.as<string | null>(nextThumbnailKey)),
+            ),
+            Effect.catch(() =>
+              Effect.logWarning(
+                `Failed to generate thumbnail for replacement: ${parsedKey.fileName}`,
+              ).pipe(Effect.andThen(Effect.succeed<string | null>(null))),
+            ),
           ),
-        sharp.resize(bytes, { width: THUMBNAIL_WIDTH }).pipe(
-          Effect.andThen((thumbnailBuffer) =>
-            s3
-              .putFile(thumbnailsBucketName, nextThumbnailKey, thumbnailBuffer)
-              .pipe(Effect.as<string | null>(nextThumbnailKey)),
-          ),
-          Effect.catch(() =>
-            Effect.logWarning(
-              `Failed to generate thumbnail for replacement: ${parsedKey.fileName}`,
-            ).pipe(Effect.andThen(Effect.succeed<string | null>(null))),
-          ),
-        ),
-      ],
-      { concurrency: 2 },
-    )
+        ],
+        { concurrency: 2 },
+      )
 
-    return {
-      exif,
-      thumbnailKey,
-    }
-  })
+      return {
+        exif,
+        thumbnailKey,
+      }
+    },
+  )
 
-  const regenerateSubmissionAssets: SubmissionsService["Service"]["regenerateSubmissionAssets"] =
-    Effect.fn("SubmissionsService.regenerateSubmissionAssets")(
-      function* ({
+  const regenerateSubmissionAssets: SubmissionsService['Service']['regenerateSubmissionAssets'] =
+    Effect.fn('SubmissionsService.regenerateSubmissionAssets')(function* ({
+      domain,
+      submissionId,
+      regenerateExif,
+      regenerateThumbnail,
+      rerunValidations,
+      isAdminForDomain,
+    }) {
+      yield* requireAdminForDomain({ domain, isAdminForDomain })
+
+      const shouldProcessAssets = regenerateExif || regenerateThumbnail
+      const { submission, participant, topic } = yield* getSubmissionContext({
         domain,
         submissionId,
-        regenerateExif,
-        regenerateThumbnail,
-        rerunValidations,
-        isAdminForDomain,
-      }) {
-        yield* requireAdminForDomain({ domain, isAdminForDomain })
+      })
 
-        const shouldProcessAssets = regenerateExif || regenerateThumbnail
-        const { submission, participant, topic } = yield* getSubmissionContext({
-          domain,
-          submissionId,
+      let nextExif = (submission.exif as Record<string, unknown> | null) ?? {}
+      let nextThumbnailKey = submission.thumbnailKey
+
+      if (shouldProcessAssets) {
+        const submissionsBucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
+        const thumbnailsBucketName = yield* Config.string('THUMBNAILS_BUCKET_NAME')
+        const bytes = yield* getReplacementBytes({
+          bucketName: submissionsBucketName,
+          key: submission.key,
         })
+        const parsedKey = parseSubmissionStorageKey(submission.key)
+        const generatedThumbnailKey = makeThumbnailKey(parsedKey)
 
-        let nextExif = (submission.exif as Record<string, unknown> | null) ?? {}
-        let nextThumbnailKey = submission.thumbnailKey
-
-        if (shouldProcessAssets) {
-          const submissionsBucketName = yield* Config.string(
-            "SUBMISSIONS_BUCKET_NAME",
+        if (parsedKey.domain !== domain) {
+          return yield* Effect.fail(
+            new AdminReplaceSubmissionError({
+              message: 'Submission does not belong to this domain',
+            }),
           )
-          const thumbnailsBucketName = yield* Config.string(
-            "THUMBNAILS_BUCKET_NAME",
-          )
-          const bytes = yield* getReplacementBytes({
-            bucketName: submissionsBucketName,
-            key: submission.key,
-          })
-          const parsedKey = parseSubmissionStorageKey(submission.key)
-          const generatedThumbnailKey = makeThumbnailKey(parsedKey)
+        }
 
-          if (parsedKey.domain !== domain) {
-            return yield* Effect.fail(
-              new AdminReplaceSubmissionError({
-                message: "Submission does not belong to this domain",
-              }),
-            )
-          }
-
-          const [regeneratedExif, regeneratedThumbnailKey] = yield* Effect.all(
-            [
-              regenerateExif
-                ? exifParser
-                    .parse(bytes)
-                    .pipe(
-                      Effect.catch(() =>
-                        Effect.logWarning(
-                          `Failed to regenerate EXIF for submission: ${submission.key}`,
-                        ).pipe(
-                          Effect.andThen(
-                            Effect.succeed<Record<string, unknown>>({}),
-                          ),
-                        ),
-                      ),
-                    )
-                : Effect.succeed(nextExif),
-              regenerateThumbnail
-                ? sharp.resize(bytes, { width: THUMBNAIL_WIDTH }).pipe(
-                    Effect.andThen((thumbnailBuffer) =>
-                      s3
-                        .putFile(
-                          thumbnailsBucketName,
-                          generatedThumbnailKey,
-                          thumbnailBuffer,
-                        )
-                        .pipe(
-                          Effect.as<string | null>(generatedThumbnailKey),
-                        ),
-                    ),
+        const [regeneratedExif, regeneratedThumbnailKey] = yield* Effect.all(
+          [
+            regenerateExif
+              ? exifParser
+                  .parse(bytes)
+                  .pipe(
                     Effect.catch(() =>
                       Effect.logWarning(
-                        `Failed to regenerate thumbnail for submission: ${submission.key}`,
-                      ).pipe(
-                        Effect.andThen(
-                          Effect.succeed<string | null>(nextThumbnailKey),
-                        ),
-                      ),
+                        `Failed to regenerate EXIF for submission: ${submission.key}`,
+                      ).pipe(Effect.andThen(Effect.succeed<Record<string, unknown>>({}))),
                     ),
                   )
-                : Effect.succeed(nextThumbnailKey),
-            ],
-            { concurrency: 2 },
+              : Effect.succeed(nextExif),
+            regenerateThumbnail
+              ? sharp.resize(bytes, { width: THUMBNAIL_WIDTH }).pipe(
+                  Effect.andThen((thumbnailBuffer) =>
+                    s3
+                      .putFile(thumbnailsBucketName, generatedThumbnailKey, thumbnailBuffer)
+                      .pipe(Effect.as<string | null>(generatedThumbnailKey)),
+                  ),
+                  Effect.catch(() =>
+                    Effect.logWarning(
+                      `Failed to regenerate thumbnail for submission: ${submission.key}`,
+                    ).pipe(Effect.andThen(Effect.succeed<string | null>(nextThumbnailKey))),
+                  ),
+                )
+              : Effect.succeed(nextThumbnailKey),
+          ],
+          { concurrency: 2 },
+        )
+
+        nextExif = regeneratedExif
+        nextThumbnailKey = regeneratedThumbnailKey
+
+        yield* submissionsRepository.updateSubmissionById({
+          id: submission.id,
+          data: {
+            exif: nextExif,
+            thumbnailKey: nextThumbnailKey,
+            updatedAt: new Date().toISOString(),
+          },
+        })
+      }
+
+      const validationResult = rerunValidations
+        ? yield* ValidationsService.use((service) =>
+            service.runValidations({
+              domain,
+              reference: participant.reference,
+            }),
           )
+        : null
 
-          nextExif = regeneratedExif
-          nextThumbnailKey = regeneratedThumbnailKey
+      return {
+        success: true,
+        exifFieldCount: Object.keys(nextExif).length,
+        thumbnailKey: nextThumbnailKey,
+        validationResultsCount: validationResult?.resultsCount ?? 0,
+        regeneratedExif: regenerateExif,
+        regeneratedThumbnail: regenerateThumbnail,
+        reranValidations: rerunValidations,
+        participantReference: participant.reference,
+        topicOrderIndex: topic.orderIndex,
+      }
+    })
 
-          yield* submissionsRepository.updateSubmissionById({
-            id: submission.id,
-            data: {
-              exif: nextExif,
-              thumbnailKey: nextThumbnailKey,
-              updatedAt: new Date().toISOString(),
-            },
-          })
-        }
-
-        const validationResult = rerunValidations
-          ? yield* ValidationsService.use((service) =>
-              service.runValidations({
-                domain,
-                reference: participant.reference,
-              }),
-            )
-          : null
-
-        return {
-          success: true,
-          exifFieldCount: Object.keys(nextExif).length,
-          thumbnailKey: nextThumbnailKey,
-          validationResultsCount: validationResult?.resultsCount ?? 0,
-          regeneratedExif: regenerateExif,
-          regeneratedThumbnail: regenerateThumbnail,
-          reranValidations: rerunValidations,
-          participantReference: participant.reference,
-          topicOrderIndex: topic.orderIndex,
-        }
-      },
-    )
-
-  const deleteFileBestEffort = Effect.fn(
-    "SubmissionsService.deleteFileBestEffort",
-  )(function* ({
+  const deleteFileBestEffort = Effect.fn('SubmissionsService.deleteFileBestEffort')(function* ({
     bucketName,
     key,
   }: {
@@ -420,162 +390,138 @@ const makeSubmissionsService = Effect.gen(function* () {
 
     yield* s3
       .deleteFile(bucketName, key)
-      .pipe(
-        Effect.catch(() =>
-          Effect.logWarning(`Failed to delete replaced asset: ${key}`),
-        ),
-      )
+      .pipe(Effect.catch(() => Effect.logWarning(`Failed to delete replaced asset: ${key}`)))
   })
 
-  const beginAdminReplaceUpload: SubmissionsService["Service"]["beginAdminReplaceUpload"] =
-    Effect.fn("SubmissionsService.beginAdminReplaceUpload")(
-      function* ({
+  const beginAdminReplaceUpload: SubmissionsService['Service']['beginAdminReplaceUpload'] =
+    Effect.fn('SubmissionsService.beginAdminReplaceUpload')(function* ({
+      domain,
+      submissionId,
+      contentType,
+      isAdminForDomain,
+    }) {
+      yield* requireAdminForDomain({ domain, isAdminForDomain })
+
+      const { participant, topic, submission } = yield* getSubmissionContext({
         domain,
         submissionId,
-        contentType,
-        isAdminForDomain,
-      }) {
-        yield* requireAdminForDomain({ domain, isAdminForDomain })
+      })
+      const submissionsBucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
+      const normalizedContentType = resolveSubmissionContentType(contentType)
+      const key = yield* s3.generateSubmissionKey(domain, participant.reference, topic.orderIndex, {
+        filenamePrefix: 'replace',
+        contentType: normalizedContentType,
+      })
+      const presignedPutUrl = yield* s3.getPresignedUrl(submissionsBucketName, key, 'PUT', {
+        contentType: normalizedContentType,
+      })
 
-        const { participant, topic, submission } = yield* getSubmissionContext({
-          domain,
-          submissionId,
-        })
-        const submissionsBucketName = yield* Config.string(
-          "SUBMISSIONS_BUCKET_NAME",
-        )
-        const normalizedContentType = resolveSubmissionContentType(contentType)
-        const key = yield* s3.generateSubmissionKey(
-          domain,
-          participant.reference,
-          topic.orderIndex,
-          {
-            filenamePrefix: "replace",
-            contentType: normalizedContentType,
-          },
-        )
-        const presignedPutUrl = yield* s3.getPresignedUrl(
-          submissionsBucketName,
-          key,
-          "PUT",
-          {
-            contentType: normalizedContentType,
-          },
-        )
+      return {
+        key,
+        presignedPutUrl,
+        contentType: normalizedContentType,
+        previousKey: submission.key,
+      }
+    })
 
-        return {
-          key,
-          presignedPutUrl,
-          contentType: normalizedContentType,
-          previousKey: submission.key,
-        }
-      },
-    )
+  const completeAdminReplaceUpload: SubmissionsService['Service']['completeAdminReplaceUpload'] =
+    Effect.fn('SubmissionsService.completeAdminReplaceUpload')(function* ({
+      domain,
+      submissionId,
+      newKey,
+      previousKey,
+      isAdminForDomain,
+    }) {
+      yield* requireAdminForDomain({ domain, isAdminForDomain })
 
-  const completeAdminReplaceUpload: SubmissionsService["Service"]["completeAdminReplaceUpload"] =
-    Effect.fn("SubmissionsService.completeAdminReplaceUpload")(
-      function* ({
+      const { submission, participant, topic } = yield* getSubmissionContext({
         domain,
         submissionId,
-        newKey,
-        previousKey,
-        isAdminForDomain,
-      }) {
-        yield* requireAdminForDomain({ domain, isAdminForDomain })
+      })
 
-        const { submission, participant, topic } = yield* getSubmissionContext({
-          domain,
-          submissionId,
-        })
-
-        if (submission.key !== previousKey) {
-          return yield* Effect.fail(
-            new AdminReplaceSubmissionError({
-              message: "Submission changed before the replacement completed",
-            }),
-          )
-        }
-
-        const parsedKey = parseSubmissionStorageKey(newKey)
-
-        assertReplaceTargetMatchesSubmission({
-          parsedKey,
-          expectedDomain: domain,
-          expectedReference: participant.reference,
-          expectedOrderIndex: topic.orderIndex,
-        })
-
-        const submissionsBucketName = yield* Config.string(
-          "SUBMISSIONS_BUCKET_NAME",
-        )
-        const thumbnailsBucketName = yield* Config.string(
-          "THUMBNAILS_BUCKET_NAME",
-        )
-
-        const previousThumbnailKey = submission.thumbnailKey
-        const previousPreviewKey = submission.previewKey
-
-        const head = yield* getReplacementHead({
-          bucketName: submissionsBucketName,
-          key: newKey,
-        })
-        const bytes = yield* getReplacementBytes({
-          bucketName: submissionsBucketName,
-          key: newKey,
-        })
-        const { exif, thumbnailKey } = yield* processReplacementImage({
-          bytes,
-          parsedKey,
-          thumbnailsBucketName,
-        })
-
-        yield* submissionsRepository.updateSubmissionById({
-          id: submission.id,
-          data: {
-            key: newKey,
-            thumbnailKey,
-            previewKey: null,
-            exif,
-            size: head.ContentLength ?? null,
-            mimeType: resolveSubmissionContentType(head.ContentType),
-            status: "uploaded",
-            updatedAt: new Date().toISOString(),
-          },
-        })
-
-        yield* Effect.all(
-          [
-            deleteFileBestEffort({
-              bucketName: submissionsBucketName,
-              key: submission.key === newKey ? null : submission.key,
-            }),
-            deleteFileBestEffort({
-              bucketName: thumbnailsBucketName,
-              key: previousThumbnailKey,
-            }),
-            deleteFileBestEffort({
-              bucketName: submissionsBucketName,
-              key: previousPreviewKey,
-            }),
-          ],
-          { concurrency: 3 },
-        )
-
-        const validationResult = yield* ValidationsService.use((service) =>
-          service.runValidations({
-            domain,
-            reference: participant.reference,
+      if (submission.key !== previousKey) {
+        return yield* Effect.fail(
+          new AdminReplaceSubmissionError({
+            message: 'Submission changed before the replacement completed',
           }),
         )
+      }
 
-        return {
-          success: true,
+      const parsedKey = parseSubmissionStorageKey(newKey)
+
+      assertReplaceTargetMatchesSubmission({
+        parsedKey,
+        expectedDomain: domain,
+        expectedReference: participant.reference,
+        expectedOrderIndex: topic.orderIndex,
+      })
+
+      const submissionsBucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
+      const thumbnailsBucketName = yield* Config.string('THUMBNAILS_BUCKET_NAME')
+
+      const previousThumbnailKey = submission.thumbnailKey
+      const previousPreviewKey = submission.previewKey
+
+      const head = yield* getReplacementHead({
+        bucketName: submissionsBucketName,
+        key: newKey,
+      })
+      const bytes = yield* getReplacementBytes({
+        bucketName: submissionsBucketName,
+        key: newKey,
+      })
+      const { exif, thumbnailKey } = yield* processReplacementImage({
+        bytes,
+        parsedKey,
+        thumbnailsBucketName,
+      })
+
+      yield* submissionsRepository.updateSubmissionById({
+        id: submission.id,
+        data: {
           key: newKey,
           thumbnailKey,
-          validationResultsCount: validationResult.resultsCount,
-        }
-      },
-    )
+          previewKey: null,
+          exif,
+          size: head.ContentLength ?? null,
+          mimeType: resolveSubmissionContentType(head.ContentType),
+          status: 'uploaded',
+          updatedAt: new Date().toISOString(),
+        },
+      })
+
+      yield* Effect.all(
+        [
+          deleteFileBestEffort({
+            bucketName: submissionsBucketName,
+            key: submission.key === newKey ? null : submission.key,
+          }),
+          deleteFileBestEffort({
+            bucketName: thumbnailsBucketName,
+            key: previousThumbnailKey,
+          }),
+          deleteFileBestEffort({
+            bucketName: submissionsBucketName,
+            key: previousPreviewKey,
+          }),
+        ],
+        { concurrency: 3 },
+      )
+
+      const validationResult = yield* ValidationsService.use((service) =>
+        service.runValidations({
+          domain,
+          reference: participant.reference,
+        }),
+      )
+
+      return {
+        success: true,
+        key: newKey,
+        thumbnailKey,
+        validationResultsCount: validationResult.resultsCount,
+      }
+    })
 
   return SubmissionsService.of({
     beginAdminReplaceUpload,

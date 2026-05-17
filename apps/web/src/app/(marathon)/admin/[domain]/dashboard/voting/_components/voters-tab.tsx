@@ -1,9 +1,5 @@
-import { useEffect } from "react";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { useEffect } from 'react'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
   Check,
   Copy,
@@ -16,10 +12,10 @@ import {
   Trash2,
   X,
   UserPlus,
-} from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+} from 'lucide-react'
+import Link from 'next/link'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -27,70 +23,62 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useTRPC } from "@/lib/trpc/client";
-import { useDomain } from "@/lib/domain-provider";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { getVotingLifecycleState } from "@/lib/voting-lifecycle";
-import {
-  formatDateTime,
-  getSubmissionImageUrl,
-  VOTING_PAGE_SIZE,
-} from "../_lib/utils";
-import { useVotingUiState } from "../_hooks/use-voting-ui-state";
-import { formatDomainLink } from "@/lib/utils";
-import { VotingProgress } from "./voting-progress";
-import { VoterContactCell } from "./voter-contact-cell";
+} from '@/components/ui/dropdown-menu'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { getVotingLifecycleState } from '@/lib/voting-lifecycle'
+import { formatDateTime, getSubmissionImageUrl, VOTING_PAGE_SIZE } from '../_lib/utils'
+import { useVotingUiState } from '../_hooks/use-voting-ui-state'
+import { formatDomainLink } from '@/lib/utils'
+import { VotingProgress } from './voting-progress'
+import { VoterContactCell } from './voter-contact-cell'
 
 interface VotersTabProps {
-  activeTopic: { id: number; name: string; orderIndex: number };
+  activeTopic: { id: number; name: string; orderIndex: number }
 }
 
 function formatNotificationWarnings(
   warnings: Array<{
-    channel: "email" | "sms";
-    message: string;
-    failedSessionIds: number[];
+    channel: 'email' | 'sms'
+    message: string
+    failedSessionIds: number[]
   }>,
 ) {
   return warnings.map((warning) => {
-    const label = warning.channel === "email" ? "Email" : "SMS";
-    const failedCount = warning.failedSessionIds.length;
+    const label = warning.channel === 'email' ? 'Email' : 'SMS'
+    const failedCount = warning.failedSessionIds.length
 
-    return `${label} failed for ${failedCount} session${failedCount === 1 ? "" : "s"}: ${warning.message}`;
-  });
+    return `${label} failed for ${failedCount} session${failedCount === 1 ? '' : 's'}: ${warning.message}`
+  })
 }
 
 export function VotersTab({ activeTopic }: VotersTabProps) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const domain = useDomain();
-  const { votersPage, setVotersPage } = useVotingUiState();
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const domain = useDomain()
+  const { votersPage, setVotersPage } = useVotingUiState()
 
   const handleCopySessionLink = async (token: string) => {
-    const link = formatDomainLink(`/live/vote/${token}`, domain, "live");
-    await navigator.clipboard.writeText(link);
-    toast.success("Link copied to clipboard");
-  };
+    const link = formatDomainLink(`/live/vote/${token}`, domain, 'live')
+    await navigator.clipboard.writeText(link)
+    toast.success('Link copied to clipboard')
+  }
 
   const clearVoteMutation = useMutation(
     trpc.voting.clearVote.mutationOptions({
       onSuccess: async () => {
-        toast.success("Vote cleared successfully");
+        toast.success('Vote cleared successfully')
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
@@ -104,18 +92,18 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingRoundsForTopic.pathKey(),
           }),
-        ]);
+        ])
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to clear vote");
+        toast.error(error.message || 'Failed to clear vote')
       },
     }),
-  );
+  )
 
   const deleteVotingSessionMutation = useMutation(
     trpc.voting.deleteVotingSession.mutationOptions({
       onSuccess: async () => {
-        toast.success("Voting session deleted successfully");
+        toast.success('Voting session deleted successfully')
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingAdminSummary.pathKey(),
@@ -129,36 +117,36 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingRoundsForTopic.pathKey(),
           }),
-        ]);
+        ])
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to delete voting session");
+        toast.error(error.message || 'Failed to delete voting session')
       },
     }),
-  );
+  )
 
   const resendVotingSessionNotificationMutation = useMutation(
     trpc.voting.resendVotingSessionNotification.mutationOptions({
       onSuccess: async (data, variables) => {
-        if (variables.channel === "email") {
+        if (variables.channel === 'email') {
           if (data.emailSent) {
-            toast.success("Voting email notification resent");
+            toast.success('Voting email notification resent')
           } else {
-            toast.warning("Voting email notification could not be delivered");
+            toast.warning('Voting email notification could not be delivered')
           }
-        } else if (variables.channel === "sms") {
+        } else if (variables.channel === 'sms') {
           if (data.smsSent) {
-            toast.success("Voting phone notification resent");
+            toast.success('Voting phone notification resent')
           } else {
-            toast.warning("Voting phone notification could not be delivered");
+            toast.warning('Voting phone notification could not be delivered')
           }
         } else if (data.emailSent || data.smsSent) {
-          toast.success("Voting notification resent by available channels");
+          toast.success('Voting notification resent by available channels')
         } else {
-          toast.warning("Voting notification could not be delivered");
+          toast.warning('Voting notification could not be delivered')
         }
         for (const message of data.warningMessages) {
-          toast.warning(message);
+          toast.warning(message)
         }
         await Promise.all([
           queryClient.invalidateQueries({
@@ -167,24 +155,22 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getVotingVotersPage.pathKey(),
           }),
-        ]);
+        ])
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to resend voting notification");
+        toast.error(error.message || 'Failed to resend voting notification')
       },
     }),
-  );
+  )
 
   const startVotingSessionsForParticipantsMutation = useMutation(
     trpc.voting.startVotingSessionsForParticipants.mutationOptions({
       onSuccess: async (data) => {
         toast.success(
-          `Voting sessions created for ${data.sessionsCreated} participant${data.sessionsCreated === 1 ? "" : "s"}`,
-        );
-        for (const message of formatNotificationWarnings(
-          data.notificationWarnings,
-        )) {
-          toast.warning(message);
+          `Voting sessions created for ${data.sessionsCreated} participant${data.sessionsCreated === 1 ? '' : 's'}`,
+        )
+        for (const message of formatNotificationWarnings(data.notificationWarnings)) {
+          toast.warning(message)
         }
         await Promise.all([
           queryClient.invalidateQueries({
@@ -202,70 +188,62 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
           queryClient.invalidateQueries({
             queryKey: trpc.voting.getParticipantsWithoutVotingSession.pathKey(),
           }),
-        ]);
+        ])
       },
       onError: (error) => {
-        toast.error(
-          error.message || "Failed to start voting sessions for participants",
-        );
+        toast.error(error.message || 'Failed to start voting sessions for participants')
       },
     }),
-  );
+  )
 
   const handleClearVote = (sessionId: number) => {
     clearVoteMutation.mutate({
       domain,
       topicId: activeTopic.id,
       sessionId,
-    });
-  };
+    })
+  }
 
   const handleDeleteSession = (sessionId: number) => {
     if (
-      !confirm(
-        "Are you sure you want to delete this voting session? This action cannot be undone.",
-      )
+      !confirm('Are you sure you want to delete this voting session? This action cannot be undone.')
     ) {
-      return;
+      return
     }
 
     deleteVotingSessionMutation.mutate({
       domain,
       topicId: activeTopic.id,
       sessionId,
-    });
-  };
+    })
+  }
 
-  const handleResendSessionNotification = (
-    sessionId: number,
-    channel: "email" | "sms",
-  ) => {
+  const handleResendSessionNotification = (sessionId: number, channel: 'email' | 'sms') => {
     resendVotingSessionNotificationMutation.mutate({
       domain,
       topicId: activeTopic.id,
       sessionId,
       channel,
-    });
-  };
+    })
+  }
 
   const pendingClearVoteSessionId = clearVoteMutation.isPending
     ? (clearVoteMutation.variables?.sessionId ?? null)
-    : null;
-  const isClearingVote = clearVoteMutation.isPending;
+    : null
+  const isClearingVote = clearVoteMutation.isPending
 
   const pendingDeleteSessionId = deleteVotingSessionMutation.isPending
     ? (deleteVotingSessionMutation.variables?.sessionId ?? null)
-    : null;
-  const isDeletingSession = deleteVotingSessionMutation.isPending;
+    : null
+  const isDeletingSession = deleteVotingSessionMutation.isPending
 
-  const pendingResendSessionId =
-    resendVotingSessionNotificationMutation.isPending
-      ? resendVotingSessionNotificationMutation.variables?.sessionId
-      : null;
+  const pendingResendSessionId = resendVotingSessionNotificationMutation.isPending
+    ? resendVotingSessionNotificationMutation.variables?.sessionId
+    : null
   const pendingResendChannel = resendVotingSessionNotificationMutation.isPending
     ? (resendVotingSessionNotificationMutation.variables?.channel ?? null)
-    : null;
-  const isResending = resendVotingSessionNotificationMutation.isPending;
+    : null
+  const isResending = resendVotingSessionNotificationMutation.isPending
 
   const { data: votersPageData } = useSuspenseQuery(
     trpc.voting.getVotingVotersPage.queryOptions({
@@ -274,42 +252,42 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
       page: votersPage,
       limit: VOTING_PAGE_SIZE,
     }),
-  );
+  )
 
   const { data: participantsWithoutSession = [] } = useSuspenseQuery(
     trpc.voting.getParticipantsWithoutVotingSession.queryOptions({
       domain,
       topicId: activeTopic.id,
     }),
-  );
+  )
   const { data: summary } = useSuspenseQuery(
     trpc.voting.getVotingAdminSummary.queryOptions({
       domain,
       topicId: activeTopic.id,
     }),
-  );
+  )
 
-  const voters = votersPageData?.items ?? [];
-  const pageCount = votersPageData?.pageCount ?? 0;
-  const total = votersPageData?.total ?? 0;
-  const votingState = getVotingLifecycleState(summary.votingWindow);
+  const voters = votersPageData?.items ?? []
+  const pageCount = votersPageData?.pageCount ?? 0
+  const total = votersPageData?.total ?? 0
+  const votingState = getVotingLifecycleState(summary.votingWindow)
 
   useEffect(() => {
     if (pageCount > 0 && votersPage > pageCount) {
-      setVotersPage(pageCount);
+      setVotersPage(pageCount)
     }
-  }, [pageCount, votersPage, setVotersPage]);
+  }, [pageCount, votersPage, setVotersPage])
 
   return (
     <div className="space-y-4">
       {summary.currentRound ? (
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Badge variant="outline">
-            {summary.currentRound.kind === "tiebreak"
+            {summary.currentRound.kind === 'tiebreak'
               ? `Tie-break ${summary.currentRound.roundNumber}`
               : `Round ${summary.currentRound.roundNumber}`}
           </Badge>
-          {summary.currentRound.kind === "tiebreak" ? (
+          {summary.currentRound.kind === 'tiebreak' ? (
             <span>Vote status below reflects the active tie-break round.</span>
           ) : null}
         </div>
@@ -323,9 +301,8 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
             <div className="space-y-3 mt-2">
               <p>
                 {participantsWithoutSession.length} participant
-                {participantsWithoutSession.length === 1 ? "" : "s"} have
-                uploaded for this topic but don&apos;t have voting sessions yet
-                (voting was started before they uploaded).
+                {participantsWithoutSession.length === 1 ? '' : 's'} have uploaded for this topic
+                but don&apos;t have voting sessions yet (voting was started before they uploaded).
               </p>
               <ul className="list-disc list-inside text-sm space-y-1">
                 {participantsWithoutSession.map((p) => (
@@ -355,8 +332,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                   })
                 }
                 disabled={
-                  startVotingSessionsForParticipantsMutation.isPending ||
-                  votingState !== "active"
+                  startVotingSessionsForParticipantsMutation.isPending || votingState !== 'active'
                 }
               >
                 {startVotingSessionsForParticipantsMutation.isPending ? (
@@ -371,10 +347,9 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                   </>
                 )}
               </PrimaryButton>
-              {votingState !== "active" ? (
+              {votingState !== 'active' ? (
                 <p className="text-sm">
-                  Late participant sessions can only be started while voting is
-                  active.
+                  Late participant sessions can only be started while voting is active.
                 </p>
               ) : null}
             </div>
@@ -420,9 +395,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                             {voter.firstName} {voter.lastName}
                           </p>
                           <Badge variant="outline" className="shrink-0 text-xs">
-                            {voter.connectedParticipantId
-                              ? "Participant"
-                              : "Manual"}
+                            {voter.connectedParticipantId ? 'Participant' : 'Manual'}
                           </Badge>
                         </div>
                       </TableCell>
@@ -455,8 +428,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                   className="cursor-pointer hover:bg-emerald-600/90 bg-emerald-600 text-white border-0 shadow-sm"
                                 >
                                   <Check className="mr-1.5 size-3.5 shrink-0" />
-                                  {voter.voteSubmission.participantReference ||
-                                    "Unknown"}
+                                  {voter.voteSubmission.participantReference || 'Unknown'}
                                 </Badge>
                               </button>
                             </PopoverTrigger>
@@ -466,44 +438,30 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                             >
                               <div className="space-y-3">
                                 <div className="space-y-1">
-                                  <h4 className="font-semibold text-sm">
-                                    Voted Submission
-                                  </h4>
+                                  <h4 className="font-semibold text-sm">Voted Submission</h4>
                                   <p className="text-xs text-muted-foreground">
-                                    Participant:{" "}
-                                    {voter.voteSubmission
-                                      .participantReference || "Unknown"}
+                                    Participant:{' '}
+                                    {voter.voteSubmission.participantReference || 'Unknown'}
                                   </p>
                                   {voter.voteSubmission.participantFirstName &&
-                                    voter.voteSubmission
-                                      .participantLastName && (
+                                    voter.voteSubmission.participantLastName && (
                                       <p className="text-xs text-muted-foreground">
-                                        {
-                                          voter.voteSubmission
-                                            .participantFirstName
-                                        }{" "}
-                                        {
-                                          voter.voteSubmission
-                                            .participantLastName
-                                        }
+                                        {voter.voteSubmission.participantFirstName}{' '}
+                                        {voter.voteSubmission.participantLastName}
                                       </p>
                                     )}
                                   <p className="text-xs text-muted-foreground">
-                                    Submitted:{" "}
-                                    {formatDateTime(
-                                      voter.voteSubmission.createdAt,
-                                    )}
+                                    Submitted: {formatDateTime(voter.voteSubmission.createdAt)}
                                   </p>
                                 </div>
-                                {voter.voteSubmission.thumbnailKey ||
-                                voter.voteSubmission.key ? (
+                                {voter.voteSubmission.thumbnailKey || voter.voteSubmission.key ? (
                                   <div className="rounded-lg overflow-hidden border bg-muted">
                                     <img
                                       src={getSubmissionImageUrl(
                                         voter.voteSubmission.thumbnailKey,
                                         voter.voteSubmission.key,
                                       )}
-                                      alt={`Submission by ${voter.voteSubmission.participantReference || "Unknown"}`}
+                                      alt={`Submission by ${voter.voteSubmission.participantReference || 'Unknown'}`}
                                       className="w-full h-auto object-contain max-h-64"
                                     />
                                   </div>
@@ -518,11 +476,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                   <Link
                                     href={`/admin/${domain}/dashboard/submissions/${voter.voteSubmission.participantReference}/${voter.voteSubmission.submissionId}`}
                                   >
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full"
-                                    >
+                                    <Button variant="outline" size="sm" className="w-full">
                                       <ExternalLink className="mr-2 size-4" />
                                       View Submission
                                     </Button>
@@ -532,9 +486,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                             </PopoverContent>
                           </Popover>
                         ) : (
-                          <span className="text-muted-foreground text-sm">
-                            Not voted
-                          </span>
+                          <span className="text-muted-foreground text-sm">Not voted</span>
                         )}
                       </TableCell>
                       <TableCell className="py-2">
@@ -571,66 +523,49 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                             >
                               <div className="space-y-3">
                                 <div className="text-xs text-muted-foreground">
-                                  Last sent:{" "}
-                                  {formatDateTime(voter.notificationLastSentAt)}
+                                  Last sent: {formatDateTime(voter.notificationLastSentAt)}
                                 </div>
                                 <div className="space-y-2">
                                   <button
                                     className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                     disabled={
                                       !voter.email ||
-                                      (isResending &&
-                                        pendingResendSessionId ===
-                                          voter.sessionId)
+                                      (isResending && pendingResendSessionId === voter.sessionId)
                                     }
                                     onClick={() => {
-                                      handleResendSessionNotification(
-                                        voter.sessionId,
-                                        "email",
-                                      );
+                                      handleResendSessionNotification(voter.sessionId, 'email')
                                     }}
                                   >
                                     <div className="flex items-center gap-2">
                                       {isResending &&
-                                      pendingResendSessionId ===
-                                        voter.sessionId &&
-                                      pendingResendChannel === "email" ? (
+                                      pendingResendSessionId === voter.sessionId &&
+                                      pendingResendChannel === 'email' ? (
                                         <Loader2 className="size-4 animate-spin" />
                                       ) : (
                                         <Mail className="size-4" />
                                       )}
-                                      <span className="text-sm font-medium">
-                                        Resend email
-                                      </span>
+                                      <span className="text-sm font-medium">Resend email</span>
                                     </div>
                                   </button>
                                   <button
                                     className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                                     disabled={
                                       !voter.phoneNumber ||
-                                      (isResending &&
-                                        pendingResendSessionId ===
-                                          voter.sessionId)
+                                      (isResending && pendingResendSessionId === voter.sessionId)
                                     }
                                     onClick={() => {
-                                      handleResendSessionNotification(
-                                        voter.sessionId,
-                                        "sms",
-                                      );
+                                      handleResendSessionNotification(voter.sessionId, 'sms')
                                     }}
                                   >
                                     <div className="flex items-center gap-2">
                                       {isResending &&
-                                      pendingResendSessionId ===
-                                        voter.sessionId &&
-                                      pendingResendChannel === "sms" ? (
+                                      pendingResendSessionId === voter.sessionId &&
+                                      pendingResendChannel === 'sms' ? (
                                         <Loader2 className="size-4 animate-spin" />
                                       ) : (
                                         <MessageSquare className="size-4" />
                                       )}
-                                      <span className="text-sm font-medium">
-                                        Resend phone
-                                      </span>
+                                      <span className="text-sm font-medium">Resend phone</span>
                                     </div>
                                   </button>
                                 </div>
@@ -647,13 +582,11 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                 disabled={
                                   isClearingVote ||
                                   isDeletingSession ||
-                                  pendingClearVoteSessionId ===
-                                    voter.sessionId ||
+                                  pendingClearVoteSessionId === voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
-                                {pendingClearVoteSessionId ===
-                                  voter.sessionId ||
+                                {pendingClearVoteSessionId === voter.sessionId ||
                                 pendingDeleteSessionId === voter.sessionId ? (
                                   <Loader2 className="size-3.5 animate-spin" />
                                 ) : (
@@ -668,8 +601,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                   !voter.voteSubmission ||
                                   isClearingVote ||
                                   isDeletingSession ||
-                                  pendingClearVoteSessionId ===
-                                    voter.sessionId ||
+                                  pendingClearVoteSessionId === voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
@@ -679,14 +611,11 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 variant="destructive"
-                                onClick={() =>
-                                  handleDeleteSession(voter.sessionId)
-                                }
+                                onClick={() => handleDeleteSession(voter.sessionId)}
                                 disabled={
                                   isClearingVote ||
                                   isDeletingSession ||
-                                  pendingClearVoteSessionId ===
-                                    voter.sessionId ||
+                                  pendingClearVoteSessionId === voter.sessionId ||
                                   pendingDeleteSessionId === voter.sessionId
                                 }
                               >
@@ -701,10 +630,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="h-24 text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                       No voting sessions found for this topic.
                     </TableCell>
                   </TableRow>
@@ -733,11 +659,7 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
               variant="outline"
               size="sm"
               onClick={() =>
-                setVotersPage(
-                  pageCount > 0
-                    ? Math.min(pageCount, votersPage + 1)
-                    : votersPage + 1,
-                )
+                setVotersPage(pageCount > 0 ? Math.min(pageCount, votersPage + 1) : votersPage + 1)
               }
               disabled={pageCount === 0 || votersPage >= pageCount}
             >
@@ -747,5 +669,5 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -1,1 +1,1 @@
-export type UploadMarathonMode = "marathon" | "by-camera"
+export type UploadMarathonMode = 'marathon' | 'by-camera'

@@ -1,12 +1,12 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, DatabaseZap, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, DatabaseZap, Loader2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,53 +16,48 @@ import {
   AlertDialogHeader,
   AlertDialogTrigger,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useTRPC } from "@/lib/trpc/client";
-import { useDomain } from "@/lib/domain-provider";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { SmsTestSection } from "./sms-test-section";
+} from '@/components/ui/alert-dialog'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import { SmsTestSection } from './sms-test-section'
 
 interface DangerZoneProps {
-  marathonName: string;
-  onReset: () => Promise<void>;
-  isResettingMarathon: boolean;
+  marathonName: string
+  onReset: () => Promise<void>
+  isResettingMarathon: boolean
 }
 
-export { DangerZoneSection as DangerZoneTab };
+export { DangerZoneSection as DangerZoneTab }
 
-export function DangerZoneSection({
-  marathonName,
-  onReset,
-  isResettingMarathon,
-}: DangerZoneProps) {
-  const trpc = useTRPC();
-  const domain = useDomain();
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [resetConfirmationText, setResetConfirmationText] = useState("");
-  const [seedConfirmationText, setSeedConfirmationText] = useState("");
-  const [lastSeedSummary, setLastSeedSummary] = useState<string | null>(null);
-  const isDevelopment = process.env.NODE_ENV !== "production";
-  const isResetDisabled =
-    resetConfirmationText !== marathonName || isResettingMarathon;
-  const expectedSeedConfirmation = `seed ${domain}`;
+export function DangerZoneSection({ marathonName, onReset, isResettingMarathon }: DangerZoneProps) {
+  const trpc = useTRPC()
+  const domain = useDomain()
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const [resetConfirmationText, setResetConfirmationText] = useState('')
+  const [seedConfirmationText, setSeedConfirmationText] = useState('')
+  const [lastSeedSummary, setLastSeedSummary] = useState<string | null>(null)
+  const isDevelopment = process.env.NODE_ENV !== 'production'
+  const isResetDisabled = resetConfirmationText !== marathonName || isResettingMarathon
+  const expectedSeedConfirmation = `seed ${domain}`
 
   const seedStatusQuery = useQuery({
     ...trpc.seeding.getStatus.queryOptions({
       domain,
     }),
     enabled: isDevelopment,
-  });
+  })
 
   const seedMutation = useMutation(
     trpc.seeding.seedFinishedScenario.mutationOptions({
       onSuccess: async (result) => {
-        setSeedConfirmationText("");
+        setSeedConfirmationText('')
         setLastSeedSummary(
           `Seeded ${result.participantsCreated} participants, ${result.submissionsCreated} submissions, and ${result.validationResultsCreated} validation results for ${result.mode}.`,
-        );
-        toast.success("Seed demo data completed");
+        )
+        toast.success('Seed demo data completed')
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.marathons.pathKey(),
@@ -91,30 +86,30 @@ export function DangerZoneSection({
           queryClient.invalidateQueries({
             queryKey: trpc.contactSheets.pathKey(),
           }),
-        ]);
-        router.refresh();
+        ])
+        router.refresh()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to seed demo data");
+        toast.error(error.message || 'Failed to seed demo data')
       },
     }),
-  );
+  )
 
   const handleReset = async () => {
     try {
-      await onReset();
-      setResetConfirmationText("");
+      await onReset()
+      setResetConfirmationText('')
     } catch {
       // Error already shown by toast
     }
-  };
+  }
 
-  const seedStatus = seedStatusQuery.data;
+  const seedStatus = seedStatusQuery.data
   const isSeedDisabled =
     seedConfirmationText !== expectedSeedConfirmation ||
     !seedStatus?.canRun ||
     seedMutation.isPending ||
-    seedStatusQuery.isLoading;
+    seedStatusQuery.isLoading
 
   return (
     <section>
@@ -130,9 +125,8 @@ export function DangerZoneSection({
         <AlertDescription>
           <div className="space-y-4">
             <p>
-              Reset this marathon to clear all participants, submissions,
-              topics, competition classes, and device groups. This action cannot
-              be undone.
+              Reset this marathon to clear all participants, submissions, topics, competition
+              classes, and device groups. This action cannot be undone.
             </p>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -146,8 +140,7 @@ export function DangerZoneSection({
                     Are you absolutely sure?
                   </AlertDialogTitle>
                   <div className="space-y-2 text-sm text-muted-foreground bg-muted/50 border border-muted p-4 rounded-lg">
-                    This action cannot be undone. This will permanently delete
-                    all:
+                    This action cannot be undone. This will permanently delete all:
                     <div className="list-disc list-inside mt-2 space-y-1">
                       <li>Participants and their submissions</li>
                       <li>Topics and their content</li>
@@ -172,9 +165,7 @@ export function DangerZoneSection({
                   />
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel
-                    onClick={() => setResetConfirmationText("")}
-                  >
+                  <AlertDialogCancel onClick={() => setResetConfirmationText('')}>
                     Cancel
                   </AlertDialogCancel>
                   <AlertDialogAction
@@ -182,7 +173,7 @@ export function DangerZoneSection({
                     disabled={isResetDisabled}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    {isResettingMarathon ? "Resetting…" : "Reset Marathon"}
+                    {isResettingMarathon ? 'Resetting…' : 'Reset Marathon'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -198,9 +189,8 @@ export function DangerZoneSection({
           <AlertDescription>
             <div className="space-y-4">
               <p>
-                Replace runtime marathon data with a deterministic
-                finished-event demo state for this domain. Staff and admin
-                access are preserved.
+                Replace runtime marathon data with a deterministic finished-event demo state for
+                this domain. Staff and admin access are preserved.
               </p>
 
               {seedStatusQuery.isLoading ? (
@@ -212,30 +202,24 @@ export function DangerZoneSection({
                 <div className="space-y-3 rounded-lg border border-[#FFD8C4] bg-white/70 p-4 text-sm">
                   <div className="grid gap-2 sm:grid-cols-2">
                     <div>
-                      <span className="font-medium">Environment:</span>{" "}
-                      {seedStatus.environment}
+                      <span className="font-medium">Environment:</span> {seedStatus.environment}
                     </div>
                     <div>
-                      <span className="font-medium">Mode:</span>{" "}
-                      {seedStatus.mode}
+                      <span className="font-medium">Mode:</span> {seedStatus.mode}
                     </div>
                     <div>
-                      <span className="font-medium">Admin access:</span>{" "}
-                      {seedStatus.isAdminForDomain ? "Yes" : "No"}
+                      <span className="font-medium">Admin access:</span>{' '}
+                      {seedStatus.isAdminForDomain ? 'Yes' : 'No'}
                     </div>
                     <div>
-                      <span className="font-medium">Staff members:</span>{" "}
-                      {seedStatus.staffCount}
+                      <span className="font-medium">Staff members:</span> {seedStatus.staffCount}
                     </div>
                   </div>
 
                   <div className="grid gap-2 sm:grid-cols-2">
                     <div>Participants: {seedStatus.preview.participants}</div>
                     <div>Topics: {seedStatus.preview.topics}</div>
-                    <div>
-                      Competition classes:{" "}
-                      {seedStatus.preview.competitionClasses}
-                    </div>
+                    <div>Competition classes: {seedStatus.preview.competitionClasses}</div>
                     <div>Device groups: {seedStatus.preview.deviceGroups}</div>
                   </div>
 
@@ -254,15 +238,11 @@ export function DangerZoneSection({
                   )}
 
                   {lastSeedSummary ? (
-                    <p className="text-sm text-emerald-700">
-                      {lastSeedSummary}
-                    </p>
+                    <p className="text-sm text-emerald-700">{lastSeedSummary}</p>
                   ) : null}
                 </div>
               ) : (
-                <p className="text-sm text-destructive">
-                  Unable to load seed status.
-                </p>
+                <p className="text-sm text-destructive">Unable to load seed status.</p>
               )}
 
               <AlertDialog>
@@ -284,13 +264,8 @@ export function DangerZoneSection({
                     <div className="space-y-2 rounded-lg border bg-muted/50 p-4 text-sm text-muted-foreground">
                       This will clear seeded runtime data and recreate:
                       <div className="mt-2 list-disc space-y-1 pl-5">
-                        <li>
-                          24 topics, 2 competition classes, and 2 device groups
-                        </li>
-                        <li>
-                          30 participants with fully rendered placeholder
-                          submissions
-                        </li>
+                        <li>24 topics, 2 competition classes, and 2 device groups</li>
+                        <li>30 participants with fully rendered placeholder submissions</li>
                         <li>Mode-specific jury or voting progress</li>
                         <li>Participant verifications in marathon mode</li>
                       </div>
@@ -298,25 +273,20 @@ export function DangerZoneSection({
                   </AlertDialogHeader>
                   <div className="space-y-2">
                     <Label htmlFor="seed-confirmation">
-                      Type <strong>{expectedSeedConfirmation}</strong> to
-                      confirm:
+                      Type <strong>{expectedSeedConfirmation}</strong> to confirm:
                     </Label>
                     <Input
                       id="seed-confirmation"
                       name="seed-confirmation"
                       value={seedConfirmationText}
-                      onChange={(event) =>
-                        setSeedConfirmationText(event.target.value)
-                      }
+                      onChange={(event) => setSeedConfirmationText(event.target.value)}
                       placeholder={expectedSeedConfirmation}
                       className="font-mono"
                       autoComplete="off"
                     />
                   </div>
                   <AlertDialogFooter>
-                    <AlertDialogCancel
-                      onClick={() => setSeedConfirmationText("")}
-                    >
+                    <AlertDialogCancel onClick={() => setSeedConfirmationText('')}>
                       Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction
@@ -324,7 +294,7 @@ export function DangerZoneSection({
                       disabled={isSeedDisabled}
                       className="bg-[#FF6A3D] text-white hover:bg-[#E65A2E]"
                     >
-                      {seedMutation.isPending ? "Seeding…" : "Seed Demo Data"}
+                      {seedMutation.isPending ? 'Seeding…' : 'Seed Demo Data'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -336,5 +306,5 @@ export function DangerZoneSection({
 
       <SmsTestSection />
     </section>
-  );
+  )
 }

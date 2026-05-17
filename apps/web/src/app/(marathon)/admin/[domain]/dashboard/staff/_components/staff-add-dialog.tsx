@@ -1,35 +1,35 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { useForm } from "@tanstack/react-form"
-import { Plus, AlertTriangle, HardHat, Shield, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { Plus, AlertTriangle, HardHat, Shield, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { useDomain } from "@/lib/domain-provider"
-import { cn, formatDomainLink } from "@/lib/utils"
-import { motion, AnimatePresence } from "motion/react"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useTRPC } from '@/lib/trpc/client'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useDomain } from '@/lib/domain-provider'
+import { cn, formatDomainLink } from '@/lib/utils'
+import { motion, AnimatePresence } from 'motion/react'
 
 const roleTypes = [
   {
-    value: "staff",
-    label: "Staff",
+    value: 'staff',
+    label: 'Staff',
     icon: HardHat,
   },
   {
-    value: "admin",
-    label: "Admin",
+    value: 'admin',
+    label: 'Admin',
     icon: Shield,
   },
 ] as const
@@ -53,13 +53,13 @@ export function StaffAddDialog({
   const isOpen = isControlled ? controlledOpen : uncontrolledOpen
   const setIsOpen = isControlled ? controlledOnOpenChange : setUncontrolledOpen
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const staffUrl = formatDomainLink("/staff", domain, "staff")
+  const staffUrl = formatDomainLink('/staff', domain, 'staff')
 
   const form = useForm({
     defaultValues: {
-      name: "",
-      email: "",
-      role: "staff" as "staff" | "admin",
+      name: '',
+      email: '',
+      role: 'staff' as 'staff' | 'admin',
     },
     onSubmit: async ({ value }) => {
       setErrorMessage(null)
@@ -77,19 +77,16 @@ export function StaffAddDialog({
   const { mutate: addStaffMember, isPending: isAddingStaffMember } = useMutation(
     trpc.users.createStaffMember.mutationOptions({
       onError: (error) => {
-        console.error("Failed to add staff member:", error)
-        setErrorMessage(error.message || "Failed to add staff member")
+        console.error('Failed to add staff member:', error)
+        setErrorMessage(error.message || 'Failed to add staff member')
       },
       onSuccess: (result) => {
-        toast.success(
-          result.kind === "pending" ? "Invitation saved" : "Access granted",
-          {
-            description:
-              result.kind === "pending"
-                ? "Access will activate automatically the first time they sign in."
-                : "They can now sign in on the staff page with the email you added.",
-          }
-        )
+        toast.success(result.kind === 'pending' ? 'Invitation saved' : 'Access granted', {
+          description:
+            result.kind === 'pending'
+              ? 'Access will activate automatically the first time they sign in.'
+              : 'They can now sign in on the staff page with the email you added.',
+        })
         onStaffCreated?.(result.id)
         setIsOpen(false)
         setErrorMessage(null)
@@ -100,7 +97,7 @@ export function StaffAddDialog({
           queryKey: trpc.users.getStaffMembersByDomain.queryKey({ domain }),
         })
       },
-    })
+    }),
   )
 
   const handleOpenChange = (open: boolean) => {
@@ -143,7 +140,7 @@ export function StaffAddDialog({
           <form.Field
             name="name"
             validators={{
-              onChange: ({ value }) => (!value ? "Name is required" : undefined),
+              onChange: ({ value }) => (!value ? 'Name is required' : undefined),
             }}
           >
             {(field) => (
@@ -163,7 +160,7 @@ export function StaffAddDialog({
                   placeholder="Anna Johnson"
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-                  <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>
+                  <em className="text-sm text-red-600">{field.state.meta.errors.join(', ')}</em>
                 )}
               </div>
             )}
@@ -173,9 +170,9 @@ export function StaffAddDialog({
             name="email"
             validators={{
               onChange: ({ value }) => {
-                if (!value) return "Email is required"
+                if (!value) return 'Email is required'
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                  return "Invalid email address"
+                  return 'Invalid email address'
                 }
                 return undefined
               },
@@ -199,7 +196,7 @@ export function StaffAddDialog({
                   placeholder="anna.johnson@example.com"
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-                  <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>
+                  <em className="text-sm text-red-600">{field.state.meta.errors.join(', ')}</em>
                 )}
               </div>
             )}
@@ -215,7 +212,7 @@ export function StaffAddDialog({
           <form.Field
             name="role"
             validators={{
-              onChange: ({ value }) => (!value ? "Role is required" : undefined),
+              onChange: ({ value }) => (!value ? 'Role is required' : undefined),
             }}
           >
             {(field) => (
@@ -235,8 +232,8 @@ export function StaffAddDialog({
                         type="button"
                         variant="outline"
                         className={cn(
-                          "h-40 w-40 p-0 relative overflow-hidden",
-                          field.state.value === role.value && "ring-2 ring-primary ring-offset-2"
+                          'h-40 w-40 p-0 relative overflow-hidden',
+                          field.state.value === role.value && 'ring-2 ring-primary ring-offset-2',
                         )}
                         onClick={() => field.handleChange(role.value)}
                       >
@@ -245,7 +242,7 @@ export function StaffAddDialog({
                             scale: field.state.value === role.value ? 1.1 : 1,
                           }}
                           transition={{
-                            type: "spring",
+                            type: 'spring',
                             stiffness: 300,
                             damping: 20,
                           }}
@@ -272,11 +269,11 @@ export function StaffAddDialog({
                   })}
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Staff can use the verification desk. Admins keep dashboard access and can also
-                  use the staff page.
+                  Staff can use the verification desk. Admins keep dashboard access and can also use
+                  the staff page.
                 </p>
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-                  <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>
+                  <em className="text-sm text-red-600">{field.state.meta.errors.join(', ')}</em>
                 )}
               </div>
             )}
@@ -292,7 +289,7 @@ export function StaffAddDialog({
               Cancel
             </Button>
             <PrimaryButton type="submit" disabled={isAddingStaffMember}>
-              {isAddingStaffMember ? "Adding..." : "Add Staff Member"}
+              {isAddingStaffMember ? 'Adding...' : 'Add Staff Member'}
             </PrimaryButton>
           </div>
         </form>

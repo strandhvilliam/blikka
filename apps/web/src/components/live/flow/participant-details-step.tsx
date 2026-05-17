@@ -1,22 +1,18 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, useState } from "react"
-import { useForm } from "@tanstack/react-form"
-import { useMutation } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
-import { ArrowRight, Loader2 } from "lucide-react"
-import { toast } from "sonner"
-import { z } from "zod"
-import {
-  isPossiblePhoneNumber,
-  parsePhoneNumber,
-  type Country,
-} from "react-phone-number-input"
+import { useEffect, useRef, useState } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { useMutation } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
+import { ArrowRight, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { z } from 'zod'
+import { isPossiblePhoneNumber, parsePhoneNumber, type Country } from 'react-phone-number-input'
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { PhoneInput } from "@/components/ui/phone-input"
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { PhoneInput } from '@/components/ui/phone-input'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,47 +22,40 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
-import { useStepState } from "@/lib/flow/step-state-context"
-import { type FlowMode } from "@/lib/flow/constants"
-import { toParticipantFlowStatePatch } from "@/lib/flow/upload-flow-state"
+} from '@/components/ui/alert-dialog'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
+import { useStepState } from '@/lib/flow/step-state-context'
+import { type FlowMode } from '@/lib/flow/constants'
+import { toParticipantFlowStatePatch } from '@/lib/flow/upload-flow-state'
 
 function getCountryFromLocale(): Country {
-  if (typeof navigator === "undefined") return "SE"
+  if (typeof navigator === 'undefined') return 'SE'
   const language = navigator.language
-  if (!language) return "SE"
-  const parts = language.split("-")
+  if (!language) return 'SE'
+  const parts = language.split('-')
   if (parts.length > 1) return parts[parts.length - 1].toUpperCase() as Country
-  return "SE"
+  return 'SE'
 }
 
-const createParticipantDetailsSchema = (
-  t: ReturnType<typeof useTranslations>,
-  mode: FlowMode,
-) =>
+const createParticipantDetailsSchema = (t: ReturnType<typeof useTranslations>, mode: FlowMode) =>
   z.object({
-    firstname: z.string().min(1, t("participantDetails.firstNameRequired")),
-    lastname: z.string().min(1, t("participantDetails.lastNameRequired")),
-    email: z.string().email(t("participantDetails.invalidEmail")),
+    firstname: z.string().min(1, t('participantDetails.firstNameRequired')),
+    lastname: z.string().min(1, t('participantDetails.lastNameRequired')),
+    email: z.string().email(t('participantDetails.invalidEmail')),
     phone:
-      mode === "by-camera"
+      mode === 'by-camera'
         ? z
             .string()
-            .min(1, t("participantDetails.phoneRequired"))
-            .refine(isPossiblePhoneNumber, t("participantDetails.invalidPhone"))
+            .min(1, t('participantDetails.phoneRequired'))
+            .refine(isPossiblePhoneNumber, t('participantDetails.invalidPhone'))
         : z.string(),
   })
 
 const createParticipantDetailsValidator =
   (t: ReturnType<typeof useTranslations>, mode: FlowMode) =>
-  ({
-    value,
-  }: {
-    value: { firstname: string; lastname: string; email: string; phone: string }
-  }) => {
+  ({ value }: { value: { firstname: string; lastname: string; email: string; phone: string } }) => {
     const result = createParticipantDetailsSchema(t, mode).safeParse(value)
     if (result.success) return undefined
     const fieldErrors = result.error.flatten().fieldErrors
@@ -84,7 +73,7 @@ interface ParticipantDetailsStepProps {
   mode: FlowMode
 }
 
-type ParticipantDetailsFieldName = "firstname" | "lastname" | "email" | "phone"
+type ParticipantDetailsFieldName = 'firstname' | 'lastname' | 'email' | 'phone'
 type ParticipantDetailsValues = {
   firstname: string
   lastname: string
@@ -93,7 +82,7 @@ type ParticipantDetailsValues = {
 }
 
 export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
-  const t = useTranslations("FlowPage")
+  const t = useTranslations('FlowPage')
   const { uploadFlowState, setUploadFlowState } = useUploadFlowState()
   const { handleNextStep, handlePrevStep } = useStepState()
   const domain = useDomain()
@@ -107,7 +96,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
   } | null>(null)
   const [isCheckingParticipant, setIsCheckingParticipant] = useState(false)
   /** Matches SSR (no `navigator`): start as SE, then device locale after hydration. */
-  const [phoneDefaultCountry, setPhoneDefaultCountry] = useState<Country>("SE")
+  const [phoneDefaultCountry, setPhoneDefaultCountry] = useState<Country>('SE')
   const isCheckingParticipantRef = useRef(false)
   const isMountedRef = useRef(true)
 
@@ -122,8 +111,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
     trpc.uploadFlow.resolveByCameraParticipantByPhone.mutationOptions(),
   )
   const isByCameraLookupPending =
-    mode === "by-camera" &&
-    (isCheckingParticipant || resolveByCameraParticipantByPhone.isPending)
+    mode === 'by-camera' && (isCheckingParticipant || resolveByCameraParticipantByPhone.isPending)
 
   const persistByCameraParticipant = async ({
     values,
@@ -161,13 +149,13 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
 
   const form = useForm({
     defaultValues: {
-      firstname: uploadFlowState.participantFirstName ?? "",
-      lastname: uploadFlowState.participantLastName ?? "",
-      email: uploadFlowState.participantEmail ?? "",
-      phone: uploadFlowState.participantPhone ?? "",
+      firstname: uploadFlowState.participantFirstName ?? '',
+      lastname: uploadFlowState.participantLastName ?? '',
+      email: uploadFlowState.participantEmail ?? '',
+      phone: uploadFlowState.participantPhone ?? '',
     },
     onSubmit: async ({ value }) => {
-      if (mode === "by-camera") {
+      if (mode === 'by-camera') {
         if (isCheckingParticipantRef.current) return
 
         isCheckingParticipantRef.current = true
@@ -179,7 +167,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
             phoneNumber: value.phone,
           })
 
-          if (resolution.match && resolution.activeTopicUploadState === "already-uploaded") {
+          if (resolution.match && resolution.activeTopicUploadState === 'already-uploaded') {
             setPendingReplacement({
               values: value,
               participantId: resolution.participantId,
@@ -199,7 +187,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
           return
         } catch (error) {
           console.error(error)
-          toast.error(t("participantDetails.resolveError"))
+          toast.error(t('participantDetails.resolveError'))
           return
         } finally {
           isCheckingParticipantRef.current = false
@@ -223,9 +211,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
 
   const inputClassName = (hasError: boolean) =>
     `h-12 rounded-xl border-2 bg-white px-4 text-base transition-colors focus-visible:ring-0 ${
-      hasError
-        ? "border-destructive"
-        : "border-border focus-visible:border-foreground"
+      hasError ? 'border-destructive' : 'border-border focus-visible:border-foreground'
     }`
 
   return (
@@ -239,15 +225,15 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("participantDetails.replaceExistingTitle")}</AlertDialogTitle>
+            <AlertDialogTitle>{t('participantDetails.replaceExistingTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("participantDetails.replaceExistingDescription")}
+              {t('participantDetails.replaceExistingDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("participantDetails.replaceExistingCancel")}</AlertDialogCancel>
+            <AlertDialogCancel>{t('participantDetails.replaceExistingCancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => void handleConfirmReplacement()}>
-              {t("participantDetails.replaceExistingConfirm")}
+              {t('participantDetails.replaceExistingConfirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -256,10 +242,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
-          {t("participantDetails.title")}
+          {t('participantDetails.title')}
         </h1>
         <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-          {t("participantDetails.description")}
+          {t('participantDetails.description')}
         </p>
       </div>
 
@@ -283,7 +269,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                     return (
                       <div className="space-y-1.5">
                         <label htmlFor={field.name} className="text-sm font-medium text-foreground">
-                          {t("participantDetails.firstName")}
+                          {t('participantDetails.firstName')}
                         </label>
                         <Input
                           id={field.name}
@@ -305,7 +291,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           placeholder="James"
                         />
                         {showError && (
-                          <p id={`${field.name}-error`} className="text-center text-sm font-medium text-destructive">
+                          <p
+                            id={`${field.name}-error`}
+                            className="text-center text-sm font-medium text-destructive"
+                          >
                             {field.state.meta.errors[0]}
                           </p>
                         )}
@@ -326,7 +315,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                     return (
                       <div className="space-y-1.5">
                         <label htmlFor={field.name} className="text-sm font-medium text-foreground">
-                          {t("participantDetails.lastName")}
+                          {t('participantDetails.lastName')}
                         </label>
                         <Input
                           id={field.name}
@@ -348,7 +337,10 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           placeholder="Bond"
                         />
                         {showError && (
-                          <p id={`${field.name}-error`} className="text-center text-sm font-medium text-destructive">
+                          <p
+                            id={`${field.name}-error`}
+                            className="text-center text-sm font-medium text-destructive"
+                          >
                             {field.state.meta.errors[0]}
                           </p>
                         )}
@@ -369,7 +361,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                     return (
                       <div className="space-y-1.5">
                         <label htmlFor={field.name} className="text-sm font-medium text-foreground">
-                          {t("participantDetails.email")}
+                          {t('participantDetails.email')}
                         </label>
                         <Input
                           id={field.name}
@@ -391,11 +383,14 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                           aria-describedby={showError ? `${field.name}-error` : undefined}
                           type="email"
                           inputMode="email"
-                          enterKeyHint={mode === "by-camera" ? "next" : "done"}
+                          enterKeyHint={mode === 'by-camera' ? 'next' : 'done'}
                           placeholder="your@email.com"
                         />
                         {showError && (
-                          <p id={`${field.name}-error`} className="text-center text-sm font-medium text-destructive">
+                          <p
+                            id={`${field.name}-error`}
+                            className="text-center text-sm font-medium text-destructive"
+                          >
                             {field.state.meta.errors[0]}
                           </p>
                         )}
@@ -404,15 +399,14 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                   }}
                 </form.Field>
 
-                {mode === "by-camera" && (
+                {mode === 'by-camera' && (
                   <form.Field name="phone">
                     {(field) => {
                       const hasValidationError = field.state.meta.errors.length > 0
                       const isPhoneFieldFocused =
                         focusedField === (field.name as ParticipantDetailsFieldName)
-                      const hasEnteredNationalDigits = !!parsePhoneNumber(
-                        field.state.value,
-                      )?.nationalNumber
+                      const hasEnteredNationalDigits = !!parsePhoneNumber(field.state.value)
+                        ?.nationalNumber
                       const showError =
                         hasValidationError &&
                         !isPhoneFieldFocused &&
@@ -421,15 +415,18 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
 
                       return (
                         <div className="space-y-1.5">
-                          <label htmlFor={field.name} className="text-sm font-medium text-foreground">
-                            {t("participantDetails.phone")}
+                          <label
+                            htmlFor={field.name}
+                            className="text-sm font-medium text-foreground"
+                          >
+                            {t('participantDetails.phone')}
                           </label>
                           <PhoneInput
                             id={field.name}
                             name={field.name}
                             defaultCountry={phoneDefaultCountry}
                             value={field.state.value}
-                            onChange={(value) => field.handleChange(value || "")}
+                            onChange={(value) => field.handleChange(value || '')}
                             onFocus={() =>
                               setFocusedField(field.name as ParticipantDetailsFieldName)
                             }
@@ -445,14 +442,17 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                             disabled={isByCameraLookupPending}
                             className={`rounded-xl border-2 bg-white text-base transition-colors focus-visible:ring-0 ${
                               showError
-                                ? "border-destructive"
-                                : "border-border focus-visible:border-foreground"
+                                ? 'border-destructive'
+                                : 'border-border focus-visible:border-foreground'
                             }`}
                             aria-invalid={showError}
                             aria-describedby={showError ? `${field.name}-error` : undefined}
                           />
                           {showError && (
-                            <p id={`${field.name}-error`} className="text-center text-sm font-medium text-destructive">
+                            <p
+                              id={`${field.name}-error`}
+                              className="text-center text-sm font-medium text-destructive"
+                            >
                               {field.state.meta.errors[0]}
                             </p>
                           )}
@@ -467,9 +467,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
         </div>
 
         <div className="flex flex-col gap-3">
-          <form.Subscribe
-            selector={(state: { isSubmitting: boolean }) => [state.isSubmitting]}
-          >
+          <form.Subscribe selector={(state: { isSubmitting: boolean }) => [state.isSubmitting]}>
             {([isSubmitting]) => (
               <PrimaryButton
                 type="button"
@@ -480,11 +478,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                 {isByCameraLookupPending ? (
                   <>
                     <Loader2 className="animate-spin" />
-                    <span>{t("participantDetails.checking")}</span>
+                    <span>{t('participantDetails.checking')}</span>
                   </>
                 ) : (
                   <>
-                    <span>{t("participantDetails.continue")}</span>
+                    <span>{t('participantDetails.continue')}</span>
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </>
                 )}
@@ -499,7 +497,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
             className="w-full"
             disabled={isByCameraLookupPending}
           >
-            {t("participantDetails.back")}
+            {t('participantDetails.back')}
           </Button>
         </div>
       </form>

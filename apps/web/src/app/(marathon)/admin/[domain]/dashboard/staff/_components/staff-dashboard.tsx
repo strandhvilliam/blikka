@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
-import { useState, Suspense } from "react"
-import { parseAsString, useQueryState } from "nuqs"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Users, Plus, User2Icon } from "lucide-react"
-import { StaffAddDialog } from "./staff-add-dialog"
-import { StaffList } from "./staff-list"
-import { StaffListSkeleton } from "./staff-list-skeleton"
-import { StaffDetailsContent } from "../[accessId]/_components/staff-details-content"
-import { StaffDetailsSkeleton } from "../[accessId]/_components/staff-details-skeleton"
+import { useState, Suspense } from 'react'
+import { parseAsString, useQueryState } from 'nuqs'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Users, Plus, User2Icon } from 'lucide-react'
+import { StaffAddDialog } from './staff-add-dialog'
+import { StaffList } from './staff-list'
+import { StaffListSkeleton } from './staff-list-skeleton'
+import { StaffDetailsContent } from '../[accessId]/_components/staff-details-content'
+import { StaffDetailsSkeleton } from '../[accessId]/_components/staff-details-skeleton'
 
 function StaffEmptySelection() {
   return (
@@ -16,7 +16,9 @@ function StaffEmptySelection() {
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-muted/50">
         <User2Icon className="h-7 w-7 text-muted-foreground/40" />
       </div>
-      <h2 className="font-gothic mb-1.5 text-lg font-semibold text-foreground">No Staff Selected</h2>
+      <h2 className="font-gothic mb-1.5 text-lg font-semibold text-foreground">
+        No Staff Selected
+      </h2>
       <p className="max-w-md text-center text-[13px] leading-relaxed text-muted-foreground/70">
         Select a staff member from the list to view their details, or add a new staff member to give
         them access to the standalone verification desk.
@@ -27,7 +29,7 @@ function StaffEmptySelection() {
 
 export function StaffDashboard() {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [access, setAccess] = useQueryState("access", parseAsString)
+  const [access, setAccess] = useQueryState('access', parseAsString)
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col px-4 py-3 sm:px-6 sm:py-4">
@@ -42,7 +44,9 @@ export function StaffDashboard() {
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
                   Team
                 </p>
-                <h1 className="font-gothic text-2xl font-bold leading-none tracking-tight">Staff</h1>
+                <h1 className="font-gothic text-2xl font-bold leading-none tracking-tight">
+                  Staff
+                </h1>
               </div>
             </div>
             <p className="text-sm text-muted-foreground">

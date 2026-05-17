@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from 'react'
 
 export function useScrollAnimation(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null)

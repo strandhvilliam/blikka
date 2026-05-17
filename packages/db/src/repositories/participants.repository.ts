@@ -1,5 +1,5 @@
-import { Effect, Layer, Option, Context } from "effect"
-import { DrizzleClient } from "../drizzle-client"
+import { Effect, Layer, Option, Context } from 'effect'
+import { DrizzleClient } from '../drizzle-client'
 import {
   participants,
   participantTermsAcceptances,
@@ -8,8 +8,8 @@ import {
   votingRound,
   votingRoundVote,
   votingSession,
-} from "../schema"
-import { eq, and, or, inArray, gt, lt, ilike, notInArray, isNotNull, count, sql } from "drizzle-orm"
+} from '../schema'
+import { eq, and, or, inArray, gt, lt, ilike, notInArray, isNotNull, count, sql } from 'drizzle-orm'
 import type {
   CompetitionClass,
   ContactSheet,
@@ -22,9 +22,9 @@ import type {
   Topic,
   ValidationResult,
   ZippedSubmission,
-} from "../types"
-import { DbError } from "../utils"
-import { VALIDATION_OUTCOME } from "@blikka/validation"
+} from '../types'
+import { DbError } from '../utils'
+import { VALIDATION_OUTCOME } from '@blikka/validation'
 
 /** Participant from `getParticipantById` with nested relations. */
 type ParticipantWithSubmissionsAndRelations = Participant & {
@@ -61,7 +61,7 @@ type InfiniteParticipantsVotingSessionRow = {
 }
 
 /** Base row for domain participant list (phone hash omitted in query). */
-type ParticipantDomainListBase = Omit<Participant, "phoneHash"> & {
+type ParticipantDomainListBase = Omit<Participant, 'phoneHash'> & {
   competitionClass: CompetitionClass | null
   deviceGroup: DeviceGroup | null
 }
@@ -97,87 +97,79 @@ export type ParticipantsBatchIdsMutationResult = {
 export class ParticipantsRepository extends Context.Service<
   ParticipantsRepository,
   {
-  /** Participant row by primary key with related data, or none if missing. */
-  readonly getParticipantById: (params: {
-    id: number
-  }) => Effect.Effect<Option.Option<ParticipantWithSubmissionsAndRelations>, DbError>
-  /** Participant row by reference/domain with related data, or none if missing. */
-  readonly getParticipantByReference: (params: {
-    reference: string
-    domain: string
-  }) => Effect.Effect<
-    Option.Option<ParticipantWithTopicSubmissionsAndContactSheets>,
-    DbError
-  >
-  /** By-camera participant lookup by phone hash, or none if missing. */
-  readonly getByPhoneHashForByCamera: (params: {
-    marathonId: number
-    phoneHash: string
-  }) => Effect.Effect<
-    Option.Option<ParticipantWithTopicSubmissionsAndContactSheets>,
-    DbError
-  >
-  /** Paginated participants for a marathon domain with filters and sort options. */
-  readonly getInfiniteParticipantsByDomain: (params: {
-    domain: string
-    cursor?: string
-    limit?: number
-    search?: string
-    sortOrder?: "asc" | "desc"
-    competitionClassId?: number | number[] | readonly number[]
-    deviceGroupId?: number | number[] | readonly number[]
-    topicId?: number
-    statusFilter?: "completed" | "verified"
-    excludeStatuses?: string[]
-    includeStatuses?: string[]
-    hasValidationErrors?: boolean
-    votedFilter?: "voted" | "not-voted"
-  }) => Effect.Effect<InfiniteParticipantsPage, DbError>
-  /** Insert a new participant row. */
-  readonly createParticipant: (params: {
-    data: NewParticipant
-  }) => Effect.Effect<Participant, DbError>
-  /** Insert a participant terms acceptance row. */
-  readonly createTermsAcceptance: (params: {
-    data: NewParticipantTermsAcceptance
-  }) => Effect.Effect<Option.Option<ParticipantTermsAcceptance>, DbError>
-  /** Patch fields on a participant identified by id. */
-  readonly updateParticipantById: (params: {
-    id: number
-    data: Partial<NewParticipant>
-  }) => Effect.Effect<Participant, DbError>
-  /** Patch fields on a participant identified by reference/domain. */
-  readonly updateParticipantByReference: (params: {
-    reference: string
-    domain: string
-    data: Partial<NewParticipant>
-  }) => Effect.Effect<{ id: number }, DbError>
-  /** Delete a participant by id. */
-  readonly deleteParticipant: (params: {
-    id: number
-  }) => Effect.Effect<Participant, DbError>
-  /** Delete participants by id scoped to a domain. */
-  readonly batchDeleteParticipants: (params: {
-    ids: number[]
-    domain: string
-  }) => Effect.Effect<ParticipantsBatchDeletionResult, DbError>
-  /** Mark participants verified by id scoped to a domain. */
-  readonly batchVerifyParticipants: (params: {
-    ids: number[]
-    domain: string
-  }) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError>
-  /** Mark participants completed by id scoped to a domain. */
-  readonly batchMarkParticipantsCompleted: (params: {
-    ids: number[]
-    domain: string
-  }) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError>
-}
->()("@blikka/db/participants-repository") {}
+    /** Participant row by primary key with related data, or none if missing. */
+    readonly getParticipantById: (params: {
+      id: number
+    }) => Effect.Effect<Option.Option<ParticipantWithSubmissionsAndRelations>, DbError>
+    /** Participant row by reference/domain with related data, or none if missing. */
+    readonly getParticipantByReference: (params: {
+      reference: string
+      domain: string
+    }) => Effect.Effect<Option.Option<ParticipantWithTopicSubmissionsAndContactSheets>, DbError>
+    /** By-camera participant lookup by phone hash, or none if missing. */
+    readonly getByPhoneHashForByCamera: (params: {
+      marathonId: number
+      phoneHash: string
+    }) => Effect.Effect<Option.Option<ParticipantWithTopicSubmissionsAndContactSheets>, DbError>
+    /** Paginated participants for a marathon domain with filters and sort options. */
+    readonly getInfiniteParticipantsByDomain: (params: {
+      domain: string
+      cursor?: string
+      limit?: number
+      search?: string
+      sortOrder?: 'asc' | 'desc'
+      competitionClassId?: number | number[] | readonly number[]
+      deviceGroupId?: number | number[] | readonly number[]
+      topicId?: number
+      statusFilter?: 'completed' | 'verified'
+      excludeStatuses?: string[]
+      includeStatuses?: string[]
+      hasValidationErrors?: boolean
+      votedFilter?: 'voted' | 'not-voted'
+    }) => Effect.Effect<InfiniteParticipantsPage, DbError>
+    /** Insert a new participant row. */
+    readonly createParticipant: (params: {
+      data: NewParticipant
+    }) => Effect.Effect<Participant, DbError>
+    /** Insert a participant terms acceptance row. */
+    readonly createTermsAcceptance: (params: {
+      data: NewParticipantTermsAcceptance
+    }) => Effect.Effect<Option.Option<ParticipantTermsAcceptance>, DbError>
+    /** Patch fields on a participant identified by id. */
+    readonly updateParticipantById: (params: {
+      id: number
+      data: Partial<NewParticipant>
+    }) => Effect.Effect<Participant, DbError>
+    /** Patch fields on a participant identified by reference/domain. */
+    readonly updateParticipantByReference: (params: {
+      reference: string
+      domain: string
+      data: Partial<NewParticipant>
+    }) => Effect.Effect<{ id: number }, DbError>
+    /** Delete a participant by id. */
+    readonly deleteParticipant: (params: { id: number }) => Effect.Effect<Participant, DbError>
+    /** Delete participants by id scoped to a domain. */
+    readonly batchDeleteParticipants: (params: {
+      ids: number[]
+      domain: string
+    }) => Effect.Effect<ParticipantsBatchDeletionResult, DbError>
+    /** Mark participants verified by id scoped to a domain. */
+    readonly batchVerifyParticipants: (params: {
+      ids: number[]
+      domain: string
+    }) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError>
+    /** Mark participants completed by id scoped to a domain. */
+    readonly batchMarkParticipantsCompleted: (params: {
+      ids: number[]
+      domain: string
+    }) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError>
+  }
+>()('@blikka/db/participants-repository') {}
 
 const makeParticipantsRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
-  const getParticipantById: ParticipantsRepository["Service"]["getParticipantById"] = Effect.fn(
-    "ParticipantsRepository.getParticipantByIdQuery",
+  const getParticipantById: ParticipantsRepository['Service']['getParticipantById'] = Effect.fn(
+    'ParticipantsRepository.getParticipantByIdQuery',
   )(function* ({ id }) {
     const result = yield* use((db) =>
       db.query.participants.findFirst({
@@ -193,8 +185,8 @@ const makeParticipantsRepository = Effect.gen(function* () {
     )
     return Option.fromNullishOr(result)
   })
-  const getParticipantByReference: ParticipantsRepository["Service"]["getParticipantByReference"] =
-    Effect.fn("ParticipantsRepository.getParticipantByReferenceQuery")(function* ({
+  const getParticipantByReference: ParticipantsRepository['Service']['getParticipantByReference'] =
+    Effect.fn('ParticipantsRepository.getParticipantByReferenceQuery')(function* ({
       reference,
       domain,
     }) {
@@ -221,8 +213,8 @@ const makeParticipantsRepository = Effect.gen(function* () {
       )
       return Option.fromNullishOr(result)
     })
-  const getByPhoneHashForByCamera: ParticipantsRepository["Service"]["getByPhoneHashForByCamera"] =
-    Effect.fn("ParticipantsRepository.getByPhoneHashForByCameraQuery")(function* ({
+  const getByPhoneHashForByCamera: ParticipantsRepository['Service']['getByPhoneHashForByCamera'] =
+    Effect.fn('ParticipantsRepository.getByPhoneHashForByCameraQuery')(function* ({
       marathonId,
       phoneHash,
     }) {
@@ -231,7 +223,7 @@ const makeParticipantsRepository = Effect.gen(function* () {
           where: (table, operators) =>
             operators.and(
               operators.eq(table.marathonId, marathonId),
-              operators.eq(table.participantMode, "by-camera"),
+              operators.eq(table.participantMode, 'by-camera'),
               operators.eq(table.phoneHash, phoneHash),
             ),
           orderBy: (table, operators) => [
@@ -254,13 +246,13 @@ const makeParticipantsRepository = Effect.gen(function* () {
       )
       return Option.fromNullishOr(result)
     })
-  const getInfiniteParticipantsByDomain: ParticipantsRepository["Service"]["getInfiniteParticipantsByDomain"] =
-    Effect.fn("ParticipantsRepository.getInfiniteParticipantsByDomainQuery")(function* ({
+  const getInfiniteParticipantsByDomain: ParticipantsRepository['Service']['getInfiniteParticipantsByDomain'] =
+    Effect.fn('ParticipantsRepository.getInfiniteParticipantsByDomainQuery')(function* ({
       domain,
       cursor,
       limit = 50,
       search,
-      sortOrder = "desc",
+      sortOrder = 'desc',
       competitionClassId,
       deviceGroupId,
       topicId,
@@ -274,7 +266,7 @@ const makeParticipantsRepository = Effect.gen(function* () {
       const isValidCursor = cursorId !== undefined && !isNaN(cursorId)
       const baseConditions = [eq(participants.domain, domain)]
       if (isValidCursor) {
-        if (sortOrder === "desc") {
+        if (sortOrder === 'desc') {
           baseConditions.push(lt(participants.id, cursorId!))
         } else {
           baseConditions.push(gt(participants.id, cursorId!))
@@ -327,8 +319,8 @@ const makeParticipantsRepository = Effect.gen(function* () {
                 eq(participants.domain, domain),
                 eq(validationResults.outcome, VALIDATION_OUTCOME.FAILED),
                 or(
-                  eq(validationResults.severity, "error"),
-                  eq(validationResults.severity, "warning"),
+                  eq(validationResults.severity, 'error'),
+                  eq(validationResults.severity, 'warning'),
                 ),
               ),
             ),
@@ -361,7 +353,7 @@ const makeParticipantsRepository = Effect.gen(function* () {
         }
         baseConditions.push(inArray(participants.id, participantIdsWithTopicSubmissions))
       }
-      if ((votedFilter === "voted" || votedFilter === "not-voted") && topicId !== undefined) {
+      if ((votedFilter === 'voted' || votedFilter === 'not-voted') && topicId !== undefined) {
         const participantsWhoVoted = yield* use((db) =>
           db
             .selectDistinct({
@@ -391,7 +383,7 @@ const makeParticipantsRepository = Effect.gen(function* () {
         const participantIdsWhoVoted = participantsWhoVoted
           .map((p) => p.participantId)
           .filter((id): id is number => id !== null)
-        if (votedFilter === "voted") {
+        if (votedFilter === 'voted') {
           if (participantIdsWhoVoted.length === 0) {
             return {
               participants: [],
@@ -466,7 +458,7 @@ const makeParticipantsRepository = Effect.gen(function* () {
           },
           limit: limit + 1,
           orderBy: (table, operators) =>
-            sortOrder === "desc" ? operators.desc(table.id) : operators.asc(table.id),
+            sortOrder === 'desc' ? operators.desc(table.id) : operators.asc(table.id),
         }),
       )
       function countValidationResults(
@@ -480,8 +472,8 @@ const makeParticipantsRepository = Effect.gen(function* () {
           .filter((vr) => vr.outcome === outcome)
           .reduce(
             (acc, vr) => {
-              if (vr.severity === "error") acc.errors++
-              else if (vr.severity === "warning") acc.warnings++
+              if (vr.severity === 'error') acc.errors++
+              else if (vr.severity === 'warning') acc.warnings++
               return acc
             },
             { errors: 0, warnings: 0 },
@@ -574,13 +566,13 @@ const makeParticipantsRepository = Effect.gen(function* () {
         nextCursor,
       }
     })
-  const createParticipant: ParticipantsRepository["Service"]["createParticipant"] = Effect.fn(
-    "ParticipantsRepository.createParticipantMutation",
+  const createParticipant: ParticipantsRepository['Service']['createParticipant'] = Effect.fn(
+    'ParticipantsRepository.createParticipantMutation',
   )(function* ({ data }) {
     if (!data.domain) {
       return yield* Effect.fail(
         new DbError({
-          message: "Domain is required",
+          message: 'Domain is required',
         }),
       )
     }
@@ -588,30 +580,30 @@ const makeParticipantsRepository = Effect.gen(function* () {
     if (!result) {
       return yield* Effect.fail(
         new DbError({
-          message: "Failed to create participant",
+          message: 'Failed to create participant',
         }),
       )
     }
     return result
   })
 
-  const updateParticipantById: ParticipantsRepository["Service"]["updateParticipantById"] =
-    Effect.fn("ParticipantsRepository.updateParticipantMutation")(function* ({ id, data }) {
+  const updateParticipantById: ParticipantsRepository['Service']['updateParticipantById'] =
+    Effect.fn('ParticipantsRepository.updateParticipantMutation')(function* ({ id, data }) {
       const [result] = yield* use((db) =>
         db.update(participants).set(data).where(eq(participants.id, id)).returning(),
       )
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to update participant",
+            message: 'Failed to update participant',
           }),
         )
       }
       return result
     })
 
-  const updateParticipantByReference: ParticipantsRepository["Service"]["updateParticipantByReference"] =
-    Effect.fn("ParticipantsRepository.updateParticipantByReference")(function* ({
+  const updateParticipantByReference: ParticipantsRepository['Service']['updateParticipantByReference'] =
+    Effect.fn('ParticipantsRepository.updateParticipantByReference')(function* ({
       reference,
       domain,
       data,
@@ -626,21 +618,21 @@ const makeParticipantsRepository = Effect.gen(function* () {
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to update participant",
+            message: 'Failed to update participant',
           }),
         )
       }
       return result
     })
-  const createTermsAcceptance: ParticipantsRepository["Service"]["createTermsAcceptance"] =
-    Effect.fn("ParticipantsRepository.createTermsAcceptance")(function* ({ data }) {
+  const createTermsAcceptance: ParticipantsRepository['Service']['createTermsAcceptance'] =
+    Effect.fn('ParticipantsRepository.createTermsAcceptance')(function* ({ data }) {
       const [result] = yield* use((db) =>
         db.insert(participantTermsAcceptances).values(data).onConflictDoNothing().returning(),
       )
       return Option.fromNullishOr(result)
     })
-  const deleteParticipant: ParticipantsRepository["Service"]["deleteParticipant"] = Effect.fn(
-    "ParticipantsRepository.deleteParticipantMutation",
+  const deleteParticipant: ParticipantsRepository['Service']['deleteParticipant'] = Effect.fn(
+    'ParticipantsRepository.deleteParticipantMutation',
   )(function* ({ id }: { id: number }) {
     const [result] = yield* use((db) =>
       db.delete(participants).where(eq(participants.id, id)).returning(),
@@ -648,14 +640,14 @@ const makeParticipantsRepository = Effect.gen(function* () {
     if (!result) {
       return yield* Effect.fail(
         new DbError({
-          message: "Failed to delete participant",
+          message: 'Failed to delete participant',
         }),
       )
     }
     return result
   })
-  const batchDeleteParticipants: ParticipantsRepository["Service"]["batchDeleteParticipants"] =
-    Effect.fn("ParticipantsRepository.batchDeleteParticipants")(function* ({ ids, domain }) {
+  const batchDeleteParticipants: ParticipantsRepository['Service']['batchDeleteParticipants'] =
+    Effect.fn('ParticipantsRepository.batchDeleteParticipants')(function* ({ ids, domain }) {
       if (ids.length === 0) {
         return { deletedCount: 0, failedIds: [] }
       }
@@ -672,20 +664,20 @@ const makeParticipantsRepository = Effect.gen(function* () {
         failedIds,
       }
     })
-  const batchVerifyParticipants: ParticipantsRepository["Service"]["batchVerifyParticipants"] =
-    Effect.fn("ParticipantsRepository.batchVerifyParticipants")(function* ({ ids, domain }) {
+  const batchVerifyParticipants: ParticipantsRepository['Service']['batchVerifyParticipants'] =
+    Effect.fn('ParticipantsRepository.batchVerifyParticipants')(function* ({ ids, domain }) {
       if (ids.length === 0) {
         return { updatedCount: 0, failedIds: [] }
       }
       const results = yield* use((db) =>
         db
           .update(participants)
-          .set({ status: "verified" })
+          .set({ status: 'verified' })
           .where(
             and(
               eq(participants.domain, domain),
               inArray(participants.id, ids),
-              eq(participants.status, "completed"),
+              eq(participants.status, 'completed'),
             ),
           )
           .returning({ id: participants.id }),
@@ -697,20 +689,20 @@ const makeParticipantsRepository = Effect.gen(function* () {
         failedIds,
       }
     })
-  const batchMarkParticipantsCompleted: ParticipantsRepository["Service"]["batchMarkParticipantsCompleted"] =
-    Effect.fn("ParticipantsRepository.batchMarkParticipantsCompleted")(function* ({ ids, domain }) {
+  const batchMarkParticipantsCompleted: ParticipantsRepository['Service']['batchMarkParticipantsCompleted'] =
+    Effect.fn('ParticipantsRepository.batchMarkParticipantsCompleted')(function* ({ ids, domain }) {
       if (ids.length === 0) {
         return { updatedCount: 0, failedIds: [] }
       }
       const results = yield* use((db) =>
         db
           .update(participants)
-          .set({ status: "completed" })
+          .set({ status: 'completed' })
           .where(
             and(
               eq(participants.domain, domain),
               inArray(participants.id, ids),
-              notInArray(participants.status, ["completed", "verified"]),
+              notInArray(participants.status, ['completed', 'verified']),
             ),
           )
           .returning({ id: participants.id }),

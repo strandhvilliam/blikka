@@ -1,12 +1,9 @@
-import "server-only"
+import 'server-only'
 
-import { Realtime, InferRealtimeEvents } from "@upstash/realtime"
-import { Redis } from "@upstash/redis"
-import z from "zod/v4"
-import {
-  realtimeEventKeys,
-  realtimeResultOutcomes,
-} from "@blikka/realtime/contract"
+import { Realtime, InferRealtimeEvents } from '@upstash/realtime'
+import { Redis } from '@upstash/redis'
+import z from 'zod/v4'
+import { realtimeEventKeys, realtimeResultOutcomes } from '@blikka/realtime/contract'
 
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
@@ -26,20 +23,21 @@ const RealtimeEventResultPayloadBaseSchema = z.object({
   duration: z.number().nullable(),
 })
 
-const RealtimeEventResultPayloadSchema = z.discriminatedUnion("outcome", [
+const RealtimeEventResultPayloadSchema = z.discriminatedUnion('outcome', [
   RealtimeEventResultPayloadBaseSchema.extend({
-    outcome: z.literal("success"),
+    outcome: z.literal('success'),
   }),
   RealtimeEventResultPayloadBaseSchema.extend({
-    outcome: z.literal("error"),
+    outcome: z.literal('error'),
     error: z.string(),
   }),
 ])
 
 function createRealtimeEventScopedSchema<TSchema extends z.ZodTypeAny>(schema: TSchema) {
-  return Object.fromEntries(
-    realtimeEventKeys.map((eventKey) => [eventKey, schema]),
-  ) as Record<(typeof realtimeEventKeys)[number], TSchema>
+  return Object.fromEntries(realtimeEventKeys.map((eventKey) => [eventKey, schema])) as Record<
+    (typeof realtimeEventKeys)[number],
+    TSchema
+  >
 }
 
 const VotingVoteCastPayloadSchema = z.object({
@@ -61,7 +59,7 @@ const realtimeContractSchema = {
   event: {
     result: createRealtimeEventScopedSchema(RealtimeEventResultPayloadSchema),
     voting: {
-      "vote-cast": VotingVoteCastPayloadSchema,
+      'vote-cast': VotingVoteCastPayloadSchema,
     },
   },
 } as const

@@ -1,8 +1,8 @@
-import { Schema } from "effect"
+import { Schema } from 'effect'
 
 export const GenerateContactSheetSchema = Schema.Struct({
-    domain: Schema.String,
-    reference: Schema.String,
-  });
+  domain: Schema.String,
+  reference: Schema.String,
+})
 
 export type GenerateContactSheet = Schema.Schema.Type<typeof GenerateContactSheetSchema>

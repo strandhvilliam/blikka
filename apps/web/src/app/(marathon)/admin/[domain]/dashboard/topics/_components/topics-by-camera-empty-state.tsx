@@ -1,31 +1,27 @@
-"use client";
+'use client'
 
-import { Camera, Plus } from "lucide-react";
-import { PrimaryButton } from "@/components/ui/primary-button";
+import { Camera, Plus } from 'lucide-react'
+import { PrimaryButton } from '@/components/ui/primary-button'
 
 type TopicsByCameraEmptyStateProps = {
-  onCreateClick: () => void;
-};
+  onCreateClick: () => void
+}
 
-export function TopicsByCameraEmptyState({
-  onCreateClick,
-}: TopicsByCameraEmptyStateProps) {
+export function TopicsByCameraEmptyState({ onCreateClick }: TopicsByCameraEmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-14 text-center sm:px-6 sm:py-20">
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary/10">
         <Camera className="size-6 text-brand-primary" />
       </div>
-      <h2 className="font-gothic text-xl tracking-tight text-foreground">
-        No topics yet
-      </h2>
+      <h2 className="font-gothic text-xl tracking-tight text-foreground">No topics yet</h2>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Create your first topic to get started. Once a topic is active, you can
-        open submissions from the active topic panel.
+        Create your first topic to get started. Once a topic is active, you can open submissions
+        from the active topic panel.
       </p>
       <PrimaryButton onClick={onCreateClick} className="mt-6">
         <Plus className="size-4" />
         Create your first topic
       </PrimaryButton>
     </div>
-  );
+  )
 }

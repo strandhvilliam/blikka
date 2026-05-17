@@ -1,8 +1,8 @@
-"use server"
+'use server'
 
-import { sendSignInOtp } from "@/lib/auth/server"
-import { loginRatelimit, getClientIp } from "@/lib/ratelimit"
-import { headers } from "next/headers"
+import { sendSignInOtp } from '@/lib/auth/server'
+import { loginRatelimit, getClientIp } from '@/lib/ratelimit'
+import { headers } from 'next/headers'
 
 export async function loginAction(input: { email: string }) {
   try {
@@ -11,7 +11,7 @@ export async function loginAction(input: { email: string }) {
     const allowed = await loginRatelimit.limit(ip)
 
     if (!allowed) {
-      throw new Error("Too many login attempts. Please try again later.")
+      throw new Error('Too many login attempts. Please try again later.')
     }
 
     await sendSignInOtp({
@@ -21,7 +21,10 @@ export async function loginAction(input: { email: string }) {
 
     return { data: undefined, error: null }
   } catch (error) {
-    if (error instanceof Error && error.message === "Too many login attempts. Please try again later.") {
+    if (
+      error instanceof Error &&
+      error.message === 'Too many login attempts. Please try again later.'
+    ) {
       return {
         data: undefined,
         error: error.message,
@@ -32,7 +35,7 @@ export async function loginAction(input: { email: string }) {
 
     return {
       data: undefined,
-      error: "Unable to send verification code. Please try again.",
+      error: 'Unable to send verification code. Please try again.',
     }
   }
 }

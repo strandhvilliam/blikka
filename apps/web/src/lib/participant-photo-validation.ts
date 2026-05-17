@@ -1,6 +1,6 @@
-import type { RuleConfig } from "@blikka/db";
-import type { ValidationResult } from "@blikka/validation";
-import type { UploadMarathonMode } from "./types";
+import type { RuleConfig } from '@blikka/db'
+import type { ValidationResult } from '@blikka/validation'
+import type { UploadMarathonMode } from './types'
 import {
   type ValidatablePhotoLike,
   buildValidationInputs,
@@ -8,23 +8,21 @@ import {
   mapRuleConfigsToValidationRules,
   prepareValidationRules,
   runClientValidation,
-} from "./validation";
+} from './validation'
 
-export { hasBlockingValidationErrors };
+export { hasBlockingValidationErrors }
 
 interface RunParticipantPhotoValidationInput<
   TPhoto extends ValidatablePhotoLike = ValidatablePhotoLike,
 > {
-  photos: TPhoto[];
-  ruleConfigs: RuleConfig[];
-  marathonStartDate?: string | Date | null;
-  marathonEndDate?: string | Date | null;
-  marathonMode?: UploadMarathonMode;
+  photos: TPhoto[]
+  ruleConfigs: RuleConfig[]
+  marathonStartDate?: string | Date | null
+  marathonEndDate?: string | Date | null
+  marathonMode?: UploadMarathonMode
 }
 
-export async function runParticipantPhotoValidation<
-  TPhoto extends ValidatablePhotoLike,
->({
+export async function runParticipantPhotoValidation<TPhoto extends ValidatablePhotoLike>({
   photos,
   ruleConfigs,
   marathonStartDate,
@@ -32,23 +30,23 @@ export async function runParticipantPhotoValidation<
   marathonMode,
 }: RunParticipantPhotoValidationInput<TPhoto>): Promise<ValidationResult[]> {
   if (photos.length === 0) {
-    return [];
+    return []
   }
 
-  const rules = prepareValidationRules(
-    mapRuleConfigsToValidationRules(ruleConfigs, marathonMode),
-    { start: marathonStartDate, end: marathonEndDate },
-  );
+  const rules = prepareValidationRules(mapRuleConfigsToValidationRules(ruleConfigs, marathonMode), {
+    start: marathonStartDate,
+    end: marathonEndDate,
+  })
 
   if (rules.length === 0) {
-    return [];
+    return []
   }
 
   try {
-    return await runClientValidation(rules, buildValidationInputs(photos));
+    return await runClientValidation(rules, buildValidationInputs(photos))
   } catch (error) {
     throw new Error(
-      `Failed to validate selected images: ${error instanceof Error ? error.message : "Unknown error"}`,
-    );
+      `Failed to validate selected images: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    )
   }
 }

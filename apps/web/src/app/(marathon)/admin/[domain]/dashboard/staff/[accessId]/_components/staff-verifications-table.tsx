@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useMemo, useState, useEffect } from "react"
-import { useInfiniteQuery } from "@tanstack/react-query"
+import { useMemo, useState, useEffect } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import {
   useReactTable,
   getCoreRowModel,
@@ -10,9 +10,9 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
-} from "@tanstack/react-table"
-import { useTRPC } from "@/lib/trpc/client"
-import { Input } from "@/components/ui/input"
+} from '@tanstack/react-table'
+import { useTRPC } from '@/lib/trpc/client'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -20,8 +20,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import {
   Loader2,
   Search,
@@ -32,11 +32,11 @@ import {
   Camera,
   Shield,
   User2,
-} from "lucide-react"
-import { cn, formatDomainPathname } from "@/lib/utils"
-import { useDomain } from "@/lib/domain-provider"
-import { useRouter } from "next/navigation"
-import { useDebounce } from "use-debounce"
+} from 'lucide-react'
+import { cn, formatDomainPathname } from '@/lib/utils'
+import { useDomain } from '@/lib/domain-provider'
+import { useRouter } from 'next/navigation'
+import { useDebounce } from 'use-debounce'
 import {
   Pagination,
   PaginationContent,
@@ -45,15 +45,15 @@ import {
   PaginationPrevious,
   PaginationNext,
   PaginationEllipsis,
-} from "@/components/ui/pagination"
+} from '@/components/ui/pagination'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { type Submission } from "@blikka/db"
+} from '@/components/ui/select'
+import { type Submission } from '@blikka/db'
 
 type VerificationData = {
   id: number
@@ -88,7 +88,7 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
   const router = useRouter()
   const trpc = useTRPC()
   const [sorting, setSorting] = useState<SortingState>([])
-  const [search, setSearch] = useState("")
+  const [search, setSearch] = useState('')
   const [debouncedSearch] = useDebounce(search, 300)
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
@@ -127,20 +127,20 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "verified":
+      case 'verified':
         return (
           <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-200">
             <CheckCircle className="h-3 w-3 mr-1" />
             Verified
           </Badge>
         )
-      case "completed":
+      case 'completed':
         return (
           <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-200">
             Completed
           </Badge>
         )
-      case "processing":
+      case 'processing':
         return (
           <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 border-yellow-200">
             Processing
@@ -158,16 +158,16 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
   const columns = useMemo<ColumnDef<VerificationData>[]>(
     () => [
       {
-        accessorKey: "participant.reference",
-        header: "Reference",
+        accessorKey: 'participant.reference',
+        header: 'Reference',
         size: 120,
         cell: ({ row }) => (
           <div className="font-mono font-medium">#{row.original.participant.reference}</div>
         ),
       },
       {
-        accessorKey: "participant.name",
-        header: "Participant",
+        accessorKey: 'participant.name',
+        header: 'Participant',
         size: 200,
         cell: ({ row }) => (
           <div className="space-y-1">
@@ -184,14 +184,14 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
         ),
       },
       {
-        accessorKey: "participant.status",
-        header: "Status",
+        accessorKey: 'participant.status',
+        header: 'Status',
         size: 120,
         cell: ({ row }) => getStatusBadge(row.original.participant.status),
       },
       {
-        accessorKey: "participant.competitionClass",
-        header: "Class",
+        accessorKey: 'participant.competitionClass',
+        header: 'Class',
         size: 150,
         cell: ({ row }) => {
           const competitionClass = row.original.participant.competitionClass
@@ -203,31 +203,31 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
         },
       },
       {
-        accessorKey: "createdAt",
-        header: "Verified",
+        accessorKey: 'createdAt',
+        header: 'Verified',
         size: 180,
         cell: ({ row }) => {
           const date = new Date(row.original.createdAt)
           return (
             <div className="text-sm flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-              {date.toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}{" "}
-              at{" "}
-              {date.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
+              {date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })}{' '}
+              at{' '}
+              {date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
               })}
             </div>
           )
         },
       },
       {
-        accessorKey: "notes",
-        header: "Notes",
+        accessorKey: 'notes',
+        header: 'Notes',
         size: 200,
         cell: ({ row }) => {
           const notes = row.original.notes
@@ -358,13 +358,13 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
           <div className="flex flex-col gap-4 border-t bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <p className="text-sm text-muted-foreground">
-                Showing{" "}
+                Showing{' '}
                 {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}–
                 {Math.min(
                   (table.getState().pagination.pageIndex + 1) *
                     table.getState().pagination.pageSize,
                   filteredVerifications.length,
-                )}{" "}
+                )}{' '}
                 of {filteredVerifications.length} verifications
               </p>
               <Select
@@ -392,7 +392,7 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
                       e.preventDefault()
                       table.previousPage()
                     }}
-                    className={cn(!table.getCanPreviousPage() && "pointer-events-none opacity-50")}
+                    className={cn(!table.getCanPreviousPage() && 'pointer-events-none opacity-50')}
                   />
                 </PaginationItem>
                 {(() => {
@@ -402,19 +402,19 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
                     if (pageCount <= 7) {
                       return Array.from({ length: pageCount }, (_, i) => i)
                     }
-                    const items: (number | "ellipsis")[] = [0]
-                    if (currentPage > 2) items.push("ellipsis")
+                    const items: (number | 'ellipsis')[] = [0]
+                    if (currentPage > 2) items.push('ellipsis')
                     const midStart = Math.max(1, currentPage - 1)
                     const midEnd = Math.min(pageCount - 2, currentPage + 1)
                     for (let i = midStart; i <= midEnd; i++) {
                       items.push(i)
                     }
-                    if (currentPage < pageCount - 3) items.push("ellipsis")
+                    if (currentPage < pageCount - 3) items.push('ellipsis')
                     if (pageCount > 1) items.push(pageCount - 1)
                     return items
                   }
                   return getPageItems().map((p, i) =>
-                    p === "ellipsis" ? (
+                    p === 'ellipsis' ? (
                       <PaginationItem key={`ellipsis-${i}`}>
                         <PaginationEllipsis />
                       </PaginationItem>
@@ -441,7 +441,7 @@ export function StaffVerificationsTable({ staffId, totalCount = 0 }: StaffVerifi
                       e.preventDefault()
                       table.nextPage()
                     }}
-                    className={cn(!table.getCanNextPage() && "pointer-events-none opacity-50")}
+                    className={cn(!table.getCanNextPage() && 'pointer-events-none opacity-50')}
                   />
                 </PaginationItem>
               </PaginationContent>

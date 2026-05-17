@@ -1,45 +1,45 @@
-import { withSentryConfig } from "@sentry/nextjs"
-import type { NextConfig } from "next"
-import createNextIntlPlugin from "next-intl/plugin"
+import { withSentryConfig } from '@sentry/nextjs'
+import type { NextConfig } from 'next'
+import createNextIntlPlugin from 'next-intl/plugin'
 
-const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts")
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
   experimental: {
-    optimizePackageImports: ["lucide-react"],
+    optimizePackageImports: ['lucide-react'],
   },
   reactCompiler: true,
   cacheComponents: true,
-  serverExternalPackages: ["exifr", "sharp"],
+  serverExternalPackages: ['exifr', 'sharp'],
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "picsum.photos",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
       },
       {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
       },
       {
-        protocol: "https",
-        hostname: "placehold.co",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: 'placehold.co',
+        pathname: '/**',
       },
       {
-        protocol: "https",
-        hostname: "s3.eu-north-1.amazonaws.com",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: 's3.eu-north-1.amazonaws.com',
+        pathname: '/**',
       },
       {
-        protocol: "https",
-        hostname: "*.s3.eu-north-1.amazonaws.com",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: '*.s3.eu-north-1.amazonaws.com',
+        pathname: '/**',
       },
     ],
-    formats: ["image/webp"],
+    formats: ['image/webp'],
     qualities: [50, 75],
     minimumCacheTTL: 2678400,
   },
@@ -49,10 +49,10 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  org: "villiam-strandh",
+  org: 'villiam-strandh',
   authToken: process.env.SENTRY_AUTH_TOKEN,
 
-  project: "blikka",
+  project: 'blikka',
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,

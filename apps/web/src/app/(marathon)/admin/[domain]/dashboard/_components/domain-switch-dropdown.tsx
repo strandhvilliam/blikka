@@ -1,23 +1,19 @@
-"use client"
+'use client'
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { ChevronsUpDown, Globe, ImageIcon, Settings } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { useDomain } from "@/lib/domain-provider"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { protocol, rootDomain } from "@/config"
-import { cn } from "@/lib/utils"
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ChevronsUpDown, Globe, ImageIcon, Settings } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { useDomain } from '@/lib/domain-provider'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { protocol, rootDomain } from '@/config'
+import { cn } from '@/lib/utils'
 
 function modeLabel(mode: string | undefined) {
-  if (mode === "by-camera") return "By camera"
-  return "Marathon"
+  if (mode === 'by-camera') return 'By camera'
+  return 'Marathon'
 }
 
 export function DomainSwitchDropdown() {
@@ -51,11 +47,11 @@ export function DomainSwitchDropdown() {
         <button
           type="button"
           className={cn(
-            "flex h-9 w-full min-w-0 max-w-full items-center gap-2 rounded-full border border-border/60 bg-sidebar-accent/50 px-2.5 py-0 text-left",
-            "text-sidebar-foreground/90 transition-all duration-150 select-none",
-            "hover:bg-sidebar-accent hover:border-border hover:text-sidebar-foreground hover:shadow-xs",
-            "data-[state=open]:bg-sidebar-accent data-[state=open]:border-border data-[state=open]:shadow-xs",
-            "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
+            'flex h-9 w-full min-w-0 max-w-full items-center gap-2 rounded-full border border-border/60 bg-sidebar-accent/50 px-2.5 py-0 text-left',
+            'text-sidebar-foreground/90 transition-all duration-150 select-none',
+            'hover:bg-sidebar-accent hover:border-border hover:text-sidebar-foreground hover:shadow-xs',
+            'data-[state=open]:bg-sidebar-accent data-[state=open]:border-border data-[state=open]:shadow-xs',
+            'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar',
           )}
         >
           <div className="flex size-7 shrink-0 overflow-hidden items-center justify-center rounded-md border border-border/50 bg-background/60">
@@ -74,10 +70,10 @@ export function DomainSwitchDropdown() {
           </div>
           <div className="min-w-0 flex-1 leading-tight">
             <span className="block truncate text-xs font-medium">
-              {marathon?.name ?? "Marathon"}
+              {marathon?.name ?? 'Marathon'}
             </span>
             <span className="block truncate text-[10px] text-muted-foreground">
-              {marathon ? modeLabel(marathon.mode) : "—"}
+              {marathon ? modeLabel(marathon.mode) : '—'}
             </span>
           </div>
           <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
@@ -133,16 +129,11 @@ export function DomainSwitchDropdown() {
                   />
                   <div>
                     <dt className="text-muted-foreground">Mode</dt>
-                    <dd className="font-medium text-foreground">
-                      {modeLabel(marathon.mode)}
-                    </dd>
+                    <dd className="font-medium text-foreground">{modeLabel(marathon.mode)}</dd>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
-                  <Globe
-                    className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
-                    aria-hidden
-                  />
+                  <Globe className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                   <div className="min-w-0">
                     <dt className="text-muted-foreground">Domain</dt>
                     <dd className="truncate font-mono text-[11px] font-medium text-foreground">
@@ -167,10 +158,7 @@ export function DomainSwitchDropdown() {
         ) : (
           <div className="px-4 py-6 text-center">
             <p className="text-sm text-muted-foreground">No marathon selected</p>
-            <Button
-              onClick={handleSwitchMarathon}
-              className="mt-3 h-8 rounded-full px-4 text-xs"
-            >
+            <Button onClick={handleSwitchMarathon} className="mt-3 h-8 rounded-full px-4 text-xs">
               Select marathon
             </Button>
           </div>

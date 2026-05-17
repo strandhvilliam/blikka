@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useState, useCallback, useEffect, useMemo } from "react"
-import { createPortal } from "react-dom"
-import { AnimatePresence, motion } from "motion/react"
-import { ChevronLeft, ChevronRight, Loader2, X, Trophy } from "lucide-react"
-import { buildS3Url } from "@/lib/utils"
-import { useImagePreloader } from "../_hooks/use-image-preloader"
+import { useState, useCallback, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
+import { AnimatePresence, motion } from 'motion/react'
+import { ChevronLeft, ChevronRight, Loader2, X, Trophy } from 'lucide-react'
+import { buildS3Url } from '@/lib/utils'
+import { useImagePreloader } from '../_hooks/use-image-preloader'
 
 interface WinnerEntry {
   rank: number
@@ -24,7 +24,7 @@ interface WinnersSlideshowProps {
   marathonLogoUrl: string | null
 }
 
-const RANK_LABELS = ["1st Place", "2nd Place", "3rd Place"] as const
+const RANK_LABELS = ['1st Place', '2nd Place', '3rd Place'] as const
 
 function getFullImageUrl(entry: WinnerEntry) {
   const submissionsBucket = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
@@ -46,7 +46,7 @@ function getDisplayName(entry: WinnerEntry) {
 
 const slideVariants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? "40%" : "-40%",
+    x: direction > 0 ? '40%' : '-40%',
     opacity: 0,
   }),
   center: {
@@ -54,7 +54,7 @@ const slideVariants = {
     opacity: 1,
   },
   exit: (direction: number) => ({
-    x: direction > 0 ? "-40%" : "40%",
+    x: direction > 0 ? '-40%' : '40%',
     opacity: 0,
   }),
 }
@@ -92,23 +92,23 @@ export function WinnersSlideshow({
     if (!open) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-      if (e.key === "ArrowRight" || e.key === " ") {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault()
         goNext()
       }
-      if (e.key === "ArrowLeft") {
+      if (e.key === 'ArrowLeft') {
         e.preventDefault()
         goPrev()
       }
     }
 
-    document.addEventListener("keydown", handleKeyDown)
-    document.body.style.overflow = "hidden"
+    document.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = 'hidden'
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown)
-      document.body.style.overflow = ""
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
     }
   }, [open, onClose, goNext, goPrev])
 
@@ -224,11 +224,11 @@ export function WinnersSlideshow({
             animate="center"
             exit="exit"
             transition={{
-              x: { type: "tween", duration: 0.35, ease: [0.32, 0.72, 0, 1] },
+              x: { type: 'tween', duration: 0.35, ease: [0.32, 0.72, 0, 1] },
               opacity: { duration: 0.25 },
             }}
             className="flex h-full min-h-0 w-full min-w-0 max-w-[1600px] flex-col items-stretch gap-6 lg:flex-row lg:items-center lg:gap-16 xl:gap-20"
-            style={{ willChange: "transform, opacity" }}
+            style={{ willChange: 'transform, opacity' }}
           >
             {/* Photo */}
             <div className="relative flex h-auto max-h-[45vh] min-h-0 w-full shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-black/40 shadow-2xl shadow-black/50 lg:h-auto lg:max-h-none lg:min-h-0 lg:flex-1 lg:self-stretch lg:rounded-3xl">
@@ -253,10 +253,10 @@ export function WinnersSlideshow({
                 <div
                   className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-2xl font-bold sm:h-16 sm:w-16 sm:rounded-2xl sm:text-3xl lg:h-22 lg:w-22 lg:rounded-3xl lg:text-4xl ${
                     currentIndex === 0
-                      ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/30"
+                      ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/30'
                       : currentIndex === 1
-                        ? "bg-white/15 text-white ring-1 ring-white/20"
-                        : "bg-white/10 text-white/80 ring-1 ring-white/15"
+                        ? 'bg-white/15 text-white ring-1 ring-white/20'
+                        : 'bg-white/10 text-white/80 ring-1 ring-white/15'
                   }`}
                 >
                   {winner.rank}
@@ -266,7 +266,7 @@ export function WinnersSlideshow({
                     {rankLabel}
                   </p>
                   <p className="mt-1 text-xs text-white/40 sm:text-sm lg:text-base">
-                    {winner.voteCount} vote{winner.voteCount !== 1 ? "s" : ""}
+                    {winner.voteCount} vote{winner.voteCount !== 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
@@ -283,7 +283,7 @@ export function WinnersSlideshow({
                   {winner.voteCount}
                 </span>
                 <span className="text-sm text-white/50 sm:text-base lg:text-lg">
-                  vote{winner.voteCount !== 1 ? "s" : ""}
+                  vote{winner.voteCount !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
@@ -312,10 +312,10 @@ export function WinnersSlideshow({
                   }}
                   className={`h-1.5 rounded-full transition-all duration-300 ${
                     index === currentIndex
-                      ? "w-8 bg-brand-primary"
+                      ? 'w-8 bg-brand-primary'
                       : isLoaded
-                        ? "w-4 bg-white/20 hover:bg-white/40"
-                        : "w-4 bg-white/10"
+                        ? 'w-4 bg-white/20 hover:bg-white/40'
+                        : 'w-4 bg-white/10'
                   }`}
                   aria-label={`Go to winner ${index + 1}`}
                 />

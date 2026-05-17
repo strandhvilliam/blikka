@@ -1,33 +1,32 @@
-import { useState } from "react"
-import type { Topic } from "@blikka/db"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useQueryClient } from "@tanstack/react-query"
-import { useSuspenseQuery, useMutation, useQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { SidebarMenuButton } from "@/components/ui/sidebar"
-import { TagIcon, ChevronsUpDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { TopicsActivateDialog } from "../topics/_components/topics-activate-dialog"
+import { useState } from 'react'
+import type { Topic } from '@blikka/db'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useQueryClient } from '@tanstack/react-query'
+import { useSuspenseQuery, useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { SidebarMenuButton } from '@/components/ui/sidebar'
+import { TagIcon, ChevronsUpDown } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { TopicsActivateDialog } from '../topics/_components/topics-activate-dialog'
 
 export function DashboardHeaderTopicSwitcher() {
   const [popoverOpen, setPopoverOpen] = useState(false)
-  const [pendingTopicToActivate, setPendingTopicToActivate] =
-    useState<Topic | null>(null)
+  const [pendingTopicToActivate, setPendingTopicToActivate] = useState<Topic | null>(null)
   const trpc = useTRPC()
   const domain = useDomain()
   const queryClient = useQueryClient()
   const { data: marathon } = useSuspenseQuery(
     trpc.marathons.getByDomain.queryOptions({
       domain,
-    })
+    }),
   )
 
   const topics = [...(marathon?.topics ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
-  const activeTopic = topics.find((topic) => topic.visibility === "active") ?? null
+  const activeTopic = topics.find((topic) => topic.visibility === 'active') ?? null
   const { data: activeVotingSummary } = useQuery({
     ...trpc.voting.getVotingAdminSummary.queryOptions({
       domain,
@@ -39,20 +38,20 @@ export function DashboardHeaderTopicSwitcher() {
   const { mutate: activateTopic, isPending: isActivatingTopic } = useMutation(
     trpc.topics.activate.mutationOptions({
       onSuccess: () => {
-        toast.success("Topic activated")
+        toast.success('Topic activated')
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to activate topic")
+        toast.error(error.message || 'Failed to activate topic')
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
         })
       },
-    })
+    }),
   )
 
-  if (marathon?.mode !== "by-camera") {
+  if (marathon?.mode !== 'by-camera') {
     return null
   }
 
@@ -83,10 +82,10 @@ export function DashboardHeaderTopicSwitcher() {
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-semibold">
-              {activeTopic ? activeTopic.name : "No active topic"}
+              {activeTopic ? activeTopic.name : 'No active topic'}
             </span>
             <span className="truncate text-xs">
-              {topics.length} {topics.length === 1 ? "topic" : "topics"}
+              {topics.length} {topics.length === 1 ? 'topic' : 'topics'}
             </span>
           </div>
           <ChevronsUpDown className="ml-auto" />
@@ -113,10 +112,10 @@ export function DashboardHeaderTopicSwitcher() {
                     type="button"
                     variant="ghost"
                     className={cn(
-                      "h-auto w-full justify-between rounded-lg border px-3 py-2 transition-all",
+                      'h-auto w-full justify-between rounded-lg border px-3 py-2 transition-all',
                       isActive
-                        ? "border-[#FE3923]/40 bg-[#FF5D4B]/10 shadow-[0_0_0_1px_rgba(255,93,75,0.25)] hover:bg-[#FF5D4B]/15"
-                        : "border-transparent hover:border-[#FE3923]/30 hover:bg-[#FF5D4B]/5"
+                        ? 'border-[#FE3923]/40 bg-[#FF5D4B]/10 shadow-[0_0_0_1px_rgba(255,93,75,0.25)] hover:bg-[#FF5D4B]/15'
+                        : 'border-transparent hover:border-[#FE3923]/30 hover:bg-[#FF5D4B]/5',
                     )}
                     onClick={() => handleTopicClick(topic)}
                     disabled={isActivatingTopic}
@@ -153,4 +152,4 @@ export function DashboardHeaderTopicSwitcher() {
       />
     </Popover>
   )
-} 
+}

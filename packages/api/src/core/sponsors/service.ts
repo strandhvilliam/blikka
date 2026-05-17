@@ -1,20 +1,14 @@
-import "server-only"
+import 'server-only'
 
-import { Config, Effect, Layer, Context } from "effect"
-import {
-  DbLayer,
-  DbError,
-  MarathonsRepository,
-  SponsorsRepository,
-  type Sponsor,
-} from "@blikka/db"
-import { S3Service, S3ServiceLayer, type S3ClientError } from "@blikka/aws"
+import { Config, Effect, Layer, Context } from 'effect'
+import { DbLayer, DbError, MarathonsRepository, SponsorsRepository, type Sponsor } from '@blikka/db'
+import { S3Service, S3ServiceLayer, type S3ClientError } from '@blikka/aws'
 import type {
   CreateSponsorInput,
   GenerateSponsorUploadUrlInput,
   GetSponsorsByMarathonInput,
-} from "./contracts"
-import { NotFoundError, failNotFoundIfNone } from "../errors"
+} from './contracts'
+import { NotFoundError, failNotFoundIfNone } from '../errors'
 
 export class SponsorsService extends Context.Service<
   SponsorsService,
@@ -32,38 +26,33 @@ export class SponsorsService extends Context.Service<
     /** Issues a presigned PUT URL and random object key under `domain/sponsors/`. */
     readonly generateUploadUrl: (
       input: GenerateSponsorUploadUrlInput,
-    ) => Effect.Effect<
-      { url: string; key: string },
-      S3ClientError | Config.ConfigError,
-      never
-    >
+    ) => Effect.Effect<{ url: string; key: string }, S3ClientError | Config.ConfigError, never>
   }
->()("@blikka/api/sponsors-api-service") {}
+>()('@blikka/api/sponsors-api-service') {}
 
 const makeSponsorsService = Effect.gen(function* () {
   const sponsorsRepository = yield* SponsorsRepository
   const marathonsRepository = yield* MarathonsRepository
   const s3 = yield* S3Service
 
-  const getSponsorsByMarathon: SponsorsService["Service"]["getSponsorsByMarathon"] =
-    Effect.fn("SponsorsService.getSponsorsByMarathon")(
-      function* ({ domain }) {
-        const marathon = yield* marathonsRepository
-          .getMarathonByDomain({ domain })
-          .pipe(failNotFoundIfNone("Marathon", { domain }))
+  const getSponsorsByMarathon: SponsorsService['Service']['getSponsorsByMarathon'] = Effect.fn(
+    'SponsorsService.getSponsorsByMarathon',
+  )(function* ({ domain }) {
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-        return yield* sponsorsRepository.getSponsorsByMarathonId({
-          marathonId: marathon.id,
-        })
-      },
-    )
+    return yield* sponsorsRepository.getSponsorsByMarathonId({
+      marathonId: marathon.id,
+    })
+  })
 
-  const createSponsor: SponsorsService["Service"]["createSponsor"] = Effect.fn(
-    "SponsorsService.createSponsor",
+  const createSponsor: SponsorsService['Service']['createSponsor'] = Effect.fn(
+    'SponsorsService.createSponsor',
   )(function* ({ domain, type, position, key }) {
     const marathon = yield* marathonsRepository
       .getMarathonByDomain({ domain })
-      .pipe(failNotFoundIfNone("Marathon", { domain }))
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
     return yield* sponsorsRepository.createSponsor({
       data: {
@@ -75,22 +64,22 @@ const makeSponsorsService = Effect.gen(function* () {
     })
   })
 
-  const generateUploadUrl: SponsorsService["Service"]["generateUploadUrl"] =
-    Effect.fn("SponsorsService.generateUploadUrl")(function* (input) {
-      const { domain } = input
-        const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
+  const generateUploadUrl: SponsorsService['Service']['generateUploadUrl'] = Effect.fn(
+    'SponsorsService.generateUploadUrl',
+  )(function* (input) {
+    const { domain } = input
+    const bucketName = yield* Config.string('MARATHON_SETTINGS_BUCKET_NAME')
 
-        const fileId = crypto.randomUUID()
-        const key = `${domain}/sponsors/${fileId}.jpg`
+    const fileId = crypto.randomUUID()
+    const key = `${domain}/sponsors/${fileId}.jpg`
 
-        const url = yield* s3.getPresignedUrl(bucketName, key, "PUT", {
-          expiresIn: 60 * 5,
-          contentType: "image/jpeg",
-        })
+    const url = yield* s3.getPresignedUrl(bucketName, key, 'PUT', {
+      expiresIn: 60 * 5,
+      contentType: 'image/jpeg',
+    })
 
-        return { url, key }
-      },
-    )
+    return { url, key }
+  })
 
   return SponsorsService.of({
     getSponsorsByMarathon,
@@ -99,10 +88,7 @@ const makeSponsorsService = Effect.gen(function* () {
   })
 })
 
-export const SponsorsServiceLayerNoDeps = Layer.effect(
-  SponsorsService,
-  makeSponsorsService,
-)
+export const SponsorsServiceLayerNoDeps = Layer.effect(SponsorsService, makeSponsorsService)
 
 export const SponsorsServiceLayer = SponsorsServiceLayerNoDeps.pipe(
   Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer)),

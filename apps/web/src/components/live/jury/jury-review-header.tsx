@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useMemo, useSyncExternalStore } from "react"
+import { useMemo, useSyncExternalStore } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,14 +11,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { CheckCircle2 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { useJuryReviewData } from "./jury-review-data-provider"
+} from '@/components/ui/alert-dialog'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useTRPC } from '@/lib/trpc/client'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { CheckCircle2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { useJuryReviewData } from './jury-review-data-provider'
 import {
   getAssignedFinalRankingCount,
   getFinalRankingLabel,
@@ -27,14 +27,14 @@ import {
   hasCompleteFinalRankings,
   juryRankChipNeutralOccupied,
   juryRankChipNeutralPlaceholder,
-} from "@/lib/jury/jury-utils"
-import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
-import { useDomain } from "@/lib/domain-provider"
-import { useJuryClientToken } from "./jury-client-token-provider"
-import { useJuryReviewQueryState } from "@/hooks/live/jury/use-jury-review-query-state"
-import dynamic from "next/dynamic"
+} from '@/lib/jury/jury-utils'
+import { JuryRankTrophyBadge } from './jury-rank-trophy-badge'
+import { useDomain } from '@/lib/domain-provider'
+import { useJuryClientToken } from './jury-client-token-provider'
+import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
+import dynamic from 'next/dynamic'
 
-const ProgressRing = dynamic(() => import("./jury-progress-ring").then((mod) => mod.ProgressRing), {
+const ProgressRing = dynamic(() => import('./jury-progress-ring').then((mod) => mod.ProgressRing), {
   ssr: false,
 })
 
@@ -71,11 +71,11 @@ export function JuryReviewHeader() {
         await queryClient.invalidateQueries({
           queryKey: trpc.jury.pathKey(),
         })
-        toast.success("Review completed")
+        toast.success('Review completed')
         router.push(getJuryCompletedPath(domain, token))
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to complete review")
+        toast.error(error.message || 'Failed to complete review')
       },
     }),
   )
@@ -92,7 +92,7 @@ export function JuryReviewHeader() {
 
   const sessionInitials = useMemo(() => {
     const parts = invitation.displayName.trim().split(/\s+/).filter(Boolean)
-    if (parts.length === 0) return "?"
+    if (parts.length === 0) return '?'
     if (parts.length === 1) {
       const word = parts[0]!
       return word.slice(0, 2).toUpperCase()
@@ -179,11 +179,11 @@ export function JuryReviewHeader() {
                     completeMutation.mutate({
                       token,
                       domain,
-                      status: "completed",
+                      status: 'completed',
                     })
                   }
                 >
-                  {completeMutation.isPending ? "Completing..." : "Complete review"}
+                  {completeMutation.isPending ? 'Completing...' : 'Complete review'}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -197,8 +197,8 @@ export function JuryReviewHeader() {
           <span
             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
               headerTopPicksComplete
-                ? "border-brand-primary/20 bg-brand-primary/5 text-brand-primary"
-                : "border-border/60 bg-neutral-50 text-brand-gray"
+                ? 'border-brand-primary/20 bg-brand-primary/5 text-brand-primary'
+                : 'border-border/60 bg-neutral-50 text-brand-gray'
             }`}
           >
             {headerTopPicksComplete ? <CheckCircle2 className="h-3 w-3" /> : null}

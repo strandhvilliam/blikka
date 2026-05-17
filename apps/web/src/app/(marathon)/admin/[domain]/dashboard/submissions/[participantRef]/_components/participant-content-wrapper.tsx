@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { Suspense } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ParticipantSubmissionsTab } from "./participant-submissions-tab"
-import { ValidationResultsTab } from "./validation-results-tab"
-import { ContactSheetTab } from "./contact-sheet-tab"
-import { Loader2 } from "lucide-react"
+import { Suspense } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ParticipantSubmissionsTab } from './participant-submissions-tab'
+import { ValidationResultsTab } from './validation-results-tab'
+import { ContactSheetTab } from './contact-sheet-tab'
+import { Loader2 } from 'lucide-react'
 
 function LoadingFallback() {
   return (

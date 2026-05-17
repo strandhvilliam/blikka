@@ -1,6 +1,6 @@
-import "server-only"
+import 'server-only'
 
-import { Config, Effect, Layer, Option, Context } from "effect"
+import { Config, Effect, Layer, Option, Context } from 'effect'
 import {
   DbLayer,
   ParticipantsRepository,
@@ -13,12 +13,12 @@ import {
   type ParticipantWithTopicSubmissionsAndContactSheets,
   type ParticipantsBatchDeletionResult,
   type ParticipantsBatchIdsMutationResult,
-} from "@blikka/db"
+} from '@blikka/db'
 import {
   RealtimeEventsService,
   RealtimeEventsServiceLayer,
   type RealtimeError,
-} from "@blikka/realtime"
+} from '@blikka/realtime'
 import {
   type BatchDeleteInput,
   type BatchMarkCompletedInput,
@@ -31,23 +31,23 @@ import {
   type UpdateByCameraParticipantContactInput,
   type UpdateMarathonParticipantContactInput,
   type VerifyParticipantInput,
-} from "./contracts"
+} from './contracts'
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
   PreconditionFailedError,
   failNotFoundIfNone,
-} from "../errors"
-import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract"
+} from '../errors'
+import { getRealtimeChannelEnvironmentFromNodeEnv } from '@blikka/realtime/contract'
 import {
   EncryptedPhoneNumber,
   PhoneNumberEncryptionService,
   PhoneNumberEncryptionServiceLayer,
   type PhoneNumberEncryptionError,
-} from "../utils/phone-number-encryption"
-import { EmailService, EmailServiceLayer } from "@blikka/email"
-import { sendParticipantVerifiedEmail } from "./notifications"
+} from '../utils/phone-number-encryption'
+import { EmailService, EmailServiceLayer } from '@blikka/email'
+import { sendParticipantVerifiedEmail } from './notifications'
 
 /**
  * Repo infinite-list row minus `phoneEncrypted`, with decrypted `phoneNumber` for admins;
@@ -55,7 +55,7 @@ import { sendParticipantVerifiedEmail } from "./notifications"
  */
 interface InfiniteParticipantsDomainRowPublic extends Omit<
   InfiniteDomainParticipantRow,
-  "phoneEncrypted"
+  'phoneEncrypted'
 > {
   phoneNumber: string | null
 }
@@ -66,7 +66,7 @@ interface InfiniteParticipantsDomainRowPublic extends Omit<
  */
 interface InfiniteParticipantsPageWithDecryptPhoneNumbers extends Omit<
   InfiniteParticipantsPage,
-  "participants"
+  'participants'
 > {
   participants: InfiniteParticipantsDomainRowPublic[]
 }
@@ -169,7 +169,7 @@ export class ParticipantsService extends Context.Service<
       input: VerifyParticipantInput,
     ) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError | RealtimeError, EmailService>
   }
->()("@blikka/api/ParticipantsService") {}
+>()('@blikka/api/ParticipantsService') {}
 
 const makeParticipantsService = Effect.gen(function* () {
   const marathonsRepository = yield* MarathonsRepository
@@ -177,11 +177,11 @@ const makeParticipantsService = Effect.gen(function* () {
   const phoneEncryption = yield* PhoneNumberEncryptionService
   const realtimeEvents = yield* RealtimeEventsService
   const environment = getRealtimeChannelEnvironmentFromNodeEnv(
-    yield* Config.string("NODE_ENV").pipe(Config.withDefault("development")),
+    yield* Config.string('NODE_ENV').pipe(Config.withDefault('development')),
   )
 
-  const getPublicParticipantByReference: ParticipantsService["Service"]["getPublicParticipantByReference"] =
-    Effect.fn("ParticipantsService.getPublicParticipantByReference")(function* ({
+  const getPublicParticipantByReference: ParticipantsService['Service']['getPublicParticipantByReference'] =
+    Effect.fn('ParticipantsService.getPublicParticipantByReference')(function* ({
       reference,
       domain,
     }) {
@@ -193,7 +193,7 @@ const makeParticipantsService = Effect.gen(function* () {
       if (Option.isNone(result)) {
         return yield* Effect.fail(
           new NotFoundError({
-            resource: "Participant",
+            resource: 'Participant',
             identifier: { reference, domain },
           }),
         )
@@ -206,9 +206,9 @@ const makeParticipantsService = Effect.gen(function* () {
         publicSubmissions: result.value.submissions.map((submission) => ({
           topic: {
             name:
-              submission.topic.visibility === "public" || submission.topic.visibility === "active"
+              submission.topic.visibility === 'public' || submission.topic.visibility === 'active'
                 ? submission.topic.name
-                : "",
+                : '',
             orderIndex: submission.topic.orderIndex,
           },
           status: submission.status,
@@ -217,19 +217,19 @@ const makeParticipantsService = Effect.gen(function* () {
           thumbnailKey: submission.thumbnailKey,
         })),
         competitionClass: {
-          name: result.value.competitionClass?.name ?? "",
-          description: result.value.competitionClass?.description ?? "",
+          name: result.value.competitionClass?.name ?? '',
+          description: result.value.competitionClass?.description ?? '',
         },
         deviceGroup: {
-          name: result.value.deviceGroup?.name ?? "",
-          description: result.value.deviceGroup?.description ?? "",
-          icon: result.value.deviceGroup?.icon ?? "",
+          name: result.value.deviceGroup?.name ?? '',
+          description: result.value.deviceGroup?.description ?? '',
+          icon: result.value.deviceGroup?.icon ?? '',
         },
       }
     })
 
-  const getInfiniteParticipantsByDomain: ParticipantsService["Service"]["getInfiniteParticipantsByDomain"] =
-    Effect.fn("ParticipantsService.getInfiniteParticipantsByDomain")(function* ({
+  const getInfiniteParticipantsByDomain: ParticipantsService['Service']['getInfiniteParticipantsByDomain'] =
+    Effect.fn('ParticipantsService.getInfiniteParticipantsByDomain')(function* ({
       domain,
       cursor,
       limit,
@@ -285,8 +285,8 @@ const makeParticipantsService = Effect.gen(function* () {
       }
     })
 
-  const getByReference: ParticipantsService["Service"]["getByReference"] = Effect.fn(
-    "ParticipantsService.getByReference",
+  const getByReference: ParticipantsService['Service']['getByReference'] = Effect.fn(
+    'ParticipantsService.getByReference',
   )(function* ({ reference, domain }) {
     const result = yield* participantsRepository.getParticipantByReference({
       reference,
@@ -296,7 +296,7 @@ const makeParticipantsService = Effect.gen(function* () {
     if (Option.isNone(result)) {
       return yield* Effect.fail(
         new NotFoundError({
-          resource: "Participant",
+          resource: 'Participant',
           identifier: { reference, domain },
         }),
       )
@@ -314,8 +314,8 @@ const makeParticipantsService = Effect.gen(function* () {
     return { ...row, phoneNumber }
   })
 
-  const deleteByReference: ParticipantsService["Service"]["deleteByReference"] = Effect.fn(
-    "ParticipantsService.deleteByReference",
+  const deleteByReference: ParticipantsService['Service']['deleteByReference'] = Effect.fn(
+    'ParticipantsService.deleteByReference',
   )(function* ({ reference, domain }) {
     const participant = yield* getByReference({ reference, domain })
     return yield* participantsRepository.deleteParticipant({
@@ -323,8 +323,8 @@ const makeParticipantsService = Effect.gen(function* () {
     })
   })
 
-  const createParticipant: ParticipantsService["Service"]["createParticipant"] = Effect.fn(
-    "ParticipantsService.createParticipant",
+  const createParticipant: ParticipantsService['Service']['createParticipant'] = Effect.fn(
+    'ParticipantsService.createParticipant',
   )(function* ({ data, phoneNumber }) {
     let participantData: NewParticipant = {
       ...data,
@@ -351,8 +351,8 @@ const makeParticipantsService = Effect.gen(function* () {
     return result
   })
 
-  const batchDelete: ParticipantsService["Service"]["batchDelete"] = Effect.fn(
-    "ParticipantsService.batchDelete",
+  const batchDelete: ParticipantsService['Service']['batchDelete'] = Effect.fn(
+    'ParticipantsService.batchDelete',
   )(function* ({ ids, domain }) {
     return yield* participantsRepository.batchDeleteParticipants({
       ids: [...ids],
@@ -360,8 +360,8 @@ const makeParticipantsService = Effect.gen(function* () {
     })
   })
 
-  const batchVerify: ParticipantsService["Service"]["batchVerify"] = Effect.fn(
-    "ParticipantsService.batchVerify",
+  const batchVerify: ParticipantsService['Service']['batchVerify'] = Effect.fn(
+    'ParticipantsService.batchVerify',
   )(function* ({ ids, domain }) {
     const result = yield* participantsRepository.batchVerifyParticipants({
       ids: [...ids],
@@ -392,10 +392,10 @@ const makeParticipantsService = Effect.gen(function* () {
             environment,
             domain,
             reference: participant.value.reference,
-            eventKey: "participant-verified",
-            outcome: "success",
+            eventKey: 'participant-verified',
+            outcome: 'success',
             timestamp: Date.now(),
-            channels: "participant",
+            channels: 'participant',
           })
 
           if (!marathon) {
@@ -418,8 +418,8 @@ const makeParticipantsService = Effect.gen(function* () {
     return result
   })
 
-  const batchMarkCompleted: ParticipantsService["Service"]["batchMarkCompleted"] = Effect.fn(
-    "ParticipantsService.batchMarkCompleted",
+  const batchMarkCompleted: ParticipantsService['Service']['batchMarkCompleted'] = Effect.fn(
+    'ParticipantsService.batchMarkCompleted',
   )(function* ({ ids, domain }) {
     return yield* participantsRepository.batchMarkParticipantsCompleted({
       ids: [...ids],
@@ -427,8 +427,8 @@ const makeParticipantsService = Effect.gen(function* () {
     })
   })
 
-  const updateByCameraParticipantContact: ParticipantsService["Service"]["updateByCameraParticipantContact"] =
-    Effect.fn("ParticipantsService.updateByCameraParticipantContact")(function* ({
+  const updateByCameraParticipantContact: ParticipantsService['Service']['updateByCameraParticipantContact'] =
+    Effect.fn('ParticipantsService.updateByCameraParticipantContact')(function* ({
       domain,
       reference,
       firstname,
@@ -444,29 +444,29 @@ const makeParticipantsService = Effect.gen(function* () {
       if (!first || !last || !mail || !phoneTrimmed) {
         return yield* Effect.fail(
           new BadRequestError({
-            message: "First name, last name, email, and phone are required",
+            message: 'First name, last name, email, and phone are required',
           }),
         )
       }
 
       const marathon = yield* marathonsRepository
         .getMarathonByDomain({ domain })
-        .pipe(failNotFoundIfNone("Marathon", { domain }))
-      if (marathon.mode !== "by-camera") {
+        .pipe(failNotFoundIfNone('Marathon', { domain }))
+      if (marathon.mode !== 'by-camera') {
         return yield* Effect.fail(
           new PreconditionFailedError({
-            message: "Marathon is not in by-camera mode",
+            message: 'Marathon is not in by-camera mode',
           }),
         )
       }
 
       const participant = yield* participantsRepository
         .getParticipantByReference({ reference, domain })
-        .pipe(failNotFoundIfNone("Participant", { reference, domain }))
-      if (participant.participantMode !== "by-camera") {
+        .pipe(failNotFoundIfNone('Participant', { reference, domain }))
+      if (participant.participantMode !== 'by-camera') {
         return yield* Effect.fail(
           new PreconditionFailedError({
-            message: "Only by-camera participants can be updated with this action",
+            message: 'Only by-camera participants can be updated with this action',
           }),
         )
       }
@@ -481,7 +481,7 @@ const makeParticipantsService = Effect.gen(function* () {
       if (Option.isSome(existingByPhone) && existingByPhone.value.id !== participant.id) {
         return yield* Effect.fail(
           new ConflictError({
-            message: "Another participant already uses this phone number",
+            message: 'Another participant already uses this phone number',
           }),
         )
       }
@@ -503,8 +503,8 @@ const makeParticipantsService = Effect.gen(function* () {
       })
     })
 
-  const updateMarathonParticipantContact: ParticipantsService["Service"]["updateMarathonParticipantContact"] =
-    Effect.fn("ParticipantsService.updateMarathonParticipantContact")(function* ({
+  const updateMarathonParticipantContact: ParticipantsService['Service']['updateMarathonParticipantContact'] =
+    Effect.fn('ParticipantsService.updateMarathonParticipantContact')(function* ({
       domain,
       reference,
       firstname,
@@ -518,29 +518,29 @@ const makeParticipantsService = Effect.gen(function* () {
       if (!first || !last || !mail) {
         return yield* Effect.fail(
           new BadRequestError({
-            message: "First name, last name, and email are required",
+            message: 'First name, last name, and email are required',
           }),
         )
       }
 
       const marathon = yield* marathonsRepository
         .getMarathonByDomain({ domain })
-        .pipe(failNotFoundIfNone("Marathon", { domain }))
-      if (marathon.mode !== "marathon") {
+        .pipe(failNotFoundIfNone('Marathon', { domain }))
+      if (marathon.mode !== 'marathon') {
         return yield* Effect.fail(
           new PreconditionFailedError({
-            message: "Marathon is not in classic marathon mode",
+            message: 'Marathon is not in classic marathon mode',
           }),
         )
       }
 
       const participant = yield* participantsRepository
         .getParticipantByReference({ reference, domain })
-        .pipe(failNotFoundIfNone("Participant", { reference, domain }))
-      if (participant.participantMode !== "marathon") {
+        .pipe(failNotFoundIfNone('Participant', { reference, domain }))
+      if (participant.participantMode !== 'marathon') {
         return yield* Effect.fail(
           new PreconditionFailedError({
-            message: "Only classic marathon participants can be updated with this action",
+            message: 'Only classic marathon participants can be updated with this action',
           }),
         )
       }
@@ -556,8 +556,8 @@ const makeParticipantsService = Effect.gen(function* () {
       })
     })
 
-  const verifyParticipant: ParticipantsService["Service"]["verifyParticipant"] = Effect.fn(
-    "ParticipantsService.verifyParticipant",
+  const verifyParticipant: ParticipantsService['Service']['verifyParticipant'] = Effect.fn(
+    'ParticipantsService.verifyParticipant',
   )(function* ({ id, domain }) {
     const result = yield* participantsRepository.batchVerifyParticipants({
       ids: [id],
@@ -579,10 +579,10 @@ const makeParticipantsService = Effect.gen(function* () {
           environment,
           domain,
           reference: participant.value.reference,
-          eventKey: "participant-verified",
-          outcome: "success",
+          eventKey: 'participant-verified',
+          outcome: 'success',
           timestamp: Date.now(),
-          channels: "participant",
+          channels: 'participant',
         })
 
         if (marathon) {

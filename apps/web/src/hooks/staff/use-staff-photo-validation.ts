@@ -1,18 +1,18 @@
-"use client";
+'use client'
 
-import { useEffect } from "react";
-import type { RuleConfig } from "@blikka/db";
-import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation";
-import type { UploadMarathonMode } from "@/lib/types";
-import { useStaffUploadStore } from "@/lib/staff/staff-upload-store";
-import type { StaffUploadStep } from "@/hooks/staff/use-staff-upload-step";
+import { useEffect } from 'react'
+import type { RuleConfig } from '@blikka/db'
+import { runParticipantPhotoValidation } from '@/lib/participant-photo-validation'
+import type { UploadMarathonMode } from '@/lib/types'
+import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
+import type { StaffUploadStep } from '@/hooks/staff/use-staff-upload-step'
 
 interface UsePhotoValidationOptions {
-  step: StaffUploadStep;
-  ruleConfigs: RuleConfig[];
-  marathonStartDate?: string | Date | null;
-  marathonEndDate?: string | Date | null;
-  marathonMode: UploadMarathonMode;
+  step: StaffUploadStep
+  ruleConfigs: RuleConfig[]
+  marathonStartDate?: string | Date | null
+  marathonEndDate?: string | Date | null
+  marathonMode: UploadMarathonMode
 }
 
 /**
@@ -26,17 +26,17 @@ export function useStaffPhotoValidation({
   marathonEndDate,
   marathonMode,
 }: UsePhotoValidationOptions) {
-  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos);
-  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos);
+  const selectedPhotos = useStaffUploadStore((s) => s.selectedPhotos)
+  const patchPhotos = useStaffUploadStore((s) => s.patchPhotos)
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
 
-    if (step !== "upload") return;
+    if (step !== 'upload') return
 
     if (selectedPhotos.length === 0) {
-      patchPhotos({ validationResults: [], validationRunError: null });
-      return;
+      patchPhotos({ validationResults: [], validationRunError: null })
+      return
     }
 
     const runValidation = async () => {
@@ -47,29 +47,27 @@ export function useStaffPhotoValidation({
           marathonStartDate,
           marathonEndDate,
           marathonMode,
-        });
+        })
 
         if (!cancelled) {
-          patchPhotos({ validationResults: results, validationRunError: null });
+          patchPhotos({ validationResults: results, validationRunError: null })
         }
       } catch (error) {
         if (!cancelled) {
           patchPhotos({
             validationResults: [],
             validationRunError:
-              error instanceof Error
-                ? error.message
-                : "Failed to validate selected images",
-          });
+              error instanceof Error ? error.message : 'Failed to validate selected images',
+          })
         }
       }
-    };
+    }
 
-    void runValidation();
+    void runValidation()
 
     return () => {
-      cancelled = true;
-    };
+      cancelled = true
+    }
   }, [
     marathonEndDate,
     marathonMode,
@@ -78,5 +76,5 @@ export function useStaffPhotoValidation({
     selectedPhotos,
     patchPhotos,
     step,
-  ]);
+  ])
 }

@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { Settings } from "lucide-react"
+import { Settings } from 'lucide-react'
 
 export function SettingsHeader() {
   return (

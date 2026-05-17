@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import { AlertTriangle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Image from "next/image"
-import { useRouter, useParams } from "next/navigation"
+import { AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import Image from 'next/image'
+import { useRouter, useParams } from 'next/navigation'
 
 export default function NotFound() {
   const router = useRouter()
@@ -14,7 +14,7 @@ export default function NotFound() {
     if (domain) {
       router.push(`/live/${domain}`)
     } else {
-      router.push("/")
+      router.push('/')
     }
   }
 
@@ -42,11 +42,7 @@ export default function NotFound() {
               </p>
             </div>
             <div className="mt-6">
-              <Button
-                onClick={handleGoToLanding}
-                variant="outline"
-                className="w-full rounded-full"
-              >
+              <Button onClick={handleGoToLanding} variant="outline" className="w-full rounded-full">
                 Go to home page
               </Button>
             </div>

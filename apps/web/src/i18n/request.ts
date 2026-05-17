@@ -1,7 +1,7 @@
-import { hasLocale } from "next-intl"
-import { getRequestConfig } from "next-intl/server"
-import { APP_TIME_ZONE, LOCALE_COOKIE_NAME, DEFAULT_LOCALE, LOCALES } from "../config"
-import { cookies } from "next/headers"
+import { hasLocale } from 'next-intl'
+import { getRequestConfig } from 'next-intl/server'
+import { APP_TIME_ZONE, LOCALE_COOKIE_NAME, DEFAULT_LOCALE, LOCALES } from '../config'
+import { cookies } from 'next/headers'
 
 export default getRequestConfig(async ({ requestLocale }) => {
   // Read from potential `[locale]` segment

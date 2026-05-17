@@ -1,7 +1,7 @@
-import exifr from "exifr"
-import { Context, Effect, Schema, Layer } from "effect"
+import exifr from 'exifr'
+import { Context, Effect, Schema, Layer } from 'effect'
 
-export class ExifParseError extends Schema.TaggedErrorClass<ExifParseError>()("ExifParserError", {
+export class ExifParseError extends Schema.TaggedErrorClass<ExifParseError>()('ExifParserError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -19,7 +19,7 @@ export class ExifParser extends Context.Service<
     ) => Effect.Effect<ExifData, ExifParseError>
     readonly parseExcludeLocationData: (file: Buffer) => Effect.Effect<ExifData, ExifParseError>
   }
->()("@blikka/image-manipulation/exif-parser") {}
+>()('@blikka/image-manipulation/exif-parser') {}
 
 /**
  * Sanitizes EXIF data for safe serialization and storage.
@@ -39,16 +39,16 @@ function sanitizeExifData(
   if (
     input === null ||
     input === undefined ||
-    typeof input === "number" ||
-    typeof input === "boolean"
+    typeof input === 'number' ||
+    typeof input === 'boolean'
   ) {
     return input
   }
 
   // Circular reference check
-  if (typeof input === "object" && input !== null) {
+  if (typeof input === 'object' && input !== null) {
     if (visited.has(input)) {
-      return "[Circular Reference]"
+      return '[Circular Reference]'
     }
     visited.add(input)
   }
@@ -62,7 +62,7 @@ function sanitizeExifData(
     const bytes =
       input instanceof ArrayBuffer
         ? input.byteLength
-        : "byteLength" in input
+        : 'byteLength' in input
           ? (input as { byteLength: number }).byteLength
           : 0
     return `[Binary Data: ${bytes} bytes]`
@@ -74,8 +74,8 @@ function sanitizeExifData(
   }
 
   // String sanitization
-  if (typeof input === "string") {
-    return input.replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+  if (typeof input === 'string') {
+    return input.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
   }
 
   // Arrays
@@ -86,11 +86,11 @@ function sanitizeExifData(
   }
 
   // Plain objects
-  if (typeof input === "object" && input !== null) {
+  if (typeof input === 'object' && input !== null) {
     const result: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(input)) {
       const sanitizedKey =
-        typeof key === "string" ? key.replace(/[\u0000-\u001F\u007F-\u009F]/g, "") : key
+        typeof key === 'string' ? key.replace(/[\u0000-\u001F\u007F-\u009F]/g, '') : key
       if (sanitizedKey) {
         result[sanitizedKey] = sanitizeExifData(value, keepBinaryData, visited)
       }
@@ -107,28 +107,28 @@ function sanitizeExifData(
  */
 function removeGpsData(exif: ExifData) {
   const gpsKeys = new Set([
-    "GPSLatitude",
-    "GPSLongitude",
-    "GPSAltitude",
-    "GPSLatitudeRef",
-    "GPSLongitudeRef",
-    "GPSPosition",
-    "GPSAltitudeRef",
-    "GPSSpeed",
-    "GPSSpeedRef",
-    "GPSTimeStamp",
-    "GPSSatellites",
-    "GPSStatus",
-    "GPSMeasureMode",
-    "GPSMapDatum",
-    "GPSDateStamp",
-    "GPSProcessingMethod",
-    "GPSAreaInformation",
+    'GPSLatitude',
+    'GPSLongitude',
+    'GPSAltitude',
+    'GPSLatitudeRef',
+    'GPSLongitudeRef',
+    'GPSPosition',
+    'GPSAltitudeRef',
+    'GPSSpeed',
+    'GPSSpeedRef',
+    'GPSTimeStamp',
+    'GPSSatellites',
+    'GPSStatus',
+    'GPSMeasureMode',
+    'GPSMapDatum',
+    'GPSDateStamp',
+    'GPSProcessingMethod',
+    'GPSAreaInformation',
     // some makers use more generic names
-    "Location",
-    "Latitude",
-    "Longitude",
-    "Altitude",
+    'Location',
+    'Latitude',
+    'Longitude',
+    'Altitude',
   ])
 
   const result = { ...exif }
@@ -143,7 +143,7 @@ function removeGpsData(exif: ExifData) {
 }
 
 export const makeExifParser = Effect.gen(function* () {
-  const parse: ExifParser["Service"]["parse"] = Effect.fn("ExifParser.parse")(
+  const parse: ExifParser['Service']['parse'] = Effect.fn('ExifParser.parse')(
     function* (
       file: Uint8Array<ArrayBufferLike>,
       options: { keepBinaryData: boolean } = { keepBinaryData: false },
@@ -152,7 +152,7 @@ export const makeExifParser = Effect.gen(function* () {
       const sanitizedExif = yield* Effect.try({
         try: () => sanitizeExifData(exif, options?.keepBinaryData),
         catch: (error) =>
-          new ExifParseError({ message: "Failed to sanitize EXIF data", cause: error }),
+          new ExifParseError({ message: 'Failed to sanitize EXIF data', cause: error }),
       })
 
       const decoded = Schema.decodeUnknownSync(ExifSchema)(sanitizedExif)
@@ -162,12 +162,12 @@ export const makeExifParser = Effect.gen(function* () {
       (error) =>
         new ExifParseError({
           cause: error,
-          message: "Failed to parse EXIF data",
+          message: 'Failed to parse EXIF data',
         }),
     ),
   )
-  const parseExcludeLocationData: ExifParser["Service"]["parseExcludeLocationData"] = Effect.fn(
-    "ExifParser.parseExcludeLocationData",
+  const parseExcludeLocationData: ExifParser['Service']['parseExcludeLocationData'] = Effect.fn(
+    'ExifParser.parseExcludeLocationData',
   )(function* (file: Buffer) {
     const exif = yield* parse(file)
     const withoutLocationData = removeGpsData(exif)

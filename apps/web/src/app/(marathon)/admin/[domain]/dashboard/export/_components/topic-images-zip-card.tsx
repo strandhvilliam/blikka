@@ -1,25 +1,22 @@
-"use client"
+'use client'
 
-import { useCallback, useState } from "react"
-import { Archive, Download, Loader2 } from "lucide-react"
-import { toast } from "sonner"
+import { useCallback, useState } from 'react'
+import { Archive, Download, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
-import { useDomain } from "@/lib/domain-provider"
-import { cn } from "@/lib/utils"
-import { PrimaryButton } from "@/components/ui/primary-button"
+import { useDomain } from '@/lib/domain-provider'
+import { cn } from '@/lib/utils'
+import { PrimaryButton } from '@/components/ui/primary-button'
 
-import { downloadFile } from "../_lib/download-file"
-import { sanitizeFilenameSegment } from "../_lib/sanitize-filename-segment"
+import { downloadFile } from '../_lib/download-file'
+import { sanitizeFilenameSegment } from '../_lib/sanitize-filename-segment'
 
 interface TopicImagesZipCardProps {
   disabled?: boolean
   topicName: string | null
 }
 
-export function TopicImagesZipCard({
-  disabled = false,
-  topicName,
-}: TopicImagesZipCardProps) {
+export function TopicImagesZipCard({ disabled = false, topicName }: TopicImagesZipCardProps) {
   const domain = useDomain()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -28,16 +25,16 @@ export function TopicImagesZipCard({
       setIsLoading(true)
 
       const topicSlug = sanitizeFilenameSegment(topicName)
-      const filename = `${topicSlug}-images-${new Date().toISOString().split("T")[0]}.zip`
+      const filename = `${topicSlug}-images-${new Date().toISOString().split('T')[0]}.zip`
 
       await downloadFile(`/api/${domain}/export/by_camera_topic_images`, filename)
 
-      toast.success("ZIP export ready", {
-        description: "The topic image archive has been downloaded.",
+      toast.success('ZIP export ready', {
+        description: 'The topic image archive has been downloaded.',
       })
     } catch {
-      toast.error("ZIP export failed", {
-        description: "There was an error preparing the topic image archive.",
+      toast.error('ZIP export failed', {
+        description: 'There was an error preparing the topic image archive.',
       })
     } finally {
       setIsLoading(false)
@@ -47,10 +44,10 @@ export function TopicImagesZipCard({
   return (
     <div
       className={cn(
-        "group relative rounded-xl border bg-white transition-shadow duration-200",
+        'group relative rounded-xl border bg-white transition-shadow duration-200',
         disabled
-          ? "border-border/60 opacity-60 cursor-not-allowed"
-          : "border-border hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]"
+          ? 'border-border/60 opacity-60 cursor-not-allowed'
+          : 'border-border hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]',
       )}
     >
       <div className="flex items-start gap-4 p-5">

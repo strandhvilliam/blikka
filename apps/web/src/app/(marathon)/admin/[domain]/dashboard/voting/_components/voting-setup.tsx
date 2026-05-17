@@ -1,12 +1,8 @@
-"use client";
+'use client'
 
-import type { Topic } from "@blikka/db";
-import { useMemo, useState } from "react";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import type { Topic } from '@blikka/db'
+import { useMemo, useState } from 'react'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
   AlertTriangle,
   Check,
@@ -19,9 +15,9 @@ import {
   Send,
   Users,
   Vote,
-} from "lucide-react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,70 +27,62 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { useTRPC } from "@/lib/trpc/client";
-import { useDomain } from "@/lib/domain-provider";
-import { Button } from "@/components/ui/button";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import {
-  getSubmissionLifecycleState,
-  getVotingLifecycleState,
-} from "@/lib/voting-lifecycle";
-import { formatDateTime } from "../_lib/utils";
+} from '@/components/ui/alert-dialog'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { Button } from '@/components/ui/button'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { getSubmissionLifecycleState, getVotingLifecycleState } from '@/lib/voting-lifecycle'
+import { formatDateTime } from '../_lib/utils'
 
 interface VotingSetupProps {
-  activeTopic: Topic;
+  activeTopic: Topic
 }
 
-type LifecyclePhase =
-  | "waiting"
-  | "end-submissions"
-  | "start-voting"
-  | "close-voting"
-  | "complete";
+type LifecyclePhase = 'waiting' | 'end-submissions' | 'start-voting' | 'close-voting' | 'complete'
 
 function getLifecyclePhase(
-  submissionState: "not-started" | "open" | "ended",
-  votingState: "not-started" | "active" | "ended",
+  submissionState: 'not-started' | 'open' | 'ended',
+  votingState: 'not-started' | 'active' | 'ended',
 ): LifecyclePhase {
-  if (submissionState === "not-started") return "waiting";
-  if (submissionState === "open") return "end-submissions";
-  if (votingState === "not-started") return "start-voting";
-  if (votingState === "active") return "close-voting";
-  return "complete";
+  if (submissionState === 'not-started') return 'waiting'
+  if (submissionState === 'open') return 'end-submissions'
+  if (votingState === 'not-started') return 'start-voting'
+  if (votingState === 'active') return 'close-voting'
+  return 'complete'
 }
 
-type StepStatus = "completed" | "active" | "upcoming";
+type StepStatus = 'completed' | 'active' | 'upcoming'
 
 function formatNotificationWarnings(
   warnings: Array<{
-    channel: "email" | "sms";
-    message: string;
-    failedSessionIds: number[];
+    channel: 'email' | 'sms'
+    message: string
+    failedSessionIds: number[]
   }>,
 ) {
   return warnings.map((warning) => {
-    const label = warning.channel === "email" ? "Email" : "SMS";
-    const failedCount = warning.failedSessionIds.length;
+    const label = warning.channel === 'email' ? 'Email' : 'SMS'
+    const failedCount = warning.failedSessionIds.length
 
-    return `${label} failed for ${failedCount} session${failedCount === 1 ? "" : "s"}: ${warning.message}`;
-  });
+    return `${label} failed for ${failedCount} session${failedCount === 1 ? '' : 's'}: ${warning.message}`
+  })
 }
 
 function getCardStatus(stepNumber: number, phase: LifecyclePhase): StepStatus {
   const phaseToActiveStep: Record<LifecyclePhase, number> = {
     waiting: 1,
-    "end-submissions": 2,
-    "start-voting": 3,
-    "close-voting": 4,
+    'end-submissions': 2,
+    'start-voting': 3,
+    'close-voting': 4,
     complete: 5,
-  };
-  const activeStep = phaseToActiveStep[phase];
-  if (stepNumber < activeStep) return "completed";
-  if (stepNumber === activeStep) return "active";
-  return "upcoming";
+  }
+  const activeStep = phaseToActiveStep[phase]
+  if (stepNumber < activeStep) return 'completed'
+  if (stepNumber === activeStep) return 'active'
+  return 'upcoming'
 }
 
 function StepCard({
@@ -106,59 +94,56 @@ function StepCard({
   extraContent,
   children,
 }: {
-  stepNumber: number;
-  title: string;
-  description: string;
-  status: StepStatus;
-  detail?: string | null;
-  extraContent?: React.ReactNode;
-  children?: React.ReactNode;
+  stepNumber: number
+  title: string
+  description: string
+  status: StepStatus
+  detail?: string | null
+  extraContent?: React.ReactNode
+  children?: React.ReactNode
 }) {
   return (
     <div
       className={cn(
-        "relative flex min-w-0 flex-col rounded-2xl px-5 py-5 transition-all duration-300 sm:p-6",
-        status === "completed" &&
-          "border border-emerald-200/60 bg-emerald-50/30",
-        status === "active" &&
-          "border-2 border-brand-primary/25 bg-white shadow-sm",
-        status === "upcoming" && "border border-border/40 bg-muted/20",
+        'relative flex min-w-0 flex-col rounded-2xl px-5 py-5 transition-all duration-300 sm:p-6',
+        status === 'completed' && 'border border-emerald-200/60 bg-emerald-50/30',
+        status === 'active' && 'border-2 border-brand-primary/25 bg-white shadow-sm',
+        status === 'upcoming' && 'border border-border/40 bg-muted/20',
       )}
     >
       <div
         className={cn(
-          "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-          status === "completed" && "bg-emerald-500 text-white",
-          status === "active" &&
-            "border-2 border-brand-primary bg-brand-primary/5 text-brand-primary",
-          status === "upcoming" &&
-            "border-2 border-border bg-muted/40 text-muted-foreground/40",
+          'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold',
+          status === 'completed' && 'bg-emerald-500 text-white',
+          status === 'active' &&
+            'border-2 border-brand-primary bg-brand-primary/5 text-brand-primary',
+          status === 'upcoming' && 'border-2 border-border bg-muted/40 text-muted-foreground/40',
         )}
       >
-        {status === "completed" ? (
+        {status === 'completed' ? (
           <Check className="h-4.5 w-4.5" strokeWidth={2.5} />
         ) : (
-          String(stepNumber).padStart(2, "0")
+          String(stepNumber).padStart(2, '0')
         )}
       </div>
 
       <div className="mt-4 sm:mt-5">
         <h3
           className={cn(
-            "text-[15px] font-semibold tracking-tight text-pretty",
-            status === "completed" && "text-emerald-900",
-            status === "active" && "text-foreground",
-            status === "upcoming" && "text-muted-foreground/40",
+            'text-[15px] font-semibold tracking-tight text-pretty',
+            status === 'completed' && 'text-emerald-900',
+            status === 'active' && 'text-foreground',
+            status === 'upcoming' && 'text-muted-foreground/40',
           )}
         >
           {title}
         </h3>
         <p
           className={cn(
-            "mt-1.5 text-[13px] leading-relaxed text-pretty [overflow-wrap:anywhere]",
-            status === "completed" && "text-emerald-700/60",
-            status === "active" && "text-muted-foreground",
-            status === "upcoming" && "text-muted-foreground/30",
+            'mt-1.5 text-[13px] leading-relaxed text-pretty [overflow-wrap:anywhere]',
+            status === 'completed' && 'text-emerald-700/60',
+            status === 'active' && 'text-muted-foreground',
+            status === 'upcoming' && 'text-muted-foreground/30',
           )}
         >
           {description}
@@ -166,9 +151,9 @@ function StepCard({
         {detail && (
           <p
             className={cn(
-              "mt-2.5 text-xs",
-              status === "completed" && "text-emerald-600/60",
-              status === "active" && "text-muted-foreground/70",
+              'mt-2.5 text-xs',
+              status === 'completed' && 'text-emerald-600/60',
+              status === 'active' && 'text-muted-foreground/70',
             )}
           >
             {detail}
@@ -180,20 +165,20 @@ function StepCard({
 
       <div className="mt-auto pt-4 sm:pt-3">{children}</div>
     </div>
-  );
+  )
 }
 
 export function VotingSetup({ activeTopic }: VotingSetupProps) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const domain = useDomain();
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+  const domain = useDomain()
 
   const { data: summary } = useSuspenseQuery(
     trpc.voting.getVotingAdminSummary.queryOptions({
       domain,
       topicId: activeTopic.id,
     }),
-  );
+  )
 
   const invalidateVotingData = async () => {
     await Promise.all([
@@ -215,144 +200,140 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       queryClient.invalidateQueries({
         queryKey: trpc.marathons.pathKey(),
       }),
-    ]);
-  };
+    ])
+  }
 
   const startSubmissionsMutation = useMutation(
     trpc.topics.update.mutationOptions({
       onSuccess: async () => {
-        toast.success("Submissions opened");
-        await invalidateVotingData();
+        toast.success('Submissions opened')
+        await invalidateVotingData()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to open submissions");
+        toast.error(error.message || 'Failed to open submissions')
       },
     }),
-  );
+  )
 
   const endSubmissionsMutation = useMutation(
     trpc.topics.update.mutationOptions({
       onSuccess: async () => {
-        toast.success("Submissions closed");
-        await invalidateVotingData();
+        toast.success('Submissions closed')
+        await invalidateVotingData()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to close submissions");
+        toast.error(error.message || 'Failed to close submissions')
       },
     }),
-  );
+  )
 
   const startVotingMutation = useMutation(
     trpc.voting.startVotingSessions.mutationOptions({
       onSuccess: async (data) => {
-        toast.success("Voting started");
-        for (const message of formatNotificationWarnings(
-          data.notificationWarnings,
-        )) {
-          toast.warning(message);
+        toast.success('Voting started')
+        for (const message of formatNotificationWarnings(data.notificationWarnings)) {
+          toast.warning(message)
         }
-        await invalidateVotingData();
+        await invalidateVotingData()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to start voting");
+        toast.error(error.message || 'Failed to start voting')
       },
     }),
-  );
+  )
 
   const closeVotingMutation = useMutation(
     trpc.voting.closeTopicVotingWindow.mutationOptions({
       onSuccess: async () => {
-        toast.success("Voting finished");
-        await invalidateVotingData();
+        toast.success('Voting finished')
+        await invalidateVotingData()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to finish voting");
+        toast.error(error.message || 'Failed to finish voting')
       },
     }),
-  );
+  )
 
   const reopenVotingMutation = useMutation(
     trpc.voting.reopenTopicVotingWindow.mutationOptions({
       onSuccess: async () => {
-        toast.success("Voting reopened");
-        await invalidateVotingData();
+        toast.success('Voting reopened')
+        await invalidateVotingData()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to reopen voting");
+        toast.error(error.message || 'Failed to reopen voting')
       },
     }),
-  );
+  )
 
   const startTiebreakRoundMutation = useMutation(
     trpc.voting.startTiebreakRound.mutationOptions({
       onSuccess: async () => {
-        toast.success("Tie-break voting started");
-        await invalidateVotingData();
+        toast.success('Tie-break voting started')
+        await invalidateVotingData()
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to start tie-break voting");
+        toast.error(error.message || 'Failed to start tie-break voting')
       },
     }),
-  );
+  )
 
-  const [isStartVotingDialogOpen, setIsStartVotingDialogOpen] = useState(false);
-  const [sendInitialSms, setSendInitialSms] = useState(true);
-  const [isCloseVotingDialogOpen, setIsCloseVotingDialogOpen] = useState(false);
-  const [isReopenVotingDialogOpen, setIsReopenVotingDialogOpen] =
-    useState(false);
-  const [isStartTiebreakDialogOpen, setIsStartTiebreakDialogOpen] =
-    useState(false);
+  const [isStartVotingDialogOpen, setIsStartVotingDialogOpen] = useState(false)
+  const [sendInitialSms, setSendInitialSms] = useState(true)
+  const [isCloseVotingDialogOpen, setIsCloseVotingDialogOpen] = useState(false)
+  const [isReopenVotingDialogOpen, setIsReopenVotingDialogOpen] = useState(false)
+  const [isStartTiebreakDialogOpen, setIsStartTiebreakDialogOpen] = useState(false)
 
   const submissionState = getSubmissionLifecycleState(
     activeTopic.scheduledStart,
     activeTopic.scheduledEnd,
-  );
-  const votingState = getVotingLifecycleState(summary.votingWindow);
-  const currentPhase = getLifecyclePhase(submissionState, votingState);
-  const submissionCount = summary?.submissionStats.submissionCount ?? 0;
+  )
+  const votingState = getVotingLifecycleState(summary.votingWindow)
+  const currentPhase = getLifecyclePhase(submissionState, votingState)
+  const submissionCount = summary?.submissionStats.submissionCount ?? 0
   const participantWithSubmissionCount =
-    summary?.submissionStats.participantWithSubmissionCount ?? 0;
-  const totalSessions = summary?.sessionStats.total ?? 0;
-  const hasScheduledVotingStart = !!summary.votingWindow.startsAt;
+    summary?.submissionStats.participantWithSubmissionCount ?? 0
+  const totalSessions = summary?.sessionStats.total ?? 0
+  const hasScheduledVotingStart = !!summary.votingWindow.startsAt
 
   const startBlockedMessage = useMemo(() => {
-    if (submissionState !== "ended") {
-      return "Voting cannot start until submissions have ended.";
+    if (submissionState !== 'ended') {
+      return 'Voting cannot start until submissions have ended.'
     }
     if (submissionCount === 0) {
-      return "At least one submission is needed before voting can start.";
+      return 'At least one submission is needed before voting can start.'
     }
     if (hasScheduledVotingStart) {
-      return "Voting already has a recorded start timestamp.";
+      return 'Voting already has a recorded start timestamp.'
     }
-    return null;
-  }, [hasScheduledVotingStart, submissionCount, submissionState]);
+    return null
+  }, [hasScheduledVotingStart, submissionCount, submissionState])
 
-  const canStartVoting = !startBlockedMessage && votingState === "not-started";
+  const canStartVoting = !startBlockedMessage && votingState === 'not-started'
 
   const handleStartSubmissionsNow = () => {
     startSubmissionsMutation.mutate({
       domain,
       id: activeTopic.id,
       data: { scheduledStart: new Date().toISOString() },
-    });
-  };
+    })
+  }
 
   const handleEndSubmissionsNow = () => {
     endSubmissionsMutation.mutate({
       domain,
       id: activeTopic.id,
       data: { scheduledEnd: new Date().toISOString() },
-    });
-  };
+    })
+  }
 
   const handleStartVotingClick = () => {
     if (startBlockedMessage) {
-      toast.error(startBlockedMessage);
-      return;
+      toast.error(startBlockedMessage)
+      return
     }
-    setIsStartVotingDialogOpen(true);
-  };
+    setIsStartVotingDialogOpen(true)
+  }
 
   const handleConfirmStartVoting = () => {
     startVotingMutation.mutate(
@@ -363,47 +344,47 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
         sendInitialSms,
       },
       { onSuccess: () => handleStartVotingDialogOpenChange(false) },
-    );
-  };
+    )
+  }
 
   const handleStartVotingDialogOpenChange = (open: boolean) => {
-    setIsStartVotingDialogOpen(open);
+    setIsStartVotingDialogOpen(open)
     if (!open) {
-      setSendInitialSms(true);
+      setSendInitialSms(true)
     }
-  };
+  }
 
-  const handleCloseVotingClick = () => setIsCloseVotingDialogOpen(true);
+  const handleCloseVotingClick = () => setIsCloseVotingDialogOpen(true)
 
   const handleConfirmCloseVoting = () => {
     closeVotingMutation.mutate(
       { domain, topicId: activeTopic.id },
       { onSuccess: () => setIsCloseVotingDialogOpen(false) },
-    );
-  };
+    )
+  }
 
-  const handleReopenVotingClick = () => setIsReopenVotingDialogOpen(true);
+  const handleReopenVotingClick = () => setIsReopenVotingDialogOpen(true)
 
   const handleConfirmReopenVoting = () => {
     reopenVotingMutation.mutate(
       { domain, topicId: activeTopic.id },
       { onSuccess: () => setIsReopenVotingDialogOpen(false) },
-    );
-  };
+    )
+  }
 
-  const handleStartTiebreakClick = () => setIsStartTiebreakDialogOpen(true);
+  const handleStartTiebreakClick = () => setIsStartTiebreakDialogOpen(true)
 
   const handleConfirmStartTiebreak = () => {
     startTiebreakRoundMutation.mutate(
       { domain, topicId: activeTopic.id, endsAt: null },
       { onSuccess: () => setIsStartTiebreakDialogOpen(false) },
-    );
-  };
+    )
+  }
 
-  const step1Status = getCardStatus(1, currentPhase);
-  const step2Status = getCardStatus(2, currentPhase);
-  const step3Status = getCardStatus(3, currentPhase);
-  const step4Status = getCardStatus(4, currentPhase);
+  const step1Status = getCardStatus(1, currentPhase)
+  const step2Status = getCardStatus(2, currentPhase)
+  const step3Status = getCardStatus(3, currentPhase)
+  const step4Status = getCardStatus(4, currentPhase)
 
   return (
     <div className="min-w-0 w-full max-w-full">
@@ -415,14 +396,14 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
           description="Let your participants upload their photo submissions."
           status={step1Status}
           detail={
-            step1Status === "active" && activeTopic.scheduledStart
+            step1Status === 'active' && activeTopic.scheduledStart
               ? `Scheduled: ${formatDateTime(activeTopic.scheduledStart)}`
-              : step1Status === "completed" && activeTopic.scheduledStart
+              : step1Status === 'completed' && activeTopic.scheduledStart
                 ? `Opened ${formatDateTime(activeTopic.scheduledStart)}`
                 : null
           }
         >
-          {step1Status === "active" ? (
+          {step1Status === 'active' ? (
             <PrimaryButton
               onClick={handleStartSubmissionsNow}
               disabled={startSubmissionsMutation.isPending}
@@ -440,13 +421,17 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 </>
               )}
             </PrimaryButton>
-          ) : step1Status === "completed" ? (
+          ) : step1Status === 'completed' ? (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
               <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
               Completed
             </span>
           ) : (
-            <Button disabled variant="outline" className="w-full min-h-11 justify-center sm:min-h-9">
+            <Button
+              disabled
+              variant="outline"
+              className="w-full min-h-11 justify-center sm:min-h-9"
+            >
               <Play className="h-4 w-4" />
               Open
             </Button>
@@ -460,14 +445,14 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
           description="End the upload window so voting can begin."
           status={step2Status}
           detail={
-            step2Status === "active" && activeTopic.scheduledEnd
+            step2Status === 'active' && activeTopic.scheduledEnd
               ? `Scheduled end: ${formatDateTime(activeTopic.scheduledEnd)}`
-              : step2Status === "completed" && activeTopic.scheduledEnd
+              : step2Status === 'completed' && activeTopic.scheduledEnd
                 ? `Closed ${formatDateTime(activeTopic.scheduledEnd)}`
                 : null
           }
         >
-          {step2Status === "active" ? (
+          {step2Status === 'active' ? (
             <PrimaryButton
               onClick={handleEndSubmissionsNow}
               disabled={endSubmissionsMutation.isPending}
@@ -485,13 +470,17 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 </>
               )}
             </PrimaryButton>
-          ) : step2Status === "completed" ? (
+          ) : step2Status === 'completed' ? (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
               <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
               Completed
             </span>
           ) : (
-            <Button disabled variant="outline" className="w-full min-h-11 justify-center sm:min-h-9">
+            <Button
+              disabled
+              variant="outline"
+              className="w-full min-h-11 justify-center sm:min-h-9"
+            >
               <Lock className="h-4 w-4" />
               Close
             </Button>
@@ -505,12 +494,12 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
           description="Open voting, email the voting link automatically, and optionally send an SMS."
           status={step3Status}
           detail={
-            step3Status === "completed" && summary.votingWindow.startsAt
+            step3Status === 'completed' && summary.votingWindow.startsAt
               ? `Started ${formatDateTime(summary.votingWindow.startsAt)}`
               : null
           }
           extraContent={
-            step3Status === "active" && startBlockedMessage ? (
+            step3Status === 'active' && startBlockedMessage ? (
               <div className="flex items-start gap-2.5 rounded-xl border border-amber-200/60 bg-amber-50/50 px-3.5 py-2.5 text-[12px] leading-relaxed text-amber-800">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                 {startBlockedMessage}
@@ -518,7 +507,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
             ) : null
           }
         >
-          {step3Status === "active" ? (
+          {step3Status === 'active' ? (
             <PrimaryButton
               onClick={handleStartVotingClick}
               disabled={!canStartVoting || startVotingMutation.isPending}
@@ -536,13 +525,17 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 </>
               )}
             </PrimaryButton>
-          ) : step3Status === "completed" ? (
+          ) : step3Status === 'completed' ? (
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
               <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
               Completed
             </span>
           ) : (
-            <Button disabled variant="outline" className="w-full min-h-11 justify-center sm:min-h-9">
+            <Button
+              disabled
+              variant="outline"
+              className="w-full min-h-11 justify-center sm:min-h-9"
+            >
               <Send className="h-4 w-4" />
               Start
             </Button>
@@ -556,7 +549,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
           description="Close the voting window and reveal the leaderboard."
           status={step4Status}
           detail={
-            step4Status === "active"
+            step4Status === 'active'
               ? [
                   summary.votingWindow.startsAt &&
                     `Started ${formatDateTime(summary.votingWindow.startsAt)}`,
@@ -564,13 +557,13 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                     `Ends ${formatDateTime(summary.votingWindow.endsAt)}`,
                 ]
                   .filter(Boolean)
-                  .join(" · ") || null
-              : step4Status === "completed" && summary.votingWindow.endsAt
+                  .join(' · ') || null
+              : step4Status === 'completed' && summary.votingWindow.endsAt
                 ? `Ended ${formatDateTime(summary.votingWindow.endsAt)}`
                 : null
           }
         >
-          {step4Status === "active" ? (
+          {step4Status === 'active' ? (
             <PrimaryButton
               onClick={handleCloseVotingClick}
               disabled={closeVotingMutation.isPending}
@@ -588,7 +581,7 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                 </>
               )}
             </PrimaryButton>
-          ) : step4Status === "completed" && currentPhase === "complete" ? (
+          ) : step4Status === 'completed' && currentPhase === 'complete' ? (
             <div className="flex flex-col gap-3">
               <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
                 <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -628,7 +621,11 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
               </button>
             </div>
           ) : (
-            <Button disabled variant="outline" className="w-full min-h-11 justify-center sm:min-h-9">
+            <Button
+              disabled
+              variant="outline"
+              className="w-full min-h-11 justify-center sm:min-h-9"
+            >
               <Flag className="h-4 w-4" />
               Finish
             </Button>
@@ -640,41 +637,33 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
       <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 sm:mt-5">
         <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <ImageIcon className="h-3.5 w-3.5" />
-          <span className="font-semibold tabular-nums text-foreground">
-            {submissionCount}
-          </span>{" "}
+          <span className="font-semibold tabular-nums text-foreground">{submissionCount}</span>{' '}
           submissions
         </span>
         <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <Users className="h-3.5 w-3.5" />
           <span className="font-semibold tabular-nums text-foreground">
             {participantWithSubmissionCount}
-          </span>{" "}
+          </span>{' '}
           participants
         </span>
         <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <Vote className="h-3.5 w-3.5" />
-          <span className="font-semibold tabular-nums text-foreground">
-            {totalSessions}
-          </span>{" "}
-          voting sessions
+          <span className="font-semibold tabular-nums text-foreground">{totalSessions}</span> voting
+          sessions
         </span>
       </div>
 
       {/* Confirmation dialogs */}
-      <AlertDialog
-        open={isStartVotingDialogOpen}
-        onOpenChange={handleStartVotingDialogOpenChange}
-      >
+      <AlertDialog open={isStartVotingDialogOpen} onOpenChange={handleStartVotingDialogOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Start voting?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will open the voting window and create voting sessions for
-              all {participantWithSubmissionCount} participants with
-              submissions. Participants with an email address will receive their
-              voting link automatically. SMS invites are only sent if you keep
-              the box checked.
+              This will open the voting window and create voting sessions for all{' '}
+              {participantWithSubmissionCount} participants with submissions. Participants with an
+              email address will receive their voting link automatically. SMS invites are only sent
+              if you keep the box checked.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
@@ -686,26 +675,20 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
               className="mt-0.5"
             />
             <div className="space-y-1">
-              <Label
-                htmlFor="send-initial-voting-sms"
-                className="text-sm font-medium leading-none"
-              >
+              <Label htmlFor="send-initial-voting-sms" className="text-sm font-medium leading-none">
                 Send initial SMS invites
               </Label>
               <p className="text-sm text-muted-foreground">
-                Also send the voting link by SMS to participants who have a
-                phone number on file.
+                Also send the voting link by SMS to participants who have a phone number on file.
               </p>
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={startVotingMutation.isPending}>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={startVotingMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
-                e.preventDefault();
-                handleConfirmStartVoting();
+                e.preventDefault()
+                handleConfirmStartVoting()
               }}
               disabled={startVotingMutation.isPending}
             >
@@ -715,33 +698,28 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                   Starting…
                 </>
               ) : (
-                "Start voting"
+                'Start voting'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={isCloseVotingDialogOpen}
-        onOpenChange={setIsCloseVotingDialogOpen}
-      >
+      <AlertDialog open={isCloseVotingDialogOpen} onOpenChange={setIsCloseVotingDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Finish voting?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will close the voting window. Participants will no longer be
-              able to submit votes. This action cannot be undone.
+              This will close the voting window. Participants will no longer be able to submit
+              votes. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={closeVotingMutation.isPending}>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={closeVotingMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
-                e.preventDefault();
-                handleConfirmCloseVoting();
+                e.preventDefault()
+                handleConfirmCloseVoting()
               }}
               disabled={closeVotingMutation.isPending}
               className="bg-destructive text-white hover:bg-destructive/90"
@@ -752,33 +730,28 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                   Finishing…
                 </>
               ) : (
-                "Finish voting"
+                'Finish voting'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={isReopenVotingDialogOpen}
-        onOpenChange={setIsReopenVotingDialogOpen}
-      >
+      <AlertDialog open={isReopenVotingDialogOpen} onOpenChange={setIsReopenVotingDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Reopen voting?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will reopen the voting window. Participants will be able to
-              submit votes again. Votes already cast will remain.
+              This will reopen the voting window. Participants will be able to submit votes again.
+              Votes already cast will remain.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={reopenVotingMutation.isPending}>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={reopenVotingMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
-                e.preventDefault();
-                handleConfirmReopenVoting();
+                e.preventDefault()
+                handleConfirmReopenVoting()
               }}
               disabled={reopenVotingMutation.isPending}
             >
@@ -788,24 +761,21 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                   Reopening…
                 </>
               ) : (
-                "Reopen voting"
+                'Reopen voting'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={isStartTiebreakDialogOpen}
-        onOpenChange={setIsStartTiebreakDialogOpen}
-      >
+      <AlertDialog open={isStartTiebreakDialogOpen} onOpenChange={setIsStartTiebreakDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Start tie-break round?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will start a new voting round using the same voter links. No
-              SMS will be sent. Only the tied leading submissions will be shown,
-              and all existing voting sessions can vote again.
+              This will start a new voting round using the same voter links. No SMS will be sent.
+              Only the tied leading submissions will be shown, and all existing voting sessions can
+              vote again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -814,8 +784,8 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
-                e.preventDefault();
-                handleConfirmStartTiebreak();
+                e.preventDefault()
+                handleConfirmStartTiebreak()
               }}
               disabled={startTiebreakRoundMutation.isPending}
             >
@@ -825,12 +795,12 @@ export function VotingSetup({ activeTopic }: VotingSetupProps) {
                   Starting…
                 </>
               ) : (
-                "Start tie-break"
+                'Start tie-break'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

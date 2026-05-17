@@ -1,12 +1,8 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
-import {
-  createTRPCRouter,
-  domainProcedure,
-  requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+import { Effect, Schema } from 'effect'
+import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'
+import { trpcEffect } from '../utils'
 import {
   GetStaffMembersByDomainInputSchema,
   GetStaffMemberByIdInputSchema,
@@ -14,8 +10,8 @@ import {
   DeleteUserMarathonRelationInputSchema,
   GetVerificationsByStaffIdInputSchema,
   UpdateStaffMemberInputSchema,
-} from "../../core/users/contracts";
-import { UsersService } from "../../core/users/service";
+} from '../../core/users/contracts'
+import { UsersService } from '../../core/users/service'
 
 export const usersRouter = createTRPCRouter({
   getStaffMembersByDomain: domainProcedure
@@ -23,10 +19,8 @@ export const usersRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("UsersRouter.getStaffMembersByDomain")(function* ({ input }) {
-          return yield* UsersService.use((s) =>
-            s.getStaffMembersByDomain({ domain: input.domain }),
-          );
+        Effect.fn('UsersRouter.getStaffMembersByDomain')(function* ({ input }) {
+          return yield* UsersService.use((s) => s.getStaffMembersByDomain({ domain: input.domain }))
         }),
       ),
     ),
@@ -36,13 +30,13 @@ export const usersRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("UsersRouter.getStaffAccessById")(function* ({ input }) {
+        Effect.fn('UsersRouter.getStaffAccessById')(function* ({ input }) {
           return yield* UsersService.use((s) =>
             s.getStaffAccessById({
               accessId: input.accessId,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -52,13 +46,13 @@ export const usersRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("UsersRouter.createStaffMember")(function* ({ input }) {
+        Effect.fn('UsersRouter.createStaffMember')(function* ({ input }) {
           return yield* UsersService.use((s) =>
             s.createStaffMember({
               domain: input.domain,
               data: input.data,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -68,15 +62,13 @@ export const usersRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("UsersRouter.deleteStaffAccess")(function* ({
-          input,
-        }) {
+        Effect.fn('UsersRouter.deleteStaffAccess')(function* ({ input }) {
           return yield* UsersService.use((s) =>
             s.deleteStaffAccess({
               domain: input.domain,
               accessId: input.accessId,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -86,9 +78,7 @@ export const usersRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("UsersRouter.getVerificationsByStaffId")(function* ({
-          input,
-        }) {
+        Effect.fn('UsersRouter.getVerificationsByStaffId')(function* ({ input }) {
           return yield* UsersService.use((s) =>
             s.getVerificationsByStaffId({
               staffId: input.staffId,
@@ -96,7 +86,7 @@ export const usersRouter = createTRPCRouter({
               cursor: input.cursor ?? undefined,
               limit: input.limit ?? undefined,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -106,15 +96,15 @@ export const usersRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("UsersRouter.updateStaffAccess")(function* ({ input }) {
+        Effect.fn('UsersRouter.updateStaffAccess')(function* ({ input }) {
           return yield* UsersService.use((s) =>
             s.updateStaffAccess({
               accessId: input.accessId,
               domain: input.domain,
               data: input.data,
             }),
-          );
+          )
         }),
       ),
     ),
-});
+})

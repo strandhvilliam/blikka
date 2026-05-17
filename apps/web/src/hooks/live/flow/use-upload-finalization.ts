@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useUploadStore } from "@/lib/flow/upload-store"
-import type { FinalizationState } from "@/lib/flow/types"
-import { FINALIZATION_STATE, UPLOAD_PHASE } from "@/lib/flow/types"
+import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { useUploadStore } from '@/lib/flow/upload-store'
+import type { FinalizationState } from '@/lib/flow/types'
+import { FINALIZATION_STATE, UPLOAD_PHASE } from '@/lib/flow/types'
 import {
   MIN_UPLOAD_PROGRESS_DISPLAY_MS,
   PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS,
   PARTICIPANT_FINALIZATION_TIMEOUT_MS,
   UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
   UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
-} from "@/lib/flow/constants"
+} from '@/lib/flow/constants'
 
 interface UseUploadFinalizationOptions {
   domain: string
@@ -51,7 +51,7 @@ export function useUploadFinalization({ domain, reference }: UseUploadFinalizati
     }
   }, [isUploading, resetUploadLifecycle])
 
-  const participantIsReady = participantStatus === "completed" || participantStatus === "verified"
+  const participantIsReady = participantStatus === 'completed' || participantStatus === 'verified'
 
   useEffect(() => {
     if (!isUploading || fileListLength === 0) return

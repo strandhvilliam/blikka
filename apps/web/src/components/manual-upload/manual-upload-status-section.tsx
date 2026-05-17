@@ -1,13 +1,13 @@
-"use client"
+'use client'
 
-import { CheckCircle2, Loader2, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload-types"
-import type { ParticipantUploadFileState } from "@/lib/participant-upload-types"
-import { getUploadPhaseLabel, getUploadPhaseClassName } from "@/lib/upload-utils"
-import { cn } from "@/lib/utils"
+import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { PARTICIPANT_UPLOAD_PHASE } from '@/lib/participant-upload-types'
+import type { ParticipantUploadFileState } from '@/lib/participant-upload-types'
+import { getUploadPhaseLabel, getUploadPhaseClassName } from '@/lib/upload-utils'
+import { cn } from '@/lib/utils'
 
 export interface ManualUploadStatusSectionUploadFlow {
   uploadFiles: ParticipantUploadFileState[]
@@ -57,15 +57,15 @@ export function ManualUploadStatusSection({ uploadFlow, isBusy }: ManualUploadSt
                 key={file.key}
                 className="upload-list-item rounded-md border border-[#e1e1d8] bg-white px-3 py-3"
                 style={{
-                  contentVisibility: "auto",
-                  containIntrinsicSize: "0 80px",
+                  contentVisibility: 'auto',
+                  containIntrinsicSize: '0 80px',
                 }}
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-sm font-medium text-[#2b2b24]">{file.file.name}</p>
                   <Badge
                     variant="outline"
-                    className={cn("text-xs", getUploadPhaseClassName(file.phase))}
+                    className={cn('text-xs', getUploadPhaseClassName(file.phase))}
                   >
                     {file.phase === PARTICIPANT_UPLOAD_PHASE.UPLOADING ? (
                       <Loader2 className="mr-1 h-3 w-3 animate-spin" />

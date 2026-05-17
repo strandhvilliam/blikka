@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import { cn } from "@/lib/utils"
-import { COMMON_IMAGE_EXTENSIONS } from "@/lib/file-processing"
-import { pluralizePhotos } from "@/hooks/use-manual-upload-form"
+import { cn } from '@/lib/utils'
+import { COMMON_IMAGE_EXTENSIONS } from '@/lib/file-processing'
+import { pluralizePhotos } from '@/hooks/use-manual-upload-form'
 import {
   ManualDropzoneStatusBadge,
   type ManualDropzoneVariant,
-} from "@/components/manual-upload/manual-dropzone-status-badge"
+} from '@/components/manual-upload/manual-dropzone-status-badge'
 
 export interface ManualImageDropzoneSectionDropzoneProps {
   getRootProps: () => Record<string, unknown>
@@ -52,14 +52,14 @@ export function ManualImageDropzoneSection({
       <div
         {...getRootProps()}
         className={cn(
-          "rounded-lg border border-dashed p-4 transition-colors",
+          'rounded-lg border border-dashed p-4 transition-colors',
           isDropzoneDisabled
-            ? variant === "complete"
-              ? "cursor-default border-emerald-300 bg-emerald-50/50"
-              : "cursor-not-allowed border-[#deded4] bg-[#f5f5f0] text-[#8a8a81]"
+            ? variant === 'complete'
+              ? 'cursor-default border-emerald-300 bg-emerald-50/50'
+              : 'cursor-not-allowed border-[#deded4] bg-[#f5f5f0] text-[#8a8a81]'
             : isDragActive
-              ? "cursor-copy border-[#45453e] bg-[#efefe9]"
-              : "cursor-pointer border-[#d7d7cd] bg-[#fafaf6] hover:bg-[#f4f4ed]",
+              ? 'cursor-copy border-[#45453e] bg-[#efefe9]'
+              : 'cursor-pointer border-[#d7d7cd] bg-[#fafaf6] hover:bg-[#f4f4ed]',
         )}
       >
         <input {...getInputProps()} />
@@ -69,8 +69,8 @@ export function ManualImageDropzoneSection({
               Required: {pluralizePhotos(expectedPhotoCount)}
             </p>
             <p className="text-xs text-[#6a6a63]">
-              Current selection:{" "}
-              <span className={cn(isMaxImagesReached && "font-medium text-emerald-600")}>
+              Current selection:{' '}
+              <span className={cn(isMaxImagesReached && 'font-medium text-emerald-600')}>
                 {pluralizePhotos(selectedPhotosCount)}
               </span>
             </p>
@@ -81,9 +81,9 @@ export function ManualImageDropzoneSection({
         </div>
 
         <p className="mt-3 text-xs text-[#6a6a63]">
-          Accepted types: {COMMON_IMAGE_EXTENSIONS.join(", ")}
+          Accepted types: {COMMON_IMAGE_EXTENSIONS.join(', ')}
         </p>
-        {isDropzoneDisabled && variant !== "complete" && dropzoneDisabledReason ? (
+        {isDropzoneDisabled && variant !== 'complete' && dropzoneDisabledReason ? (
           <p className="mt-2 text-xs text-[#7a7a72]">{dropzoneDisabledReason}</p>
         ) : null}
         {formErrorsFiles ? <p className="mt-2 text-xs text-rose-600">{formErrorsFiles}</p> : null}

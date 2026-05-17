@@ -1,18 +1,14 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
-import {
-  createTRPCRouter,
-  domainProcedure,
-  requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+import { Effect, Schema } from 'effect'
+import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'
+import { trpcEffect } from '../utils'
 import {
   CreateDeviceGroupInputSchema,
   UpdateDeviceGroupInputSchema,
   DeleteDeviceGroupInputSchema,
-} from "../../core/device-groups/contracts";
-import { DeviceGroupsService } from "../../core/device-groups/service";
+} from '../../core/device-groups/contracts'
+import { DeviceGroupsService } from '../../core/device-groups/service'
 
 export const deviceGroupsRouter = createTRPCRouter({
   create: domainProcedure
@@ -20,10 +16,8 @@ export const deviceGroupsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("DeviceGroupsRouter.create")(function* ({ input }) {
-          return yield* DeviceGroupsService.use((s) =>
-            s.createDeviceGroup(input),
-          );
+        Effect.fn('DeviceGroupsRouter.create')(function* ({ input }) {
+          return yield* DeviceGroupsService.use((s) => s.createDeviceGroup(input))
         }),
       ),
     ),
@@ -33,10 +27,8 @@ export const deviceGroupsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("DeviceGroupsRouter.update")(function* ({ input }) {
-          return yield* DeviceGroupsService.use((s) =>
-            s.updateDeviceGroup(input),
-          );
+        Effect.fn('DeviceGroupsRouter.update')(function* ({ input }) {
+          return yield* DeviceGroupsService.use((s) => s.updateDeviceGroup(input))
         }),
       ),
     ),
@@ -46,11 +38,9 @@ export const deviceGroupsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("DeviceGroupsRouter.delete")(function* ({ input }) {
-          return yield* DeviceGroupsService.use((s) =>
-            s.deleteDeviceGroup(input),
-          );
+        Effect.fn('DeviceGroupsRouter.delete')(function* ({ input }) {
+          return yield* DeviceGroupsService.use((s) => s.deleteDeviceGroup(input))
         }),
       ),
     ),
-});
+})

@@ -1,46 +1,46 @@
-"use client"
+'use client'
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { motion, AnimatePresence } from "motion/react"
-import { useTranslations } from "next-intl"
-import { useRouter } from "next/navigation"
-import { useMutation } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { ArrowRight } from "lucide-react"
-import type { RuleConfig as DbRuleConfig, Topic } from "@blikka/db"
-import { VALIDATION_OUTCOME } from "@blikka/validation"
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
+import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { ArrowRight } from 'lucide-react'
+import type { RuleConfig as DbRuleConfig, Topic } from '@blikka/db'
+import { VALIDATION_OUTCOME } from '@blikka/validation'
 
-import { Button } from "@/components/ui/button"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
-import { formatDomainPathname } from "@/lib/utils"
-import { mapRuleConfigsToValidationRules } from "@/lib/validation"
-import { resolveSelectedImageContentType } from "@/lib/file-processing"
+import { Button } from '@/components/ui/button'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
+import { flowStateClientParamSerializer } from '@/lib/flow-state-params-client'
+import { formatDomainPathname } from '@/lib/utils'
+import { mapRuleConfigsToValidationRules } from '@/lib/validation'
+import { resolveSelectedImageContentType } from '@/lib/file-processing'
 
-import { useFileUpload } from "@/hooks/live/flow/use-file-upload"
-import { useLivePhotoValidation } from "@/hooks/live/flow/use-live-photo-validation"
-import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
-import { useSelectFile } from "@/hooks/live/flow/use-select-file"
-import { usePhotoStore } from "@/lib/flow/photo-store"
-import { useHeicStore } from "@/lib/flow/heic-store"
-import { useStepState } from "@/lib/flow/step-state-context"
-import type { PhotoWithPresignedUrl } from "@/lib/flow/types"
-import { selectFailedFiles, useUploadStore } from "@/lib/flow/upload-store"
-import { FINALIZATION_STATE } from "@/lib/flow/types"
+import { useFileUpload } from '@/hooks/live/flow/use-file-upload'
+import { useLivePhotoValidation } from '@/hooks/live/flow/use-live-photo-validation'
+import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
+import { useSelectFile } from '@/hooks/live/flow/use-select-file'
+import { usePhotoStore } from '@/lib/flow/photo-store'
+import { useHeicStore } from '@/lib/flow/heic-store'
+import { useStepState } from '@/lib/flow/step-state-context'
+import type { PhotoWithPresignedUrl } from '@/lib/flow/types'
+import { selectFailedFiles, useUploadStore } from '@/lib/flow/upload-store'
+import { FINALIZATION_STATE } from '@/lib/flow/types'
 import {
   buildInitializeByCameraUploadInputResult,
   getUploadFlowIssueMessageKeys,
-} from "@/lib/flow/upload-flow-state"
-import { buildUploadExifPayload } from "@/lib/upload-exif"
-import { captureByCameraException, captureByCameraMessage } from "@/lib/sentry-by-camera"
+} from '@/lib/flow/upload-flow-state'
+import { buildUploadExifPayload } from '@/lib/upload-exif'
+import { captureByCameraException, captureByCameraMessage } from '@/lib/sentry-by-camera'
 
-import { UploadProgress } from "./upload-progress"
-import { ByCameraUploadInput } from "./by-camera-upload-input"
-import { HeicConversionDialog } from "./heic-conversion-dialog"
-import { UploadConfirmationDialog } from "./upload-confirmation-dialog"
-import { UploadInstructionsDialog } from "./upload-instructions-dialog"
+import { UploadProgress } from './upload-progress'
+import { ByCameraUploadInput } from './by-camera-upload-input'
+import { HeicConversionDialog } from './heic-conversion-dialog'
+import { UploadConfirmationDialog } from './upload-confirmation-dialog'
+import { UploadInstructionsDialog } from './upload-instructions-dialog'
 
 const BY_CAMERA_MAX_PHOTOS = 1
 
@@ -57,7 +57,7 @@ export function ByCameraUploadStep({
   validationStartDate,
   validationEndDate,
 }: ByCameraUploadStepProps) {
-  const t = useTranslations("FlowPage.uploadStep")
+  const t = useTranslations('FlowPage.uploadStep')
   const trpc = useTRPC()
   const domain = useDomain()
   const { handlePrevStep } = useStepState()
@@ -95,7 +95,7 @@ export function ByCameraUploadStep({
     ruleConfigs,
     validationStartDate,
     validationEndDate,
-    marathonMode: "by-camera",
+    marathonMode: 'by-camera',
   })
 
   const {
@@ -131,7 +131,7 @@ export function ByCameraUploadStep({
   }, [domain, shouldNavigate, minimumProgressDisplayReached, router, uploadFlowState])
 
   const handleResetAndGoBack = () => {
-    const confirmed = window.confirm(t("confirmGoBack"))
+    const confirmed = window.confirm(t('confirmGoBack'))
     if (!confirmed) return
     clearPhotos()
     clearFiles()
@@ -143,13 +143,13 @@ export function ByCameraUploadStep({
   const { mutateAsync: initializeByCameraUpload, isPending: isInitializing } = useMutation(
     trpc.uploadFlow.initializeByCameraUpload.mutationOptions({
       onError: (error) => {
-        toast.error(error.message || t("initializationFailed"))
+        toast.error(error.message || t('initializationFailed'))
       },
     }),
   )
 
   const validationRules = useMemo(
-    () => mapRuleConfigsToValidationRules(ruleConfigs, "by-camera"),
+    () => mapRuleConfigsToValidationRules(ruleConfigs, 'by-camera'),
     [ruleConfigs],
   )
 
@@ -173,7 +173,7 @@ export function ByCameraUploadStep({
 
   const handleSubmit = () => {
     if (photos.length !== BY_CAMERA_MAX_PHOTOS) {
-      toast.error(t("selectPhoto"))
+      toast.error(t('selectPhoto'))
       return
     }
     setShowConfirmationDialog(true)
@@ -194,8 +194,8 @@ export function ByCameraUploadStep({
         : []
       toast.error(
         issueLabels.length > 0
-          ? t("missingRequiredInfoDetailed", { fields: issueLabels.join(", ") })
-          : t("missingRequiredInfo"),
+          ? t('missingRequiredInfoDetailed', { fields: issueLabels.join(', ') })
+          : t('missingRequiredInfo'),
       )
       return
     }
@@ -206,18 +206,18 @@ export function ByCameraUploadStep({
       const initialization = await initializeByCameraUpload({
         ...initializeByCameraUploadResult.data,
         uploadContentTypes: photos.map(
-          (photo) => resolveSelectedImageContentType(photo.file) ?? "image/jpeg",
+          (photo) => resolveSelectedImageContentType(photo.file) ?? 'image/jpeg',
         ),
         uploadExif: buildUploadExifPayload(photos),
       })
 
       if (!initialization || initialization.uploads.length === 0) {
-        captureByCameraMessage("by_camera_presigned_urls_empty", {
-          level: "error",
+        captureByCameraMessage('by_camera_presigned_urls_empty', {
+          level: 'error',
           extra: { hasInit: Boolean(initialization) },
         })
         setIsUploading(false)
-        toast.error(t("failedToGetPresignedUrls"))
+        toast.error(t('failedToGetPresignedUrls'))
         return
       }
 
@@ -230,7 +230,7 @@ export function ByCameraUploadStep({
 
       const photosWithUrls: PhotoWithPresignedUrl[] = photos.map((photo, index) => {
         const urlInfo = initialization.uploads[index]
-        if (!urlInfo) throw new Error("Missing presigned URL for photo " + index)
+        if (!urlInfo) throw new Error('Missing presigned URL for photo ' + index)
         return {
           ...photo,
           presignedUrl: urlInfo.url,
@@ -242,42 +242,42 @@ export function ByCameraUploadStep({
       try {
         await executeUpload(photosWithUrls)
       } catch (error) {
-        captureByCameraException(error, { phase: "execute_upload_throw" })
-        console.error("Upload execution failed:", error)
+        captureByCameraException(error, { phase: 'execute_upload_throw' })
+        console.error('Upload execution failed:', error)
         clearFiles()
         setIsUploading(false)
         const detail = error instanceof Error && error.message ? error.message : undefined
         if (detail) {
-          toast.error(t("uploadFailed"), { description: detail })
+          toast.error(t('uploadFailed'), { description: detail })
         } else {
-          toast.error(t("uploadFailed"))
+          toast.error(t('uploadFailed'))
         }
         return
       }
 
       const failedAfterUpload = selectFailedFiles(useUploadStore.getState())
       if (failedAfterUpload.length > 0) {
-        captureByCameraMessage("by_camera_upload_finished_with_errors", {
-          level: "error",
+        captureByCameraMessage('by_camera_upload_finished_with_errors', {
+          level: 'error',
           extra: {
             failedCount: failedAfterUpload.length,
-            codes: failedAfterUpload.map((f) => f.error?.code ?? "unknown"),
+            codes: failedAfterUpload.map((f) => f.error?.code ?? 'unknown'),
           },
         })
         clearFiles()
         const firstErr = failedAfterUpload[0]?.error
         const detail = firstErr?.message || (firstErr?.code ? String(firstErr.code) : undefined)
         if (detail) {
-          toast.error(t("uploadFailed"), { description: detail })
+          toast.error(t('uploadFailed'), { description: detail })
         } else {
-          toast.error(t("uploadFailed"))
+          toast.error(t('uploadFailed'))
         }
       }
     } catch (error) {
-      captureByCameraException(error, { phase: "handle_confirmed_upload" })
-      console.error("Upload failed:", error)
+      captureByCameraException(error, { phase: 'handle_confirmed_upload' })
+      console.error('Upload failed:', error)
       setIsUploading(false)
-      toast.error(error instanceof Error && error.message ? error.message : t("uploadFailed"))
+      toast.error(error instanceof Error && error.message ? error.message : t('uploadFailed'))
     }
   }
 
@@ -286,7 +286,7 @@ export function ByCameraUploadStep({
 
   const hasValidationRules = validationRules.length > 0
   const hasValidationErrors = validationResults.some(
-    (result) => result.outcome === VALIDATION_OUTCOME.FAILED && result.severity === "error",
+    (result) => result.outcome === VALIDATION_OUTCOME.FAILED && result.severity === 'error',
   )
 
   const canSubmit = photoSelected && !hasValidationErrors && !isProcessingFiles
@@ -318,19 +318,19 @@ export function ByCameraUploadStep({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`mx-auto max-w-md px-4 ${canSubmit ? "pb-28" : ""}`}
+            className={`mx-auto max-w-md px-4 ${canSubmit ? 'pb-28' : ''}`}
           >
             <div className="mb-8 text-center">
               <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
-                {t("byCameraTitle")}
+                {t('byCameraTitle')}
               </h1>
               <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-                {t("byCameraDescription")}
+                {t('byCameraDescription')}
               </p>
               {topic && (
                 <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-muted/30 px-4 py-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                    {t("topicLabel")}
+                    {t('topicLabel')}
                   </span>
                   <span className="text-sm font-semibold text-foreground">{topic.name}</span>
                 </div>
@@ -352,7 +352,7 @@ export function ByCameraUploadStep({
             <div className="mt-6 flex justify-center">
               {!photoSelected ? (
                 <Button variant="ghost" size="lg" onClick={handleResetAndGoBack} className="w-full">
-                  {t("back")}
+                  {t('back')}
                 </Button>
               ) : (
                 <Button
@@ -362,7 +362,7 @@ export function ByCameraUploadStep({
                   disabled={isProcessingFiles}
                   onClick={() => selectAnotherFileInputRef.current?.click()}
                 >
-                  <span className="whitespace-nowrap">{t("selectAnother")}</span>
+                  <span className="whitespace-nowrap">{t('selectAnother')}</span>
                 </Button>
               )}
             </div>
@@ -382,7 +382,7 @@ export function ByCameraUploadStep({
               onClick={handleSubmit}
               className="w-full rounded-full py-4 text-lg font-semibold"
             >
-              {t("uploadAndContinue")}
+              {t('uploadAndContinue')}
               <ArrowRight className="ml-2 h-5 w-5" />
             </PrimaryButton>
           </div>

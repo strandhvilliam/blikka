@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useEffect } from "react"
+import { useEffect } from 'react'
 
 type Params = {
   isFullscreenOpen: boolean
@@ -23,58 +23,48 @@ export function useJuryViewerKeyboardShortcuts({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isFullscreenOpen) return
 
-      if (
-        event.target instanceof HTMLTextAreaElement ||
-        event.target instanceof HTMLInputElement
-      ) {
+      if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLInputElement) {
         return
       }
 
       if (event.metaKey || event.ctrlKey || event.altKey) return
 
       switch (event.key) {
-        case "ArrowLeft":
+        case 'ArrowLeft':
           event.preventDefault()
           goToPrev()
           break
-        case "ArrowRight":
+        case 'ArrowRight':
           event.preventDefault()
           goToNext()
           break
-        case "Escape":
+        case 'Escape':
           event.preventDefault()
           onBack()
           break
-        case "0":
-        case "1":
-        case "2":
-        case "3":
-        case "4":
-        case "5":
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
           event.preventDefault()
           onRatingClick(Number(event.key))
           break
-        case "]":
+        case ']':
           event.preventDefault()
           onRatingClick(Math.min(5, localRating + 1))
           break
-        case "[":
+        case '[':
           event.preventDefault()
           onRatingClick(Math.max(0, localRating - 1))
           break
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
-      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [
-    goToPrev,
-    goToNext,
-    onRatingClick,
-    onBack,
-    localRating,
-    isFullscreenOpen,
-  ])
+  }, [goToPrev, goToNext, onRatingClick, onBack, localRating, isFullscreenOpen])
 }

@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useForm } from "@tanstack/react-form"
-import { Button } from "@/components/ui/button"
+import { useForm } from '@tanstack/react-form'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,33 +9,33 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useEffect } from "react"
-import { Camera, Smartphone, Zap, Check } from "lucide-react"
-import { cn } from "@/lib/utils"
-import type { DeviceGroup } from "@blikka/db"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useEffect } from 'react'
+import { Camera, Smartphone, Zap, Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import type { DeviceGroup } from '@blikka/db'
 
 const deviceIcons = [
   {
-    value: "camera",
+    value: 'camera',
     icon: Camera,
-    label: "Camera",
+    label: 'Camera',
   },
   {
-    value: "smartphone",
+    value: 'smartphone',
     icon: Smartphone,
-    label: "Smartphone",
+    label: 'Smartphone',
   },
   {
-    value: "action-camera",
+    value: 'action-camera',
     icon: Zap,
-    label: "Action Camera",
+    label: 'Action Camera',
   },
 ] as const
 
@@ -62,12 +62,12 @@ export function DeviceGroupEditDialog({
   const { mutate: updateDeviceGroup, isPending: isUpdating } = useMutation(
     trpc.deviceGroups.update.mutationOptions({
       onError: (error) => {
-        toast.error("Failed to update device group", {
+        toast.error('Failed to update device group', {
           description: error.message,
         })
       },
       onSuccess: () => {
-        toast.success("Device group updated")
+        toast.success('Device group updated')
         onOpenChange(false)
       },
       onSettled: () => {
@@ -75,14 +75,14 @@ export function DeviceGroupEditDialog({
           queryKey: trpc.marathons.pathKey(),
         })
       },
-    })
+    }),
   )
 
   const form = useForm({
     defaultValues: {
-      name: deviceGroup?.name || "",
-      description: deviceGroup?.description || "",
-      icon: (deviceGroup?.icon || "camera") as "camera" | "smartphone" | "action-camera",
+      name: deviceGroup?.name || '',
+      description: deviceGroup?.description || '',
+      icon: (deviceGroup?.icon || 'camera') as 'camera' | 'smartphone' | 'action-camera',
     },
     onSubmit: async ({ value }) => {
       if (!deviceGroupId) return
@@ -101,11 +101,11 @@ export function DeviceGroupEditDialog({
 
   useEffect(() => {
     if (deviceGroup) {
-      form.setFieldValue("name", deviceGroup.name)
-      form.setFieldValue("description", deviceGroup.description || "")
+      form.setFieldValue('name', deviceGroup.name)
+      form.setFieldValue('description', deviceGroup.description || '')
       form.setFieldValue(
-        "icon",
-        (deviceGroup.icon || "camera") as "camera" | "smartphone" | "action-camera"
+        'icon',
+        (deviceGroup.icon || 'camera') as 'camera' | 'smartphone' | 'action-camera',
       )
     }
   }, [deviceGroup, form])
@@ -136,7 +136,7 @@ export function DeviceGroupEditDialog({
             validators={{
               onChange: ({ value }) => {
                 if (!value || value.length < 1) {
-                  return "Name is required"
+                  return 'Name is required'
                 }
                 return undefined
               },
@@ -159,7 +159,7 @@ export function DeviceGroupEditDialog({
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length ? (
                   <p className="text-sm text-destructive mt-1">
-                    {field.state.meta.errors.join(", ")}
+                    {field.state.meta.errors.join(', ')}
                   </p>
                 ) : null}
               </div>
@@ -202,8 +202,8 @@ export function DeviceGroupEditDialog({
                       type="button"
                       variant="outline"
                       className={cn(
-                        "flex-1 h-fit aspect-square p-0 relative overflow-hidden flex flex-col items-center justify-center gap-2",
-                        field.state.value === type.value && "ring-2 ring-primary ring-offset-2"
+                        'flex-1 h-fit aspect-square p-0 relative overflow-hidden flex flex-col items-center justify-center gap-2',
+                        field.state.value === type.value && 'ring-2 ring-primary ring-offset-2',
                       )}
                       onClick={() => field.handleChange(type.value)}
                     >
@@ -229,7 +229,7 @@ export function DeviceGroupEditDialog({
               Cancel
             </Button>
             <PrimaryButton type="submit" disabled={isUpdating}>
-              {isUpdating ? "Saving..." : "Save changes"}
+              {isUpdating ? 'Saving...' : 'Save changes'}
             </PrimaryButton>
           </DialogFooter>
         </form>

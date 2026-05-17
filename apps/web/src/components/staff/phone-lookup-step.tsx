@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { Loader2, SearchIcon } from "lucide-react"
-import { isPossiblePhoneNumber } from "react-phone-number-input"
+import { Loader2, SearchIcon } from 'lucide-react'
+import { isPossiblePhoneNumber } from 'react-phone-number-input'
 
-import { PhoneInput } from "@/components/ui/phone-input"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
+import { PhoneInput } from '@/components/ui/phone-input'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
 
 interface PhoneLookupStepProps {
   isSubmitting: boolean
@@ -45,7 +45,7 @@ export function PhoneLookupStep({ isSubmitting, onSubmitAction }: PhoneLookupSte
           <label className="text-sm font-medium text-foreground">Phone number</label>
           <PhoneInput
             value={phone}
-            onChange={(next) => setFormField("phone", next ?? "")}
+            onChange={(next) => setFormField('phone', next ?? '')}
             defaultCountry="SE"
             className="h-12 rounded-xl [&_input]:h-12 [&_input]:rounded-e-xl [&_input]:rounded-s-none [&_input]:text-base"
           />

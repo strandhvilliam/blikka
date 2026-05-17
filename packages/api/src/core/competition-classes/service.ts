@@ -1,19 +1,19 @@
-import "server-only"
+import 'server-only'
 
-import { Effect, Layer, Context } from "effect"
+import { Effect, Layer, Context } from 'effect'
 import {
   DbLayer,
   CompetitionClassesRepository,
   MarathonsRepository,
   DbError,
   type CompetitionClass,
-} from "@blikka/db"
+} from '@blikka/db'
 import type {
   CreateCompetitionClassInput,
   DeleteCompetitionClassInput,
   UpdateCompetitionClassInput,
-} from "./contracts"
-import { ForbiddenError, NotFoundError, failNotFoundIfNone } from "../errors"
+} from './contracts'
+import { ForbiddenError, NotFoundError, failNotFoundIfNone } from '../errors'
 
 export class CompetitionClassesService extends Context.Service<
   CompetitionClassesService,
@@ -32,37 +32,29 @@ export class CompetitionClassesService extends Context.Service<
      */
     readonly updateCompetitionClass: (
       input: UpdateCompetitionClassInput,
-    ) => Effect.Effect<
-      CompetitionClass,
-      NotFoundError | ForbiddenError | DbError,
-      never
-    >
+    ) => Effect.Effect<CompetitionClass, NotFoundError | ForbiddenError | DbError, never>
 
     /** Deletes a competition class by `id` after verifying it is owned by the marathon on `domain`. */
     readonly deleteCompetitionClass: (
       input: DeleteCompetitionClassInput,
-    ) => Effect.Effect<
-      CompetitionClass,
-      NotFoundError | ForbiddenError | DbError,
-      never
-    >
+    ) => Effect.Effect<CompetitionClass, NotFoundError | ForbiddenError | DbError, never>
   }
->()("@blikka/api/CompetitionClassesService") {}
+>()('@blikka/api/CompetitionClassesService') {}
 
 const makeCompetitionClassesService = Effect.gen(function* () {
   const marathonsRepository = yield* MarathonsRepository
   const competitionClassesRepository = yield* CompetitionClassesRepository
 
   const ensureClassBelongsToDomain = Effect.fn(
-    "CompetitionClassesService.ensureClassBelongsToDomain",
+    'CompetitionClassesService.ensureClassBelongsToDomain',
   )(function* ({ id, domain }: { id: number; domain: string }) {
     const competitionClass = yield* competitionClassesRepository
       .getCompetitionClassById({ id })
-      .pipe(failNotFoundIfNone("CompetitionClass", { id }))
+      .pipe(failNotFoundIfNone('CompetitionClass', { id }))
 
     const marathon = yield* marathonsRepository
       .getMarathonByDomain({ domain })
-      .pipe(failNotFoundIfNone("Marathon", { domain }))
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
     if (marathon.id !== competitionClass.marathonId) {
       return yield* Effect.fail(
@@ -75,43 +67,37 @@ const makeCompetitionClassesService = Effect.gen(function* () {
     return competitionClass
   })
 
-  const createCompetitionClass: CompetitionClassesService["Service"]["createCompetitionClass"] =
-    Effect.fn("CompetitionClassesService.createCompetitionClass")(
-      function* ({ data, domain }) {
-        const marathon = yield* marathonsRepository
-          .getMarathonByDomain({ domain })
-          .pipe(failNotFoundIfNone("Marathon", { domain }))
+  const createCompetitionClass: CompetitionClassesService['Service']['createCompetitionClass'] =
+    Effect.fn('CompetitionClassesService.createCompetitionClass')(function* ({ data, domain }) {
+      const marathon = yield* marathonsRepository
+        .getMarathonByDomain({ domain })
+        .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-        return yield* competitionClassesRepository.createCompetitionClass({
-          data: {
-            ...data,
-            marathonId: marathon.id,
-            topicStartIndex: data.topicStartIndex ?? 0,
-          },
-        })
-      },
-    )
+      return yield* competitionClassesRepository.createCompetitionClass({
+        data: {
+          ...data,
+          marathonId: marathon.id,
+          topicStartIndex: data.topicStartIndex ?? 0,
+        },
+      })
+    })
 
-  const updateCompetitionClass: CompetitionClassesService["Service"]["updateCompetitionClass"] =
-    Effect.fn("CompetitionClassesService.updateCompetitionClass")(
-      function* ({ id, data, domain }) {
-        yield* ensureClassBelongsToDomain({ id, domain })
-        return yield* competitionClassesRepository.updateCompetitionClass({
-          id,
-          data,
-        })
-      },
-    )
+  const updateCompetitionClass: CompetitionClassesService['Service']['updateCompetitionClass'] =
+    Effect.fn('CompetitionClassesService.updateCompetitionClass')(function* ({ id, data, domain }) {
+      yield* ensureClassBelongsToDomain({ id, domain })
+      return yield* competitionClassesRepository.updateCompetitionClass({
+        id,
+        data,
+      })
+    })
 
-  const deleteCompetitionClass: CompetitionClassesService["Service"]["deleteCompetitionClass"] =
-    Effect.fn("CompetitionClassesService.deleteCompetitionClass")(
-      function* ({ id, domain }) {
-        yield* ensureClassBelongsToDomain({ id, domain })
-        return yield* competitionClassesRepository.deleteCompetitionClass({
-          id,
-        })
-      },
-    )
+  const deleteCompetitionClass: CompetitionClassesService['Service']['deleteCompetitionClass'] =
+    Effect.fn('CompetitionClassesService.deleteCompetitionClass')(function* ({ id, domain }) {
+      yield* ensureClassBelongsToDomain({ id, domain })
+      return yield* competitionClassesRepository.deleteCompetitionClass({
+        id,
+      })
+    })
 
   return CompetitionClassesService.of({
     createCompetitionClass,
@@ -125,5 +111,6 @@ export const CompetitionClassesServiceLayerNoDeps = Layer.effect(
   makeCompetitionClassesService,
 )
 
-export const CompetitionClassesServiceLayer =
-  CompetitionClassesServiceLayerNoDeps.pipe(Layer.provide(DbLayer))
+export const CompetitionClassesServiceLayer = CompetitionClassesServiceLayerNoDeps.pipe(
+  Layer.provide(DbLayer),
+)

@@ -1,5 +1,5 @@
-import { Effect } from "effect"
-import { Resource as SSTResource } from "sst"
+import { Effect } from 'effect'
+import { Resource as SSTResource } from 'sst'
 import {
   getEnvironmentFromStage,
   makeLambdaHandler,
@@ -7,15 +7,15 @@ import {
   makeSqsRealtimeTask,
   parseAndNormalizeMessage,
   parseUploadObjectKey,
-} from "@blikka/task-runtime"
+} from '@blikka/task-runtime'
 import {
   SubmissionProcessor,
   type ProcessSubmissionInput,
   SubmissionProcessorLayer,
-} from "@blikka/uploads"
+} from '@blikka/uploads'
 
-const TASK_NAME = "upload-processor"
-const REALTIME_EVENT = "submission-processed"
+const TASK_NAME = 'upload-processor'
+const REALTIME_EVENT = 'submission-processed'
 
 interface SubmissionTaskInput extends ProcessSubmissionInput {
   readonly metadata: {
@@ -25,7 +25,7 @@ interface SubmissionTaskInput extends ProcessSubmissionInput {
 
 const effectHandler = makeSqsRealtimeTask({
   taskName: TASK_NAME,
-  spanName: "UploadProcessor.handler",
+  spanName: 'UploadProcessor.handler',
   eventKey: REALTIME_EVENT,
   recordConcurrency: 3,
   inputConcurrency: 2,
@@ -48,11 +48,11 @@ const effectHandler = makeSqsRealtimeTask({
     Effect.gen(function* () {
       const submissionProcessor = yield* SubmissionProcessor
 
-      yield* Effect.logInfo("Processing submission")
+      yield* Effect.logInfo('Processing submission')
 
       yield* submissionProcessor.process(input).pipe(
-        Effect.tap(() => Effect.logInfo("Submission processed")),
-        Effect.tapError((error) => Effect.logError("Error processing submission", error)),
+        Effect.tap(() => Effect.logInfo('Submission processed')),
+        Effect.tapError((error) => Effect.logError('Error processing submission', error)),
       )
     }).pipe(Effect.annotateLogs({ ...input })),
 })

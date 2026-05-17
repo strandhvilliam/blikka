@@ -1,21 +1,13 @@
-"use client"
+'use client'
 
-import { type ColumnDef } from "@tanstack/react-table"
-import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import {
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  Copy,
-  XCircle,
-  AlertCircle,
-  Info,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import type { RealtimeEnrichedTableData } from "../_hooks/use-submissions-table-realtime"
-import { format } from "date-fns"
-import { toast } from "sonner"
+import { type ColumnDef } from '@tanstack/react-table'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { CheckCircle2, ChevronRight, Clock, Copy, XCircle, AlertCircle, Info } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import type { RealtimeEnrichedTableData } from '../_hooks/use-submissions-table-realtime'
+import { format } from 'date-fns'
+import { toast } from 'sonner'
 
 function CopyableContact({
   value,
@@ -26,7 +18,7 @@ function CopyableContact({
   copiedToast: string
   tabularNums?: boolean
 }) {
-  const trimmed = typeof value === "string" ? value.trim() : ""
+  const trimmed = typeof value === 'string' ? value.trim() : ''
   if (!trimmed) {
     return <span className="text-xs text-muted-foreground">-</span>
   }
@@ -42,18 +34,20 @@ function CopyableContact({
             await navigator.clipboard.writeText(trimmed)
             toast.success(copiedToast)
           } catch {
-            toast.error("Could not copy")
+            toast.error('Could not copy')
           }
         })()
       }}
       className={cn(
-        "group flex w-full min-w-0 max-w-[200px] items-center gap-1 rounded-md px-2 py-1 text-left",
-        "text-xs text-muted-foreground transition-colors",
-        "hover:bg-muted/80 hover:text-foreground active:bg-muted",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
+        'group flex w-full min-w-0 max-w-[200px] items-center gap-1 rounded-md px-2 py-1 text-left',
+        'text-xs text-muted-foreground transition-colors',
+        'hover:bg-muted/80 hover:text-foreground active:bg-muted',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
       )}
     >
-      <span className={cn("min-w-0 flex-1 truncate", tabularNums && "tabular-nums")}>{trimmed}</span>
+      <span className={cn('min-w-0 flex-1 truncate', tabularNums && 'tabular-nums')}>
+        {trimmed}
+      </span>
       <Copy
         className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-70"
         aria-hidden
@@ -85,12 +79,12 @@ export const getSubmissionsColumns = ({
   const baseColumns: ColumnDef<RealtimeEnrichedTableData>[] = []
 
   baseColumns.push({
-    id: "select",
+    id: 'select',
     header: () => (
       <div className="flex items-center justify-center">
         <Checkbox
           checked={allVisibleSelected}
-          data-state={someVisibleSelected ? "indeterminate" : undefined}
+          data-state={someVisibleSelected ? 'indeterminate' : undefined}
           onClick={(e) => {
             e.stopPropagation()
             onToggleAll()
@@ -119,15 +113,15 @@ export const getSubmissionsColumns = ({
   })
   baseColumns.push(
     {
-      accessorKey: "reference",
-      header: "Reference",
+      accessorKey: 'reference',
+      header: 'Reference',
       cell: ({ row }) => (
-        <div className="font-semibold text-xs text-foreground">{row.getValue("reference")}</div>
+        <div className="font-semibold text-xs text-foreground">{row.getValue('reference')}</div>
       ),
     },
     {
-      id: "name",
-      header: "Name",
+      id: 'name',
+      header: 'Name',
       cell: ({ row }) => {
         const firstname = row.original.firstname
         const lastname = row.original.lastname
@@ -136,15 +130,15 @@ export const getSubmissionsColumns = ({
     },
   )
   baseColumns.push({
-    accessorKey: "email",
-    header: "Email",
+    accessorKey: 'email',
+    header: 'Email',
     cell: ({ row }) => (
-      <CopyableContact value={row.getValue("email") as string | null} copiedToast="Email copied" />
+      <CopyableContact value={row.getValue('email') as string | null} copiedToast="Email copied" />
     ),
   })
   baseColumns.push({
-    id: "phone",
-    header: "Phone",
+    id: 'phone',
+    header: 'Phone',
     cell: ({ row }) => (
       <CopyableContact
         value={row.original.phoneNumber ?? null}
@@ -154,53 +148,53 @@ export const getSubmissionsColumns = ({
     ),
   })
   baseColumns.push({
-    accessorKey: "createdAt",
-    header: marathonMode === "by-camera" ? "Uploaded At" : "Initialized At",
+    accessorKey: 'createdAt',
+    header: marathonMode === 'by-camera' ? 'Uploaded At' : 'Initialized At',
     cell: ({ row }) => {
       const participant = row.original
       const rawDate =
-        marathonMode === "by-camera"
+        marathonMode === 'by-camera'
           ? participant.activeTopicSubmissionCreatedAt
-          : (row.getValue("createdAt") as string)
+          : (row.getValue('createdAt') as string)
       if (!rawDate) {
         return <span className="text-xs text-muted-foreground">-</span>
       }
       const date = new Date(rawDate)
       return (
-        <div className="text-xs text-muted-foreground">{format(date, "MMM d, yyyy, HH:mm")}</div>
+        <div className="text-xs text-muted-foreground">{format(date, 'MMM d, yyyy, HH:mm')}</div>
       )
     },
   })
   baseColumns.push({
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: 'status',
+    header: 'Status',
     cell: ({ row }) => {
       const status = row.original.realtimeIsFinalized
-        ? "completed"
-        : (row.getValue("status") as string)
+        ? 'completed'
+        : (row.getValue('status') as string)
       const statusConfig = {
         prepared: {
-          variant: "outline" as const,
+          variant: 'outline' as const,
           className:
-            "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
+            'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800',
           icon: Clock,
         },
         completed: {
-          variant: "default" as const,
+          variant: 'default' as const,
           className:
-            "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800",
+            'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800',
           icon: CheckCircle2,
         },
         initialized: {
-          variant: "outline" as const,
+          variant: 'outline' as const,
           className:
-            "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700",
+            'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700',
           icon: Clock,
         },
         verified: {
-          variant: "default" as const,
+          variant: 'default' as const,
           className:
-            "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800",
+            'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
           icon: CheckCircle2,
         },
       }
@@ -209,7 +203,7 @@ export const getSubmissionsColumns = ({
       return (
         <Badge
           variant={config.variant}
-          className={cn("capitalize text-xs font-medium gap-1 h-5 px-1.5", config.className)}
+          className={cn('capitalize text-xs font-medium gap-1 h-5 px-1.5', config.className)}
         >
           <Icon className="size-2.5" />
           {status}
@@ -218,15 +212,15 @@ export const getSubmissionsColumns = ({
     },
   })
   baseColumns.push({
-    id: "uploadProgress",
-    header: "Upload",
+    id: 'uploadProgress',
+    header: 'Upload',
     cell: ({ row }) => {
       const participant = row.original
       const expectedFromClass = participant.competitionClass?.numberOfPhotos ?? null
       const expectedCount =
         expectedFromClass !== null && expectedFromClass > 0
           ? expectedFromClass
-          : marathonMode === "by-camera"
+          : marathonMode === 'by-camera'
             ? 1
             : null
 
@@ -236,20 +230,20 @@ export const getSubmissionsColumns = ({
 
       const isCompleted =
         participant.realtimeIsFinalized ||
-        participant.status === "completed" ||
-        participant.status === "verified"
+        participant.status === 'completed' ||
+        participant.status === 'verified'
       const processedCount = isCompleted
         ? expectedCount
         : Math.min(participant.realtimeProcessedCount, expectedCount)
 
       return (
         <Badge
-          variant={processedCount === expectedCount ? "default" : "outline"}
+          variant={processedCount === expectedCount ? 'default' : 'outline'}
           className={cn(
-            "h-5 px-1.5 text-xs font-medium tabular-nums",
+            'h-5 px-1.5 text-xs font-medium tabular-nums',
             processedCount === expectedCount
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
-              : "text-muted-foreground",
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
+              : 'text-muted-foreground',
           )}
         >
           {processedCount}/{expectedCount}
@@ -258,10 +252,10 @@ export const getSubmissionsColumns = ({
     },
   })
 
-  if (marathonMode === "by-camera") {
+  if (marathonMode === 'by-camera') {
     baseColumns.push({
-      id: "voted",
-      header: "Voted",
+      id: 'voted',
+      header: 'Voted',
       cell: ({ row }) => {
         const votedAt = row.original.votingSession?.votedAt
         if (votedAt) {
@@ -272,11 +266,11 @@ export const getSubmissionsColumns = ({
               className="gap-1 text-xs font-medium h-5 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
             >
               <CheckCircle2 className="size-2.5" />
-              Voted on{" "}
+              Voted on{' '}
               {date.toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
               })}
             </Badge>
           )
@@ -294,28 +288,28 @@ export const getSubmissionsColumns = ({
     })
   } else {
     baseColumns.push({
-      id: "competitionClass",
-      header: "Class",
+      id: 'competitionClass',
+      header: 'Class',
       cell: ({ row }) => {
         const competitionClass = row.original.competitionClass
-        return <div className="text-xs">{competitionClass?.name || "-"}</div>
+        return <div className="text-xs">{competitionClass?.name || '-'}</div>
       },
     })
   }
 
   baseColumns.push({
-    id: "deviceGroup",
-    header: "Device Group",
+    id: 'deviceGroup',
+    header: 'Device Group',
     cell: ({ row }) => {
       const deviceGroup = row.original.deviceGroup
-      return <div className="text-xs">{deviceGroup?.name || "-"}</div>
+      return <div className="text-xs">{deviceGroup?.name || '-'}</div>
     },
   })
 
-  if (marathonMode !== "by-camera") {
+  if (marathonMode !== 'by-camera') {
     baseColumns.push({
-      id: "validationResults",
-      header: "Validation Results",
+      id: 'validationResults',
+      header: 'Validation Results',
       cell: ({ row }) => {
         const submissionHealth = row.original.submissionHealth
         const hasMissingExif = submissionHealth !== null && !submissionHealth.hasExif
@@ -371,7 +365,7 @@ export const getSubmissionsColumns = ({
   }
 
   baseColumns.push({
-    id: "openIndicator",
+    id: 'openIndicator',
     enableSorting: false,
     header: () => <span className="sr-only">Open details</span>,
     cell: () => (

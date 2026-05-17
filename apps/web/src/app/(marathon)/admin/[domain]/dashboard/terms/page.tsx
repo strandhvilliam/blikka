@@ -1,9 +1,9 @@
-import { HydrateClient, batchPrefetch, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { TermsSkeleton } from "./_components/terms-skeleton"
-import { TermsContent } from "./_components/terms-content"
+import { HydrateClient, batchPrefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { TermsSkeleton } from './_components/terms-skeleton'
+import { TermsContent } from './_components/terms-content'
 
-export default async function TermsPage({ params }: PageProps<"/admin/[domain]/dashboard">) {
+export default async function TermsPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
 
   batchPrefetch([

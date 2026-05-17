@@ -1,6 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { JuryListSkeleton } from "./jury-list-skeleton"
-import { JuryInvitationDetailsSkeleton } from "./jury-invitation-details-skeleton"
+import { Skeleton } from '@/components/ui/skeleton'
+import { JuryListSkeleton } from './jury-list-skeleton'
+import { JuryInvitationDetailsSkeleton } from './jury-invitation-details-skeleton'
 
 export function JuryPageSkeleton() {
   return (

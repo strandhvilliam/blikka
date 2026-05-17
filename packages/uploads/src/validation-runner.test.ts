@@ -1,18 +1,14 @@
-import { assert, describe, it } from "@effect/vitest";
-import { S3Service } from "@blikka/aws";
-import {
-  ParticipantsRepository,
-  RulesRepository,
-  ValidationsRepository,
-} from "@blikka/db";
-import type { RuleConfig } from "@blikka/db";
+import { assert, describe, it } from '@effect/vitest'
+import { S3Service } from '@blikka/aws'
+import { ParticipantsRepository, RulesRepository, ValidationsRepository } from '@blikka/db'
+import type { RuleConfig } from '@blikka/db'
 import {
   ExifKVRepository,
   type ExifState,
   type ParticipantState,
   type SubmissionState,
   UploadSessionRepository,
-} from "@blikka/kv-store";
+} from '@blikka/kv-store'
 import {
   RULE_KEYS,
   VALIDATION_OUTCOME,
@@ -20,92 +16,90 @@ import {
   type ValidationInput,
   type ValidationResult,
   type ValidationRule,
-} from "@blikka/validation";
-import { Effect, Layer, Option, Ref } from "effect";
+} from '@blikka/validation'
+import { Effect, Layer, Option, Ref } from 'effect'
 
-import { UploadsConfig } from "./config";
+import { UploadsConfig } from './config'
 import {
   InvalidValidationRuleError,
   ValidationRunnerInvalidDataError,
   ValidationRunner,
   ValidationRunnerLayerNoDeps,
   type ValidateParticipantInput,
-} from "./validation-runner";
+} from './validation-runner'
 
-const uploadSessionId = "upload-session-1";
+const uploadSessionId = 'upload-session-1'
 const input: ValidateParticipantInput = {
-  domain: "demo",
-  reference: "REF123",
+  domain: 'demo',
+  reference: 'REF123',
   uploadSessionId,
-};
+}
 
 const submissionState: SubmissionState = {
   uploadSessionId,
-  key: "demo/REF123/01/photo.jpg",
+  key: 'demo/REF123/01/photo.jpg',
   orderIndex: 0,
   uploaded: true,
   thumbnailKey: null,
   exifProcessed: true,
-};
+}
 
-const makeParticipantState = (
-  overrides: Partial<ParticipantState> = {},
-): ParticipantState => ({
+const makeParticipantState = (overrides: Partial<ParticipantState> = {}): ParticipantState => ({
   uploadSessionId,
   expectedCount: 1,
   orderIndexes: [0],
   processedIndexes: [1],
   validated: false,
-  zipKey: "",
-  contactSheetKey: "",
+  zipKey: '',
+  contactSheetKey: '',
   errors: [],
   finalized: true,
   checkedAt: null,
   ...overrides,
-});
+})
 
 const maxFileSizeRule = {
   id: 1,
-  createdAt: "2026-01-01T00:00:00.000Z",
+  createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: null,
   marathonId: 1,
   ruleKey: RULE_KEYS.MAX_FILE_SIZE,
   enabled: true,
-  severity: "error",
+  severity: 'error',
   params: { maxBytes: 10_000 },
-} satisfies RuleConfig;
+} satisfies RuleConfig
 
 const validationResult: ValidationResult = {
   outcome: VALIDATION_OUTCOME.PASSED,
   ruleKey: RULE_KEYS.MAX_FILE_SIZE,
-  message: "passed",
-  severity: "error",
+  message: 'passed',
+  severity: 'error',
   fileName: submissionState.key,
   orderIndex: submissionState.orderIndex,
   isGeneral: false,
-};
+}
 
 interface TestState {
-  readonly participantExists: boolean;
-  readonly participantState: ParticipantState | undefined;
-  readonly exifStates: ReadonlyArray<{ orderIndex: number; exif: ExifState }>;
-  readonly submissionStates: readonly SubmissionState[];
-  readonly rules: readonly RuleConfig[];
-  readonly validationInputs: readonly ValidationInput[];
-  readonly validationRules: readonly ValidationRule[];
+  readonly participantExists: boolean
+  readonly participantState: ParticipantState | undefined
+  readonly exifStates: ReadonlyArray<{ orderIndex: number; exif: ExifState }>
+  readonly submissionStates: readonly SubmissionState[]
+  readonly rules: readonly RuleConfig[]
+  readonly validationInputs: readonly ValidationInput[]
+  readonly validationRules: readonly ValidationRule[]
   readonly validationWrites: ReadonlyArray<{
-    domain: string;
-    reference: string;
-    data: readonly ValidationResult[];
-  }>;
-  readonly participantUpdates: ReadonlyArray<Partial<ParticipantState>>;
-  readonly headRequests: ReadonlyArray<{ bucket: string; key: string }>;
+    domain: string
+    reference: string
+    data: readonly ValidationResult[]
+  }>
+  readonly participantUpdates: ReadonlyArray<Partial<ParticipantState>>
+  readonly headRequests: ReadonlyArray<{ bucket: string; key: string }>
 }
 
 const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   participantExists: true,
   participantState: makeParticipantState(),
-  exifStates: [{ orderIndex: 0, exif: { Make: "Nikon" } }],
+  exifStates: [{ orderIndex: 0, exif: { Make: 'Nikon' } }],
   submissionStates: [submissionState],
   rules: [maxFileSizeRule],
   validationInputs: [],
@@ -114,29 +108,27 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   participantUpdates: [],
   headRequests: [],
   ...overrides,
-});
+})
 
-const updateTestState = (
-  stateRef: Ref.Ref<TestState>,
-  f: (state: TestState) => TestState,
-) => Ref.update(stateRef, f);
+const updateTestState = (stateRef: Ref.Ref<TestState>, f: (state: TestState) => TestState) =>
+  Ref.update(stateRef, f)
 
 const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
   const participantsRepository = ParticipantsRepository.of({
     getParticipantByReference: () =>
       Effect.gen(function* () {
-        const state = yield* Ref.get(stateRef);
-        return state.participantExists ? Option.some({}) : Option.none();
+        const state = yield* Ref.get(stateRef)
+        return state.participantExists ? Option.some({}) : Option.none()
       }),
-  } as unknown as ParticipantsRepository["Service"]);
+  } as unknown as ParticipantsRepository['Service'])
 
   const rulesRepository = RulesRepository.of({
     getRulesByDomain: () =>
       Effect.gen(function* () {
-        const state = yield* Ref.get(stateRef);
-        return [...state.rules];
+        const state = yield* Ref.get(stateRef)
+        return [...state.rules]
       }),
-  } as unknown as RulesRepository["Service"]);
+  } as unknown as RulesRepository['Service'])
 
   const validationsRepository = ValidationsRepository.of({
     createMultipleValidationResults: ({
@@ -144,29 +136,26 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       domain,
       reference,
     }: {
-      data: readonly ValidationResult[];
-      domain: string;
-      reference: string;
+      data: readonly ValidationResult[]
+      domain: string
+      reference: string
     }) =>
       updateTestState(stateRef, (state) => ({
         ...state,
-        validationWrites: [
-          ...state.validationWrites,
-          { data, domain, reference },
-        ],
+        validationWrites: [...state.validationWrites, { data, domain, reference }],
       })).pipe(Effect.as(undefined)),
-  } as unknown as ValidationsRepository["Service"]);
+  } as unknown as ValidationsRepository['Service'])
 
   const uploadKv = UploadSessionRepository.of({
     getParticipantState: () =>
       Effect.gen(function* () {
-        const state = yield* Ref.get(stateRef);
-        return Option.fromNullishOr(state.participantState);
+        const state = yield* Ref.get(stateRef)
+        return Option.fromNullishOr(state.participantState)
       }),
     getAllSubmissionStates: () =>
       Effect.gen(function* () {
-        const state = yield* Ref.get(stateRef);
-        return [...state.submissionStates];
+        const state = yield* Ref.get(stateRef)
+        return [...state.submissionStates]
       }),
     updateParticipantSession: (
       _domain: string,
@@ -177,15 +166,15 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         ...state,
         participantUpdates: [...state.participantUpdates, participantState],
       })).pipe(Effect.as(1)),
-  } as unknown as UploadSessionRepository["Service"]);
+  } as unknown as UploadSessionRepository['Service'])
 
   const exifKv = ExifKVRepository.of({
     getAllExifStates: () =>
       Effect.gen(function* () {
-        const state = yield* Ref.get(stateRef);
-        return [...state.exifStates];
+        const state = yield* Ref.get(stateRef)
+        return [...state.exifStates]
       }),
-  } as unknown as ExifKVRepository["Service"]);
+  } as unknown as ExifKVRepository['Service'])
 
   const s3 = S3Service.of({
     getHead: (bucket: string, key: string) =>
@@ -194,23 +183,20 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         headRequests: [...state.headRequests, { bucket, key }],
       })).pipe(
         Effect.as({
-          ContentType: "image/jpeg",
+          ContentType: 'image/jpeg',
           ContentLength: 123,
-        } as Effect.Success<ReturnType<S3Service["Service"]["getHead"]>>),
+        } as Effect.Success<ReturnType<S3Service['Service']['getHead']>>),
       ),
-  } as unknown as S3Service["Service"]);
+  } as unknown as S3Service['Service'])
 
   const validationEngine = ValidationEngine.of({
-    runValidations: (
-      rules: ValidationRule[],
-      validationInputs: ValidationInput[],
-    ) =>
+    runValidations: (rules: ValidationRule[], validationInputs: ValidationInput[]) =>
       updateTestState(stateRef, (state) => ({
         ...state,
         validationRules: rules,
         validationInputs,
       })).pipe(Effect.as([validationResult])),
-  });
+  })
 
   return ValidationRunnerLayerNoDeps.pipe(
     Layer.provide(
@@ -223,70 +209,64 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(S3Service)(s3),
         Layer.succeed(UploadsConfig)(
           UploadsConfig.of({
-            submissionsBucketName: "submissions",
-            sponsorsBucketName: "sponsors",
-            thumbnailsBucketName: "thumbnails",
-            contactSheetsBucketName: "contact-sheets",
-            zipsBucketName: "zips",
+            submissionsBucketName: 'submissions',
+            sponsorsBucketName: 'sponsors',
+            thumbnailsBucketName: 'thumbnails',
+            contactSheetsBucketName: 'contact-sheets',
+            zipsBucketName: 'zips',
           }),
         ),
         Layer.succeed(ValidationEngine)(validationEngine),
       ),
     ),
-  );
-};
+  )
+}
 
 const runWithState = <A, E>(
   state: TestState,
-  effect: (
-    stateRef: Ref.Ref<TestState>,
-  ) => Effect.Effect<A, E, ValidationRunner>,
+  effect: (stateRef: Ref.Ref<TestState>) => Effect.Effect<A, E, ValidationRunner>,
 ) =>
   Effect.gen(function* () {
-    const stateRef = yield* Ref.make(state);
-    const result = yield* effect(stateRef).pipe(
-      Effect.provide(makeTestLayer(stateRef)),
-    );
-    const finalState = yield* Ref.get(stateRef);
-    return { result, state: finalState };
-  });
+    const stateRef = yield* Ref.make(state)
+    const result = yield* effect(stateRef).pipe(Effect.provide(makeTestLayer(stateRef)))
+    const finalState = yield* Ref.get(stateRef)
+    return { result, state: finalState }
+  })
 
-describe("ValidationRunner", () => {
-  it.effect(
-    "validates finalized current-session submissions and marks participant validated",
-    () =>
-      Effect.gen(function* () {
-        const { state } = yield* runWithState(makeInitialState(), () =>
-          Effect.gen(function* () {
-            const runner = yield* ValidationRunner;
-            yield* runner.execute(input);
-          }),
-        );
+describe('ValidationRunner', () => {
+  it.effect('validates finalized current-session submissions and marks participant validated', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(makeInitialState(), () =>
+        Effect.gen(function* () {
+          const runner = yield* ValidationRunner
+          yield* runner.execute(input)
+        }),
+      )
 
-        assert.deepStrictEqual(state.headRequests, [
-          { bucket: "submissions", key: submissionState.key },
-        ]);
-        assert.deepStrictEqual(state.validationInputs, [
-          {
-            exif: { Make: "Nikon" },
-            fileName: submissionState.key,
-            mimeType: "image/jpeg",
-            fileSize: 123,
-            orderIndex: submissionState.orderIndex,
-          },
-        ]);
-        assert.deepStrictEqual(state.validationWrites, [
-          {
-            domain: input.domain,
-            reference: input.reference,
-            data: [validationResult],
-          },
-        ]);
-        assert.deepStrictEqual(state.participantUpdates, [{ validated: true }]);
-      }),
-  );
+      assert.deepStrictEqual(state.headRequests, [
+        { bucket: 'submissions', key: submissionState.key },
+      ])
+      assert.deepStrictEqual(state.validationInputs, [
+        {
+          exif: { Make: 'Nikon' },
+          fileName: submissionState.key,
+          mimeType: 'image/jpeg',
+          fileSize: 123,
+          orderIndex: submissionState.orderIndex,
+        },
+      ])
+      assert.deepStrictEqual(state.validationWrites, [
+        {
+          domain: input.domain,
+          reference: input.reference,
+          data: [validationResult],
+        },
+      ])
+      assert.deepStrictEqual(state.participantUpdates, [{ validated: true }])
+    }),
+  )
 
-  it.effect("skips validation when participant state is not finalized", () =>
+  it.effect('skips validation when participant state is not finalized', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
         makeInitialState({
@@ -294,39 +274,39 @@ describe("ValidationRunner", () => {
         }),
         () =>
           Effect.gen(function* () {
-            const runner = yield* ValidationRunner;
-            yield* runner.execute(input);
+            const runner = yield* ValidationRunner
+            yield* runner.execute(input)
           }),
-      );
+      )
 
-      assert.deepStrictEqual(state.headRequests, []);
-      assert.deepStrictEqual(state.validationWrites, []);
-      assert.deepStrictEqual(state.participantUpdates, []);
+      assert.deepStrictEqual(state.headRequests, [])
+      assert.deepStrictEqual(state.validationWrites, [])
+      assert.deepStrictEqual(state.participantUpdates, [])
     }),
-  );
+  )
 
-  it.effect("skips stale upload-session validation events", () =>
+  it.effect('skips stale upload-session validation events', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
         makeInitialState({
           participantState: makeParticipantState({
-            uploadSessionId: "new-upload-session",
+            uploadSessionId: 'new-upload-session',
           }),
         }),
         () =>
           Effect.gen(function* () {
-            const runner = yield* ValidationRunner;
-            yield* runner.execute(input);
+            const runner = yield* ValidationRunner
+            yield* runner.execute(input)
           }),
-      );
+      )
 
-      assert.deepStrictEqual(state.headRequests, []);
-      assert.deepStrictEqual(state.validationWrites, []);
-      assert.deepStrictEqual(state.participantUpdates, []);
+      assert.deepStrictEqual(state.headRequests, [])
+      assert.deepStrictEqual(state.validationWrites, [])
+      assert.deepStrictEqual(state.participantUpdates, [])
     }),
-  );
+  )
 
-  it.effect("fails when submission states are missing", () =>
+  it.effect('fails when submission states are missing', () =>
     Effect.gen(function* () {
       const { result: error, state } = yield* runWithState(
         makeInitialState({
@@ -334,19 +314,19 @@ describe("ValidationRunner", () => {
         }),
         () =>
           Effect.gen(function* () {
-            const runner = yield* ValidationRunner;
-            return yield* Effect.flip(runner.execute(input));
+            const runner = yield* ValidationRunner
+            return yield* Effect.flip(runner.execute(input))
           }),
-      );
+      )
 
-      assert.isTrue(error instanceof ValidationRunnerInvalidDataError);
-      assert.strictEqual(error.message, "No submission states found");
-      assert.deepStrictEqual(state.validationWrites, []);
-      assert.deepStrictEqual(state.participantUpdates, []);
+      assert.isTrue(error instanceof ValidationRunnerInvalidDataError)
+      assert.strictEqual(error.message, 'No submission states found')
+      assert.deepStrictEqual(state.validationWrites, [])
+      assert.deepStrictEqual(state.participantUpdates, [])
     }),
-  );
+  )
 
-  it.effect("maps invalid rule data into InvalidValidationRuleError", () =>
+  it.effect('maps invalid rule data into InvalidValidationRuleError', () =>
     Effect.gen(function* () {
       const { result: error, state } = yield* runWithState(
         makeInitialState({
@@ -359,14 +339,14 @@ describe("ValidationRunner", () => {
         }),
         () =>
           Effect.gen(function* () {
-            const runner = yield* ValidationRunner;
-            return yield* Effect.flip(runner.execute(input));
+            const runner = yield* ValidationRunner
+            return yield* Effect.flip(runner.execute(input))
           }),
-      );
+      )
 
-      assert.isTrue(error instanceof InvalidValidationRuleError);
-      assert.deepStrictEqual(state.validationWrites, []);
-      assert.deepStrictEqual(state.participantUpdates, []);
+      assert.isTrue(error instanceof InvalidValidationRuleError)
+      assert.deepStrictEqual(state.validationWrites, [])
+      assert.deepStrictEqual(state.participantUpdates, [])
     }),
-  );
-});
+  )
+})

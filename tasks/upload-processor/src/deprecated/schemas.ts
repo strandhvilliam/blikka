@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Schema } from 'effect'
 
 export const S3EventSchema = Schema.Struct({
   Records: Schema.Array(

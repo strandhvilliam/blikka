@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { useMemo } from "react"
-import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { getJurySubmissionsNextPageParam } from "@/lib/jury/jury-utils"
-import type { JuryListParticipant } from "@/lib/jury/jury-types"
+import { useMemo } from 'react'
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { getJurySubmissionsNextPageParam } from '@/lib/jury/jury-utils'
+import type { JuryListParticipant } from '@/lib/jury/jury-types'
 
 export function useJurySubmissionsInfiniteQuery({
   domain,

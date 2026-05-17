@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import { useMemo } from "react"
-import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
-import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import type { UploadMarathonMode } from "@/lib/types"
+import { useMemo } from 'react'
+import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
+import { normalizeParticipantReference } from '@/lib/staff/staff-utils'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import type { UploadMarathonMode } from '@/lib/types'
 
 export function useStaffUploadParticipantSummary() {
   const domain = useDomain()
@@ -15,7 +15,7 @@ export function useStaffUploadParticipantSummary() {
 
   const marathonMode = marathon.mode as UploadMarathonMode
   const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
-  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === "active") ?? null
+  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === 'active') ?? null
 
   const existingParticipant = useStaffUploadStore((state) => state.existingParticipant)
   const formValues = useStaffUploadStore((state) => state.formValues)
@@ -34,7 +34,7 @@ export function useStaffUploadParticipantSummary() {
     const selectedDeviceGroup =
       marathon.deviceGroups.find((dg) => dg.id === Number(activeDeviceGroupId)) ?? null
 
-    if (marathonMode === "by-camera") {
+    if (marathonMode === 'by-camera') {
       if (!activeByCameraTopic || !selectedDeviceGroup) {
         return null
       }
@@ -44,34 +44,34 @@ export function useStaffUploadParticipantSummary() {
           reference: normalizeParticipantReference(existingParticipant.reference),
           firstName: existingParticipant.firstname,
           lastName: existingParticipant.lastname,
-          email: existingParticipant.email ?? "",
+          email: existingParticipant.email ?? '',
           detailChip: {
-            label: "Topic" as const,
+            label: 'Topic' as const,
             value: activeByCameraTopic.name,
           },
           deviceGroupName: selectedDeviceGroup.name,
           statusLabel:
-            participantStatus === "initialized"
-              ? "Existing in-progress upload"
-              : "Prepared participant",
+            participantStatus === 'initialized'
+              ? 'Existing in-progress upload'
+              : 'Prepared participant',
           statusTone:
-            participantStatus === "initialized" ? ("warning" as const) : ("default" as const),
+            participantStatus === 'initialized' ? ('warning' as const) : ('default' as const),
         }
       }
 
       const refTrim = formValues.reference.trim()
       return {
-        reference: refTrim ? normalizeParticipantReference(formValues.reference) : "",
+        reference: refTrim ? normalizeParticipantReference(formValues.reference) : '',
         firstName: formValues.firstName,
         lastName: formValues.lastName,
         email: formValues.email,
         detailChip: {
-          label: "Topic" as const,
+          label: 'Topic' as const,
           value: activeByCameraTopic.name,
         },
         deviceGroupName: selectedDeviceGroup.name,
-        statusLabel: "Manual entry",
-        statusTone: "default" as const,
+        statusLabel: 'Manual entry',
+        statusTone: 'default' as const,
       }
     }
 
@@ -80,15 +80,15 @@ export function useStaffUploadParticipantSummary() {
         reference: normalizeParticipantReference(existingParticipant.reference),
         firstName: existingParticipant.firstname,
         lastName: existingParticipant.lastname,
-        email: existingParticipant.email ?? "",
-        detailChip: { label: "Class" as const, value: selectedCompetitionClass.name },
+        email: existingParticipant.email ?? '',
+        detailChip: { label: 'Class' as const, value: selectedCompetitionClass.name },
         deviceGroupName: selectedDeviceGroup.name,
         statusLabel:
-          participantStatus === "initialized"
-            ? "Existing in-progress upload"
-            : "Prepared participant",
+          participantStatus === 'initialized'
+            ? 'Existing in-progress upload'
+            : 'Prepared participant',
         statusTone:
-          participantStatus === "initialized" ? ("warning" as const) : ("default" as const),
+          participantStatus === 'initialized' ? ('warning' as const) : ('default' as const),
       }
     }
 
@@ -98,10 +98,10 @@ export function useStaffUploadParticipantSummary() {
         firstName: formValues.firstName,
         lastName: formValues.lastName,
         email: formValues.email,
-        detailChip: { label: "Class" as const, value: selectedCompetitionClass.name },
+        detailChip: { label: 'Class' as const, value: selectedCompetitionClass.name },
         deviceGroupName: selectedDeviceGroup.name,
-        statusLabel: "Manual entry",
-        statusTone: "default" as const,
+        statusLabel: 'Manual entry',
+        statusTone: 'default' as const,
       }
     }
 

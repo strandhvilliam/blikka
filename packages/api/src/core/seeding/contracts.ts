@@ -1,25 +1,25 @@
-import { Schema } from "effect";
+import { Schema } from 'effect'
 
 export const GetSeedScenarioStatusInputSchema = Schema.Struct({
   domain: Schema.String,
-});
+})
 
 export const SeedFinishedScenarioInputSchema = Schema.Struct({
   domain: Schema.String,
-});
+})
 
 /** Enriched inputs after the router merges session permissions into `{ domain }` wire payloads. */
 export const SeedingDomainContextSchema = Schema.Struct({
   domain: Schema.String,
   isAdminForDomain: Schema.Boolean,
-});
+})
 
 const PreviewSchema = Schema.Struct({
   participants: Schema.Number,
   topics: Schema.Number,
   competitionClasses: Schema.Number,
   deviceGroups: Schema.Number,
-});
+})
 
 export const SeedScenarioStatusSchema = Schema.Struct({
   environment: Schema.String,
@@ -29,7 +29,7 @@ export const SeedScenarioStatusSchema = Schema.Struct({
   blockers: Schema.Array(Schema.String),
   canRun: Schema.Boolean,
   preview: PreviewSchema,
-});
+})
 
 export const SeedScenarioResultSchema = Schema.Struct({
   mode: Schema.String,
@@ -42,20 +42,10 @@ export const SeedScenarioResultSchema = Schema.Struct({
   votingSessionsCreated: Schema.Number,
   votesCast: Schema.Number,
   contactSheetsCreated: Schema.Number,
-});
+})
 
-export type GetSeedScenarioStatusInput = Schema.Schema.Type<
-  typeof GetSeedScenarioStatusInputSchema
->;
-export type SeedFinishedScenarioInput = Schema.Schema.Type<
-  typeof SeedFinishedScenarioInputSchema
->;
-export type SeedingDomainContextInput = Schema.Schema.Type<
-  typeof SeedingDomainContextSchema
->;
-export type SeedScenarioStatus = Schema.Schema.Type<
-  typeof SeedScenarioStatusSchema
->;
-export type SeedScenarioResult = Schema.Schema.Type<
-  typeof SeedScenarioResultSchema
->;
+export type GetSeedScenarioStatusInput = Schema.Schema.Type<typeof GetSeedScenarioStatusInputSchema>
+export type SeedFinishedScenarioInput = Schema.Schema.Type<typeof SeedFinishedScenarioInputSchema>
+export type SeedingDomainContextInput = Schema.Schema.Type<typeof SeedingDomainContextSchema>
+export type SeedScenarioStatus = Schema.Schema.Type<typeof SeedScenarioStatusSchema>
+export type SeedScenarioResult = Schema.Schema.Type<typeof SeedScenarioResultSchema>

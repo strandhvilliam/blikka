@@ -1,9 +1,9 @@
-import { differenceInSeconds } from "date-fns"
-import { useEffect, useState } from "react"
+import { differenceInSeconds } from 'date-fns'
+import { useEffect, useState } from 'react'
 
-import { useMarathonConfiguration } from "@/hooks/use-marathon-configuration"
+import { useMarathonConfiguration } from '@/hooks/use-marathon-configuration'
 
-export type MarathonStatus = "not-setup" | "upcoming" | "live" | "ended"
+export type MarathonStatus = 'not-setup' | 'upcoming' | 'live' | 'ended'
 
 function formatCountdown(seconds: number) {
   const days = Math.floor(seconds / 86400)
@@ -12,31 +12,31 @@ function formatCountdown(seconds: number) {
   const remainingSeconds = seconds % 60
 
   if (seconds >= 86400) {
-    return `${days}d ${hours.toString().padStart(2, "0")}h`
+    return `${days}d ${hours.toString().padStart(2, '0')}h`
   }
 
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
 export function useMarathonCountdown(domain: string) {
   const { marathon, isConfigured: isSetupComplete } = useMarathonConfiguration(domain)
 
-  const [countdown, setCountdown] = useState<string>("00:00:00")
-  const [status, setStatus] = useState<MarathonStatus>("upcoming")
+  const [countdown, setCountdown] = useState<string>('00:00:00')
+  const [status, setStatus] = useState<MarathonStatus>('upcoming')
 
   useEffect(() => {
     const updateCountdownAndStatus = () => {
       const now = new Date()
 
       if (!isSetupComplete) {
-        setStatus("not-setup")
-        setCountdown("00:00:00")
+        setStatus('not-setup')
+        setCountdown('00:00:00')
         return
       }
 
       if (!marathon?.startDate || !marathon?.endDate) {
-        setStatus("upcoming")
-        setCountdown("00:00:00")
+        setStatus('upcoming')
+        setCountdown('00:00:00')
         return
       }
 
@@ -44,16 +44,16 @@ export function useMarathonCountdown(domain: string) {
       const endDate = new Date(marathon.endDate)
 
       if (now < startDate) {
-        setStatus("upcoming")
+        setStatus('upcoming')
         const secondsUntilStart = differenceInSeconds(startDate, now)
         setCountdown(formatCountdown(Math.max(0, secondsUntilStart)))
       } else if (now >= startDate && now <= endDate) {
-        setStatus("live")
+        setStatus('live')
         const secondsUntilEnd = differenceInSeconds(endDate, now)
         setCountdown(formatCountdown(Math.max(0, secondsUntilEnd)))
       } else {
-        setStatus("ended")
-        setCountdown("00:00:00")
+        setStatus('ended')
+        setCountdown('00:00:00')
       }
     }
 

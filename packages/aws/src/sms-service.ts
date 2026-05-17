@@ -7,9 +7,9 @@ import {
   OptInPhoneNumberCommand,
   type MessageAttributeValue,
   type GetSMSAttributesCommandOutput,
-} from "@aws-sdk/client-sns"
-import { Effect, Layer, Schema, Context } from "effect"
-import { SNSEffectClient, SNSEffectClientLayer, SNSEffectError } from "./clients/sns-effect-client"
+} from '@aws-sdk/client-sns'
+import { Effect, Layer, Schema, Context } from 'effect'
+import { SNSEffectClient, SNSEffectClientLayer, SNSEffectError } from './clients/sns-effect-client'
 
 export interface SendSMSParams {
   readonly phoneNumber: string
@@ -20,16 +20,16 @@ export interface SendSMSParams {
 export interface SMSDeliveryResult {
   readonly messageId: string
   readonly phoneNumber: string
-  readonly status: "success" | "failed"
+  readonly status: 'success' | 'failed'
   readonly error?: string
 }
 
 export interface SMSDeliveryStatus {
   readonly messageId: string
-  readonly attributes: GetSMSAttributesCommandOutput["attributes"]
+  readonly attributes: GetSMSAttributesCommandOutput['attributes']
 }
 
-export class SMSServiceError extends Schema.TaggedErrorClass<SMSServiceError>()("SMSServiceError", {
+export class SMSServiceError extends Schema.TaggedErrorClass<SMSServiceError>()('SMSServiceError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -87,12 +87,12 @@ export class SMSService extends Context.Service<
       params: SendSMSParams,
     ) => Effect.Effect<SMSDeliveryResult, SMSServiceError, never>
   }
->()("@blikka/aws/sms-service") {}
+>()('@blikka/aws/sms-service') {}
 
 const makeSMSService = Effect.gen(function* () {
   const snsClient = yield* SNSEffectClient
 
-  const send = Effect.fn("SMSService.send")(
+  const send = Effect.fn('SMSService.send')(
     function* (params: SendSMSParams) {
       const command = new PublishCommand({
         PhoneNumber: params.phoneNumber,
@@ -104,7 +104,7 @@ const makeSMSService = Effect.gen(function* () {
       if (!result.MessageId) {
         return yield* Effect.fail(
           new SMSServiceError({
-            message: "No MessageId returned from SNS",
+            message: 'No MessageId returned from SNS',
           }),
         )
       }
@@ -112,24 +112,24 @@ const makeSMSService = Effect.gen(function* () {
       return {
         messageId: result.MessageId,
         phoneNumber: params.phoneNumber,
-        status: "success" as const,
+        status: 'success' as const,
       }
     },
     Effect.mapError((error) => {
       if (error instanceof SNSEffectError) {
         return new SMSServiceError({
           cause: error,
-          message: error.message ?? "SNS client error",
+          message: error.message ?? 'SNS client error',
         })
       }
       return new SMSServiceError({
         cause: error,
-        message: "Unexpected SMS error",
+        message: 'Unexpected SMS error',
       })
     }),
   )
 
-  const sendBatch = Effect.fn("SMSService.sendBatch")(function* (params: SendSMSParams[]) {
+  const sendBatch = Effect.fn('SMSService.sendBatch')(function* (params: SendSMSParams[]) {
     const results = yield* Effect.all(
       params.map((param) =>
         send(param).pipe(
@@ -137,10 +137,10 @@ const makeSMSService = Effect.gen(function* () {
             onSuccess: (result) => Effect.succeed(result),
             onFailure: (error) =>
               Effect.succeed({
-                messageId: "",
+                messageId: '',
                 phoneNumber: param.phoneNumber,
-                status: "failed" as const,
-                error: error instanceof SMSServiceError ? error.message : "Unknown error",
+                status: 'failed' as const,
+                error: error instanceof SMSServiceError ? error.message : 'Unknown error',
               }),
           }),
         ),
@@ -151,16 +151,16 @@ const makeSMSService = Effect.gen(function* () {
     return results
   })
 
-  const getDeliveryStatus = Effect.fn("SMSService.getDeliveryStatus")(
+  const getDeliveryStatus = Effect.fn('SMSService.getDeliveryStatus')(
     function* (messageId: string) {
       const command = new GetSMSAttributesCommand({
         attributes: [
-          "MonthlySpendLimit",
-          "DeliveryStatusIAMRole",
-          "DeliveryStatusSuccessSamplingRate",
-          "DefaultSenderID",
-          "DefaultSMSType",
-          "UsageReportS3Bucket",
+          'MonthlySpendLimit',
+          'DeliveryStatusIAMRole',
+          'DeliveryStatusSuccessSamplingRate',
+          'DefaultSenderID',
+          'DefaultSMSType',
+          'UsageReportS3Bucket',
         ],
       })
 
@@ -175,24 +175,24 @@ const makeSMSService = Effect.gen(function* () {
       if (error instanceof SNSEffectError) {
         return new SMSServiceError({
           cause: error,
-          message: error.message ?? "Failed to get delivery status",
+          message: error.message ?? 'Failed to get delivery status',
         })
       }
       return new SMSServiceError({
         cause: error,
-        message: "Unexpected error getting delivery status",
+        message: 'Unexpected error getting delivery status',
       })
     }),
   )
 
-  const configureDeliveryTracking = Effect.fn("SMSService.configureDeliveryTracking")(
+  const configureDeliveryTracking = Effect.fn('SMSService.configureDeliveryTracking')(
     function* (iamRoleArn: string, samplingRate?: number) {
       const attributes: Record<string, string> = {
         DeliveryStatusIAMRole: iamRoleArn,
       }
 
       if (samplingRate !== undefined) {
-        attributes["DeliveryStatusSuccessSamplingRate"] = samplingRate.toString()
+        attributes['DeliveryStatusSuccessSamplingRate'] = samplingRate.toString()
       }
 
       const command = new SetSMSAttributesCommand({
@@ -207,17 +207,17 @@ const makeSMSService = Effect.gen(function* () {
       if (error instanceof SNSEffectError) {
         return new SMSServiceError({
           cause: error,
-          message: error.message ?? "Failed to configure delivery tracking",
+          message: error.message ?? 'Failed to configure delivery tracking',
         })
       }
       return new SMSServiceError({
         cause: error,
-        message: "Unexpected error configuring delivery tracking",
+        message: 'Unexpected error configuring delivery tracking',
       })
     }),
   )
 
-  const isOptedOut = Effect.fn("SMSService.isOptedOut")(
+  const isOptedOut = Effect.fn('SMSService.isOptedOut')(
     function* (phoneNumber: string) {
       const command = new CheckIfPhoneNumberIsOptedOutCommand({
         phoneNumber,
@@ -231,17 +231,17 @@ const makeSMSService = Effect.gen(function* () {
       if (error instanceof SNSEffectError) {
         return new SMSServiceError({
           cause: error,
-          message: error.message ?? "Failed to check opt-out status",
+          message: error.message ?? 'Failed to check opt-out status',
         })
       }
       return new SMSServiceError({
         cause: error,
-        message: "Unexpected error checking opt-out status",
+        message: 'Unexpected error checking opt-out status',
       })
     }),
   )
 
-  const listOptedOut = Effect.fn("SMSService.listOptedOut")(
+  const listOptedOut = Effect.fn('SMSService.listOptedOut')(
     function* (nextToken?: string) {
       const command = new ListPhoneNumbersOptedOutCommand({
         nextToken,
@@ -258,17 +258,17 @@ const makeSMSService = Effect.gen(function* () {
       if (error instanceof SNSEffectError) {
         return new SMSServiceError({
           cause: error,
-          message: error.message ?? "Failed to list opted-out numbers",
+          message: error.message ?? 'Failed to list opted-out numbers',
         })
       }
       return new SMSServiceError({
         cause: error,
-        message: "Unexpected error listing opted-out numbers",
+        message: 'Unexpected error listing opted-out numbers',
       })
     }),
   )
 
-  const optIn = Effect.fn("SMSService.optIn")(
+  const optIn = Effect.fn('SMSService.optIn')(
     function* (phoneNumber: string) {
       const command = new OptInPhoneNumberCommand({
         phoneNumber,
@@ -282,17 +282,17 @@ const makeSMSService = Effect.gen(function* () {
       if (error instanceof SNSEffectError) {
         return new SMSServiceError({
           cause: error,
-          message: error.message ?? "Failed to opt in phone number",
+          message: error.message ?? 'Failed to opt in phone number',
         })
       }
       return new SMSServiceError({
         cause: error,
-        message: "Unexpected error opting in phone number",
+        message: 'Unexpected error opting in phone number',
       })
     }),
   )
 
-  const sendWithOptOutCheck = Effect.fn("SMSService.sendWithOptOutCheck")(function* (
+  const sendWithOptOutCheck = Effect.fn('SMSService.sendWithOptOutCheck')(function* (
     params: SendSMSParams,
   ) {
     const optedOut = yield* isOptedOut(params.phoneNumber)
@@ -322,6 +322,4 @@ const makeSMSService = Effect.gen(function* () {
 
 export const SMSServiceLayerNoDeps = Layer.effect(SMSService, makeSMSService)
 
-export const SMSServiceLayer = SMSServiceLayerNoDeps.pipe(
-  Layer.provide(SNSEffectClientLayer),
-)
+export const SMSServiceLayer = SMSServiceLayerNoDeps.pipe(Layer.provide(SNSEffectClientLayer))

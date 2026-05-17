@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import type { Topic } from "@blikka/db"
+import type { Topic } from '@blikka/db'
 import {
   CheckCircle2,
   Clock3,
@@ -13,11 +13,11 @@ import {
   TagIcon,
   TimerOff,
   Zap,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import type { ByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
-import { formatTimestamp } from "../_lib/formatting"
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import type { ByCameraSubmissionWindowState } from '@/lib/by-camera/by-camera-submission-window-state'
+import { formatTimestamp } from '../_lib/formatting'
 
 type ActiveTopicBannerProps = {
   activeTopic: Topic | null
@@ -31,31 +31,31 @@ type ActiveTopicBannerProps = {
 }
 
 const BADGE_STYLES: Record<
-  Exclude<ByCameraSubmissionWindowState, "no-active-topic">,
+  Exclude<ByCameraSubmissionWindowState, 'no-active-topic'>,
   {
     label: string
     className: string
     icon: typeof Clock3
   }
 > = {
-  "not-opened": {
-    label: "Waiting to open",
-    className: "border-slate-200 bg-slate-50 text-slate-700",
+  'not-opened': {
+    label: 'Waiting to open',
+    className: 'border-slate-200 bg-slate-50 text-slate-700',
     icon: Play,
   },
   scheduled: {
-    label: "Scheduled to open",
-    className: "border-blue-200 bg-blue-50 text-blue-700",
+    label: 'Scheduled to open',
+    className: 'border-blue-200 bg-blue-50 text-blue-700',
     icon: Clock3,
   },
   open: {
-    label: "Open for submissions",
-    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    label: 'Open for submissions',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     icon: CheckCircle2,
   },
   closed: {
-    label: "Submissions closed",
-    className: "border-amber-200 bg-amber-50 text-amber-700",
+    label: 'Submissions closed',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
     icon: TimerOff,
   },
 }
@@ -72,20 +72,20 @@ export function ActiveTopicBanner({
 }: ActiveTopicBannerProps) {
   if (activeTopic) {
     const resolvedSubmissionState =
-      submissionState === "no-active-topic" ? "not-opened" : submissionState
+      submissionState === 'no-active-topic' ? 'not-opened' : submissionState
     const badge = BADGE_STYLES[resolvedSubmissionState]
     const BadgeIcon = badge.icon
-    const submissionWindowLockedAfterVote = resolvedSubmissionState === "closed" && votingHasStarted
+    const submissionWindowLockedAfterVote = resolvedSubmissionState === 'closed' && votingHasStarted
     const submissionWindowActionLabel =
-      resolvedSubmissionState === "not-opened"
-        ? "Open submissions"
-        : resolvedSubmissionState === "closed"
+      resolvedSubmissionState === 'not-opened'
+        ? 'Open submissions'
+        : resolvedSubmissionState === 'closed'
           ? submissionWindowLockedAfterVote
-            ? "Submissions closed"
-            : "Reopen submissions"
-          : resolvedSubmissionState === "scheduled"
-            ? "Open submissions"
-            : "Close submissions"
+            ? 'Submissions closed'
+            : 'Reopen submissions'
+          : resolvedSubmissionState === 'scheduled'
+            ? 'Open submissions'
+            : 'Close submissions'
 
     return (
       <div className="relative overflow-hidden rounded-xl border border-brand-primary/20 bg-white p-4 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.06)] sm:p-6">
@@ -111,18 +111,18 @@ export function ActiveTopicBanner({
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                 <div className="rounded-full border border-border/70 bg-muted/30 px-3 py-1.5">
-                  Started:{" "}
+                  Started:{' '}
                   <span className="font-medium text-foreground">
                     {activeTopic.scheduledStart
                       ? formatTimestamp(activeTopic.scheduledStart)
-                      : "Not set"}
+                      : 'Not set'}
                   </span>
                 </div>
-                {resolvedSubmissionState === "closed" ? (
+                {resolvedSubmissionState === 'closed' ? (
                   <div className="rounded-full border border-border/70 bg-muted/30 px-3 py-1.5">
-                    Ended:{" "}
+                    Ended:{' '}
                     <span className="font-medium text-foreground">
-                      {activeTopic.scheduledEnd ? formatTimestamp(activeTopic.scheduledEnd) : "—"}
+                      {activeTopic.scheduledEnd ? formatTimestamp(activeTopic.scheduledEnd) : '—'}
                     </span>
                   </div>
                 ) : null}
@@ -144,10 +144,10 @@ export function ActiveTopicBanner({
                 disabled={isLoading}
                 className="h-10 gap-1.5 sm:h-9"
               >
-                {resolvedSubmissionState === "not-opened" ||
-                resolvedSubmissionState === "scheduled" ? (
+                {resolvedSubmissionState === 'not-opened' ||
+                resolvedSubmissionState === 'scheduled' ? (
                   <Play className="size-3" />
-                ) : resolvedSubmissionState === "closed" ? (
+                ) : resolvedSubmissionState === 'closed' ? (
                   submissionWindowLockedAfterVote ? (
                     <Lock className="size-3" />
                   ) : (

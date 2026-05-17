@@ -1,19 +1,19 @@
-"use client";
+'use client'
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore } from 'react'
 
 function subscribe() {
-  return () => {};
+  return () => {}
 }
 
 function getClientSnapshot() {
-  return true;
+  return true
 }
 
 function getServerSnapshot() {
-  return false;
+  return false
 }
 
 export function useClientReady() {
-  return useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
+  return useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot)
 }

@@ -1,13 +1,13 @@
-import Image from "next/image"
+import Image from 'next/image'
 
-import { Suspense } from "react"
-import { SelectDomainTitle } from "./_components/select-domain-title"
-import { SelectDomainSkeleton } from "./_components/select-domain-skeleton"
-import { SelectDomainList } from "./_components/select-domain-list"
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { DotPattern } from "@/components/dot-pattern"
-import { LanguageSwitcher } from "./_components/language-switcher"
-import { SelectDomainLogoutButton } from "./_components/select-domain-logout-button"
+import { Suspense } from 'react'
+import { SelectDomainTitle } from './_components/select-domain-title'
+import { SelectDomainSkeleton } from './_components/select-domain-skeleton'
+import { SelectDomainList } from './_components/select-domain-list'
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { DotPattern } from '@/components/dot-pattern'
+import { LanguageSwitcher } from './_components/language-switcher'
+import { SelectDomainLogoutButton } from './_components/select-domain-logout-button'
 
 export default async function AdminPage() {
   prefetch(trpc.marathons.getUserMarathons.queryOptions())

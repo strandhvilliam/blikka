@@ -1,9 +1,9 @@
-import { Cause, Effect, Option, Schema, SchemaIssue } from "effect"
-import { type BaseContext, type TRPCRequiredServices } from "./root"
-import { TRPCError } from "@trpc/server"
-import { BetterAuthService } from "@blikka/auth"
-import { UsersRepository } from "@blikka/db"
-import { RedisClient } from "@blikka/redis"
+import { Cause, Effect, Option, Schema, SchemaIssue } from 'effect'
+import { type BaseContext, type TRPCRequiredServices } from './root'
+import { TRPCError } from '@trpc/server'
+import { BetterAuthService } from '@blikka/auth'
+import { UsersRepository } from '@blikka/db'
+import { RedisClient } from '@blikka/redis'
 import {
   BadRequestError,
   ConflictError,
@@ -12,30 +12,30 @@ import {
   NotFoundError,
   PreconditionFailedError,
   UnauthorizedError,
-} from "../core/errors"
+} from '../core/errors'
 
 const apiErrorToTrpc = {
   NotFoundError: (e: NotFoundError) =>
-    new TRPCError({ code: "NOT_FOUND", message: e.message, cause: e }),
+    new TRPCError({ code: 'NOT_FOUND', message: e.message, cause: e }),
   BadRequestError: (e: BadRequestError) =>
-    new TRPCError({ code: "BAD_REQUEST", message: e.message, cause: e }),
+    new TRPCError({ code: 'BAD_REQUEST', message: e.message, cause: e }),
   UnauthorizedError: (e: UnauthorizedError) =>
-    new TRPCError({ code: "UNAUTHORIZED", message: e.message, cause: e }),
+    new TRPCError({ code: 'UNAUTHORIZED', message: e.message, cause: e }),
   ForbiddenError: (e: ForbiddenError) =>
-    new TRPCError({ code: "FORBIDDEN", message: e.message, cause: e }),
+    new TRPCError({ code: 'FORBIDDEN', message: e.message, cause: e }),
   ConflictError: (e: ConflictError) =>
-    new TRPCError({ code: "CONFLICT", message: e.message, cause: e }),
+    new TRPCError({ code: 'CONFLICT', message: e.message, cause: e }),
   PreconditionFailedError: (e: PreconditionFailedError) =>
-    new TRPCError({ code: "PRECONDITION_FAILED", message: e.message, cause: e }),
+    new TRPCError({ code: 'PRECONDITION_FAILED', message: e.message, cause: e }),
   InternalApiError: (e: InternalApiError) =>
     new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
+      code: 'INTERNAL_SERVER_ERROR',
       message: e.message,
       cause: e,
     }),
 } as const
 
-type ContextWithoutRuntimeHelper<T extends BaseContext> = Omit<T, "runtime">
+type ContextWithoutRuntimeHelper<T extends BaseContext> = Omit<T, 'runtime'>
 
 export function trpcEffect<
   TInput,
@@ -58,7 +58,7 @@ export function trpcEffect<
       }),
     )
 
-    if (exit._tag === "Failure") {
+    if (exit._tag === 'Failure') {
       const error = Cause.squash(exit.cause)
       throw mapEffectErrorToTRPC(error, exit.cause)
     }
@@ -87,7 +87,7 @@ function mapEffectErrorToTRPC(error: unknown, cause?: Cause.Cause<unknown>): TRP
     const formatted = SchemaIssue.makeFormatterDefault()(error.issue)
     console.error(`SchemaError: ${formatted}`)
     return new TRPCError({
-      code: "BAD_REQUEST",
+      code: 'BAD_REQUEST',
       message: error.message,
       cause: error,
     })
@@ -98,8 +98,8 @@ function mapEffectErrorToTRPC(error: unknown, cause?: Cause.Cause<unknown>): TRP
     console.error(error instanceof Error ? error.message : String(error))
   }
   return new TRPCError({
-    code: "INTERNAL_SERVER_ERROR",
-    message: error instanceof Error ? error.message : "An unknown error occurred",
+    code: 'INTERNAL_SERVER_ERROR',
+    message: error instanceof Error ? error.message : 'An unknown error occurred',
     cause: error,
   })
 }
@@ -114,8 +114,8 @@ export const getSession = Effect.fnUntraced(function* ({ headers }: { headers: H
       }),
     catch: (error) =>
       new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: error instanceof Error ? error.message : "An unknown error occurred",
+        code: 'INTERNAL_SERVER_ERROR',
+        message: error instanceof Error ? error.message : 'An unknown error occurred',
         cause: error,
       }),
   })
@@ -129,7 +129,7 @@ export type Permission = {
   role: string
 }
 
-export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(function* ({
+export const getPermissions = Effect.fn('ApiContextUtils.getPermissions')(function* ({
   userId,
 }: {
   userId?: string
@@ -145,7 +145,7 @@ export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(functi
     .pipe(
       Effect.map(Option.fromNullishOr),
       Effect.tapError((error) =>
-        Effect.logError("Error getting cached permissions: " + error.message),
+        Effect.logError('Error getting cached permissions: ' + error.message),
       ),
     )
 
@@ -156,7 +156,7 @@ export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(functi
     .getUserWithMarathons({ userId })
     .pipe(
       Effect.tapError((error) =>
-        Effect.logError("Error getting user with marathons: " + error.message),
+        Effect.logError('Error getting user with marathons: ' + error.message),
       ),
     )
   if (Option.isNone(userWithMarathons)) {
@@ -175,7 +175,7 @@ export const getPermissions = Effect.fn("ApiContextUtils.getPermissions")(functi
   yield* redis
     .use((client) => client.set(`permissions:${userId}`, permissions, { ex: 60 * 5 }))
     .pipe(
-      Effect.tapError((error) => Effect.logError("Error caching permissions: " + error.message)),
+      Effect.tapError((error) => Effect.logError('Error caching permissions: ' + error.message)),
     )
   return permissions
 })

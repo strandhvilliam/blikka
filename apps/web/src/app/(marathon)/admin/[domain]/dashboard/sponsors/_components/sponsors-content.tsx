@@ -1,28 +1,26 @@
-"use client"
+'use client'
 
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { SponsorCard } from "./sponsor-card"
-import { SponsorsHeader } from "./sponsors-header"
-import { Smartphone, FileText } from "lucide-react"
-import { resolveLiveLandingSponsor } from "@/lib/sponsors/live-landing-sponsor"
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { SponsorCard } from './sponsor-card'
+import { SponsorsHeader } from './sponsors-header'
+import { Smartphone, FileText } from 'lucide-react'
+import { resolveLiveLandingSponsor } from '@/lib/sponsors/live-landing-sponsor'
 
 export function SponsorsContent() {
   const trpc = useTRPC()
   const domain = useDomain()
 
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain }),
-  )
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   const { data: sponsors } = useSuspenseQuery(
     trpc.sponsors.getByMarathon.queryOptions({
       domain,
-    })
+    }),
   )
 
-  const isByCameraMode = marathon?.mode === "by-camera"
+  const isByCameraMode = marathon?.mode === 'by-camera'
 
   const getSponsorImage = (type: string) => {
     return sponsors
@@ -31,21 +29,16 @@ export function SponsorsContent() {
       .at(-1)
   }
 
-  const allTypes = [
-    "contact-sheets",
-    "live-landing",
-    "live-success-1",
-    "live-success-2",
-  ] as const
+  const allTypes = ['contact-sheets', 'live-landing', 'live-success-1', 'live-success-2'] as const
 
   const landingSponsor = resolveLiveLandingSponsor(sponsors)
 
   const typesForStats = isByCameraMode
-    ? (["live-landing", "live-success-1", "live-success-2"] as const)
+    ? (['live-landing', 'live-success-1', 'live-success-2'] as const)
     : allTypes
 
   const activeCount = typesForStats.filter((type) =>
-    type === "live-landing" ? !!landingSponsor : !!getSponsorImage(type),
+    type === 'live-landing' ? !!landingSponsor : !!getSponsorImage(type),
   ).length
 
   return (
@@ -65,9 +58,9 @@ export function SponsorsContent() {
             </p>
           </div>
           <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 max-w-md">
-            Sponsor images shown inside the participant upload app during the event. Use one image for
-            the landing page — combine logos in your design tool if you need several brands in one
-            asset.
+            Sponsor images shown inside the participant upload app during the event. Use one image
+            for the landing page — combine logos in your design tool if you need several brands in
+            one asset.
           </p>
           <div className="space-y-3">
             <SponsorCard
@@ -82,7 +75,7 @@ export function SponsorsContent() {
               description="Primary sponsor image after a successful upload"
               type="live-success-1"
               disabled
-              sponsor={getSponsorImage("live-success-1")}
+              sponsor={getSponsorImage('live-success-1')}
               icon={Smartphone}
             />
             <SponsorCard
@@ -90,7 +83,7 @@ export function SponsorsContent() {
               description="Secondary sponsor image after a successful upload"
               type="live-success-2"
               disabled
-              sponsor={getSponsorImage("live-success-2")}
+              sponsor={getSponsorImage('live-success-2')}
               icon={Smartphone}
             />
           </div>
@@ -112,7 +105,7 @@ export function SponsorsContent() {
                 title="Contact Sheet"
                 description="Sponsor image printed on every participant contact sheet"
                 type="contact-sheets"
-                sponsor={getSponsorImage("contact-sheets")}
+                sponsor={getSponsorImage('contact-sheets')}
                 icon={FileText}
               />
             </div>

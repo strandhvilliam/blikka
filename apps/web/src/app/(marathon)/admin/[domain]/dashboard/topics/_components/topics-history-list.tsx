@@ -1,17 +1,17 @@
-"use client";
+'use client'
 
-import type { Topic } from "@blikka/db";
-import { Layers } from "lucide-react";
-import { TopicListItem } from "./topic-list-item";
+import type { Topic } from '@blikka/db'
+import { Layers } from 'lucide-react'
+import { TopicListItem } from './topic-list-item'
 
 type TopicsHistoryListProps = {
-  topics: Topic[];
-  submissionCountMap: Map<number, number>;
-  onActivate: (topic: Topic) => void;
-  onEdit: (topic: Topic) => void;
-  onDelete: (topic: Topic) => void;
-  isLoading: boolean;
-};
+  topics: Topic[]
+  submissionCountMap: Map<number, number>
+  onActivate: (topic: Topic) => void
+  onEdit: (topic: Topic) => void
+  onDelete: (topic: Topic) => void
+  isLoading: boolean
+}
 
 export function TopicsHistoryList({
   topics,
@@ -29,7 +29,7 @@ export function TopicsHistoryList({
           No other topics yet. Create another topic to build your event history.
         </p>
       </div>
-    );
+    )
   }
 
   return (
@@ -46,5 +46,5 @@ export function TopicsHistoryList({
         />
       ))}
     </div>
-  );
+  )
 }

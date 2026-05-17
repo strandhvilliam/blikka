@@ -1,19 +1,19 @@
-"use client"
+'use client'
 
-import React from "react"
-import { format } from "date-fns"
-import { ChevronRight, Info, Camera } from "lucide-react"
-import type { Marathon } from "@blikka/db"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { PrimaryButton } from "@/components/ui/primary-button"
+import React from 'react'
+import { format } from 'date-fns'
+import { ChevronRight, Info, Camera } from 'lucide-react'
+import type { Marathon } from '@blikka/db'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { PrimaryButton } from '@/components/ui/primary-button'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
-import ReactMarkdown from "react-markdown"
+} from '@/components/ui/accordion'
+import ReactMarkdown from 'react-markdown'
 
 export function SettingsPhonePreview({ marathon }: { marathon: Marathon }) {
   return (
@@ -34,12 +34,12 @@ export function SettingsPhonePreview({ marathon }: { marathon: Marathon }) {
             )}
           </div>
           <h1 className="text-2xl font-bold text-center font-gothic">
-            {marathon.name || "Stockholm Fotomaraton"}
+            {marathon.name || 'Stockholm Fotomaraton'}
           </h1>
           <p className="text-center text-lg mt-1 font-medium tracking-wide">
             {marathon.startDate
-              ? format(new Date(marathon.startDate), "d MMMM yyyy")
-              : "16 August 2025"}
+              ? format(new Date(marathon.startDate), 'd MMMM yyyy')
+              : '16 August 2025'}
           </p>
         </header>
 
@@ -101,9 +101,7 @@ export function SettingsPhonePreview({ marathon }: { marathon: Marathon }) {
                               <h1 className="text-sm font-gothic font-bold mb-1">{children}</h1>
                             ),
                             h2: ({ children }) => (
-                              <h2 className="text-xs font-gothic font-semibold mb-1">
-                                {children}
-                              </h2>
+                              <h2 className="text-xs font-gothic font-semibold mb-1">{children}</h2>
                             ),
                             h3: ({ children }) => (
                               <h3 className="text-xs font-gothic font-semibold mb-0.5">

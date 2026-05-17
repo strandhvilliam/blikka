@@ -1,13 +1,9 @@
-import {
-  HydrateClient,
-  prefetch,
-  trpc,
-} from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { DashboardHomeContent } from "./_components/dashboard-home-content"
-import { DashboardHomeSkeleton } from "./_components/dashboard-home-skeleton"
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { DashboardHomeContent } from './_components/dashboard-home-content'
+import { DashboardHomeSkeleton } from './_components/dashboard-home-skeleton'
 
-export default async function DashboardPage({ params }: PageProps<"/admin/[domain]/dashboard">) {
+export default async function DashboardPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
 
   prefetch(

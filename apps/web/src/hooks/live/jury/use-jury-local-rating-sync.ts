@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { getParticipantFinalRanking } from "@/lib/jury/jury-utils"
-import type { JuryRatingEntry } from "@/lib/jury/jury-types"
-import { useRef, useState } from "react"
+import { getParticipantFinalRanking } from '@/lib/jury/jury-utils'
+import type { JuryRatingEntry } from '@/lib/jury/jury-types'
+import { useRef, useState } from 'react'
 
 type ServerSnapshot = {
   participantId: number | null
@@ -23,7 +23,7 @@ export function useJuryLocalRatingSync({
   const serverSnapshot: ServerSnapshot = {
     participantId: currentParticipantId,
     rating: existingRating?.rating ?? 0,
-    notes: existingRating?.notes ?? "",
+    notes: existingRating?.notes ?? '',
     finalRanking: getParticipantFinalRanking(ratings, currentParticipantId ?? -1),
   }
 

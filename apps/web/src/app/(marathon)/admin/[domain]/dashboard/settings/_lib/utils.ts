@@ -1,17 +1,17 @@
 export function getAvailableLanguages() {
   return [
-  { code: "en", name: "English" },
-  { code: "sv", name: "Swedish" },
-  { code: "es", name: "Spanish" },
-  { code: "de", name: "German" },
-  { code: "fr", name: "French" },
-  { code: "it", name: "Italian" },
-  { code: "pt", name: "Portuguese" },
-  { code: "nl", name: "Dutch" },
-  { code: "no", name: "Norwegian" },
-  { code: "da", name: "Danish" },
-  { code: "fi", name: "Finnish" },
-  { code: "pl", name: "Polish" },
+    { code: 'en', name: 'English' },
+    { code: 'sv', name: 'Swedish' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'de', name: 'German' },
+    { code: 'fr', name: 'French' },
+    { code: 'it', name: 'Italian' },
+    { code: 'pt', name: 'Portuguese' },
+    { code: 'nl', name: 'Dutch' },
+    { code: 'no', name: 'Norwegian' },
+    { code: 'da', name: 'Danish' },
+    { code: 'fi', name: 'Finnish' },
+    { code: 'pl', name: 'Polish' },
   ]
 }
 
@@ -137,4 +137,4 @@ export function createEndDateCalendarOnSelect(
 
     onEndChange(newDate)
   }
-} 
+}

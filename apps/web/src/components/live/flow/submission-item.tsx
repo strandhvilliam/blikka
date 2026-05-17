@@ -1,29 +1,17 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import type { Topic } from "@blikka/db"
-import { format } from "date-fns"
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  ImageIcon,
-  Info,
-  X,
-} from "lucide-react"
-import { useTranslations } from "next-intl"
-import { motion } from "motion/react"
-import { useState } from "react"
-import type { SelectedPhoto } from "@/lib/flow/types"
-import { VALIDATION_OUTCOME, type ValidationResult } from "@blikka/validation"
-import { ValidationStatusBadge } from "./validation-status-badge"
-import { byCameraBreadcrumb, fileSummaryForSentry } from "@/lib/sentry-by-camera"
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import type { Topic } from '@blikka/db'
+import { format } from 'date-fns'
+import { AlertTriangle, ChevronDown, ChevronUp, ImageIcon, Info, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { motion } from 'motion/react'
+import { useState } from 'react'
+import type { SelectedPhoto } from '@/lib/flow/types'
+import { VALIDATION_OUTCOME, type ValidationResult } from '@blikka/validation'
+import { ValidationStatusBadge } from './validation-status-badge'
+import { byCameraBreadcrumb, fileSummaryForSentry } from '@/lib/sentry-by-camera'
 
 function SubmissionItemThumbnail({
   photo,
@@ -34,7 +22,7 @@ function SubmissionItemThumbnail({
   index: number
   onOpenDialog: () => void
 }) {
-  const t = useTranslations("FlowPage.uploadStep")
+  const t = useTranslations('FlowPage.uploadStep')
   const [thumbPreviewFailed, setThumbPreviewFailed] = useState(false)
 
   if (thumbPreviewFailed) {
@@ -46,7 +34,7 @@ function SubmissionItemThumbnail({
       >
         <ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden />
         <span className="text-[10px] leading-tight text-muted-foreground">
-          {t("previewUnavailable")}
+          {t('previewUnavailable')}
         </span>
       </button>
     )
@@ -56,12 +44,12 @@ function SubmissionItemThumbnail({
     /* eslint-disable-next-line @next/next/no-img-element */
     <img
       src={photo.preview}
-      alt={t("uploadPreviewAlt", { index: index + 1 })}
+      alt={t('uploadPreviewAlt', { index: index + 1 })}
       className="h-full w-full cursor-pointer object-cover"
       onClick={onOpenDialog}
       onError={() => {
         setThumbPreviewFailed(true)
-        byCameraBreadcrumb("submission_item_thumb_preview_error", {
+        byCameraBreadcrumb('submission_item_thumb_preview_error', {
           index,
           file: fileSummaryForSentry(photo.file),
         })
@@ -70,22 +58,16 @@ function SubmissionItemThumbnail({
   )
 }
 
-function SubmissionItemLargePreview({
-  photo,
-  index,
-}: {
-  photo: SelectedPhoto
-  index: number
-}) {
-  const t = useTranslations("FlowPage.uploadStep")
+function SubmissionItemLargePreview({ photo, index }: { photo: SelectedPhoto; index: number }) {
+  const t = useTranslations('FlowPage.uploadStep')
   const [dialogPreviewFailed, setDialogPreviewFailed] = useState(false)
 
   if (dialogPreviewFailed) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
         <ImageIcon className="h-10 w-10 text-muted-foreground" aria-hidden />
-        <p className="text-sm font-medium">{t("previewUnavailable")}</p>
-        <p className="text-xs text-muted-foreground">{t("previewUnavailableHint")}</p>
+        <p className="text-sm font-medium">{t('previewUnavailable')}</p>
+        <p className="text-xs text-muted-foreground">{t('previewUnavailableHint')}</p>
       </div>
     )
   }
@@ -94,11 +76,11 @@ function SubmissionItemLargePreview({
     /* eslint-disable-next-line @next/next/no-img-element */
     <img
       src={photo.preview}
-      alt={t("fullPreviewAlt", { index: index + 1 })}
+      alt={t('fullPreviewAlt', { index: index + 1 })}
       className="h-auto w-full object-contain"
       onError={() => {
         setDialogPreviewFailed(true)
-        byCameraBreadcrumb("submission_item_dialog_preview_error", {
+        byCameraBreadcrumb('submission_item_dialog_preview_error', {
           index,
           file: fileSummaryForSentry(photo.file),
         })
@@ -124,7 +106,7 @@ export function SubmissionItem({
   onRemove,
   onUploadClick,
 }: SubmissionItemProps) {
-  const t = useTranslations("FlowPage.uploadStep")
+  const t = useTranslations('FlowPage.uploadStep')
   const [expanded, setExpanded] = useState(false)
   const [showImageDialog, setShowImageDialog] = useState(false)
   const [largePreviewNonce, setLargePreviewNonce] = useState(0)
@@ -142,8 +124,8 @@ export function SubmissionItem({
       if (b.outcome === VALIDATION_OUTCOME.SKIPPED) return 1
     }
     if (a.severity !== b.severity) {
-      if (a.severity === "error") return -1
-      if (b.severity === "error") return 1
+      if (a.severity === 'error') return -1
+      if (b.severity === 'error') return 1
     }
     return 0
   })
@@ -160,7 +142,7 @@ export function SubmissionItem({
     return (
       <div
         className={`flex gap-3 rounded-2xl border-2 border-dashed border-border bg-white p-3 ${
-          onUploadClick ? "cursor-pointer transition-colors hover:border-muted-foreground/40" : ""
+          onUploadClick ? 'cursor-pointer transition-colors hover:border-muted-foreground/40' : ''
         }`}
         onClick={onUploadClick}
       >
@@ -171,7 +153,7 @@ export function SubmissionItem({
           <p className="text-xs font-semibold text-muted-foreground">#{index + 1}</p>
           <p className="mt-0.5 text-base font-semibold text-foreground">{topic?.name}</p>
           <p className="mt-1.5 text-xs text-muted-foreground">
-            {onUploadClick ? t("tapToSelect") : t("noPhotoSelected")}
+            {onUploadClick ? t('tapToSelect') : t('noPhotoSelected')}
           </p>
         </div>
       </div>
@@ -229,11 +211,11 @@ export function SubmissionItem({
                 displayValidation.outcome !== VALIDATION_OUTCOME.PASSED && (
                   <p
                     className={`text-xs ${
-                      displayValidation.severity === "error"
-                        ? "text-destructive"
+                      displayValidation.severity === 'error'
+                        ? 'text-destructive'
                         : displayValidation.outcome === VALIDATION_OUTCOME.FAILED
-                          ? "text-amber-700"
-                          : "text-muted-foreground"
+                          ? 'text-amber-700'
+                          : 'text-muted-foreground'
                     }`}
                   >
                     {displayValidation.message}
@@ -243,8 +225,8 @@ export function SubmissionItem({
           )}
 
           <p className="mt-1 truncate text-[11px] text-muted-foreground">
-            {takenAt && `${format(takenAt, "cccc, HH:mm")}`}
-            {takenAt && photo.file.name && " · "}
+            {takenAt && `${format(takenAt, 'cccc, HH:mm')}`}
+            {takenAt && photo.file.name && ' · '}
             {photo.file.name}
           </p>
         </div>
@@ -252,7 +234,7 @@ export function SubmissionItem({
 
       {/* Photo details toggle, or no-EXIF notice in the same footer row */}
       <div
-        className={`border-t border-dashed border-border px-3 py-2 ${!hasExifData ? "bg-amber-50/60" : ""}`}
+        className={`border-t border-dashed border-border px-3 py-2 ${!hasExifData ? 'bg-amber-50/60' : ''}`}
       >
         {hasExifData ? (
           <Button
@@ -262,19 +244,17 @@ export function SubmissionItem({
             onClick={() => setExpanded(!expanded)}
           >
             <Info className="h-3.5 w-3.5" />
-            <span>{t("photoDetails")}</span>
-            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            <span>{t('photoDetails')}</span>
+            {expanded ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
           </Button>
         ) : (
-          <div
-            role="alert"
-            className="flex items-start gap-2 text-xs text-amber-900"
-          >
-            <AlertTriangle
-              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
-              aria-hidden
-            />
-            <span className="min-w-0 leading-snug">{t("noExifData")}</span>
+          <div role="alert" className="flex items-start gap-2 text-xs text-amber-900">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
+            <span className="min-w-0 leading-snug">{t('noExifData')}</span>
           </div>
         )}
       </div>
@@ -282,7 +262,7 @@ export function SubmissionItem({
       {expanded && hasExifData && (
         <motion.div
           initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
+          animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
           className="border-t border-dashed border-border px-4 pb-3"
         >
@@ -303,7 +283,7 @@ export function SubmissionItem({
         <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
           <DialogContent className="max-h-[90vh] max-w-4xl p-0">
             <DialogHeader className="p-6 pb-0">
-              <DialogTitle>{t("photoPreviewTitle", { topic: topic?.name ?? "" })}</DialogTitle>
+              <DialogTitle>{t('photoPreviewTitle', { topic: topic?.name ?? '' })}</DialogTitle>
             </DialogHeader>
             <div className="p-6 pt-0">
               <div className="max-h-[70vh] w-full overflow-auto">
@@ -337,46 +317,46 @@ function getRelevantExifData(exif: Record<string, unknown>): Record<string, stri
   const relevantData: Record<string, string> = {}
   if (!exif) return relevantData
 
-  if (exif.Make && typeof exif.Make === "string") relevantData["Camera Make"] = exif.Make
-  if (exif.Model && typeof exif.Model === "string") relevantData["Camera Model"] = exif.Model
+  if (exif.Make && typeof exif.Make === 'string') relevantData['Camera Make'] = exif.Make
+  if (exif.Model && typeof exif.Model === 'string') relevantData['Camera Model'] = exif.Model
 
-  if (exif.ExposureTime && typeof exif.ExposureTime === "number") {
+  if (exif.ExposureTime && typeof exif.ExposureTime === 'number') {
     const exposureValue = exif.ExposureTime
-    relevantData["Exposure"] =
+    relevantData['Exposure'] =
       exposureValue < 1 ? `1/${Math.round(1 / exposureValue)}s` : `${exposureValue}s`
   }
 
-  if (exif.FNumber && typeof exif.FNumber === "number")
-    relevantData["Aperture"] = `f/${exif.FNumber}`
+  if (exif.FNumber && typeof exif.FNumber === 'number')
+    relevantData['Aperture'] = `f/${exif.FNumber}`
 
-  if (exif.ISO && (typeof exif.ISO === "number" || typeof exif.ISO === "string"))
-    relevantData["ISO"] = `ISO ${exif.ISO}`
+  if (exif.ISO && (typeof exif.ISO === 'number' || typeof exif.ISO === 'string'))
+    relevantData['ISO'] = `ISO ${exif.ISO}`
 
-  if (exif.FocalLength && typeof exif.FocalLength === "number")
-    relevantData["Focal Length"] = `${exif.FocalLength}mm`
+  if (exif.FocalLength && typeof exif.FocalLength === 'number')
+    relevantData['Focal Length'] = `${exif.FocalLength}mm`
 
   if (exif.DateTimeOriginal) {
     try {
       const dateString = String(exif.DateTimeOriginal)
       const date = new Date(dateString)
       if (!Number.isNaN(date.getTime())) {
-        relevantData["Date Taken"] = date.toLocaleDateString()
-        relevantData["Time Taken"] = date.toLocaleTimeString()
+        relevantData['Date Taken'] = date.toLocaleDateString()
+        relevantData['Time Taken'] = date.toLocaleTimeString()
       }
     } catch {
       // Skip if date parsing fails
     }
   }
 
-  if (exif.LensModel && typeof exif.LensModel === "string") relevantData["Lens"] = exif.LensModel
+  if (exif.LensModel && typeof exif.LensModel === 'string') relevantData['Lens'] = exif.LensModel
 
   if (
     exif.latitude &&
     exif.longitude &&
-    typeof exif.latitude === "number" &&
-    typeof exif.longitude === "number"
+    typeof exif.latitude === 'number' &&
+    typeof exif.longitude === 'number'
   ) {
-    relevantData["GPS"] = `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
+    relevantData['GPS'] = `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
   }
 
   return relevantData

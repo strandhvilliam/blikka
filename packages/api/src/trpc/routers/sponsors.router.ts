@@ -1,18 +1,14 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
-import {
-  createTRPCRouter,
-  domainProcedure,
-  requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+import { Effect, Schema } from 'effect'
+import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'
+import { trpcEffect } from '../utils'
 import {
   GetSponsorsByMarathonInputSchema,
   CreateSponsorInputSchema,
   GenerateSponsorUploadUrlInputSchema,
-} from "../../core/sponsors/contracts";
-import { SponsorsService } from "../../core/sponsors/service";
+} from '../../core/sponsors/contracts'
+import { SponsorsService } from '../../core/sponsors/service'
 
 export const sponsorsRouter = createTRPCRouter({
   getByMarathon: domainProcedure
@@ -20,12 +16,12 @@ export const sponsorsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("SponsorsRouter.getByMarathon")(function* ({ input }) {
+        Effect.fn('SponsorsRouter.getByMarathon')(function* ({ input }) {
           return yield* SponsorsService.use((s) =>
             s.getSponsorsByMarathon({
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -35,7 +31,7 @@ export const sponsorsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("SponsorsRouter.create")(function* ({ input }) {
+        Effect.fn('SponsorsRouter.create')(function* ({ input }) {
           return yield* SponsorsService.use((s) =>
             s.createSponsor({
               domain: input.domain,
@@ -43,7 +39,7 @@ export const sponsorsRouter = createTRPCRouter({
               position: input.position,
               key: input.key,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -53,15 +49,15 @@ export const sponsorsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("SponsorsRouter.generateUploadUrl")(function* ({ input }) {
+        Effect.fn('SponsorsRouter.generateUploadUrl')(function* ({ input }) {
           return yield* SponsorsService.use((s) =>
             s.generateUploadUrl({
               domain: input.domain,
               type: input.type,
               position: input.position,
             }),
-          );
+          )
         }),
       ),
     ),
-});
+})

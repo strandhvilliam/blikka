@@ -1,19 +1,19 @@
-import { Schema } from "effect"
+import { Schema } from 'effect'
 
-const realtimeChannelEnvironments = ["prod", "dev", "staging"] as const
+const realtimeChannelEnvironments = ['prod', 'dev', 'staging'] as const
 
 export type RealtimeChannelEnv = (typeof realtimeChannelEnvironments)[number]
 
 export const RealtimeChannelEnvSchema = Schema.Literals(realtimeChannelEnvironments)
 
-export const realtimeResultOutcomes = ["success", "error"] as const
+export const realtimeResultOutcomes = ['success', 'error'] as const
 
 export type RealtimeResultOutcome = (typeof realtimeResultOutcomes)[number]
 
 export function getRealtimeChannelEnvironmentFromNodeEnv(
   nodeEnv: string | undefined,
-): Extract<RealtimeChannelEnv, "prod" | "dev"> {
-  return nodeEnv === "production" ? "prod" : "dev"
+): Extract<RealtimeChannelEnv, 'prod' | 'dev'> {
+  return nodeEnv === 'production' ? 'prod' : 'dev'
 }
 
 export function getDomainRealtimeChannel(environment: RealtimeChannelEnv, domain: string): string {
@@ -28,18 +28,18 @@ export function getParticipantRealtimeChannel(
   return `${environment}:${domain}:${reference}`
 }
 
-export type RealtimeEventChannels = "domain" | "participant" | "both"
+export type RealtimeEventChannels = 'domain' | 'participant' | 'both'
 
 export const realtimeEventKeys = [
-  "upload-flow-initialized",
-  "participant-prepared",
-  "submission-processed",
-  "participant-finalized",
-  "contact-sheet-generated",
-  "zip-generated",
-  "participant-validated",
-  "participant-verified",
-  "dev-caller-completed",
+  'upload-flow-initialized',
+  'participant-prepared',
+  'submission-processed',
+  'participant-finalized',
+  'contact-sheet-generated',
+  'zip-generated',
+  'participant-validated',
+  'participant-verified',
+  'dev-caller-completed',
 ] as const
 
 export type RealtimeEventKey = (typeof realtimeEventKeys)[number]
@@ -63,12 +63,12 @@ const realtimeEventResultPayloadFields = {
 
 export const RealtimeEventSuccessPayloadSchema = Schema.Struct({
   ...realtimeEventResultPayloadFields,
-  outcome: Schema.Literal("success"),
+  outcome: Schema.Literal('success'),
 })
 
 export const RealtimeEventErrorPayloadSchema = Schema.Struct({
   ...realtimeEventResultPayloadFields,
-  outcome: Schema.Literal("error"),
+  outcome: Schema.Literal('error'),
   error: Schema.String,
 })
 
@@ -79,8 +79,8 @@ export const RealtimeEventResultPayloadSchema = Schema.Union([
 
 export type RealtimeEventResultPayload = Schema.Schema.Type<typeof RealtimeEventResultPayloadSchema>
 
-export function getVotingVoteCastEventName(): "event.voting.vote-cast" {
-  return "event.voting.vote-cast"
+export function getVotingVoteCastEventName(): 'event.voting.vote-cast' {
+  return 'event.voting.vote-cast'
 }
 
 export const VotingVoteCastPayloadSchema = Schema.Struct({

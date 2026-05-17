@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Schema } from 'effect'
 
 const UploadExifSchema = Schema.NullOr(Schema.Record(Schema.String, Schema.Unknown))
 
@@ -7,28 +7,28 @@ const TermsAcceptanceInputSchema = {
   acceptedLocale: Schema.NullOr(Schema.String).pipe(Schema.optional),
 }
 
-const TermsAcceptanceSourceSchema = Schema.Literals(["participant", "staff-on-behalf"])
+const TermsAcceptanceSourceSchema = Schema.Literals(['participant', 'staff-on-behalf'])
 
 const ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-  "image/avif",
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/avif',
 ])
 
 /** Normalizes client-provided MIME types for S3 presigned PUT signatures. */
 export function normalizeUploadContentType(raw: string | undefined | null): string {
-  const trimmed = (raw ?? "").trim().toLowerCase()
-  if (trimmed === "" || trimmed === "image/jpg") {
-    return "image/jpeg"
+  const trimmed = (raw ?? '').trim().toLowerCase()
+  if (trimmed === '' || trimmed === 'image/jpg') {
+    return 'image/jpeg'
   }
   if (ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES.has(trimmed)) {
     return trimmed
   }
-  return "image/jpeg"
+  return 'image/jpeg'
 }
 
 export const GetPublicMarathonSchema = Schema.Struct({

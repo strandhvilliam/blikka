@@ -20,13 +20,13 @@ export const BY_CAMERA_STEPS = {
   UploadSubmissionStep: 3,
 } as const
 
-export type FlowMode = "marathon" | "by-camera"
-export type FlowVariant = "upload" | "prepare"
+export type FlowMode = 'marathon' | 'by-camera'
+export type FlowVariant = 'upload' | 'prepare'
 
 export const PARTICIPANT_REF_LENGTH = 4
 
 /** By-camera selected-photo preview: caps on-screen height for very tall (portrait) thumbnails. */
-export const BY_CAMERA_PREVIEW_MAX_HEIGHT_CLASS = "max-h-[min(52dvh,30rem)]"
+export const BY_CAMERA_PREVIEW_MAX_HEIGHT_CLASS = 'max-h-[min(52dvh,30rem)]'
 
 export const UPLOAD_TIMEOUT_MS = 1000 * 60 * 3 // 3 minutes
 export const UPLOAD_CONCURRENCY_LIMIT = 1

@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import * as AccordionPrimitive from "@radix-ui/react-accordion"
+import * as AccordionPrimitive from '@radix-ui/react-accordion'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -9,21 +9,21 @@ import {
   ImageIcon,
   ListChecks,
   XCircle,
-} from "lucide-react"
-import type { CompetitionClass, Topic, ValidationResult } from "@blikka/db"
-import { RULE_KEY_DISPLAY_LABELS, RULE_KEY_PASSED_DISPLAY_LABELS } from "@blikka/validation"
+} from 'lucide-react'
+import type { CompetitionClass, Topic, ValidationResult } from '@blikka/db'
+import { RULE_KEY_DISPLAY_LABELS, RULE_KEY_PASSED_DISPLAY_LABELS } from '@blikka/validation'
 
-import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion"
-import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/accordion'
+import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 import {
   getCaptureDateLabel,
   getSubmissionPreviewUrl,
   getSubmissionThumbnailUrl,
-} from "@/lib/staff/staff-utils"
-import type { StaffSubmission } from "@/lib/staff/staff-types"
+} from '@/lib/staff/staff-utils'
+import type { StaffSubmission } from '@/lib/staff/staff-types'
 
 interface ValidationAccordionProps {
   validationResults: ValidationResult[]
@@ -39,40 +39,37 @@ interface ValidationAccordionProps {
 function countsFor(validations: ValidationResult[]) {
   return {
     errors: validations.filter(
-      (item) => item.outcome === "failed" && item.severity === "error" && !item.overruled,
+      (item) => item.outcome === 'failed' && item.severity === 'error' && !item.overruled,
     ).length,
     warnings: validations.filter(
       (item) =>
-        (item.outcome === "failed" || item.outcome === "skipped") &&
-        item.severity === "warning" &&
+        (item.outcome === 'failed' || item.outcome === 'skipped') &&
+        item.severity === 'warning' &&
         !item.overruled,
     ).length,
-    passed: validations.filter((item) => item.outcome === "passed").length,
+    passed: validations.filter((item) => item.outcome === 'passed').length,
   }
 }
 
 function ruleLabel(validation: ValidationResult) {
   const key = validation.ruleKey.toLowerCase()
-  if (
-    validation.outcome === "passed" &&
-    key in RULE_KEY_PASSED_DISPLAY_LABELS
-  ) {
+  if (validation.outcome === 'passed' && key in RULE_KEY_PASSED_DISPLAY_LABELS) {
     return RULE_KEY_PASSED_DISPLAY_LABELS[key as keyof typeof RULE_KEY_PASSED_DISPLAY_LABELS]
   }
   if (key in RULE_KEY_DISPLAY_LABELS) {
     return RULE_KEY_DISPLAY_LABELS[key as keyof typeof RULE_KEY_DISPLAY_LABELS]
   }
-  return validation.ruleKey.replace(/_/g, " ")
+  return validation.ruleKey.replace(/_/g, ' ')
 }
 
 function globalLeadIconClass(counts: ReturnType<typeof countsFor>) {
-  console.log("counts", counts)
-  if (counts.errors > 0) return "border-red-200 bg-red-50 text-red-700"
-  if (counts.warnings > 0) return "border-amber-200 bg-amber-50 text-amber-800"
+  console.log('counts', counts)
+  if (counts.errors > 0) return 'border-red-200 bg-red-50 text-red-700'
+  if (counts.warnings > 0) return 'border-amber-200 bg-amber-50 text-amber-800'
   if (counts.passed > 0 && counts.errors === 0 && counts.warnings === 0) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700"
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700'
   }
-  return "border-border bg-muted text-muted-foreground"
+  return 'border-border bg-muted text-muted-foreground'
 }
 
 function GlobalValidationSummarySubtitle({
@@ -92,17 +89,17 @@ function GlobalValidationSummarySubtitle({
 
   const scope =
     uploadCount === 1
-      ? "Combined checks across 1 photo"
+      ? 'Combined checks across 1 photo'
       : `Combined checks across ${uploadCount} photos`
 
   const status =
     counts.errors > 0 ? (
       <span className="font-medium text-red-600">
-        {counts.errors === 1 ? "1 error" : `${counts.errors} errors`}
+        {counts.errors === 1 ? '1 error' : `${counts.errors} errors`}
       </span>
     ) : counts.warnings > 0 ? (
       <span className="font-medium text-amber-700">
-        {counts.warnings === 1 ? "1 warning" : `${counts.warnings} warnings`}
+        {counts.warnings === 1 ? '1 warning' : `${counts.warnings} warnings`}
       </span>
     ) : counts.passed > 0 ? (
       <span className="font-medium text-emerald-700">All cross-upload checks passed</span>
@@ -120,21 +117,21 @@ function GlobalValidationSummarySubtitle({
 }
 
 function validationRowStatusLabel(validation: ValidationResult) {
-  if (validation.overruled) return "Overruled validation"
-  if (validation.outcome === "failed" && validation.severity === "error") return "Validation error"
-  if (validation.outcome === "failed") return "Validation warning"
-  if (validation.outcome === "passed") return "Validation passed"
-  return "Validation"
+  if (validation.overruled) return 'Overruled validation'
+  if (validation.outcome === 'failed' && validation.severity === 'error') return 'Validation error'
+  if (validation.outcome === 'failed') return 'Validation warning'
+  if (validation.outcome === 'passed') return 'Validation passed'
+  return 'Validation'
 }
 
 function ValidationRowLeadIcon({ validation }: { validation: ValidationResult }) {
   const box =
-    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border [&_svg]:h-5 [&_svg]:w-5 [&_svg]:shrink-0"
+    'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border [&_svg]:h-5 [&_svg]:w-5 [&_svg]:shrink-0'
 
   if (validation.overruled) {
     return (
       <div
-        className={cn(box, "border-border bg-muted/70 text-muted-foreground")}
+        className={cn(box, 'border-border bg-muted/70 text-muted-foreground')}
         role="img"
         aria-label={validationRowStatusLabel(validation)}
       >
@@ -142,11 +139,11 @@ function ValidationRowLeadIcon({ validation }: { validation: ValidationResult })
       </div>
     )
   }
-  if (validation.outcome === "failed") {
-    if (validation.severity === "error") {
+  if (validation.outcome === 'failed') {
+    if (validation.severity === 'error') {
       return (
         <div
-          className={cn(box, "border-red-200 bg-red-50 text-red-600")}
+          className={cn(box, 'border-red-200 bg-red-50 text-red-600')}
           role="img"
           aria-label={validationRowStatusLabel(validation)}
         >
@@ -156,7 +153,7 @@ function ValidationRowLeadIcon({ validation }: { validation: ValidationResult })
     }
     return (
       <div
-        className={cn(box, "border-amber-200 bg-amber-50 text-amber-600")}
+        className={cn(box, 'border-amber-200 bg-amber-50 text-amber-600')}
         role="img"
         aria-label={validationRowStatusLabel(validation)}
       >
@@ -164,10 +161,10 @@ function ValidationRowLeadIcon({ validation }: { validation: ValidationResult })
       </div>
     )
   }
-  if (validation.outcome === "passed") {
+  if (validation.outcome === 'passed') {
     return (
       <div
-        className={cn(box, "border-emerald-200 bg-emerald-50 text-emerald-600")}
+        className={cn(box, 'border-emerald-200 bg-emerald-50 text-emerald-600')}
         role="img"
         aria-label={validationRowStatusLabel(validation)}
       >
@@ -177,7 +174,7 @@ function ValidationRowLeadIcon({ validation }: { validation: ValidationResult })
   }
   return (
     <div
-      className={cn(box, "border-border bg-muted text-muted-foreground")}
+      className={cn(box, 'border-border bg-muted text-muted-foreground')}
       role="img"
       aria-label={validationRowStatusLabel(validation)}
     >
@@ -208,8 +205,8 @@ function ValidationDetailRow({
           <p className="mt-1 text-xs text-muted-foreground">{validation.message}</p>
         </div>
         {showOverruleButtons &&
-        validation.outcome === "failed" &&
-        validation.severity === "error" &&
+        validation.outcome === 'failed' &&
+        validation.severity === 'error' &&
         !validation.overruled ? (
           <Button
             size="sm"
@@ -234,7 +231,7 @@ function ValidationSummary({
   submission,
   orderIndex,
   onThumbnailClick,
-  summaryMode = "perSubmission",
+  summaryMode = 'perSubmission',
   uploadCount = 0,
 }: {
   title: string
@@ -242,20 +239,20 @@ function ValidationSummary({
   submission?: StaffSubmission | null
   orderIndex?: number
   onThumbnailClick?: (url: string | null) => void
-  summaryMode?: "perSubmission" | "global"
+  summaryMode?: 'perSubmission' | 'global'
   /** Photo count when summaryMode is global (scope line for cross-upload checks) */
   uploadCount?: number
 }) {
   const counts = countsFor(validations)
 
-  if (summaryMode === "global") {
+  if (summaryMode === 'global') {
     const leadClass = globalLeadIconClass(counts)
     return (
       <div className="flex w-full items-stretch">
         <div className="flex shrink-0 items-center pl-3 py-2.5">
           <div
             className={cn(
-              "pointer-events-none flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border",
+              'pointer-events-none flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border',
               leadClass,
             )}
             aria-hidden
@@ -266,7 +263,7 @@ function ValidationSummary({
         <AccordionPrimitive.Header className="flex min-w-0 flex-1">
           <AccordionPrimitive.Trigger
             className={cn(
-              "focus-visible:border-ring focus-visible:ring-ring/50 group flex flex-1 items-center gap-3 px-3 py-2.5 text-left text-sm font-medium outline-none transition-all hover:no-underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
+              'focus-visible:border-ring focus-visible:ring-ring/50 group flex flex-1 items-center gap-3 px-3 py-2.5 text-left text-sm font-medium outline-none transition-all hover:no-underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50',
             )}
           >
             <div className="min-w-0 flex-1">
@@ -294,7 +291,7 @@ function ValidationSummary({
   )
 
   const thumbnailClassName =
-    "flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted"
+    'flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-muted'
 
   return (
     <div className="flex w-full items-stretch">
@@ -312,18 +309,18 @@ function ValidationSummary({
             {thumbnailInner}
           </button>
         ) : (
-          <div className={cn(thumbnailClassName, "pointer-events-none")}>{thumbnailInner}</div>
+          <div className={cn(thumbnailClassName, 'pointer-events-none')}>{thumbnailInner}</div>
         )}
       </div>
       <AccordionPrimitive.Header className="flex min-w-0 flex-1">
         <AccordionPrimitive.Trigger
           className={cn(
-            "focus-visible:border-ring focus-visible:ring-ring/50 group flex flex-1 items-center gap-3 px-3 py-2.5 text-left text-sm font-medium outline-none transition-all hover:no-underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50",
+            'focus-visible:border-ring focus-visible:ring-ring/50 group flex flex-1 items-center gap-3 px-3 py-2.5 text-left text-sm font-medium outline-none transition-all hover:no-underline focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50',
           )}
         >
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              {typeof orderIndex === "number" ? (
+              {typeof orderIndex === 'number' ? (
                 <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground/8 px-1.5 text-[10px] font-bold text-foreground/60">
                   {orderIndex + 1}
                 </span>
@@ -332,7 +329,7 @@ function ValidationSummary({
             </div>
             <div className="mt-0.5 flex items-center gap-2">
               <span className="text-[11px] text-muted-foreground">
-                {submission ? (getCaptureDateLabel(submission) ?? "Unknown time") : "No upload"}
+                {submission ? (getCaptureDateLabel(submission) ?? 'Unknown time') : 'No upload'}
               </span>
               {counts.errors > 0 ? (
                 <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-red-600">

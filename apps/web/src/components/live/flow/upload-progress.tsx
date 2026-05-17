@@ -1,18 +1,18 @@
-"use client";
+'use client'
 
-import type { Topic } from "@blikka/db";
-import { ByCameraUploadProgress } from "./by-camera-upload-progress";
-import { MarathonUploadProgress } from "./marathon-upload-progress";
-import type { FinalizationState, UploadFileState } from "@/lib/flow/types";
+import type { Topic } from '@blikka/db'
+import { ByCameraUploadProgress } from './by-camera-upload-progress'
+import { MarathonUploadProgress } from './marathon-upload-progress'
+import type { FinalizationState, UploadFileState } from '@/lib/flow/types'
 
 interface UploadProgressProps {
-  files: UploadFileState[];
-  topics: Topic[];
-  expectedCount: number;
-  onRetry?: () => void;
-  finalizationState: FinalizationState;
-  participantReference?: string;
-  mode?: "marathon" | "by-camera";
+  files: UploadFileState[]
+  topics: Topic[]
+  expectedCount: number
+  onRetry?: () => void
+  finalizationState: FinalizationState
+  participantReference?: string
+  mode?: 'marathon' | 'by-camera'
 }
 
 export function UploadProgress({
@@ -22,9 +22,9 @@ export function UploadProgress({
   onRetry,
   finalizationState,
   participantReference,
-  mode = "marathon",
+  mode = 'marathon',
 }: UploadProgressProps) {
-  if (mode === "by-camera") {
+  if (mode === 'by-camera') {
     return (
       <ByCameraUploadProgress
         files={files}
@@ -33,7 +33,7 @@ export function UploadProgress({
         finalizationState={finalizationState}
         participantReference={participantReference}
       />
-    );
+    )
   }
 
   return (
@@ -44,5 +44,5 @@ export function UploadProgress({
       onRetry={onRetry}
       participantReference={participantReference}
     />
-  );
+  )
 }

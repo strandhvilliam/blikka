@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
   Mail,
   Trash2,
@@ -12,10 +12,10 @@ import {
   CheckCircle,
   Pencil,
   Clock3,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { useState } from "react"
-import { toast } from "sonner"
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,17 +25,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog'
 import {
   useMutation,
   useQueryClient,
   useSuspenseQuery,
   useInfiniteQuery,
-} from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { StaffVerificationsTable } from "./staff-verifications-table"
-import { StaffEditDialog } from "./staff-edit-dialog"
+} from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { StaffVerificationsTable } from './staff-verifications-table'
+import { StaffEditDialog } from './staff-edit-dialog'
 
 interface StaffDetailsContentProps {
   accessId: string
@@ -59,30 +59,30 @@ export function StaffDetailsContent({ accessId, onRemoved }: StaffDetailsContent
   const { data: verificationsData } = useInfiniteQuery(
     trpc.users.getVerificationsByStaffId.infiniteQueryOptions(
       {
-        staffId: staff.kind === "active" ? staff.userId : "",
+        staffId: staff.kind === 'active' ? staff.userId : '',
         domain,
         limit: 20,
       },
       {
-        enabled: staff.kind === "active",
+        enabled: staff.kind === 'active',
         getNextPageParam: (lastPage) => lastPage?.nextCursor ?? undefined,
       },
     ),
   )
 
   const totalVerifications =
-    staff.kind === "active"
+    staff.kind === 'active'
       ? (verificationsData?.pages.reduce((acc, page) => acc + page.items.length, 0) ?? 0)
       : 0
 
   const { mutate: executeRemove, isPending: isRemoving } = useMutation(
     trpc.users.deleteStaffAccess.mutationOptions({
       onError: (error) => {
-        toast.error("Failed to remove staff member")
-        console.error("Remove error:", error)
+        toast.error('Failed to remove staff member')
+        console.error('Remove error:', error)
       },
       onSuccess: () => {
-        toast.success(staff.kind === "pending" ? "Pending access removed" : "Staff member removed")
+        toast.success(staff.kind === 'pending' ? 'Pending access removed' : 'Staff member removed')
         onRemoved?.()
       },
       onSettled: () => {
@@ -97,14 +97,14 @@ export function StaffDetailsContent({ accessId, onRemoved }: StaffDetailsContent
     executeRemove({ domain, accessId })
   }
 
-  const memberSince = new Date(staff.createdAt).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  const memberSince = new Date(staff.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   })
 
-  const displayName = staff.kind === "active" ? staff.user.name : staff.name
-  const displayEmail = staff.kind === "active" ? staff.user.email : staff.email
+  const displayName = staff.kind === 'active' ? staff.user.name : staff.name
+  const displayEmail = staff.kind === 'active' ? staff.user.email : staff.email
 
   return (
     <>
@@ -121,20 +121,23 @@ export function StaffDetailsContent({ accessId, onRemoved }: StaffDetailsContent
                 <div className="flex items-center gap-2.5">
                   <h2 className="text-xl font-medium font-gothic tracking-tight">{displayName}</h2>
                   <Badge
-                    variant={staff.role === "admin" ? "default" : "secondary"}
+                    variant={staff.role === 'admin' ? 'default' : 'secondary'}
                     className="text-[10px]"
                   >
-                    {staff.role === "admin" ? (
+                    {staff.role === 'admin' ? (
                       <>
                         <Shield className="mr-1 h-3 w-3" />
                         Admin
                       </>
                     ) : (
-                      "Staff"
+                      'Staff'
                     )}
                   </Badge>
-                  {staff.kind === "pending" ? (
-                    <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                  {staff.kind === 'pending' ? (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-200 bg-amber-50 text-amber-700"
+                    >
                       <Clock3 className="mr-1 h-3 w-3" />
                       Pending
                     </Badge>
@@ -150,14 +153,14 @@ export function StaffDetailsContent({ accessId, onRemoved }: StaffDetailsContent
                     Since {memberSince}
                   </span>
                 </div>
-                {staff.kind === "active" ? (
+                {staff.kind === 'active' ? (
                   <div className="flex items-center gap-1.5 pt-0.5 text-[12px]">
                     <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
                     <span className="font-semibold tabular-nums text-foreground">
                       {totalVerifications}
                     </span>
                     <span className="text-muted-foreground">
-                      {totalVerifications === 1 ? "verification" : "verifications"}
+                      {totalVerifications === 1 ? 'verification' : 'verifications'}
                     </span>
                   </div>
                 ) : (
@@ -194,7 +197,7 @@ export function StaffDetailsContent({ accessId, onRemoved }: StaffDetailsContent
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-6 px-8 py-6">
-          {staff.kind === "active" ? (
+          {staff.kind === 'active' ? (
             <section>
               <div className="mb-1 flex items-center gap-2">
                 <div className="h-1 w-1 rounded-full bg-brand-primary" />
@@ -236,8 +239,8 @@ export function StaffDetailsContent({ accessId, onRemoved }: StaffDetailsContent
           <AlertDialogHeader>
             <AlertDialogTitle className="font-gothic">Remove Staff Member</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove {displayName} from the staff? They will lose access
-              to this marathon.
+              Are you sure you want to remove {displayName} from the staff? They will lose access to
+              this marathon.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -247,7 +250,7 @@ export function StaffDetailsContent({ accessId, onRemoved }: StaffDetailsContent
               disabled={isRemoving}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isRemoving ? "Removing..." : "Remove Staff Member"}
+              {isRemoving ? 'Removing...' : 'Remove Staff Member'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -260,7 +263,7 @@ export function StaffDetailsContent({ accessId, onRemoved }: StaffDetailsContent
         initialData={{
           name: displayName,
           email: displayEmail,
-          role: staff.role as "staff" | "admin",
+          role: staff.role as 'staff' | 'admin',
         }}
       />
     </>

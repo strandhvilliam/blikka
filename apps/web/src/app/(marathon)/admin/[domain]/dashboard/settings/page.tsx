@@ -1,9 +1,9 @@
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { SettingsSkeleton } from "./_components/settings-skeleton"
-import { SettingsForm } from "./_components/settings-form"
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { SettingsSkeleton } from './_components/settings-skeleton'
+import { SettingsForm } from './_components/settings-form'
 
-export default async function SettingsPage({ params }: PageProps<"/admin/[domain]/dashboard">) {
+export default async function SettingsPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
 
   prefetch(

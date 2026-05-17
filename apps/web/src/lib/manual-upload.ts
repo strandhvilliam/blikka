@@ -2,14 +2,14 @@ import {
   PARTICIPANT_UPLOAD_PHASE,
   type ParticipantPreparedUpload,
   type ParticipantUploadFileState,
-} from "./participant-upload-types"
-import { CLIENT_UPLOAD_TIMEOUT_MS, uploadFileToPresignedUrl } from "@/lib/upload-client"
+} from './participant-upload-types'
+import { CLIENT_UPLOAD_TIMEOUT_MS, uploadFileToPresignedUrl } from '@/lib/upload-client'
 
 interface UploadManualFilesInput {
   files: ParticipantPreparedUpload[]
   onFileStateChange: (
     key: string,
-    patch: Partial<Pick<ParticipantUploadFileState, "phase" | "progress" | "error">>,
+    patch: Partial<Pick<ParticipantUploadFileState, 'phase' | 'progress' | 'error'>>,
   ) => void
   timeoutMs?: number
 }
@@ -18,7 +18,7 @@ export const PARTICIPANT_UPLOAD_TIMEOUT_MS = CLIENT_UPLOAD_TIMEOUT_MS
 
 async function uploadSingleFile(
   file: ParticipantPreparedUpload,
-  onFileStateChange: UploadManualFilesInput["onFileStateChange"],
+  onFileStateChange: UploadManualFilesInput['onFileStateChange'],
   timeoutMs: number,
 ): Promise<{ key: string; success: boolean }> {
   onFileStateChange(file.key, {

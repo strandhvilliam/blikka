@@ -1,16 +1,13 @@
-import "server-only"
+import 'server-only'
 
-import {
-  getPermissions,
-  type Permission,
-} from "@blikka/api/trpc/utils"
-import { redirect, RedirectType } from "next/navigation"
-import { getDefaultPostLoginPath, getPortalForRole } from "./redirect"
-import { getAppSession } from "./server"
-import { formatDomainPathname } from "@/lib/utils"
-import { serverRuntime } from "@/lib/server-runtime"
+import { getPermissions, type Permission } from '@blikka/api/trpc/utils'
+import { redirect, RedirectType } from 'next/navigation'
+import { getDefaultPostLoginPath, getPortalForRole } from './redirect'
+import { getAppSession } from './server'
+import { formatDomainPathname } from '@/lib/utils'
+import { serverRuntime } from '@/lib/server-runtime'
 
-type Role = "admin" | "staff"
+type Role = 'admin' | 'staff'
 
 export async function getUserPermissions(userId: string | undefined) {
   return serverRuntime.runPromise(getPermissions({ userId }))
@@ -58,16 +55,13 @@ export async function requireDomainAccess({
 
   if (!roles.includes(permission.role as Role)) {
     const destinationPortal = getPortalForRole(permission.role)
-    const pathname = destinationPortal === "admin" ? "/admin/dashboard" : "/staff"
+    const pathname = destinationPortal === 'admin' ? '/admin/dashboard' : '/staff'
 
-    redirect(
-      formatDomainPathname(pathname, domain, destinationPortal),
-      RedirectType.replace,
-    )
+    redirect(formatDomainPathname(pathname, domain, destinationPortal), RedirectType.replace)
   }
 
-  if (portal === "admin" && permission.role !== "admin") {
-    redirect(formatDomainPathname("/staff", domain, "staff"), RedirectType.replace)
+  if (portal === 'admin' && permission.role !== 'admin') {
+    redirect(formatDomainPathname('/staff', domain, 'staff'), RedirectType.replace)
   }
 
   return { session, permissions, permission }

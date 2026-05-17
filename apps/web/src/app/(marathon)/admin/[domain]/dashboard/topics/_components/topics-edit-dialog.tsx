@@ -1,12 +1,12 @@
-"use client";
+'use client'
 
-import { useEffect } from "react";
-import { useForm } from "@tanstack/react-form";
-import type { Topic } from "@blikka/db";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
+import type { Topic } from '@blikka/db'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -14,80 +14,76 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { useDomain } from "@/lib/domain-provider";
-import { useTRPC } from "@/lib/trpc/client";
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
 
 interface EditTopicDialogProps {
-  topic: Topic | null;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  topic: Topic | null
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-export function TopicsEditDialog({
-  topic,
-  isOpen,
-  onOpenChange,
-}: EditTopicDialogProps) {
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+export function TopicsEditDialog({ topic, isOpen, onOpenChange }: EditTopicDialogProps) {
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
 
   const { mutate: updateTopic, isPending: isUpdatingTopic } = useMutation(
     trpc.topics.update.mutationOptions({
       onError: (error) => {
-        toast.error("Failed to update topic", {
+        toast.error('Failed to update topic', {
           description: error.message,
-        });
+        })
       },
       onSuccess: () => {
-        toast.success("Topic updated");
-        onOpenChange(false);
+        toast.success('Topic updated')
+        onOpenChange(false)
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
-        });
+        })
         queryClient.invalidateQueries({
           queryKey: trpc.uploadFlow.getPublicMarathon.queryKey({ domain }),
-        });
+        })
       },
     }),
-  );
+  )
 
   const form = useForm({
     defaultValues: {
-      name: topic?.name ?? "",
-      visibility: topic ? topic.visibility !== "private" : true,
+      name: topic?.name ?? '',
+      visibility: topic ? topic.visibility !== 'private' : true,
     },
     onSubmit: async ({ value }) => {
-      if (!topic) return;
+      if (!topic) return
 
       updateTopic({
         domain,
         id: topic.id,
         data: {
           name: value.name,
-          visibility: (topic.visibility === "active" && value.visibility
-            ? "active"
+          visibility: (topic.visibility === 'active' && value.visibility
+            ? 'active'
             : value.visibility
-              ? "public"
-              : "private") as "public" | "private" | "scheduled" | "active",
+              ? 'public'
+              : 'private') as 'public' | 'private' | 'scheduled' | 'active',
         },
-      });
+      })
     },
-  });
+  })
 
   useEffect(() => {
     if (!topic) {
-      return;
+      return
     }
 
-    form.setFieldValue("name", topic.name);
-    form.setFieldValue("visibility", topic.visibility !== "private");
-  }, [topic, form]);
+    form.setFieldValue('name', topic.name)
+    form.setFieldValue('visibility', topic.visibility !== 'private')
+  }, [topic, form])
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -95,15 +91,14 @@ export function TopicsEditDialog({
         <DialogHeader>
           <DialogTitle>Edit Topic</DialogTitle>
           <DialogDescription>
-            Update the topic details here. Submission timing is managed from the
-            active topic panel.
+            Update the topic details here. Submission timing is managed from the active topic panel.
           </DialogDescription>
         </DialogHeader>
         <form
           onSubmit={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            form.handleSubmit();
+            event.preventDefault()
+            event.stopPropagation()
+            form.handleSubmit()
           }}
           className="space-y-4"
         >
@@ -112,10 +107,10 @@ export function TopicsEditDialog({
             validators={{
               onChange: ({ value }) => {
                 if (!value || value.length < 1) {
-                  return "Name is required";
+                  return 'Name is required'
                 }
 
-                return undefined;
+                return undefined
               },
             }}
           >
@@ -135,10 +130,9 @@ export function TopicsEditDialog({
                   onChange={(event) => field.handleChange(event.target.value)}
                   placeholder="Enter topic name"
                 />
-                {field.state.meta.isTouched &&
-                field.state.meta.errors.length ? (
+                {field.state.meta.isTouched && field.state.meta.errors.length ? (
                   <p className="mt-1 text-sm text-destructive">
-                    {field.state.meta.errors.join(", ")}
+                    {field.state.meta.errors.join(', ')}
                   </p>
                 ) : null}
               </div>
@@ -165,19 +159,15 @@ export function TopicsEditDialog({
           </form.Field>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              type="button"
-            >
+            <Button variant="outline" onClick={() => onOpenChange(false)} type="button">
               Cancel
             </Button>
             <PrimaryButton type="submit" disabled={isUpdatingTopic}>
-              {isUpdatingTopic ? "Saving..." : "Save changes"}
+              {isUpdatingTopic ? 'Saving...' : 'Save changes'}
             </PrimaryButton>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

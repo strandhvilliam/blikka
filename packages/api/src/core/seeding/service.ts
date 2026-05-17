@@ -1,6 +1,6 @@
-import "server-only"
+import 'server-only'
 
-import { Config, Context, Effect, Layer } from "effect"
+import { Config, Context, Effect, Layer } from 'effect'
 import {
   DbLayer,
   type CompetitionClassesRepository,
@@ -16,20 +16,17 @@ import {
   type ValidationsRepository,
   type VotingRepository,
   DbError,
-} from "@blikka/db"
-import type { S3ClientError, S3Service } from "@blikka/aws"
-import { S3ServiceLayer } from "@blikka/aws"
+} from '@blikka/db'
+import type { S3ClientError, S3Service } from '@blikka/aws'
+import { S3ServiceLayer } from '@blikka/aws'
 import type {
   ContactSheetBuilder,
   ContactSheetError,
   SharpError,
   SharpImageService,
-} from "@blikka/image-manipulation"
-import {
-  ContactSheetBuilderLayer,
-  SharpImageServiceLayer,
-} from "@blikka/image-manipulation"
-import { JuryService, JuryServiceLayer } from "../jury/service"
+} from '@blikka/image-manipulation'
+import { ContactSheetBuilderLayer, SharpImageServiceLayer } from '@blikka/image-manipulation'
+import { JuryService, JuryServiceLayer } from '../jury/service'
 import type {
   BadRequestError,
   ConflictError,
@@ -38,7 +35,7 @@ import type {
   NotFoundError,
   PreconditionFailedError,
   UnauthorizedError,
-} from "../errors"
+} from '../errors'
 
 type ApiError =
   | BadRequestError
@@ -48,11 +45,8 @@ type ApiError =
   | NotFoundError
   | PreconditionFailedError
   | UnauthorizedError
-import {
-  getSeedScenarioStatus,
-  seedFinishedScenario,
-} from "./finished-scenario"
-import type { SeedingDomainContextInput } from "./contracts"
+import { getSeedScenarioStatus, seedFinishedScenario } from './finished-scenario'
+import type { SeedingDomainContextInput } from './contracts'
 
 interface SeedScenarioStatusResult {
   environment: string
@@ -85,7 +79,7 @@ type SeedScenarioStatusRequirements =
 
 type SeedFinishedScenarioResult =
   | {
-      mode: "marathon"
+      mode: 'marathon'
       participantsCreated: number
       submissionsCreated: number
       participantVerificationsCreated: number
@@ -97,7 +91,7 @@ type SeedFinishedScenarioResult =
       validationResultsCreated: number
     }
   | {
-      mode: "by-camera"
+      mode: 'by-camera'
       participantsCreated: number
       submissionsCreated: number
       participantVerificationsCreated: number
@@ -136,11 +130,7 @@ export class SeedingService extends Context.Service<
      */
     readonly getStatus: (
       input: SeedingDomainContextInput,
-    ) => Effect.Effect<
-      SeedScenarioStatusResult,
-      DbError | ApiError,
-      SeedScenarioStatusRequirements
-    >
+    ) => Effect.Effect<SeedScenarioStatusResult, DbError | ApiError, SeedScenarioStatusRequirements>
 
     /**
      * Clears operational seedable data and repopulates a finished-event scenario for `domain`
@@ -150,36 +140,32 @@ export class SeedingService extends Context.Service<
       input: SeedingDomainContextInput,
     ) => Effect.Effect<
       SeedFinishedScenarioResult,
-      | DbError
-      | S3ClientError
-      | Config.ConfigError
-      | ContactSheetError
-      | ApiError
-      | SharpError,
+      DbError | S3ClientError | Config.ConfigError | ContactSheetError | ApiError | SharpError,
       SeedFinishedScenarioRequirements
     >
   }
->()("@blikka/api/SeedingService") {}
+>()('@blikka/api/SeedingService') {}
 
 const makeSeedingService = Effect.gen(function* () {
-  const getStatus: SeedingService["Service"]["getStatus"] = Effect.fn(
-    "SeedingService.getStatus",
-  )(function* ({ domain, isAdminForDomain }) {
-    return yield* getSeedScenarioStatus({
+  const getStatus: SeedingService['Service']['getStatus'] = Effect.fn('SeedingService.getStatus')(
+    function* ({ domain, isAdminForDomain }) {
+      return yield* getSeedScenarioStatus({
+        domain,
+        isAdminForDomain,
+      })
+    },
+  )
+
+  const seedFinishedScenarioForDomain: SeedingService['Service']['seedFinishedScenarioForDomain'] =
+    Effect.fn('SeedingService.seedFinishedScenarioForDomain')(function* ({
       domain,
       isAdminForDomain,
+    }) {
+      return yield* seedFinishedScenario({
+        domain,
+        isAdminForDomain,
+      })
     })
-  })
-
-  const seedFinishedScenarioForDomain: SeedingService["Service"]["seedFinishedScenarioForDomain"] =
-    Effect.fn("SeedingService.seedFinishedScenarioForDomain")(
-      function* ({ domain, isAdminForDomain }) {
-        return yield* seedFinishedScenario({
-          domain,
-          isAdminForDomain,
-        })
-      },
-    )
 
   return SeedingService.of({
     getStatus,
@@ -187,10 +173,7 @@ const makeSeedingService = Effect.gen(function* () {
   })
 })
 
-export const SeedingServiceLayerNoDeps = Layer.effect(
-  SeedingService,
-  makeSeedingService,
-)
+export const SeedingServiceLayerNoDeps = Layer.effect(SeedingService, makeSeedingService)
 
 export const SeedingServiceLayer = SeedingServiceLayerNoDeps.pipe(
   Layer.provide(

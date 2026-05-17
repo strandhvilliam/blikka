@@ -1,17 +1,15 @@
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import { useMemo } from "react"
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
+import { useMemo } from 'react'
 
 interface VotingProgressProps {
   activeTopic: { id: number; name: string; orderIndex: number }
 }
 
-export function VotingProgress({
-  activeTopic,
-}: VotingProgressProps) {
+export function VotingProgress({ activeTopic }: VotingProgressProps) {
   const trpc = useTRPC()
   const domain = useDomain()
 
@@ -42,20 +40,16 @@ export function VotingProgress({
           </p>
         </div>
         <Badge
-          variant={pendingSessions > 0 ? "outline" : "secondary"}
+          variant={pendingSessions > 0 ? 'outline' : 'secondary'}
           className="w-fit self-start sm:ml-auto sm:self-center"
         >
-          {pendingSessions > 0
-            ? `${pendingSessions} pending`
-            : "All sessions completed"}
+          {pendingSessions > 0 ? `${pendingSessions} pending` : 'All sessions completed'}
         </Badge>
       </div>
 
       <div className="mt-4 space-y-1.5">
         <Progress value={completionRate} className="h-1.5" />
-        <p className="text-xs font-medium text-muted-foreground">
-          {completionRate}% completion
-        </p>
+        <p className="text-xs font-medium text-muted-foreground">{completionRate}% completion</p>
       </div>
     </div>
   )

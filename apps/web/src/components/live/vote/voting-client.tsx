@@ -1,40 +1,34 @@
-"use client"
+'use client'
 
-import { useMutation } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
-import { toast } from "sonner"
-import { AnimatePresence, motion } from "motion/react"
-import { EmptyState } from "./empty-state"
-import { CarouselView } from "./carousel-view"
-import { GridView } from "./grid-view"
-import { VotingFooter } from "./voting-footer"
-import { useVotingState } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-state"
-import { useVotingSearchParams } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params"
-import dynamic from "next/dynamic"
-import { Skeleton } from "@/components/ui/skeleton"
-import { formatDomainPathname } from "@/lib/utils"
-import { FilterBarSkeleton } from "./filter-bar-skeleton"
-import { VotingCarouselApiProvider } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-carousel-api"
-import { useClientReady } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-client-ready"
+import { useMutation } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
+import { AnimatePresence, motion } from 'motion/react'
+import { EmptyState } from './empty-state'
+import { CarouselView } from './carousel-view'
+import { GridView } from './grid-view'
+import { VotingFooter } from './voting-footer'
+import { useVotingState } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-state'
+import { useVotingSearchParams } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params'
+import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatDomainPathname } from '@/lib/utils'
+import { FilterBarSkeleton } from './filter-bar-skeleton'
+import { VotingCarouselApiProvider } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-carousel-api'
+import { useClientReady } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-client-ready'
 
-const FilterBar = dynamic(() => import("./filter-bar").then((mod) => mod.FilterBar), {
+const FilterBar = dynamic(() => import('./filter-bar').then((mod) => mod.FilterBar), {
   ssr: false,
   loading: () => <FilterBarSkeleton />,
 })
 
-export function VotingClient({
-  domain,
-  token,
-}: {
-  domain: string
-  token: string
-}) {
+export function VotingClient({ domain, token }: { domain: string; token: string }) {
   const trpc = useTRPC()
   const router = useRouter()
   const isClientReady = useClientReady()
-  const t = useTranslations("VotingViewerPage")
+  const t = useTranslations('VotingViewerPage')
 
   const submitVoteMutation = useMutation(trpc.voting.submitVote.mutationOptions())
 
@@ -65,9 +59,9 @@ export function VotingClient({
   const handleRatingChange = (rating: number) => {
     if (!currentSubmission || currentSubmission.isOwnSubmission) return
     setRating(currentSubmission.submissionId, rating)
-    toast.success(t("starRating.ratedToast", { rating }), {
+    toast.success(t('starRating.ratedToast', { rating }), {
       duration: 1000,
-      position: "top-center",
+      position: 'top-center',
     })
   }
 
@@ -75,12 +69,12 @@ export function VotingClient({
     if (!currentSubmission) return
 
     if (currentSubmission.isOwnSubmission) {
-      toast.error(t("toasts.cannotVoteForOwn"))
+      toast.error(t('toasts.cannotVoteForOwn'))
       return
     }
 
     if (!token || !domain) {
-      toast.error(t("toasts.missingSessionInfo"))
+      toast.error(t('toasts.missingSessionInfo'))
       return
     }
 
@@ -92,17 +86,17 @@ export function VotingClient({
 
       if (result.success) {
         setSelectedSubmission(currentSubmission.submissionId)
-        toast.success(t("toasts.voteSubmitted"))
-        router.push(formatDomainPathname(`/live/vote/${token}/completed`, domain, "live"))
-      } else if (result.error === "already_voted") {
-        toast.error(t("toasts.alreadyVoted"))
-        router.push(formatDomainPathname(`/live/vote/${token}/completed`, domain, "live"))
-      } else if (result.error === "cannot_vote_for_self") {
-        toast.error(t("toasts.cannotVoteForOwn"))
+        toast.success(t('toasts.voteSubmitted'))
+        router.push(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'))
+      } else if (result.error === 'already_voted') {
+        toast.error(t('toasts.alreadyVoted'))
+        router.push(formatDomainPathname(`/live/vote/${token}/completed`, domain, 'live'))
+      } else if (result.error === 'cannot_vote_for_self') {
+        toast.error(t('toasts.cannotVoteForOwn'))
       }
     } catch (error) {
-      toast.error(t("toasts.submitFailed"))
-      console.error("Vote submission error:", error)
+      toast.error(t('toasts.submitFailed'))
+      console.error('Vote submission error:', error)
     }
   }
 
@@ -140,13 +134,13 @@ export function VotingClient({
               >
                 <EmptyState />
               </motion.div>
-            ) : viewMode === "carousel" ? (
+            ) : viewMode === 'carousel' ? (
               <motion.div
                 key="carousel"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
                 className="h-full"
               >
                 <CarouselView submissions={filteredSubmissions} />
@@ -157,7 +151,7 @@ export function VotingClient({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
                 className="h-full"
               >
                 <GridView

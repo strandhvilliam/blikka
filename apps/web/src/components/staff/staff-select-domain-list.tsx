@@ -1,18 +1,12 @@
-"use client"
+'use client'
 
-import Link from "next/link"
-import { ShieldCheck, ArrowRight, MapPin } from "lucide-react"
-import { useSuspenseQuery } from "@tanstack/react-query"
+import Link from 'next/link'
+import { ShieldCheck, ArrowRight, MapPin } from 'lucide-react'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { useTRPC } from "@/lib/trpc/client"
-import { getMarathonDestination } from "@/lib/auth/redirect"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+import { useTRPC } from '@/lib/trpc/client'
+import { getMarathonDestination } from '@/lib/auth/redirect'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 
 export function StaffSelectDomainList() {
   const trpc = useTRPC()

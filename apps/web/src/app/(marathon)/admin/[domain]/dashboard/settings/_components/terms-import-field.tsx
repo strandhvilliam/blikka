@@ -1,42 +1,38 @@
-"use client"
+'use client'
 
-import { useRef, useState } from "react"
-import { FileText, X } from "lucide-react"
-import { Label } from "@/components/ui/label"
-import mammoth from "mammoth"
-import TurndownService from "turndown"
-import { toast } from "sonner"
+import { useRef, useState } from 'react'
+import { FileText, X } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import mammoth from 'mammoth'
+import TurndownService from 'turndown'
+import { toast } from 'sonner'
 
 interface TermsImportFieldProps {
   onMarkdownImported: (markdown: string) => void
 }
 
 async function parseTermsFile(file: File): Promise<string> {
-  const extension = file.name.split(".").pop()?.toLowerCase()
+  const extension = file.name.split('.').pop()?.toLowerCase()
 
-  if (extension === "md" || extension === "txt") {
+  if (extension === 'md' || extension === 'txt') {
     return file.text()
   }
 
-  if (extension === "docx") {
+  if (extension === 'docx') {
     const arrayBuffer = await file.arrayBuffer()
     const { value } = await mammoth.convertToHtml({ arrayBuffer })
     const turndownService = new TurndownService()
-    return turndownService.turndown(value || "")
+    return turndownService.turndown(value || '')
   }
 
-  throw new Error("Unsupported file type")
+  throw new Error('Unsupported file type')
 }
 
-export function TermsImportField({
-  onMarkdownImported,
-}: TermsImportFieldProps) {
+export function TermsImportField({ onMarkdownImported }: TermsImportFieldProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
 
-  const handleFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -45,13 +41,13 @@ export function TermsImportField({
       setFileName(file.name)
       onMarkdownImported(markdown)
     } catch {
-      toast.error("Failed to import terms file")
+      toast.error('Failed to import terms file')
     }
   }
 
   const handleRemove = () => {
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = ''
     }
     setFileName(null)
   }
@@ -70,10 +66,7 @@ export function TermsImportField({
         {fileName ? (
           <div className="flex items-center gap-3">
             <div className="w-[42px] h-[42px] rounded-full bg-muted flex items-center justify-center shrink-0">
-              <FileText
-                className="h-5 w-5 text-muted-foreground"
-                aria-hidden
-              />
+              <FileText className="h-5 w-5 text-muted-foreground" aria-hidden />
             </div>
             <div className="w-full flex-1 relative h-[42px] rounded-lg overflow-hidden border bg-background flex items-center justify-between gap-3">
               <div className="flex items-center justify-between h-full flex-1 pr-3">
@@ -95,19 +88,14 @@ export function TermsImportField({
         ) : (
           <div className="flex items-center gap-3">
             <div className="w-[42px] h-[42px] rounded-full bg-muted flex items-center justify-center shrink-0">
-              <FileText
-                className="h-5 w-5 text-muted-foreground"
-                aria-hidden
-              />
+              <FileText className="h-5 w-5 text-muted-foreground" aria-hidden />
             </div>
             <label
               htmlFor="terms-upload"
               className="px-4 w-full flex items-center h-[42px] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 bg-background transition-colors cursor-pointer gap-3"
             >
               <div className="flex items-center justify-between flex-1">
-                <span className="text-sm text-muted-foreground">
-                  Import .md, .txt, or .docx…
-                </span>
+                <span className="text-sm text-muted-foreground">Import .md, .txt, or .docx…</span>
                 <span className="text-xs text-muted-foreground whitespace-nowrap">
                   DOCX, TXT, MD • 2MB max
                 </span>

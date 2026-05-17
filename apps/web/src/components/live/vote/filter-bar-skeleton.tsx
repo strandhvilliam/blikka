@@ -1,5 +1,5 @@
-"use client";
-import { Skeleton } from "@/components/ui/skeleton";
+'use client'
+import { Skeleton } from '@/components/ui/skeleton'
 export function FilterBarSkeleton() {
   return (
     <div className="px-4 py-3">

@@ -1,21 +1,21 @@
-import { Effect } from "effect"
-import { FinalizedEventSchema } from "@blikka/aws"
-import { Resource as SSTResource } from "sst"
+import { Effect } from 'effect'
+import { FinalizedEventSchema } from '@blikka/aws'
+import { Resource as SSTResource } from 'sst'
 import {
   getEnvironmentFromStage,
   makeLambdaHandler,
   makeLambdaTaskLayer,
   makeSqsRealtimeTask,
   parseBusEvent,
-} from "@blikka/task-runtime"
-import { UploadFinalizer, UploadFinalizerLayer } from "@blikka/uploads"
+} from '@blikka/task-runtime'
+import { UploadFinalizer, UploadFinalizerLayer } from '@blikka/uploads'
 
-const TASK_NAME = "upload-finalizer"
-const REALTIME_EVENT = "participant-finalized"
+const TASK_NAME = 'upload-finalizer'
+const REALTIME_EVENT = 'participant-finalized'
 
 const effectHandler = makeSqsRealtimeTask({
   taskName: TASK_NAME,
-  spanName: "UploadFinalizer.handler",
+  spanName: 'UploadFinalizer.handler',
   eventKey: REALTIME_EVENT,
   recordConcurrency: 2,
   decodeRecord: (record) => parseBusEvent(record.body, FinalizedEventSchema),
@@ -23,11 +23,11 @@ const effectHandler = makeSqsRealtimeTask({
     Effect.gen(function* () {
       const uploadFinalizer = yield* UploadFinalizer
 
-      yield* Effect.logInfo("Finalizing participant")
+      yield* Effect.logInfo('Finalizing participant')
 
       yield* uploadFinalizer.finalize(input).pipe(
-        Effect.tap(() => Effect.logInfo("Participant finalized")),
-        Effect.tapError((error) => Effect.logError("Error finalizing participant", error)),
+        Effect.tap(() => Effect.logInfo('Participant finalized')),
+        Effect.tapError((error) => Effect.logError('Error finalizing participant', error)),
       )
     }).pipe(Effect.annotateLogs({ ...input })),
 })

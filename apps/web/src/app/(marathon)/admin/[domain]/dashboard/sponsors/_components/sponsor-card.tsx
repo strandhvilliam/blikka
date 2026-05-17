@@ -1,17 +1,17 @@
-"use client"
+'use client'
 
-import { useState, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Upload, Replace, ImageIcon, Clock, Loader2 } from "lucide-react"
-import { toast } from "sonner"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import type { Sponsor } from "@blikka/db"
-import { cn } from "@/lib/utils"
-import type { LucideIcon } from "lucide-react"
+import { useState, useRef } from 'react'
+import { Button } from '@/components/ui/button'
+import { Upload, Replace, ImageIcon, Clock, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import type { Sponsor } from '@blikka/db'
+import { cn } from '@/lib/utils'
+import type { LucideIcon } from 'lucide-react'
 
-type SponsorType = "contact-sheets" | "live-landing" | "live-success-1" | "live-success-2"
+type SponsorType = 'contact-sheets' | 'live-landing' | 'live-success-1' | 'live-success-2'
 
 interface SponsorCardProps {
   title: string
@@ -38,23 +38,23 @@ export function SponsorCard({
   const domain = useDomain()
 
   const { mutateAsync: generateUploadUrl } = useMutation(
-    trpc.sponsors.generateUploadUrl.mutationOptions()
+    trpc.sponsors.generateUploadUrl.mutationOptions(),
   )
 
   const { mutate: createSponsor } = useMutation(
     trpc.sponsors.create.mutationOptions({
       onSuccess: () => {
-        toast.success("Sponsor image uploaded successfully")
+        toast.success('Sponsor image uploaded successfully')
         queryClient.invalidateQueries({
           queryKey: trpc.sponsors.pathKey(),
         })
         setUploading(false)
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to create sponsor")
+        toast.error(error.message || 'Failed to create sponsor')
         setUploading(false)
       },
-    })
+    }),
   )
 
   const handleFileUpload = async (file: File) => {
@@ -64,28 +64,28 @@ export function SponsorCard({
       const { url, key } = await generateUploadUrl({
         domain,
         type,
-        position: "bottom-right",
+        position: 'bottom-right',
       })
 
       const response = await fetch(url, {
-        method: "PUT",
+        method: 'PUT',
         body: file,
-        headers: { "Content-Type": file.type },
+        headers: { 'Content-Type': file.type },
       })
 
       if (!response.ok) {
-        throw new Error("Failed to upload file")
+        throw new Error('Failed to upload file')
       }
 
       createSponsor({
         domain,
         type,
         key,
-        position: "bottom-right",
+        position: 'bottom-right',
       })
     } catch (error) {
-      console.error("Upload failed:", error)
-      toast.error("Failed to upload sponsor image")
+      console.error('Upload failed:', error)
+      toast.error('Failed to upload sponsor image')
       setUploading(false)
     }
   }
@@ -100,7 +100,7 @@ export function SponsorCard({
     setDragging(false)
     if (disabled || uploading) return
     const file = e.dataTransfer.files[0]
-    if (file?.type.startsWith("image/")) handleFileUpload(file)
+    if (file?.type.startsWith('image/')) handleFileUpload(file)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -124,13 +124,15 @@ export function SponsorCard({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-xl border bg-white transition-shadow duration-200",
+        'group relative overflow-hidden rounded-xl border bg-white transition-shadow duration-200',
         disabled
-          ? "border-border/60 opacity-60"
+          ? 'border-border/60 opacity-60'
           : hasImage
-            ? "border-brand-primary/20 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.06)]"
-            : "border-border hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]",
-        dragging && !disabled && "border-brand-primary/40 shadow-[0_2px_16px_-2px_rgba(0,0,0,0.08)]"
+            ? 'border-brand-primary/20 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.06)]'
+            : 'border-border hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]',
+        dragging &&
+          !disabled &&
+          'border-brand-primary/40 shadow-[0_2px_16px_-2px_rgba(0,0,0,0.08)]',
       )}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
@@ -148,10 +150,10 @@ export function SponsorCard({
         <div className="flex min-w-0 flex-1 items-start gap-4 p-5">
           <div
             className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors duration-200",
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors duration-200',
               hasImage && !disabled
-                ? "bg-brand-primary/10 text-brand-primary"
-                : "bg-muted/80 text-muted-foreground/60"
+                ? 'bg-brand-primary/10 text-brand-primary'
+                : 'bg-muted/80 text-muted-foreground/60',
             )}
           >
             <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
@@ -162,8 +164,8 @@ export function SponsorCard({
               <div className="min-w-0">
                 <h3
                   className={cn(
-                    "text-[15px] font-semibold tracking-tight transition-colors duration-200",
-                    hasImage && !disabled ? "text-foreground" : "text-foreground/70"
+                    'text-[15px] font-semibold tracking-tight transition-colors duration-200',
+                    hasImage && !disabled ? 'text-foreground' : 'text-foreground/70',
                   )}
                 >
                   {title}
@@ -213,8 +215,8 @@ export function SponsorCard({
         {!disabled ? (
           <div
             className={cn(
-              "flex w-full shrink-0 flex-col justify-center border-t border-border/50 bg-muted/35 p-5 sm:w-56 sm:border-t-0 sm:border-l sm:py-5 sm:pr-5 sm:pl-6",
-              dragging && "bg-brand-primary/[0.06]"
+              'flex w-full shrink-0 flex-col justify-center border-t border-border/50 bg-muted/35 p-5 sm:w-56 sm:border-t-0 sm:border-l sm:py-5 sm:pr-5 sm:pl-6',
+              dragging && 'bg-brand-primary/[0.06]',
             )}
           >
             {hasImage ? (
@@ -224,7 +226,7 @@ export function SponsorCard({
                 className="relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-md outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 onClick={triggerFileSelect}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
+                  if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
                     triggerFileSelect()
                   }
@@ -242,10 +244,10 @@ export function SponsorCard({
                 onClick={triggerFileSelect}
                 disabled={uploading}
                 className={cn(
-                  "flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border/50 px-2 py-3 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  'flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border/50 px-2 py-3 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                   dragging
-                    ? "border-brand-primary/50 bg-brand-primary/[0.08]"
-                    : "hover:border-border hover:bg-muted/25"
+                    ? 'border-brand-primary/50 bg-brand-primary/[0.08]'
+                    : 'hover:border-border hover:bg-muted/25',
                 )}
               >
                 <ImageIcon className="h-7 w-7 text-muted-foreground/60" strokeWidth={1.2} />

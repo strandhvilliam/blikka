@@ -1,29 +1,24 @@
-"use client"
+'use client'
 
-import { DashboardStatusDisplay, DashboardStatusDisplaySkeleton } from "./dashboard-status-display"
-import { DomainSwitchDropdown } from "./domain-switch-dropdown"
-import { LiveUploadQrDialog } from "./live-upload-qr-dialog"
-import { Copy, ExternalLink, MoreHorizontal, QrCode, Shield, Upload, Users } from "lucide-react"
-import { Suspense, useState, type ComponentType, type ReactNode } from "react"
-import { useDomain } from "@/lib/domain-provider"
-import { Button } from "@/components/ui/button"
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
-import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Skeleton } from "@/components/ui/skeleton"
-import { formatDomainLink } from "@/lib/utils"
-import { cn } from "@/lib/utils"
-import { toast } from "sonner"
+import { DashboardStatusDisplay, DashboardStatusDisplaySkeleton } from './dashboard-status-display'
+import { DomainSwitchDropdown } from './domain-switch-dropdown'
+import { LiveUploadQrDialog } from './live-upload-qr-dialog'
+import { Copy, ExternalLink, MoreHorizontal, QrCode, Shield, Upload, Users } from 'lucide-react'
+import { Suspense, useState, type ComponentType, type ReactNode } from 'react'
+import { useDomain } from '@/lib/domain-provider'
+import { Button } from '@/components/ui/button'
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatDomainLink } from '@/lib/utils'
+import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 const quickLinkMenuItemClass = cn(
-  "flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-left text-sm outline-none",
-  "hover:bg-accent hover:text-accent-foreground",
-  "focus-visible:bg-accent focus-visible:text-accent-foreground",
+  'flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-left text-sm outline-none',
+  'hover:bg-accent hover:text-accent-foreground',
+  'focus-visible:bg-accent focus-visible:text-accent-foreground',
 )
 
 type QuickLinkConfig = {
@@ -44,9 +39,9 @@ type QrDialogState = {
 async function copyQuickLinkUrl(url: string) {
   try {
     await navigator.clipboard.writeText(url)
-    toast.success("Link copied")
+    toast.success('Link copied')
   } catch {
-    toast.error("Could not copy link")
+    toast.error('Could not copy link')
   }
 }
 
@@ -62,7 +57,7 @@ function MobileQuickLinkRow({
   const { url, icon: Icon, label, showQrOption = true } = config
 
   const openInNewTab = () => {
-    window.open(url, "_blank", "noopener,noreferrer")
+    window.open(url, '_blank', 'noopener,noreferrer')
     onClose()
   }
 
@@ -119,7 +114,7 @@ function DashboardQuickLinkPopover({
   const { url, icon: Icon, label, showQrOption = true } = config
 
   const openInNewTab = () => {
-    window.open(url, "_blank", "noopener,noreferrer")
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   const copyLink = async () => {
@@ -139,12 +134,12 @@ function DashboardQuickLinkPopover({
       <PopoverTrigger
         type="button"
         className={cn(
-          "group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium select-none",
-          "border border-border/60 bg-sidebar-accent/50 text-sidebar-foreground/80",
-          "transition-all duration-150 outline-none",
-          "hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border hover:shadow-xs",
-          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
-          "data-[state=open]:border-border data-[state=open]:bg-sidebar-accent",
+          'group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium select-none',
+          'border border-border/60 bg-sidebar-accent/50 text-sidebar-foreground/80',
+          'transition-all duration-150 outline-none',
+          'hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border hover:shadow-xs',
+          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar',
+          'data-[state=open]:border-border data-[state=open]:bg-sidebar-accent',
         )}
       >
         <Icon className="size-3.5 opacity-60 group-hover:opacity-100 group-data-[state=open]:opacity-100 transition-opacity duration-150" />
@@ -167,7 +162,11 @@ function DashboardQuickLinkPopover({
             </PopoverClose>
           ) : null}
           <PopoverClose asChild>
-            <button type="button" className={quickLinkMenuItemClass} onClick={() => void copyLink()}>
+            <button
+              type="button"
+              className={quickLinkMenuItemClass}
+              onClick={() => void copyLink()}
+            >
               <Copy className="size-4 shrink-0 opacity-70" />
               Copy Link
             </button>
@@ -204,9 +203,9 @@ function DashboardMobileDrawer({
           variant="ghost"
           size="icon"
           className={cn(
-            "size-10 shrink-0 touch-manipulation rounded-lg border border-border/60 bg-sidebar-accent/70 p-0 text-sidebar-foreground",
-            "hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border active:scale-[0.98]",
-            "[&_svg]:size-4.5 [&_svg]:opacity-90",
+            'size-10 shrink-0 touch-manipulation rounded-lg border border-border/60 bg-sidebar-accent/70 p-0 text-sidebar-foreground',
+            'hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border active:scale-[0.98]',
+            '[&_svg]:size-4.5 [&_svg]:opacity-90',
           )}
           aria-label="Marathon menu"
         >
@@ -258,7 +257,7 @@ function DashboardMobileDrawer({
 export function DashboardHeader() {
   const domain = useDomain()
 
-  const staffSiteUrl = formatDomainLink(`/staff`, domain, "staff")
+  const staffSiteUrl = formatDomainLink(`/staff`, domain, 'staff')
   const participantSiteUrl = formatDomainLink(`/live`, domain)
   const computerUploadSiteUrl = formatDomainLink(`/staff/staff-upload`, domain)
 
@@ -266,19 +265,19 @@ export function DashboardHeader() {
     {
       url: staffSiteUrl,
       icon: Shield,
-      label: "Staff",
-      qrHeading: "Staff site",
+      label: 'Staff',
+      qrHeading: 'Staff site',
       qrDescription: staffQrDescription,
     },
     {
       url: participantSiteUrl,
       icon: Users,
-      label: "Upload",
+      label: 'Upload',
     },
     {
       url: computerUploadSiteUrl,
       icon: Upload,
-      label: "Computer Upload",
+      label: 'Computer Upload',
       showQrOption: false,
     },
   ]
@@ -301,9 +300,9 @@ export function DashboardHeader() {
         <div className="flex items-center justify-start">
           <SidebarTrigger
             className={cn(
-              "size-10 shrink-0 touch-manipulation rounded-lg border border-border/60 bg-sidebar-accent/70 p-0 text-sidebar-foreground",
-              "hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border active:scale-[0.98]",
-              "[&_svg]:size-4.5 [&_svg]:opacity-90",
+              'size-10 shrink-0 touch-manipulation rounded-lg border border-border/60 bg-sidebar-accent/70 p-0 text-sidebar-foreground',
+              'hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border active:scale-[0.98]',
+              '[&_svg]:size-4.5 [&_svg]:opacity-90',
             )}
           />
         </div>
@@ -324,9 +323,9 @@ export function DashboardHeader() {
       <div className="hidden lg:flex lg:h-14 lg:flex-row lg:items-center lg:gap-4 lg:py-0">
         <SidebarTrigger
           className={cn(
-            "size-9 shrink-0 touch-manipulation rounded-lg border border-border/60 bg-sidebar-accent/70 p-0 text-sidebar-foreground",
-            "hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border",
-            "[&_svg]:size-4 [&_svg]:opacity-90",
+            'size-9 shrink-0 touch-manipulation rounded-lg border border-border/60 bg-sidebar-accent/70 p-0 text-sidebar-foreground',
+            'hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-border',
+            '[&_svg]:size-4 [&_svg]:opacity-90',
           )}
         />
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:max-w-xs">

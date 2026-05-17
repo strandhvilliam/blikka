@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, useState } from "react"
-import type { ValidationResult } from "@blikka/validation"
-import type { RuleConfig } from "@blikka/db"
-import type { ParticipantSelectedPhoto } from "@/lib/participant-upload-types"
-import { toast } from "sonner"
-import { buildPhotoValidationMap, splitValidationResultsBySeverity } from "@/lib/validation"
-import { processSelectedFiles } from "@/lib/participant-selected-files"
-import { reassignOrderIndexes, revokePreviewUrls } from "@/lib/file-processing"
-import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation"
-import type { UploadMarathonMode } from "@/lib/types"
+import { useEffect, useRef, useState } from 'react'
+import type { ValidationResult } from '@blikka/validation'
+import type { RuleConfig } from '@blikka/db'
+import type { ParticipantSelectedPhoto } from '@/lib/participant-upload-types'
+import { toast } from 'sonner'
+import { buildPhotoValidationMap, splitValidationResultsBySeverity } from '@/lib/validation'
+import { processSelectedFiles } from '@/lib/participant-selected-files'
+import { reassignOrderIndexes, revokePreviewUrls } from '@/lib/file-processing'
+import { runParticipantPhotoValidation } from '@/lib/participant-photo-validation'
+import type { UploadMarathonMode } from '@/lib/types'
 
 interface UseManualPhotoSelectionInput {
   open: boolean
@@ -87,7 +87,7 @@ export function useManualPhotoSelection({
         if (cancelled) return
 
         const message =
-          error instanceof Error ? error.message : "Failed to validate selected images"
+          error instanceof Error ? error.message : 'Failed to validate selected images'
 
         setValidationRunError(message)
         setValidationResults([])

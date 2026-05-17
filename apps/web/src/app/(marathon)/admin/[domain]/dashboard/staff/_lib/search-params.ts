@@ -1,4 +1,4 @@
-import { createLoader, parseAsString } from "nuqs/server"
+import { createLoader, parseAsString } from 'nuqs/server'
 
 export const staffSearchParams = {
   access: parseAsString,

@@ -1,28 +1,24 @@
-"use client"
+'use client'
 
-import type { Topic } from "@blikka/db"
-import { Suspense, useEffect } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { AlertTriangle, Vote } from "lucide-react"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { VotingHeader } from "./voting-header"
-import { VotingSetup } from "./voting-setup"
-import { LeaderboardTab } from "./leaderboard-tab"
-import { VotersTab } from "./voters-tab"
-import { LeaderboardTabSkeleton } from "./leaderboard-tab-skeleton"
-import { VotersTabSkeleton } from "./voters-tab-skeleton"
-import { VotingSummarySkeleton } from "./voting-summary-skeleton"
-import { tabTriggerClassName } from "../_lib/utils"
-import { useVotingUiState } from "../_hooks/use-voting-ui-state"
-import { useVotingRealtime } from "../_hooks/use-voting-realtime"
+import type { Topic } from '@blikka/db'
+import { Suspense, useEffect } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { AlertTriangle, Vote } from 'lucide-react'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { VotingHeader } from './voting-header'
+import { VotingSetup } from './voting-setup'
+import { LeaderboardTab } from './leaderboard-tab'
+import { VotersTab } from './voters-tab'
+import { LeaderboardTabSkeleton } from './leaderboard-tab-skeleton'
+import { VotersTabSkeleton } from './voters-tab-skeleton'
+import { VotingSummarySkeleton } from './voting-summary-skeleton'
+import { tabTriggerClassName } from '../_lib/utils'
+import { useVotingUiState } from '../_hooks/use-voting-ui-state'
+import { useVotingRealtime } from '../_hooks/use-voting-realtime'
 
-function VotingSummaryContent({
-  activeTopic,
-}: {
-  activeTopic: Topic
-}) {
+function VotingSummaryContent({ activeTopic }: { activeTopic: Topic }) {
   const trpc = useTRPC()
   const domain = useDomain()
 
@@ -73,47 +69,43 @@ function VotingSummaryContent({
             </span>
           </div>
         )}
-        <div className={hasSessions ? "" : "opacity-50 pointer-events-none blur-[2px]"}>
-        <Tabs
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as 'leaderboard' | 'voters')}
-          className="min-w-0 space-y-0"
-        >
-          <div className="min-w-0 border-b border-border">
-            <div className="mx-auto w-full min-w-0 sm:w-1/2 sm:max-w-none">
-              <TabsList className="-mb-px flex h-auto w-full min-w-0 gap-0 rounded-none bg-transparent p-0">
-                <TabsTrigger value="leaderboard" className={tabTriggerClassName}>
-                  Leaderboard
-                </TabsTrigger>
-                <TabsTrigger value="voters" className={tabTriggerClassName}>
-                  Voters
-                </TabsTrigger>
-              </TabsList>
+        <div className={hasSessions ? '' : 'opacity-50 pointer-events-none blur-[2px]'}>
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as 'leaderboard' | 'voters')}
+            className="min-w-0 space-y-0"
+          >
+            <div className="min-w-0 border-b border-border">
+              <div className="mx-auto w-full min-w-0 sm:w-1/2 sm:max-w-none">
+                <TabsList className="-mb-px flex h-auto w-full min-w-0 gap-0 rounded-none bg-transparent p-0">
+                  <TabsTrigger value="leaderboard" className={tabTriggerClassName}>
+                    Leaderboard
+                  </TabsTrigger>
+                  <TabsTrigger value="voters" className={tabTriggerClassName}>
+                    Voters
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             </div>
-          </div>
 
-          <TabsContent value="leaderboard" className="mt-6 min-w-0 space-y-6">
-            {activeTab === "leaderboard" && hasSessions && (
-              <Suspense fallback={<LeaderboardTabSkeleton />}>
-                <LeaderboardTab
-                  activeTopic={activeTopic}
-                />
-              </Suspense>
-            )}
-            {!hasSessions && <LeaderboardTabSkeleton />}
-          </TabsContent>
+            <TabsContent value="leaderboard" className="mt-6 min-w-0 space-y-6">
+              {activeTab === 'leaderboard' && hasSessions && (
+                <Suspense fallback={<LeaderboardTabSkeleton />}>
+                  <LeaderboardTab activeTopic={activeTopic} />
+                </Suspense>
+              )}
+              {!hasSessions && <LeaderboardTabSkeleton />}
+            </TabsContent>
 
-          <TabsContent value="voters" className="mt-6 min-w-0">
-            {activeTab === "voters" && hasSessions && (
-              <Suspense fallback={<VotersTabSkeleton />}>
-                <VotersTab
-                  activeTopic={activeTopic}
-                />
-              </Suspense>
-            )}
-            {!hasSessions && <VotersTabSkeleton />}
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="voters" className="mt-6 min-w-0">
+              {activeTab === 'voters' && hasSessions && (
+                <Suspense fallback={<VotersTabSkeleton />}>
+                  <VotersTab activeTopic={activeTopic} />
+                </Suspense>
+              )}
+              {!hasSessions && <VotersTabSkeleton />}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
@@ -130,9 +122,8 @@ export function VotingContent() {
     }),
   )
 
-  const activeTopic =
-    marathon.topics.find((topic) => topic.visibility === "active") ?? null
-  const isByCamera = marathon.mode === "by-camera"
+  const activeTopic = marathon.topics.find((topic) => topic.visibility === 'active') ?? null
+  const isByCamera = marathon.mode === 'by-camera'
 
   if (!isByCamera) {
     return (
@@ -158,8 +149,8 @@ export function VotingContent() {
           <div>
             <p className="text-[13px] font-medium text-amber-900">Voting unavailable</p>
             <p className="mt-0.5 text-[12px] leading-relaxed text-amber-800/70">
-              Current marathon mode is <strong>{marathon.mode}</strong>. Switch to
-              by-camera mode to enable voting sessions and leaderboard management.
+              Current marathon mode is <strong>{marathon.mode}</strong>. Switch to by-camera mode to
+              enable voting sessions and leaderboard management.
             </p>
           </div>
         </div>
@@ -182,9 +173,7 @@ export function VotingContent() {
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          No active topic is currently available.
-        </p>
+        <p className="text-sm text-muted-foreground">No active topic is currently available.</p>
 
         <div className="flex items-start gap-3 rounded-xl border border-border bg-white px-4 py-3.5">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -208,9 +197,7 @@ export function VotingContent() {
       }
     >
       <div className="min-w-0 space-y-8 pb-8">
-        <VotingSummaryContent
-          activeTopic={activeTopic}
-        />
+        <VotingSummaryContent activeTopic={activeTopic} />
       </div>
     </Suspense>
   )

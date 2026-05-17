@@ -1,11 +1,14 @@
-import { fetchServerQuery, HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { SubmissionsTable } from "./_components/submissions-table"
-import { Suspense } from "react"
-import { loadSubmissionSearchParams } from "./_lib/search-params"
-import { SubmissionsHeader } from "./_components/submissions-header"
-import { SubmissionsSkeleton } from "./_components/submissions-skeleton"
+import { fetchServerQuery, HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { SubmissionsTable } from './_components/submissions-table'
+import { Suspense } from 'react'
+import { loadSubmissionSearchParams } from './_lib/search-params'
+import { SubmissionsHeader } from './_components/submissions-header'
+import { SubmissionsSkeleton } from './_components/submissions-skeleton'
 
-export default async function SubmissionsPage({ params, searchParams }: PageProps<"/admin/[domain]/dashboard">) {
+export default async function SubmissionsPage({
+  params,
+  searchParams,
+}: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
   const marathon = await fetchServerQuery(
     trpc.marathons.getByDomain.queryOptions({
@@ -13,11 +16,11 @@ export default async function SubmissionsPage({ params, searchParams }: PageProp
     }),
   )
   const activeByCameraTopic =
-    marathon.mode === "by-camera"
-      ? (marathon.topics.find((topic) => topic.visibility === "active") ?? null)
+    marathon.mode === 'by-camera'
+      ? (marathon.topics.find((topic) => topic.visibility === 'active') ?? null)
       : null
   const activeByCameraTopicId =
-    marathon.mode === "by-camera" ? (activeByCameraTopic?.id ?? -1) : null
+    marathon.mode === 'by-camera' ? (activeByCameraTopic?.id ?? -1) : null
   const queryParams = await loadSubmissionSearchParams(searchParams)
   prefetch(
     trpc.participants.getByDomainInfinite.queryOptions({
@@ -50,4 +53,5 @@ export default async function SubmissionsPage({ params, searchParams }: PageProp
         </div>
       </Suspense>
     </HydrateClient>
-  )}
+  )
+}

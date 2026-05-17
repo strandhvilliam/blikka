@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect } from 'react'
 
 export function useHandleBeforeUnload(enabled = true) {
   useEffect(() => {
@@ -6,22 +6,22 @@ export function useHandleBeforeUnload(enabled = true) {
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault()
-      return "Are you sure you want to leave? All progress will be lost."
+      return 'Are you sure you want to leave? All progress will be lost.'
     }
 
     const isOnIOS = navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)
 
     if (isOnIOS) {
-      window.addEventListener("pagehide", handleBeforeUnload)
+      window.addEventListener('pagehide', handleBeforeUnload)
     } else {
-      window.addEventListener("beforeunload", handleBeforeUnload)
+      window.addEventListener('beforeunload', handleBeforeUnload)
     }
 
     return () => {
       if (isOnIOS) {
-        window.removeEventListener("pagehide", handleBeforeUnload)
+        window.removeEventListener('pagehide', handleBeforeUnload)
       } else {
-        window.removeEventListener("beforeunload", handleBeforeUnload)
+        window.removeEventListener('beforeunload', handleBeforeUnload)
       }
     }
   }, [enabled])

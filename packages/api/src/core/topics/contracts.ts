@@ -1,10 +1,10 @@
-import { Schema } from "effect"
+import { Schema } from 'effect'
 
 export const CreateTopicInputSchema = Schema.Struct({
   domain: Schema.String,
   data: Schema.Struct({
     name: Schema.String,
-    visibility: Schema.Literals(["public", "private", "scheduled", "active"]),
+    visibility: Schema.Literals(['public', 'private', 'scheduled', 'active']),
     activate: Schema.optional(Schema.Boolean),
     scheduledStart: Schema.optional(Schema.String),
     scheduledEnd: Schema.optional(Schema.String),
@@ -17,7 +17,7 @@ export const UpdateTopicInputSchema = Schema.Struct({
   id: Schema.Number,
   data: Schema.Struct({
     name: Schema.optional(Schema.String),
-    visibility: Schema.optional(Schema.Literals(["public", "private", "scheduled", "active"])),
+    visibility: Schema.optional(Schema.Literals(['public', 'private', 'scheduled', 'active'])),
     scheduledStart: Schema.optional(Schema.NullishOr(Schema.String)),
     scheduledEnd: Schema.optional(Schema.NullishOr(Schema.String)),
     orderIndex: Schema.optional(Schema.Number),

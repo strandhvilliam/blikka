@@ -1,21 +1,21 @@
-import { Effect } from "effect"
-import { FinalizedEventSchema } from "@blikka/aws"
-import { Resource as SSTResource } from "sst"
+import { Effect } from 'effect'
+import { FinalizedEventSchema } from '@blikka/aws'
+import { Resource as SSTResource } from 'sst'
 import {
   getEnvironmentFromStage,
   makeLambdaHandler,
   makeLambdaTaskLayer,
   makeSqsRealtimeTask,
   parseBusEvent,
-} from "@blikka/task-runtime"
-import { ValidationRunner, ValidationRunnerLayer } from "@blikka/uploads"
+} from '@blikka/task-runtime'
+import { ValidationRunner, ValidationRunnerLayer } from '@blikka/uploads'
 
-const TASK_NAME = "validation-runner"
-const REALTIME_EVENT = "participant-validated"
+const TASK_NAME = 'validation-runner'
+const REALTIME_EVENT = 'participant-validated'
 
 const effectHandler = makeSqsRealtimeTask({
   taskName: TASK_NAME,
-  spanName: "ValidationRunner.handler",
+  spanName: 'ValidationRunner.handler',
   eventKey: REALTIME_EVENT,
   recordConcurrency: 2,
   decodeRecord: (record) => parseBusEvent(record.body, FinalizedEventSchema),
@@ -23,11 +23,11 @@ const effectHandler = makeSqsRealtimeTask({
     Effect.gen(function* () {
       const validationRunner = yield* ValidationRunner
 
-      yield* Effect.logInfo("Executing validation")
+      yield* Effect.logInfo('Executing validation')
 
       yield* validationRunner.execute(input).pipe(
-        Effect.tap(() => Effect.logInfo("Validation executed")),
-        Effect.tapError((error) => Effect.logError("Error executing validation", error)),
+        Effect.tap(() => Effect.logInfo('Validation executed')),
+        Effect.tapError((error) => Effect.logError('Error executing validation', error)),
       )
     }).pipe(Effect.annotateLogs({ ...input })),
 })

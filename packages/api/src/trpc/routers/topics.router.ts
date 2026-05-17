@@ -1,12 +1,8 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
-import {
-  createTRPCRouter,
-  domainProcedure,
-  requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+import { Effect, Schema } from 'effect'
+import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'
+import { trpcEffect } from '../utils'
 import {
   CreateTopicInputSchema,
   UpdateTopicInputSchema,
@@ -14,8 +10,8 @@ import {
   UpdateTopicsOrderInputSchema,
   GetTopicsWithSubmissionCountInputSchema,
   ActivateTopicInputSchema,
-} from "../../core/topics/contracts";
-import { TopicsService } from "../../core/topics/service";
+} from '../../core/topics/contracts'
+import { TopicsService } from '../../core/topics/service'
 
 export const topicsRouter = createTRPCRouter({
   getWithSubmissionCount: domainProcedure
@@ -23,10 +19,8 @@ export const topicsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("TopicsRouter.getWithSubmissionCount")(function* ({ input }) {
-          return yield* TopicsService.use((s) =>
-            s.getTopicsWithSubmissionCount(input),
-          );
+        Effect.fn('TopicsRouter.getWithSubmissionCount')(function* ({ input }) {
+          return yield* TopicsService.use((s) => s.getTopicsWithSubmissionCount(input))
         }),
       ),
     ),
@@ -35,8 +29,8 @@ export const topicsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("TopicsRouter.create")(function* ({ input }) {
-          return yield* TopicsService.use((s) => s.createTopic(input));
+        Effect.fn('TopicsRouter.create')(function* ({ input }) {
+          return yield* TopicsService.use((s) => s.createTopic(input))
         }),
       ),
     ),
@@ -46,8 +40,8 @@ export const topicsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("TopicsRouter.update")(function* ({ input }) {
-          return yield* TopicsService.use((s) => s.updateTopic(input));
+        Effect.fn('TopicsRouter.update')(function* ({ input }) {
+          return yield* TopicsService.use((s) => s.updateTopic(input))
         }),
       ),
     ),
@@ -57,8 +51,8 @@ export const topicsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("TopicsRouter.activate")(function* ({ input }) {
-          return yield* TopicsService.use((s) => s.activateTopic(input));
+        Effect.fn('TopicsRouter.activate')(function* ({ input }) {
+          return yield* TopicsService.use((s) => s.activateTopic(input))
         }),
       ),
     ),
@@ -68,8 +62,8 @@ export const topicsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("TopicsRouter.delete")(function* ({ input }) {
-          return yield* TopicsService.use((s) => s.deleteTopic(input));
+        Effect.fn('TopicsRouter.delete')(function* ({ input }) {
+          return yield* TopicsService.use((s) => s.deleteTopic(input))
         }),
       ),
     ),
@@ -79,9 +73,9 @@ export const topicsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("TopicsRouter.updateOrder")(function* ({ input }) {
-          return yield* TopicsService.use((s) => s.updateTopicsOrder(input));
+        Effect.fn('TopicsRouter.updateOrder')(function* ({ input }) {
+          return yield* TopicsService.use((s) => s.updateTopicsOrder(input))
         }),
       ),
     ),
-});
+})

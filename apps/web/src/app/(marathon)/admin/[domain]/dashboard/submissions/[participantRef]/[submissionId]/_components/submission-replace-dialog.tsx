@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useDropzone } from "react-dropzone"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { ImageIcon, Loader2, ReplaceIcon, Upload } from "lucide-react"
-import { toast } from "sonner"
+import { useEffect, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ImageIcon, Loader2, ReplaceIcon, Upload } from 'lucide-react'
+import { toast } from 'sonner'
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -15,22 +15,22 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import { cn } from "@/lib/utils"
-import { uploadFileToPresignedUrl } from "@/lib/upload-client"
+} from '@/components/ui/dialog'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
+import { cn } from '@/lib/utils'
+import { uploadFileToPresignedUrl } from '@/lib/upload-client'
 import {
   ADMIN_REPLACE_DROPZONE_ACCEPT,
   resolveReplaceUploadContentType,
-} from "../_lib/replace-upload"
+} from '../_lib/replace-upload'
 
 interface SubmissionReplaceDialogProps {
   submissionId: number
   participantRef: string
 }
 
-const ACCEPTED_TYPE_LABEL = "JPG, PNG, GIF, WebP, HEIC, HEIF"
+const ACCEPTED_TYPE_LABEL = 'JPG, PNG, GIF, WebP, HEIC, HEIF'
 
 export function SubmissionReplaceDialog({
   submissionId,
@@ -114,7 +114,7 @@ export function SubmissionReplaceDialog({
   }
 
   const handleDropRejected = () => {
-    toast.error("Please choose a supported image file to replace this submission.")
+    toast.error('Please choose a supported image file to replace this submission.')
   }
 
   const { getInputProps, getRootProps, isDragActive } = useDropzone({
@@ -127,13 +127,13 @@ export function SubmissionReplaceDialog({
 
   const handleReplace = async () => {
     if (!selectedFile) {
-      toast.error("Choose a replacement image first")
+      toast.error('Choose a replacement image first')
       return
     }
 
     const contentType = resolveReplaceUploadContentType(selectedFile)
     if (!contentType) {
-      toast.error("Unsupported image type")
+      toast.error('Unsupported image type')
       return
     }
 
@@ -163,7 +163,7 @@ export function SubmissionReplaceDialog({
         previousKey: beginResult.previousKey,
       })
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to replace submission"
+      const message = error instanceof Error ? error.message : 'Failed to replace submission'
       toast.error(message)
     } finally {
       setIsUploadingFile(false)
@@ -201,12 +201,12 @@ export function SubmissionReplaceDialog({
             <div
               {...getRootProps()}
               className={cn(
-                "rounded-xl border border-dashed p-6 transition-colors",
+                'rounded-xl border border-dashed p-6 transition-colors',
                 isBusy
-                  ? "cursor-progress border-border bg-muted/30"
+                  ? 'cursor-progress border-border bg-muted/30'
                   : isDragActive
-                    ? "cursor-copy border-foreground/50 bg-muted/60"
-                    : "cursor-pointer border-border bg-muted/20 hover:bg-muted/35",
+                    ? 'cursor-copy border-foreground/50 bg-muted/60'
+                    : 'cursor-pointer border-border bg-muted/20 hover:bg-muted/35',
               )}
             >
               <input {...getInputProps()} />
@@ -216,7 +216,7 @@ export function SubmissionReplaceDialog({
                 </div>
                 <div className="space-y-1">
                   <p className="font-medium">
-                    {isDragActive ? "Drop the replacement image here" : "Drag and drop a new image"}
+                    {isDragActive ? 'Drop the replacement image here' : 'Drag and drop a new image'}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Accepted formats: {ACCEPTED_TYPE_LABEL}. Only one file can be uploaded.
@@ -278,12 +278,26 @@ export function SubmissionReplaceDialog({
         </div>
 
         <DialogFooter className="border-t px-6 py-4 sm:justify-between">
-          <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={isBusy}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => handleOpenChange(false)}
+            disabled={isBusy}
+          >
             Cancel
           </Button>
-          <Button type="button" className="gap-2" onClick={handleReplace} disabled={!selectedFile || isBusy}>
-            {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReplaceIcon className="h-4 w-4" />}
-            {isBusy ? "Replacing..." : "Replace Submission"}
+          <Button
+            type="button"
+            className="gap-2"
+            onClick={handleReplace}
+            disabled={!selectedFile || isBusy}
+          >
+            {isBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ReplaceIcon className="h-4 w-4" />
+            )}
+            {isBusy ? 'Replacing...' : 'Replace Submission'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { ArrowUpDown } from "lucide-react"
-import { RuleCard, type RuleValue } from "./rule-card"
+import { ArrowUpDown } from 'lucide-react'
+import { RuleCard, type RuleValue } from './rule-card'
 
 type StrictTimestampOrderingValue = RuleValue<null>
 

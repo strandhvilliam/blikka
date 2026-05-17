@@ -1,34 +1,34 @@
-"use client"
+'use client'
 
-import { notFound } from "next/navigation"
-import { Suspense, useEffect } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { SubmissionExifDataDisplay } from "./submission-exif-data-display"
-import { SubmissionValidationSteps } from "./submission-validation-steps"
-import { SubmissionHeader } from "./submission-header"
+import { notFound } from 'next/navigation'
+import { Suspense, useEffect } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { SubmissionExifDataDisplay } from './submission-exif-data-display'
+import { SubmissionValidationSteps } from './submission-validation-steps'
+import { SubmissionHeader } from './submission-header'
 import type {
   CompetitionClass,
   DeviceGroup,
   Participant,
   Submission,
   ValidationResult,
-} from "@blikka/db"
-import { SubmissionImageViewer } from "./submission-image-viewer"
-import { SubmissionMetadataPanel } from "./submission-metadata-panel"
-import { SubmissionNavigationControls } from "./submission-navigation-controls"
-import { useState } from "react"
-import { SubmissionQuickActions, type SubmissionDetailTab } from "./submission-quick-actions"
-import { SubmissionReviewTimeline } from "./submission-review-timeline"
-import { useRouter } from "next/navigation"
+} from '@blikka/db'
+import { SubmissionImageViewer } from './submission-image-viewer'
+import { SubmissionMetadataPanel } from './submission-metadata-panel'
+import { SubmissionNavigationControls } from './submission-navigation-controls'
+import { useState } from 'react'
+import { SubmissionQuickActions, type SubmissionDetailTab } from './submission-quick-actions'
+import { SubmissionReviewTimeline } from './submission-review-timeline'
+import { useRouter } from 'next/navigation'
 
-import { useDomain } from "@/lib/domain-provider"
-import { formatDomainPathname } from "@/lib/utils"
+import { useDomain } from '@/lib/domain-provider'
+import { formatDomainPathname } from '@/lib/utils'
 import {
   getSubmissionDownloadFileName,
   getSubmissionOriginalImageUrl,
   getSubmissionPreviewImageUrl,
-} from "../_lib/submission-image-urls"
+} from '../_lib/submission-image-urls'
 
 interface VotingDataPanelProps {
   submission: Submission
@@ -81,7 +81,7 @@ export function ParticipantSubmissionClientPage({
   const router = useRouter()
 
   const trpc = useTRPC()
-  const [detailTab, setDetailTab] = useState<SubmissionDetailTab>("exif")
+  const [detailTab, setDetailTab] = useState<SubmissionDetailTab>('exif')
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
@@ -105,7 +105,7 @@ export function ParticipantSubmissionClientPage({
       (result) => result.fileName && submission?.key && result.fileName.includes(submission.key),
     ) || []
 
-  const hasIssues = submissionValidationResults.some((result) => result.outcome === "failed")
+  const hasIssues = submissionValidationResults.some((result) => result.outcome === 'failed')
 
   const allSubmissions = participant?.submissions
     .filter((s) => s.topic)
@@ -116,17 +116,11 @@ export function ParticipantSubmissionClientPage({
     participant?.submissions
       .filter((candidate) => candidate.topic)
       .sort(
-        (left, right) =>
-          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+        (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
       )[0] ?? null
 
   useEffect(() => {
-    if (
-      marathon.mode !== "by-camera" ||
-      !participant ||
-      submission ||
-      !latestSubmission
-    ) {
+    if (marathon.mode !== 'by-camera' || !participant || submission || !latestSubmission) {
       return
     }
 
@@ -138,7 +132,7 @@ export function ParticipantSubmissionClientPage({
     )
   }, [domain, latestSubmission, marathon.mode, participant, router, submission])
 
-  if (marathon.mode === "by-camera" && participant && !submission && latestSubmission) {
+  if (marathon.mode === 'by-camera' && participant && !submission && latestSubmission) {
     return (
       <div className="rounded-xl border border-border bg-white p-6 text-sm text-muted-foreground">
         Syncing to the latest submission...
@@ -162,7 +156,7 @@ export function ParticipantSubmissionClientPage({
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6">
         <div className="space-y-6">
           <div className="relative">
-            {marathon.mode !== "by-camera" && (
+            {marathon.mode !== 'by-camera' && (
               <SubmissionNavigationControls
                 currentIndex={currentIndex}
                 totalSubmissions={allSubmissions.length}
@@ -194,7 +188,7 @@ export function ParticipantSubmissionClientPage({
           />
 
           <div className="rounded-xl border border-border bg-white p-4" role="tabpanel">
-            {detailTab === "validation" ? (
+            {detailTab === 'validation' ? (
               <>
                 <h3 className="font-gothic mb-3 text-base font-normal tracking-tight">
                   Validation Results
@@ -211,7 +205,7 @@ export function ParticipantSubmissionClientPage({
         </div>
 
         <div className="space-y-6">
-          {marathon.mode === "by-camera" ? (
+          {marathon.mode === 'by-camera' ? (
             <Suspense
               fallback={
                 <div className="rounded-xl border border-border bg-white p-4 animate-pulse">

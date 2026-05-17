@@ -1,22 +1,22 @@
-import { readFile } from "node:fs/promises"
-import path from "node:path"
-import type { Metadata } from "next"
-import { hasLocale } from "next-intl"
-import type { Locale } from "next-intl"
-import { TermsMarkdown } from "@/components/terms-markdown"
-import { DEFAULT_LOCALE, LOCALES, protocol, rootDomain } from "@/config"
-import { PlatformTermsHero } from "./_components/platform-terms-hero"
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
+import type { Metadata } from 'next'
+import { hasLocale } from 'next-intl'
+import type { Locale } from 'next-intl'
+import { TermsMarkdown } from '@/components/terms-markdown'
+import { DEFAULT_LOCALE, LOCALES, protocol, rootDomain } from '@/config'
+import { PlatformTermsHero } from './_components/platform-terms-hero'
 
 function termsMarkdownPath(locale: Locale) {
-  const suffix = locale === "sv" ? "sv" : "en"
+  const suffix = locale === 'sv' ? 'sv' : 'en'
   return path.join(
     process.cwd(),
-    "src",
-    "app",
-    "(public)",
-    "[locale]",
-    "terms-and-conditions",
-    "_content",
+    'src',
+    'app',
+    '(public)',
+    '[locale]',
+    'terms-and-conditions',
+    '_content',
     `blikka-terms-and-conditions.${suffix}.md`,
   )
 }
@@ -27,16 +27,16 @@ function resolveLocale(candidate: string): Locale {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/[locale]/terms-and-conditions">): Promise<Metadata> {
+}: PageProps<'/[locale]/terms-and-conditions'>): Promise<Metadata> {
   const { locale: localeParam } = await params
   const locale = resolveLocale(localeParam)
   const titles: Record<Locale, string> = {
-    en: "Terms and conditions · Blikka",
-    sv: "Villkor och regler · Blikka",
+    en: 'Terms and conditions · Blikka',
+    sv: 'Villkor och regler · Blikka',
   }
   const descriptions: Record<Locale, string> = {
-    en: "Participant terms for events arranged by Fotomaraton Sverige AB.",
-    sv: "Deltagarvillkor för evenemang som arrangeras av Fotomaraton Sverige AB.",
+    en: 'Participant terms for events arranged by Fotomaraton Sverige AB.',
+    sv: 'Deltagarvillkor för evenemang som arrangeras av Fotomaraton Sverige AB.',
   }
 
   const defaultUrl = `${protocol}://${rootDomain}/terms-and-conditions`
@@ -46,11 +46,11 @@ export async function generateMetadata({
     title: titles[locale],
     description: descriptions[locale],
     alternates: {
-      canonical: `${protocol}://${rootDomain}${locale === DEFAULT_LOCALE ? "" : `/${locale}`}/terms-and-conditions`,
+      canonical: `${protocol}://${rootDomain}${locale === DEFAULT_LOCALE ? '' : `/${locale}`}/terms-and-conditions`,
       languages: {
         en: defaultUrl,
         sv: svUrl,
-        "x-default": defaultUrl,
+        'x-default': defaultUrl,
       },
     },
   }
@@ -58,10 +58,10 @@ export async function generateMetadata({
 
 export default async function TermsAndConditionsPage({
   params,
-}: PageProps<"/[locale]/terms-and-conditions">) {
+}: PageProps<'/[locale]/terms-and-conditions'>) {
   const { locale: localeParam } = await params
   const locale = resolveLocale(localeParam)
-  const markdown = await readFile(termsMarkdownPath(locale), "utf8")
+  const markdown = await readFile(termsMarkdownPath(locale), 'utf8')
 
   return (
     <main className="mx-auto min-h-svh w-full max-w-3xl px-4 py-10 sm:px-6 sm:py-12">

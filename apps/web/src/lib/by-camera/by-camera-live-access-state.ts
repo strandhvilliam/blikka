@@ -1,27 +1,27 @@
-import type { CompetitionClass, DeviceGroup, Marathon, Topic } from "@blikka/db"
+import type { CompetitionClass, DeviceGroup, Marathon, Topic } from '@blikka/db'
 
-import { getByCameraSubmissionWindowState } from "./by-camera-submission-window-state"
+import { getByCameraSubmissionWindowState } from './by-camera-submission-window-state'
 
 export type ByCameraLiveAccessState =
-  | "not-configured"
-  | "not-opened"
-  | "scheduled"
-  | "open"
-  | "closed"
+  | 'not-configured'
+  | 'not-opened'
+  | 'scheduled'
+  | 'open'
+  | 'closed'
 
 export type ByCameraLiveAccessReason =
-  | "setup-incomplete"
-  | "missing-device-groups"
-  | "missing-single-photo-class"
-  | "no-active-topic"
-  | "missing-scheduled-start"
-  | "scheduled"
-  | "open"
-  | "closed"
+  | 'setup-incomplete'
+  | 'missing-device-groups'
+  | 'missing-single-photo-class'
+  | 'no-active-topic'
+  | 'missing-scheduled-start'
+  | 'scheduled'
+  | 'open'
+  | 'closed'
 
-type ByCameraLiveMarathon = Pick<Marathon, "setupCompleted"> & {
-  deviceGroups: Pick<DeviceGroup, "id">[]
-  competitionClasses: Pick<CompetitionClass, "id" | "numberOfPhotos">[]
+type ByCameraLiveMarathon = Pick<Marathon, 'setupCompleted'> & {
+  deviceGroups: Pick<DeviceGroup, 'id'>[]
+  competitionClasses: Pick<CompetitionClass, 'id' | 'numberOfPhotos'>[]
   topics: Topic[]
 }
 
@@ -37,16 +37,16 @@ export function getByCameraLiveAccessState(
 ): ByCameraLiveAccessResult {
   if (!marathon.setupCompleted) {
     return {
-      state: "not-configured",
-      reason: "setup-incomplete",
+      state: 'not-configured',
+      reason: 'setup-incomplete',
       activeTopic: null,
     }
   }
 
   if (marathon.deviceGroups.length === 0) {
     return {
-      state: "not-configured",
-      reason: "missing-device-groups",
+      state: 'not-configured',
+      reason: 'missing-device-groups',
       activeTopic: null,
     }
   }
@@ -57,44 +57,44 @@ export function getByCameraLiveAccessState(
 
   if (!hasSinglePhotoClass) {
     return {
-      state: "not-configured",
-      reason: "missing-single-photo-class",
+      state: 'not-configured',
+      reason: 'missing-single-photo-class',
       activeTopic: null,
     }
   }
 
-  const activeTopic = marathon.topics.find((topic) => topic.visibility === "active") ?? null
+  const activeTopic = marathon.topics.find((topic) => topic.visibility === 'active') ?? null
   const submissionWindowState = getByCameraSubmissionWindowState(activeTopic, now)
 
   switch (submissionWindowState) {
-    case "no-active-topic":
+    case 'no-active-topic':
       return {
-        state: "not-opened",
-        reason: "no-active-topic",
+        state: 'not-opened',
+        reason: 'no-active-topic',
         activeTopic,
       }
-    case "not-opened":
+    case 'not-opened':
       return {
-        state: "not-opened",
-        reason: "missing-scheduled-start",
+        state: 'not-opened',
+        reason: 'missing-scheduled-start',
         activeTopic,
       }
-    case "scheduled":
+    case 'scheduled':
       return {
-        state: "scheduled",
-        reason: "scheduled",
+        state: 'scheduled',
+        reason: 'scheduled',
         activeTopic,
       }
-    case "closed":
+    case 'closed':
       return {
-        state: "closed",
-        reason: "closed",
+        state: 'closed',
+        reason: 'closed',
         activeTopic,
       }
-    case "open":
+    case 'open':
       return {
-        state: "open",
-        reason: "open",
+        state: 'open',
+        reason: 'open',
         activeTopic,
       }
   }

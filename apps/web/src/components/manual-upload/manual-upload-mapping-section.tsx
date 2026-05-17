@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import {
   Select,
@@ -6,10 +6,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-import type { CompetitionClass, DeviceGroup, Topic } from "@blikka/db"
-import { pluralizePhotos, type ManualUploadFormApi } from "@/hooks/use-manual-upload-form"
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+import type { CompetitionClass, DeviceGroup, Topic } from '@blikka/db'
+import { pluralizePhotos, type ManualUploadFormApi } from '@/hooks/use-manual-upload-form'
 
 interface ManualUploadMappingSectionProps {
   form: ManualUploadFormApi
@@ -38,11 +38,11 @@ export function ManualUploadMappingSection({
       <div className="mt-4 space-y-4">
         <div
           className={cn(
-            "grid gap-4",
-            marathonMode === "marathon" ? "md:grid-cols-2" : "grid-cols-1",
+            'grid gap-4',
+            marathonMode === 'marathon' ? 'md:grid-cols-2' : 'grid-cols-1',
           )}
         >
-          {marathonMode === "marathon" ? (
+          {marathonMode === 'marathon' ? (
             <form.Field name="competitionClassId">
               {(field) => (
                 <div className="space-y-2">
@@ -58,7 +58,7 @@ export function ManualUploadMappingSection({
                       className={cn(
                         !field.state.meta.isValid &&
                           field.state.meta.isTouched &&
-                          "border-rose-400 focus-visible:ring-rose-400",
+                          'border-rose-400 focus-visible:ring-rose-400',
                       )}
                     >
                       <SelectValue placeholder="Select class" />
@@ -78,7 +78,7 @@ export function ManualUploadMappingSection({
                   {!field.state.meta.isValid &&
                   field.state.meta.isTouched &&
                   field.state.meta.errors.length > 0 ? (
-                    <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
+                    <p className="text-xs text-rose-600">{field.state.meta.errors.join(', ')}</p>
                   ) : null}
                 </div>
               )}
@@ -100,7 +100,7 @@ export function ManualUploadMappingSection({
                     className={cn(
                       !field.state.meta.isValid &&
                         field.state.meta.isTouched &&
-                        "border-rose-400 focus-visible:ring-rose-400",
+                        'border-rose-400 focus-visible:ring-rose-400',
                     )}
                   >
                     <SelectValue placeholder="Select device group" />
@@ -116,7 +116,7 @@ export function ManualUploadMappingSection({
                 {!field.state.meta.isValid &&
                 field.state.meta.isTouched &&
                 field.state.meta.errors.length > 0 ? (
-                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
+                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(', ')}</p>
                 ) : null}
               </div>
             )}

@@ -1,28 +1,26 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { Archive, AlertCircle } from "lucide-react"
+import { useState } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { Archive, AlertCircle } from 'lucide-react'
 
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { getByCameraExportAccessState } from "@/lib/by-camera/by-camera-export-access-state"
-import { ExportHeader } from "./export-header"
-import { ExportCard } from "./export-card"
-import { BY_CAMERA_EXPORT_TYPES, MARATHON_EXPORT_TYPES } from "../_lib/utils"
-import { FullMarathonZipCard } from "./full-marathon-zip-card"
-import { TopicImagesZipCard } from "./topic-images-zip-card"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { getByCameraExportAccessState } from '@/lib/by-camera/by-camera-export-access-state'
+import { ExportHeader } from './export-header'
+import { ExportCard } from './export-card'
+import { BY_CAMERA_EXPORT_TYPES, MARATHON_EXPORT_TYPES } from '../_lib/utils'
+import { FullMarathonZipCard } from './full-marathon-zip-card'
+import { TopicImagesZipCard } from './topic-images-zip-card'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 export function ExportContent() {
   const domain = useDomain()
   const trpc = useTRPC()
   const [bypassRestriction, setBypassRestriction] = useState(false)
 
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain }),
-  )
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   const isLive = (() => {
     if (!marathon.startDate || !marathon.endDate) return false
@@ -32,15 +30,11 @@ export function ExportContent() {
     return now >= startDate && now <= endDate
   })()
 
-  const isDevelopment = process.env.NODE_ENV === "development"
-  const isByCamera = marathon.mode === "by-camera"
-  const byCameraExportAccess = isByCamera
-    ? getByCameraExportAccessState(marathon)
-    : null
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  const isByCamera = marathon.mode === 'by-camera'
+  const byCameraExportAccess = isByCamera ? getByCameraExportAccessState(marathon) : null
   const activeTopic = byCameraExportAccess?.activeTopic ?? null
-  const exportTypes = isByCamera
-    ? BY_CAMERA_EXPORT_TYPES
-    : MARATHON_EXPORT_TYPES
+  const exportTypes = isByCamera ? BY_CAMERA_EXPORT_TYPES : MARATHON_EXPORT_TYPES
   const shouldDisableExports = isByCamera
     ? !(byCameraExportAccess?.isExportAllowed ?? false)
     : isLive && !bypassRestriction
@@ -62,14 +56,12 @@ export function ExportContent() {
           </div>
           <div>
             <p className="text-[13px] font-medium text-foreground">
-              {activeTopic
-                ? `Active topic: ${activeTopic.name}`
-                : "By-camera exports"}
+              {activeTopic ? `Active topic: ${activeTopic.name}` : 'By-camera exports'}
             </p>
             <p className="text-[13px] text-muted-foreground leading-relaxed mt-0.5">
-              Submission, validation, and image exports are scoped to the active
-              topic. The participant spreadsheet is the exception: it includes
-              all by-camera participants across every topic.
+              Submission, validation, and image exports are scoped to the active topic. The
+              participant spreadsheet is the exception: it includes all by-camera participants
+              across every topic.
             </p>
           </div>
         </div>
@@ -99,17 +91,16 @@ export function ExportContent() {
           <div>
             <p className="text-[13px] font-medium text-red-900">
               {isByCamera
-                ? (byCameraExportAccess?.message?.title ??
-                  "Active-topic exports unavailable")
-                : "Exports unavailable"}
+                ? (byCameraExportAccess?.message?.title ?? 'Active-topic exports unavailable')
+                : 'Exports unavailable'}
             </p>
             <p className="text-[13px] text-red-800/80 leading-relaxed mt-0.5">
               {isByCamera
                 ? `${
                     byCameraExportAccess?.message?.description ??
-                    "Exports are unavailable for the active topic right now."
+                    'Exports are unavailable for the active topic right now.'
                   } The all-participants spreadsheet remains available because it is not tied to the active topic.`
-                : "Exports are not available while the marathon is live. Please wait until the marathon ends to generate exports."}
+                : 'Exports are not available while the marathon is live. Please wait until the marathon ends to generate exports.'}
             </p>
           </div>
         </div>
@@ -124,8 +115,7 @@ export function ExportContent() {
             </p>
           </div>
           <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 max-w-md">
-            Structured data exports for participants, submissions, and
-            validation results.
+            Structured data exports for participants, submissions, and validation results.
           </p>
           <div className="space-y-3">
             {exportTypes.map((exportType) => (
@@ -133,20 +123,14 @@ export function ExportContent() {
                 key={exportType.id}
                 title={exportType.title}
                 description={exportType.description}
-                icon={
-                  <exportType.icon
-                    className="h-[18px] w-[18px]"
-                    strokeWidth={1.8}
-                  />
-                }
+                icon={<exportType.icon className="h-[18px] w-[18px]" strokeWidth={1.8} />}
                 exportType={exportType.exportType}
                 downloadName={exportType.downloadName}
                 formatOptions={exportType.formatOptions}
                 validationOptions={exportType.validationOptions}
                 fileFormatOptions={exportType.fileFormatOptions}
                 disabled={
-                  exportType.exportType ===
-                  "xlsx_participants_by_camera_all_topics"
+                  exportType.exportType === 'xlsx_participants_by_camera_all_topics'
                     ? false
                     : shouldDisableExports
                 }

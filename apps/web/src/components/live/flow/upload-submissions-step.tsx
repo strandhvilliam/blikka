@@ -1,48 +1,48 @@
-"use client"
+'use client'
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { motion, AnimatePresence } from "motion/react"
-import { useTranslations } from "next-intl"
-import { useRouter } from "next/navigation"
-import { useMutation } from "@tanstack/react-query"
-import { toast } from "sonner"
-import type { CompetitionClass, RuleConfig as DbRuleConfig, Topic } from "@blikka/db"
-import { VALIDATION_OUTCOME } from "@blikka/validation"
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
+import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import type { CompetitionClass, RuleConfig as DbRuleConfig, Topic } from '@blikka/db'
+import { VALIDATION_OUTCOME } from '@blikka/validation'
 
-import { Button } from "@/components/ui/button"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useDomain } from "@/lib/domain-provider"
-import { COMMON_IMAGE_EXTENSIONS, resolveSelectedImageContentType } from "@/lib/file-processing"
-import { useTRPC } from "@/lib/trpc/client"
-import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
-import { cn, formatDomainPathname } from "@/lib/utils"
+import { Button } from '@/components/ui/button'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useDomain } from '@/lib/domain-provider'
+import { COMMON_IMAGE_EXTENSIONS, resolveSelectedImageContentType } from '@/lib/file-processing'
+import { useTRPC } from '@/lib/trpc/client'
+import { flowStateClientParamSerializer } from '@/lib/flow-state-params-client'
+import { cn, formatDomainPathname } from '@/lib/utils'
 
-import { useFileUpload } from "@/hooks/live/flow/use-file-upload"
-import { useLivePhotoValidation } from "@/hooks/live/flow/use-live-photo-validation"
-import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
-import { useSelectFile } from "@/hooks/live/flow/use-select-file"
+import { useFileUpload } from '@/hooks/live/flow/use-file-upload'
+import { useLivePhotoValidation } from '@/hooks/live/flow/use-live-photo-validation'
+import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
+import { useSelectFile } from '@/hooks/live/flow/use-select-file'
 import {
   hasMissingCapturedAtTimestamp,
   reassignPhotosToTopicOrder,
-} from "@/lib/flow/photo-ordering"
-import { usePhotoStore } from "@/lib/flow/photo-store"
-import { useHeicStore } from "@/lib/flow/heic-store"
-import { useStepState } from "@/lib/flow/step-state-context"
-import type { PhotoWithPresignedUrl } from "@/lib/flow/types"
-import { useUploadStore } from "@/lib/flow/upload-store"
-import { FINALIZATION_STATE } from "@/lib/flow/types"
+} from '@/lib/flow/photo-ordering'
+import { usePhotoStore } from '@/lib/flow/photo-store'
+import { useHeicStore } from '@/lib/flow/heic-store'
+import { useStepState } from '@/lib/flow/step-state-context'
+import type { PhotoWithPresignedUrl } from '@/lib/flow/types'
+import { useUploadStore } from '@/lib/flow/upload-store'
+import { FINALIZATION_STATE } from '@/lib/flow/types'
 import {
   buildInitializeUploadFlowInputResult,
   getUploadFlowIssueMessageKeys,
-} from "@/lib/flow/upload-flow-state"
-import { buildUploadExifPayload } from "@/lib/upload-exif"
+} from '@/lib/flow/upload-flow-state'
+import { buildUploadExifPayload } from '@/lib/upload-exif'
 
-import { SubmissionList } from "./submission-list"
-import { UploadProgress } from "./upload-progress"
-import { UploadSection } from "./upload-section"
-import { HeicConversionDialog } from "./heic-conversion-dialog"
-import { ManualPhotoOrderDialog } from "./manual-photo-order-dialog"
-import { ParticipantConfirmationDialog } from "./participant-confirmation-dialog"
+import { SubmissionList } from './submission-list'
+import { UploadProgress } from './upload-progress'
+import { UploadSection } from './upload-section'
+import { HeicConversionDialog } from './heic-conversion-dialog'
+import { ManualPhotoOrderDialog } from './manual-photo-order-dialog'
+import { ParticipantConfirmationDialog } from './participant-confirmation-dialog'
 
 export function UploadSubmissionsStep({
   ruleConfigs,
@@ -57,7 +57,7 @@ export function UploadSubmissionsStep({
   validationStartDate: string
   validationEndDate: string
 }) {
-  const t = useTranslations("FlowPage.uploadStep")
+  const t = useTranslations('FlowPage.uploadStep')
   const trpc = useTRPC()
   const domain = useDomain()
   const { handlePrevStep } = useStepState()
@@ -96,7 +96,7 @@ export function UploadSubmissionsStep({
     ruleConfigs,
     validationStartDate,
     validationEndDate,
-    marathonMode: "marathon",
+    marathonMode: 'marathon',
   })
 
   const {
@@ -132,7 +132,7 @@ export function UploadSubmissionsStep({
   }, [domain, shouldNavigate, minimumProgressDisplayReached, router, uploadFlowState])
 
   const handleResetAndGoBack = () => {
-    const confirmed = window.confirm(t("confirmGoBack"))
+    const confirmed = window.confirm(t('confirmGoBack'))
     if (!confirmed) return
 
     clearPhotos()
@@ -146,7 +146,7 @@ export function UploadSubmissionsStep({
   const { mutateAsync: initializeUploadFlow } = useMutation(
     trpc.uploadFlow.initializeUploadFlow.mutationOptions({
       onError: (error) => {
-        toast.error(error.message || t("initializationFailed"))
+        toast.error(error.message || t('initializationFailed'))
       },
     }),
   )
@@ -163,7 +163,7 @@ export function UploadSubmissionsStep({
   const handleUploadClick = () => {
     if (isProcessingFiles) return
     if (photos.length >= competitionClass.numberOfPhotos) {
-      toast.error(t("maxPhotosReached"))
+      toast.error(t('maxPhotosReached'))
       return
     }
     fileInputRef.current?.click()
@@ -171,7 +171,7 @@ export function UploadSubmissionsStep({
 
   const handleSubmit = () => {
     if (photos.length !== competitionClass.numberOfPhotos) {
-      toast.error(t("selectAllPhotos", { count: competitionClass.numberOfPhotos }))
+      toast.error(t('selectAllPhotos', { count: competitionClass.numberOfPhotos }))
       return
     }
 
@@ -206,8 +206,8 @@ export function UploadSubmissionsStep({
         : []
       toast.error(
         issueLabels.length > 0
-          ? t("missingRequiredInfoDetailed", { fields: issueLabels.join(", ") })
-          : t("missingRequiredInfo"),
+          ? t('missingRequiredInfoDetailed', { fields: issueLabels.join(', ') })
+          : t('missingRequiredInfo'),
       )
       return
     }
@@ -220,7 +220,7 @@ export function UploadSubmissionsStep({
       const initialization = await initializeUploadFlow({
         ...initializeUploadFlowResult.data,
         uploadContentTypes: photosInTopicOrder.map(
-          (photo) => resolveSelectedImageContentType(photo.file) ?? "image/jpeg",
+          (photo) => resolveSelectedImageContentType(photo.file) ?? 'image/jpeg',
         ),
         uploadExif: buildUploadExifPayload(photosInTopicOrder),
       })
@@ -229,7 +229,7 @@ export function UploadSubmissionsStep({
 
       if (!presignedUrls || presignedUrls.length === 0) {
         setIsUploading(false)
-        toast.error(t("failedToGetPresignedUrls"))
+        toast.error(t('failedToGetPresignedUrls'))
         return
       }
 
@@ -247,20 +247,20 @@ export function UploadSubmissionsStep({
       try {
         await executeUpload(photosWithUrls)
       } catch (error) {
-        console.error("Upload execution failed:", error)
+        console.error('Upload execution failed:', error)
         setIsUploading(false)
       }
     } catch (error) {
-      console.error("Upload failed:", error)
+      console.error('Upload failed:', error)
       setIsUploading(false)
-      toast.error(error instanceof Error && error.message ? error.message : t("uploadFailed"))
+      toast.error(error instanceof Error && error.message ? error.message : t('uploadFailed'))
     }
   }
 
   const allPhotosSelected = photos.length === competitionClass.numberOfPhotos && photos.length > 0
 
   const hasValidationErrors = validationResults.some(
-    (result) => result.outcome === VALIDATION_OUTCOME.FAILED && result.severity === "error",
+    (result) => result.outcome === VALIDATION_OUTCOME.FAILED && result.severity === 'error',
   )
 
   const canSubmit = allPhotosSelected && !hasValidationErrors && !isProcessingFiles
@@ -285,7 +285,7 @@ export function UploadSubmissionsStep({
         open={showConfirmationDialog}
         onClose={() => setShowConfirmationDialog(false)}
         onConfirm={handleConfirmedUpload}
-        expectedParticipantRef={uploadFlowState.participantRef || ""}
+        expectedParticipantRef={uploadFlowState.participantRef || ''}
       />
 
       <ManualPhotoOrderDialog
@@ -321,17 +321,17 @@ export function UploadSubmissionsStep({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className={cn(
-              "mx-auto max-w-md px-4",
-              canSubmit && !isUploading && "pb-[calc(7rem+env(safe-area-inset-bottom,0px))]",
+              'mx-auto max-w-md px-4',
+              canSubmit && !isUploading && 'pb-[calc(7rem+env(safe-area-inset-bottom,0px))]',
             )}
           >
             {/* Header */}
             <div className="mb-8 text-center">
               <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
-                {t("title")}
+                {t('title')}
               </h1>
               <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-                {t("description")}
+                {t('description')}
               </p>
             </div>
 
@@ -352,11 +352,11 @@ export function UploadSubmissionsStep({
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",")}
+                accept={COMMON_IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(',')}
                 onChange={async (e) => {
                   const target = e.currentTarget
                   await handleFileSelect(target.files)
-                  target.value = ""
+                  target.value = ''
                 }}
                 className="hidden"
               />
@@ -370,7 +370,7 @@ export function UploadSubmissionsStep({
                 onClick={handleResetAndGoBack}
                 className="w-full rounded-full bg-muted text-foreground hover:bg-muted/80 hover:text-foreground"
               >
-                {t("goBack")}
+                {t('goBack')}
               </Button>
             </div>
           </motion.div>
@@ -389,7 +389,7 @@ export function UploadSubmissionsStep({
               onClick={handleSubmit}
               className="w-full rounded-full py-4 text-lg font-semibold"
             >
-              {t("finalizeAndSubmit")}
+              {t('finalizeAndSubmit')}
             </PrimaryButton>
           </div>
         </motion.div>

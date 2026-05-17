@@ -1,9 +1,4 @@
-import {
-  createSerializer,
-  parseAsBoolean,
-  parseAsInteger,
-  parseAsString,
-} from "nuqs";
+import { createSerializer, parseAsBoolean, parseAsInteger, parseAsString } from 'nuqs'
 
 export const flowStateClientParams = {
   competitionClassId: parseAsInteger,
@@ -15,33 +10,30 @@ export const flowStateClientParams = {
   participantLastName: parseAsString,
   termsAccepted: parseAsBoolean,
   acceptedLocale: parseAsString,
-};
-
-export interface FlowStateClientParams {
-  competitionClassId?: number | null;
-  deviceGroupId?: number | null;
-  participantId?: number | null;
-  participantRef?: string | null;
-  participantEmail?: string | null;
-  participantFirstName?: string | null;
-  participantLastName?: string | null;
-  termsAccepted?: boolean | null;
-  acceptedLocale?: string | null;
 }
 
-export const flowStateClientParamSerializer = createSerializer(
-  flowStateClientParams,
-  {
-    urlKeys: {
-      competitionClassId: "cc",
-      deviceGroupId: "dg",
-      participantId: "pid",
-      participantRef: "pr",
-      participantEmail: "pe",
-      participantFirstName: "pf",
-      participantLastName: "pl",
-      termsAccepted: "ta",
-      acceptedLocale: "tl",
-    },
+export interface FlowStateClientParams {
+  competitionClassId?: number | null
+  deviceGroupId?: number | null
+  participantId?: number | null
+  participantRef?: string | null
+  participantEmail?: string | null
+  participantFirstName?: string | null
+  participantLastName?: string | null
+  termsAccepted?: boolean | null
+  acceptedLocale?: string | null
+}
+
+export const flowStateClientParamSerializer = createSerializer(flowStateClientParams, {
+  urlKeys: {
+    competitionClassId: 'cc',
+    deviceGroupId: 'dg',
+    participantId: 'pid',
+    participantRef: 'pr',
+    participantEmail: 'pe',
+    participantFirstName: 'pf',
+    participantLastName: 'pl',
+    termsAccepted: 'ta',
+    acceptedLocale: 'tl',
   },
-);
+})

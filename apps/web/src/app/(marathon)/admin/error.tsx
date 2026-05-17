@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { AlertTriangle, RefreshCw, Bug, ChevronDown, ChevronUp } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import { useEffect, useState } from 'react'
+import { AlertTriangle, RefreshCw, Bug, ChevronDown, ChevronUp } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 
-const isDevelopment = process.env.NODE_ENV === "development"
+const isDevelopment = process.env.NODE_ENV === 'development'
 
 interface ErrorDetails {
   message: string
@@ -20,7 +20,7 @@ interface ErrorDetails {
 
 function formatError(error: Error): ErrorDetails {
   return {
-    message: error.message || "An unexpected error occurred",
+    message: error.message || 'An unexpected error occurred',
     stack: error.stack,
     name: error.name,
     cause: error.cause,
@@ -38,7 +38,7 @@ export default function Error({
   const [showDetails, setShowDetails] = useState(isDevelopment)
 
   useEffect(() => {
-    console.error("Error boundary caught:", error)
+    console.error('Error boundary caught:', error)
   }, [error])
 
   const handleReset = () => {
@@ -56,12 +56,12 @@ export default function Error({
               </div>
               <div className="flex-1 space-y-1">
                 <CardTitle className="text-2xl">
-                  {isDevelopment ? "Something went wrong" : "Oops! Something went wrong"}
+                  {isDevelopment ? 'Something went wrong' : 'Oops! Something went wrong'}
                 </CardTitle>
                 <CardDescription>
                   {isDevelopment
-                    ? "An error occurred while rendering this page. Check the details below for more information."
-                    : "We encountered an unexpected error. Please try again or contact support if the problem persists."}
+                    ? 'An error occurred while rendering this page. Check the details below for more information.'
+                    : 'We encountered an unexpected error. Please try again or contact support if the problem persists.'}
                 </CardDescription>
               </div>
             </div>
@@ -71,7 +71,7 @@ export default function Error({
               <AlertTriangle className="size-4" />
               <AlertTitle>Error Message</AlertTitle>
               <AlertDescription className="font-mono text-sm">
-                {errorDetails.message || "Unknown error"}
+                {errorDetails.message || 'Unknown error'}
               </AlertDescription>
             </Alert>
 
@@ -114,7 +114,7 @@ export default function Error({
                         <div>
                           <p className="text-xs font-medium text-muted-foreground">Cause</p>
                           <p className="mt-1 font-mono text-sm break-all">
-                            {typeof errorDetails.cause === "string"
+                            {typeof errorDetails.cause === 'string'
                               ? errorDetails.cause
                               : JSON.stringify(errorDetails.cause, null, 2)}
                           </p>
@@ -148,7 +148,7 @@ export default function Error({
               </Button>
               <Button
                 variant="outline"
-                onClick={() => (window.location.href = "/marathon")}
+                onClick={() => (window.location.href = '/marathon')}
                 className="flex-1"
               >
                 Go to Dashboard

@@ -1,17 +1,17 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Eye, FileText } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState } from 'react'
+import { Eye, FileText } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { TermsMarkdownPreview } from "../../settings/_components/terms-markdown-preview"
+} from '@/components/ui/dialog'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { TermsMarkdownPreview } from '../../settings/_components/terms-markdown-preview'
 
 interface TermsHeaderProps {
   markdown: string
@@ -46,7 +46,7 @@ export function TermsHeader({ markdown, onSave, saveDisabled, isSaving }: TermsH
               Preview
             </Button>
             <PrimaryButton type="button" onClick={onSave} disabled={saveDisabled}>
-              {isSaving ? "Saving…" : "Save Terms"}
+              {isSaving ? 'Saving…' : 'Save Terms'}
             </PrimaryButton>
           </div>
         </div>
@@ -62,9 +62,7 @@ export function TermsHeader({ markdown, onSave, saveDisabled, isSaving }: TermsH
         >
           <DialogHeader className="shrink-0 border-b border-border px-6 py-4 text-left">
             <DialogTitle>Terms preview</DialogTitle>
-            <DialogDescription>
-              How this markdown will look to participants.
-            </DialogDescription>
+            <DialogDescription>How this markdown will look to participants.</DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
             <TermsMarkdownPreview markdown={markdown} variant="dialog" />

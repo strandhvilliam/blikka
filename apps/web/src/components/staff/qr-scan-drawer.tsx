@@ -1,15 +1,18 @@
-"use client"
+'use client'
 
-import dynamic from "next/dynamic"
-import { QrCodeIcon } from "lucide-react"
-import { toast } from "sonner"
+import dynamic from 'next/dynamic'
+import { QrCodeIcon } from 'lucide-react'
+import { toast } from 'sonner'
 
-import { Button } from "@/components/ui/button"
-import { DrawerLayout } from "@/components/staff/drawer-layout"
+import { Button } from '@/components/ui/button'
+import { DrawerLayout } from '@/components/staff/drawer-layout'
 
-const QrScanner = dynamic(() => import("@/components/staff/qr-scanner").then((mod) => mod.QrScanner), {
-  ssr: false,
-})
+const QrScanner = dynamic(
+  () => import('@/components/staff/qr-scanner').then((mod) => mod.QrScanner),
+  {
+    ssr: false,
+  },
+)
 
 interface QrScanDrawerProps {
   open: boolean
@@ -26,19 +29,19 @@ export function QrScanDrawer({
 }: QrScanDrawerProps) {
   const handleScan = (data: string | null) => {
     if (!data) {
-      toast.error("No QR code detected")
+      toast.error('No QR code detected')
       return
     }
 
-    const [domain, _participantId, reference] = data.split("-")
+    const [domain, _participantId, reference] = data.split('-')
 
     if (!domain || !reference) {
-      toast.error("Invalid QR code")
+      toast.error('Invalid QR code')
       return
     }
 
     if (domain !== currentDomain) {
-      toast.error("This QR code belongs to another marathon")
+      toast.error('This QR code belongs to another marathon')
       return
     }
 

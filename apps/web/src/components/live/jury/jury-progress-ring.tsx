@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 export function ProgressRing({ rated, total }: { rated: number; total: number }) {
   const pct = total > 0 ? (rated / total) * 100 : 0

@@ -1,18 +1,18 @@
-import { Cause, Effect, Layer, Option, Context } from "effect"
-import { BusService, BusServiceLayer, S3Service, S3ServiceLayer } from "@blikka/aws"
+import { Cause, Effect, Layer, Option, Context } from 'effect'
+import { BusService, BusServiceLayer, S3Service, S3ServiceLayer } from '@blikka/aws'
 import {
   ExifKVRepository,
   ExifKVRepositoryLayer,
   ExifState,
   UploadSessionRepository,
   UploadSessionRepositoryLayer,
-} from "@blikka/kv-store"
-import { ExifParser } from "@blikka/image-manipulation"
-import { makeThumbnailKey } from "./utils"
-import { FailedToIncrementParticipantStateError, PhotoNotFoundError } from "./errors"
-import { SharpImageService } from "@blikka/image-manipulation/sharp"
-import { Resource as SSTResource } from "sst"
-import { hasExifFields, mergeExifStates } from "./exif-utils"
+} from '@blikka/kv-store'
+import { ExifParser } from '@blikka/image-manipulation'
+import { makeThumbnailKey } from './utils'
+import { FailedToIncrementParticipantStateError, PhotoNotFoundError } from './errors'
+import { SharpImageService } from '@blikka/image-manipulation/sharp'
+import { Resource as SSTResource } from 'sst'
+import { hasExifFields, mergeExifStates } from './exif-utils'
 
 const THUMBNAIL_WIDTH = 400
 
@@ -25,7 +25,7 @@ export interface ProcessPhotoParams {
 }
 
 export class UploadProcessorService extends Context.Service<UploadProcessorService>()(
-  "@blikka/upload-processor/UploadProcessorService",
+  '@blikka/upload-processor/UploadProcessorService',
   {
     make: Effect.gen(function* () {
       const s3 = yield* S3Service
@@ -38,7 +38,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
       const thumbnailsBucketName = SSTResource.V2ThumbnailsBucket.name
       const submissionsBucketName = SSTResource.V2SubmissionsBucket.name
 
-      const generateThumbnail = Effect.fn("UploadProcessorService.generateThumbnail")(function* (
+      const generateThumbnail = Effect.fn('UploadProcessorService.generateThumbnail')(function* (
         photo: Uint8Array<ArrayBufferLike>,
         parsedKey: {
           domain: string
@@ -56,7 +56,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
         return thumbnailKey
       })
 
-      const processPhoto = Effect.fn("UploadProcessorService.processPhoto")(function* (
+      const processPhoto = Effect.fn('UploadProcessorService.processPhoto')(function* (
         params: ProcessPhotoParams,
       ) {
         const { key, domain, reference, orderIndex, fileName } = params
@@ -68,34 +68,34 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
             orderIndex,
           )
           if (Option.isNone(submissionStateOpt)) {
-            yield* Effect.logWarning("Missing initialized submission state", {
+            yield* Effect.logWarning('Missing initialized submission state', {
               key,
             })
             return
           }
 
           if (submissionStateOpt.value.key !== key) {
-            yield* Effect.logWarning("Uploaded key does not match initialized submission key", {
+            yield* Effect.logWarning('Uploaded key does not match initialized submission key', {
               key,
             })
             return
           }
 
-          const uploadSessionId = submissionStateOpt.value.uploadSessionId ?? ""
+          const uploadSessionId = submissionStateOpt.value.uploadSessionId ?? ''
 
           const participantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
           if (Option.isNone(participantStateOpt)) {
-            yield* Effect.logWarning("Missing initialized participant state", { key })
+            yield* Effect.logWarning('Missing initialized participant state', { key })
             return
           }
 
           if (participantStateOpt.value.uploadSessionId !== uploadSessionId) {
-            yield* Effect.logWarning("Submission belongs to a stale upload session", { key })
+            yield* Effect.logWarning('Submission belongs to a stale upload session', { key })
             return
           }
 
           if (submissionStateOpt.value.uploaded) {
-            yield* Effect.logWarning("Submission already uploaded, continuing finalization", {
+            yield* Effect.logWarning('Submission already uploaded, continuing finalization', {
               key,
             })
           } else {
@@ -106,7 +106,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
                   onNone: () =>
                     Effect.fail(
                       new PhotoNotFoundError({
-                        message: "Photo not found",
+                        message: 'Photo not found',
                         details: JSON.stringify({
                           domain,
                           reference,
@@ -136,7 +136,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
                       Effect.catchCause((cause) =>
                         Effect.gen(function* () {
                           yield* Effect.logWarning(
-                            "EXIF parse or merge persist failed; keeping seeded EXIF",
+                            'EXIF parse or merge persist failed; keeping seeded EXIF',
                             {
                               domain,
                               reference,
@@ -158,7 +158,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
                       Effect.catchCause((cause) =>
                         Effect.gen(function* () {
                           yield* Effect.logWarning(
-                            "EXIF parse or persist failed; continuing without EXIF (can retry later)",
+                            'EXIF parse or persist failed; continuing without EXIF (can retry later)',
                             {
                               domain,
                               reference,
@@ -182,7 +182,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
                   Effect.catchCause((cause) =>
                     Effect.gen(function* () {
                       yield* Effect.logWarning(
-                        "Thumbnail generation or upload failed; continuing without thumbnail (can retry later)",
+                        'Thumbnail generation or upload failed; continuing without thumbnail (can retry later)',
                         {
                           domain,
                           reference,
@@ -208,7 +208,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
               })
               .pipe(
                 Effect.catch((error) =>
-                  Effect.logError("Failed to update submission state", error),
+                  Effect.logError('Failed to update submission state', error),
                 ),
               )
           }
@@ -220,13 +220,13 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
                 Effect.fail(
                   new FailedToIncrementParticipantStateError({
                     cause: error,
-                    message: "Failed to increment participant state",
+                    message: 'Failed to increment participant state',
                   }),
                 ),
               ),
             )
 
-          if (status === "FINALIZED" || status === "ALREADY_FINALIZED") {
+          if (status === 'FINALIZED' || status === 'ALREADY_FINALIZED') {
             const currentParticipantStateOpt = yield* uploadKv.getParticipantState(
               domain,
               reference,
@@ -237,7 +237,7 @@ export class UploadProcessorService extends Context.Service<UploadProcessorServi
             ) {
               yield* bus.sendFinalizedEvent(domain, reference, uploadSessionId)
             } else {
-              yield* Effect.logWarning("Skipping finalized event for stale upload session", {
+              yield* Effect.logWarning('Skipping finalized event for stale upload session', {
                 key,
                 uploadSessionId,
               })

@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import type { CompetitionClass, Topic } from "@blikka/db"
-import { AlertTriangle, Download, Expand, ZoomIn, ZoomOut } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { useState } from 'react'
+import type { CompetitionClass, Topic } from '@blikka/db'
+import { AlertTriangle, Download, Expand, ZoomIn, ZoomOut } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { downloadRemoteUrl } from "../_lib/download-remote-url"
+} from '@/components/ui/dialog'
+import { downloadRemoteUrl } from '../_lib/download-remote-url'
 
 interface SubmissionImageViewerProps {
   imageUrl: string | null
@@ -35,7 +35,7 @@ export function SubmissionImageViewer({
   const [hasError, setHasError] = useState(false)
   const [largeViewOpen, setLargeViewOpen] = useState(false)
   const [zoom, setZoom] = useState(1)
-  const isByCameraMode = marathonMode === "by-camera"
+  const isByCameraMode = marathonMode === 'by-camera'
 
   const downloadSourceUrl = originalImageUrl ?? imageUrl
   const largeViewImageUrl = originalImageUrl ?? imageUrl
@@ -60,10 +60,12 @@ export function SubmissionImageViewer({
             #{topic.orderIndex + 1}
           </Badge>
           <div>
-            <h2 className="font-gothic text-base font-normal leading-tight tracking-tight">{topic.name}</h2>
+            <h2 className="font-gothic text-base font-normal leading-tight tracking-tight">
+              {topic.name}
+            </h2>
             {!isByCameraMode && (
               <p className="text-xs text-muted-foreground leading-tight">
-                Topic {topic.orderIndex + 1} of {competitionClass?.numberOfPhotos || "?"}
+                Topic {topic.orderIndex + 1} of {competitionClass?.numberOfPhotos || '?'}
               </p>
             )}
           </div>

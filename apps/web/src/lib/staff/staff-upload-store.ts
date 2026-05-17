@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { create, type StateCreator } from "zustand"
-import type { ValidationResult } from "@blikka/validation"
-import type { ParticipantFormValues } from "@/lib/participant-form-schema"
+import { create, type StateCreator } from 'zustand'
+import type { ValidationResult } from '@blikka/validation'
+import type { ParticipantFormValues } from '@/lib/participant-form-schema'
 import type {
   ParticipantSelectedPhoto,
   ParticipantUploadError,
   ParticipantUploadFileState,
   ParticipantUploadPhase,
-} from "@/lib/participant-upload-types"
-import { reassignOrderIndexes, revokePreviewUrls } from "@/lib/file-processing"
-import { type ParticipantExistenceStatus } from "@/lib/flow-helpers"
-import type { StaffParticipant } from "./staff-types"
-import { STAFF_UPLOAD_DEFAULT_FORM_VALUES, type StaffUploadFormErrors } from "./staff-upload-form"
+} from '@/lib/participant-upload-types'
+import { reassignOrderIndexes, revokePreviewUrls } from '@/lib/file-processing'
+import { type ParticipantExistenceStatus } from '@/lib/flow-helpers'
+import type { StaffParticipant } from './staff-types'
+import { STAFF_UPLOAD_DEFAULT_FORM_VALUES, type StaffUploadFormErrors } from './staff-upload-form'
 
 interface ParticipantState {
   formValues: ParticipantFormValues
@@ -61,7 +61,7 @@ const createParticipantSlice: StateCreator<StaffUploadStore, [], [], Participant
   get,
 ) => ({
   ...initialParticipantState(),
-  resetForm: (reference = "") => {
+  resetForm: (reference = '') => {
     set({
       formValues: { ...STAFF_UPLOAD_DEFAULT_FORM_VALUES, reference },
       formErrors: {},
@@ -71,7 +71,7 @@ const createParticipantSlice: StateCreator<StaffUploadStore, [], [], Participant
   setFormField: (key, value) => {
     const state = get()
     const shouldResetPhotoSession =
-      key === "competitionClassId" &&
+      key === 'competitionClassId' &&
       value !== state.formValues.competitionClassId &&
       state.selectedPhotos.length > 0
 
@@ -158,7 +158,7 @@ interface UploadState {
 interface UploadActions {
   updateUploadFileState: (
     key: string,
-    patch: Partial<Pick<ParticipantUploadFileState, "phase" | "progress" | "error">>,
+    patch: Partial<Pick<ParticipantUploadFileState, 'phase' | 'progress' | 'error'>>,
   ) => void
   resetUploadFlow: () => void
   patchUpload: (patch: Partial<UploadState>) => void
@@ -169,7 +169,7 @@ type UploadSlice = UploadState & UploadActions
 function initialUploadState(): UploadState {
   return {
     uploadFiles: [],
-    submittedReference: "",
+    submittedReference: '',
     isUploadingFiles: false,
     isPollingStatus: false,
     uploadErrorMessage: null,
@@ -191,7 +191,7 @@ const createUploadSlice: StateCreator<StaffUploadStore, [], [], UploadSlice> = (
               phase: (patch.phase ?? file.phase) as ParticipantUploadPhase,
               progress: patch.progress ?? file.progress,
               error:
-                patch.phase === "error"
+                patch.phase === 'error'
                   ? (patch.error as ParticipantUploadError | undefined)
                   : (patch.error ?? file.error),
             }
@@ -228,4 +228,4 @@ export const useStaffUploadStore = create<StaffUploadStore>()((...a) => ({
 }))
 
 export const selectRequiresOverwriteWarning = (s: StaffUploadStore) =>
-  s.participantStatus === "initialized"
+  s.participantStatus === 'initialized'

@@ -1,17 +1,17 @@
-import { type SQSRecord } from "aws-lambda"
-import { LambdaHandler, type SQSEvent } from "@effect-aws/lambda"
-import { Config, Effect, Layer, Schema } from "effect"
-import { Database } from "@blikka/db"
-import { SMSService } from "@blikka/aws"
-import { PubSubLoggerService } from "@blikka/pubsub"
-import { getRealtimeChannelEnvironmentFromNodeEnv, type RealtimeChannelEnv } from "@blikka/realtime"
-import { TelemetryLayer } from "@blikka/telemetry"
+import { type SQSRecord } from 'aws-lambda'
+import { LambdaHandler, type SQSEvent } from '@effect-aws/lambda'
+import { Config, Effect, Layer, Schema } from 'effect'
+import { Database } from '@blikka/db'
+import { SMSService } from '@blikka/aws'
+import { PubSubLoggerService } from '@blikka/pubsub'
+import { getRealtimeChannelEnvironmentFromNodeEnv, type RealtimeChannelEnv } from '@blikka/realtime'
+import { TelemetryLayer } from '@blikka/telemetry'
 import {
   PhoneNumberEncryptionService,
   type EncryptedPhoneNumber,
-} from "@blikka/api/trpc/utils/phone-number-encryption"
+} from '@blikka/api/trpc/utils/phone-number-encryption'
 
-const TASK_NAME = "voting-sms-notifier"
+const TASK_NAME = 'voting-sms-notifier'
 const SMS_CONCURRENCY = 5
 
 const VotingSmsQueueMessageSchema = Schema.Struct({
@@ -20,7 +20,7 @@ const VotingSmsQueueMessageSchema = Schema.Struct({
 })
 
 class VotingSmsNotifierError extends Schema.TaggedErrorClass<VotingSmsNotifierError>()(
-  "VotingSmsNotifierError",
+  'VotingSmsNotifierError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -29,7 +29,7 @@ class VotingSmsNotifierError extends Schema.TaggedErrorClass<VotingSmsNotifierEr
 
 interface VotingSmsDeliveryOutcome {
   sessionId: number
-  status: "sent" | "skipped" | "failed"
+  status: 'sent' | 'skipped' | 'failed'
   reason?: string
 }
 
@@ -37,7 +37,7 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
 
-function getEnvironment(): Extract<RealtimeChannelEnv, "prod" | "dev"> {
+function getEnvironment(): Extract<RealtimeChannelEnv, 'prod' | 'dev'> {
   return getRealtimeChannelEnvironmentFromNodeEnv(process.env.NODE_ENV)
 }
 
@@ -58,19 +58,19 @@ const effectHandler = (event: SQSEvent) =>
     const db = yield* Database
     const smsService = yield* SMSService
     const phoneEncryption = yield* PhoneNumberEncryptionService
-    const environment = yield* Config.string("NODE_ENV").pipe(
+    const environment = yield* Config.string('NODE_ENV').pipe(
       Config.map(getRealtimeChannelEnvironmentFromNodeEnv),
     )
-    const shouldSendVotingSms = environment === "prod"
+    const shouldSendVotingSms = environment === 'prod'
 
-    const parseQueueMessage = Effect.fn("voting-sms-notifier.parseQueueMessage")(function* (
+    const parseQueueMessage = Effect.fn('voting-sms-notifier.parseQueueMessage')(function* (
       record: SQSRecord,
     ) {
       const parsed = yield* Effect.try({
         try: () => JSON.parse(record.body),
         catch: (error) =>
           new VotingSmsNotifierError({
-            message: "Failed to parse voting SMS queue message",
+            message: 'Failed to parse voting SMS queue message',
             cause: error,
           }),
       })
@@ -79,26 +79,26 @@ const effectHandler = (event: SQSEvent) =>
         Effect.mapError(
           (error) =>
             new VotingSmsNotifierError({
-              message: "Invalid voting SMS queue message",
+              message: 'Invalid voting SMS queue message',
               cause: error,
             }),
         ),
       )
     })
 
-    const processSQSRecord = Effect.fn("voting-sms-notifier.processSQSRecord")(function* (
+    const processSQSRecord = Effect.fn('voting-sms-notifier.processSQSRecord')(function* (
       record: SQSRecord,
     ) {
       const { votingSessionIds, forceResend } = yield* parseQueueMessage(record)
       const uniqueVotingSessionIds = Array.from(new Set(votingSessionIds))
 
       if (uniqueVotingSessionIds.length === 0) {
-        yield* Effect.logInfo("Skipping empty voting SMS chunk")
+        yield* Effect.logInfo('Skipping empty voting SMS chunk')
         return
       }
 
       if (!shouldSendVotingSms) {
-        yield* Effect.logInfo("Skipping voting SMS chunk because environment is not production")
+        yield* Effect.logInfo('Skipping voting SMS chunk because environment is not production')
         return
       }
 
@@ -110,7 +110,7 @@ const effectHandler = (event: SQSEvent) =>
       const missingSessionIds = uniqueVotingSessionIds.filter((id) => !foundSessionIds.has(id))
 
       if (missingSessionIds.length > 0) {
-        yield* Effect.logWarning("Voting sessions missing from chunk")
+        yield* Effect.logWarning('Voting sessions missing from chunk')
       }
 
       const outcomes = yield* Effect.forEach(
@@ -118,20 +118,20 @@ const effectHandler = (event: SQSEvent) =>
         (session) =>
           Effect.gen(function* () {
             if (!session.marathon) {
-              yield* Effect.logError("Marathon not found for voting session")
+              yield* Effect.logError('Marathon not found for voting session')
               return {
                 sessionId: session.id,
-                status: "failed",
-                reason: "marathon-not-found",
+                status: 'failed',
+                reason: 'marathon-not-found',
               } satisfies VotingSmsDeliveryOutcome
             }
 
             if (!session.phoneEncrypted) {
-              yield* Effect.logInfo("Skipping voting session without encrypted phone number")
+              yield* Effect.logInfo('Skipping voting session without encrypted phone number')
               return {
                 sessionId: session.id,
-                status: "skipped",
-                reason: "missing-phone",
+                status: 'skipped',
+                reason: 'missing-phone',
               } satisfies VotingSmsDeliveryOutcome
             }
 
@@ -186,16 +186,16 @@ const effectHandler = (event: SQSEvent) =>
 
             return {
               sessionId: session.id,
-              status: "sent",
+              status: 'sent',
             } satisfies VotingSmsDeliveryOutcome
           }).pipe(
             Effect.annotateLogs({ votingSessionId: String(session.id) }),
             Effect.catch((error) =>
-              Effect.logError("Voting session SMS failed", error).pipe(
+              Effect.logError('Voting session SMS failed', error).pipe(
                 Effect.andThen(
                   Effect.succeed({
                     sessionId: session.id,
-                    status: "failed",
+                    status: 'failed',
                     reason: getErrorMessage(error),
                   } satisfies VotingSmsDeliveryOutcome),
                 ),
@@ -206,16 +206,16 @@ const effectHandler = (event: SQSEvent) =>
       )
 
       const deliveredCount = outcomes.filter(
-        (outcome: VotingSmsDeliveryOutcome) => outcome.status === "sent",
+        (outcome: VotingSmsDeliveryOutcome) => outcome.status === 'sent',
       ).length
       const skippedCount = outcomes.filter(
-        (outcome: VotingSmsDeliveryOutcome) => outcome.status === "skipped",
+        (outcome: VotingSmsDeliveryOutcome) => outcome.status === 'skipped',
       ).length
       const failedCount = outcomes.filter(
-        (outcome: VotingSmsDeliveryOutcome) => outcome.status === "failed",
+        (outcome: VotingSmsDeliveryOutcome) => outcome.status === 'failed',
       ).length
 
-      yield* Effect.logInfo("Voting SMS chunk processed").pipe(
+      yield* Effect.logInfo('Voting SMS chunk processed').pipe(
         Effect.annotateLogs({
           requestedSessionCount: String(uniqueVotingSessionIds.length),
           deliveredCount: String(deliveredCount),
@@ -231,8 +231,8 @@ const effectHandler = (event: SQSEvent) =>
       concurrency: 1,
     })
   }).pipe(
-    Effect.withSpan("VotingSmsNotifier.handler"),
-    Effect.tapError((error) => Effect.logError("Voting SMS notifier failed", error)),
+    Effect.withSpan('VotingSmsNotifier.handler'),
+    Effect.tapError((error) => Effect.logError('Voting SMS notifier failed', error)),
   )
 
 const serviceLayer = Layer.mergeAll(

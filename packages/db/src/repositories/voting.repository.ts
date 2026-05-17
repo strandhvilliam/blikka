@@ -1,5 +1,5 @@
-import { Effect, Layer, Option, Context } from "effect"
-import { DrizzleClient, type DrizzleDatabase } from "../drizzle-client"
+import { Effect, Layer, Option, Context } from 'effect'
+import { DrizzleClient, type DrizzleDatabase } from '../drizzle-client'
 import {
   marathons,
   participants,
@@ -9,8 +9,8 @@ import {
   votingRoundSubmission,
   votingRoundVote,
   votingSession,
-} from "../schema"
-import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm"
+} from '../schema'
+import { and, asc, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type {
   Marathon,
   NewVotingRound,
@@ -24,8 +24,8 @@ import type {
   VotingRoundSubmission,
   VotingRoundVote,
   VotingSession,
-} from "../types"
-import { DbError } from "../utils"
+} from '../types'
+import { DbError } from '../utils'
 
 interface ResolveRoundInput {
   marathonId: number
@@ -72,16 +72,16 @@ interface TopRanksPreviewRow extends LeaderboardPageRow {
 
 interface ParticipantWithoutSessionRow extends Pick<
   Participant,
-  "id" | "firstname" | "lastname" | "reference" | "email"
+  'id' | 'firstname' | 'lastname' | 'reference' | 'email'
 > {}
 
 type VotingSessionWithMarathonAndTopic = VotingSession & { marathon: Marathon; topic: Topic }
 
 interface VotingSessionWithMarathonName extends Pick<
   VotingSession,
-  "id" | "token" | "phoneEncrypted" | "notificationLastSentAt"
+  'id' | 'token' | 'phoneEncrypted' | 'notificationLastSentAt'
 > {
-  marathon: Pick<Marathon, "domain" | "name">
+  marathon: Pick<Marathon, 'domain' | 'name'>
 }
 
 interface VotingSessionWithMarathon extends VotingSession {
@@ -90,7 +90,7 @@ interface VotingSessionWithMarathon extends VotingSession {
 
 type VotingRoundSummary = Pick<
   VotingRound,
-  "id" | "roundNumber" | "kind" | "sourceRoundId" | "startedAt" | "endsAt"
+  'id' | 'roundNumber' | 'kind' | 'sourceRoundId' | 'startedAt' | 'endsAt'
 >
 
 interface LeadingTieResult {
@@ -104,10 +104,10 @@ interface LeadingTieResult {
 
 interface SubmissionForVotingRow extends Pick<
   Submission,
-  "id" | "participantId" | "key" | "thumbnailKey" | "previewKey" | "topicId"
+  'id' | 'participantId' | 'key' | 'thumbnailKey' | 'previewKey' | 'topicId'
 > {
-  participant: Pick<Participant, "id" | "firstname" | "lastname">
-  topic: Pick<Topic, "id" | "name">
+  participant: Pick<Participant, 'id' | 'firstname' | 'lastname'>
+  topic: Pick<Topic, 'id' | 'name'>
 }
 
 interface TopicWindowCloseRow {
@@ -323,7 +323,7 @@ export class VotingRepository extends Context.Service<
     readonly getParticipantVoteInfo: (params: {
       participantId: number
       topicId: number
-    }    ) => Effect.Effect<Option.Option<ParticipantVoteInfo>, DbError>
+    }) => Effect.Effect<Option.Option<ParticipantVoteInfo>, DbError>
     /** Vote cast by a session in a round, or none if missing. */
     readonly getVotingRoundVoteForSession: (params: {
       roundId: number
@@ -360,7 +360,7 @@ export class VotingRepository extends Context.Service<
       }
     }) => Effect.Effect<VotingSession | undefined, DbError>
   }
->()("@blikka/db/voting-repository") {}
+>()('@blikka/db/voting-repository') {}
 
 const makeVotingRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
@@ -368,15 +368,15 @@ const makeVotingRepository = Effect.gen(function* () {
   const buildLeaderboardBase = (db: DrizzleDatabase, roundId: number) =>
     db
       .select({
-        submissionId: sql<number>`${submissions.id}`.as("submission_id"),
+        submissionId: sql<number>`${submissions.id}`.as('submission_id'),
         submissionCreatedAt: submissions.createdAt,
         submissionKey: submissions.key,
         submissionThumbnailKey: submissions.thumbnailKey,
-        participantId: sql<number>`${participants.id}`.as("participant_id"),
+        participantId: sql<number>`${participants.id}`.as('participant_id'),
         participantFirstName: participants.firstname,
         participantLastName: participants.lastname,
         participantReference: participants.reference,
-        voteCount: sql<number>`count(${votingRoundVote.id})`.as("vote_count"),
+        voteCount: sql<number>`count(${votingRoundVote.id})`.as('vote_count'),
       })
       .from(votingRoundSubmission)
       .innerJoin(submissions, eq(submissions.id, votingRoundSubmission.submissionId))
@@ -399,7 +399,7 @@ const makeVotingRepository = Effect.gen(function* () {
         participants.lastname,
         participants.reference,
       )
-      .as("leaderboard_base")
+      .as('leaderboard_base')
 
   const buildRankedLeaderboard = (db: DrizzleDatabase, roundId: number) => {
     const leaderboardBase = buildLeaderboardBase(db, roundId)
@@ -417,17 +417,17 @@ const makeVotingRepository = Effect.gen(function* () {
         voteCount: leaderboardBase.voteCount,
         rank: sql<number>`rank() over (
               order by ${leaderboardBase.voteCount} desc
-            )`.as("rank"),
+            )`.as('rank'),
         tieSize: sql<number>`count(*) over (partition by ${leaderboardBase.voteCount})`.as(
-          "tie_size",
+          'tie_size',
         ),
       })
       .from(leaderboardBase)
-      .as("ranked_leaderboard")
+      .as('ranked_leaderboard')
   }
 
-  const getVotingSessionByToken: VotingRepository["Service"]["getVotingSessionByToken"] = Effect.fn(
-    "VotingRepository.getVotingSessionByToken",
+  const getVotingSessionByToken: VotingRepository['Service']['getVotingSessionByToken'] = Effect.fn(
+    'VotingRepository.getVotingSessionByToken',
   )(function* ({ token }) {
     const result = yield* use((database) =>
       database.query.votingSession.findFirst({
@@ -442,8 +442,8 @@ const makeVotingRepository = Effect.gen(function* () {
     return Option.fromNullishOr(result)
   })
 
-  const getVotingSessionsByIdsWithMarathon: VotingRepository["Service"]["getVotingSessionsByIdsWithMarathon"] =
-    Effect.fn("VotingRepository.getVotingSessionsByIdsWithMarathon")(function* ({ ids }) {
+  const getVotingSessionsByIdsWithMarathon: VotingRepository['Service']['getVotingSessionsByIdsWithMarathon'] =
+    Effect.fn('VotingRepository.getVotingSessionsByIdsWithMarathon')(function* ({ ids }) {
       if (ids.length === 0) {
         return []
       }
@@ -469,8 +469,8 @@ const makeVotingRepository = Effect.gen(function* () {
       )
     })
 
-  const getParticipantsWithSubmissionsByTopicId: VotingRepository["Service"]["getParticipantsWithSubmissionsByTopicId"] =
-    Effect.fn("VotingRepository.getParticipantsWithSubmissionsByTopicId")(function* ({
+  const getParticipantsWithSubmissionsByTopicId: VotingRepository['Service']['getParticipantsWithSubmissionsByTopicId'] =
+    Effect.fn('VotingRepository.getParticipantsWithSubmissionsByTopicId')(function* ({
       marathonId,
       topicId,
     }) {
@@ -495,8 +495,8 @@ const makeVotingRepository = Effect.gen(function* () {
         }))
     })
 
-  const getParticipantsWithSubmissionsButNoVotingSession: VotingRepository["Service"]["getParticipantsWithSubmissionsButNoVotingSession"] =
-    Effect.fn("VotingRepository.getParticipantsWithSubmissionsButNoVotingSession")(function* ({
+  const getParticipantsWithSubmissionsButNoVotingSession: VotingRepository['Service']['getParticipantsWithSubmissionsButNoVotingSession'] =
+    Effect.fn('VotingRepository.getParticipantsWithSubmissionsButNoVotingSession')(function* ({
       marathonId,
       topicId,
     }) {
@@ -529,8 +529,8 @@ const makeVotingRepository = Effect.gen(function* () {
       )
     })
 
-  const createVotingSessions: VotingRepository["Service"]["createVotingSessions"] = Effect.fn(
-    "VotingRepository.createVotingSessions",
+  const createVotingSessions: VotingRepository['Service']['createVotingSessions'] = Effect.fn(
+    'VotingRepository.createVotingSessions',
   )(function* ({ sessions }) {
     if (sessions.length === 0) {
       return []
@@ -547,8 +547,8 @@ const makeVotingRepository = Effect.gen(function* () {
     )
   })
 
-  const updateMultipleLastNotificationSentAt: VotingRepository["Service"]["updateMultipleLastNotificationSentAt"] =
-    Effect.fn("VotingRepository.updateLastNotificationSentAt")(function* ({
+  const updateMultipleLastNotificationSentAt: VotingRepository['Service']['updateMultipleLastNotificationSentAt'] =
+    Effect.fn('VotingRepository.updateLastNotificationSentAt')(function* ({
       ids,
       notificationLastSentAt,
     }) {
@@ -564,8 +564,8 @@ const makeVotingRepository = Effect.gen(function* () {
       )
     })
 
-  const countVotingSessionsForTopic: VotingRepository["Service"]["countVotingSessionsForTopic"] =
-    Effect.fn("VotingRepository.countVotingSessionsForTopic")(function* ({ marathonId, topicId }) {
+  const countVotingSessionsForTopic: VotingRepository['Service']['countVotingSessionsForTopic'] =
+    Effect.fn('VotingRepository.countVotingSessionsForTopic')(function* ({ marathonId, topicId }) {
       const result = yield* use((database) =>
         database
           .select({ value: count() })
@@ -576,8 +576,8 @@ const makeVotingRepository = Effect.gen(function* () {
       return result[0]?.value ?? 0
     })
 
-  const createVotingRound: VotingRepository["Service"]["createVotingRound"] = Effect.fn(
-    "VotingRepository.createVotingRound",
+  const createVotingRound: VotingRepository['Service']['createVotingRound'] = Effect.fn(
+    'VotingRepository.createVotingRound',
   )(function* (roundData) {
     const [result] = yield* use((database) =>
       database
@@ -592,8 +592,8 @@ const makeVotingRepository = Effect.gen(function* () {
     return result as VotingRound | undefined
   })
 
-  const createVotingRoundSubmissions: VotingRepository["Service"]["createVotingRoundSubmissions"] =
-    Effect.fn("VotingRepository.createVotingRoundSubmissions")(function* ({
+  const createVotingRoundSubmissions: VotingRepository['Service']['createVotingRoundSubmissions'] =
+    Effect.fn('VotingRepository.createVotingRoundSubmissions')(function* ({
       roundId,
       submissionIds,
     }) {
@@ -617,8 +617,8 @@ const makeVotingRepository = Effect.gen(function* () {
       )
     })
 
-  const createVotingRoundVotes: VotingRepository["Service"]["createVotingRoundVotes"] = Effect.fn(
-    "VotingRepository.createVotingRoundVotes",
+  const createVotingRoundVotes: VotingRepository['Service']['createVotingRoundVotes'] = Effect.fn(
+    'VotingRepository.createVotingRoundVotes',
   )(function* ({ votes }) {
     if (votes.length === 0) {
       return []
@@ -627,8 +627,8 @@ const makeVotingRepository = Effect.gen(function* () {
     return yield* use((database) => database.insert(votingRoundVote).values(votes).returning())
   })
 
-  const getVotingRoundById: VotingRepository["Service"]["getVotingRoundById"] = Effect.fn(
-    "VotingRepository.getVotingRoundById",
+  const getVotingRoundById: VotingRepository['Service']['getVotingRoundById'] = Effect.fn(
+    'VotingRepository.getVotingRoundById',
   )(function* ({ marathonId, topicId, roundId }) {
     const result = yield* use((database) =>
       database.query.votingRound.findFirst({
@@ -644,8 +644,8 @@ const makeVotingRepository = Effect.gen(function* () {
     return Option.fromNullishOr(result)
   })
 
-  const getLatestVotingRoundForTopic: VotingRepository["Service"]["getLatestVotingRoundForTopic"] =
-    Effect.fn("VotingRepository.getLatestVotingRoundForTopic")(function* ({ marathonId, topicId }) {
+  const getLatestVotingRoundForTopic: VotingRepository['Service']['getLatestVotingRoundForTopic'] =
+    Effect.fn('VotingRepository.getLatestVotingRoundForTopic')(function* ({ marathonId, topicId }) {
       const result = yield* use((database) =>
         database.query.votingRound.findFirst({
           where: (table, operators) =>
@@ -663,8 +663,8 @@ const makeVotingRepository = Effect.gen(function* () {
       return Option.fromNullishOr(result)
     })
 
-  const getActiveVotingRoundForTopic: VotingRepository["Service"]["getActiveVotingRoundForTopic"] =
-    Effect.fn("VotingRepository.getActiveVotingRoundForTopic")(function* ({ marathonId, topicId }) {
+  const getActiveVotingRoundForTopic: VotingRepository['Service']['getActiveVotingRoundForTopic'] =
+    Effect.fn('VotingRepository.getActiveVotingRoundForTopic')(function* ({ marathonId, topicId }) {
       const result = yield* use((database) =>
         database.query.votingRound.findFirst({
           where: (table, operators) =>
@@ -683,7 +683,7 @@ const makeVotingRepository = Effect.gen(function* () {
       return Option.fromNullishOr(result)
     })
 
-  const resolveRoundForTopic = Effect.fn("VotingRepository.resolveRoundForTopic")(function* ({
+  const resolveRoundForTopic = Effect.fn('VotingRepository.resolveRoundForTopic')(function* ({
     marathonId,
     topicId,
     roundId,
@@ -702,8 +702,8 @@ const makeVotingRepository = Effect.gen(function* () {
     })
   })
 
-  const getVotingSessionStatsForTopic: VotingRepository["Service"]["getVotingSessionStatsForTopic"] =
-    Effect.fn("VotingRepository.getVotingSessionStatsForTopic")(function* ({
+  const getVotingSessionStatsForTopic: VotingRepository['Service']['getVotingSessionStatsForTopic'] =
+    Effect.fn('VotingRepository.getVotingSessionStatsForTopic')(function* ({
       marathonId,
       topicId,
     }) {
@@ -711,13 +711,13 @@ const makeVotingRepository = Effect.gen(function* () {
         use((database) =>
           database
             .select({
-              total: sql<number>`count(*)`.as("total"),
+              total: sql<number>`count(*)`.as('total'),
               participantSessions: sql<number>`count(${votingSession.connectedParticipantId})`.as(
-                "participant_sessions",
+                'participant_sessions',
               ),
               manualSessions:
                 sql<number>`count(*) - count(${votingSession.connectedParticipantId})`.as(
-                  "manual_sessions",
+                  'manual_sessions',
                 ),
             })
             .from(votingSession)
@@ -756,8 +756,8 @@ const makeVotingRepository = Effect.gen(function* () {
       }
     })
 
-  const getVotingWindowForTopic: VotingRepository["Service"]["getVotingWindowForTopic"] = Effect.fn(
-    "VotingRepository.getVotingWindowForTopic",
+  const getVotingWindowForTopic: VotingRepository['Service']['getVotingWindowForTopic'] = Effect.fn(
+    'VotingRepository.getVotingWindowForTopic',
   )(function* ({ marathonId, topicId }) {
     const roundOpt = yield* getLatestVotingRoundForTopic({
       marathonId,
@@ -775,8 +775,8 @@ const makeVotingRepository = Effect.gen(function* () {
     }
   })
 
-  const updateVotingRoundWindow: VotingRepository["Service"]["updateVotingRoundWindow"] = Effect.fn(
-    "VotingRepository.updateVotingRoundWindow",
+  const updateVotingRoundWindow: VotingRepository['Service']['updateVotingRoundWindow'] = Effect.fn(
+    'VotingRepository.updateVotingRoundWindow',
   )(function* ({ roundId, startedAt, endsAt, updatedAt }) {
     const result = yield* use((database) =>
       database
@@ -793,8 +793,8 @@ const makeVotingRepository = Effect.gen(function* () {
     return result[0] as VotingRound | undefined
   })
 
-  const closeTopicVotingWindow: VotingRepository["Service"]["closeTopicVotingWindow"] = Effect.fn(
-    "VotingRepository.closeTopicVotingWindow",
+  const closeTopicVotingWindow: VotingRepository['Service']['closeTopicVotingWindow'] = Effect.fn(
+    'VotingRepository.closeTopicVotingWindow',
   )(function* ({ marathonId, topicId, nowIso }) {
     const latestRoundOpt = yield* getLatestVotingRoundForTopic({
       marathonId,
@@ -826,8 +826,8 @@ const makeVotingRepository = Effect.gen(function* () {
     }
   })
 
-  const reopenTopicVotingWindow: VotingRepository["Service"]["reopenTopicVotingWindow"] = Effect.fn(
-    "VotingRepository.reopenTopicVotingWindow",
+  const reopenTopicVotingWindow: VotingRepository['Service']['reopenTopicVotingWindow'] = Effect.fn(
+    'VotingRepository.reopenTopicVotingWindow',
   )(function* ({ marathonId, topicId, nowIso }) {
     const latestRoundOpt = yield* getLatestVotingRoundForTopic({
       marathonId,
@@ -855,8 +855,8 @@ const makeVotingRepository = Effect.gen(function* () {
     }
   })
 
-  const closeVotingWindowsForTopics: VotingRepository["Service"]["closeVotingWindowsForTopics"] =
-    Effect.fn("VotingRepository.closeVotingWindowsForTopics")(function* ({
+  const closeVotingWindowsForTopics: VotingRepository['Service']['closeVotingWindowsForTopics'] =
+    Effect.fn('VotingRepository.closeVotingWindowsForTopics')(function* ({
       marathonId,
       topicIds,
       nowIso,
@@ -892,8 +892,8 @@ const makeVotingRepository = Effect.gen(function* () {
       )
     })
 
-  const countSubmissionsForTopic: VotingRepository["Service"]["countSubmissionsForTopic"] =
-    Effect.fn("VotingRepository.countSubmissionsForTopic")(function* ({ marathonId, topicId }) {
+  const countSubmissionsForTopic: VotingRepository['Service']['countSubmissionsForTopic'] =
+    Effect.fn('VotingRepository.countSubmissionsForTopic')(function* ({ marathonId, topicId }) {
       const result = yield* use((database) =>
         database
           .select({ value: count() })
@@ -904,15 +904,15 @@ const makeVotingRepository = Effect.gen(function* () {
       return result[0]?.value ?? 0
     })
 
-  const countParticipantsWithSubmissionsForTopic: VotingRepository["Service"]["countParticipantsWithSubmissionsForTopic"] =
-    Effect.fn("VotingRepository.countParticipantsWithSubmissionsForTopic")(function* ({
+  const countParticipantsWithSubmissionsForTopic: VotingRepository['Service']['countParticipantsWithSubmissionsForTopic'] =
+    Effect.fn('VotingRepository.countParticipantsWithSubmissionsForTopic')(function* ({
       marathonId,
       topicId,
     }) {
       const result = yield* use((database) =>
         database
           .select({
-            value: sql<number>`count(distinct ${submissions.participantId})`.as("value"),
+            value: sql<number>`count(distinct ${submissions.participantId})`.as('value'),
           })
           .from(submissions)
           .where(and(eq(submissions.marathonId, marathonId), eq(submissions.topicId, topicId))),
@@ -921,8 +921,8 @@ const makeVotingRepository = Effect.gen(function* () {
       return result[0]?.value ?? 0
     })
 
-  const countVotingRoundSubmissionsForTopic: VotingRepository["Service"]["countVotingRoundSubmissionsForTopic"] =
-    Effect.fn("VotingRepository.countVotingRoundSubmissionsForTopic")(function* ({
+  const countVotingRoundSubmissionsForTopic: VotingRepository['Service']['countVotingRoundSubmissionsForTopic'] =
+    Effect.fn('VotingRepository.countVotingRoundSubmissionsForTopic')(function* ({
       marathonId,
       topicId,
       roundId,
@@ -948,8 +948,8 @@ const makeVotingRepository = Effect.gen(function* () {
       return result[0]?.value ?? 0
     })
 
-  const getVotingRoundsForTopic: VotingRepository["Service"]["getVotingRoundsForTopic"] = Effect.fn(
-    "VotingRepository.getVotingRoundsForTopic",
+  const getVotingRoundsForTopic: VotingRepository['Service']['getVotingRoundsForTopic'] = Effect.fn(
+    'VotingRepository.getVotingRoundsForTopic',
   )(function* ({ marathonId, topicId }) {
     return yield* use((database) =>
       database
@@ -967,8 +967,8 @@ const makeVotingRepository = Effect.gen(function* () {
     )
   })
 
-  const getLeaderboardPageForTopic: VotingRepository["Service"]["getLeaderboardPageForTopic"] =
-    Effect.fn("VotingRepository.getLeaderboardPageForTopic")(function* ({
+  const getLeaderboardPageForTopic: VotingRepository['Service']['getLeaderboardPageForTopic'] =
+    Effect.fn('VotingRepository.getLeaderboardPageForTopic')(function* ({
       marathonId,
       topicId,
       page,
@@ -1015,8 +1015,8 @@ const makeVotingRepository = Effect.gen(function* () {
       })
     })
 
-  const getTopRanksPreviewForTopic: VotingRepository["Service"]["getTopRanksPreviewForTopic"] =
-    Effect.fn("VotingRepository.getTopRanksPreviewForTopic")(function* ({
+  const getTopRanksPreviewForTopic: VotingRepository['Service']['getTopRanksPreviewForTopic'] =
+    Effect.fn('VotingRepository.getTopRanksPreviewForTopic')(function* ({
       marathonId,
       topicId,
       roundId,
@@ -1050,10 +1050,10 @@ const makeVotingRepository = Effect.gen(function* () {
             rankEntryOrder: sql<number>`row_number() over (
               partition by ${rankedLeaderboard.rank}
               order by ${rankedLeaderboard.submissionCreatedAt} asc, ${rankedLeaderboard.submissionId} asc
-            )`.as("rank_entry_order"),
+            )`.as('rank_entry_order'),
           })
           .from(rankedLeaderboard)
-          .as("ranked_preview")
+          .as('ranked_preview')
 
         return database
           .select({
@@ -1076,8 +1076,8 @@ const makeVotingRepository = Effect.gen(function* () {
       })
     })
 
-  const getLeadingTieForTopic: VotingRepository["Service"]["getLeadingTieForTopic"] = Effect.fn(
-    "VotingRepository.getLeadingTieForTopic",
+  const getLeadingTieForTopic: VotingRepository['Service']['getLeadingTieForTopic'] = Effect.fn(
+    'VotingRepository.getLeadingTieForTopic',
   )(function* ({ marathonId, topicId }) {
     const roundOpt = yield* getLatestVotingRoundForTopic({
       marathonId,
@@ -1125,8 +1125,8 @@ const makeVotingRepository = Effect.gen(function* () {
     })
   })
 
-  const getVotersPageForTopic: VotingRepository["Service"]["getVotersPageForTopic"] = Effect.fn(
-    "VotingRepository.getVotersPageForTopic",
+  const getVotersPageForTopic: VotingRepository['Service']['getVotersPageForTopic'] = Effect.fn(
+    'VotingRepository.getVotersPageForTopic',
   )(function* ({ marathonId, topicId, page, limit, roundId }) {
     const roundOpt = yield* resolveRoundForTopic({
       marathonId,
@@ -1148,11 +1148,11 @@ const makeVotingRepository = Effect.gen(function* () {
           notificationLastSentAt: votingSession.notificationLastSentAt,
           connectedParticipantId: votingSession.connectedParticipantId,
           votedAt: round
-            ? sql<string | null>`${votingRoundVote.votedAt}`.as("voted_at")
-            : sql<string | null>`null`.as("voted_at"),
+            ? sql<string | null>`${votingRoundVote.votedAt}`.as('voted_at')
+            : sql<string | null>`null`.as('voted_at'),
           voteSubmissionId: round
-            ? sql<number | null>`${votingRoundVote.submissionId}`.as("vote_submission_id")
-            : sql<number | null>`null`.as("vote_submission_id"),
+            ? sql<number | null>`${votingRoundVote.submissionId}`.as('vote_submission_id')
+            : sql<number | null>`null`.as('vote_submission_id'),
           voteSubmissionKey: submissions.key,
           voteSubmissionThumbnailKey: submissions.thumbnailKey,
           voteSubmissionCreatedAt: submissions.createdAt,
@@ -1180,8 +1180,8 @@ const makeVotingRepository = Effect.gen(function* () {
     )
   })
 
-  const getVotingSessionByIdForTopic: VotingRepository["Service"]["getVotingSessionByIdForTopic"] =
-    Effect.fn("VotingRepository.getVotingSessionByIdForTopic")(function* ({
+  const getVotingSessionByIdForTopic: VotingRepository['Service']['getVotingSessionByIdForTopic'] =
+    Effect.fn('VotingRepository.getVotingSessionByIdForTopic')(function* ({
       marathonId,
       topicId,
       sessionId,
@@ -1203,8 +1203,8 @@ const makeVotingRepository = Effect.gen(function* () {
       return Option.fromNullishOr(result)
     })
 
-  const getSubmissionVoteStats: VotingRepository["Service"]["getSubmissionVoteStats"] = Effect.fn(
-    "VotingRepository.getSubmissionVoteStats",
+  const getSubmissionVoteStats: VotingRepository['Service']['getSubmissionVoteStats'] = Effect.fn(
+    'VotingRepository.getSubmissionVoteStats',
   )(function* ({ submissionId, domain }) {
     const marathonResult = yield* use((database) =>
       database.query.marathons.findFirst({
@@ -1289,8 +1289,8 @@ const makeVotingRepository = Effect.gen(function* () {
     })
   })
 
-  const getParticipantVoteInfo: VotingRepository["Service"]["getParticipantVoteInfo"] = Effect.fn(
-    "VotingRepository.getParticipantVoteInfo",
+  const getParticipantVoteInfo: VotingRepository['Service']['getParticipantVoteInfo'] = Effect.fn(
+    'VotingRepository.getParticipantVoteInfo',
   )(function* ({ participantId, topicId }) {
     const votingSessionResult = yield* use((database) =>
       database.query.votingSession.findFirst({
@@ -1360,8 +1360,8 @@ const makeVotingRepository = Effect.gen(function* () {
     return Option.some(participantVoteInfo)
   })
 
-  const getVotingRoundVoteForSession: VotingRepository["Service"]["getVotingRoundVoteForSession"] =
-    Effect.fn("VotingRepository.getVotingRoundVoteForSession")(function* ({ roundId, sessionId }) {
+  const getVotingRoundVoteForSession: VotingRepository['Service']['getVotingRoundVoteForSession'] =
+    Effect.fn('VotingRepository.getVotingRoundVoteForSession')(function* ({ roundId, sessionId }) {
       const result = yield* use((database) =>
         database.query.votingRoundVote.findFirst({
           where: (table, operators) =>
@@ -1375,8 +1375,8 @@ const makeVotingRepository = Effect.gen(function* () {
       return Option.fromNullishOr(result)
     })
 
-  const getSubmissionsForVoting: VotingRepository["Service"]["getSubmissionsForVoting"] = Effect.fn(
-    "VotingRepository.getSubmissionsForVoting",
+  const getSubmissionsForVoting: VotingRepository['Service']['getSubmissionsForVoting'] = Effect.fn(
+    'VotingRepository.getSubmissionsForVoting',
   )(function* ({ marathonId, topicId, roundId }) {
     const roundOpt = yield* resolveRoundForTopic({
       marathonId,
@@ -1412,13 +1412,13 @@ const makeVotingRepository = Effect.gen(function* () {
         .innerJoin(submissions, eq(submissions.id, votingRoundSubmission.submissionId))
         .innerJoin(participants, eq(participants.id, submissions.participantId))
         .innerJoin(topics, eq(topics.id, submissions.topicId))
-        .where(and(eq(votingRoundSubmission.roundId, round.id), eq(submissions.status, "uploaded")))
+        .where(and(eq(votingRoundSubmission.roundId, round.id), eq(submissions.status, 'uploaded')))
         .orderBy(asc(submissions.id)),
     )
   })
 
-  const recordVote: VotingRepository["Service"]["recordVote"] = Effect.fn(
-    "VotingRepository.recordVote",
+  const recordVote: VotingRepository['Service']['recordVote'] = Effect.fn(
+    'VotingRepository.recordVote',
   )(function* ({ roundId, sessionId, submissionId }) {
     const now = new Date().toISOString()
     const values: NewVotingRoundVote = {
@@ -1435,8 +1435,8 @@ const makeVotingRepository = Effect.gen(function* () {
     return result[0]
   })
 
-  const clearVote: VotingRepository["Service"]["clearVote"] = Effect.fn(
-    "VotingRepository.clearVote",
+  const clearVote: VotingRepository['Service']['clearVote'] = Effect.fn(
+    'VotingRepository.clearVote',
   )(function* ({ roundId, sessionId }) {
     const result = yield* use((database) =>
       database
@@ -1448,8 +1448,8 @@ const makeVotingRepository = Effect.gen(function* () {
     return result[0]
   })
 
-  const deleteVotingSession: VotingRepository["Service"]["deleteVotingSession"] = Effect.fn(
-    "VotingRepository.deleteVotingSession",
+  const deleteVotingSession: VotingRepository['Service']['deleteVotingSession'] = Effect.fn(
+    'VotingRepository.deleteVotingSession',
   )(function* ({ sessionId }) {
     const result = yield* use((database) =>
       database.delete(votingSession).where(eq(votingSession.id, sessionId)).returning(),
@@ -1458,8 +1458,8 @@ const makeVotingRepository = Effect.gen(function* () {
     return result[0] as VotingSession | undefined
   })
 
-  const updateVotingSessionContact: VotingRepository["Service"]["updateVotingSessionContact"] =
-    Effect.fn("VotingRepository.updateVotingSessionContact")(function* ({
+  const updateVotingSessionContact: VotingRepository['Service']['updateVotingSessionContact'] =
+    Effect.fn('VotingRepository.updateVotingSessionContact')(function* ({
       marathonId,
       topicId,
       sessionId,

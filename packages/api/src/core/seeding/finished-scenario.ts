@@ -1,10 +1,7 @@
-import {
-  type SponsorPosition,
-  ContactSheetBuilder,
-} from "@blikka/image-manipulation";
-import { SharpImageService } from "@blikka/image-manipulation/sharp";
-import { S3Service } from "@blikka/aws";
-import { RULE_KEYS } from "@blikka/validation";
+import { type SponsorPosition, ContactSheetBuilder } from '@blikka/image-manipulation'
+import { SharpImageService } from '@blikka/image-manipulation/sharp'
+import { S3Service } from '@blikka/aws'
+import { RULE_KEYS } from '@blikka/validation'
 import {
   VotingRepository,
   ContactSheetsRepository,
@@ -26,15 +23,15 @@ import {
   type NewVotingRoundVote,
   type Participant,
   type Topic,
-} from "@blikka/db";
-import { Effect, Option } from "effect";
-import { JuryService } from "../jury/service";
+} from '@blikka/db'
+import { Effect, Option } from 'effect'
+import { JuryService } from '../jury/service'
 import {
   BadRequestError,
   NotFoundError,
   PreconditionFailedError,
   failNotFoundIfNone,
-} from "../errors";
+} from '../errors'
 import {
   getSeedParticipantNames,
   getSeedReference,
@@ -45,51 +42,51 @@ import {
   SEED_VERIFIED_PARTICIPANT_COUNT,
   SEED_VOTED_SESSION_COUNT,
   SEED_VOTE_OFFSET,
-} from "./seed-data";
+} from './seed-data'
 
-const ORIGINAL_IMAGE_WIDTH = 1600;
-const ORIGINAL_IMAGE_HEIGHT = 1200;
-const PREVIEW_WIDTH = 1280;
-const THUMBNAIL_WIDTH = 512;
-const CONTACT_SHEET_SPONSOR_POSITION: SponsorPosition = "bottom-right";
+const ORIGINAL_IMAGE_WIDTH = 1600
+const ORIGINAL_IMAGE_HEIGHT = 1200
+const PREVIEW_WIDTH = 1280
+const THUMBNAIL_WIDTH = 512
+const CONTACT_SHEET_SPONSOR_POSITION: SponsorPosition = 'bottom-right'
 
-type SeedMode = "marathon" | "by-camera";
+type SeedMode = 'marathon' | 'by-camera'
 
 type SeedParticipantRecord = Participant & {
-  comboKey: (typeof SEED_COMBOS)[number]["key"];
-  competitionClass: CompetitionClass;
-  deviceGroup: DeviceGroup;
-};
+  comboKey: (typeof SEED_COMBOS)[number]['key']
+  competitionClass: CompetitionClass
+  deviceGroup: DeviceGroup
+}
 
 type SubmissionSeedPlan = {
-  key: string;
-  previewKey: string;
-  thumbnailKey: string;
-  fileSize: number;
-  mimeType: "image/jpeg";
-  exif: ReturnType<typeof buildSubmissionExif>;
-  topic: Topic;
-  participant: SeedParticipantRecord;
-  createdAt: string;
-};
+  key: string
+  previewKey: string
+  thumbnailKey: string
+  fileSize: number
+  mimeType: 'image/jpeg'
+  exif: ReturnType<typeof buildSubmissionExif>
+  topic: Topic
+  participant: SeedParticipantRecord
+  createdAt: string
+}
 
 type SeedStaffMember = {
-  userId: string;
-  name: string;
-};
+  userId: string
+  name: string
+}
 
 type SeedSubmissionRecord = {
-  id: number;
-  participantId: number;
-  topicId: number;
-};
+  id: number
+  participantId: number
+  topicId: number
+}
 
 function getEnvironment() {
-  return process.env.NODE_ENV ?? "development";
+  return process.env.NODE_ENV ?? 'development'
 }
 
 function formatOrderIndex(orderIndex: number) {
-  return (orderIndex + 1).toString().padStart(2, "0");
+  return (orderIndex + 1).toString().padStart(2, '0')
 }
 
 function buildSubmissionKey(
@@ -98,22 +95,19 @@ function buildSubmissionKey(
   orderIndex: number,
   variant: string,
 ) {
-  return `${domain}/__seed/${reference}/${formatOrderIndex(orderIndex)}/${variant}.jpg`;
+  return `${domain}/__seed/${reference}/${formatOrderIndex(orderIndex)}/${variant}.jpg`
 }
 
 function buildContactSheetKey(domain: string, reference: string) {
-  return `${domain}/__seed/${reference}/contact-sheet.jpg`;
+  return `${domain}/__seed/${reference}/contact-sheet.jpg`
 }
 
 function formatSeedDate(date: string) {
-  return new Date(date).toISOString().replace("T", " ").slice(0, 16);
+  return new Date(date).toISOString().replace('T', ' ').slice(0, 16)
 }
 
 function isGeneralValidationRule(ruleKey: string) {
-  return (
-    ruleKey === RULE_KEYS.STRICT_TIMESTAMP_ORDERING ||
-    ruleKey === RULE_KEYS.SAME_DEVICE
-  );
+  return ruleKey === RULE_KEYS.STRICT_TIMESTAMP_ORDERING || ruleKey === RULE_KEYS.SAME_DEVICE
 }
 
 function buildSeedValidationMessage({
@@ -124,87 +118,77 @@ function buildSeedValidationMessage({
   startDate,
   endDate,
 }: {
-  ruleKey: string;
-  outcome: "passed" | "failed";
-  severity: string;
-  plan: SubmissionSeedPlan | null;
-  startDate: string;
-  endDate: string;
+  ruleKey: string
+  outcome: 'passed' | 'failed'
+  severity: string
+  plan: SubmissionSeedPlan | null
+  startDate: string
+  endDate: string
 }) {
-  const stateLabel =
-    outcome === "passed"
-      ? "Passed"
-      : severity === "warning"
-        ? "Warning"
-        : "Error";
+  const stateLabel = outcome === 'passed' ? 'Passed' : severity === 'warning' ? 'Warning' : 'Error'
   const topicLabel = plan
     ? `topic ${plan.topic.orderIndex + 1} (${plan.topic.name})`
-    : "submission set";
+    : 'submission set'
 
   switch (ruleKey) {
     case RULE_KEYS.MAX_FILE_SIZE:
-      return `${stateLabel}: seeded size review for ${topicLabel}.`;
+      return `${stateLabel}: seeded size review for ${topicLabel}.`
     case RULE_KEYS.ALLOWED_FILE_TYPES:
-      return `${stateLabel}: seeded file type review for ${topicLabel}.`;
+      return `${stateLabel}: seeded file type review for ${topicLabel}.`
     case RULE_KEYS.WITHIN_TIMERANGE:
-      return `${stateLabel}: seeded timeframe review for ${topicLabel} against ${formatSeedDate(startDate)} - ${formatSeedDate(endDate)}.`;
+      return `${stateLabel}: seeded timeframe review for ${topicLabel} against ${formatSeedDate(startDate)} - ${formatSeedDate(endDate)}.`
     case RULE_KEYS.STRICT_TIMESTAMP_ORDERING:
-      return `${stateLabel}: seeded timestamp ordering review for the participant submission set.`;
+      return `${stateLabel}: seeded timestamp ordering review for the participant submission set.`
     case RULE_KEYS.SAME_DEVICE:
-      return `${stateLabel}: seeded device consistency review for the participant submission set.`;
+      return `${stateLabel}: seeded device consistency review for the participant submission set.`
     case RULE_KEYS.MODIFIED:
-      return `${stateLabel}: seeded post-processing review for ${topicLabel}.`;
+      return `${stateLabel}: seeded post-processing review for ${topicLabel}.`
     default:
-      return `${stateLabel}: seeded validation review for ${topicLabel}.`;
+      return `${stateLabel}: seeded validation review for ${topicLabel}.`
   }
 }
 
-function buildSeedValidationResultKey(
-  ruleKey: string,
-  fileName: string | null,
-) {
-  return fileName ? `${ruleKey}:${fileName}` : `${ruleKey}:__general__`;
+function buildSeedValidationResultKey(ruleKey: string, fileName: string | null) {
+  return fileName ? `${ruleKey}:${fileName}` : `${ruleKey}:__general__`
 }
 
 function getModeWindow(mode: SeedMode, now: Date) {
-  if (mode === "marathon") {
+  if (mode === 'marathon') {
     return {
       startDate: new Date(now.getTime() - 72 * 60 * 60 * 1000),
       endDate: new Date(now.getTime() - 48 * 60 * 60 * 1000),
-    };
+    }
   }
 
   return {
     startDate: new Date(now.getTime() - 8 * 60 * 60 * 1000),
     endDate: new Date(now.getTime() - 3 * 60 * 60 * 1000),
-  };
+  }
 }
 
 function getTopicTimestamps(mode: SeedMode, now: Date, index: number) {
-  if (mode === "marathon") {
-    const start = new Date(
-      now.getTime() - 72 * 60 * 60 * 1000 + index * 60 * 60 * 1000,
-    );
+  if (mode === 'marathon') {
+    const start = new Date(now.getTime() - 72 * 60 * 60 * 1000 + index * 60 * 60 * 1000)
     return {
       scheduledStart: start.toISOString(),
       activatedAt: start.toISOString(),
-    };
+    }
   }
 
-  const activatedAt = new Date(now.getTime() - (24 - index) * 20 * 60 * 1000);
+  const activatedAt = new Date(now.getTime() - (24 - index) * 20 * 60 * 1000)
   return {
     scheduledStart: activatedAt.toISOString(),
     activatedAt: activatedAt.toISOString(),
-  };
+  }
 }
 
 function escapeXml(value: string) {
   return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;')
 }
 
 function buildPlaceholderSvg({
@@ -215,17 +199,15 @@ function buildPlaceholderSvg({
   deviceGroupName,
   mode,
 }: {
-  topic: Topic;
-  participant: SeedParticipantRecord;
-  reference: string;
-  competitionClassName: string;
-  deviceGroupName: string;
-  mode: SeedMode;
+  topic: Topic
+  participant: SeedParticipantRecord
+  reference: string
+  competitionClassName: string
+  deviceGroupName: string
+  mode: SeedMode
 }) {
-  const leftColor =
-    participant.deviceGroup.icon === "smartphone" ? "#214A3E" : "#2F3E73";
-  const rightColor =
-    competitionClassName === "8 Images" ? "#E87C4C" : "#A33C5A";
+  const leftColor = participant.deviceGroup.icon === 'smartphone' ? '#214A3E' : '#2F3E73'
+  const rightColor = competitionClassName === '8 Images' ? '#E87C4C' : '#A33C5A'
 
   return `
     <svg width="${ORIGINAL_IMAGE_WIDTH}" height="${ORIGINAL_IMAGE_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
@@ -238,9 +220,7 @@ function buildPlaceholderSvg({
       <rect width="100%" height="100%" fill="url(#bg)" />
       <rect x="52" y="52" width="${ORIGINAL_IMAGE_WIDTH - 104}" height="${ORIGINAL_IMAGE_HEIGHT - 104}" rx="36" fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.3)" />
       <text x="88" y="138" font-family="Arial, sans-serif" font-size="38" fill="#F4EFE7" font-weight="700">${escapeXml(
-        mode === "marathon"
-          ? "Finished Marathon Seed"
-          : "Voting In Progress Seed",
+        mode === 'marathon' ? 'Finished Marathon Seed' : 'Voting In Progress Seed',
       )}</text>
       <text x="88" y="242" font-family="Arial, sans-serif" font-size="112" fill="#FFFFFF" font-weight="800">${escapeXml(
         topic.name,
@@ -259,78 +239,76 @@ function buildPlaceholderSvg({
         deviceGroupName,
       )}</text>
     </svg>
-  `.trim();
+  `.trim()
 }
 
-const buildSubmissionAssets = Effect.fn("SeedingService.buildSubmissionAssets")(
-  function* ({
+const buildSubmissionAssets = Effect.fn('SeedingService.buildSubmissionAssets')(function* ({
+  topic,
+  participant,
+  mode,
+}: {
+  topic: Topic
+  participant: SeedParticipantRecord
+  mode: SeedMode
+}) {
+  const sharp = yield* SharpImageService
+  const svg = buildPlaceholderSvg({
     topic,
     participant,
+    reference: participant.reference,
+    competitionClassName: participant.competitionClass.name,
+    deviceGroupName: participant.deviceGroup.name,
     mode,
-  }: {
-    topic: Topic;
-    participant: SeedParticipantRecord;
-    mode: SeedMode;
-  }) {
-    const sharp = yield* SharpImageService;
-    const svg = buildPlaceholderSvg({
-      topic,
-      participant,
-      reference: participant.reference,
-      competitionClassName: participant.competitionClass.name,
-      deviceGroupName: participant.deviceGroup.name,
-      mode,
-    });
+  })
 
-    const original = yield* sharp.createCanvasSheet({
-      width: ORIGINAL_IMAGE_WIDTH,
-      height: ORIGINAL_IMAGE_HEIGHT,
-      background: "#101828",
-      items: [
-        {
-          input: Buffer.from(svg),
-          top: 0,
-          left: 0,
-        },
-      ],
-    });
+  const original = yield* sharp.createCanvasSheet({
+    width: ORIGINAL_IMAGE_WIDTH,
+    height: ORIGINAL_IMAGE_HEIGHT,
+    background: '#101828',
+    items: [
+      {
+        input: Buffer.from(svg),
+        top: 0,
+        left: 0,
+      },
+    ],
+  })
 
-    const preview = yield* sharp.resize(original, {
-      width: PREVIEW_WIDTH,
-    });
-    const thumbnail = yield* sharp.resize(original, {
-      width: THUMBNAIL_WIDTH,
-    });
+  const preview = yield* sharp.resize(original, {
+    width: PREVIEW_WIDTH,
+  })
+  const thumbnail = yield* sharp.resize(original, {
+    width: THUMBNAIL_WIDTH,
+  })
 
-    return {
-      original,
-      preview,
-      thumbnail,
-    };
-  },
-);
+  return {
+    original,
+    preview,
+    thumbnail,
+  }
+})
 
 function buildSubmissionExif({
   topic,
   participant,
   createdAt,
 }: {
-  topic: Topic;
-  participant: SeedParticipantRecord;
-  createdAt: string;
+  topic: Topic
+  participant: SeedParticipantRecord
+  createdAt: string
 }) {
-  const isMobile = participant.deviceGroup.icon === "smartphone";
+  const isMobile = participant.deviceGroup.icon === 'smartphone'
 
   return {
-    Make: isMobile ? "SeedPhone" : "SeedCam",
-    Model: isMobile ? "SeedPhone One" : "SeedCam X100",
-    LensModel: isMobile ? "Built-In Lens" : "50mm F1.8",
+    Make: isMobile ? 'SeedPhone' : 'SeedCam',
+    Model: isMobile ? 'SeedPhone One' : 'SeedCam X100',
+    LensModel: isMobile ? 'Built-In Lens' : '50mm F1.8',
     ISO: isMobile ? 320 : 200,
     FNumber: isMobile ? 1.8 : 4,
-    ExposureTime: isMobile ? "1/60" : "1/250",
+    ExposureTime: isMobile ? '1/60' : '1/250',
     DateTimeOriginal: createdAt,
     TopicName: topic.name,
-  };
+  }
 }
 
 function buildSubmissionCreatedAt({
@@ -339,104 +317,102 @@ function buildSubmissionCreatedAt({
   mode,
   now,
 }: {
-  topic: Topic;
-  participantIndex: number;
-  mode: SeedMode;
-  now: Date;
+  topic: Topic
+  participantIndex: number
+  mode: SeedMode
+  now: Date
 }) {
-  if (mode === "marathon") {
+  if (mode === 'marathon') {
     return new Date(
       now.getTime() -
         72 * 60 * 60 * 1000 +
         topic.orderIndex * 60 * 60 * 1000 +
         participantIndex * 2 * 60 * 1000,
-    );
+    )
   }
 
-  return new Date(now.getTime() - (participantIndex + 1) * 4 * 60 * 1000);
+  return new Date(now.getTime() - (participantIndex + 1) * 4 * 60 * 1000)
 }
 
-const getSortedStaffMembers = Effect.fn("SeedingService.getSortedStaffMembers")(
-  function* ({ domain }: { domain: string }) {
-    const usersRepository = yield* UsersRepository;
-    const validationsRepository = yield* ValidationsRepository;
-    const submissionsRepository = yield* SubmissionsRepository;
-    const rulesRepository = yield* RulesRepository;
-    const juryRepository = yield* JuryRepository;
-    const marathonsRepository = yield* MarathonsRepository;
-    const topicsRepository = yield* TopicsRepository;
-    const deviceGroupsRepository = yield* DeviceGroupsRepository;
-    const competitionClassesRepository = yield* CompetitionClassesRepository;
-    const participantsRepository = yield* ParticipantsRepository;
-    const contactSheetsRepository = yield* ContactSheetsRepository;
-    const votingRepository = yield* VotingRepository;
-    const staffMembers = yield* usersRepository.getStaffMembersByDomain({
-      domain,
-    });
+const getSortedStaffMembers = Effect.fn('SeedingService.getSortedStaffMembers')(function* ({
+  domain,
+}: {
+  domain: string
+}) {
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
+  const staffMembers = yield* usersRepository.getStaffMembersByDomain({
+    domain,
+  })
 
-    return staffMembers
-      .filter(
-        (
-          staffMember,
-        ): staffMember is Extract<
-          (typeof staffMembers)[number],
-          { kind: "active" }
-        > => staffMember.kind === "active" && staffMember.role === "staff",
-      )
-      .toSorted((left, right) => {
-        const nameCompare = left.name.localeCompare(right.name);
-        if (nameCompare !== 0) {
-          return nameCompare;
-        }
-        return left.userId.localeCompare(right.userId);
-      });
-  },
-);
+  return staffMembers
+    .filter(
+      (staffMember): staffMember is Extract<(typeof staffMembers)[number], { kind: 'active' }> =>
+        staffMember.kind === 'active' && staffMember.role === 'staff',
+    )
+    .toSorted((left, right) => {
+      const nameCompare = left.name.localeCompare(right.name)
+      if (nameCompare !== 0) {
+        return nameCompare
+      }
+      return left.userId.localeCompare(right.userId)
+    })
+})
 
-const getMarathonOrFail = Effect.fn("SeedingService.getMarathonOrFail")(
-  function* ({ domain }: { domain: string }) {
-    const usersRepository = yield* UsersRepository;
-    const validationsRepository = yield* ValidationsRepository;
-    const submissionsRepository = yield* SubmissionsRepository;
-    const rulesRepository = yield* RulesRepository;
-    const juryRepository = yield* JuryRepository;
-    const marathonsRepository = yield* MarathonsRepository;
-    const topicsRepository = yield* TopicsRepository;
-    const deviceGroupsRepository = yield* DeviceGroupsRepository;
-    const competitionClassesRepository = yield* CompetitionClassesRepository;
-    const participantsRepository = yield* ParticipantsRepository;
-    const contactSheetsRepository = yield* ContactSheetsRepository;
-    const votingRepository = yield* VotingRepository;
-    return yield* marathonsRepository
-      .getMarathonByDomain({ domain })
-      .pipe(failNotFoundIfNone("Marathon", { domain }));
-  },
-);
+const getMarathonOrFail = Effect.fn('SeedingService.getMarathonOrFail')(function* ({
+  domain,
+}: {
+  domain: string
+}) {
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
+  return yield* marathonsRepository
+    .getMarathonByDomain({ domain })
+    .pipe(failNotFoundIfNone('Marathon', { domain }))
+})
 
-export const getSeedScenarioStatus = Effect.fn(
-  "SeedingService.getSeedScenarioStatus",
-)(function* ({
+export const getSeedScenarioStatus = Effect.fn('SeedingService.getSeedScenarioStatus')(function* ({
   domain,
   isAdminForDomain,
 }: {
-  domain: string;
-  isAdminForDomain: boolean;
+  domain: string
+  isAdminForDomain: boolean
 }) {
-  const environment = getEnvironment();
-  const marathon = yield* getMarathonOrFail({ domain });
-  const staffMembers = yield* getSortedStaffMembers({ domain });
-  const blockers: string[] = [];
+  const environment = getEnvironment()
+  const marathon = yield* getMarathonOrFail({ domain })
+  const staffMembers = yield* getSortedStaffMembers({ domain })
+  const blockers: string[] = []
 
-  if (environment === "production") {
-    blockers.push("Seed demo data is disabled in production.");
+  if (environment === 'production') {
+    blockers.push('Seed demo data is disabled in production.')
   }
 
   if (!isAdminForDomain) {
-    blockers.push("You need admin access for this domain to run the seeder.");
+    blockers.push('You need admin access for this domain to run the seeder.')
   }
 
   if (staffMembers.length === 0) {
-    blockers.push("Add at least one staff member before running the seeder.");
+    blockers.push('Add at least one staff member before running the seeder.')
   }
 
   return {
@@ -447,414 +423,391 @@ export const getSeedScenarioStatus = Effect.fn(
     blockers,
     canRun: blockers.length === 0,
     preview: { ...SEED_PREVIEW },
-  };
-});
+  }
+})
 
-const createDeviceGroups = Effect.fn("SeedingService.createDeviceGroups")(
-  function* ({ marathonId }: { marathonId: number }) {
-    const usersRepository = yield* UsersRepository;
-    const validationsRepository = yield* ValidationsRepository;
-    const submissionsRepository = yield* SubmissionsRepository;
-    const rulesRepository = yield* RulesRepository;
-    const juryRepository = yield* JuryRepository;
-    const marathonsRepository = yield* MarathonsRepository;
-    const topicsRepository = yield* TopicsRepository;
-    const deviceGroupsRepository = yield* DeviceGroupsRepository;
-    const competitionClassesRepository = yield* CompetitionClassesRepository;
-    const participantsRepository = yield* ParticipantsRepository;
-    const contactSheetsRepository = yield* ContactSheetsRepository;
-    const votingRepository = yield* VotingRepository;
-    const mobile = yield* deviceGroupsRepository.createDeviceGroup({
-      data: {
-        marathonId,
-        name: "Mobile",
-        icon: "smartphone",
-        description: "Smartphone or tablet devices",
-      },
-    });
-    const camera = yield* deviceGroupsRepository.createDeviceGroup({
-      data: {
-        marathonId,
-        name: "Digital Camera",
-        icon: "camera",
-        description: "All types of digital cameras",
-      },
-    });
-
-    return {
-      Mobile: mobile,
-      "Digital Camera": camera,
-    } as const;
-  },
-);
-
-const createCompetitionClasses = Effect.fn(
-  "SeedingService.createCompetitionClasses",
-)(function* ({ marathonId }: { marathonId: number }) {
-  const usersRepository = yield* UsersRepository;
-  const validationsRepository = yield* ValidationsRepository;
-  const submissionsRepository = yield* SubmissionsRepository;
-  const rulesRepository = yield* RulesRepository;
-  const juryRepository = yield* JuryRepository;
-  const marathonsRepository = yield* MarathonsRepository;
-  const topicsRepository = yield* TopicsRepository;
-  const deviceGroupsRepository = yield* DeviceGroupsRepository;
-  const competitionClassesRepository = yield* CompetitionClassesRepository;
-  const participantsRepository = yield* ParticipantsRepository;
-  const contactSheetsRepository = yield* ContactSheetsRepository;
-  const votingRepository = yield* VotingRepository;
-  const createdClasses =
-    yield* competitionClassesRepository.createMultipleCompetitionClasses({
-      data: [
-        {
-          marathonId,
-          name: "8 Images",
-          numberOfPhotos: 8,
-          topicStartIndex: 0,
-          description: "Seeded eight image competition class",
-        },
-        {
-          marathonId,
-          name: "24 Images",
-          numberOfPhotos: 24,
-          topicStartIndex: 0,
-          description: "Seeded twenty four image competition class",
-        },
-      ],
-    });
-
-  const competitionClasses = Object.fromEntries(
-    createdClasses.map((competitionClass) => [
-      competitionClass.name,
-      competitionClass,
-    ]),
-  ) as Record<string, CompetitionClass>;
+const createDeviceGroups = Effect.fn('SeedingService.createDeviceGroups')(function* ({
+  marathonId,
+}: {
+  marathonId: number
+}) {
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
+  const mobile = yield* deviceGroupsRepository.createDeviceGroup({
+    data: {
+      marathonId,
+      name: 'Mobile',
+      icon: 'smartphone',
+      description: 'Smartphone or tablet devices',
+    },
+  })
+  const camera = yield* deviceGroupsRepository.createDeviceGroup({
+    data: {
+      marathonId,
+      name: 'Digital Camera',
+      icon: 'camera',
+      description: 'All types of digital cameras',
+    },
+  })
 
   return {
-    "8 Images": competitionClasses["8 Images"]!,
-    "24 Images": competitionClasses["24 Images"]!,
-  } as const;
-});
+    Mobile: mobile,
+    'Digital Camera': camera,
+  } as const
+})
 
-const createTopics = Effect.fn("SeedingService.createTopics")(function* ({
+const createCompetitionClasses = Effect.fn('SeedingService.createCompetitionClasses')(function* ({
+  marathonId,
+}: {
+  marathonId: number
+}) {
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
+  const createdClasses = yield* competitionClassesRepository.createMultipleCompetitionClasses({
+    data: [
+      {
+        marathonId,
+        name: '8 Images',
+        numberOfPhotos: 8,
+        topicStartIndex: 0,
+        description: 'Seeded eight image competition class',
+      },
+      {
+        marathonId,
+        name: '24 Images',
+        numberOfPhotos: 24,
+        topicStartIndex: 0,
+        description: 'Seeded twenty four image competition class',
+      },
+    ],
+  })
+
+  const competitionClasses = Object.fromEntries(
+    createdClasses.map((competitionClass) => [competitionClass.name, competitionClass]),
+  ) as Record<string, CompetitionClass>
+
+  return {
+    '8 Images': competitionClasses['8 Images']!,
+    '24 Images': competitionClasses['24 Images']!,
+  } as const
+})
+
+const createTopics = Effect.fn('SeedingService.createTopics')(function* ({
   marathonId,
   mode,
   now,
 }: {
-  marathonId: number;
-  mode: SeedMode;
-  now: Date;
+  marathonId: number
+  mode: SeedMode
+  now: Date
 }) {
-  const usersRepository = yield* UsersRepository;
-  const validationsRepository = yield* ValidationsRepository;
-  const submissionsRepository = yield* SubmissionsRepository;
-  const rulesRepository = yield* RulesRepository;
-  const juryRepository = yield* JuryRepository;
-  const marathonsRepository = yield* MarathonsRepository;
-  const topicsRepository = yield* TopicsRepository;
-  const deviceGroupsRepository = yield* DeviceGroupsRepository;
-  const competitionClassesRepository = yield* CompetitionClassesRepository;
-  const participantsRepository = yield* ParticipantsRepository;
-  const contactSheetsRepository = yield* ContactSheetsRepository;
-  const votingRepository = yield* VotingRepository;
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
   const topics = yield* Effect.forEach(
     SEED_TOPIC_NAMES,
     (name, orderIndex) => {
-      const timestamps = getTopicTimestamps(mode, now, orderIndex);
+      const timestamps = getTopicTimestamps(mode, now, orderIndex)
       const isActiveByCameraTopic =
-        mode === "by-camera" && orderIndex === SEED_TOPIC_NAMES.length - 1;
+        mode === 'by-camera' && orderIndex === SEED_TOPIC_NAMES.length - 1
       const topicData: NewTopic = {
         marathonId,
         name,
         orderIndex,
-        visibility: isActiveByCameraTopic ? "active" : "public",
+        visibility: isActiveByCameraTopic ? 'active' : 'public',
         scheduledStart: timestamps.scheduledStart,
         activatedAt: isActiveByCameraTopic
           ? new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
           : timestamps.activatedAt,
-      };
+      }
 
       return topicsRepository.createTopic({
         data: topicData,
-      });
+      })
     },
     { concurrency: 1 },
-  );
+  )
 
-  return topics;
-});
+  return topics
+})
 
-const createSeedParticipants = Effect.fn("SeedingService.createSeedParticipants")(
-  function* ({
-    domain,
-    marathonId,
-    mode,
-    competitionClassesByName,
-    deviceGroupsByName,
-  }: {
-    domain: string;
-    marathonId: number;
-    mode: SeedMode;
-    competitionClassesByName: Record<string, CompetitionClass>;
-    deviceGroupsByName: Record<string, DeviceGroup>;
-  }) {
-    const usersRepository = yield* UsersRepository;
-    const validationsRepository = yield* ValidationsRepository;
-    const submissionsRepository = yield* SubmissionsRepository;
-    const rulesRepository = yield* RulesRepository;
-    const juryRepository = yield* JuryRepository;
-    const marathonsRepository = yield* MarathonsRepository;
-    const topicsRepository = yield* TopicsRepository;
-    const deviceGroupsRepository = yield* DeviceGroupsRepository;
-    const competitionClassesRepository = yield* CompetitionClassesRepository;
-    const participantsRepository = yield* ParticipantsRepository;
-    const contactSheetsRepository = yield* ContactSheetsRepository;
-    const votingRepository = yield* VotingRepository;
+const createSeedParticipants = Effect.fn('SeedingService.createSeedParticipants')(function* ({
+  domain,
+  marathonId,
+  mode,
+  competitionClassesByName,
+  deviceGroupsByName,
+}: {
+  domain: string
+  marathonId: number
+  mode: SeedMode
+  competitionClassesByName: Record<string, CompetitionClass>
+  deviceGroupsByName: Record<string, DeviceGroup>
+}) {
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
 
-    return yield* Effect.forEach(
-      Array.from({ length: SEED_PREVIEW.participants }),
-      (_, index) =>
-        Effect.gen(function* () {
-          const combo = SEED_COMBOS[index % SEED_COMBOS.length]!;
-          const names = getSeedParticipantNames(index);
-          const competitionClass =
-            competitionClassesByName[combo.competitionClassName]!;
-          const deviceGroup = deviceGroupsByName[combo.deviceGroupName]!;
-          const participantData: NewParticipant = {
-            domain,
-            marathonId,
-            reference: getSeedReference(index),
-            firstname: names.firstname,
-            lastname: names.lastname,
-            email: `seed+${getSeedReference(index)}@example.test`,
-            status: "completed",
-            participantMode: mode,
-            competitionClassId: competitionClass.id,
-            deviceGroupId: deviceGroup.id,
-            phoneEncrypted: null,
-            phoneHash: null,
-          };
+  return yield* Effect.forEach(
+    Array.from({ length: SEED_PREVIEW.participants }),
+    (_, index) =>
+      Effect.gen(function* () {
+        const combo = SEED_COMBOS[index % SEED_COMBOS.length]!
+        const names = getSeedParticipantNames(index)
+        const competitionClass = competitionClassesByName[combo.competitionClassName]!
+        const deviceGroup = deviceGroupsByName[combo.deviceGroupName]!
+        const participantData: NewParticipant = {
+          domain,
+          marathonId,
+          reference: getSeedReference(index),
+          firstname: names.firstname,
+          lastname: names.lastname,
+          email: `seed+${getSeedReference(index)}@example.test`,
+          status: 'completed',
+          participantMode: mode,
+          competitionClassId: competitionClass.id,
+          deviceGroupId: deviceGroup.id,
+          phoneEncrypted: null,
+          phoneHash: null,
+        }
 
-          const participant = yield* participantsRepository.createParticipant({
-            data: participantData,
-          });
+        const participant = yield* participantsRepository.createParticipant({
+          data: participantData,
+        })
 
-          return {
-            ...participant,
-            comboKey: combo.key,
-            competitionClass,
-            deviceGroup,
-          } satisfies SeedParticipantRecord;
-        }),
-      { concurrency: 1 },
-    );
-  },
-);
+        return {
+          ...participant,
+          comboKey: combo.key,
+          competitionClass,
+          deviceGroup,
+        } satisfies SeedParticipantRecord
+      }),
+    { concurrency: 1 },
+  )
+})
 
 function getParticipantTopics({
   participant,
   topics,
   mode,
 }: {
-  participant: SeedParticipantRecord;
-  topics: Topic[];
-  mode: SeedMode;
+  participant: SeedParticipantRecord
+  topics: Topic[]
+  mode: SeedMode
 }) {
-  if (mode === "by-camera") {
-    return [topics[topics.length - 1]!];
+  if (mode === 'by-camera') {
+    return [topics[topics.length - 1]!]
   }
 
   return topics.slice(
     participant.competitionClass.topicStartIndex,
-    participant.competitionClass.topicStartIndex +
-      participant.competitionClass.numberOfPhotos,
-  );
+    participant.competitionClass.topicStartIndex + participant.competitionClass.numberOfPhotos,
+  )
 }
 
-const uploadSubmissionAssets = Effect.fn("SeedingService.uploadSubmissionAssets")(
-  function* ({
-    domain,
-    participant,
-    topic,
-    createdAt,
-  }: {
-    domain: string;
-    participant: SeedParticipantRecord;
-    topic: Topic;
-    createdAt: string;
-  }) {
-    const s3 = yield* S3Service;
-    const submissionsBucketName = process.env.SUBMISSIONS_BUCKET_NAME;
-    const thumbnailsBucketName = process.env.THUMBNAILS_BUCKET_NAME;
+const uploadSubmissionAssets = Effect.fn('SeedingService.uploadSubmissionAssets')(function* ({
+  domain,
+  participant,
+  topic,
+  createdAt,
+}: {
+  domain: string
+  participant: SeedParticipantRecord
+  topic: Topic
+  createdAt: string
+}) {
+  const s3 = yield* S3Service
+  const submissionsBucketName = process.env.SUBMISSIONS_BUCKET_NAME
+  const thumbnailsBucketName = process.env.THUMBNAILS_BUCKET_NAME
 
-    if (!submissionsBucketName || !thumbnailsBucketName) {
-      return yield* Effect.fail(
-        new PreconditionFailedError({
-          message: "Missing submissions or thumbnails bucket configuration",
-        }),
-      );
-    }
-
-    const key = buildSubmissionKey(
-      domain,
-      participant.reference,
-      topic.orderIndex,
-      "original",
-    );
-    const previewKey = buildSubmissionKey(
-      domain,
-      participant.reference,
-      topic.orderIndex,
-      "preview",
-    );
-    const thumbnailKey = buildSubmissionKey(
-      domain,
-      participant.reference,
-      topic.orderIndex,
-      "thumbnail",
-    );
-
-    const { original, preview, thumbnail } = yield* buildSubmissionAssets({
-      topic,
-      participant,
-      mode: participant.participantMode as SeedMode,
-    });
-
-    yield* s3.putFile(submissionsBucketName, key, original);
-    yield* s3.putFile(submissionsBucketName, previewKey, preview);
-    yield* s3.putFile(thumbnailsBucketName, thumbnailKey, thumbnail);
-
-    return {
-      key,
-      previewKey,
-      thumbnailKey,
-      fileSize: original.length,
-      mimeType: "image/jpeg" as const,
-      exif: buildSubmissionExif({
-        topic,
-        participant,
-        createdAt,
+  if (!submissionsBucketName || !thumbnailsBucketName) {
+    return yield* Effect.fail(
+      new PreconditionFailedError({
+        message: 'Missing submissions or thumbnails bucket configuration',
       }),
+    )
+  }
+
+  const key = buildSubmissionKey(domain, participant.reference, topic.orderIndex, 'original')
+  const previewKey = buildSubmissionKey(domain, participant.reference, topic.orderIndex, 'preview')
+  const thumbnailKey = buildSubmissionKey(
+    domain,
+    participant.reference,
+    topic.orderIndex,
+    'thumbnail',
+  )
+
+  const { original, preview, thumbnail } = yield* buildSubmissionAssets({
+    topic,
+    participant,
+    mode: participant.participantMode as SeedMode,
+  })
+
+  yield* s3.putFile(submissionsBucketName, key, original)
+  yield* s3.putFile(submissionsBucketName, previewKey, preview)
+  yield* s3.putFile(thumbnailsBucketName, thumbnailKey, thumbnail)
+
+  return {
+    key,
+    previewKey,
+    thumbnailKey,
+    fileSize: original.length,
+    mimeType: 'image/jpeg' as const,
+    exif: buildSubmissionExif({
       topic,
       participant,
       createdAt,
-    } satisfies SubmissionSeedPlan;
-  },
-);
+    }),
+    topic,
+    participant,
+    createdAt,
+  } satisfies SubmissionSeedPlan
+})
 
-const createSeedSubmissions = Effect.fn("SeedingService.createSeedSubmissions")(
-  function* ({
-    domain,
+const createSeedSubmissions = Effect.fn('SeedingService.createSeedSubmissions')(function* ({
+  domain,
+  participants,
+  topics,
+  mode,
+  now,
+}: {
+  domain: string
+  participants: SeedParticipantRecord[]
+  topics: Topic[]
+  mode: SeedMode
+  now: Date
+}) {
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
+  const uploadedPlans = yield* Effect.forEach(
     participants,
-    topics,
-    mode,
-    now,
-  }: {
-    domain: string;
-    participants: SeedParticipantRecord[];
-    topics: Topic[];
-    mode: SeedMode;
-    now: Date;
-  }) {
-    const usersRepository = yield* UsersRepository;
-    const validationsRepository = yield* ValidationsRepository;
-    const submissionsRepository = yield* SubmissionsRepository;
-    const rulesRepository = yield* RulesRepository;
-    const juryRepository = yield* JuryRepository;
-    const marathonsRepository = yield* MarathonsRepository;
-    const topicsRepository = yield* TopicsRepository;
-    const deviceGroupsRepository = yield* DeviceGroupsRepository;
-    const competitionClassesRepository = yield* CompetitionClassesRepository;
-    const participantsRepository = yield* ParticipantsRepository;
-    const contactSheetsRepository = yield* ContactSheetsRepository;
-    const votingRepository = yield* VotingRepository;
-    const uploadedPlans = yield* Effect.forEach(
-      participants,
-      (participant, participantIndex) =>
-        Effect.forEach(
-          getParticipantTopics({
+    (participant, participantIndex) =>
+      Effect.forEach(
+        getParticipantTopics({
+          participant,
+          topics,
+          mode,
+        }),
+        (topic) =>
+          uploadSubmissionAssets({
+            domain,
             participant,
-            topics,
-            mode,
-          }),
-          (topic) =>
-            uploadSubmissionAssets({
-              domain,
-              participant,
+            topic,
+            createdAt: buildSubmissionCreatedAt({
               topic,
-              createdAt: buildSubmissionCreatedAt({
-                topic,
-                participantIndex,
-                mode,
-                now,
-              }).toISOString(),
-            }),
-          { concurrency: 2 },
-        ).pipe(Effect.map((plans) => plans.flat())),
-      { concurrency: 4 },
-    ).pipe(Effect.map((plans) => plans.flat()));
+              participantIndex,
+              mode,
+              now,
+            }).toISOString(),
+          }),
+        { concurrency: 2 },
+      ).pipe(Effect.map((plans) => plans.flat())),
+    { concurrency: 4 },
+  ).pipe(Effect.map((plans) => plans.flat()))
 
-    const createdSubmissions =
-      yield* submissionsRepository.createMultipleSubmissions({
-        data: uploadedPlans.map(
-          (plan) =>
-            ({
-              participantId: plan.participant.id,
-              marathonId: plan.participant.marathonId,
-              topicId: plan.topic.id,
-              key: plan.key,
-              previewKey: plan.previewKey,
-              thumbnailKey: plan.thumbnailKey,
-              mimeType: plan.mimeType,
-              status: "uploaded",
-              exif: plan.exif,
-              metadata: {
-                seeded: true,
-                source: "finished-marathon-seeder",
-              },
-              createdAt: plan.createdAt,
-              updatedAt: plan.createdAt,
-            }) satisfies NewSubmission,
-        ),
-      });
+  const createdSubmissions = yield* submissionsRepository.createMultipleSubmissions({
+    data: uploadedPlans.map(
+      (plan) =>
+        ({
+          participantId: plan.participant.id,
+          marathonId: plan.participant.marathonId,
+          topicId: plan.topic.id,
+          key: plan.key,
+          previewKey: plan.previewKey,
+          thumbnailKey: plan.thumbnailKey,
+          mimeType: plan.mimeType,
+          status: 'uploaded',
+          exif: plan.exif,
+          metadata: {
+            seeded: true,
+            source: 'finished-marathon-seeder',
+          },
+          createdAt: plan.createdAt,
+          updatedAt: plan.createdAt,
+        }) satisfies NewSubmission,
+    ),
+  })
 
-    return {
-      plans: uploadedPlans,
-      submissions: createdSubmissions,
-    };
-  },
-);
+  return {
+    plans: uploadedPlans,
+    submissions: createdSubmissions,
+  }
+})
 
-const syncWithinTimerangeRule = Effect.fn(
-  "SeedingService.syncWithinTimerangeRule",
-)(function* ({
+const syncWithinTimerangeRule = Effect.fn('SeedingService.syncWithinTimerangeRule')(function* ({
   domain,
   startDate,
   endDate,
 }: {
-  domain: string;
-  startDate: string;
-  endDate: string;
+  domain: string
+  startDate: string
+  endDate: string
 }) {
-  const usersRepository = yield* UsersRepository;
-  const validationsRepository = yield* ValidationsRepository;
-  const submissionsRepository = yield* SubmissionsRepository;
-  const rulesRepository = yield* RulesRepository;
-  const juryRepository = yield* JuryRepository;
-  const marathonsRepository = yield* MarathonsRepository;
-  const topicsRepository = yield* TopicsRepository;
-  const deviceGroupsRepository = yield* DeviceGroupsRepository;
-  const competitionClassesRepository = yield* CompetitionClassesRepository;
-  const participantsRepository = yield* ParticipantsRepository;
-  const contactSheetsRepository = yield* ContactSheetsRepository;
-  const votingRepository = yield* VotingRepository;
-  const rules = yield* rulesRepository.getRulesByDomain({ domain });
-  const timerangeRule = rules.find(
-    (rule) => rule.ruleKey === RULE_KEYS.WITHIN_TIMERANGE,
-  );
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
+  const rules = yield* rulesRepository.getRulesByDomain({ domain })
+  const timerangeRule = rules.find((rule) => rule.ruleKey === RULE_KEYS.WITHIN_TIMERANGE)
 
   if (!timerangeRule) {
-    return rules;
+    return rules
   }
 
   const updatedRule = yield* rulesRepository.updateRuleConfig({
@@ -866,110 +819,102 @@ const syncWithinTimerangeRule = Effect.fn(
       },
       updatedAt: new Date().toISOString(),
     },
-  });
+  })
 
-  return rules.map((rule) => (rule.id === updatedRule.id ? updatedRule : rule));
-});
+  return rules.map((rule) => (rule.id === updatedRule.id ? updatedRule : rule))
+})
 
-const createSeedValidationResults = Effect.fn(
-  "SeedingService.createSeedValidationResults",
-)(function* ({
-  domain,
-  participants,
-  plans,
-  rules,
-  startDate,
-  endDate,
-}: {
-  domain: string;
-  participants: SeedParticipantRecord[];
-  plans: SubmissionSeedPlan[];
-  rules: Array<{
-    id: number;
-    ruleKey: string;
-    enabled: boolean | null;
-    severity: string | null;
-  }>;
-  startDate: string;
-  endDate: string;
-}) {
-  const usersRepository = yield* UsersRepository;
-  const validationsRepository = yield* ValidationsRepository;
-  const submissionsRepository = yield* SubmissionsRepository;
-  const rulesRepository = yield* RulesRepository;
-  const juryRepository = yield* JuryRepository;
-  const marathonsRepository = yield* MarathonsRepository;
-  const topicsRepository = yield* TopicsRepository;
-  const deviceGroupsRepository = yield* DeviceGroupsRepository;
-  const competitionClassesRepository = yield* CompetitionClassesRepository;
-  const participantsRepository = yield* ParticipantsRepository;
-  const contactSheetsRepository = yield* ContactSheetsRepository;
-  const votingRepository = yield* VotingRepository;
-  const enabledRules = rules.filter((rule) => rule.enabled);
+const createSeedValidationResults = Effect.fn('SeedingService.createSeedValidationResults')(
+  function* ({
+    domain,
+    participants,
+    plans,
+    rules,
+    startDate,
+    endDate,
+  }: {
+    domain: string
+    participants: SeedParticipantRecord[]
+    plans: SubmissionSeedPlan[]
+    rules: Array<{
+      id: number
+      ruleKey: string
+      enabled: boolean | null
+      severity: string | null
+    }>
+    startDate: string
+    endDate: string
+  }) {
+    const usersRepository = yield* UsersRepository
+    const validationsRepository = yield* ValidationsRepository
+    const submissionsRepository = yield* SubmissionsRepository
+    const rulesRepository = yield* RulesRepository
+    const juryRepository = yield* JuryRepository
+    const marathonsRepository = yield* MarathonsRepository
+    const topicsRepository = yield* TopicsRepository
+    const deviceGroupsRepository = yield* DeviceGroupsRepository
+    const competitionClassesRepository = yield* CompetitionClassesRepository
+    const participantsRepository = yield* ParticipantsRepository
+    const contactSheetsRepository = yield* ContactSheetsRepository
+    const votingRepository = yield* VotingRepository
+    const enabledRules = rules.filter((rule) => rule.enabled)
 
-  if (enabledRules.length === 0) {
-    return 0;
-  }
+    if (enabledRules.length === 0) {
+      return 0
+    }
 
-  const hasWarningSeverity = enabledRules.some(
-    (rule) => rule.severity === "warning",
-  );
-  const hasErrorSeverity = enabledRules.some(
-    (rule) => rule.severity !== "warning",
-  );
-  const shouldForceMixedSeverities = !hasWarningSeverity || !hasErrorSeverity;
+    const hasWarningSeverity = enabledRules.some((rule) => rule.severity === 'warning')
+    const hasErrorSeverity = enabledRules.some((rule) => rule.severity !== 'warning')
+    const shouldForceMixedSeverities = !hasWarningSeverity || !hasErrorSeverity
 
-  const plansByParticipantId = new Map<number, SubmissionSeedPlan[]>();
-  for (const plan of plans) {
-    const existingPlans = plansByParticipantId.get(plan.participant.id) ?? [];
-    existingPlans.push(plan);
-    plansByParticipantId.set(plan.participant.id, existingPlans);
-  }
+    const plansByParticipantId = new Map<number, SubmissionSeedPlan[]>()
+    for (const plan of plans) {
+      const existingPlans = plansByParticipantId.get(plan.participant.id) ?? []
+      existingPlans.push(plan)
+      plansByParticipantId.set(plan.participant.id, existingPlans)
+    }
 
-  const resultsByReference = new Map<
-    string,
-    Map<
+    const resultsByReference = new Map<
       string,
-      {
-        outcome: "passed" | "failed";
-        ruleKey: string;
-        message: string;
-        severity: "warning" | "error";
-        fileName: string | null;
-        overruled: false;
-      }
-    >
-  >();
+      Map<
+        string,
+        {
+          outcome: 'passed' | 'failed'
+          ruleKey: string
+          message: string
+          severity: 'warning' | 'error'
+          fileName: string | null
+          overruled: false
+        }
+      >
+    >()
 
-  participants.forEach((participant) => {
-    const participantPlans = (
-      plansByParticipantId.get(participant.id) ?? []
-    ).toSorted((left, right) => left.topic.orderIndex - right.topic.orderIndex);
-    const participantResults = new Map<
-      string,
-      {
-        outcome: "passed" | "failed";
-        ruleKey: string;
-        message: string;
-        severity: "warning" | "error";
-        fileName: string | null;
-        overruled: false;
-      }
-    >();
+    participants.forEach((participant) => {
+      const participantPlans = (plansByParticipantId.get(participant.id) ?? []).toSorted(
+        (left, right) => left.topic.orderIndex - right.topic.orderIndex,
+      )
+      const participantResults = new Map<
+        string,
+        {
+          outcome: 'passed' | 'failed'
+          ruleKey: string
+          message: string
+          severity: 'warning' | 'error'
+          fileName: string | null
+          overruled: false
+        }
+      >()
 
-    enabledRules.forEach((rule) => {
-      const severity: "warning" | "error" =
-        rule.severity === "warning" ? "warning" : "error";
+      enabledRules.forEach((rule) => {
+        const severity: 'warning' | 'error' = rule.severity === 'warning' ? 'warning' : 'error'
 
-      if (isGeneralValidationRule(rule.ruleKey)) {
-        participantResults.set(
-          buildSeedValidationResultKey(rule.ruleKey, null),
-          {
-            outcome: "passed",
+        if (isGeneralValidationRule(rule.ruleKey)) {
+          participantResults.set(buildSeedValidationResultKey(rule.ruleKey, null), {
+            outcome: 'passed',
             ruleKey: rule.ruleKey,
             message: buildSeedValidationMessage({
               ruleKey: rule.ruleKey,
-              outcome: "passed",
+              outcome: 'passed',
               severity,
               plan: null,
               startDate,
@@ -978,20 +923,17 @@ const createSeedValidationResults = Effect.fn(
             severity,
             fileName: null,
             overruled: false,
-          },
-        );
-        return;
-      }
+          })
+          return
+        }
 
-      participantPlans.forEach((plan) => {
-        participantResults.set(
-          buildSeedValidationResultKey(rule.ruleKey, plan.key),
-          {
-            outcome: "passed",
+        participantPlans.forEach((plan) => {
+          participantResults.set(buildSeedValidationResultKey(rule.ruleKey, plan.key), {
+            outcome: 'passed',
             ruleKey: rule.ruleKey,
             message: buildSeedValidationMessage({
               ruleKey: rule.ruleKey,
-              outcome: "passed",
+              outcome: 'passed',
               severity,
               plan,
               startDate,
@@ -1000,537 +942,497 @@ const createSeedValidationResults = Effect.fn(
             severity,
             fileName: plan.key,
             overruled: false,
-          },
-        );
-      });
-    });
+          })
+        })
+      })
 
-    resultsByReference.set(participant.reference, participantResults);
-  });
+      resultsByReference.set(participant.reference, participantResults)
+    })
 
-  enabledRules.forEach((rule, ruleIndex) => {
-    const targetedParticipants = participants.filter(
-      (_, participantIndex) => (participantIndex + ruleIndex) % 6 === 0,
-    );
-    const maxTargets = isGeneralValidationRule(rule.ruleKey) ? 2 : 3;
+    enabledRules.forEach((rule, ruleIndex) => {
+      const targetedParticipants = participants.filter(
+        (_, participantIndex) => (participantIndex + ruleIndex) % 6 === 0,
+      )
+      const maxTargets = isGeneralValidationRule(rule.ruleKey) ? 2 : 3
 
-    targetedParticipants
-      .slice(0, maxTargets)
-      .forEach((participant, targetIndex) => {
-        const baseSeverity: "warning" | "error" =
-          rule.severity === "warning" ? "warning" : "error";
-        const severity: "warning" | "error" =
+      targetedParticipants.slice(0, maxTargets).forEach((participant, targetIndex) => {
+        const baseSeverity: 'warning' | 'error' = rule.severity === 'warning' ? 'warning' : 'error'
+        const severity: 'warning' | 'error' =
           shouldForceMixedSeverities && targetIndex % 2 === 1
-            ? baseSeverity === "warning"
-              ? "error"
-              : "warning"
-            : baseSeverity;
-        const participantPlans = (
-          plansByParticipantId.get(participant.id) ?? []
-        ).toSorted(
+            ? baseSeverity === 'warning'
+              ? 'error'
+              : 'warning'
+            : baseSeverity
+        const participantPlans = (plansByParticipantId.get(participant.id) ?? []).toSorted(
           (left, right) => left.topic.orderIndex - right.topic.orderIndex,
-        );
+        )
         const targetPlan = isGeneralValidationRule(rule.ruleKey)
           ? null
-          : (participantPlans[
-              (ruleIndex + targetIndex) % participantPlans.length
-            ] ?? null);
+          : (participantPlans[(ruleIndex + targetIndex) % participantPlans.length] ?? null)
 
-        const currentResults = resultsByReference.get(participant.reference);
+        const currentResults = resultsByReference.get(participant.reference)
         if (!currentResults) {
-          return;
+          return
         }
 
-        currentResults.set(
-          buildSeedValidationResultKey(rule.ruleKey, targetPlan?.key ?? null),
-          {
-            outcome: "failed",
+        currentResults.set(buildSeedValidationResultKey(rule.ruleKey, targetPlan?.key ?? null), {
+          outcome: 'failed',
+          ruleKey: rule.ruleKey,
+          message: buildSeedValidationMessage({
             ruleKey: rule.ruleKey,
-            message: buildSeedValidationMessage({
-              ruleKey: rule.ruleKey,
-              outcome: "failed",
-              severity,
-              plan: targetPlan,
-              startDate,
-              endDate,
-            }),
+            outcome: 'failed',
             severity,
-            fileName: targetPlan?.key ?? null,
-            overruled: false,
-          },
-        );
-      });
-  });
-
-  const createdCounts = yield* Effect.forEach(
-    Array.from(resultsByReference.entries()),
-    ([reference, results]) =>
-      validationsRepository
-        .createMultipleValidationResults({
-          domain,
-          reference,
-          data: Array.from(results.values()),
+            plan: targetPlan,
+            startDate,
+            endDate,
+          }),
+          severity,
+          fileName: targetPlan?.key ?? null,
+          overruled: false,
         })
-        .pipe(Effect.map((createdResults) => createdResults.length)),
-    { concurrency: 4 },
-  );
+      })
+    })
 
-  return createdCounts.reduce((total, count) => total + count, 0);
-});
+    const createdCounts = yield* Effect.forEach(
+      Array.from(resultsByReference.entries()),
+      ([reference, results]) =>
+        validationsRepository
+          .createMultipleValidationResults({
+            domain,
+            reference,
+            data: Array.from(results.values()),
+          })
+          .pipe(Effect.map((createdResults) => createdResults.length)),
+      { concurrency: 4 },
+    )
 
-const createParticipantVerifications = Effect.fn(
-  "SeedingService.createParticipantVerifications",
-)(function* ({
+    return createdCounts.reduce((total, count) => total + count, 0)
+  },
+)
+
+const createParticipantVerifications = Effect.fn('SeedingService.createParticipantVerifications')(
+  function* ({
+    participants,
+    staffMembers,
+  }: {
+    participants: SeedParticipantRecord[]
+    staffMembers: SeedStaffMember[]
+  }) {
+    const usersRepository = yield* UsersRepository
+    const validationsRepository = yield* ValidationsRepository
+    const submissionsRepository = yield* SubmissionsRepository
+    const rulesRepository = yield* RulesRepository
+    const juryRepository = yield* JuryRepository
+    const marathonsRepository = yield* MarathonsRepository
+    const topicsRepository = yield* TopicsRepository
+    const deviceGroupsRepository = yield* DeviceGroupsRepository
+    const competitionClassesRepository = yield* CompetitionClassesRepository
+    const participantsRepository = yield* ParticipantsRepository
+    const contactSheetsRepository = yield* ContactSheetsRepository
+    const votingRepository = yield* VotingRepository
+    const verifiedParticipants = participants
+      .filter((_, index) => index % 4 !== 3)
+      .slice(0, SEED_VERIFIED_PARTICIPANT_COUNT)
+
+    yield* Effect.forEach(
+      verifiedParticipants,
+      (participant, index) =>
+        Effect.gen(function* () {
+          const staffMember = staffMembers[index % staffMembers.length]!
+          yield* validationsRepository.createParticipantVerification({
+            data: {
+              participantId: participant.id,
+              staffId: staffMember.userId,
+              notes: `Seed verification by ${staffMember.name}`,
+            },
+          })
+          yield* participantsRepository.updateParticipantById({
+            id: participant.id,
+            data: {
+              status: 'verified',
+            },
+          })
+        }),
+      { concurrency: 4 },
+    )
+
+    return verifiedParticipants.length
+  },
+)
+
+const createContactSheets = Effect.fn('SeedingService.createContactSheets')(function* ({
+  domain,
   participants,
-  staffMembers,
+  plans,
+  topics,
 }: {
-  participants: SeedParticipantRecord[];
-  staffMembers: SeedStaffMember[];
+  domain: string
+  participants: SeedParticipantRecord[]
+  plans: SubmissionSeedPlan[]
+  topics: Topic[]
 }) {
-  const usersRepository = yield* UsersRepository;
-  const validationsRepository = yield* ValidationsRepository;
-  const submissionsRepository = yield* SubmissionsRepository;
-  const rulesRepository = yield* RulesRepository;
-  const juryRepository = yield* JuryRepository;
-  const marathonsRepository = yield* MarathonsRepository;
-  const topicsRepository = yield* TopicsRepository;
-  const deviceGroupsRepository = yield* DeviceGroupsRepository;
-  const competitionClassesRepository = yield* CompetitionClassesRepository;
-  const participantsRepository = yield* ParticipantsRepository;
-  const contactSheetsRepository = yield* ContactSheetsRepository;
-  const votingRepository = yield* VotingRepository;
-  const verifiedParticipants = participants
-    .filter((_, index) => index % 4 !== 3)
-    .slice(0, SEED_VERIFIED_PARTICIPANT_COUNT);
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
+  const contactSheetBuilder = yield* ContactSheetBuilder
+  const s3 = yield* S3Service
+  const submissionsBucketName = process.env.SUBMISSIONS_BUCKET_NAME
+  const contactSheetsBucketName = process.env.CONTACT_SHEETS_BUCKET_NAME
+
+  if (!submissionsBucketName) {
+    return yield* Effect.fail(
+      new PreconditionFailedError({
+        message: 'Missing submissions bucket configuration',
+      }),
+    )
+  }
+
+  if (!contactSheetsBucketName) {
+    return yield* Effect.fail(
+      new PreconditionFailedError({
+        message: 'Missing contact sheets bucket configuration',
+      }),
+    )
+  }
 
   yield* Effect.forEach(
-    verifiedParticipants,
-    (participant, index) =>
+    participants,
+    (participant) =>
       Effect.gen(function* () {
-        const staffMember = staffMembers[index % staffMembers.length]!;
-        yield* validationsRepository.createParticipantVerification({
+        const keys = plans
+          .filter((plan) => plan.participant.id === participant.id)
+          .sort((left, right) => left.topic.orderIndex - right.topic.orderIndex)
+          .map((plan) => plan.key)
+        const images = yield* Effect.forEach(
+          keys,
+          (key, index) =>
+            Effect.gen(function* () {
+              const file = yield* s3.getFile(submissionsBucketName, key)
+              if (Option.isNone(file)) {
+                return yield* Effect.fail(
+                  new NotFoundError({
+                    resource: 'SeedSubmissionImage',
+                    identifier: { key },
+                  }),
+                )
+              }
+
+              return {
+                orderIndex: index,
+                buffer: file.value,
+              }
+            }),
+          { concurrency: 5 },
+        )
+        const sheetBuffer = yield* contactSheetBuilder.createSheet({
+          reference: participant.reference,
+          images,
+          sponsorPosition: CONTACT_SHEET_SPONSOR_POSITION,
+          topics: topics.map((topic) => ({
+            name: topic.name,
+            orderIndex: topic.orderIndex,
+          })),
+        })
+        const key = buildContactSheetKey(domain, participant.reference)
+        yield* s3.putFile(contactSheetsBucketName, key, sheetBuffer)
+        yield* contactSheetsRepository.save({
           data: {
+            key,
             participantId: participant.id,
-            staffId: staffMember.userId,
-            notes: `Seed verification by ${staffMember.name}`,
+            marathonId: participant.marathonId,
           },
-        });
-        yield* participantsRepository.updateParticipantById({
-          id: participant.id,
-          data: {
-            status: "verified",
-          },
-        });
+        })
       }),
-    { concurrency: 4 },
-  );
+    { concurrency: 2 },
+  )
 
-  return verifiedParticipants.length;
-});
+  return participants.length
+})
 
-const createContactSheets = Effect.fn("SeedingService.createContactSheets")(
+const createJuryInvitationsAndRatings = Effect.fn('SeedingService.createJuryInvitationsAndRatings')(
   function* ({
     domain,
     participants,
-    plans,
-    topics,
+    now,
   }: {
-    domain: string;
-    participants: SeedParticipantRecord[];
-    plans: SubmissionSeedPlan[];
-    topics: Topic[];
+    domain: string
+    participants: SeedParticipantRecord[]
+    now: Date
   }) {
-    const usersRepository = yield* UsersRepository;
-    const validationsRepository = yield* ValidationsRepository;
-    const submissionsRepository = yield* SubmissionsRepository;
-    const rulesRepository = yield* RulesRepository;
-    const juryRepository = yield* JuryRepository;
-    const marathonsRepository = yield* MarathonsRepository;
-    const topicsRepository = yield* TopicsRepository;
-    const deviceGroupsRepository = yield* DeviceGroupsRepository;
-    const competitionClassesRepository = yield* CompetitionClassesRepository;
-    const participantsRepository = yield* ParticipantsRepository;
-    const contactSheetsRepository = yield* ContactSheetsRepository;
-    const votingRepository = yield* VotingRepository;
-    const contactSheetBuilder = yield* ContactSheetBuilder;
-    const s3 = yield* S3Service;
-    const submissionsBucketName = process.env.SUBMISSIONS_BUCKET_NAME;
-    const contactSheetsBucketName = process.env.CONTACT_SHEETS_BUCKET_NAME;
+    const usersRepository = yield* UsersRepository
+    const validationsRepository = yield* ValidationsRepository
+    const submissionsRepository = yield* SubmissionsRepository
+    const rulesRepository = yield* RulesRepository
+    const juryRepository = yield* JuryRepository
+    const marathonsRepository = yield* MarathonsRepository
+    const topicsRepository = yield* TopicsRepository
+    const deviceGroupsRepository = yield* DeviceGroupsRepository
+    const competitionClassesRepository = yield* CompetitionClassesRepository
+    const participantsRepository = yield* ParticipantsRepository
+    const contactSheetsRepository = yield* ContactSheetsRepository
+    const votingRepository = yield* VotingRepository
+    let ratingCount = 0
 
-    if (!submissionsBucketName) {
-      return yield* Effect.fail(
-        new PreconditionFailedError({
-          message: "Missing submissions bucket configuration",
-        }),
-      );
-    }
-
-    if (!contactSheetsBucketName) {
-      return yield* Effect.fail(
-        new PreconditionFailedError({
-          message: "Missing contact sheets bucket configuration",
-        }),
-      );
-    }
-
-    yield* Effect.forEach(
-      participants,
-      (participant) =>
+    const invitations = yield* Effect.forEach(
+      SEED_JURY_INVITATIONS,
+      (template) =>
         Effect.gen(function* () {
-          const keys = plans
-            .filter((plan) => plan.participant.id === participant.id)
-            .sort(
-              (left, right) => left.topic.orderIndex - right.topic.orderIndex,
-            )
-            .map((plan) => plan.key);
-          const images = yield* Effect.forEach(
-            keys,
-            (key, index) =>
-              Effect.gen(function* () {
-                const file = yield* s3.getFile(submissionsBucketName, key);
-                if (Option.isNone(file)) {
-                  return yield* Effect.fail(
-                    new NotFoundError({
-                      resource: "SeedSubmissionImage",
-                      identifier: { key },
-                    }),
-                  );
-                }
-
-                return {
-                  orderIndex: index,
-                  buffer: file.value,
-                };
+          const representativeParticipant = participants.find(
+            (participant) => participant.comboKey === template.comboKey,
+          )
+          if (!representativeParticipant) {
+            return yield* Effect.fail(
+              new PreconditionFailedError({
+                message: `Missing participants for jury invitation ${template.comboKey}`,
               }),
-            { concurrency: 5 },
-          );
-          const sheetBuffer = yield* contactSheetBuilder.createSheet({
-            reference: participant.reference,
-            images,
-            sponsorPosition: CONTACT_SHEET_SPONSOR_POSITION,
-            topics: topics.map((topic) => ({
-              name: topic.name,
-              orderIndex: topic.orderIndex,
-            })),
-          });
-          const key = buildContactSheetKey(domain, participant.reference);
-          yield* s3.putFile(contactSheetsBucketName, key, sheetBuffer);
-          yield* contactSheetsRepository.save({
-            data: {
-              key,
-              participantId: participant.id,
-              marathonId: participant.marathonId,
-            },
-          });
-        }),
-      { concurrency: 2 },
-    );
+            )
+          }
 
-    return participants.length;
-  },
-);
-
-const createJuryInvitationsAndRatings = Effect.fn(
-  "SeedingService.createJuryInvitationsAndRatings",
-)(function* ({
-  domain,
-  participants,
-  now,
-}: {
-  domain: string;
-  participants: SeedParticipantRecord[];
-  now: Date;
-}) {
-  const usersRepository = yield* UsersRepository;
-  const validationsRepository = yield* ValidationsRepository;
-  const submissionsRepository = yield* SubmissionsRepository;
-  const rulesRepository = yield* RulesRepository;
-  const juryRepository = yield* JuryRepository;
-  const marathonsRepository = yield* MarathonsRepository;
-  const topicsRepository = yield* TopicsRepository;
-  const deviceGroupsRepository = yield* DeviceGroupsRepository;
-  const competitionClassesRepository = yield* CompetitionClassesRepository;
-  const participantsRepository = yield* ParticipantsRepository;
-  const contactSheetsRepository = yield* ContactSheetsRepository;
-  const votingRepository = yield* VotingRepository;
-  let ratingCount = 0;
-
-  const invitations = yield* Effect.forEach(
-    SEED_JURY_INVITATIONS,
-    (template) =>
-      Effect.gen(function* () {
-        const representativeParticipant = participants.find(
-          (participant) => participant.comboKey === template.comboKey,
-        );
-        if (!representativeParticipant) {
-          return yield* Effect.fail(
-            new PreconditionFailedError({
-              message: `Missing participants for jury invitation ${template.comboKey}`,
+          const invitation = yield* JuryService.use((juryService) =>
+            juryService.createJuryInvitation({
+              domain,
+              data: {
+                email: template.email,
+                displayName: template.displayName,
+                inviteType: 'class',
+                competitionClassId: representativeParticipant.competitionClass.id,
+                deviceGroupId: representativeParticipant.deviceGroup.id,
+                expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                notes: `Seeded ${template.status} jury invitation`,
+                status: template.status,
+              },
             }),
-          );
-        }
+          )
 
-        const invitation = yield* JuryService.use((juryService) =>
-          juryService.createJuryInvitation({
-            domain,
-            data: {
-              email: template.email,
-              displayName: template.displayName,
-              inviteType: "class",
-              competitionClassId: representativeParticipant.competitionClass.id,
-              deviceGroupId: representativeParticipant.deviceGroup.id,
-              expiresAt: new Date(
-                now.getTime() + 30 * 24 * 60 * 60 * 1000,
-              ).toISOString(),
-              notes: `Seeded ${template.status} jury invitation`,
-              status: template.status,
-            },
-          }),
-        );
-
-        const targetParticipants = participants
-          .filter((participant) => participant.comboKey === template.comboKey)
-          .toSorted((left, right) =>
-            left.reference.localeCompare(right.reference),
-          );
-        const ratingsToCreate = Math.floor(
-          targetParticipants.length * template.progressRatio,
-        );
-        const ratedParticipants = targetParticipants.slice(0, ratingsToCreate);
-
-        yield* Effect.forEach(
-          ratedParticipants,
-          (participant, index) =>
-            Effect.gen(function* () {
-              const rating = 5 - ((index + participant.id) % 5);
-              yield* juryRepository.createJuryRating({
-                invitationId: invitation.id,
-                participantId: participant.id,
-                rating,
-                notes: "Seeded jury rating",
-              });
-              ratingCount += 1;
-            }),
-          { concurrency: 4 },
-        );
-
-        if (template.status === "completed") {
-          const rankingOrder = ratedParticipants
-            .map((participant, index) => ({
-              participant,
-              rating: 5 - ((index + participant.id) % 5),
-            }))
-            .toSorted((left, right) => {
-              if (left.rating !== right.rating) {
-                return right.rating - left.rating;
-              }
-              return left.participant.reference.localeCompare(
-                right.participant.reference,
-              );
-            });
+          const targetParticipants = participants
+            .filter((participant) => participant.comboKey === template.comboKey)
+            .toSorted((left, right) => left.reference.localeCompare(right.reference))
+          const ratingsToCreate = Math.floor(targetParticipants.length * template.progressRatio)
+          const ratedParticipants = targetParticipants.slice(0, ratingsToCreate)
 
           yield* Effect.forEach(
-            rankingOrder,
-            ({ participant, rating }, rankingIndex) =>
+            ratedParticipants,
+            (participant, index) =>
               Effect.gen(function* () {
-                yield* juryRepository.updateJuryRating({
+                const rating = 5 - ((index + participant.id) % 5)
+                yield* juryRepository.createJuryRating({
                   invitationId: invitation.id,
                   participantId: participant.id,
                   rating,
-                  notes: "Seeded jury rating",
-                });
-                yield* juryRepository.createJuryFinalRanking({
-                  invitationId: invitation.id,
-                  participantId: participant.id,
-                  rank: rankingIndex + 1,
-                });
+                  notes: 'Seeded jury rating',
+                })
+                ratingCount += 1
               }),
             { concurrency: 4 },
-          );
-        }
+          )
 
-        return invitation;
-      }),
-    { concurrency: 1 },
-  );
+          if (template.status === 'completed') {
+            const rankingOrder = ratedParticipants
+              .map((participant, index) => ({
+                participant,
+                rating: 5 - ((index + participant.id) % 5),
+              }))
+              .toSorted((left, right) => {
+                if (left.rating !== right.rating) {
+                  return right.rating - left.rating
+                }
+                return left.participant.reference.localeCompare(right.participant.reference)
+              })
 
-  return {
-    invitationCount: invitations.length,
-    ratingCount,
-  };
-});
+            yield* Effect.forEach(
+              rankingOrder,
+              ({ participant, rating }, rankingIndex) =>
+                Effect.gen(function* () {
+                  yield* juryRepository.updateJuryRating({
+                    invitationId: invitation.id,
+                    participantId: participant.id,
+                    rating,
+                    notes: 'Seeded jury rating',
+                  })
+                  yield* juryRepository.createJuryFinalRanking({
+                    invitationId: invitation.id,
+                    participantId: participant.id,
+                    rank: rankingIndex + 1,
+                  })
+                }),
+              { concurrency: 4 },
+            )
+          }
 
-const createVotingSessions = Effect.fn("SeedingService.createVotingSessions")(
-  function* ({
-    participants,
-    activeTopic,
-    submissions,
-    now,
-  }: {
-    participants: SeedParticipantRecord[];
-    activeTopic: Topic;
-    submissions: SeedSubmissionRecord[];
-    now: Date;
-  }) {
-    const usersRepository = yield* UsersRepository;
-    const validationsRepository = yield* ValidationsRepository;
-    const submissionsRepository = yield* SubmissionsRepository;
-    const rulesRepository = yield* RulesRepository;
-    const juryRepository = yield* JuryRepository;
-    const marathonsRepository = yield* MarathonsRepository;
-    const topicsRepository = yield* TopicsRepository;
-    const deviceGroupsRepository = yield* DeviceGroupsRepository;
-    const competitionClassesRepository = yield* CompetitionClassesRepository;
-    const participantsRepository = yield* ParticipantsRepository;
-    const contactSheetsRepository = yield* ContactSheetsRepository;
-    const votingRepository = yield* VotingRepository;
-    const activeTopicSubmissions = submissions
-      .filter((submission) => submission.topicId === activeTopic.id)
-      .toSorted((left, right) => left.participantId - right.participantId);
+          return invitation
+        }),
+      { concurrency: 1 },
+    )
 
-    const sessions = participants.map((participant, index) => {
-      const isVoted = index < SEED_VOTED_SESSION_COUNT;
-      const targetSubmission = isVoted
-        ? activeTopicSubmissions[
-            (index + SEED_VOTE_OFFSET) % activeTopicSubmissions.length
-          ]!
-        : null;
-      const votedAt = isVoted
-        ? new Date(
-            now.getTime() - (SEED_VOTED_SESSION_COUNT - index) * 4 * 60 * 1000,
-          ).toISOString()
-        : null;
-
-      return {
-        token: `seed-vote-${participant.reference}-topic-${formatOrderIndex(activeTopic.orderIndex)}`,
-        firstName: participant.firstname,
-        lastName: participant.lastname,
-        email:
-          participant.email ?? `seed+${participant.reference}@example.test`,
-        phoneHash: null,
-        phoneEncrypted: null,
-        marathonId: participant.marathonId,
-        notificationLastSentAt: new Date(
-          now.getTime() - 85 * 60 * 1000,
-        ).toISOString(),
-        voteSubmissionId: !isVoted
-          ? null
-          : targetSubmission &&
-              targetSubmission.participantId !== participant.id
-            ? targetSubmission.id
-            : activeTopicSubmissions[
-                (index + SEED_VOTE_OFFSET + 1) % activeTopicSubmissions.length
-              ]!.id,
-        connectedParticipantId: participant.id,
-        votedAt,
-        topicId: activeTopic.id,
-        createdAt: new Date(
-          now.getTime() - 90 * 60 * 1000 + index * 60 * 1000,
-        ).toISOString(),
-        updatedAt:
-          votedAt ?? new Date(now.getTime() - 20 * 60 * 1000).toISOString(),
-      };
-    });
-
-    const createdSessions = yield* votingRepository.createVotingSessions({
-      sessions,
-    });
-
-    const createdRound = yield* votingRepository.createVotingRound({
-      marathonId: activeTopic.marathonId,
-      topicId: activeTopic.id,
-      roundNumber: 1,
-      kind: "initial",
-      sourceRoundId: null,
-      startedAt: new Date(now.getTime() - 75 * 60 * 1000).toISOString(),
-      endsAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-    });
-
-    if (!createdRound) {
-      return {
-        sessionCount: createdSessions.length,
-        voteCount: sessions.filter((session) => session.votedAt).length,
-      };
+    return {
+      invitationCount: invitations.length,
+      ratingCount,
     }
+  },
+)
 
-    yield* votingRepository.createVotingRoundSubmissions({
-      roundId: createdRound.id,
-      submissionIds: activeTopicSubmissions.map((submission) => submission.id),
-    });
+const createVotingSessions = Effect.fn('SeedingService.createVotingSessions')(function* ({
+  participants,
+  activeTopic,
+  submissions,
+  now,
+}: {
+  participants: SeedParticipantRecord[]
+  activeTopic: Topic
+  submissions: SeedSubmissionRecord[]
+  now: Date
+}) {
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
+  const activeTopicSubmissions = submissions
+    .filter((submission) => submission.topicId === activeTopic.id)
+    .toSorted((left, right) => left.participantId - right.participantId)
 
-    const roundVotes: NewVotingRoundVote[] = createdSessions.flatMap(
-      (session, index) => {
-        const seedSession = sessions[index];
-        if (!seedSession?.voteSubmissionId || !seedSession.votedAt) {
-          return [];
-        }
+  const sessions = participants.map((participant, index) => {
+    const isVoted = index < SEED_VOTED_SESSION_COUNT
+    const targetSubmission = isVoted
+      ? activeTopicSubmissions[(index + SEED_VOTE_OFFSET) % activeTopicSubmissions.length]!
+      : null
+    const votedAt = isVoted
+      ? new Date(now.getTime() - (SEED_VOTED_SESSION_COUNT - index) * 4 * 60 * 1000).toISOString()
+      : null
 
-        return [
-          {
-            roundId: createdRound.id,
-            sessionId: session.id,
-            submissionId: seedSession.voteSubmissionId,
-            votedAt: seedSession.votedAt,
-          },
-        ];
-      },
-    );
+    return {
+      token: `seed-vote-${participant.reference}-topic-${formatOrderIndex(activeTopic.orderIndex)}`,
+      firstName: participant.firstname,
+      lastName: participant.lastname,
+      email: participant.email ?? `seed+${participant.reference}@example.test`,
+      phoneHash: null,
+      phoneEncrypted: null,
+      marathonId: participant.marathonId,
+      notificationLastSentAt: new Date(now.getTime() - 85 * 60 * 1000).toISOString(),
+      voteSubmissionId: !isVoted
+        ? null
+        : targetSubmission && targetSubmission.participantId !== participant.id
+          ? targetSubmission.id
+          : activeTopicSubmissions[(index + SEED_VOTE_OFFSET + 1) % activeTopicSubmissions.length]!
+              .id,
+      connectedParticipantId: participant.id,
+      votedAt,
+      topicId: activeTopic.id,
+      createdAt: new Date(now.getTime() - 90 * 60 * 1000 + index * 60 * 1000).toISOString(),
+      updatedAt: votedAt ?? new Date(now.getTime() - 20 * 60 * 1000).toISOString(),
+    }
+  })
 
-    yield* votingRepository.createVotingRoundVotes({
-      votes: roundVotes,
-    });
+  const createdSessions = yield* votingRepository.createVotingSessions({
+    sessions,
+  })
 
+  const createdRound = yield* votingRepository.createVotingRound({
+    marathonId: activeTopic.marathonId,
+    topicId: activeTopic.id,
+    roundNumber: 1,
+    kind: 'initial',
+    sourceRoundId: null,
+    startedAt: new Date(now.getTime() - 75 * 60 * 1000).toISOString(),
+    endsAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+  })
+
+  if (!createdRound) {
     return {
       sessionCount: createdSessions.length,
       voteCount: sessions.filter((session) => session.votedAt).length,
-    };
-  },
-);
+    }
+  }
 
-export const seedFinishedScenario = Effect.fn(
-  "SeedingService.seedFinishedScenario",
-)(function* ({
+  yield* votingRepository.createVotingRoundSubmissions({
+    roundId: createdRound.id,
+    submissionIds: activeTopicSubmissions.map((submission) => submission.id),
+  })
+
+  const roundVotes: NewVotingRoundVote[] = createdSessions.flatMap((session, index) => {
+    const seedSession = sessions[index]
+    if (!seedSession?.voteSubmissionId || !seedSession.votedAt) {
+      return []
+    }
+
+    return [
+      {
+        roundId: createdRound.id,
+        sessionId: session.id,
+        submissionId: seedSession.voteSubmissionId,
+        votedAt: seedSession.votedAt,
+      },
+    ]
+  })
+
+  yield* votingRepository.createVotingRoundVotes({
+    votes: roundVotes,
+  })
+
+  return {
+    sessionCount: createdSessions.length,
+    voteCount: sessions.filter((session) => session.votedAt).length,
+  }
+})
+
+export const seedFinishedScenario = Effect.fn('SeedingService.seedFinishedScenario')(function* ({
   domain,
   isAdminForDomain,
 }: {
-  domain: string;
-  isAdminForDomain: boolean;
+  domain: string
+  isAdminForDomain: boolean
 }) {
-  const usersRepository = yield* UsersRepository;
-  const validationsRepository = yield* ValidationsRepository;
-  const submissionsRepository = yield* SubmissionsRepository;
-  const rulesRepository = yield* RulesRepository;
-  const juryRepository = yield* JuryRepository;
-  const marathonsRepository = yield* MarathonsRepository;
-  const topicsRepository = yield* TopicsRepository;
-  const deviceGroupsRepository = yield* DeviceGroupsRepository;
-  const competitionClassesRepository = yield* CompetitionClassesRepository;
-  const participantsRepository = yield* ParticipantsRepository;
-  const contactSheetsRepository = yield* ContactSheetsRepository;
-  const votingRepository = yield* VotingRepository;
-  const marathon = yield* getMarathonOrFail({ domain });
-  const mode = marathon.mode as SeedMode;
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const submissionsRepository = yield* SubmissionsRepository
+  const rulesRepository = yield* RulesRepository
+  const juryRepository = yield* JuryRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const topicsRepository = yield* TopicsRepository
+  const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const competitionClassesRepository = yield* CompetitionClassesRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const contactSheetsRepository = yield* ContactSheetsRepository
+  const votingRepository = yield* VotingRepository
+  const marathon = yield* getMarathonOrFail({ domain })
+  const mode = marathon.mode as SeedMode
   const status = yield* getSeedScenarioStatus({
     domain,
     isAdminForDomain,
-  });
+  })
 
   if (!status.canRun) {
     return yield* Effect.fail(
       new BadRequestError({
-        message: status.blockers[0] ?? "Seed scenario is not available",
+        message: status.blockers[0] ?? 'Seed scenario is not available',
       }),
-    );
+    )
   }
 
-  const staffMembers = yield* getSortedStaffMembers({ domain });
-  const now = new Date();
-  const { startDate, endDate } = getModeWindow(mode, now);
+  const staffMembers = yield* getSortedStaffMembers({ domain })
+  const now = new Date()
+  const { startDate, endDate } = getModeWindow(mode, now)
 
   const runSeed = Effect.gen(function* () {
     yield* marathonsRepository.clearOperationalSeedableData({
       id: marathon.id,
-    });
+    })
     yield* marathonsRepository.updateMarathonByDomain({
       domain,
       data: {
@@ -1538,38 +1440,38 @@ export const seedFinishedScenario = Effect.fn(
         endDate: endDate.toISOString(),
         setupCompleted: true,
       },
-    });
+    })
     const rules = yield* syncWithinTimerangeRule({
       domain,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-    });
+    })
 
     const deviceGroupsByName = yield* createDeviceGroups({
       marathonId: marathon.id,
-    });
+    })
     const competitionClassesByName = yield* createCompetitionClasses({
       marathonId: marathon.id,
-    });
+    })
     const topics = yield* createTopics({
       marathonId: marathon.id,
       mode,
       now,
-    });
+    })
     const participants = yield* createSeedParticipants({
       domain,
       marathonId: marathon.id,
       mode,
       competitionClassesByName,
       deviceGroupsByName,
-    });
+    })
     const { plans, submissions } = yield* createSeedSubmissions({
       domain,
       participants,
       topics,
       mode,
       now,
-    });
+    })
     const validationResultsCreated = yield* createSeedValidationResults({
       domain,
       participants,
@@ -1577,26 +1479,24 @@ export const seedFinishedScenario = Effect.fn(
       rules,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-    });
+    })
 
-    if (mode === "marathon") {
-      const participantVerificationsCreated =
-        yield* createParticipantVerifications({
-          participants,
-          staffMembers,
-        });
+    if (mode === 'marathon') {
+      const participantVerificationsCreated = yield* createParticipantVerifications({
+        participants,
+        staffMembers,
+      })
       const contactSheetsCreated = yield* createContactSheets({
         domain,
         participants,
         plans,
         topics,
-      });
-      const { invitationCount, ratingCount } =
-        yield* createJuryInvitationsAndRatings({
-          domain,
-          participants,
-          now,
-        });
+      })
+      const { invitationCount, ratingCount } = yield* createJuryInvitationsAndRatings({
+        domain,
+        participants,
+        now,
+      })
 
       return {
         mode,
@@ -1609,16 +1509,16 @@ export const seedFinishedScenario = Effect.fn(
         votesCast: 0,
         contactSheetsCreated,
         validationResultsCreated,
-      };
+      }
     }
 
-    const activeTopic = topics[topics.length - 1]!;
+    const activeTopic = topics[topics.length - 1]!
     const voting = yield* createVotingSessions({
       participants,
       activeTopic,
       submissions,
       now,
-    });
+    })
 
     return {
       mode,
@@ -1631,8 +1531,8 @@ export const seedFinishedScenario = Effect.fn(
       votesCast: voting.voteCount,
       contactSheetsCreated: 0,
       validationResultsCreated,
-    };
-  });
+    }
+  })
 
   return yield* runSeed.pipe(
     Effect.catch((error) =>
@@ -1656,5 +1556,5 @@ export const seedFinishedScenario = Effect.fn(
           Effect.flatMap(() => Effect.fail(error)),
         ),
     ),
-  );
-});
+  )
+})

@@ -1,5 +1,5 @@
-import { Cause, Effect, Layer, Option, Context, Schema } from "effect"
-import { BusService, BusServiceLayer, EventBusError, S3Service, S3ServiceLayer } from "@blikka/aws"
+import { Cause, Effect, Layer, Option, Context, Schema } from 'effect'
+import { BusService, BusServiceLayer, EventBusError, S3Service, S3ServiceLayer } from '@blikka/aws'
 import {
   ExifKVRepository,
   ExifKVRepositoryLayer,
@@ -9,12 +9,12 @@ import {
   UploadSessionRepository,
   UploadSessionRepositoryLayer,
   type UploadSessionRepositoryError,
-} from "@blikka/kv-store"
-import { ExifParser, SharpImageService } from "@blikka/image-manipulation"
-import { UploadsConfig, UploadsConfigLayer } from "./config"
+} from '@blikka/kv-store'
+import { ExifParser, SharpImageService } from '@blikka/image-manipulation'
+import { UploadsConfig, UploadsConfigLayer } from './config'
 
 export class PhotoNotFoundError extends Schema.TaggedErrorClass<PhotoNotFoundError>()(
-  "PhotoNotFoundError",
+  'PhotoNotFoundError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -55,7 +55,7 @@ export class SubmissionProcessor extends Context.Service<
       params: ProcessSubmissionInput,
     ) => Effect.Effect<void, SubmissionProcessorError>
   }
->()("@blikka/uploads/SubmissionProcessor") {}
+>()('@blikka/uploads/SubmissionProcessor') {}
 
 const THUMBNAIL_WIDTH = 400
 
@@ -76,7 +76,7 @@ function makeThumbnailKey(params: {
   readonly orderIndex: number
   readonly fileName: string
 }): string {
-  const formattedOrderIndex = (params.orderIndex + 1).toString().padStart(2, "0")
+  const formattedOrderIndex = (params.orderIndex + 1).toString().padStart(2, '0')
   return `${params.domain}/${params.reference}/${formattedOrderIndex}/thumbnail_${params.fileName}`
 }
 
@@ -109,7 +109,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
     },
     Effect.catchCause((cause) =>
       Effect.logWarning(
-        "Thumbnail generation or upload failed; continuing without thumbnail (can retry later)",
+        'Thumbnail generation or upload failed; continuing without thumbnail (can retry later)',
         {
           cause: Cause.pretty(cause),
         },
@@ -140,7 +140,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
             return Option.some(seededExif.value)
           }
           yield* Effect.logWarning(
-            "EXIF parse or persist failed; continuing without EXIF (can retry later)",
+            'EXIF parse or persist failed; continuing without EXIF (can retry later)',
             { cause: Cause.pretty(cause) },
           )
           return Option.none<ExifState>()
@@ -155,25 +155,25 @@ const makeSubmissionProcessor = Effect.gen(function* () {
 
     const submissionStateOpt = yield* uploadKv.getSubmissionState(domain, reference, orderIndex)
     if (Option.isNone(submissionStateOpt)) {
-      yield* Effect.logWarning("Missing initialized submission state", { key })
+      yield* Effect.logWarning('Missing initialized submission state', { key })
       return Option.none<ReadySubmissionContext>()
     }
 
     if (submissionStateOpt.value.key !== key) {
-      yield* Effect.logWarning("Uploaded key does not match initialized submission key", { key })
+      yield* Effect.logWarning('Uploaded key does not match initialized submission key', { key })
       return Option.none<ReadySubmissionContext>()
     }
 
-    const uploadSessionId = submissionStateOpt.value.uploadSessionId ?? ""
+    const uploadSessionId = submissionStateOpt.value.uploadSessionId ?? ''
 
     const participantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
     if (Option.isNone(participantStateOpt)) {
-      yield* Effect.logWarning("Missing initialized participant state", { key })
+      yield* Effect.logWarning('Missing initialized participant state', { key })
       return Option.none<ReadySubmissionContext>()
     }
 
     if (participantStateOpt.value.uploadSessionId !== uploadSessionId) {
-      yield* Effect.logWarning("Submission belongs to a stale upload session", { key })
+      yield* Effect.logWarning('Submission belongs to a stale upload session', { key })
       return Option.none<ReadySubmissionContext>()
     }
 
@@ -189,14 +189,14 @@ const makeSubmissionProcessor = Effect.gen(function* () {
     const { key, domain, reference, orderIndex, fileName } = params
 
     if (submission.uploaded) {
-      yield* Effect.logWarning("Submission already uploaded, continuing finalization")
+      yield* Effect.logWarning('Submission already uploaded, continuing finalization')
       return
     }
 
     const fileOpt = yield* s3.getFile(config.submissionsBucketName, key).pipe(
       Effect.mapError((error) => {
         return new PhotoNotFoundError({
-          message: "Failed to get photo from submissions bucket",
+          message: 'Failed to get photo from submissions bucket',
           cause: error,
           key,
         })
@@ -206,7 +206,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
     if (Option.isNone(fileOpt)) {
       return yield* Effect.fail(
         new PhotoNotFoundError({
-          message: "Photo does not exist in submissions bucket",
+          message: 'Photo does not exist in submissions bucket',
           key,
         }),
       )
@@ -215,7 +215,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
 
     const existingExifState = yield* exifKv.getExifState(domain, reference, orderIndex).pipe(
       Effect.catchCause((error) =>
-        Effect.logWarning("Failed to get exif state. Continuing without EXIF.", {
+        Effect.logWarning('Failed to get exif state. Continuing without EXIF.', {
           cause: Cause.pretty(error),
           key,
         }).pipe(Effect.as(Option.none<ExifState>())),
@@ -247,7 +247,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
 
     const { status } = yield* uploadKv.incrementParticipantState(domain, reference, orderIndex)
 
-    if (status !== "FINALIZED" && status !== "ALREADY_FINALIZED") {
+    if (status !== 'FINALIZED' && status !== 'ALREADY_FINALIZED') {
       return
     }
 
@@ -257,7 +257,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
       Option.isNone(currentParticipantStateOpt) ||
       currentParticipantStateOpt.value.uploadSessionId !== uploadSessionId
     ) {
-      yield* Effect.logWarning("Skipping finalized event for stale upload session", {
+      yield* Effect.logWarning('Skipping finalized event for stale upload session', {
         key,
         uploadSessionId,
       })
@@ -267,7 +267,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
     yield* bus.sendFinalizedEvent(domain, reference, uploadSessionId)
   })
 
-  const process = Effect.fn("SubmissionProcessor.process")(
+  const process = Effect.fn('SubmissionProcessor.process')(
     function* (params: ProcessSubmissionInput) {
       const readyContext = yield* resolveReadySubmissionContext(params)
       if (Option.isNone(readyContext)) return

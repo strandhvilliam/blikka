@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useForm } from "@tanstack/react-form"
-import { Button } from "@/components/ui/button"
+import { useForm } from '@tanstack/react-form'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,23 +9,23 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useEffect } from "react"
-import { Plus, Minus } from "lucide-react"
-import NumberFlow from "@number-flow/react"
+} from '@/components/ui/select'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useEffect } from 'react'
+import { Plus, Minus } from 'lucide-react'
+import NumberFlow from '@number-flow/react'
 
 interface CreateCompetitionClassDialogProps {
   isOpen: boolean
@@ -49,23 +49,23 @@ export function CompetitionClassCreateDialog({
       onSuccess: () => {
         form.reset()
         onOpenChange(false)
-        toast.success("Competition class created successfully")
+        toast.success('Competition class created successfully')
       },
       onError: (error) => {
-        toast.error(error.message || "Something went wrong")
+        toast.error(error.message || 'Something went wrong')
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
         })
       },
-    })
+    }),
   )
 
   const form = useForm({
     defaultValues: {
-      name: "",
-      description: "",
+      name: '',
+      description: '',
       numberOfPhotos: 24,
       topicStartIndex: 0,
     },
@@ -110,7 +110,7 @@ export function CompetitionClassCreateDialog({
             validators={{
               onChange: ({ value }) => {
                 if (!value || value.length < 1) {
-                  return "Name is required"
+                  return 'Name is required'
                 }
                 return undefined
               },
@@ -133,7 +133,7 @@ export function CompetitionClassCreateDialog({
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length ? (
                   <p className="text-sm text-destructive mt-1">
-                    {field.state.meta.errors.join(", ")}
+                    {field.state.meta.errors.join(', ')}
                   </p>
                 ) : null}
               </div>
@@ -167,7 +167,7 @@ export function CompetitionClassCreateDialog({
             validators={{
               onChange: ({ value }) => {
                 if (value < 1 || value > 100) {
-                  return "Number of photos must be between 1 and 100"
+                  return 'Number of photos must be between 1 and 100'
                 }
                 return undefined
               },
@@ -214,7 +214,7 @@ export function CompetitionClassCreateDialog({
                 </div>
                 {field.state.meta.isTouched && field.state.meta.errors.length ? (
                   <p className="text-sm text-destructive mt-1">
-                    {field.state.meta.errors.join(", ")}
+                    {field.state.meta.errors.join(', ')}
                   </p>
                 ) : null}
               </div>
@@ -239,7 +239,7 @@ export function CompetitionClassCreateDialog({
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
-                        topics.length === 0 ? "No topics available" : "Select starting topic"
+                        topics.length === 0 ? 'No topics available' : 'Select starting topic'
                       }
                     />
                   </SelectTrigger>
@@ -255,8 +255,8 @@ export function CompetitionClassCreateDialog({
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   {topics.length === 0
-                    ? "Create topics first to set a starting topic for this class."
-                    : "The topic number where this class will start from."}
+                    ? 'Create topics first to set a starting topic for this class.'
+                    : 'The topic number where this class will start from.'}
                 </p>
               </div>
             )}
@@ -267,7 +267,7 @@ export function CompetitionClassCreateDialog({
               Cancel
             </Button>
             <PrimaryButton type="submit" disabled={isCreating}>
-              {isCreating ? "Creating..." : "Create"}
+              {isCreating ? 'Creating...' : 'Create'}
             </PrimaryButton>
           </DialogFooter>
         </form>

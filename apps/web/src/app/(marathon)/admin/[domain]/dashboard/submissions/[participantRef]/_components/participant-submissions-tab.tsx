@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { AnimatePresence } from "motion/react"
-import { ParticipantSubmissionCard } from "./participant-submission-card"
-import { cn } from "@/lib/utils"
-import { useDomain } from "@/lib/domain-provider"
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { AnimatePresence } from 'motion/react'
+import { ParticipantSubmissionCard } from './participant-submission-card'
+import { cn } from '@/lib/utils'
+import { useDomain } from '@/lib/domain-provider'
 
 export function ParticipantSubmissionsTab({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
@@ -36,8 +36,8 @@ export function ParticipantSubmissionsTab({ participantRef }: { participantRef: 
   return (
     <div
       className={cn(
-        "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4",
-        data.length < 12 ? "xl:grid-cols-4" : "xl:grid-cols-6",
+        'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4',
+        data.length < 12 ? 'xl:grid-cols-4' : 'xl:grid-cols-6',
       )}
     >
       <AnimatePresence>

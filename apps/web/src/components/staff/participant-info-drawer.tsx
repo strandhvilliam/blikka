@@ -1,29 +1,29 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, CheckCircle2, Loader2, Trash2, XCircle } from "lucide-react"
-import { toast } from "sonner"
-import type { Topic } from "@blikka/db"
+import { useEffect, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, CheckCircle2, Loader2, Trash2, XCircle } from 'lucide-react'
+import { toast } from 'sonner'
+import type { Topic } from '@blikka/db'
 
-import { cn } from "@/lib/utils"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { PrimaryButton } from "@/components/ui/primary-button"
+import { cn } from '@/lib/utils'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { PrimaryButton } from '@/components/ui/primary-button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog'
 
-import type { StaffParticipant } from "@/lib/staff/staff-types"
-import { DrawerLayout } from "@/components/staff/drawer-layout"
-import { PreviewDialog } from "@/components/staff/preview-dialog"
-import { ValidationAccordion } from "@/components/staff/validation-accordion"
+import type { StaffParticipant } from '@/lib/staff/staff-types'
+import { DrawerLayout } from '@/components/staff/drawer-layout'
+import { PreviewDialog } from '@/components/staff/preview-dialog'
+import { ValidationAccordion } from '@/components/staff/validation-accordion'
 
 interface ParticipantInfoDrawerProps {
   open: boolean
@@ -54,12 +54,12 @@ export function ParticipantInfoDrawer({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
-  const [confirmReference, setConfirmReference] = useState("")
+  const [confirmReference, setConfirmReference] = useState('')
   const [showRejectError, setShowRejectError] = useState(false)
 
   useEffect(() => {
     if (!rejectOpen) {
-      setConfirmReference("")
+      setConfirmReference('')
       setShowRejectError(false)
     }
   }, [rejectOpen])
@@ -67,50 +67,50 @@ export function ParticipantInfoDrawer({
   const updateValidationResultMutation = useMutation(
     trpc.validations.updateValidationResult.mutationOptions({
       onError: () => {
-        toast.error("Failed to overrule validation")
+        toast.error('Failed to overrule validation')
       },
       onSettled: () => {
         queryClient.invalidateQueries({ queryKey: trpc.validations.pathKey() })
         queryClient.invalidateQueries({ queryKey: trpc.participants.pathKey() })
       },
-    })
+    }),
   )
 
   const verifyParticipantMutation = useMutation(
     trpc.validations.createParticipantVerification.mutationOptions({
       onSuccess: () => {
-        toast.success("Participant verified")
+        toast.success('Participant verified')
         onOpenChange(false)
         onParticipantVerified?.()
       },
       onError: () => {
-        toast.error("Failed to verify participant")
+        toast.error('Failed to verify participant')
       },
       onSettled: () => {
         queryClient.invalidateQueries({ queryKey: trpc.validations.pathKey() })
         queryClient.invalidateQueries({ queryKey: trpc.participants.pathKey() })
         queryClient.invalidateQueries({ queryKey: trpc.users.pathKey() })
       },
-    })
+    }),
   )
 
   const rejectParticipantMutation = useMutation(
     trpc.participants.delete.mutationOptions({
       onSuccess: () => {
-        toast.success("Participant rejected")
+        toast.success('Participant rejected')
         setRejectOpen(false)
         onOpenChange(false)
         onParticipantRejected?.()
       },
       onError: () => {
-        toast.error("Failed to reject participant")
+        toast.error('Failed to reject participant')
       },
       onSettled: () => {
         queryClient.invalidateQueries({ queryKey: trpc.validations.pathKey() })
         queryClient.invalidateQueries({ queryKey: trpc.participants.pathKey() })
         queryClient.invalidateQueries({ queryKey: trpc.users.pathKey() })
       },
-    })
+    }),
   )
 
   const handleVerify = async () => {
@@ -118,9 +118,7 @@ export function ParticipantInfoDrawer({
 
     const blockingValidations = participant.validationResults.filter(
       (validation) =>
-        validation.outcome === "failed" &&
-        validation.severity === "error" &&
-        !validation.overruled
+        validation.outcome === 'failed' && validation.severity === 'error' && !validation.overruled,
     )
 
     try {
@@ -137,7 +135,7 @@ export function ParticipantInfoDrawer({
         data: {
           participantId: participant.id,
           staffId: currentStaffId,
-          notes: blockingValidations.length > 0 ? "Verified with overrulings from staff page" : "",
+          notes: blockingValidations.length > 0 ? 'Verified with overrulings from staff page' : '',
         },
       })
     } catch {
@@ -152,7 +150,7 @@ export function ParticipantInfoDrawer({
 
   const blockingValidations = participant?.validationResults.filter(
     (validation) =>
-      validation.outcome === "failed" && validation.severity === "error" && !validation.overruled
+      validation.outcome === 'failed' && validation.severity === 'error' && !validation.overruled,
   )
 
   return (
@@ -160,7 +158,7 @@ export function ParticipantInfoDrawer({
       <DrawerLayout
         open={open}
         onOpenChange={onOpenChange}
-        title={readOnly ? "Verified participant details" : "Participant details"}
+        title={readOnly ? 'Verified participant details' : 'Participant details'}
       >
         {participantLoading ? (
           <div className="flex h-full items-center justify-center">
@@ -195,18 +193,18 @@ export function ParticipantInfoDrawer({
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-                        participant.status === "verified"
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-amber-50 text-amber-700",
+                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+                        participant.status === 'verified'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-amber-50 text-amber-700',
                       )}
                     >
-                      {participant.status === "verified" ? (
+                      {participant.status === 'verified' ? (
                         <CheckCircle2 className="h-3 w-3" />
                       ) : (
                         <AlertTriangle className="h-3 w-3" />
                       )}
-                      {participant.status === "verified" ? "Verified" : "Pending"}
+                      {participant.status === 'verified' ? 'Verified' : 'Pending'}
                     </span>
                     {participant.competitionClass ? (
                       <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -268,17 +266,17 @@ export function ParticipantInfoDrawer({
               <div className="shrink-0 border-t bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
                 <PrimaryButton
                   className="w-full rounded-full py-3.5"
-                  disabled={participant.status === "verified" || isBusy}
+                  disabled={participant.status === 'verified' || isBusy}
                   onClick={() => void handleVerify()}
                 >
                   {isBusy ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : participant.status === "verified" ? (
-                    "Already verified"
+                  ) : participant.status === 'verified' ? (
+                    'Already verified'
                   ) : blockingValidations && blockingValidations.length > 0 ? (
-                    "Overrule all and verify"
+                    'Overrule all and verify'
                   ) : (
-                    "Verify participant"
+                    'Verify participant'
                   )}
                 </PrimaryButton>
               </div>
@@ -287,7 +285,12 @@ export function ParticipantInfoDrawer({
         )}
       </DrawerLayout>
 
-      <Dialog open={rejectOpen} onOpenChange={(isOpen) => { if (!isOpen) setRejectOpen(false) }}>
+      <Dialog
+        open={rejectOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setRejectOpen(false)
+        }}
+      >
         <DialogContent
           showCloseButton={false}
           className="top-[40%] border-none bg-transparent shadow-none"
@@ -306,15 +309,15 @@ export function ParticipantInfoDrawer({
               autoFocus
               type="text"
               inputMode="numeric"
-              placeholder={participant?.reference ?? "0000"}
+              placeholder={participant?.reference ?? '0000'}
               value={confirmReference}
               onChange={(event) => {
                 setConfirmReference(event.target.value)
                 if (showRejectError) setShowRejectError(false)
               }}
               className={cn(
-                "h-16 bg-background text-center font-mono text-4xl! font-bold tracking-widest",
-                showRejectError && "border-red-500 focus-visible:ring-red-500",
+                'h-16 bg-background text-center font-mono text-4xl! font-bold tracking-widest',
+                showRejectError && 'border-red-500 focus-visible:ring-red-500',
               )}
               maxLength={6}
               enterKeyHint="done"
@@ -359,7 +362,7 @@ export function ParticipantInfoDrawer({
                 {rejectParticipantMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "Reject"
+                  'Reject'
                 )}
               </Button>
             </div>

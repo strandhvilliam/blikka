@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
-import { useState } from "react"
-import { REGEXP_ONLY_DIGITS } from "input-otp"
+import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { REGEXP_ONLY_DIGITS } from 'input-otp'
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
-import { verifyAction } from "./verify-action"
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
+import { verifyAction } from './verify-action'
 
 interface VerifyFormProps {
   email: string
@@ -18,7 +18,7 @@ interface VerifyFormProps {
 }
 
 export function VerifyForm({ email, next, className }: VerifyFormProps) {
-  const [otp, setOtp] = useState("")
+  const [otp, setOtp] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -26,7 +26,7 @@ export function VerifyForm({ email, next, className }: VerifyFormProps) {
     e.preventDefault()
 
     if (otp.length !== 6) {
-      setError("Please enter a valid 6-digit code")
+      setError('Please enter a valid 6-digit code')
       return
     }
 
@@ -40,14 +40,14 @@ export function VerifyForm({ email, next, className }: VerifyFormProps) {
         next,
       })
     } catch (err) {
-      console.error("OTP verification error:", err)
-      setError("Invalid verification code. Please try again.")
+      console.error('OTP verification error:', err)
+      setError('Invalid verification code. Please try again.')
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
+    <div className={cn('flex flex-col gap-6', className)}>
       <form onSubmit={handleSubmit}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
@@ -84,7 +84,7 @@ export function VerifyForm({ email, next, className }: VerifyFormProps) {
                   Verifying...
                 </>
               ) : (
-                "Verify Email"
+                'Verify Email'
               )}
             </Button>
           </Field>

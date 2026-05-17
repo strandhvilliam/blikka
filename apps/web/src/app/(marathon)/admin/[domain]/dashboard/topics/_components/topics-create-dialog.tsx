@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { useEffect } from "react";
-import { useForm } from "@tanstack/react-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -13,18 +13,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { Switch } from "@/components/ui/switch";
-import { useDomain } from "@/lib/domain-provider";
-import { useTRPC } from "@/lib/trpc/client";
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Switch } from '@/components/ui/switch'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
 
 interface CreateTopicDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  showActiveToggle?: boolean;
-  defaultActive?: boolean;
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
+  showActiveToggle?: boolean
+  defaultActive?: boolean
 }
 
 export function TopicsCreateDialog({
@@ -33,34 +33,34 @@ export function TopicsCreateDialog({
   showActiveToggle = false,
   defaultActive = true,
 }: CreateTopicDialogProps) {
-  const domain = useDomain();
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const domain = useDomain()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
 
   const { mutate: createTopic, isPending: isCreatingTopic } = useMutation(
     trpc.topics.create.mutationOptions({
       onSuccess: () => {
-        form.reset();
-        onOpenChange(false);
-        toast.success("Topic created");
+        form.reset()
+        onOpenChange(false)
+        toast.success('Topic created')
       },
       onError: (error) => {
-        toast.error(error.message);
+        toast.error(error.message)
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
-        });
+        })
         queryClient.invalidateQueries({
           queryKey: trpc.uploadFlow.getPublicMarathon.queryKey({ domain }),
-        });
+        })
       },
     }),
-  );
+  )
 
   const form = useForm({
     defaultValues: {
-      name: "",
+      name: '',
       visibility: true,
       activate: showActiveToggle ? defaultActive : false,
     },
@@ -69,22 +69,22 @@ export function TopicsCreateDialog({
         domain,
         data: {
           name: value.name,
-          visibility: (value.visibility ? "public" : "private") as
-            | "public"
-            | "private"
-            | "scheduled"
-            | "active",
+          visibility: (value.visibility ? 'public' : 'private') as
+            | 'public'
+            | 'private'
+            | 'scheduled'
+            | 'active',
           ...(showActiveToggle && value.activate ? { activate: true } : {}),
         },
-      });
+      })
     },
-  });
+  })
 
   useEffect(() => {
     if (isOpen) {
-      form.reset();
+      form.reset()
     }
-  }, [isOpen, form]);
+  }, [isOpen, form])
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -92,15 +92,15 @@ export function TopicsCreateDialog({
         <DialogHeader>
           <DialogTitle>Create New Topic</DialogTitle>
           <DialogDescription>
-            Add a new topic to your marathon. You can open submissions later
-            from the active topic panel.
+            Add a new topic to your marathon. You can open submissions later from the active topic
+            panel.
           </DialogDescription>
         </DialogHeader>
         <form
           onSubmit={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            form.handleSubmit();
+            event.preventDefault()
+            event.stopPropagation()
+            form.handleSubmit()
           }}
           className="space-y-4"
         >
@@ -109,10 +109,10 @@ export function TopicsCreateDialog({
             validators={{
               onChange: ({ value }) => {
                 if (!value || value.length < 1) {
-                  return "Name is required";
+                  return 'Name is required'
                 }
 
-                return undefined;
+                return undefined
               },
             }}
           >
@@ -132,10 +132,9 @@ export function TopicsCreateDialog({
                   onChange={(event) => field.handleChange(event.target.value)}
                   placeholder="Enter topic name"
                 />
-                {field.state.meta.isTouched &&
-                field.state.meta.errors.length ? (
+                {field.state.meta.isTouched && field.state.meta.errors.length ? (
                   <p className="mt-1 text-sm text-destructive">
-                    {field.state.meta.errors.join(", ")}
+                    {field.state.meta.errors.join(', ')}
                   </p>
                 ) : null}
               </div>
@@ -170,8 +169,8 @@ export function TopicsCreateDialog({
                       Make active
                     </label>
                     <p className="text-sm text-muted-foreground">
-                      Mark this topic as the active one. Submissions stay closed
-                      until you open them from the active topic panel.
+                      Mark this topic as the active one. Submissions stay closed until you open them
+                      from the active topic panel.
                     </p>
                   </div>
                   <Switch
@@ -184,19 +183,15 @@ export function TopicsCreateDialog({
           ) : null}
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              type="button"
-            >
+            <Button variant="outline" onClick={() => onOpenChange(false)} type="button">
               Cancel
             </Button>
             <PrimaryButton type="submit" disabled={isCreatingTopic}>
-              {isCreatingTopic ? "Creating..." : "Create Topic"}
+              {isCreatingTopic ? 'Creating...' : 'Create Topic'}
             </PrimaryButton>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

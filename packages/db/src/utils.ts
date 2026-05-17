@@ -1,8 +1,8 @@
-import { getTableColumns, sql, type InferInsertModel } from "drizzle-orm"
-import { type PgUpdateSetSource, type PgTable, getTableConfig } from "drizzle-orm/pg-core"
-import { Schema } from "effect"
+import { getTableColumns, sql, type InferInsertModel } from 'drizzle-orm'
+import { type PgUpdateSetSource, type PgTable, getTableConfig } from 'drizzle-orm/pg-core'
+import { Schema } from 'effect'
 
-export class DbError extends Schema.TaggedErrorClass<DbError>()("DbError", {
+export class DbError extends Schema.TaggedErrorClass<DbError>()('DbError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -17,52 +17,52 @@ export function getDefaultRuleConfigs(
 ) {
   return [
     {
-      ruleKey: "max_file_size",
+      ruleKey: 'max_file_size',
       marathonId,
       enabled: false,
-      severity: "error",
+      severity: 'error',
       params: {
         maxBytes: 1024 * 1024 * 5,
       },
     },
     {
-      ruleKey: "allowed_file_types",
+      ruleKey: 'allowed_file_types',
       marathonId,
       enabled: false,
-      severity: "error",
+      severity: 'error',
       params: {
-        allowedFileTypes: ["jpg"],
+        allowedFileTypes: ['jpg'],
       },
     },
     {
-      ruleKey: "within_timerange",
+      ruleKey: 'within_timerange',
       marathonId,
       enabled: false,
-      severity: "error",
+      severity: 'error',
       params: {
-        start: startDate ?? "",
-        end: endDate ?? "",
+        start: startDate ?? '',
+        end: endDate ?? '',
       },
     },
     {
-      ruleKey: "same_device",
+      ruleKey: 'same_device',
       marathonId,
       enabled: false,
-      severity: "error",
+      severity: 'error',
       params: null,
     },
     {
-      ruleKey: "modified",
+      ruleKey: 'modified',
       marathonId,
       enabled: false,
-      severity: "error",
+      severity: 'error',
       params: null,
     },
     {
-      ruleKey: "strict_timestamp_ordering",
+      ruleKey: 'strict_timestamp_ordering',
       marathonId,
       enabled: false,
-      severity: "error",
+      severity: 'error',
       params: null,
     },
   ]

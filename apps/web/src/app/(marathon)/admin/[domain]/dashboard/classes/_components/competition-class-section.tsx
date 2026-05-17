@@ -1,57 +1,47 @@
-"use client"
+'use client'
 
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { truncate } from "@/lib/utils"
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
-import { toast } from "sonner"
-import { parseAsBoolean, parseAsInteger, useQueryState } from "nuqs"
-import type { CompetitionClass, Topic } from "@blikka/db"
-import { Button } from "@/components/ui/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Plus, Trash2, Info } from "lucide-react"
-import { useState } from "react"
-import { CompetitionClassCreateDialog } from "./competition-class-create-dialog"
-import { CompetitionClassEditDialog } from "./competition-class-edit-dialog"
-import { CompetitionClassDeleteDialog } from "./competition-class-delete-dialog"
-import { cn } from "@/lib/utils"
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { truncate } from '@/lib/utils'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs'
+import type { CompetitionClass, Topic } from '@blikka/db'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Plus, Trash2, Info } from 'lucide-react'
+import { useState } from 'react'
+import { CompetitionClassCreateDialog } from './competition-class-create-dialog'
+import { CompetitionClassEditDialog } from './competition-class-edit-dialog'
+import { CompetitionClassDeleteDialog } from './competition-class-delete-dialog'
+import { cn } from '@/lib/utils'
 
 export function CompetitionClassSection() {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const domain = useDomain()
   const [editCompetitionClassId, setEditCompetitionClassId] = useQueryState(
-    "editCompetitionClassId",
+    'editCompetitionClassId',
     parseAsInteger,
   )
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useQueryState(
-    "createCompetitionClass",
+    'createCompetitionClass',
     parseAsBoolean,
   )
 
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain }),
-  )
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   const classes = marathon?.competitionClasses || []
   const topics = marathon?.topics || []
-  const isByCameraMode = marathon?.mode === "by-camera"
+  const isByCameraMode = marathon?.mode === 'by-camera'
 
   const { mutate: deleteCompetitionClass, isPending: isDeleting } = useMutation(
     trpc.competitionClasses.delete.mutationOptions({
       onSuccess: () => {
-        toast.success("Competition class deleted successfully")
+        toast.success('Competition class deleted successfully')
       },
       onError: (error) => {
-        toast.error(error.message || "Something went wrong")
+        toast.error(error.message || 'Something went wrong')
       },
       onSettled: () => {
         queryClient.invalidateQueries({
@@ -91,7 +81,7 @@ export function CompetitionClassSection() {
           </span>
         )}
       </div>
-      <div className={cn(isByCameraMode && "opacity-50 pointer-events-none blur-[2px]")}>
+      <div className={cn(isByCameraMode && 'opacity-50 pointer-events-none blur-[2px]')}>
         <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 max-w-lg">
           Each class determines how many photos participants need to take and what topics they start
           from. Organize different groups or categories for your event.
@@ -104,9 +94,7 @@ export function CompetitionClassSection() {
               onDelete={() => handleDeleteClick(classItem)}
               onOpenEdit={() => setEditCompetitionClassId(classItem.id)}
               isDeleting={isDeleting}
-              topic={topics.find(
-                (topic) => topic.orderIndex === classItem.topicStartIndex,
-              )}
+              topic={topics.find((topic) => topic.orderIndex === classItem.topicStartIndex)}
             />
           ))}
           <button
@@ -163,7 +151,7 @@ function CompetitionClassCard({
               {classItem.numberOfPhotos} photos
             </span>
             <span className="text-[11px] text-muted-foreground/70">
-              {topic ? `Start: #${topic.orderIndex + 1}` : "—"}
+              {topic ? `Start: #${topic.orderIndex + 1}` : '—'}
             </span>
           </div>
         </div>

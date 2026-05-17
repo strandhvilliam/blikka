@@ -1,18 +1,18 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import type { Topic } from "@blikka/db"
-import { AlertTriangle } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState } from 'react'
+import type { Topic } from '@blikka/db'
+import { AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface DeleteTopicDialogProps {
   topic: Topic | null
@@ -27,12 +27,12 @@ export function TopicsDeleteDialog({
   onOpenChange,
   onConfirm,
 }: DeleteTopicDialogProps) {
-  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
 
   const handleConfirm = () => {
     if (!topic || deleteConfirmation !== topic.name) return
     onConfirm(topic)
-    setDeleteConfirmation("")
+    setDeleteConfirmation('')
   }
 
   return (
@@ -56,11 +56,8 @@ export function TopicsDeleteDialog({
               </div>
 
               <div className="space-y-2">
-                <Label
-                  htmlFor="confirmDelete"
-                  className="text-sm text-foreground"
-                >
-                  To confirm, type the topic name:{" "}
+                <Label htmlFor="confirmDelete" className="text-sm text-foreground">
+                  To confirm, type the topic name:{' '}
                   <span className="font-semibold">{topic?.name}</span>
                 </Label>
                 <Input
@@ -75,11 +72,7 @@ export function TopicsDeleteDialog({
           </div>
         </DialogHeader>
         <DialogFooter className="sm:justify-between mt-4">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
@@ -95,4 +88,3 @@ export function TopicsDeleteDialog({
     </Dialog>
   )
 }
-

@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef } from 'react'
 
 type NoiseOverlayProps = {
   opacity?: number
@@ -33,10 +33,10 @@ export function NoiseOverlay({ opacity = 0.15 }: NoiseOverlayProps) {
       style={{
         opacity,
         backgroundImage: "url('/noise.png')",
-        backgroundRepeat: "repeat",
-        inset: "-200%",
-        width: "400%",
-        height: "400%",
+        backgroundRepeat: 'repeat',
+        inset: '-200%',
+        width: '400%',
+        height: '400%',
       }}
     />
   )

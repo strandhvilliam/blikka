@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   AlertDialog,
@@ -9,93 +9,73 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useTRPC } from "@/lib/trpc/client";
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
-import { parseAsInteger, useQueryState } from "nuqs";
-import { ArrowLeft, ImageOff, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+} from '@/components/ui/alert-dialog'
+import { useTRPC } from '@/lib/trpc/client'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { parseAsInteger, useQueryState } from 'nuqs'
+import { ArrowLeft, ImageOff, Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import {
   getFinalRankingLabel,
   getParticipantAssetUrl,
   getRankAssignments,
-} from "@/lib/jury/jury-utils";
-import { FullscreenImage } from "@/components/fullscreen-image";
-import { ActiveRatingFilterBadge } from "./rating-filter";
-import { JurySubmissionCompactNav } from "./jury-submission-compact-nav";
-import { JurySidebar } from "./jury-sidebar";
-import { useDomain } from "@/lib/domain-provider";
-import { useJuryClientToken } from "./jury-client-token-provider";
-import { useJuryViewerKeyboardShortcuts } from "@/hooks/live/jury/use-jury-viewer-keyboard-shortcuts";
-import { useJuryReviewData } from "./jury-review-data-provider";
-import { useJuryLocalRatingSync } from "@/hooks/live/jury/use-jury-local-rating-sync";
-import { useJuryNotesDebouncedSave } from "@/hooks/live/jury/use-jury-notes-debounced-save";
-import { useJuryReviewQueryState } from "@/hooks/live/jury/use-jury-review-query-state";
+} from '@/lib/jury/jury-utils'
+import { FullscreenImage } from '@/components/fullscreen-image'
+import { ActiveRatingFilterBadge } from './rating-filter'
+import { JurySubmissionCompactNav } from './jury-submission-compact-nav'
+import { JurySidebar } from './jury-sidebar'
+import { useDomain } from '@/lib/domain-provider'
+import { useJuryClientToken } from './jury-client-token-provider'
+import { useJuryViewerKeyboardShortcuts } from '@/hooks/live/jury/use-jury-viewer-keyboard-shortcuts'
+import { useJuryReviewData } from './jury-review-data-provider'
+import { useJuryLocalRatingSync } from '@/hooks/live/jury/use-jury-local-rating-sync'
+import { useJuryNotesDebouncedSave } from '@/hooks/live/jury/use-jury-notes-debounced-save'
+import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
 
-export function JurySubmissionViewer({
-  initialIndex,
-}: {
-  initialIndex: number;
-}) {
-  const { selectedRatings, backToList } = useJuryReviewQueryState();
+export function JurySubmissionViewer({ initialIndex }: { initialIndex: number }) {
+  const { selectedRatings, backToList } = useJuryReviewQueryState()
   const {
     participants,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     totalParticipants: totalParticipantsQuery,
-  } = useJuryReviewData();
-  const totalParticipants =
-    totalParticipantsQuery?.value ?? participants.length;
-  const domain = useDomain();
-  const token = useJuryClientToken();
-  const trpc = useTRPC();
+  } = useJuryReviewData()
+  const totalParticipants = totalParticipantsQuery?.value ?? participants.length
+  const domain = useDomain()
+  const token = useJuryClientToken()
+  const trpc = useTRPC()
   const { data: invitation } = useSuspenseQuery(
     trpc.jury.verifyTokenAndGetInitialData.queryOptions({ domain, token }),
-  );
+  )
   const {
     data: { ratings },
-  } = useSuspenseQuery(
-    trpc.jury.getJuryRatingsByInvitation.queryOptions({ domain, token }),
-  );
+  } = useSuspenseQuery(trpc.jury.getJuryRatingsByInvitation.queryOptions({ domain, token }))
 
   const ratingByParticipantId = useMemo(
-    () =>
-      new Map(ratings.map((rating) => [rating.participantId, rating] as const)),
+    () => new Map(ratings.map((rating) => [rating.participantId, rating] as const)),
     [ratings],
-  );
-  const queryClient = useQueryClient();
+  )
+  const queryClient = useQueryClient()
   const [currentParticipantIndex, setCurrentParticipantIndex] = useQueryState(
-    "index",
+    'index',
     parseAsInteger.withDefault(initialIndex),
-  );
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
-  const [isSaving, setIsSaving] = useState(false);
-  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
+  )
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
+  const [isSaving, setIsSaving] = useState(false)
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false)
 
-  const currentParticipant =
-    participants[currentParticipantIndex] ?? participants[0] ?? null;
-  const currentParticipantId = currentParticipant?.id ?? null;
-  const currentAssetUrl = getParticipantAssetUrl(
-    currentParticipant,
-    invitation,
-  );
-  const currentAssetId = String(
-    currentParticipant?.submission?.id ?? currentParticipant?.id ?? "",
-  );
+  const currentParticipant = participants[currentParticipantIndex] ?? participants[0] ?? null
+  const currentParticipantId = currentParticipant?.id ?? null
+  const currentAssetUrl = getParticipantAssetUrl(currentParticipant, invitation)
+  const currentAssetId = String(currentParticipant?.submission?.id ?? currentParticipant?.id ?? '')
 
   const existingRating = useMemo(
     () =>
-      currentParticipantId === null
-        ? undefined
-        : ratingByParticipantId.get(currentParticipantId),
+      currentParticipantId === null ? undefined : ratingByParticipantId.get(currentParticipantId),
     [currentParticipantId, ratingByParticipantId],
-  );
+  )
 
   const {
     localRating,
@@ -108,69 +88,51 @@ export function JurySubmissionViewer({
     existingRating,
     ratings,
     currentParticipantId,
-  });
+  })
 
   useEffect(() => {
-    if (
-      participants.length - currentParticipantIndex <= 4 &&
-      hasNextPage &&
-      !isFetchingNextPage
-    ) {
-      fetchNextPage();
+    if (participants.length - currentParticipantIndex <= 4 && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
     }
-  }, [
-    currentParticipantIndex,
-    participants.length,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  ]);
+  }, [currentParticipantIndex, participants.length, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const invalidateJuryRepository = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: trpc.jury.pathKey(),
-    });
-  }, [queryClient, trpc.jury]);
+    })
+  }, [queryClient, trpc.jury])
 
   const createRatingMutation = useMutation(
     trpc.jury.createRating.mutationOptions({
       onSettled: invalidateJuryRepository,
     }),
-  );
+  )
 
   const updateRatingMutation = useMutation(
     trpc.jury.updateRating.mutationOptions({
       onSettled: invalidateJuryRepository,
     }),
-  );
+  )
 
   const deleteRatingMutation = useMutation(
     trpc.jury.deleteRating.mutationOptions({
       onSettled: invalidateJuryRepository,
     }),
-  );
+  )
 
   const saveRating = useCallback(
-    async (
-      nextRating: number,
-      nextNotes: string,
-      nextFinalRanking: 1 | 2 | 3 | null,
-    ) => {
-      if (!currentParticipantId) return;
+    async (nextRating: number, nextNotes: string, nextFinalRanking: 1 | 2 | 3 | null) => {
+      if (!currentParticipantId) return
 
-      setIsSaving(true);
+      setIsSaving(true)
       try {
         if (existingRating) {
-          if (
-            nextRating === 0 &&
-            !nextNotes.trim() &&
-            nextFinalRanking === null
-          ) {
+          if (nextRating === 0 && !nextNotes.trim() && nextFinalRanking === null) {
             await deleteRatingMutation.mutateAsync({
               token,
               domain,
               participantId: currentParticipantId,
-            });
+            })
           } else {
             await updateRatingMutation.mutateAsync({
               token,
@@ -179,13 +141,9 @@ export function JurySubmissionViewer({
               rating: nextRating,
               notes: nextNotes,
               finalRanking: nextFinalRanking,
-            });
+            })
           }
-        } else if (
-          nextRating > 0 ||
-          nextNotes.trim() ||
-          nextFinalRanking !== null
-        ) {
+        } else if (nextRating > 0 || nextNotes.trim() || nextFinalRanking !== null) {
           await createRatingMutation.mutateAsync({
             token,
             domain,
@@ -193,13 +151,13 @@ export function JurySubmissionViewer({
             rating: nextRating,
             notes: nextNotes,
             finalRanking: nextFinalRanking,
-          });
+          })
         }
       } catch (error) {
-        console.error("Failed to save rating", error);
-        toast.error("Failed to save review changes");
+        console.error('Failed to save rating', error)
+        toast.error('Failed to save review changes')
       } finally {
-        setIsSaving(false);
+        setIsSaving(false)
       }
     },
     [
@@ -211,52 +169,38 @@ export function JurySubmissionViewer({
       token,
       updateRatingMutation,
     ],
-  );
+  )
 
   const handleRatingClick = useCallback(
     (star: number) => {
-      const nextRating = star === localRating ? 0 : star;
-      setLocalRating(nextRating);
-      void saveRating(nextRating, localNotes, localFinalRanking);
+      const nextRating = star === localRating ? 0 : star
+      setLocalRating(nextRating)
+      void saveRating(nextRating, localNotes, localFinalRanking)
     },
     [localFinalRanking, localNotes, localRating, saveRating, setLocalRating],
-  );
+  )
 
-  const [pendingRank, setPendingRank] = useState<1 | 2 | 3 | null>(null);
+  const [pendingRank, setPendingRank] = useState<1 | 2 | 3 | null>(null)
 
   const confirmFinalRanking = useCallback(() => {
-    if (pendingRank === null) return;
-    const nextFinalRanking =
-      localFinalRanking === pendingRank ? null : pendingRank;
-    setLocalFinalRanking(nextFinalRanking);
-    void saveRating(localRating, localNotes, nextFinalRanking);
-    setPendingRank(null);
-  }, [
-    pendingRank,
-    localFinalRanking,
-    localNotes,
-    localRating,
-    saveRating,
-    setLocalFinalRanking,
-  ]);
+    if (pendingRank === null) return
+    const nextFinalRanking = localFinalRanking === pendingRank ? null : pendingRank
+    setLocalFinalRanking(nextFinalRanking)
+    void saveRating(localRating, localNotes, nextFinalRanking)
+    setPendingRank(null)
+  }, [pendingRank, localFinalRanking, localNotes, localRating, saveRating, setLocalFinalRanking])
 
   const handleFinalRankingClick = useCallback((finalRanking: 1 | 2 | 3) => {
-    setPendingRank(finalRanking);
-  }, []);
+    setPendingRank(finalRanking)
+  }, [])
 
   const goToPrev = useCallback(() => {
-    void setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1));
-  }, [currentParticipantIndex, setCurrentParticipantIndex]);
+    void setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))
+  }, [currentParticipantIndex, setCurrentParticipantIndex])
 
   const goToNext = useCallback(() => {
-    void setCurrentParticipantIndex(
-      Math.min(participants.length - 1, currentParticipantIndex + 1),
-    );
-  }, [
-    currentParticipantIndex,
-    participants.length,
-    setCurrentParticipantIndex,
-  ]);
+    void setCurrentParticipantIndex(Math.min(participants.length - 1, currentParticipantIndex + 1))
+  }, [currentParticipantIndex, participants.length, setCurrentParticipantIndex])
 
   useJuryViewerKeyboardShortcuts({
     isFullscreenOpen,
@@ -265,27 +209,27 @@ export function JurySubmissionViewer({
     goToNext,
     onBack: backToList,
     onRatingClick: handleRatingClick,
-  });
+  })
 
   const { handleNotesChange } = useJuryNotesDebouncedSave({
     localRating,
     localFinalRanking,
     saveRating,
     setLocalNotes,
-  });
+  })
 
   const rankOccupants = useMemo(() => {
-    const base = getRankAssignments(ratings);
+    const base = getRankAssignments(ratings)
     if (currentParticipantId) {
       for (const [rank, pid] of base) {
-        if (pid === currentParticipantId) base.delete(rank);
+        if (pid === currentParticipantId) base.delete(rank)
       }
       if (localFinalRanking !== null) {
-        base.set(localFinalRanking, currentParticipantId);
+        base.set(localFinalRanking, currentParticipantId)
       }
     }
-    return base;
-  }, [ratings, currentParticipantId, localFinalRanking]);
+    return base
+  }, [ratings, currentParticipantId, localFinalRanking])
 
   if (!currentParticipant) {
     return (
@@ -306,7 +250,7 @@ export function JurySubmissionViewer({
           <p className="text-sm text-brand-gray">No participant selected.</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -314,7 +258,7 @@ export function JurySubmissionViewer({
       <AlertDialog
         open={pendingRank !== null}
         onOpenChange={(open) => {
-          if (!open) setPendingRank(null);
+          if (!open) setPendingRank(null)
         }}
       >
         <AlertDialogContent>
@@ -324,7 +268,7 @@ export function JurySubmissionViewer({
                 ? `Remove ${getFinalRankingLabel(pendingRank)} place?`
                 : pendingRank !== null
                   ? `Assign ${getFinalRankingLabel(pendingRank)} place?`
-                  : "Assign ranking"}
+                  : 'Assign ranking'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingRank !== null && localFinalRanking === pendingRank
@@ -334,17 +278,15 @@ export function JurySubmissionViewer({
                       rankOccupants.has(pendingRank) &&
                       rankOccupants.get(pendingRank) !== currentParticipantId
                         ? ` The current ${getFinalRankingLabel(pendingRank)} place holder will be replaced.`
-                        : ""
+                        : ''
                     }`
-                  : ""}
+                  : ''}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmFinalRanking}>
-              {pendingRank !== null && localFinalRanking === pendingRank
-                ? "Remove"
-                : "Assign"}
+              {pendingRank !== null && localFinalRanking === pendingRank ? 'Remove' : 'Assign'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -354,9 +296,7 @@ export function JurySubmissionViewer({
         <JurySubmissionCompactNav
           onBack={backToList}
           selectedRatings={selectedRatings}
-          canOpenFullscreen={Boolean(
-            currentAssetUrl && !imageErrors.has(currentAssetId),
-          )}
+          canOpenFullscreen={Boolean(currentAssetUrl && !imageErrors.has(currentAssetId))}
           onOpenFullscreen={() => setIsFullscreenOpen(true)}
           currentParticipantIndex={currentParticipantIndex}
           loadedParticipantCount={participants.length}
@@ -373,17 +313,15 @@ export function JurySubmissionViewer({
                 src={currentAssetUrl}
                 alt={currentParticipant.reference}
                 className="max-h-[75vh] max-w-full object-contain"
-                onError={() =>
-                  setImageErrors((prev) => new Set(prev).add(currentAssetId))
-                }
+                onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
               />
             ) : (
               <div className="flex max-w-sm flex-col items-center justify-center px-6 text-center">
                 <ImageOff className="mb-4 h-12 w-12 text-brand-gray/30" />
                 <p className="font-gothic text-lg font-bold text-brand-black/60">
-                  {invitation.inviteType === "class"
-                    ? "Contact sheet unavailable"
-                    : "Image unavailable"}
+                  {invitation.inviteType === 'class'
+                    ? 'Contact sheet unavailable'
+                    : 'Image unavailable'}
                 </p>
                 <p className="mt-2 text-sm text-brand-gray">
                   The asset could not be loaded for this participant.
@@ -427,5 +365,5 @@ export function JurySubmissionViewer({
         />
       ) : null}
     </>
-  );
+  )
 }

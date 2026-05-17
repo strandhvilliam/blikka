@@ -1,23 +1,23 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { PublicNavigation } from "@/i18n/navigation.public"
-import { PublicLocaleSwitcher } from "./public-locale-switcher"
-import { Github, Menu, X } from "lucide-react"
-import { motion, AnimatePresence } from "motion/react"
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { PublicNavigation } from '@/i18n/navigation.public'
+import { PublicLocaleSwitcher } from './public-locale-switcher'
+import { Github, Menu, X } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
 
-const GITHUB_REPO_URL = "https://github.com/strandhvilliam/blikka"
+const GITHUB_REPO_URL = 'https://github.com/strandhvilliam/blikka'
 
 const githubNavLinkClassName =
-  "text-brand-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50"
+  'text-brand-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50'
 
 const navLinks = [
-  { href: "#features", label: "Features" },
-  { href: "#how-it-works", label: "How It Works" },
-  { href: "#who-its-for", label: "Who It's For" },
-  { href: "#faq", label: "FAQ" },
-  { href: "#pricing", label: "Pricing" },
+  { href: '#features', label: 'Features' },
+  { href: '#how-it-works', label: 'How It Works' },
+  { href: '#who-its-for', label: "Who It's For" },
+  { href: '#faq', label: 'FAQ' },
+  { href: '#pricing', label: 'Pricing' },
 ] as const
 
 export function Navbar() {
@@ -25,12 +25,12 @@ export function Navbar() {
 
   useEffect(() => {
     if (mobileOpen) {
-      document.body.style.overflow = "hidden"
+      document.body.style.overflow = 'hidden'
     } else {
-      document.body.style.overflow = ""
+      document.body.style.overflow = ''
     }
     return () => {
-      document.body.style.overflow = ""
+      document.body.style.overflow = ''
     }
   }, [mobileOpen])
 
@@ -73,7 +73,7 @@ export function Navbar() {
                   hidden: { opacity: 0, y: 6 },
                   visible: { opacity: 1, y: 0 },
                 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
                 whileHover={{ y: -2, transition: { duration: 0.2 } }}
                 whileTap={{ scale: 0.98 }}
               >

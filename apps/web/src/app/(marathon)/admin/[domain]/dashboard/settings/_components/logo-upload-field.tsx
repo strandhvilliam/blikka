@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import { ImagePlus, X } from "lucide-react"
-import { Label } from "@/components/ui/label"
+import { ImagePlus, X } from 'lucide-react'
+import { Label } from '@/components/ui/label'
 
-const UPLOAD_HINT = "PNG, JPG, SVG • 400x400px • 2MB"
+const UPLOAD_HINT = 'PNG, JPG, SVG • 400x400px • 2MB'
 
 interface LogoUploadFieldProps {
   previewUrl: string | null
@@ -11,11 +11,7 @@ interface LogoUploadFieldProps {
   onRemove: () => void
 }
 
-export function LogoUploadField({
-  previewUrl,
-  fileInputRef,
-  onRemove,
-}: LogoUploadFieldProps) {
+export function LogoUploadField({ previewUrl, fileInputRef, onRemove }: LogoUploadFieldProps) {
   return (
     <div className="space-y-2">
       <Label>Logo</Label>
@@ -58,19 +54,14 @@ export function LogoUploadField({
         ) : (
           <div className="flex items-center gap-3">
             <div className="w-[42px] h-[42px] rounded-full bg-muted flex items-center justify-center shrink-0">
-              <ImagePlus
-                className="h-5 w-5 text-muted-foreground"
-                aria-hidden
-              />
+              <ImagePlus className="h-5 w-5 text-muted-foreground" aria-hidden />
             </div>
             <label
               htmlFor="logo-upload"
               className="px-4 w-full flex items-center h-[42px] rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 bg-background transition-colors cursor-pointer gap-3"
             >
               <div className="flex items-center justify-between flex-1">
-                <span className="text-sm text-muted-foreground">
-                  Click to upload logo…
-                </span>
+                <span className="text-sm text-muted-foreground">Click to upload logo…</span>
                 <span className="text-xs text-muted-foreground whitespace-nowrap">
                   {UPLOAD_HINT}
                 </span>

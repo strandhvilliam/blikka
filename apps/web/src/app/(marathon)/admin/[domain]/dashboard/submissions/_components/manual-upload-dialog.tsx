@@ -1,13 +1,13 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, useState } from "react"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
-import { useDropzone, type Accept } from "react-dropzone"
-import { CheckCircle2, Loader2, Upload } from "lucide-react"
-import { toast } from "sonner"
+import { useEffect, useRef, useState } from 'react'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
+import { useDropzone, type Accept } from 'react-dropzone'
+import { CheckCircle2, Loader2, Upload } from 'lucide-react'
+import { toast } from 'sonner'
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -15,9 +15,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { PrimaryButton } from "@/components/ui/primary-button"
+} from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import { PrimaryButton } from '@/components/ui/primary-button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,30 +27,30 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog'
 
-import { formatDomainPathname } from "@/lib/utils"
-import { useTRPC } from "@/lib/trpc/client"
-import { getExpectedPhotoCount, getSelectedTopics } from "@/lib/upload-utils"
-import { revokePreviewUrls } from "@/lib/file-processing"
-import { getDropzoneDisabledReason, getDropzoneVariant } from "@/lib/upload-utils"
-import { pluralizePhotos, useManualUploadForm } from "@/hooks/use-manual-upload-form"
-import { useManualPhotoSelection } from "@/hooks/use-manual-photo-selection"
-import { useManualUploadFlow } from "@/hooks/use-manual-upload-flow"
-import { ManualDetailsForm } from "@/components/manual-upload/manual-details-form"
-import { ManualUploadMappingSection } from "@/components/manual-upload/manual-upload-mapping-section"
-import { ManualImageDropzoneSection } from "@/components/manual-upload/manual-image-dropzone-section"
-import { ManualSelectedImagesSection } from "@/components/manual-upload/manual-selected-images-section"
-import { ManualUploadStatusSection } from "@/components/manual-upload/manual-upload-status-section"
-import { useDomain } from "@/lib/domain-provider"
+import { formatDomainPathname } from '@/lib/utils'
+import { useTRPC } from '@/lib/trpc/client'
+import { getExpectedPhotoCount, getSelectedTopics } from '@/lib/upload-utils'
+import { revokePreviewUrls } from '@/lib/file-processing'
+import { getDropzoneDisabledReason, getDropzoneVariant } from '@/lib/upload-utils'
+import { pluralizePhotos, useManualUploadForm } from '@/hooks/use-manual-upload-form'
+import { useManualPhotoSelection } from '@/hooks/use-manual-photo-selection'
+import { useManualUploadFlow } from '@/hooks/use-manual-upload-flow'
+import { ManualDetailsForm } from '@/components/manual-upload/manual-details-form'
+import { ManualUploadMappingSection } from '@/components/manual-upload/manual-upload-mapping-section'
+import { ManualImageDropzoneSection } from '@/components/manual-upload/manual-image-dropzone-section'
+import { ManualSelectedImagesSection } from '@/components/manual-upload/manual-selected-images-section'
+import { ManualUploadStatusSection } from '@/components/manual-upload/manual-upload-status-section'
+import { useDomain } from '@/lib/domain-provider'
 
 const DROPZONE_ACCEPT: Accept = {
-  "image/jpeg": [".jpg", ".jpeg"],
-  "image/png": [".png"],
-  "image/gif": [".gif"],
-  "image/webp": [".webp"],
-  "image/heic": [".heic"],
-  "image/heif": [".heif"],
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+  'image/gif': ['.gif'],
+  'image/webp': ['.webp'],
+  'image/heic': ['.heic'],
+  'image/heif': ['.heif'],
 }
 
 interface ManualUploadDialogProps {
@@ -64,7 +64,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
   const router = useRouter()
   const domain = useDomain()
   const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
-  const marathonMode = marathon.mode as "marathon" | "by-camera"
+  const marathonMode = marathon.mode as 'marathon' | 'by-camera'
 
   const signatureRef = useRef<string | null>(null)
 
@@ -85,7 +85,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
   })
 
   const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
-  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === "active") ?? null
+  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === 'active') ?? null
   const selectedCompetitionClass =
     marathon.competitionClasses.find(
       (competitionClass) => competitionClass.id === Number(formValues.competitionClassId),
@@ -108,7 +108,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
 
   const isMappingReady =
     !!formValues.deviceGroupId &&
-    (marathon.mode === "marathon" ? !!formValues.competitionClassId : !!activeByCameraTopic)
+    (marathon.mode === 'marathon' ? !!formValues.competitionClassId : !!activeByCameraTopic)
 
   const dropzoneDisabledReason = getDropzoneDisabledReason({
     deviceGroupId: formValues.deviceGroupId,
@@ -200,7 +200,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
         await uploadFlow.runUpload(formValue.reference, photoSelection.selectedPhotos)
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Failed to check participant reference"
+          error instanceof Error ? error.message : 'Failed to check participant reference'
         toast.error(message)
       }
     }
@@ -237,7 +237,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
       return
     }
 
-    const signature = `${expectedPhotoCount}:${topicOrderIndexes.join(",")}`
+    const signature = `${expectedPhotoCount}:${topicOrderIndexes.join(',')}`
 
     if (!signatureRef.current) {
       signatureRef.current = signature
@@ -248,7 +248,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
       revokePreviewUrls(photoSelection.selectedPhotos, (photo) => photo.previewUrl)
       photoSelection.setSelectedPhotos([])
       uploadFlow.resetUploadFlow()
-      toast.message("Image selection cleared because class/topic mapping changed")
+      toast.message('Image selection cleared because class/topic mapping changed')
     }
 
     signatureRef.current = signature
@@ -276,7 +276,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
   }
 
   const onDropRejected = () => {
-    toast.error("Some files were rejected. Please use supported image formats.")
+    toast.error('Some files were rejected. Please use supported image formats.')
   }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -316,12 +316,12 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
                     Manual Upload
                   </DialogTitle>
                   <Badge variant="outline" className="border-[#d8d8cf] bg-white text-[#5f5f58]">
-                    {marathon.mode === "by-camera" ? "By Camera" : "Marathon"}
+                    {marathon.mode === 'by-camera' ? 'By Camera' : 'Marathon'}
                   </Badge>
                 </div>
                 <DialogDescription className="mt-1 text-sm text-[#66665f]">
                   Create participant details and upload {pluralizePhotos(expectedPhotoCount || 0)}
-                  {marathon.mode === "by-camera" ? " for the active topic" : " with class mapping"}.
+                  {marathon.mode === 'by-camera' ? ' for the active topic' : ' with class mapping'}.
                 </DialogDescription>
               </div>
             </div>

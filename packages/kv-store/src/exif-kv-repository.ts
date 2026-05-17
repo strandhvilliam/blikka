@@ -1,9 +1,9 @@
-import { Context, Effect, Layer, Option, Schema } from "effect"
-import { RedisClient, RedisClientLayer } from "@blikka/redis"
-import { Keys } from "./key-factory"
+import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { RedisClient, RedisClientLayer } from '@blikka/redis'
+import { Keys } from './key-factory'
 
 export class ExifKVRepositoryError extends Schema.TaggedErrorClass<ExifKVRepositoryError>()(
-  "ExifKVRepositoryError",
+  'ExifKVRepositoryError',
   {
     operation: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -54,21 +54,21 @@ export class ExifKVRepository extends Context.Service<
       orderIndexes: ReadonlyArray<number>,
     ) => Effect.Effect<number, ExifKVRepositoryError>
   }
->()("@blikka/packages/kv-store/exif-kv-repository") {}
+>()('@blikka/packages/kv-store/exif-kv-repository') {}
 
 const makeExifKVRepository = Effect.gen(function* () {
   const redis = yield* RedisClient
 
-  const getExifState: ExifKVRepository["Service"]["getExifState"] = Effect.fn(
-    "ExifKVRepository.getExifState",
+  const getExifState: ExifKVRepository['Service']['getExifState'] = Effect.fn(
+    'ExifKVRepository.getExifState',
   )(
     function* (domain, ref, orderIndex) {
       const key = Keys.exif(domain, ref, orderIndex)
       const result = yield* redis
         .use((client) => client.get<string | null>(key))
         .pipe(
-          Effect.catchTag("RedisError", (e) =>
-            Effect.fail(new ExifKVRepositoryError({ operation: "getExifState", cause: e })),
+          Effect.catchTag('RedisError', (e) =>
+            Effect.fail(new ExifKVRepositoryError({ operation: 'getExifState', cause: e })),
           ),
         )
 
@@ -82,8 +82,8 @@ const makeExifKVRepository = Effect.gen(function* () {
       Effect.annotateLogs(effect, { domain, reference: ref, orderIndex }),
   )
 
-  const getAllExifStates: ExifKVRepository["Service"]["getAllExifStates"] = Effect.fn(
-    "ExifKVRepository.getAllExifStates",
+  const getAllExifStates: ExifKVRepository['Service']['getAllExifStates'] = Effect.fn(
+    'ExifKVRepository.getAllExifStates',
   )(
     function* (domain, ref, orderIndexes) {
       const keys = orderIndexes.map((orderIndex) => Keys.exif(domain, ref, orderIndex))
@@ -118,16 +118,16 @@ const makeExifKVRepository = Effect.gen(function* () {
       }),
   )
 
-  const setExifState: ExifKVRepository["Service"]["setExifState"] = Effect.fn(
-    "ExifKVRepository.setExifState",
+  const setExifState: ExifKVRepository['Service']['setExifState'] = Effect.fn(
+    'ExifKVRepository.setExifState',
   )(
     function* (domain, ref, orderIndex, state) {
       const key = Keys.exif(domain, ref, orderIndex)
       return yield* redis
         .use((client) => client.set(key, JSON.stringify(state)))
         .pipe(
-          Effect.catchTag("RedisError", (e) =>
-            Effect.fail(new ExifKVRepositoryError({ operation: "setExifState", cause: e })),
+          Effect.catchTag('RedisError', (e) =>
+            Effect.fail(new ExifKVRepositoryError({ operation: 'setExifState', cause: e })),
           ),
         )
     },
@@ -135,8 +135,8 @@ const makeExifKVRepository = Effect.gen(function* () {
       Effect.annotateLogs(effect, { domain, reference: ref, orderIndex }),
   )
 
-  const deleteExifStates: ExifKVRepository["Service"]["deleteExifStates"] = Effect.fn(
-    "ExifKVRepository.deleteExifStates",
+  const deleteExifStates: ExifKVRepository['Service']['deleteExifStates'] = Effect.fn(
+    'ExifKVRepository.deleteExifStates',
   )(
     function* (domain, ref, orderIndexes) {
       if (orderIndexes.length === 0) {
@@ -150,8 +150,8 @@ const makeExifKVRepository = Effect.gen(function* () {
       return yield* redis
         .use((client) => client.del(...keys))
         .pipe(
-          Effect.catchTag("RedisError", (e) =>
-            Effect.fail(new ExifKVRepositoryError({ operation: "deleteExifStates", cause: e })),
+          Effect.catchTag('RedisError', (e) =>
+            Effect.fail(new ExifKVRepositoryError({ operation: 'deleteExifStates', cause: e })),
           ),
         )
     },

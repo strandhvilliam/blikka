@@ -1,12 +1,12 @@
-import Image from "next/image"
-import { LoginForm } from "./login-form"
-import { getAppSession } from "@/lib/auth/server"
-import { sanitizeRedirectPath } from "@/lib/auth/redirect"
-import { getUserPermissions } from "@/lib/auth/permissions"
-import { redirect } from "next/navigation"
-import { DotPattern } from "@/components/dot-pattern"
-import { cn } from "@/lib/utils"
-import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
+import Image from 'next/image'
+import { LoginForm } from './login-form'
+import { getAppSession } from '@/lib/auth/server'
+import { sanitizeRedirectPath } from '@/lib/auth/redirect'
+import { getUserPermissions } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
+import { DotPattern } from '@/components/dot-pattern'
+import { cn } from '@/lib/utils'
+import { getDefaultPostLoginPath } from '@/lib/auth/redirect'
 
 function NoiseCardShell({
   children,
@@ -18,7 +18,7 @@ function NoiseCardShell({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-3xl border border-brand-black/10 bg-neutral-400 text-brand-black",
+        'relative overflow-hidden rounded-3xl border border-brand-black/10 bg-neutral-400 text-brand-black',
         className,
       )}
     >
@@ -30,8 +30,8 @@ function NoiseCardShell({
           className="absolute inset-0 opacity-20 mix-blend-soft-light"
           style={{
             backgroundImage: "url('/noise.png')",
-            backgroundRepeat: "repeat",
-            backgroundSize: "230px 230px",
+            backgroundRepeat: 'repeat',
+            backgroundSize: '230px 230px',
           }}
         />
       </div>
@@ -132,12 +132,10 @@ function BrandHeaderRow() {
   )
 }
 
-export default async function LoginPage({
-  searchParams,
-}: PageProps<"/[locale]/auth/login">) {
+export default async function LoginPage({ searchParams }: PageProps<'/[locale]/auth/login'>) {
   const session = await getAppSession()
   const params = await searchParams
-  const next = sanitizeRedirectPath(typeof params.next === "string" ? params.next : undefined)
+  const next = sanitizeRedirectPath(typeof params.next === 'string' ? params.next : undefined)
 
   if (session) {
     const permissions = await getUserPermissions(session.user.id)
@@ -184,9 +182,10 @@ export default async function LoginPage({
 
         <section className="flex items-center justify-center rounded-3xl border border-brand-black/10 bg-brand-white/72 p-4 shadow-[0_28px_120px_rgba(0,0,0,0.08)] backdrop-blur-xl md:p-8 xl:p-10">
           <div className="w-full max-w-lg rounded-[1.35rem] border border-brand-black/10 bg-brand-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.08)] sm:p-9">
-              <LoginForm next={next} />
+            <LoginForm next={next} />
           </div>
         </section>
       </div>
     </div>
-  )}
+  )
+}

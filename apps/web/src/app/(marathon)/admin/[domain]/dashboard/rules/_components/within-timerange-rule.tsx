@@ -1,28 +1,28 @@
-"use client"
+'use client'
 
-import { format } from "date-fns"
-import Link from "next/link"
-import { Clock } from "lucide-react"
-import { RuleCard, type RuleValue } from "./rule-card"
-import type { WithinTimerangeParams } from "../_lib/schemas"
+import { format } from 'date-fns'
+import Link from 'next/link'
+import { Clock } from 'lucide-react'
+import { RuleCard, type RuleValue } from './rule-card'
+import type { WithinTimerangeParams } from '../_lib/schemas'
 
 type WithinTimerangeValue = RuleValue<WithinTimerangeParams>
 
 interface WithinTimerangeRuleProps {
-  marathonMode?: "marathon" | "by-camera"
+  marathonMode?: 'marathon' | 'by-camera'
   value: WithinTimerangeValue
   onChange: (value: WithinTimerangeValue) => void
 }
 
 export function WithinTimerangeRule({
-  marathonMode = "marathon",
+  marathonMode = 'marathon',
   value,
   onChange,
 }: WithinTimerangeRuleProps) {
-  const hasTimeStart = value.params?.start !== ""
-  const hasTimeEnd = value.params?.end !== ""
+  const hasTimeStart = value.params?.start !== ''
+  const hasTimeEnd = value.params?.end !== ''
 
-  if (marathonMode === "by-camera") {
+  if (marathonMode === 'by-camera') {
     return (
       <RuleCard
         title="Within Time Range"
@@ -33,8 +33,8 @@ export function WithinTimerangeRule({
         onChange={onChange}
       >
         <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
-          In by-camera mode each participant uploads a single image per topic, so validation uses the
-          photo&apos;s date only: it must have been captured on the current calendar day.
+          In by-camera mode each participant uploads a single image per topic, so validation uses
+          the photo&apos;s date only: it must have been captured on the current calendar day.
         </p>
       </RuleCard>
     )
@@ -57,8 +57,8 @@ export function WithinTimerangeRule({
             </div>
             <div className="text-sm font-medium text-foreground tabular-nums">
               {hasTimeStart && value.params?.start
-                ? format(new Date(value.params.start), "yyyy-MM-dd HH:mm")
-                : "Not set"}
+                ? format(new Date(value.params.start), 'yyyy-MM-dd HH:mm')
+                : 'Not set'}
             </div>
           </div>
           <div className="space-y-1 sm:border-l sm:border-border/40 sm:pl-4">
@@ -67,8 +67,8 @@ export function WithinTimerangeRule({
             </div>
             <div className="text-sm font-medium text-foreground tabular-nums">
               {hasTimeEnd && value.params?.end
-                ? format(new Date(value.params.end), "yyyy-MM-dd HH:mm")
-                : "Not set"}
+                ? format(new Date(value.params.end), 'yyyy-MM-dd HH:mm')
+                : 'Not set'}
             </div>
           </div>
         </div>

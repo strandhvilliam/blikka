@@ -1,19 +1,16 @@
-"use client"
+'use client'
 
-import { useMemo } from "react"
+import { useMemo } from 'react'
 import {
   resolveJuryReviewParticipantIndex,
   useJuryReviewQueryState,
-} from "@/hooks/live/jury/use-jury-review-query-state"
-import {
-  JuryReviewDataProvider,
-  useJuryReviewData,
-} from "./jury-review-data-provider"
-import { JuryParticipantList } from "./jury-participant-list"
-import { JuryReviewHeader } from "./jury-review-header"
-import { JurySubmissionViewer } from "./jury-submission-viewer"
+} from '@/hooks/live/jury/use-jury-review-query-state'
+import { JuryReviewDataProvider, useJuryReviewData } from './jury-review-data-provider'
+import { JuryParticipantList } from './jury-participant-list'
+import { JuryReviewHeader } from './jury-review-header'
+import { JurySubmissionViewer } from './jury-submission-viewer'
 
-export type { ViewMode } from "@/lib/jury/jury-types"
+export type { ViewMode } from '@/lib/jury/jury-types'
 
 export function JuryReviewClient() {
   return (
@@ -24,14 +21,9 @@ export function JuryReviewClient() {
 }
 
 function JuryReviewClientContent() {
-  const {
-    participants,
-    isFetching,
-    isFetchingNextPage,
-    isFetchingParticipantCount,
-  } = useJuryReviewData()
-  const { selectedParticipantId, currentParticipantIndex } =
-    useJuryReviewQueryState()
+  const { participants, isFetching, isFetchingNextPage, isFetchingParticipantCount } =
+    useJuryReviewData()
+  const { selectedParticipantId, currentParticipantIndex } = useJuryReviewQueryState()
 
   const selectedIndex = useMemo(
     () =>
@@ -43,10 +35,8 @@ function JuryReviewClientContent() {
     [currentParticipantIndex, participants, selectedParticipantId],
   )
 
-  const isRefreshingResults =
-    isFetchingParticipantCount || (isFetching && !isFetchingNextPage)
-  const shouldShowViewer =
-    selectedParticipantId !== null && participants.length > 0
+  const isRefreshingResults = isFetchingParticipantCount || (isFetching && !isFetchingNextPage)
+  const shouldShowViewer = selectedParticipantId !== null && participants.length > 0
 
   return (
     <main className="min-h-dvh bg-neutral-50 bg-dot-pattern-light">

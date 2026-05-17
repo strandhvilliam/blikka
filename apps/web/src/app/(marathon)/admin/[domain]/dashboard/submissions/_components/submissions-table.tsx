@@ -1,13 +1,13 @@
-"use client"
+'use client'
 
-import { useMemo } from "react"
+import { useMemo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   flexRender,
-} from "@tanstack/react-table"
-import { useRouter } from "next/navigation"
+} from '@tanstack/react-table'
+import { useRouter } from 'next/navigation'
 import {
   Table,
   TableBody,
@@ -15,21 +15,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Loader2, AlertCircle, FileText } from "lucide-react"
-import { cn, formatDomainPathname } from "@/lib/utils"
-import { useSubmissionsTable } from "../_hooks/use-submissions-table"
-import { SubmissionsFilters } from "./submissions-filters"
-import { getSubmissionsColumns } from "../_lib/submissions-columns"
-import { SubmissionsBulkToolbar } from "./submissions-bulk-toolbar"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { toast } from "sonner"
-import { useDomain } from "@/lib/domain-provider"
+} from '@/components/ui/table'
+import { Loader2, AlertCircle, FileText } from 'lucide-react'
+import { cn, formatDomainPathname } from '@/lib/utils'
+import { useSubmissionsTable } from '../_hooks/use-submissions-table'
+import { SubmissionsFilters } from './submissions-filters'
+import { getSubmissionsColumns } from '../_lib/submissions-columns'
+import { SubmissionsBulkToolbar } from './submissions-bulk-toolbar'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { toast } from 'sonner'
+import { useDomain } from '@/lib/domain-provider'
 import {
   useSubmissionsTableRealtime,
   useEnrichedParticipants,
-} from "../_hooks/use-submissions-table-realtime"
+} from '../_hooks/use-submissions-table-realtime'
 
 export function SubmissionsTable() {
   const router = useRouter()
@@ -71,11 +71,11 @@ export function SubmissionsTable() {
     trpc.participants.batchDelete.mutationOptions({
       onSuccess: async (data) => {
         toast.success(
-          `Deleted ${data.deletedCount} participant${data.deletedCount === 1 ? "" : "s"}`,
+          `Deleted ${data.deletedCount} participant${data.deletedCount === 1 ? '' : 's'}`,
         )
         if (data.failedIds.length > 0) {
           toast.error(
-            `Failed to delete ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"}`,
+            `Failed to delete ${data.failedIds.length} participant${data.failedIds.length === 1 ? '' : 's'}`,
           )
         }
 
@@ -95,11 +95,11 @@ export function SubmissionsTable() {
     trpc.participants.batchVerify.mutationOptions({
       onSuccess: async (data) => {
         toast.success(
-          `Verified ${data.updatedCount} participant${data.updatedCount === 1 ? "" : "s"}`,
+          `Verified ${data.updatedCount} participant${data.updatedCount === 1 ? '' : 's'}`,
         )
         if (data.failedIds.length > 0) {
           toast.error(
-            `Failed to verify ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"} (not in completed status)`,
+            `Failed to verify ${data.failedIds.length} participant${data.failedIds.length === 1 ? '' : 's'} (not in completed status)`,
           )
         }
         clearSelection()
@@ -113,11 +113,11 @@ export function SubmissionsTable() {
     trpc.participants.batchMarkCompleted.mutationOptions({
       onSuccess: async (data) => {
         toast.success(
-          `Marked ${data.updatedCount} participant${data.updatedCount === 1 ? "" : "s"} as completed`,
+          `Marked ${data.updatedCount} participant${data.updatedCount === 1 ? '' : 's'} as completed`,
         )
         if (data.failedIds.length > 0) {
           toast.error(
-            `Skipped ${data.failedIds.length} participant${data.failedIds.length === 1 ? "" : "s"} already in a final status`,
+            `Skipped ${data.failedIds.length} participant${data.failedIds.length === 1 ? '' : 's'} already in a final status`,
           )
         }
         await queryClient.invalidateQueries({
@@ -141,7 +141,7 @@ export function SubmissionsTable() {
   const selectedReferences = selectedParticipants.map((participant) => participant.reference)
   const completableParticipantIds = selectedParticipants
     .filter(
-      (participant) => participant.status !== "completed" && participant.status !== "verified",
+      (participant) => participant.status !== 'completed' && participant.status !== 'verified',
     )
     .map((participant) => participant.id)
   const selectedSubmissionIdsMissingExif = selectedParticipants
@@ -194,7 +194,7 @@ export function SubmissionsTable() {
         selectedReferences.map((reference) => reTriggerMutation.mutateAsync({ domain, reference })),
       )
       toast.success(
-        `Re-triggered upload flow for ${selectedReferences.length} participant${selectedReferences.length === 1 ? "" : "s"}`,
+        `Re-triggered upload flow for ${selectedReferences.length} participant${selectedReferences.length === 1 ? '' : 's'}`,
       )
       queryClient.invalidateQueries({
         queryKey: trpc.participants.getByDomainInfinite.pathKey(),
@@ -202,7 +202,7 @@ export function SubmissionsTable() {
       clearSelection()
     } catch (error) {
       toast.error(
-        `Failed to re-trigger: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to re-trigger: ${error instanceof Error ? error.message : 'Unknown error'}`,
       )
     }
   }
@@ -217,7 +217,7 @@ export function SubmissionsTable() {
         ),
       )
       toast.success(
-        `Reran validations for ${selectedReferences.length} participant${selectedReferences.length === 1 ? "" : "s"}`,
+        `Reran validations for ${selectedReferences.length} participant${selectedReferences.length === 1 ? '' : 's'}`,
       )
       await queryClient.invalidateQueries({
         queryKey: trpc.participants.getByDomainInfinite.pathKey(),
@@ -225,7 +225,7 @@ export function SubmissionsTable() {
       clearSelection()
     } catch (error) {
       toast.error(
-        `Failed to rerun validations: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to rerun validations: ${error instanceof Error ? error.message : 'Unknown error'}`,
       )
     }
   }
@@ -246,7 +246,7 @@ export function SubmissionsTable() {
         ),
       )
       toast.success(
-        `Regenerated EXIF for ${selectedSubmissionIdsMissingExif.length} submission${selectedSubmissionIdsMissingExif.length === 1 ? "" : "s"}`,
+        `Regenerated EXIF for ${selectedSubmissionIdsMissingExif.length} submission${selectedSubmissionIdsMissingExif.length === 1 ? '' : 's'}`,
       )
       await queryClient.invalidateQueries({
         queryKey: trpc.participants.getByDomainInfinite.pathKey(),
@@ -254,7 +254,7 @@ export function SubmissionsTable() {
       clearSelection()
     } catch (error) {
       toast.error(
-        `Failed to regenerate EXIF: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to regenerate EXIF: ${error instanceof Error ? error.message : 'Unknown error'}`,
       )
     }
   }
@@ -275,7 +275,7 @@ export function SubmissionsTable() {
         ),
       )
       toast.success(
-        `Generated thumbnails for ${selectedSubmissionIdsMissingThumbnail.length} submission${selectedSubmissionIdsMissingThumbnail.length === 1 ? "" : "s"}`,
+        `Generated thumbnails for ${selectedSubmissionIdsMissingThumbnail.length} submission${selectedSubmissionIdsMissingThumbnail.length === 1 ? '' : 's'}`,
       )
       await queryClient.invalidateQueries({
         queryKey: trpc.participants.getByDomainInfinite.pathKey(),
@@ -283,7 +283,7 @@ export function SubmissionsTable() {
       clearSelection()
     } catch (error) {
       toast.error(
-        `Failed to generate thumbnails: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Failed to generate thumbnails: ${error instanceof Error ? error.message : 'Unknown error'}`,
       )
     }
   }
@@ -357,7 +357,7 @@ export function SubmissionsTable() {
             deviceGroupId={queryState.deviceGroupId}
             onDeviceGroupChange={handleDeviceGroupChange}
             deviceGroups={marathon.deviceGroups}
-            hideSortAndCompetitionClass={marathon?.mode === "by-camera"}
+            hideSortAndCompetitionClass={marathon?.mode === 'by-camera'}
           />
         )}
       </div>
@@ -373,8 +373,8 @@ export function SubmissionsTable() {
                       <TableHead
                         key={header.id}
                         className={cn(
-                          "h-9 font-semibold text-xs text-foreground bg-muted/50",
-                          header.column.id === "openIndicator" && "w-10 px-2",
+                          'h-9 font-semibold text-xs text-foreground bg-muted/50',
+                          header.column.id === 'openIndicator' && 'w-10 px-2',
                         )}
                       >
                         {header.isPlaceholder
@@ -433,7 +433,7 @@ export function SubmissionsTable() {
                           ? `/admin/dashboard/submissions/${participant.reference}/${participant.activeTopicSubmissionId}`
                           : `/admin/dashboard/submissions/${participant.reference}`
                       const href = formatDomainPathname(
-                        marathon?.mode === "by-camera"
+                        marathon?.mode === 'by-camera'
                           ? byCameraSubmissionHref
                           : `/admin/dashboard/submissions/${participant.reference}`,
                         domain,
@@ -443,7 +443,7 @@ export function SubmissionsTable() {
                         <TableRow
                           key={row.id}
                           className={`cursor-pointer transition-colors border-b ${
-                            isRowSelected ? "bg-muted/80 hover:bg-muted/80" : "hover:bg-muted/60"
+                            isRowSelected ? 'bg-muted/80 hover:bg-muted/80' : 'hover:bg-muted/60'
                           }`}
                           onClick={(e) => {
                             // Don't navigate if clicking the checkbox
@@ -459,8 +459,8 @@ export function SubmissionsTable() {
                             <TableCell
                               key={cell.id}
                               className={cn(
-                                "py-2",
-                                cell.column.id === "openIndicator" && "w-10 px-2 align-middle",
+                                'py-2',
+                                cell.column.id === 'openIndicator' && 'w-10 px-2 align-middle',
                               )}
                             >
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}

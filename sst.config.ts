@@ -1,12 +1,12 @@
 /// <reference path="./.sst/platform/config.d.ts" />
-import { existsSync } from "node:fs"
+import { existsSync } from 'node:fs'
 
 export default $config({
   app(input) {
     return {
-      name: "blikka",
-      removal: input?.stage === "production" ? "retain" : "remove",
-      home: "aws",
+      name: 'blikka',
+      removal: input?.stage === 'production' ? 'retain' : 'remove',
+      home: 'aws',
     }
   },
   async run() {
@@ -18,7 +18,7 @@ export default $config({
       DEV_DATABASE_HOST: process.env.DEV_DATABASE_HOST!,
       DEV_DATABASE_PORT: process.env.DEV_DATABASE_PORT!,
       DEV_DATABASE_NAME: process.env.DEV_DATABASE_NAME!,
-      DATABASE_PROVIDER: process.env.DATABASE_PROVIDER ?? "neon",
+      DATABASE_PROVIDER: process.env.DATABASE_PROVIDER ?? 'neon',
       DATABASE_URL: process.env.DATABASE_URL!,
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET!,
       BETTER_AUTH_URL: process.env.BETTER_AUTH_URL!,
@@ -36,85 +36,85 @@ export default $config({
     }
 
     const ALLOWED_ORIGINS = [
-      "http://localhost:3002",
-      "https://vimmer.app",
-      "*.vimmer.app",
-      "*.localhost:3002",
-      "https://*.vimmer.app",
-      "*.blikka.app",
-      "https://*.blikka.app",
-      "https://blikka.app",
+      'http://localhost:3002',
+      'https://vimmer.app',
+      '*.vimmer.app',
+      '*.localhost:3002',
+      'https://*.vimmer.app',
+      '*.blikka.app',
+      'https://*.blikka.app',
+      'https://blikka.app',
     ]
 
     /* BUCKETS */
 
-    const submissionsBucket = new sst.aws.Bucket("V2SubmissionsBucket", {
-      access: "public",
+    const submissionsBucket = new sst.aws.Bucket('V2SubmissionsBucket', {
+      access: 'public',
       cors: {
         allowOrigins: ALLOWED_ORIGINS,
-        exposeHeaders: ["Access-Control-Allow-Origin"],
+        exposeHeaders: ['Access-Control-Allow-Origin'],
       },
     })
-    const thumbnailsBucket = new sst.aws.Bucket("V2ThumbnailsBucket", {
-      access: "public",
+    const thumbnailsBucket = new sst.aws.Bucket('V2ThumbnailsBucket', {
+      access: 'public',
     })
-    const contactSheetsBucket = new sst.aws.Bucket("V2ContactSheetsBucket", {
-      access: "public",
+    const contactSheetsBucket = new sst.aws.Bucket('V2ContactSheetsBucket', {
+      access: 'public',
     })
-    const sponsorBucket = new sst.aws.Bucket("V2SponsorBucket", {
-      access: "public",
+    const sponsorBucket = new sst.aws.Bucket('V2SponsorBucket', {
+      access: 'public',
     })
-    const zipsBucket = new sst.aws.Bucket("V2ZipsBucket", {
-      access: "public",
+    const zipsBucket = new sst.aws.Bucket('V2ZipsBucket', {
+      access: 'public',
       cors: {
         allowOrigins: ALLOWED_ORIGINS,
-        exposeHeaders: ["Access-Control-Allow-Origin"],
+        exposeHeaders: ['Access-Control-Allow-Origin'],
       },
     })
-    const marathonSettingsBucket = new sst.aws.Bucket("V2MarathonSettingsBucket", {
-      access: "public",
+    const marathonSettingsBucket = new sst.aws.Bucket('V2MarathonSettingsBucket', {
+      access: 'public',
       cors: {
         allowOrigins: ALLOWED_ORIGINS,
-        exposeHeaders: ["Access-Control-Allow-Origin"],
+        exposeHeaders: ['Access-Control-Allow-Origin'],
       },
     })
 
     /* QUEUES & BUSES */
 
-    const submissionFinalizedBus = new sst.aws.Bus("SubmissionFinalizedBus")
+    const submissionFinalizedBus = new sst.aws.Bus('SubmissionFinalizedBus')
 
     /* Dead-letter queues for failed messages */
-    const uploadProcessorDlq = new sst.aws.Queue("UploadProcessorDLQ")
-    const validationDlq = new sst.aws.Queue("ValidationDLQ")
-    const sheetGeneratorDlq = new sst.aws.Queue("SheetGeneratorDLQ")
-    const zipWorkerDlq = new sst.aws.Queue("ZipWorkerDLQ")
-    const uploadFinalizerDlq = new sst.aws.Queue("UploadFinalizerDLQ")
-    const votingSmsDlq = new sst.aws.Queue("VotingSmsDLQ")
-    const busTargetDlq = new sst.aws.Queue("BusTargetDLQ")
+    const uploadProcessorDlq = new sst.aws.Queue('UploadProcessorDLQ')
+    const validationDlq = new sst.aws.Queue('ValidationDLQ')
+    const sheetGeneratorDlq = new sst.aws.Queue('SheetGeneratorDLQ')
+    const zipWorkerDlq = new sst.aws.Queue('ZipWorkerDLQ')
+    const uploadFinalizerDlq = new sst.aws.Queue('UploadFinalizerDLQ')
+    const votingSmsDlq = new sst.aws.Queue('VotingSmsDLQ')
+    const busTargetDlq = new sst.aws.Queue('BusTargetDLQ')
 
-    const uploadProcessorQueue = new sst.aws.Queue("UploadProcessorQueue", {
+    const uploadProcessorQueue = new sst.aws.Queue('UploadProcessorQueue', {
       dlq: { queue: uploadProcessorDlq.arn, retry: 5 },
-      visibilityTimeout: "5 minutes",
+      visibilityTimeout: '5 minutes',
     })
-    const uploadFinalizerQueue = new sst.aws.Queue("UploadFinalizerQueue", {
+    const uploadFinalizerQueue = new sst.aws.Queue('UploadFinalizerQueue', {
       dlq: { queue: uploadFinalizerDlq.arn, retry: 5 },
-      visibilityTimeout: "5 minutes",
+      visibilityTimeout: '5 minutes',
     })
-    const validationQueue = new sst.aws.Queue("ValidationQueue", {
+    const validationQueue = new sst.aws.Queue('ValidationQueue', {
       dlq: { queue: validationDlq.arn, retry: 5 },
-      visibilityTimeout: "5 minutes",
+      visibilityTimeout: '5 minutes',
     })
-    const sheetGeneratorQueue = new sst.aws.Queue("SheetGeneratorQueue", {
+    const sheetGeneratorQueue = new sst.aws.Queue('SheetGeneratorQueue', {
       dlq: { queue: sheetGeneratorDlq.arn, retry: 5 },
-      visibilityTimeout: "10 minutes",
+      visibilityTimeout: '10 minutes',
     })
-    const zipWorkerQueue = new sst.aws.Queue("ZipGeneratorQueue", {
+    const zipWorkerQueue = new sst.aws.Queue('ZipGeneratorQueue', {
       dlq: { queue: zipWorkerDlq.arn, retry: 5 },
-      visibilityTimeout: "10 minutes",
+      visibilityTimeout: '10 minutes',
     })
-    const votingSmsQueue = new sst.aws.Queue("VotingSmsQueue", {
+    const votingSmsQueue = new sst.aws.Queue('VotingSmsQueue', {
       dlq: { queue: votingSmsDlq.arn, retry: 5 },
-      visibilityTimeout: "5 minutes",
+      visibilityTimeout: '5 minutes',
     })
 
     /* BUCKET NOTIFICATIONS */
@@ -122,30 +122,30 @@ export default $config({
     submissionsBucket.notify({
       notifications: [
         {
-          name: "SubmissionsBucketNotification",
+          name: 'SubmissionsBucketNotification',
           queue: uploadProcessorQueue,
-          events: ["s3:ObjectCreated:*"],
+          events: ['s3:ObjectCreated:*'],
         },
       ],
     })
 
     /* TASKS */
-    const vpc = new sst.aws.Vpc("BlikkaMainVPC")
-    const cluster = new sst.aws.Cluster("BlikkaMainCluster", { vpc })
+    const vpc = new sst.aws.Vpc('BlikkaMainVPC')
+    const cluster = new sst.aws.Cluster('BlikkaMainCluster', { vpc })
 
-    const zipHandlerTask = new sst.aws.Task("ZipHandlerTask", {
+    const zipHandlerTask = new sst.aws.Task('ZipHandlerTask', {
       cluster,
       image: {
-        dockerfile: "/tasks/zip-worker/Dockerfile",
+        dockerfile: '/tasks/zip-worker/Dockerfile',
       },
       link: [submissionsBucket, zipsBucket],
       // dev: false,
     })
 
-    const zipDownloaderTask = new sst.aws.Task("ZipDownloaderTask", {
+    const zipDownloaderTask = new sst.aws.Task('ZipDownloaderTask', {
       cluster,
       image: {
-        dockerfile: "/tasks/zip-downloader/Dockerfile",
+        dockerfile: '/tasks/zip-downloader/Dockerfile',
       },
       environment: env,
       link: [zipsBucket],
@@ -154,23 +154,23 @@ export default $config({
 
     /* QUEUE HANDLERS */
     uploadProcessorQueue.subscribe({
-      handler: "./tasks/upload-processor/src/index.handler",
-      timeout: "2 minutes",
+      handler: './tasks/upload-processor/src/index.handler',
+      timeout: '2 minutes',
       environment: env,
       nodejs: {
-        install: ["sharp"],
+        install: ['sharp'],
       },
       permissions: [
         sst.aws.permission({
-          actions: ["s3:ListBucket"],
+          actions: ['s3:ListBucket'],
           resources: [submissionsBucket.arn],
         }),
         sst.aws.permission({
-          actions: ["s3:GetObject"],
+          actions: ['s3:GetObject'],
           resources: [submissionsBucket.arn.apply((arn) => `${arn}/*`)],
         }),
         sst.aws.permission({
-          actions: ["s3:PutObject"],
+          actions: ['s3:PutObject'],
           resources: [thumbnailsBucket.arn.apply((arn) => `${arn}/*`)],
         }),
       ],
@@ -178,25 +178,25 @@ export default $config({
     })
 
     sheetGeneratorQueue.subscribe({
-      handler: "./tasks/contact-sheet-generator/src/index.handler",
-      timeout: "3 minutes",
+      handler: './tasks/contact-sheet-generator/src/index.handler',
+      timeout: '3 minutes',
       nodejs: {
-        install: ["sharp"],
+        install: ['sharp'],
       },
       environment: env,
       link: [sheetGeneratorQueue, contactSheetsBucket, submissionsBucket, sponsorBucket],
     })
 
     uploadFinalizerQueue.subscribe({
-      handler: "./tasks/upload-finalizer/src/index.handler",
-      timeout: "2 minutes",
+      handler: './tasks/upload-finalizer/src/index.handler',
+      timeout: '2 minutes',
       environment: env,
       link: [uploadFinalizerQueue],
     })
 
     zipWorkerQueue.subscribe({
-      handler: "./tasks/zip-worker/src/handler.handler",
-      timeout: "5 minutes",
+      handler: './tasks/zip-worker/src/handler.handler',
+      timeout: '5 minutes',
       environment: env,
       link: [
         zipWorkerQueue,
@@ -209,8 +209,8 @@ export default $config({
     })
 
     validationQueue.subscribe({
-      handler: "./tasks/validation-runner/src/index.handler",
-      timeout: "2 minutes",
+      handler: './tasks/validation-runner/src/index.handler',
+      timeout: '2 minutes',
       environment: env,
       link: [
         validationQueue,
@@ -222,14 +222,14 @@ export default $config({
     })
 
     votingSmsQueue.subscribe({
-      handler: "./tasks/voting-sms-notifier/src/index.handler",
-      timeout: "5 minutes",
+      handler: './tasks/voting-sms-notifier/src/index.handler',
+      timeout: '5 minutes',
       environment: env,
       link: [votingSmsQueue],
       permissions: [
         sst.aws.permission({
-          actions: ["sns:Publish"],
-          resources: ["*"],
+          actions: ['sns:Publish'],
+          resources: ['*'],
         }),
       ],
     })
@@ -247,47 +247,47 @@ export default $config({
     }
 
     submissionFinalizedBus.subscribeQueue(
-      "ValidationBusSubscription",
+      'ValidationBusSubscription',
       validationQueue,
       busTargetTransform,
     )
     submissionFinalizedBus.subscribeQueue(
-      "SheetGeneratorBusSubscription",
+      'SheetGeneratorBusSubscription',
       sheetGeneratorQueue,
       busTargetTransform,
     )
     submissionFinalizedBus.subscribeQueue(
-      "ZipGeneratorBusSubscription",
+      'ZipGeneratorBusSubscription',
       zipWorkerQueue,
       busTargetTransform,
     )
     submissionFinalizedBus.subscribeQueue(
-      "UploadFinalizerBusSubscription",
+      'UploadFinalizerBusSubscription',
       uploadFinalizerQueue,
       busTargetTransform,
     )
 
     /* EventBridge DLQ policy - allows EventBridge to send failed events to the DLQ */
-    const pulumi = await import("@pulumi/pulumi")
+    const pulumi = await import('@pulumi/pulumi')
     const callerIdentity = aws.getCallerIdentity()
     const region = aws.getRegion()
-    new aws.sqs.QueuePolicy("BusTargetDLQPolicy", {
+    new aws.sqs.QueuePolicy('BusTargetDLQPolicy', {
       queueUrl: busTargetDlq.url,
       policy: pulumi
         .all([busTargetDlq.arn, region, callerIdentity])
         .apply(([queueArn, r, identity]) =>
           JSON.stringify({
-            Version: "2012-10-17",
+            Version: '2012-10-17',
             Statement: [
               {
-                Sid: "AllowEventBridgeToSendToDLQ",
-                Effect: "Allow",
-                Principal: { Service: "events.amazonaws.com" },
-                Action: "sqs:SendMessage",
+                Sid: 'AllowEventBridgeToSendToDLQ',
+                Effect: 'Allow',
+                Principal: { Service: 'events.amazonaws.com' },
+                Action: 'sqs:SendMessage',
                 Resource: queueArn,
                 Condition: {
                   ArnLike: {
-                    "aws:SourceArn": `arn:aws:events:${r.name}:${identity.accountId}:rule/blikka-*`,
+                    'aws:SourceArn': `arn:aws:events:${r.name}:${identity.accountId}:rule/blikka-*`,
                   },
                 },
               },

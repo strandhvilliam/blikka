@@ -1,23 +1,20 @@
-"use client"
+'use client'
 
-import { cn } from "@/lib/utils"
-import { motion } from "motion/react"
+import { cn } from '@/lib/utils'
+import { motion } from 'motion/react'
 
 export function Splash({ className }: SplashProps) {
   return (
     <div
       role="status"
       aria-live="polite"
-      className={cn(
-        "fixed inset-0 z-50 flex items-center justify-center bg-background",
-        className
-      )}
+      className={cn('fixed inset-0 z-50 flex items-center justify-center bg-background', className)}
     >
       <span className="sr-only">Loading</span>
       <motion.div
         initial={{ opacity: 0, scale: 0.995 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.18, ease: "easeOut" }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
         className="relative flex items-center justify-center"
       >
         <motion.div
@@ -26,7 +23,7 @@ export function Splash({ className }: SplashProps) {
           animate={{ scale: [0.92, 1.05, 0.92], opacity: [0.3, 0.6, 0.3] }}
           transition={{
             duration: 2.4,
-            ease: "easeInOut",
+            ease: 'easeInOut',
             repeat: Infinity,
           }}
         />
@@ -36,7 +33,7 @@ export function Splash({ className }: SplashProps) {
           animate={{ scale: [1, 1.08, 1], opacity: [0.25, 0.6, 0.25] }}
           transition={{
             duration: 2.2,
-            ease: "easeInOut",
+            ease: 'easeInOut',
             repeat: Infinity,
             delay: 0.2,
           }}
@@ -49,7 +46,7 @@ export function Splash({ className }: SplashProps) {
           animate={{ opacity: 1, y: [6, -4, 6], scale: [0.98, 1.02, 0.98] }}
           transition={{
             duration: 1.8,
-            ease: "easeInOut",
+            ease: 'easeInOut',
             repeat: Infinity,
           }}
         />

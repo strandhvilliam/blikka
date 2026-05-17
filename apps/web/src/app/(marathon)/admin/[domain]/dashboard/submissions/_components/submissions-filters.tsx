@@ -1,32 +1,26 @@
-"use client"
+'use client'
 
-import { useMemo, useState } from "react"
-import { ChevronDown, Filter, Search, ArrowUpDown } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { useMemo, useState } from 'react'
+import { ChevronDown, Filter, Search, ArrowUpDown } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import { useIsMobile } from "@/hooks/use-mobile"
+} from '@/components/ui/select'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 interface SubmissionsFiltersProps {
   search: string | null
   onSearchChange: (value: string | null) => void
-  sortOrder: "asc" | "desc"
-  onSortOrderChange: (value: "asc" | "desc") => void
+  sortOrder: 'asc' | 'desc'
+  onSortOrderChange: (value: 'asc' | 'desc') => void
   competitionClassId: number[] | null
   onCompetitionClassChange: (value: string) => void
   competitionClasses: { id: number; name: string }[]
@@ -50,8 +44,11 @@ function SubmissionsFilterFields({
   deviceGroups,
   layout,
   hideSortAndCompetitionClass = false,
-}: SubmissionsFiltersProps & { layout: "toolbar" | "sheet" }) {
-  const fieldWrap = layout === "sheet" ? "flex flex-col gap-4" : "flex flex-col gap-3 md:flex-row md:items-center md:gap-3"
+}: SubmissionsFiltersProps & { layout: 'toolbar' | 'sheet' }) {
+  const fieldWrap =
+    layout === 'sheet'
+      ? 'flex flex-col gap-4'
+      : 'flex flex-col gap-3 md:flex-row md:items-center md:gap-3'
 
   return (
     <div className={fieldWrap}>
@@ -60,7 +57,7 @@ function SubmissionsFilterFields({
         <Input
           type="text"
           placeholder="Search by reference, name, or email..."
-          value={search || ""}
+          value={search || ''}
           onChange={(e) => onSearchChange(e.target.value || null)}
           className="h-9 w-full bg-background pl-9 text-sm"
         />
@@ -68,9 +65,9 @@ function SubmissionsFilterFields({
 
       <div
         className={
-          layout === "sheet"
-            ? "flex flex-col gap-3"
-            : "flex flex-col gap-3 md:flex-row md:flex-wrap md:w-auto"
+          layout === 'sheet'
+            ? 'flex flex-col gap-3'
+            : 'flex flex-col gap-3 md:flex-row md:flex-wrap md:w-auto'
         }
       >
         {!hideSortAndCompetitionClass ? (
@@ -91,8 +88,8 @@ function SubmissionsFilterFields({
             <Select
               value={
                 !competitionClassId || competitionClassId.length === 0
-                  ? "all"
-                  : competitionClassId.join(",")
+                  ? 'all'
+                  : competitionClassId.join(',')
               }
               onValueChange={onCompetitionClassChange}
             >
@@ -115,7 +112,7 @@ function SubmissionsFilterFields({
         ) : null}
 
         <Select
-          value={!deviceGroupId || deviceGroupId.length === 0 ? "all" : deviceGroupId.join(",")}
+          value={!deviceGroupId || deviceGroupId.length === 0 ? 'all' : deviceGroupId.join(',')}
           onValueChange={onDeviceGroupChange}
         >
           <SelectTrigger className="h-9 w-full bg-background md:w-[200px]">
@@ -164,8 +161,8 @@ export function SubmissionsFilters(props: SubmissionsFiltersProps) {
           <Button
             variant="outline"
             className={cn(
-              "h-10 w-full justify-between gap-2 font-normal",
-              filterCount > 0 && "border-brand-primary/40",
+              'h-10 w-full justify-between gap-2 font-normal',
+              filterCount > 0 && 'border-brand-primary/40',
             )}
             aria-label="Open search and filters"
           >

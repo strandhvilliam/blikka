@@ -1,7 +1,7 @@
-import { Context, Duration, Effect, Layer, Option, Schedule, Schema, Struct } from "effect"
-import { RedisClient, RedisClientLayer } from "@blikka/redis"
-import { Keys } from "./key-factory"
-import { incrementParticipantScript } from "./lua-scripts/lua-increment"
+import { Context, Duration, Effect, Layer, Option, Schedule, Schema, Struct } from 'effect'
+import { RedisClient, RedisClientLayer } from '@blikka/redis'
+import { Keys } from './key-factory'
+import { incrementParticipantScript } from './lua-scripts/lua-increment'
 
 export const ParticipantStateSchema = Schema.Struct({
   uploadSessionId: Schema.String,
@@ -26,16 +26,16 @@ export const SubmissionStateSchema = Schema.Struct({
 })
 
 export const IncrementResultSchema = Schema.Literals([
-  "FINALIZED",
-  "PROCESSED_SUBMISSION",
-  "DUPLICATE_ORDER_INDEX",
-  "ALREADY_FINALIZED",
-  "INVALID_ORDER_INDEX",
-  "MISSING_DATA",
+  'FINALIZED',
+  'PROCESSED_SUBMISSION',
+  'DUPLICATE_ORDER_INDEX',
+  'ALREADY_FINALIZED',
+  'INVALID_ORDER_INDEX',
+  'MISSING_DATA',
 ])
 
 export class UploadSessionStoreUnavailable extends Schema.TaggedErrorClass<UploadSessionStoreUnavailable>()(
-  "UploadSessionStoreUnavailable",
+  'UploadSessionStoreUnavailable',
   {
     operation: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -43,23 +43,23 @@ export class UploadSessionStoreUnavailable extends Schema.TaggedErrorClass<Uploa
 ) {}
 
 export class UploadSessionInvalidStatePatchError extends Schema.TaggedErrorClass<UploadSessionInvalidStatePatchError>()(
-  "UploadSessionInvalidStatePatchError",
+  'UploadSessionInvalidStatePatchError',
   {
-    target: Schema.Literals(["participant", "submission"]),
+    target: Schema.Literals(['participant', 'submission']),
     cause: Schema.optional(Schema.Unknown),
   },
 ) {}
 
 export class UploadSessionInvariantViolated extends Schema.TaggedErrorClass<UploadSessionInvariantViolated>()(
-  "UploadSessionInvariantViolated",
+  'UploadSessionInvariantViolated',
   {
-    reason: Schema.Literal("unexpected_increment_payload"),
+    reason: Schema.Literal('unexpected_increment_payload'),
     cause: Schema.optional(Schema.Unknown),
   },
 ) {}
 
 export class UploadSessionSubmissionOrderInvalid extends Schema.TaggedErrorClass<UploadSessionSubmissionOrderInvalid>()(
-  "UploadSessionSubmissionOrderInvalid",
+  'UploadSessionSubmissionOrderInvalid',
   {
     domain: Schema.String,
     reference: Schema.String,
@@ -68,7 +68,7 @@ export class UploadSessionSubmissionOrderInvalid extends Schema.TaggedErrorClass
 ) {}
 
 export class UploadSessionSubmissionDataMissing extends Schema.TaggedErrorClass<UploadSessionSubmissionDataMissing>()(
-  "UploadSessionSubmissionDataMissing",
+  'UploadSessionSubmissionDataMissing',
   {
     domain: Schema.String,
     reference: Schema.String,
@@ -77,7 +77,7 @@ export class UploadSessionSubmissionDataMissing extends Schema.TaggedErrorClass<
 ) {}
 
 export class InvalidKeyFormatError extends Schema.TaggedErrorClass<InvalidKeyFormatError>()(
-  "InvalidKeyFormatError",
+  'InvalidKeyFormatError',
   {
     message: Schema.String,
   },
@@ -174,14 +174,14 @@ export class UploadSessionRepository extends Context.Service<
       orderIndex: number,
     ) => Effect.Effect<{ readonly status: IncrementResult }, UploadSessionRepositoryError>
   }
->()("@blikka/packages/kv-store/upload-session-repository") {}
+>()('@blikka/packages/kv-store/upload-session-repository') {}
 
 const makeUploadSessionRepository = Effect.gen(function* () {
   const redis = yield* RedisClient
   const retryPolicy = Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
 
   const parseKey = Effect.fnUntraced(function* (key: string) {
-    const [domain, reference, formattedOrderIndex, fileName] = key.split("/")
+    const [domain, reference, formattedOrderIndex, fileName] = key.split('/')
     if (!domain || !reference || !formattedOrderIndex || !fileName) {
       return yield* Effect.fail(
         new InvalidKeyFormatError({
@@ -198,17 +198,17 @@ const makeUploadSessionRepository = Effect.gen(function* () {
     })
   })
 
-  const getParticipantState: UploadSessionRepository["Service"]["getParticipantState"] = Effect.fn(
-    "UploadSessionRepository.getParticipantState",
+  const getParticipantState: UploadSessionRepository['Service']['getParticipantState'] = Effect.fn(
+    'UploadSessionRepository.getParticipantState',
   )(
     function* (domain, ref) {
       const key = Keys.participant(domain, ref)
       const result = yield* redis
         .use((client) => client.hgetall(key))
         .pipe(
-          Effect.catchTag("RedisError", (e) =>
+          Effect.catchTag('RedisError', (e) =>
             Effect.fail(
-              new UploadSessionStoreUnavailable({ operation: "getParticipantState", cause: e }),
+              new UploadSessionStoreUnavailable({ operation: 'getParticipantState', cause: e }),
             ),
           ),
         )
@@ -223,17 +223,17 @@ const makeUploadSessionRepository = Effect.gen(function* () {
     (effect, domain, ref) => Effect.annotateLogs(effect, { domain, reference: ref }),
   )
 
-  const getSubmissionState: UploadSessionRepository["Service"]["getSubmissionState"] = Effect.fn(
-    "UploadSessionRepository.getSubmissionState",
+  const getSubmissionState: UploadSessionRepository['Service']['getSubmissionState'] = Effect.fn(
+    'UploadSessionRepository.getSubmissionState',
   )(
     function* (domain, ref, orderIndex) {
       const key = Keys.submission(domain, ref, orderIndex)
       const result = yield* redis
         .use((client) => client.hgetall(key))
         .pipe(
-          Effect.catchTag("RedisError", (e) =>
+          Effect.catchTag('RedisError', (e) =>
             Effect.fail(
-              new UploadSessionStoreUnavailable({ operation: "getSubmissionState", cause: e }),
+              new UploadSessionStoreUnavailable({ operation: 'getSubmissionState', cause: e }),
             ),
           ),
         )
@@ -247,8 +247,8 @@ const makeUploadSessionRepository = Effect.gen(function* () {
       Effect.annotateLogs(effect, { domain, reference: ref, orderIndex }),
   )
 
-  const getAllSubmissionStates: UploadSessionRepository["Service"]["getAllSubmissionStates"] =
-    Effect.fn("UploadSessionRepository.getAllSubmissionStates")(
+  const getAllSubmissionStates: UploadSessionRepository['Service']['getAllSubmissionStates'] =
+    Effect.fn('UploadSessionRepository.getAllSubmissionStates')(
       function* (domain, ref, orderIndexes) {
         const keys = orderIndexes.map((orderIndex) => Keys.submission(domain, ref, orderIndex))
 
@@ -258,10 +258,10 @@ const makeUploadSessionRepository = Effect.gen(function* () {
             return multi.exec<([string, Record<string, unknown>] | null)[]>()
           })
           .pipe(
-            Effect.catchTag("RedisError", (e) =>
+            Effect.catchTag('RedisError', (e) =>
               Effect.fail(
                 new UploadSessionStoreUnavailable({
-                  operation: "getAllSubmissionStates",
+                  operation: 'getAllSubmissionStates',
                   cause: e,
                 }),
               ),
@@ -291,8 +291,8 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         }),
     )
 
-  const updateParticipantSession: UploadSessionRepository["Service"]["updateParticipantSession"] =
-    Effect.fn("UploadSessionRepository.updateParticipantSession")(
+  const updateParticipantSession: UploadSessionRepository['Service']['updateParticipantSession'] =
+    Effect.fn('UploadSessionRepository.updateParticipantSession')(
       function* (domain, ref, state) {
         const key = Keys.participant(domain, ref)
         const encodedState = yield* Schema.encodeEffect(
@@ -301,7 +301,7 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           Effect.mapError(
             (issue) =>
               new UploadSessionInvalidStatePatchError({
-                target: "participant",
+                target: 'participant',
                 cause: issue,
               }),
           ),
@@ -310,10 +310,10 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           .use((client) => client.hset(key, encodedState))
           .pipe(
             Effect.retry(retryPolicy),
-            Effect.catchTag("RedisError", (e) =>
+            Effect.catchTag('RedisError', (e) =>
               Effect.fail(
                 new UploadSessionStoreUnavailable({
-                  operation: "updateParticipantSession",
+                  operation: 'updateParticipantSession',
                   cause: e,
                 }),
               ),
@@ -323,8 +323,8 @@ const makeUploadSessionRepository = Effect.gen(function* () {
       (effect, domain, ref, _state) => Effect.annotateLogs(effect, { domain, reference: ref }),
     )
 
-  const updateSubmissionSession: UploadSessionRepository["Service"]["updateSubmissionSession"] =
-    Effect.fn("UploadSessionRepository.updateSubmissionSession")(
+  const updateSubmissionSession: UploadSessionRepository['Service']['updateSubmissionSession'] =
+    Effect.fn('UploadSessionRepository.updateSubmissionSession')(
       function* (domain, ref, orderIndex, state) {
         const key = Keys.submission(domain, ref, orderIndex)
         const encodedState = yield* Schema.encodeEffect(
@@ -333,7 +333,7 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           Effect.mapError(
             (issue) =>
               new UploadSessionInvalidStatePatchError({
-                target: "submission",
+                target: 'submission',
                 cause: issue,
               }),
           ),
@@ -341,10 +341,10 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         return yield* redis
           .use((client) => client.hset(key, encodedState))
           .pipe(
-            Effect.catchTag("RedisError", (e) =>
+            Effect.catchTag('RedisError', (e) =>
               Effect.fail(
                 new UploadSessionStoreUnavailable({
-                  operation: "updateSubmissionSession",
+                  operation: 'updateSubmissionSession',
                   cause: e,
                 }),
               ),
@@ -355,8 +355,8 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         Effect.annotateLogs(effect, { domain, reference: ref, orderIndex }),
     )
 
-  const initializeState: UploadSessionRepository["Service"]["initializeState"] = Effect.fn(
-    "UploadSessionRepository.initState",
+  const initializeState: UploadSessionRepository['Service']['initializeState'] = Effect.fn(
+    'UploadSessionRepository.initState',
   )(
     function* (domain, reference, uploadSessionId, submissionKeys) {
       const map: Record<string, SubmissionState> = {}
@@ -382,8 +382,8 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         orderIndexes: submissionOrderIndexes,
         processedIndexes: Array.from({ length: submissionKeys.length }, () => 0),
         validated: false,
-        zipKey: "",
-        contactSheetKey: "",
+        zipKey: '',
+        contactSheetKey: '',
         errors: [],
         finalized: false,
         checkedAt: null,
@@ -419,9 +419,9 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         })
         .pipe(
           Effect.retry(retryPolicy),
-          Effect.catchTag("RedisError", (e) =>
+          Effect.catchTag('RedisError', (e) =>
             Effect.fail(
-              new UploadSessionStoreUnavailable({ operation: "initializeState", cause: e }),
+              new UploadSessionStoreUnavailable({ operation: 'initializeState', cause: e }),
             ),
           ),
         )
@@ -441,8 +441,8 @@ const makeUploadSessionRepository = Effect.gen(function* () {
       }),
   )
 
-  const setParticipantErrorState: UploadSessionRepository["Service"]["setParticipantErrorState"] =
-    Effect.fn("UploadSessionRepository.setErrorState")(
+  const setParticipantErrorState: UploadSessionRepository['Service']['setParticipantErrorState'] =
+    Effect.fn('UploadSessionRepository.setErrorState')(
       function* (domain, ref, code) {
         const participantState = yield* getParticipantState(domain, ref)
         if (Option.isSome(participantState)) {
@@ -454,8 +454,8 @@ const makeUploadSessionRepository = Effect.gen(function* () {
       (effect, domain, ref, code) => Effect.annotateLogs(effect, { domain, reference: ref, code }),
     )
 
-  const incrementParticipantState: UploadSessionRepository["Service"]["incrementParticipantState"] =
-    Effect.fn("UploadSessionRepository.incrementParticipantState")(
+  const incrementParticipantState: UploadSessionRepository['Service']['incrementParticipantState'] =
+    Effect.fn('UploadSessionRepository.incrementParticipantState')(
       function* (domain, ref, orderIndex) {
         const key = Keys.participant(domain, ref)
         const result = yield* redis
@@ -466,10 +466,10 @@ const makeUploadSessionRepository = Effect.gen(function* () {
             }),
           )
           .pipe(
-            Effect.catchTag("RedisError", (e) =>
+            Effect.catchTag('RedisError', (e) =>
               Effect.fail(
                 new UploadSessionStoreUnavailable({
-                  operation: "incrementParticipantState",
+                  operation: 'incrementParticipantState',
                   cause: e,
                 }),
               ),
@@ -480,14 +480,14 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           Effect.mapError(
             (issue) =>
               new UploadSessionInvariantViolated({
-                reason: "unexpected_increment_payload",
+                reason: 'unexpected_increment_payload',
                 cause: issue,
               }),
           ),
         )
 
         switch (status) {
-          case "INVALID_ORDER_INDEX": {
+          case 'INVALID_ORDER_INDEX': {
             yield* setParticipantErrorState(domain, ref, status)
             return yield* new UploadSessionSubmissionOrderInvalid({
               domain,
@@ -495,7 +495,7 @@ const makeUploadSessionRepository = Effect.gen(function* () {
               orderIndex,
             })
           }
-          case "MISSING_DATA": {
+          case 'MISSING_DATA': {
             yield* setParticipantErrorState(domain, ref, status)
             return yield* new UploadSessionSubmissionDataMissing({
               domain,
@@ -503,10 +503,10 @@ const makeUploadSessionRepository = Effect.gen(function* () {
               orderIndex,
             })
           }
-          case "DUPLICATE_ORDER_INDEX":
-            yield* Effect.logWarning("Duplicate order index provided, skipping")
+          case 'DUPLICATE_ORDER_INDEX':
+            yield* Effect.logWarning('Duplicate order index provided, skipping')
             break
-          case "ALREADY_FINALIZED":
+          case 'ALREADY_FINALIZED':
             yield* Effect.logWarning(`[${domain}|${ref}|${orderIndex}] Already finalized, skipping`)
             break
         }

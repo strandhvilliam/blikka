@@ -22,7 +22,7 @@ import {
   votingRound,
   votingRoundSubmission,
   votingRoundVote,
-} from "./schema"
+} from './schema'
 
 export type Participant = typeof participants.$inferSelect
 export type NewParticipant = typeof participants.$inferInsert

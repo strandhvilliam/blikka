@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import type { Topic } from "@blikka/db"
-import { Loader2, Zap } from "lucide-react"
+import type { Topic } from '@blikka/db'
+import { Loader2, Zap } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,9 +11,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { getByCameraSubmissionWindowState } from "@/lib/by-camera/by-camera-submission-window-state"
-import { getVotingLifecycleState } from "@/lib/voting-lifecycle"
+} from '@/components/ui/alert-dialog'
+import { getByCameraSubmissionWindowState } from '@/lib/by-camera/by-camera-submission-window-state'
+import { getVotingLifecycleState } from '@/lib/voting-lifecycle'
 
 type VotingWindow = {
   startsAt: string | null
@@ -40,21 +40,23 @@ function getActivateDialogMessage(
   if (!activeTopic) {
     return {
       title: `Activate topic "${topicName}"?`,
-      description: "This topic will become the active topic for by-camera submissions.",
+      description: 'This topic will become the active topic for by-camera submissions.',
     }
   }
 
   const submissionState = getByCameraSubmissionWindowState(activeTopic)
-  const votingState = getVotingLifecycleState(activeVotingWindow ?? { startsAt: null, endsAt: null })
+  const votingState = getVotingLifecycleState(
+    activeVotingWindow ?? { startsAt: null, endsAt: null },
+  )
 
-  const submissionsOngoing = submissionState === "open"
-  const votingActive = votingState === "active"
+  const submissionsOngoing = submissionState === 'open'
+  const votingActive = votingState === 'active'
 
   if (submissionsOngoing && votingActive) {
     return {
       title: `Switch to topic "${topicName}"?`,
       description:
-        "The current topic has submissions ongoing and voting in progress. Participants may be uploading or voting. Switching will affect them.",
+        'The current topic has submissions ongoing and voting in progress. Participants may be uploading or voting. Switching will affect them.',
     }
   }
 
@@ -62,7 +64,7 @@ function getActivateDialogMessage(
     return {
       title: `Switch to topic "${topicName}"?`,
       description:
-        "The current topic has submissions ongoing. Participants may be uploading. Switching will affect them.",
+        'The current topic has submissions ongoing. Participants may be uploading. Switching will affect them.',
     }
   }
 
@@ -70,13 +72,13 @@ function getActivateDialogMessage(
     return {
       title: `Switch to topic "${topicName}"?`,
       description:
-        "The current topic has voting in progress. Participants may be voting. Switching will affect them.",
+        'The current topic has voting in progress. Participants may be voting. Switching will affect them.',
     }
   }
 
   return {
     title: `Switch to topic "${topicName}"?`,
-    description: "The current topic will be deactivated.",
+    description: 'The current topic will be deactivated.',
   }
 }
 
@@ -103,10 +105,10 @@ export function TopicsActivateDialog({
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{message?.title ?? "Activate topic?"}</AlertDialogTitle>
+          <AlertDialogTitle>{message?.title ?? 'Activate topic?'}</AlertDialogTitle>
           <AlertDialogDescription>
             {message?.description ??
-              "This topic will become the active topic for by-camera submissions."}
+              'This topic will become the active topic for by-camera submissions.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
-import { motion } from "motion/react"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Clock, ImageIcon, PlayIcon } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { getVotingUnavailableReason } from "@/lib/voting-lifecycle"
-import { getVotingUnavailableContent } from "@/lib/vote/voting-unavailable"
+import { motion } from 'motion/react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Clock, ImageIcon, PlayIcon } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { getVotingUnavailableReason } from '@/lib/voting-lifecycle'
+import { getVotingUnavailableContent } from '@/lib/vote/voting-unavailable'
 
 export function VoteInitialClient({ domain, token }: { domain: string; token: string }) {
   const trpc = useTRPC()
@@ -51,7 +51,7 @@ export function VoteInitialClient({ domain, token }: { domain: string; token: st
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, type: "spring", stiffness: 200, damping: 24 }}
+          transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 24 }}
           className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]"
         >
           <div className="p-6">

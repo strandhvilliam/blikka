@@ -1,5 +1,5 @@
-import type { Submission } from "@blikka/db"
-import { buildS3Url } from "@/lib/utils"
+import type { Submission } from '@blikka/db'
+import { buildS3Url } from '@/lib/utils'
 
 const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
 const submissionBaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
@@ -24,6 +24,6 @@ export function getSubmissionOriginalImageUrl(submission: Submission): string | 
 }
 
 export function getSubmissionDownloadFileName(submission: Submission): string {
-  const segment = submission.key.split("/").filter(Boolean).pop()
+  const segment = submission.key.split('/').filter(Boolean).pop()
   return segment ?? `submission-${submission.id}`
 }

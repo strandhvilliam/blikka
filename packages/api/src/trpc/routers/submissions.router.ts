@@ -1,19 +1,15 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
+import { Effect, Schema } from 'effect'
 
-import {
-  createTRPCRouter,
-  domainProcedure,
-  requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'
+import { trpcEffect } from '../utils'
 import {
   BeginAdminReplaceUploadInputSchema,
   CompleteAdminReplaceUploadInputSchema,
   RegenerateSubmissionAssetsInputSchema,
-} from "../../core/submissions/contracts";
-import { SubmissionsService } from "../../core/submissions/service";
+} from '../../core/submissions/contracts'
+import { SubmissionsService } from '../../core/submissions/service'
 
 export const submissionsRouter = createTRPCRouter({
   beginAdminReplaceUpload: domainProcedure
@@ -21,14 +17,10 @@ export const submissionsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("SubmissionsRouter.beginAdminReplaceUpload")(function* ({
-          input,
-          ctx,
-        }) {
+        Effect.fn('SubmissionsRouter.beginAdminReplaceUpload')(function* ({ input, ctx }) {
           const isAdminForDomain = ctx.permissions.some(
-            (permission) =>
-              permission.domain === input.domain && permission.role === "admin",
-          );
+            (permission) => permission.domain === input.domain && permission.role === 'admin',
+          )
 
           return yield* SubmissionsService.use((service) =>
             service.beginAdminReplaceUpload({
@@ -37,7 +29,7 @@ export const submissionsRouter = createTRPCRouter({
               contentType: input.contentType,
               isAdminForDomain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -46,14 +38,10 @@ export const submissionsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("SubmissionsRouter.completeAdminReplaceUpload")(function* ({
-          input,
-          ctx,
-        }) {
+        Effect.fn('SubmissionsRouter.completeAdminReplaceUpload')(function* ({ input, ctx }) {
           const isAdminForDomain = ctx.permissions.some(
-            (permission) =>
-              permission.domain === input.domain && permission.role === "admin",
-          );
+            (permission) => permission.domain === input.domain && permission.role === 'admin',
+          )
 
           return yield* SubmissionsService.use((service) =>
             service.completeAdminReplaceUpload({
@@ -63,7 +51,7 @@ export const submissionsRouter = createTRPCRouter({
               previousKey: input.previousKey,
               isAdminForDomain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -72,14 +60,10 @@ export const submissionsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("SubmissionsRouter.regenerateSubmissionAssets")(function* ({
-          input,
-          ctx,
-        }) {
+        Effect.fn('SubmissionsRouter.regenerateSubmissionAssets')(function* ({ input, ctx }) {
           const isAdminForDomain = ctx.permissions.some(
-            (permission) =>
-              permission.domain === input.domain && permission.role === "admin",
-          );
+            (permission) => permission.domain === input.domain && permission.role === 'admin',
+          )
 
           return yield* SubmissionsService.use((service) =>
             service.regenerateSubmissionAssets({
@@ -90,8 +74,8 @@ export const submissionsRouter = createTRPCRouter({
               rerunValidations: input.rerunValidations,
               isAdminForDomain,
             }),
-          );
+          )
         }),
       ),
     ),
-});
+})

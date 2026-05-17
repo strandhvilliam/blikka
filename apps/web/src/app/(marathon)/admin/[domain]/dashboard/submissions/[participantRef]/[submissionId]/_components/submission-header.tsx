@@ -1,16 +1,16 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { ArrowLeft, FileText, UserPen, User } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { formatDomainPathname } from "@/lib/utils"
-import { useDomain } from "@/lib/domain-provider"
+import { useState } from 'react'
+import { ArrowLeft, FileText, UserPen, User } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { formatDomainPathname } from '@/lib/utils'
+import { useDomain } from '@/lib/domain-provider'
 import {
   ParticipantContactEditDialog,
   type ParticipantWithPhoneNumber,
-} from "./participant-contact-edit-dialog"
+} from './participant-contact-edit-dialog'
 
 interface SubmissionHeaderProps {
   participant: ParticipantWithPhoneNumber
@@ -22,7 +22,7 @@ export function SubmissionHeader({ participant, marathonMode }: SubmissionHeader
   const [editContactOpen, setEditContactOpen] = useState(false)
 
   const getBackLink = () => {
-    if (marathonMode === "by-camera") {
+    if (marathonMode === 'by-camera') {
       return formatDomainPathname(`/admin/dashboard/submissions`, domain)
     }
     return formatDomainPathname(`/admin/dashboard/submissions/${participant.reference}`, domain)
@@ -54,7 +54,7 @@ export function SubmissionHeader({ participant, marathonMode }: SubmissionHeader
           </div>
         </div>
       </div>
-      {marathonMode === "by-camera" ? (
+      {marathonMode === 'by-camera' ? (
         <>
           <Button
             type="button"

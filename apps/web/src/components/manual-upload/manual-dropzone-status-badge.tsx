@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { Camera, CheckCircle2, Loader2 } from "lucide-react"
+import { Camera, CheckCircle2, Loader2 } from 'lucide-react'
 
-export type ManualDropzoneVariant = "disabled" | "ready" | "complete" | "success" | "processing"
+export type ManualDropzoneVariant = 'disabled' | 'ready' | 'complete' | 'success' | 'processing'
 
 interface ManualDropzoneStatusBadgeProps {
   variant: ManualDropzoneVariant
@@ -13,25 +13,25 @@ export function ManualDropzoneStatusBadge({
   variant,
   isProcessing = false,
 }: ManualDropzoneStatusBadgeProps) {
-  if (variant === "processing") {
+  if (variant === 'processing') {
     return (
       <>
         <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin text-amber-600" />
-        <span className="text-amber-700">{isProcessing ? "Processing..." : "Working..."}</span>
+        <span className="text-amber-700">{isProcessing ? 'Processing...' : 'Working...'}</span>
       </>
     )
   }
 
-  if (variant === "complete" || variant === "success") {
+  if (variant === 'complete' || variant === 'success') {
     return (
       <>
         <CheckCircle2 className="mr-2 h-3.5 w-3.5 text-emerald-600" />
-        <span className="text-emerald-700">{variant === "complete" ? "Complete" : "Done"}</span>
+        <span className="text-emerald-700">{variant === 'complete' ? 'Complete' : 'Done'}</span>
       </>
     )
   }
 
-  if (variant === "disabled") {
+  if (variant === 'disabled') {
     return (
       <>
         <Camera className="mr-2 h-3.5 w-3.5 text-slate-400" />

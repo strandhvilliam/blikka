@@ -1,14 +1,14 @@
-import { HydrateClient } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { ParticipantContentWrapper } from "./_components/participant-content-wrapper"
-import { batchPrefetch, trpc } from "@/lib/trpc/server"
-import { ParticipantHeader } from "./_components/participant-header"
-import { ParticipantHeaderSkeleton } from "./_components/participant-header-skeleton"
-import { ParticipantContentWrapperSkeleton } from "./_components/participant-content-wrapper-skeleton"
+import { HydrateClient } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { ParticipantContentWrapper } from './_components/participant-content-wrapper'
+import { batchPrefetch, trpc } from '@/lib/trpc/server'
+import { ParticipantHeader } from './_components/participant-header'
+import { ParticipantHeaderSkeleton } from './_components/participant-header-skeleton'
+import { ParticipantContentWrapperSkeleton } from './_components/participant-content-wrapper-skeleton'
 
 export default async function ParticipantsPage({
   params,
-}: PageProps<"/admin/[domain]/dashboard/submissions/[participantRef]">) {
+}: PageProps<'/admin/[domain]/dashboard/submissions/[participantRef]'>) {
   const { domain, participantRef } = await params
 
   batchPrefetch([

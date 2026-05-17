@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { Smartphone } from "lucide-react"
-import { RuleCard, type RuleValue } from "./rule-card"
+import { Smartphone } from 'lucide-react'
+import { RuleCard, type RuleValue } from './rule-card'
 
 type SameDeviceValue = RuleValue<null>
 

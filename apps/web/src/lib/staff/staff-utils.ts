@@ -1,8 +1,8 @@
-import { buildS3Url } from "@/lib/utils"
-import type { StaffSubmission } from "./staff-types"
+import { buildS3Url } from '@/lib/utils'
+import type { StaffSubmission } from './staff-types'
 
 export function normalizeParticipantReference(reference: string) {
-  return reference.trim().padStart(4, "0")
+  return reference.trim().padStart(4, '0')
 }
 
 export function getSubmissionThumbnailUrl(submission?: StaffSubmission | null) {
@@ -31,17 +31,17 @@ export function getCaptureDateLabel(submission?: StaffSubmission | null) {
 
   const exif = (submission.exif as Record<string, unknown> | null) ?? {}
   const value = exif.DateTimeOriginal ?? exif.CreateDate ?? exif.DateTime
-  const date = typeof value === "string" ? new Date(value) : new Date(submission.createdAt)
+  const date = typeof value === 'string' ? new Date(value) : new Date(submission.createdAt)
 
   if (Number.isNaN(date.getTime())) {
     return null
   }
 
-  return date.toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }

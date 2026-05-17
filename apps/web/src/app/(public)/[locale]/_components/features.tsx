@@ -1,26 +1,26 @@
-"use client"
+'use client'
 
-import Image from "next/image"
-import { FadeIn } from "./fade-in"
+import Image from 'next/image'
+import { FadeIn } from './fade-in'
 
 const features = [
   {
-    image: "/feature-phone.png",
-    label: "Uploading",
+    image: '/feature-phone.png',
+    label: 'Uploading',
     description:
-      "No more cluttered Google Drive folders, messy email submissions, lost USB sticks, or long queues. Participants simply scan a QR code and upload their photos in seconds.",
+      'No more cluttered Google Drive folders, messy email submissions, lost USB sticks, or long queues. Participants simply scan a QR code and upload their photos in seconds.',
   },
   {
-    image: "/feature-dashboard.png",
-    label: "Administrating",
+    image: '/feature-dashboard.png',
+    label: 'Administrating',
     description:
       "Follow your photo event in real-time. See photos as they're uploaded, get notifications for invalid submissions, and generate contact sheets.",
   },
   {
-    image: "/feature-judging.png",
-    label: "Judging",
+    image: '/feature-judging.png',
+    label: 'Judging',
     description:
-      "Invite judges with a link. They can score entries while everything stays organized, and you can view the results in the dashboard.",
+      'Invite judges with a link. They can score entries while everything stays organized, and you can view the results in the dashboard.',
   },
 ]
 
@@ -35,13 +35,15 @@ export function Features() {
                 Features
               </p>
               <h2 className="font-gothic max-w-xl text-balance text-3xl leading-snug font-normal tracking-tight text-foreground lg:text-[2.75rem] lg:leading-[1.2]">
-                Simple, streamlined, and <span className="bg-brand-primary/20 px-1 text-foreground">stress-free</span>
+                Simple, streamlined, and{' '}
+                <span className="bg-brand-primary/20 px-1 text-foreground">stress-free</span>
               </h2>
             </div>
           </FadeIn>
           <FadeIn delay={150}>
             <p className="max-w-md text-sm leading-relaxed text-muted-foreground md:text-right">
-              Everything your photo event needs. Collecting entries, managing submissions, and scoring winners, in a single platform.
+              Everything your photo event needs. Collecting entries, managing submissions, and
+              scoring winners, in a single platform.
             </p>
           </FadeIn>
         </div>

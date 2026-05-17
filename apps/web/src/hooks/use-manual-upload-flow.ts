@@ -1,19 +1,19 @@
-"use client"
+'use client'
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import type { QueryClient } from "@tanstack/react-query"
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import type { QueryClient } from '@tanstack/react-query'
 import {
   PARTICIPANT_UPLOAD_PHASE,
   type ParticipantPreparedUpload,
   type ParticipantSelectedPhoto,
   type ParticipantUploadFileState,
-} from "@/lib/participant-upload-types"
-import { uploadManualFiles } from "@/lib/manual-upload"
-import { pluralizePhotos, type FormState } from "@/hooks/use-manual-upload-form"
-import { useTRPC } from "@/lib/trpc/client"
-import { buildUploadExifPayload } from "@/lib/upload-exif"
+} from '@/lib/participant-upload-types'
+import { uploadManualFiles } from '@/lib/manual-upload'
+import { pluralizePhotos, type FormState } from '@/hooks/use-manual-upload-form'
+import { useTRPC } from '@/lib/trpc/client'
+import { buildUploadExifPayload } from '@/lib/upload-exif'
 
 const POLLING_INTERVAL_MS = 3000
 
@@ -36,7 +36,7 @@ export function useManualUploadFlow({
   const completionHandledRef = useRef(false)
 
   const [uploadFiles, setUploadFiles] = useState<ParticipantUploadFileState[]>([])
-  const [submittedReference, setSubmittedReference] = useState("")
+  const [submittedReference, setSubmittedReference] = useState('')
   const [isUploadingFiles, setIsUploadingFiles] = useState(false)
   const [isPollingStatus, setIsPollingStatus] = useState(false)
   const [uploadErrorMessage, setUploadErrorMessage] = useState<string | null>(null)
@@ -49,7 +49,7 @@ export function useManualUploadFlow({
     trpc.uploadFlow.initializeByCameraUpload.mutationOptions(),
   )
 
-  const uploadFileKeys = uploadFiles.map((file) => file.key).join(",")
+  const uploadFileKeys = uploadFiles.map((file) => file.key).join(',')
 
   const uploadStatusQuery = useQuery(
     trpc.uploadFlow.getUploadStatus.queryOptions(
@@ -68,7 +68,7 @@ export function useManualUploadFlow({
 
   function updateUploadFileState(
     key: string,
-    patch: Partial<Pick<ParticipantUploadFileState, "phase" | "progress" | "error">>,
+    patch: Partial<Pick<ParticipantUploadFileState, 'phase' | 'progress' | 'error'>>,
   ) {
     setUploadFiles((current) =>
       current.map((file) =>
@@ -106,7 +106,7 @@ export function useManualUploadFlow({
     )
 
     if (uploadStatus.participant?.errors.length) {
-      setUploadErrorMessage(uploadStatus.participant.errors.join(", "))
+      setUploadErrorMessage(uploadStatus.participant.errors.join(', '))
     }
 
     if (uploadStatus.participant?.finalized) {
@@ -117,7 +117,7 @@ export function useManualUploadFlow({
 
       if (!completionHandledRef.current) {
         completionHandledRef.current = true
-        toast.success("Participant created and upload completed")
+        toast.success('Participant created and upload completed')
         queryClient.invalidateQueries({
           queryKey: trpc.participants.getByDomainInfinite.pathKey(),
         })
@@ -159,13 +159,13 @@ export function useManualUploadFlow({
       const orderedPhotos = [...selectedPhotos].sort((a, b) => a.orderIndex - b.orderIndex)
 
       const initialization =
-        marathonMode === "marathon"
+        marathonMode === 'marathon'
           ? await initializeUploadFlowMutation.mutateAsync({
               ...commonPayload,
               reference,
               phoneNumber: resolvedFormValues.phone.trim() ? resolvedFormValues.phone.trim() : null,
               competitionClassId: Number(resolvedFormValues.competitionClassId),
-              uploadContentTypes: orderedPhotos.map((photo) => photo.file.type || "image/jpeg"),
+              uploadContentTypes: orderedPhotos.map((photo) => photo.file.type || 'image/jpeg'),
               uploadExif: buildUploadExifPayload(orderedPhotos),
             })
           : await initializeByCameraUploadMutation.mutateAsync({
@@ -173,14 +173,11 @@ export function useManualUploadFlow({
               uploadExif: buildUploadExifPayload(orderedPhotos),
             })
 
-      const resolvedReference =
-        marathonMode === "marathon"
-          ? reference
-          : initialization.reference
+      const resolvedReference = marathonMode === 'marathon' ? reference : initialization.reference
       const presignedUrls = initialization.uploads
 
       if (!presignedUrls.length) {
-        throw new Error("Failed to initialize upload URLs")
+        throw new Error('Failed to initialize upload URLs')
       }
 
       const preparedUploads: ParticipantPreparedUpload[] = orderedPhotos.map((photo, index) => {
@@ -190,7 +187,7 @@ export function useManualUploadFlow({
         }
 
         const contentTypeFromApi =
-          "contentType" in urlData && typeof urlData.contentType === "string"
+          'contentType' in urlData && typeof urlData.contentType === 'string'
             ? urlData.contentType
             : undefined
 
@@ -227,7 +224,7 @@ export function useManualUploadFlow({
         toast.error(message)
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to initialize upload"
+      const message = error instanceof Error ? error.message : 'Failed to initialize upload'
       setUploadErrorMessage(message)
       toast.error(message)
     } finally {
@@ -284,7 +281,7 @@ export function useManualUploadFlow({
 
   function resetUploadFlow() {
     setUploadFiles([])
-    setSubmittedReference("")
+    setSubmittedReference('')
     setIsUploadingFiles(false)
     setIsPollingStatus(false)
     setUploadErrorMessage(null)

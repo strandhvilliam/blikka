@@ -1,9 +1,9 @@
-import { EventBridgeClient } from "@aws-sdk/client-eventbridge"
-import { Console, Effect, Schema, Context, Layer } from "effect"
-import { AwsSdkConfig, AwsSdkConfigLayer, awsSdkClientConstructorOptions } from "../aws-sdk-config"
+import { EventBridgeClient } from '@aws-sdk/client-eventbridge'
+import { Console, Effect, Schema, Context, Layer } from 'effect'
+import { AwsSdkConfig, AwsSdkConfigLayer, awsSdkClientConstructorOptions } from '../aws-sdk-config'
 
 export class EventBridgeEffectError extends Schema.TaggedErrorClass<EventBridgeEffectError>()(
-  "EventBridgeEffectError",
+  'EventBridgeEffectError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -20,7 +20,7 @@ export class EventBridgeEffectClient extends Context.Service<
       fn: (client: EventBridgeClient) => T,
     ) => Effect.Effect<Awaited<T>, EventBridgeEffectError, never>
   }
->()("@blikka/aws/eventbridge-effect-client") {}
+>()('@blikka/aws/eventbridge-effect-client') {}
 
 const makeEventBridgeEffectClient = Effect.gen(function* () {
   const aws = yield* AwsSdkConfig
@@ -29,7 +29,7 @@ const makeEventBridgeEffectClient = Effect.gen(function* () {
     Effect.sync(() => new EventBridgeClient(awsSdkClientConstructorOptions(aws))),
     (client) =>
       Effect.sync(() => {
-        Console.log("Shutting down EventBridge client")
+        Console.log('Shutting down EventBridge client')
         client.destroy()
       }),
   )
@@ -43,7 +43,7 @@ const makeEventBridgeEffectClient = Effect.gen(function* () {
         catch: (error) =>
           new EventBridgeEffectError({
             cause: error,
-            message: "EventBridge.use error (Sync)",
+            message: 'EventBridge.use error (Sync)',
           }),
       })
       if (result instanceof Promise) {
@@ -52,14 +52,14 @@ const makeEventBridgeEffectClient = Effect.gen(function* () {
           catch: (e) =>
             new EventBridgeEffectError({
               cause: e,
-              message: "EventBridge.use error (Async)",
+              message: 'EventBridge.use error (Async)',
             }),
         })
       }
       return result
     })
 
-  yield* Effect.addFinalizer(() => Console.log("Shutting down EventBridge client"))
+  yield* Effect.addFinalizer(() => Console.log('Shutting down EventBridge client'))
 
   return EventBridgeEffectClient.of({
     use,

@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { DeviceGroup } from "@blikka/db"
-import { cn } from "@/lib/utils"
-import { CheckCircle2 } from "lucide-react"
-import { motion } from "motion/react"
-import { Icon } from "@iconify/react"
+import { DeviceGroup } from '@blikka/db'
+import { cn } from '@/lib/utils'
+import { CheckCircle2 } from 'lucide-react'
+import { motion } from 'motion/react'
+import { Icon } from '@iconify/react'
 
 export function DeviceSelectionItem({
   deviceGroup,
@@ -17,11 +17,11 @@ export function DeviceSelectionItem({
 }) {
   const getDeviceIcon = (icon: string) => {
     switch (icon) {
-      case "smartphone":
-        return "solar:smartphone-broken"
-      case "camera":
+      case 'smartphone':
+        return 'solar:smartphone-broken'
+      case 'camera':
       default:
-        return "solar:camera-minimalistic-broken"
+        return 'solar:camera-minimalistic-broken'
     }
   }
 
@@ -35,26 +35,26 @@ export function DeviceSelectionItem({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        "flex w-full items-center gap-4 rounded-2xl border-2 bg-white px-4 py-3.5 text-left transition-all",
+        'flex w-full items-center gap-4 rounded-2xl border-2 bg-white px-4 py-3.5 text-left transition-all',
         isSelected
-          ? "border-foreground shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]"
-          : "border-border",
+          ? 'border-foreground shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]'
+          : 'border-border',
       )}
     >
       {/* Icon badge */}
       <motion.div
         className={cn(
-          "flex h-16 w-16 shrink-0 items-center justify-center rounded-xl transition-colors",
-          isSelected ? "bg-foreground/5" : "bg-muted/50",
+          'flex h-16 w-16 shrink-0 items-center justify-center rounded-xl transition-colors',
+          isSelected ? 'bg-foreground/5' : 'bg-muted/50',
         )}
         layout
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         <Icon
           icon={getDeviceIcon(deviceGroup.icon)}
           className={cn(
-            "h-10 w-10 -rotate-[5deg] transition-colors",
-            isSelected ? "text-foreground" : "text-foreground/70",
+            'h-10 w-10 -rotate-[5deg] transition-colors',
+            isSelected ? 'text-foreground' : 'text-foreground/70',
           )}
         />
       </motion.div>
@@ -73,7 +73,7 @@ export function DeviceSelectionItem({
       <motion.div
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: isSelected ? 1 : 0, opacity: isSelected ? 1 : 0 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       >
         <CheckCircle2 className="h-5 w-5 text-foreground" />
       </motion.div>

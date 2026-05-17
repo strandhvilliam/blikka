@@ -1,19 +1,19 @@
-"use client"
+'use client'
 
-import Link from "next/link"
-import { useState } from "react"
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty"
-import { Trophy, ArrowRight, MapPin } from "lucide-react"
-import { useTranslations } from "next-intl"
-import { useTRPC } from "@/lib/trpc/client"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { getMarathonDestination } from "@/lib/auth/redirect"
-import { motion } from "motion/react"
+import Link from 'next/link'
+import { useState } from 'react'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
+import { Trophy, ArrowRight, MapPin } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { useTRPC } from '@/lib/trpc/client'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { getMarathonDestination } from '@/lib/auth/redirect'
+import { motion } from 'motion/react'
 
 export function SelectDomainList() {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set())
   const trpc = useTRPC()
-  const t = useTranslations("MarathonPage")
+  const t = useTranslations('MarathonPage')
 
   const { data: marathons } = useSuspenseQuery(trpc.marathons.getUserMarathons.queryOptions())
 
@@ -29,8 +29,8 @@ export function SelectDomainList() {
             <EmptyMedia variant="icon">
               <Trophy className="size-6" />
             </EmptyMedia>
-            <EmptyTitle>{t("noMarathonsTitle")}</EmptyTitle>
-            <EmptyDescription>{t("noMarathonsDescription")}</EmptyDescription>
+            <EmptyTitle>{t('noMarathonsTitle')}</EmptyTitle>
+            <EmptyDescription>{t('noMarathonsDescription')}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       </motion.div>
@@ -50,11 +50,7 @@ export function SelectDomainList() {
             ease: [0.22, 1, 0.36, 1],
           }}
         >
-          <Link
-            prefetch={true}
-            href={getMarathonDestination(marathon)}
-            className="group block"
-          >
+          <Link prefetch={true} href={getMarathonDestination(marathon)} className="group block">
             <div className="relative rounded-2xl border border-brand-black/8 bg-white p-4 transition-all duration-200 hover:border-brand-black/14 hover:shadow-[0_6px_24px_rgba(0,0,0,0.06)] hover:-translate-y-px">
               <div className="flex items-center gap-4">
                 <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-brand-black/8 bg-neutral-50 transition-colors group-hover:border-brand-primary/20 group-hover:bg-brand-primary/5">
@@ -64,9 +60,7 @@ export function SelectDomainList() {
                       src={marathon.logoUrl}
                       alt=""
                       className="size-full object-cover"
-                      onError={() =>
-                        setImageErrors((prev) => new Set(prev).add(marathon.id))
-                      }
+                      onError={() => setImageErrors((prev) => new Set(prev).add(marathon.id))}
                     />
                   ) : (
                     <Trophy className="size-5 text-brand-black/30" />

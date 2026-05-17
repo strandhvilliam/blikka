@@ -1,32 +1,30 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { cn } from "@/lib/utils";
-import { AlertTriangle } from "lucide-react";
-import { useTranslations } from "next-intl";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { cn } from '@/lib/utils'
+import { AlertTriangle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface ParticipantConfirmationDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  expectedParticipantRef: string;
+  open: boolean
+  onClose: () => void
+  onConfirm: () => void
+  expectedParticipantRef: string
 }
 
-export function formatParticipantRefForDisplay(
-  ref: string | undefined | null,
-): string {
-  if (!ref) return "";
-  return ref.replace(/^0+/, "") || "0";
+export function formatParticipantRefForDisplay(ref: string | undefined | null): string {
+  if (!ref) return ''
+  return ref.replace(/^0+/, '') || '0'
 }
 
 export function ParticipantConfirmationDialog({
@@ -35,41 +33,38 @@ export function ParticipantConfirmationDialog({
   onConfirm,
   expectedParticipantRef,
 }: ParticipantConfirmationDialogProps) {
-  const [enteredRef, setEnteredRef] = useState("");
-  const [showError, setShowError] = useState(false);
-  const t = useTranslations("FlowPage.participantConfirmation");
+  const [enteredRef, setEnteredRef] = useState('')
+  const [showError, setShowError] = useState(false)
+  const t = useTranslations('FlowPage.participantConfirmation')
 
   useEffect(() => {
     if (open) {
-      setEnteredRef("");
-      setShowError(false);
+      setEnteredRef('')
+      setShowError(false)
     }
-  }, [open]);
+  }, [open])
 
   const handleSubmit = () => {
-    if (
-      enteredRef.trim().padStart(4, "0") ===
-      expectedParticipantRef.padStart(4, "0")
-    ) {
-      setShowError(false);
-      onConfirm();
+    if (enteredRef.trim().padStart(4, '0') === expectedParticipantRef.padStart(4, '0')) {
+      setShowError(false)
+      onConfirm()
     } else {
-      setShowError(true);
+      setShowError(true)
     }
-  };
+  }
 
   const handleCancel = () => {
-    setEnteredRef("");
-    setShowError(false);
-    onClose();
-  };
+    setEnteredRef('')
+    setShowError(false)
+    onClose()
+  }
 
   const handleInputChange = (value: string) => {
-    setEnteredRef(value);
+    setEnteredRef(value)
     if (showError) {
-      setShowError(false);
+      setShowError(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -79,10 +74,10 @@ export function ParticipantConfirmationDialog({
       >
         <DialogHeader className="text-center flex flex-col items-center">
           <DialogTitle className="text-lg font-bold mb-2 text-foreground drop-shadow-sm">
-            {t("title")}
+            {t('title')}
           </DialogTitle>
           <DialogDescription className="text-sm text-foreground/90 text-center font-medium drop-shadow-sm">
-            {t("description")}
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -94,8 +89,8 @@ export function ParticipantConfirmationDialog({
             value={enteredRef}
             onChange={(e) => handleInputChange(e.target.value)}
             className={cn(
-              "text-center !text-4xl h-16 font-bold font-mono tracking-widest bg-background",
-              showError && "border-red-500 focus-visible:ring-red-500",
+              'text-center !text-4xl h-16 font-bold font-mono tracking-widest bg-background',
+              showError && 'border-red-500 focus-visible:ring-red-500',
             )}
             placeholder={formatParticipantRefForDisplay(expectedParticipantRef)}
             maxLength={4}
@@ -105,7 +100,7 @@ export function ParticipantConfirmationDialog({
           {showError && (
             <div className="flex items-center justify-center gap-2 text-red-600 text-sm">
               <AlertTriangle className="h-4 w-4" />
-              <span>{t("mismatch")}</span>
+              <span>{t('mismatch')}</span>
             </div>
           )}
 
@@ -116,7 +111,7 @@ export function ParticipantConfirmationDialog({
               variant="outline"
               className="flex-1 h-12 rounded-full"
             >
-              {t("cancel")}
+              {t('cancel')}
             </Button>
             <PrimaryButton
               type="button"
@@ -124,11 +119,11 @@ export function ParticipantConfirmationDialog({
               onClick={handleSubmit}
               className="flex-1 h-12 text-base font-medium rounded-full"
             >
-              {t("confirmUpload")}
+              {t('confirmUpload')}
             </PrimaryButton>
           </div>
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

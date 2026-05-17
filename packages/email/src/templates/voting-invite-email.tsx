@@ -1,4 +1,4 @@
-import React from "react"
+import React from 'react'
 import {
   Body,
   Button,
@@ -10,8 +10,8 @@ import {
   Preview,
   Section,
   Text,
-} from "@react-email/components"
-import { Tailwind } from "@react-email/tailwind"
+} from '@react-email/components'
+import { Tailwind } from '@react-email/tailwind'
 
 export interface VotingInviteEmailProps {
   participantName: string

@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
 import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import Image from "next/image"
+} from '@/components/ui/sidebar'
+import Image from 'next/image'
 
 export function DashboardSidebarHeader() {
   return (

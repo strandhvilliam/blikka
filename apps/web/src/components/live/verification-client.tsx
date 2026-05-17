@@ -1,26 +1,26 @@
-"use client"
+'use client'
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import { motion } from "motion/react"
-import { useTranslations } from "next-intl"
-import { useQuery } from "@tanstack/react-query"
-import { RefreshCcw } from "lucide-react"
-import { notFound, useRouter } from "next/navigation"
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion } from 'motion/react'
+import { useTranslations } from 'next-intl'
+import { useQuery } from '@tanstack/react-query'
+import { RefreshCcw } from 'lucide-react'
+import { notFound, useRouter } from 'next/navigation'
 import {
   getParticipantRealtimeChannel,
   getRealtimeChannelEnvironmentFromNodeEnv,
   getRealtimeResultEventName,
-} from "@blikka/realtime/contract"
-import { z } from "zod"
+} from '@blikka/realtime/contract'
+import { z } from 'zod'
 
-import { formatDomainPathname } from "@/lib/utils"
-import { useDomain } from "@/lib/domain-provider"
-import { useRealtime } from "@/lib/realtime-client"
-import { useTRPC } from "@/lib/trpc/client"
-import { flowStateClientParamSerializer } from "@/lib/flow-state-params-client"
-import { QrCodeGenerator } from "@/components/qr-code-generator"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
+import { formatDomainPathname } from '@/lib/utils'
+import { useDomain } from '@/lib/domain-provider'
+import { useRealtime } from '@/lib/realtime-client'
+import { useTRPC } from '@/lib/trpc/client'
+import { flowStateClientParamSerializer } from '@/lib/flow-state-params-client'
+import { QrCodeGenerator } from '@/components/qr-code-generator'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
 
 interface VerificationClientProps {
   participantRef: string
@@ -29,19 +29,19 @@ interface VerificationClientProps {
 
 const realtimeVerificationPayloadSchema = z
   .object({
-    outcome: z.enum(["success", "error"]).optional(),
+    outcome: z.enum(['success', 'error']).optional(),
     reference: z.string().nullish(),
   })
   .loose()
 
 const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(
-  typeof process !== "undefined" ? process.env.NODE_ENV : undefined,
+  typeof process !== 'undefined' ? process.env.NODE_ENV : undefined,
 )
-const PARTICIPANT_VERIFIED_EVENT = getRealtimeResultEventName("participant-verified")
+const PARTICIPANT_VERIFIED_EVENT = getRealtimeResultEventName('participant-verified')
 const VERIFICATION_POLL_INTERVAL_MS = 60_000
 
 function parseRealtimeVerificationPayload(rawData: unknown) {
-  if (typeof rawData === "string") {
+  if (typeof rawData === 'string') {
     try {
       return realtimeVerificationPayloadSchema.safeParse(JSON.parse(rawData))
     } catch {
@@ -56,7 +56,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
   const router = useRouter()
   const domain = useDomain()
   const trpc = useTRPC()
-  const t = useTranslations("VerificationPage")
+  const t = useTranslations('VerificationPage')
   const { uploadFlowState } = useUploadFlowState()
   const [refreshTimeout, setRefreshTimeout] = useState(0)
   const confirmationHref = useMemo(() => {
@@ -94,7 +94,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
   )
 
   useEffect(() => {
-    if (participant?.status === "verified") {
+    if (participant?.status === 'verified') {
       router.replace(confirmationHref)
     }
 
@@ -109,7 +109,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
       try {
         const parsed = parseRealtimeVerificationPayload(rawData)
 
-        if (!parsed.success || parsed.data.outcome === "error") {
+        if (!parsed.success || parsed.data.outcome === 'error') {
           return
         }
 
@@ -135,7 +135,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
     setRefreshTimeout(5)
   }
 
-  const qrCodeValue = `${domain}-${participantId ?? ""}-${participantRef}`
+  const qrCodeValue = `${domain}-${participantId ?? ''}-${participantRef}`
 
   return (
     <div className="flex min-h-dvh flex-col items-center px-6 py-10">
@@ -151,7 +151,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
         </span>
         <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">
-          {t("waitingForVerification")}
+          {t('waitingForVerification')}
         </span>
       </motion.div>
 
@@ -163,10 +163,10 @@ export function VerificationClient({ participantRef, participantId }: Verificati
         className="mb-10 text-center"
       >
         <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground md:text-4xl">
-          {t("almostThere")}
+          {t('almostThere')}
         </h1>
         <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-          {t("showQrCode")}
+          {t('showQrCode')}
         </p>
       </motion.div>
 
@@ -174,7 +174,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.25, duration: 0.5, type: "spring", stiffness: 200, damping: 24 }}
+        transition={{ delay: 0.25, duration: 0.5, type: 'spring', stiffness: 200, damping: 24 }}
         className="w-full max-w-[320px]"
       >
         <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
@@ -193,7 +193,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
           {/* Participant info */}
           <div className="flex flex-col items-center px-8 pt-6 pb-8">
             <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              {t("participant")}
+              {t('participant')}
             </span>
             <span className="mt-2 font-mono text-4xl font-bold tracking-widest text-foreground">
               {participantRef}
@@ -215,7 +215,7 @@ export function VerificationClient({ participantRef, participantId }: Verificati
           disabled={refreshTimeout > 0}
         >
           <RefreshCcw className="h-4 w-4" />
-          {refreshTimeout > 0 ? t("refreshAvailable", { seconds: refreshTimeout }) : t("refresh")}
+          {refreshTimeout > 0 ? t('refreshAvailable', { seconds: refreshTimeout }) : t('refresh')}
         </PrimaryButton>
       </motion.div>
     </div>

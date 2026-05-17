@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { CheckCircle2, RotateCcw } from "lucide-react"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import type { UploadMarathonMode } from "@/lib/types"
-import { StaffParticipantCard } from "@/components/staff/staff-participant-card"
-import { useStaffUploadParticipantSummary } from "@/hooks/staff/use-staff-upload-participant-summary"
-import { useStaffUploadStep } from "@/hooks/staff/use-staff-upload-step"
-import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { CheckCircle2, RotateCcw } from 'lucide-react'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
+import type { UploadMarathonMode } from '@/lib/types'
+import { StaffParticipantCard } from '@/components/staff/staff-participant-card'
+import { useStaffUploadParticipantSummary } from '@/hooks/staff/use-staff-upload-participant-summary'
+import { useStaffUploadStep } from '@/hooks/staff/use-staff-upload-step'
+import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
 
 export function UploadCompletePanel() {
   const domain = useDomain()
@@ -45,7 +45,7 @@ export function UploadCompletePanel() {
           className="mt-8 rounded-full bg-emerald-700 px-8 py-4 text-base hover:bg-emerald-800"
           onClick={() => {
             resetAllState()
-            void setStep(marathonMode === "by-camera" ? "phone" : "reference")
+            void setStep(marathonMode === 'by-camera' ? 'phone' : 'reference')
           }}
         >
           <RotateCcw className="mr-2 h-4 w-4" />

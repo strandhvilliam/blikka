@@ -1,15 +1,15 @@
-import { Database } from "@blikka/db"
+import { Database } from '@blikka/db'
 import {
   ExifKVRepository,
   ExifKVRepositoryLayer,
   isCurrentUploadSession,
   UploadSessionRepository,
   UploadSessionRepositoryLayer,
-} from "@blikka/kv-store"
-import { Effect, Layer, Option, Schema, Context } from "effect"
+} from '@blikka/kv-store'
+import { Effect, Layer, Option, Schema, Context } from 'effect'
 
 export class FailedToFinalizeParticipantError extends Schema.TaggedErrorClass<FailedToFinalizeParticipantError>()(
-  "FailedToFinalizeParticipantError",
+  'FailedToFinalizeParticipantError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -17,14 +17,14 @@ export class FailedToFinalizeParticipantError extends Schema.TaggedErrorClass<Fa
 ) {}
 
 export class UploadFinalizerService extends Context.Service<UploadFinalizerService>()(
-  "@blikka/tasks/upload-finalizer/upload-finalizer-service",
+  '@blikka/tasks/upload-finalizer/upload-finalizer-service',
   {
     make: Effect.gen(function* () {
       const db = yield* Database
       const uploadKv = yield* UploadSessionRepository
       const exifKv = yield* ExifKVRepository
 
-      const finalizeParticipant = Effect.fn("UploadFinalizerService.finalizeParticipant")(
+      const finalizeParticipant = Effect.fn('UploadFinalizerService.finalizeParticipant')(
         function* (domain: string, reference: string, uploadSessionId: string) {
           return yield* Effect.gen(function* () {
             const participantState = yield* uploadKv.getParticipantState(domain, reference)
@@ -35,13 +35,13 @@ export class UploadFinalizerService extends Context.Service<UploadFinalizerServi
 
             if (Option.isNone(participant)) {
               return yield* new FailedToFinalizeParticipantError({
-                message: "Participant in db not found",
+                message: 'Participant in db not found',
               })
             }
 
             if (Option.isNone(participantState)) {
               return yield* new FailedToFinalizeParticipantError({
-                message: "Participant state not found",
+                message: 'Participant state not found',
               })
             }
 
@@ -55,7 +55,7 @@ export class UploadFinalizerService extends Context.Service<UploadFinalizerServi
             // participant/submission row.
             if (!participantState.value.finalized) {
               yield* Effect.logWarning(
-                "Participant kv state is not finalized; dropping stale finalize message",
+                'Participant kv state is not finalized; dropping stale finalize message',
               )
               return
             }
@@ -65,7 +65,7 @@ export class UploadFinalizerService extends Context.Service<UploadFinalizerServi
               participantState: participantState.value,
             })
             if (!sessionGuard.matched) {
-              yield* Effect.logWarning("Dropping finalized event for non-current upload session", {
+              yield* Effect.logWarning('Dropping finalized event for non-current upload session', {
                 reason: sessionGuard.reason,
                 uploadSessionId,
               })
@@ -77,10 +77,10 @@ export class UploadFinalizerService extends Context.Service<UploadFinalizerServi
             // status="completed") must NOT short-circuit a subsequent topic's
             // finalization. Only skip for non-by-camera participants.
             if (
-              participant.value.status === "completed" &&
-              participant.value.participantMode !== "by-camera"
+              participant.value.status === 'completed' &&
+              participant.value.participantMode !== 'by-camera'
             ) {
-              yield* Effect.logWarning("Participant already completed, skipping")
+              yield* Effect.logWarning('Participant already completed, skipping')
               return
             }
 
@@ -96,7 +96,7 @@ export class UploadFinalizerService extends Context.Service<UploadFinalizerServi
 
             if (submissionStates.length === 0) {
               return yield* new FailedToFinalizeParticipantError({
-                message: "Submission states not found",
+                message: 'Submission states not found',
               })
             }
 
@@ -110,7 +110,7 @@ export class UploadFinalizerService extends Context.Service<UploadFinalizerServi
 
             if (missingExifOrderIndexes.length > 0) {
               yield* Effect.logWarning(
-                "Missing EXIF state during upload finalization; continuing without EXIF",
+                'Missing EXIF state during upload finalization; continuing without EXIF',
                 {
                   missingExifOrderIndexes,
                 },
@@ -123,7 +123,7 @@ export class UploadFinalizerService extends Context.Service<UploadFinalizerServi
               return {
                 orderIndex: state.orderIndex,
                 data: {
-                  status: "uploaded" as const,
+                  status: 'uploaded' as const,
                   thumbnailKey: state.thumbnailKey,
                   exif,
                   uploaded: state.uploaded,
@@ -142,7 +142,7 @@ export class UploadFinalizerService extends Context.Service<UploadFinalizerServi
                   reference,
                   domain,
                   data: {
-                    status: "completed",
+                    status: 'completed',
                   },
                 }),
               ],

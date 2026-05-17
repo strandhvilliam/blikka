@@ -1,8 +1,8 @@
-"use server"
+'use server'
 
-import { Locale } from "next-intl"
-import { cookies } from "next/headers"
-import { LOCALE_COOKIE_NAME } from "@/config"
+import { Locale } from 'next-intl'
+import { cookies } from 'next/headers'
+import { LOCALE_COOKIE_NAME } from '@/config'
 
 export async function changeLocaleAction(locale: Locale) {
   try {

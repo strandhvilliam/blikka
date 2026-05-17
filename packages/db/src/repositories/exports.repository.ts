@@ -1,9 +1,9 @@
-import { Effect, Layer, Context } from "effect"
+import { Effect, Layer, Context } from 'effect'
 
-import { and, eq } from "drizzle-orm"
+import { and, eq } from 'drizzle-orm'
 
-import { DrizzleClient } from "../drizzle-client"
-import { DbError } from "../utils"
+import { DrizzleClient } from '../drizzle-client'
+import { DbError } from '../utils'
 
 interface ParticipantExportRow {
   reference: string
@@ -17,7 +17,7 @@ interface ParticipantExportRow {
   uploadCount: number
 }
 
-interface CameraParticipantExportRow extends Omit<ParticipantExportRow, "uploadCount"> {
+interface CameraParticipantExportRow extends Omit<ParticipantExportRow, 'uploadCount'> {
   phoneEncrypted: string | null
   topicsParticipatedCount: number
   latestTopicName: string
@@ -69,51 +69,51 @@ interface TopicSubmissionFileExportRow {
 export class ExportsRepository extends Context.Service<
   ExportsRepository,
   {
-  /** Participants for a marathon export by domain. */
-  readonly getParticipantsForExport: (params: {
-    domain: string
-  }) => Effect.Effect<ParticipantExportRow[], DbError>
-  /** Participants for a topic export by domain and topic id. */
-  readonly getParticipantsForExportByTopic: (params: {
-    domain: string
-    topicId: number
-  }) => Effect.Effect<ParticipantExportRow[], DbError>
-  /** Participants with by-camera submissions across all topics. */
-  readonly getParticipantsForExportByCameraAllTopics: (params: {
-    domain: string
-  }) => Effect.Effect<CameraParticipantExportRow[], DbError>
-  /** Submissions for a marathon export by domain. */
-  readonly getSubmissionsForExport: (params: {
-    domain: string
-  }) => Effect.Effect<SubmissionExportRow[], DbError>
-  /** Submissions for a topic export by domain and topic id. */
-  readonly getSubmissionsForExportByTopic: (params: {
-    domain: string
-    topicId: number
-  }) => Effect.Effect<SubmissionExportRow[], DbError>
-  /** Validation result rows for a marathon export by domain. */
-  readonly getValidationResultsForExport: (params: {
-    domain: string
-    onlyFailed?: boolean
-  }) => Effect.Effect<ValidationResultExportRow[], DbError>
-  /** Validation result rows for a topic export by domain and topic id. */
-  readonly getValidationResultsForExportByTopic: (params: {
-    domain: string
-    topicId: number
-    onlyFailed?: boolean
-  }) => Effect.Effect<ValidationResultExportRow[], DbError>
-  /** Submission files for a topic archive export. */
-  readonly getSubmissionFilesForTopicExport: (params: {
-    domain: string
-    topicId: number
-  }) => Effect.Effect<TopicSubmissionFileExportRow[], DbError>
-}
->()("@blikka/db/exports-repository") {}
+    /** Participants for a marathon export by domain. */
+    readonly getParticipantsForExport: (params: {
+      domain: string
+    }) => Effect.Effect<ParticipantExportRow[], DbError>
+    /** Participants for a topic export by domain and topic id. */
+    readonly getParticipantsForExportByTopic: (params: {
+      domain: string
+      topicId: number
+    }) => Effect.Effect<ParticipantExportRow[], DbError>
+    /** Participants with by-camera submissions across all topics. */
+    readonly getParticipantsForExportByCameraAllTopics: (params: {
+      domain: string
+    }) => Effect.Effect<CameraParticipantExportRow[], DbError>
+    /** Submissions for a marathon export by domain. */
+    readonly getSubmissionsForExport: (params: {
+      domain: string
+    }) => Effect.Effect<SubmissionExportRow[], DbError>
+    /** Submissions for a topic export by domain and topic id. */
+    readonly getSubmissionsForExportByTopic: (params: {
+      domain: string
+      topicId: number
+    }) => Effect.Effect<SubmissionExportRow[], DbError>
+    /** Validation result rows for a marathon export by domain. */
+    readonly getValidationResultsForExport: (params: {
+      domain: string
+      onlyFailed?: boolean
+    }) => Effect.Effect<ValidationResultExportRow[], DbError>
+    /** Validation result rows for a topic export by domain and topic id. */
+    readonly getValidationResultsForExportByTopic: (params: {
+      domain: string
+      topicId: number
+      onlyFailed?: boolean
+    }) => Effect.Effect<ValidationResultExportRow[], DbError>
+    /** Submission files for a topic archive export. */
+    readonly getSubmissionFilesForTopicExport: (params: {
+      domain: string
+      topicId: number
+    }) => Effect.Effect<TopicSubmissionFileExportRow[], DbError>
+  }
+>()('@blikka/db/exports-repository') {}
 
 const makeExportsRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
 
-  const getMarathonByDomain = Effect.fn("ExportsRepository.getMarathonByDomain")(function* ({
+  const getMarathonByDomain = Effect.fn('ExportsRepository.getMarathonByDomain')(function* ({
     domain,
   }) {
     return yield* use((db) =>
@@ -124,7 +124,7 @@ const makeExportsRepository = Effect.gen(function* () {
   })
 
   const getParticipantValidationCounts = Effect.fn(
-    "ExportsRepository.getParticipantValidationCounts",
+    'ExportsRepository.getParticipantValidationCounts',
   )(function* ({ domain }) {
     const participantsWithValidations = yield* use((db) =>
       db.query.participants.findMany({
@@ -155,9 +155,9 @@ const makeExportsRepository = Effect.gen(function* () {
           failed: 0,
         }
 
-        if (validation.outcome === "passed") {
+        if (validation.outcome === 'passed') {
           current.passed++
-        } else if (validation.outcome === "failed" && !validation.overruled) {
+        } else if (validation.outcome === 'failed' && !validation.overruled) {
           current.failed++
         }
 
@@ -208,42 +208,42 @@ const makeExportsRepository = Effect.gen(function* () {
     }
     const exifData = submission.exif as Record<string, unknown> | null
     const cameraModel =
-      (exifData?.Model as string | undefined) || (exifData?.CameraModel as string | undefined) || ""
+      (exifData?.Model as string | undefined) || (exifData?.CameraModel as string | undefined) || ''
     const imageWidth =
       (exifData?.ImageWidth as number | string | undefined) ||
       (exifData?.ExifImageWidth as number | string | undefined) ||
-      ""
+      ''
     const imageHeight =
       (exifData?.ImageHeight as number | string | undefined) ||
       (exifData?.ExifImageHeight as number | string | undefined) ||
-      ""
-    const dimensions = imageWidth && imageHeight ? `${imageWidth}x${imageHeight}` : ""
+      ''
+    const dimensions = imageWidth && imageHeight ? `${imageWidth}x${imageHeight}` : ''
 
     return {
       submissionId: submission.id,
       participantReference: submission.participant.reference,
       participantName: `${submission.participant.firstname} ${submission.participant.lastname}`,
-      participantEmail: submission.participant.email || "",
+      participantEmail: submission.participant.email || '',
       phoneEncrypted: submission.participant.phoneEncrypted,
-      competitionClassName: submission.participant.competitionClass?.name || "",
-      deviceGroupName: submission.participant.deviceGroup?.name || "",
+      competitionClassName: submission.participant.competitionClass?.name || '',
+      deviceGroupName: submission.participant.deviceGroup?.name || '',
       topicName: submission.topic.name,
       submissionStatus: submission.status,
       uploadDate: submission.createdAt,
       lastModified: submission.updatedAt || submission.createdAt,
       fileSize: submission.size || 0,
-      mimeType: submission.mimeType || "",
+      mimeType: submission.mimeType || '',
       dimensions,
       cameraModel,
       validationsPassed: validations.passed,
       validationsFailed: validations.failed,
       originalKey: submission.key,
-      thumbnailKey: submission.thumbnailKey || "",
+      thumbnailKey: submission.thumbnailKey || '',
     }
   }
 
-  const getParticipantsForExport: ExportsRepository["Service"]["getParticipantsForExport"] = Effect.fn("ExportsRepository.getParticipantsForExport")(
-    function* ({ domain }) {
+  const getParticipantsForExport: ExportsRepository['Service']['getParticipantsForExport'] =
+    Effect.fn('ExportsRepository.getParticipantsForExport')(function* ({ domain }) {
       const result = yield* use((db) =>
         db.query.participants.findMany({
           where: (table, operators) => operators.eq(table.domain, domain),
@@ -264,110 +264,109 @@ const makeExportsRepository = Effect.gen(function* () {
         reference: participant.reference,
         firstname: participant.firstname,
         lastname: participant.lastname,
-        email: participant.email || "",
+        email: participant.email || '',
         status: participant.status,
-        competitionClassName: participant.competitionClass?.name || "",
-        deviceGroupName: participant.deviceGroup?.name || "",
+        competitionClassName: participant.competitionClass?.name || '',
+        deviceGroupName: participant.deviceGroup?.name || '',
         createdAt: participant.createdAt,
         uploadCount: participant.submissions?.length || 0,
       }))
-    },
-  )
-
-  const getParticipantsForExportByTopic: ExportsRepository["Service"]["getParticipantsForExportByTopic"] = Effect.fn(
-    "ExportsRepository.getParticipantsForExportByTopic",
-  )(function* ({ domain, topicId }) {
-    const result = yield* use((db) =>
-      db.query.participants.findMany({
-        where: (table, operators) => operators.eq(table.domain, domain),
-        with: {
-          competitionClass: true,
-          deviceGroup: true,
-          submissions: {
-            where: (table, operators) => operators.eq(table.topicId, topicId),
-            columns: {
-              id: true,
-            },
-          },
-        },
-        orderBy: (participants, { asc }) => [asc(participants.reference)],
-      }),
-    )
-
-    return result
-      .filter((participant) => participant.submissions.length > 0)
-      .map((participant) => ({
-        reference: participant.reference,
-        firstname: participant.firstname,
-        lastname: participant.lastname,
-        email: participant.email || "",
-        status: participant.status,
-        competitionClassName: participant.competitionClass?.name || "",
-        deviceGroupName: participant.deviceGroup?.name || "",
-        createdAt: participant.createdAt,
-        uploadCount: participant.submissions.length,
-      }))
-  })
-
-  const getParticipantsForExportByCameraAllTopics: ExportsRepository["Service"]["getParticipantsForExportByCameraAllTopics"] = Effect.fn(
-    "ExportsRepository.getParticipantsForExportByCameraAllTopics",
-  )(function* ({ domain }) {
-    const result = yield* use((db) =>
-      db.query.participants.findMany({
-        where: (table, operators) => operators.eq(table.domain, domain),
-        with: {
-          competitionClass: true,
-          deviceGroup: true,
-          submissions: {
-            columns: {
-              id: true,
-              createdAt: true,
-            },
-            with: {
-              topic: true,
-            },
-          },
-        },
-        orderBy: (participants, { asc }) => [asc(participants.reference)],
-      }),
-    )
-
-    return result.map((participant) => {
-      const topicIds = new Set<number>()
-      let latestTopicName = ""
-      let latestUploadedAt: string | null = null
-
-      for (const submission of participant.submissions) {
-        topicIds.add(submission.topic.id)
-
-        if (
-          !latestUploadedAt ||
-          new Date(submission.createdAt).getTime() > new Date(latestUploadedAt).getTime()
-        ) {
-          latestUploadedAt = submission.createdAt
-          latestTopicName = submission.topic.name
-        }
-      }
-
-      return {
-        reference: participant.reference,
-        firstname: participant.firstname,
-        lastname: participant.lastname,
-        email: participant.email || "",
-        phoneEncrypted: participant.phoneEncrypted,
-        status: participant.status,
-        competitionClassName: participant.competitionClass?.name || "",
-        deviceGroupName: participant.deviceGroup?.name || "",
-        createdAt: participant.createdAt,
-        topicsParticipatedCount: topicIds.size,
-        latestTopicName,
-        latestUploadedAt,
-      }
     })
-  })
 
-  const getSubmissionsForExport: ExportsRepository["Service"]["getSubmissionsForExport"] = Effect.fn("ExportsRepository.getSubmissionsForExport")(
-    function* ({ domain }) {
+  const getParticipantsForExportByTopic: ExportsRepository['Service']['getParticipantsForExportByTopic'] =
+    Effect.fn('ExportsRepository.getParticipantsForExportByTopic')(function* ({ domain, topicId }) {
+      const result = yield* use((db) =>
+        db.query.participants.findMany({
+          where: (table, operators) => operators.eq(table.domain, domain),
+          with: {
+            competitionClass: true,
+            deviceGroup: true,
+            submissions: {
+              where: (table, operators) => operators.eq(table.topicId, topicId),
+              columns: {
+                id: true,
+              },
+            },
+          },
+          orderBy: (participants, { asc }) => [asc(participants.reference)],
+        }),
+      )
+
+      return result
+        .filter((participant) => participant.submissions.length > 0)
+        .map((participant) => ({
+          reference: participant.reference,
+          firstname: participant.firstname,
+          lastname: participant.lastname,
+          email: participant.email || '',
+          status: participant.status,
+          competitionClassName: participant.competitionClass?.name || '',
+          deviceGroupName: participant.deviceGroup?.name || '',
+          createdAt: participant.createdAt,
+          uploadCount: participant.submissions.length,
+        }))
+    })
+
+  const getParticipantsForExportByCameraAllTopics: ExportsRepository['Service']['getParticipantsForExportByCameraAllTopics'] =
+    Effect.fn('ExportsRepository.getParticipantsForExportByCameraAllTopics')(function* ({
+      domain,
+    }) {
+      const result = yield* use((db) =>
+        db.query.participants.findMany({
+          where: (table, operators) => operators.eq(table.domain, domain),
+          with: {
+            competitionClass: true,
+            deviceGroup: true,
+            submissions: {
+              columns: {
+                id: true,
+                createdAt: true,
+              },
+              with: {
+                topic: true,
+              },
+            },
+          },
+          orderBy: (participants, { asc }) => [asc(participants.reference)],
+        }),
+      )
+
+      return result.map((participant) => {
+        const topicIds = new Set<number>()
+        let latestTopicName = ''
+        let latestUploadedAt: string | null = null
+
+        for (const submission of participant.submissions) {
+          topicIds.add(submission.topic.id)
+
+          if (
+            !latestUploadedAt ||
+            new Date(submission.createdAt).getTime() > new Date(latestUploadedAt).getTime()
+          ) {
+            latestUploadedAt = submission.createdAt
+            latestTopicName = submission.topic.name
+          }
+        }
+
+        return {
+          reference: participant.reference,
+          firstname: participant.firstname,
+          lastname: participant.lastname,
+          email: participant.email || '',
+          phoneEncrypted: participant.phoneEncrypted,
+          status: participant.status,
+          competitionClassName: participant.competitionClass?.name || '',
+          deviceGroupName: participant.deviceGroup?.name || '',
+          createdAt: participant.createdAt,
+          topicsParticipatedCount: topicIds.size,
+          latestTopicName,
+          latestUploadedAt,
+        }
+      })
+    })
+
+  const getSubmissionsForExport: ExportsRepository['Service']['getSubmissionsForExport'] =
+    Effect.fn('ExportsRepository.getSubmissionsForExport')(function* ({ domain }) {
       const marathon = yield* getMarathonByDomain({ domain })
 
       if (!marathon) {
@@ -397,236 +396,241 @@ const makeExportsRepository = Effect.gen(function* () {
       return result.map((submission) =>
         formatSubmissionForExport(submission, validationsByParticipantFile),
       )
-    },
-  )
+    })
 
-  const getSubmissionsForExportByTopic: ExportsRepository["Service"]["getSubmissionsForExportByTopic"] = Effect.fn(
-    "ExportsRepository.getSubmissionsForExportByTopic",
-  )(function* ({ domain, topicId }) {
-    const marathon = yield* getMarathonByDomain({ domain })
+  const getSubmissionsForExportByTopic: ExportsRepository['Service']['getSubmissionsForExportByTopic'] =
+    Effect.fn('ExportsRepository.getSubmissionsForExportByTopic')(function* ({ domain, topicId }) {
+      const marathon = yield* getMarathonByDomain({ domain })
 
-    if (!marathon) {
-      return []
-    }
+      if (!marathon) {
+        return []
+      }
 
-    const validationsByParticipantFile = yield* getParticipantValidationCounts({
+      const validationsByParticipantFile = yield* getParticipantValidationCounts({
+        domain,
+      })
+
+      const result = yield* use((db) =>
+        db.query.submissions.findMany({
+          where: (table, operators) =>
+            operators.and(
+              operators.eq(table.marathonId, marathon.id),
+              operators.eq(table.topicId, topicId),
+            ),
+          with: {
+            participant: {
+              with: {
+                competitionClass: true,
+                deviceGroup: true,
+              },
+            },
+            topic: true,
+          },
+          orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
+        }),
+      )
+
+      return result.map((submission) =>
+        formatSubmissionForExport(submission, validationsByParticipantFile),
+      )
+    })
+
+  const getValidationResultsForExport: ExportsRepository['Service']['getValidationResultsForExport'] =
+    Effect.fn('ExportsRepository.getValidationResultsForExport')(function* ({
       domain,
-    })
-
-    const result = yield* use((db) =>
-      db.query.submissions.findMany({
-        where: (table, operators) =>
-          operators.and(
-            operators.eq(table.marathonId, marathon.id),
-            operators.eq(table.topicId, topicId),
-          ),
-        with: {
-          participant: {
-            with: {
-              competitionClass: true,
-              deviceGroup: true,
-            },
-          },
-          topic: true,
-        },
-        orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
-      }),
-    )
-
-    return result.map((submission) =>
-      formatSubmissionForExport(submission, validationsByParticipantFile),
-    )
-  })
-
-  const getValidationResultsForExport: ExportsRepository["Service"]["getValidationResultsForExport"] = Effect.fn(
-    "ExportsRepository.getValidationResultsForExport",
-  )(function* ({ domain, onlyFailed }) {
-    const marathon = yield* use((db) =>
-      db.query.marathons.findFirst({
-        where: (table, operators) => operators.eq(table.domain, domain),
-        with: {
-          participants: {
-            with: {
-              validationResults: true,
-              submissions: {
-                columns: {
-                  key: true,
+      onlyFailed,
+    }) {
+      const marathon = yield* use((db) =>
+        db.query.marathons.findFirst({
+          where: (table, operators) => operators.eq(table.domain, domain),
+          with: {
+            participants: {
+              with: {
+                validationResults: true,
+                submissions: {
+                  columns: {
+                    key: true,
+                  },
                 },
               },
             },
           },
-        },
-      }),
-    )
-
-    if (!marathon) {
-      return []
-    }
-
-    const allResults: Array<{
-      participantId: number
-      participantReference: string
-      participantName: string
-      ruleKey: string
-      severity: string
-      outcome: string
-      message: string
-      fileName: string | null
-      createdAt: string
-      overruled: boolean
-    }> = []
-
-    for (const participant of marathon.participants) {
-      for (const validationResult of participant.validationResults) {
-        if (onlyFailed && validationResult.outcome !== "failed") {
-          continue
-        }
-
-        allResults.push({
-          participantId: participant.id,
-          participantReference: participant.reference,
-          participantName: `${participant.firstname} ${participant.lastname}`,
-          ruleKey: validationResult.ruleKey,
-          severity: validationResult.severity,
-          outcome: validationResult.outcome,
-          message: validationResult.message,
-          fileName: validationResult.fileName,
-          createdAt: validationResult.createdAt,
-          overruled: validationResult.overruled,
-        })
-      }
-    }
-
-    return allResults.filter((result, index, array) => {
-      const key = `${result.participantId}-${result.ruleKey}-${result.fileName || "global"}`
-
-      return (
-        array.findIndex((candidate) => {
-          const candidateKey = `${candidate.participantId}-${candidate.ruleKey}-${candidate.fileName || "global"}`
-          return candidateKey === key
-        }) === index
+        }),
       )
-    })
-  })
 
-  const getValidationResultsForExportByTopic: ExportsRepository["Service"]["getValidationResultsForExportByTopic"] = Effect.fn(
-    "ExportsRepository.getValidationResultsForExportByTopic",
-  )(function* ({ domain, topicId, onlyFailed }) {
-    const marathon = yield* use((db) =>
-      db.query.marathons.findFirst({
-        where: (table, operators) => operators.eq(table.domain, domain),
-        with: {
-          participants: {
-            with: {
-              validationResults: true,
-              submissions: {
-                columns: {
-                  key: true,
-                  topicId: true,
+      if (!marathon) {
+        return []
+      }
+
+      const allResults: Array<{
+        participantId: number
+        participantReference: string
+        participantName: string
+        ruleKey: string
+        severity: string
+        outcome: string
+        message: string
+        fileName: string | null
+        createdAt: string
+        overruled: boolean
+      }> = []
+
+      for (const participant of marathon.participants) {
+        for (const validationResult of participant.validationResults) {
+          if (onlyFailed && validationResult.outcome !== 'failed') {
+            continue
+          }
+
+          allResults.push({
+            participantId: participant.id,
+            participantReference: participant.reference,
+            participantName: `${participant.firstname} ${participant.lastname}`,
+            ruleKey: validationResult.ruleKey,
+            severity: validationResult.severity,
+            outcome: validationResult.outcome,
+            message: validationResult.message,
+            fileName: validationResult.fileName,
+            createdAt: validationResult.createdAt,
+            overruled: validationResult.overruled,
+          })
+        }
+      }
+
+      return allResults.filter((result, index, array) => {
+        const key = `${result.participantId}-${result.ruleKey}-${result.fileName || 'global'}`
+
+        return (
+          array.findIndex((candidate) => {
+            const candidateKey = `${candidate.participantId}-${candidate.ruleKey}-${candidate.fileName || 'global'}`
+            return candidateKey === key
+          }) === index
+        )
+      })
+    })
+
+  const getValidationResultsForExportByTopic: ExportsRepository['Service']['getValidationResultsForExportByTopic'] =
+    Effect.fn('ExportsRepository.getValidationResultsForExportByTopic')(function* ({
+      domain,
+      topicId,
+      onlyFailed,
+    }) {
+      const marathon = yield* use((db) =>
+        db.query.marathons.findFirst({
+          where: (table, operators) => operators.eq(table.domain, domain),
+          with: {
+            participants: {
+              with: {
+                validationResults: true,
+                submissions: {
+                  columns: {
+                    key: true,
+                    topicId: true,
+                  },
                 },
               },
             },
           },
-        },
-      }),
-    )
-
-    if (!marathon) {
-      return []
-    }
-
-    const allResults: Array<{
-      participantId: number
-      participantReference: string
-      participantName: string
-      ruleKey: string
-      severity: string
-      outcome: string
-      message: string
-      fileName: string | null
-      createdAt: string
-      overruled: boolean
-    }> = []
-
-    for (const participant of marathon.participants) {
-      const topicSubmissionKeys = new Set(
-        participant.submissions
-          .filter((submission) => submission.topicId === topicId)
-          .map((submission) => submission.key),
+        }),
       )
 
-      if (topicSubmissionKeys.size === 0) {
-        continue
+      if (!marathon) {
+        return []
       }
 
-      for (const validationResult of participant.validationResults) {
-        if (onlyFailed && validationResult.outcome !== "failed") {
+      const allResults: Array<{
+        participantId: number
+        participantReference: string
+        participantName: string
+        ruleKey: string
+        severity: string
+        outcome: string
+        message: string
+        fileName: string | null
+        createdAt: string
+        overruled: boolean
+      }> = []
+
+      for (const participant of marathon.participants) {
+        const topicSubmissionKeys = new Set(
+          participant.submissions
+            .filter((submission) => submission.topicId === topicId)
+            .map((submission) => submission.key),
+        )
+
+        if (topicSubmissionKeys.size === 0) {
           continue
         }
 
-        if (!validationResult.fileName) {
-          continue
-        }
+        for (const validationResult of participant.validationResults) {
+          if (onlyFailed && validationResult.outcome !== 'failed') {
+            continue
+          }
 
-        if (!topicSubmissionKeys.has(validationResult.fileName)) {
-          continue
-        }
+          if (!validationResult.fileName) {
+            continue
+          }
 
-        allResults.push({
-          participantId: participant.id,
-          participantReference: participant.reference,
-          participantName: `${participant.firstname} ${participant.lastname}`,
-          ruleKey: validationResult.ruleKey,
-          severity: validationResult.severity,
-          outcome: validationResult.outcome,
-          message: validationResult.message,
-          fileName: validationResult.fileName,
-          createdAt: validationResult.createdAt,
-          overruled: validationResult.overruled,
-        })
+          if (!topicSubmissionKeys.has(validationResult.fileName)) {
+            continue
+          }
+
+          allResults.push({
+            participantId: participant.id,
+            participantReference: participant.reference,
+            participantName: `${participant.firstname} ${participant.lastname}`,
+            ruleKey: validationResult.ruleKey,
+            severity: validationResult.severity,
+            outcome: validationResult.outcome,
+            message: validationResult.message,
+            fileName: validationResult.fileName,
+            createdAt: validationResult.createdAt,
+            overruled: validationResult.overruled,
+          })
+        }
       }
-    }
 
-    return allResults.filter((result, index, array) => {
-      const key = `${result.participantId}-${result.ruleKey}-${result.fileName}`
+      return allResults.filter((result, index, array) => {
+        const key = `${result.participantId}-${result.ruleKey}-${result.fileName}`
 
-      return (
-        array.findIndex((candidate) => {
-          const candidateKey = `${candidate.participantId}-${candidate.ruleKey}-${candidate.fileName}`
-          return candidateKey === key
-        }) === index
-      )
+        return (
+          array.findIndex((candidate) => {
+            const candidateKey = `${candidate.participantId}-${candidate.ruleKey}-${candidate.fileName}`
+            return candidateKey === key
+          }) === index
+        )
+      })
     })
-  })
 
-  const getSubmissionFilesForTopicExport: ExportsRepository["Service"]["getSubmissionFilesForTopicExport"] = Effect.fn(
-    "ExportsRepository.getSubmissionFilesForTopicExport",
-  )(function* ({ domain, topicId }) {
-    const marathon = yield* getMarathonByDomain({ domain })
+  const getSubmissionFilesForTopicExport: ExportsRepository['Service']['getSubmissionFilesForTopicExport'] =
+    Effect.fn('ExportsRepository.getSubmissionFilesForTopicExport')(function* ({
+      domain,
+      topicId,
+    }) {
+      const marathon = yield* getMarathonByDomain({ domain })
 
-    if (!marathon) {
-      return []
-    }
+      if (!marathon) {
+        return []
+      }
 
-    return yield* use((db) =>
-      db.query.submissions.findMany({
-        where: (table) => and(eq(table.marathonId, marathon.id), eq(table.topicId, topicId)),
-        columns: {
-          id: true,
-          key: true,
-          mimeType: true,
-        },
-        with: {
-          participant: {
-            columns: {
-              reference: true,
+      return yield* use((db) =>
+        db.query.submissions.findMany({
+          where: (table) => and(eq(table.marathonId, marathon.id), eq(table.topicId, topicId)),
+          columns: {
+            id: true,
+            key: true,
+            mimeType: true,
+          },
+          with: {
+            participant: {
+              columns: {
+                reference: true,
+              },
             },
           },
-        },
-        orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
-      }),
-    )
-  })
+          orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
+        }),
+      )
+    })
 
   return ExportsRepository.of({
     getParticipantsForExport,

@@ -1,29 +1,29 @@
-"use client"
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { AnimatePresence } from "motion/react"
-import dynamic from "next/dynamic"
-import { useMemo } from "react"
-import { redirect } from "next/navigation"
-import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
-import { useHandleBeforeUnload } from "@/hooks/live/flow/use-handle-before-unload"
-import { getMarathonValidationWindow } from "@/lib/flow/live-validation-window"
-import { PARTICIPANT_SUBMISSION_STEPS, PREPARE_PARTICIPANT_STEPS } from "@/lib/flow/constants"
-import { StepNavigator } from "@/components/live/flow/step-navigator"
-import { AnimatedStepWrapper } from "@/components/live/flow/animated-step-wrapper"
-import { ParticipantNumberStep } from "@/components/live/flow/participant-number-step"
-import { ParticipantDetailsStep } from "@/components/live/flow/participant-details-step"
-import { ClassSelectionStep } from "@/components/live/flow/class-selection-step"
-import { DeviceSelectionStep } from "@/components/live/flow/device-selection-step"
-import { UploadSubmissionsStep } from "@/components/live/flow/upload-submissions-step"
-import { useStepState } from "@/lib/flow/step-state-context"
-import { PrepareNextStep } from "@/components/live/flow/prepare-next-step"
-import { formatDomainPathname } from "@/lib/utils"
+'use client'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { AnimatePresence } from 'motion/react'
+import dynamic from 'next/dynamic'
+import { useMemo } from 'react'
+import { redirect } from 'next/navigation'
+import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
+import { useHandleBeforeUnload } from '@/hooks/live/flow/use-handle-before-unload'
+import { getMarathonValidationWindow } from '@/lib/flow/live-validation-window'
+import { PARTICIPANT_SUBMISSION_STEPS, PREPARE_PARTICIPANT_STEPS } from '@/lib/flow/constants'
+import { StepNavigator } from '@/components/live/flow/step-navigator'
+import { AnimatedStepWrapper } from '@/components/live/flow/animated-step-wrapper'
+import { ParticipantNumberStep } from '@/components/live/flow/participant-number-step'
+import { ParticipantDetailsStep } from '@/components/live/flow/participant-details-step'
+import { ClassSelectionStep } from '@/components/live/flow/class-selection-step'
+import { DeviceSelectionStep } from '@/components/live/flow/device-selection-step'
+import { UploadSubmissionsStep } from '@/components/live/flow/upload-submissions-step'
+import { useStepState } from '@/lib/flow/step-state-context'
+import { PrepareNextStep } from '@/components/live/flow/prepare-next-step'
+import { formatDomainPathname } from '@/lib/utils'
 
 const NetworkStatusBanner = dynamic(
   () =>
-    import("@/components/live/flow/network-status-banner").then((mod) => ({
+    import('@/components/live/flow/network-status-banner').then((mod) => ({
       default: mod.NetworkStatusBanner,
     })),
   { ssr: false },
@@ -31,7 +31,7 @@ const NetworkStatusBanner = dynamic(
 
 export function MarathonClientWrapper() {
   const { step, direction, flowVariant } = useStepState()
-  useHandleBeforeUnload(flowVariant === "upload")
+  useHandleBeforeUnload(flowVariant === 'upload')
   const trpc = useTRPC()
   const { uploadFlowState } = useUploadFlowState()
   const domain = useDomain()
@@ -40,8 +40,8 @@ export function MarathonClientWrapper() {
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
   )
 
-  if (flowVariant === "prepare" && marathon.mode !== "marathon") {
-    redirect(formatDomainPathname("/live", domain, "live"))
+  if (flowVariant === 'prepare' && marathon.mode !== 'marathon') {
+    redirect(formatDomainPathname('/live', domain, 'live'))
   }
 
   const selectedCompetitionClass = useMemo(() => {
@@ -116,7 +116,7 @@ export function MarathonClientWrapper() {
             <DeviceSelectionStep deviceGroups={marathon.deviceGroups} />
           </AnimatedStepWrapper>
         )}
-        {flowVariant === "upload" &&
+        {flowVariant === 'upload' &&
           step === PARTICIPANT_SUBMISSION_STEPS.UploadSubmissionStep &&
           selectedCompetitionClass &&
           validationWindow?.validationStartDate &&
@@ -134,7 +134,7 @@ export function MarathonClientWrapper() {
               />
             </AnimatedStepWrapper>
           )}
-        {flowVariant === "prepare" &&
+        {flowVariant === 'prepare' &&
           step === PREPARE_PARTICIPANT_STEPS.PrepareNextStep &&
           selectedCompetitionClass &&
           selectedDeviceGroup && (

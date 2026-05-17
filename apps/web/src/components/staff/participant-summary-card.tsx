@@ -1,18 +1,18 @@
-"use client";
+'use client'
 
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 interface ParticipantSummaryCardProps {
-  reference: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string | null;
-  competitionClassName: string;
-  deviceGroupName: string;
-  statusLabel: string;
-  statusTone?: "default" | "warning" | "success";
+  reference: string
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string | null
+  competitionClassName: string
+  deviceGroupName: string
+  statusLabel: string
+  statusTone?: 'default' | 'warning' | 'success'
 }
 
 export function ParticipantSummaryCard({
@@ -24,14 +24,14 @@ export function ParticipantSummaryCard({
   competitionClassName,
   deviceGroupName,
   statusLabel,
-  statusTone = "default",
+  statusTone = 'default',
 }: ParticipantSummaryCardProps) {
   const badgeClassName =
-    statusTone === "warning"
-      ? "border-amber-200 bg-amber-50 text-amber-700"
-      : statusTone === "success"
-        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-        : "border-border bg-muted text-muted-foreground";
+    statusTone === 'warning'
+      ? 'border-amber-200 bg-amber-50 text-amber-700'
+      : statusTone === 'success'
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+        : 'border-border bg-muted text-muted-foreground'
 
   return (
     <div className="rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
@@ -44,7 +44,7 @@ export function ParticipantSummaryCard({
             {firstName} {lastName}
           </span>
         </div>
-        <Badge variant="outline" className={cn("shrink-0", badgeClassName)}>
+        <Badge variant="outline" className={cn('shrink-0', badgeClassName)}>
           {statusLabel}
         </Badge>
       </div>
@@ -65,5 +65,5 @@ export function ParticipantSummaryCard({
         </span>
       </div>
     </div>
-  );
+  )
 }

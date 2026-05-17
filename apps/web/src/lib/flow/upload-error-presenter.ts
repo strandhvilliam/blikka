@@ -1,12 +1,12 @@
-import type { ClientUploadError } from "@/lib/upload-client"
-import type { UploadFileState } from "./types"
+import type { ClientUploadError } from '@/lib/upload-client'
+import type { UploadFileState } from './types'
 
 export interface UploadErrorPresentation {
   titleKey: string
   bodyKey: string
   actionKey?: string
   retriable: boolean
-  retryLabelKey: "retry" | "refreshAndRetry"
+  retryLabelKey: 'retry' | 'refreshAndRetry'
   technicalDetails?: {
     awsCode?: string
     awsRequestId?: string
@@ -14,43 +14,41 @@ export interface UploadErrorPresentation {
   }
 }
 
-function getTitleKey(errorCode: ClientUploadError["code"]) {
+function getTitleKey(errorCode: ClientUploadError['code']) {
   switch (errorCode) {
-    case "NETWORK_OFFLINE":
-      return "errorOfflineTitle"
-    case "TIMEOUT":
-      return "errorTimeoutTitle"
-    case "NETWORK_UNREACHABLE":
-    case "FIREWALL_OR_PROXY_BLOCKED":
-      return "errorNetworkBlockedTitle"
-    case "FILE_TOO_LARGE":
-      return "errorFileTooLargeTitle"
-    case "INVALID_FILE":
-    case "AWS_BAD_REQUEST":
-      return "errorInvalidFileTitle"
-    case "UPLOAD_URL_EXPIRED":
-    case "UPLOAD_SIGNATURE_INVALID":
-    case "AWS_FORBIDDEN":
-      return "errorExpiredTitle"
-    case "AWS_TEMPORARY":
-      return "errorTemporaryAwsTitle"
-    case "UNKNOWN":
-      return "errorUnknownTitle"
+    case 'NETWORK_OFFLINE':
+      return 'errorOfflineTitle'
+    case 'TIMEOUT':
+      return 'errorTimeoutTitle'
+    case 'NETWORK_UNREACHABLE':
+    case 'FIREWALL_OR_PROXY_BLOCKED':
+      return 'errorNetworkBlockedTitle'
+    case 'FILE_TOO_LARGE':
+      return 'errorFileTooLargeTitle'
+    case 'INVALID_FILE':
+    case 'AWS_BAD_REQUEST':
+      return 'errorInvalidFileTitle'
+    case 'UPLOAD_URL_EXPIRED':
+    case 'UPLOAD_SIGNATURE_INVALID':
+    case 'AWS_FORBIDDEN':
+      return 'errorExpiredTitle'
+    case 'AWS_TEMPORARY':
+      return 'errorTemporaryAwsTitle'
+    case 'UNKNOWN':
+      return 'errorUnknownTitle'
     default:
-      return "errorUnknownTitle"
+      return 'errorUnknownTitle'
   }
 }
 
-export function getUploadErrorPresentation(
-  error?: ClientUploadError,
-): UploadErrorPresentation {
+export function getUploadErrorPresentation(error?: ClientUploadError): UploadErrorPresentation {
   if (!error) {
     return {
-      titleKey: "errorUnknownTitle",
-      bodyKey: "errorUnknownBody",
-      actionKey: "errorUnknownAction",
+      titleKey: 'errorUnknownTitle',
+      bodyKey: 'errorUnknownBody',
+      actionKey: 'errorUnknownAction',
       retriable: true,
-      retryLabelKey: "retry",
+      retryLabelKey: 'retry',
     }
   }
 
@@ -59,7 +57,7 @@ export function getUploadErrorPresentation(
     bodyKey: error.friendlyMessageKey,
     actionKey: error.friendlyActionKey,
     retriable: error.retriable,
-    retryLabelKey: error.retryMode === "refresh-url" ? "refreshAndRetry" : "retry",
+    retryLabelKey: error.retryMode === 'refresh-url' ? 'refreshAndRetry' : 'retry',
     technicalDetails:
       error.awsCode || error.awsRequestId || error.httpStatus
         ? {
@@ -78,7 +76,7 @@ export function getUploadSummaryPresentation(files: UploadFileState[]) {
     return null
   }
 
-  const errorCounts = new Map<ClientUploadError["code"], number>()
+  const errorCounts = new Map<ClientUploadError['code'], number>()
   failedFiles.forEach((file) => {
     if (!file.error) return
     errorCounts.set(file.error.code, (errorCounts.get(file.error.code) ?? 0) + 1)

@@ -1,6 +1,6 @@
-import "server-only"
+import 'server-only'
 
-import { Effect, Schema } from "effect"
+import { Effect, Schema } from 'effect'
 import {
   GetPublicMarathonSchema,
   InitializeUploadFlowSchema,
@@ -12,53 +12,61 @@ import {
   GetUploadStatusSchema,
   RefreshPresignedUploadsSchema,
   ReTriggerUploadFlowSchema,
-} from "../../core/upload-flow/contracts"
-import { trpcEffect } from "../utils"
+} from '../../core/upload-flow/contracts'
+import { trpcEffect } from '../utils'
 import {
   createTRPCRouter,
   domainProcedure,
   publicProcedure,
   requireMatchingInputDomainMiddleware,
-} from "../root"
-import { UploadFlowService } from "../../core/upload-flow/service"
+} from '../root'
+import { UploadFlowService } from '../../core/upload-flow/service'
 
 export const uploadFlowRouter = createTRPCRouter({
-  getPublicMarathon: publicProcedure.input(Schema.toStandardSchemaV1(GetPublicMarathonSchema)).query(
-    trpcEffect(
-      Effect.fn("UploadFlowRouter.getPublicMarathon")(function* ({ input }) {
-        return yield* UploadFlowService.use((s) => s.getPublicMarathon(input))
-      }),
+  getPublicMarathon: publicProcedure
+    .input(Schema.toStandardSchemaV1(GetPublicMarathonSchema))
+    .query(
+      trpcEffect(
+        Effect.fn('UploadFlowRouter.getPublicMarathon')(function* ({ input }) {
+          return yield* UploadFlowService.use((s) => s.getPublicMarathon(input))
+        }),
+      ),
     ),
-  ),
-  initializeUploadFlow: publicProcedure.input(Schema.toStandardSchemaV1(InitializeUploadFlowSchema)).mutation(
-    trpcEffect(
-      Effect.fn("UploadFlowRouter.initializeUploadFlow")(function* ({ input }) {
-        return yield* UploadFlowService.use((s) => s.initializeUploadFlow(input))
-      }),
+  initializeUploadFlow: publicProcedure
+    .input(Schema.toStandardSchemaV1(InitializeUploadFlowSchema))
+    .mutation(
+      trpcEffect(
+        Effect.fn('UploadFlowRouter.initializeUploadFlow')(function* ({ input }) {
+          return yield* UploadFlowService.use((s) => s.initializeUploadFlow(input))
+        }),
+      ),
     ),
-  ),
-  prepareUploadFlow: publicProcedure.input(Schema.toStandardSchemaV1(PrepareUploadFlowSchema)).mutation(
-    trpcEffect(
-      Effect.fn("UploadFlowRouter.prepareUploadFlow")(function* ({ input }) {
-        return yield* UploadFlowService.use((s) => s.prepareUploadFlow(input))
-      }),
+  prepareUploadFlow: publicProcedure
+    .input(Schema.toStandardSchemaV1(PrepareUploadFlowSchema))
+    .mutation(
+      trpcEffect(
+        Effect.fn('UploadFlowRouter.prepareUploadFlow')(function* ({ input }) {
+          return yield* UploadFlowService.use((s) => s.prepareUploadFlow(input))
+        }),
+      ),
     ),
-  ),
 
-  initializeByCameraUpload: publicProcedure.input(Schema.toStandardSchemaV1(InitializeByCameraUploadSchema)).mutation(
-    trpcEffect(
-      Effect.fn("UploadFlowRouter.initializeByCameraUpload")(function* ({ input }) {
-        return yield* UploadFlowService.use((s) => s.initializeByCameraUpload(input))
-      }),
+  initializeByCameraUpload: publicProcedure
+    .input(Schema.toStandardSchemaV1(InitializeByCameraUploadSchema))
+    .mutation(
+      trpcEffect(
+        Effect.fn('UploadFlowRouter.initializeByCameraUpload')(function* ({ input }) {
+          return yield* UploadFlowService.use((s) => s.initializeByCameraUpload(input))
+        }),
+      ),
     ),
-  ),
 
   initializeStaffByCameraUpload: domainProcedure
     .input(Schema.toStandardSchemaV1(InitializeStaffByCameraUploadSchema))
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("UploadFlowRouter.initializeStaffByCameraUpload")(function* ({ input }) {
+        Effect.fn('UploadFlowRouter.initializeStaffByCameraUpload')(function* ({ input }) {
           return yield* UploadFlowService.use((s) => s.initializeStaffByCameraUpload(input))
         }),
       ),
@@ -68,42 +76,46 @@ export const uploadFlowRouter = createTRPCRouter({
     .input(Schema.toStandardSchemaV1(ResolveByCameraParticipantByPhoneSchema))
     .mutation(
       trpcEffect(
-        Effect.fn("UploadFlowRouter.resolveByCameraParticipantByPhone")(function* ({ input }) {
+        Effect.fn('UploadFlowRouter.resolveByCameraParticipantByPhone')(function* ({ input }) {
           return yield* UploadFlowService.use((s) => s.resolveByCameraParticipantByPhone(input))
         }),
       ),
     ),
 
-  checkParticipantExists: publicProcedure.input(Schema.toStandardSchemaV1(CheckParticipantExistsSchema)).mutation(
-    trpcEffect(
-      Effect.fn("UploadFlowRouter.checkParticipantExists")(function* ({ input }) {
-        return yield* UploadFlowService.use((s) => s.checkParticipantExists(input))
-      }),
+  checkParticipantExists: publicProcedure
+    .input(Schema.toStandardSchemaV1(CheckParticipantExistsSchema))
+    .mutation(
+      trpcEffect(
+        Effect.fn('UploadFlowRouter.checkParticipantExists')(function* ({ input }) {
+          return yield* UploadFlowService.use((s) => s.checkParticipantExists(input))
+        }),
+      ),
     ),
-  ),
 
   getUploadStatus: publicProcedure.input(Schema.toStandardSchemaV1(GetUploadStatusSchema)).query(
     trpcEffect(
-      Effect.fn("UploadFlowRouter.getUploadStatus")(function* ({ input }) {
+      Effect.fn('UploadFlowRouter.getUploadStatus')(function* ({ input }) {
         return yield* UploadFlowService.use((s) => s.getUploadStatus(input))
       }),
     ),
   ),
 
-  refreshPresignedUploads: publicProcedure.input(Schema.toStandardSchemaV1(RefreshPresignedUploadsSchema)).mutation(
-    trpcEffect(
-      Effect.fn("UploadFlowRouter.refreshPresignedUploads")(function* ({ input }) {
-        return yield* UploadFlowService.use((s) => s.refreshPresignedUploads(input))
-      }),
+  refreshPresignedUploads: publicProcedure
+    .input(Schema.toStandardSchemaV1(RefreshPresignedUploadsSchema))
+    .mutation(
+      trpcEffect(
+        Effect.fn('UploadFlowRouter.refreshPresignedUploads')(function* ({ input }) {
+          return yield* UploadFlowService.use((s) => s.refreshPresignedUploads(input))
+        }),
+      ),
     ),
-  ),
 
   reTriggerUploadFlow: domainProcedure
     .input(Schema.toStandardSchemaV1(ReTriggerUploadFlowSchema))
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("UploadFlowRouter.reTriggerUploadFlow")(function* ({ input }) {
+        Effect.fn('UploadFlowRouter.reTriggerUploadFlow')(function* ({ input }) {
           return yield* UploadFlowService.use((s) => s.reTriggerUploadFlow(input))
         }),
       ),

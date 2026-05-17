@@ -1,45 +1,35 @@
-"use client";
+'use client'
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from 'react'
 import {
   getParticipantRealtimeChannel,
   getRealtimeChannelEnvironmentFromNodeEnv,
   getRealtimeResultEventName,
-} from "@blikka/realtime/contract";
-import { useRealtime } from "@/lib/realtime-client";
+} from '@blikka/realtime/contract'
+import { useRealtime } from '@/lib/realtime-client'
 import {
   parseUploadRealtimeEventData,
   type UploadRealtimeEventData,
-} from "./upload-status-realtime";
+} from './upload-status-realtime'
 
 const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(
-  typeof process !== "undefined" ? process.env.NODE_ENV : undefined,
-);
+  typeof process !== 'undefined' ? process.env.NODE_ENV : undefined,
+)
 
-const SUBMISSION_PROCESSED_EVENT = getRealtimeResultEventName(
-  "submission-processed",
-);
-const PARTICIPANT_FINALIZED_EVENT = getRealtimeResultEventName(
-  "participant-finalized",
-);
+const SUBMISSION_PROCESSED_EVENT = getRealtimeResultEventName('submission-processed')
+const PARTICIPANT_FINALIZED_EVENT = getRealtimeResultEventName('participant-finalized')
 
-const SUBSCRIBED_EVENTS = [
-  SUBMISSION_PROCESSED_EVENT,
-  PARTICIPANT_FINALIZED_EVENT,
-] as const;
+const SUBSCRIBED_EVENTS = [SUBMISSION_PROCESSED_EVENT, PARTICIPANT_FINALIZED_EVENT] as const
 
-export type UploadRealtimeEventName = (typeof SUBSCRIBED_EVENTS)[number];
+export type UploadRealtimeEventName = (typeof SUBSCRIBED_EVENTS)[number]
 
 interface UseUploadStatusRealtimeOptions {
-  domain: string;
-  reference: string;
-  enabled: boolean;
-  onSubmissionProcessed: (data: UploadRealtimeEventData) => void;
-  onParticipantFinalized: (data: UploadRealtimeEventData) => void;
-  onEventError: (
-    event: UploadRealtimeEventName,
-    data: UploadRealtimeEventData,
-  ) => void;
+  domain: string
+  reference: string
+  enabled: boolean
+  onSubmissionProcessed: (data: UploadRealtimeEventData) => void
+  onParticipantFinalized: (data: UploadRealtimeEventData) => void
+  onEventError: (event: UploadRealtimeEventName, data: UploadRealtimeEventData) => void
 }
 
 export function useUploadStatusRealtime({
@@ -54,55 +44,51 @@ export function useUploadStatusRealtime({
     onSubmissionProcessed,
     onParticipantFinalized,
     onEventError,
-  });
+  })
 
   useEffect(() => {
     handlersRef.current = {
       onSubmissionProcessed,
       onParticipantFinalized,
       onEventError,
-    };
-  }, [onSubmissionProcessed, onParticipantFinalized, onEventError]);
+    }
+  }, [onSubmissionProcessed, onParticipantFinalized, onEventError])
 
   const participantChannel = useMemo(() => {
     if (!domain || !reference) {
-      return "";
+      return ''
     }
 
-    return getParticipantRealtimeChannel(
-      REALTIME_CHANNEL_ENV,
-      domain,
-      reference,
-    );
-  }, [domain, reference]);
+    return getParticipantRealtimeChannel(REALTIME_CHANNEL_ENV, domain, reference)
+  }, [domain, reference])
 
   useRealtime({
     events: [...SUBSCRIBED_EVENTS],
     channels: participantChannel ? [participantChannel] : [],
     enabled: enabled && participantChannel.length > 0,
     onData: ({ event, data: rawData }) => {
-      const data = parseUploadRealtimeEventData(rawData);
+      const data = parseUploadRealtimeEventData(rawData)
       if (!data?.reference || data.reference !== reference) {
-        return;
+        return
       }
 
-      if (data.outcome === "error") {
-        handlersRef.current.onEventError(event, data);
-        return;
+      if (data.outcome === 'error') {
+        handlersRef.current.onEventError(event, data)
+        return
       }
 
-      if (data.outcome !== "success") {
-        return;
+      if (data.outcome !== 'success') {
+        return
       }
 
       if (event === SUBMISSION_PROCESSED_EVENT) {
-        handlersRef.current.onSubmissionProcessed(data);
-        return;
+        handlersRef.current.onSubmissionProcessed(data)
+        return
       }
 
       if (event === PARTICIPANT_FINALIZED_EVENT) {
-        handlersRef.current.onParticipantFinalized(data);
+        handlersRef.current.onParticipantFinalized(data)
       }
     },
-  });
+  })
 }

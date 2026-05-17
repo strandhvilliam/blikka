@@ -1,4 +1,4 @@
-import { Schema, SchemaTransformation } from "effect"
+import { Schema, SchemaTransformation } from 'effect'
 
 export const NumberToStringSchema = Schema.Number.pipe(
   Schema.decodeTo(

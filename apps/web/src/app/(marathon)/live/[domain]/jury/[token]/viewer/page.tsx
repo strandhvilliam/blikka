@@ -1,14 +1,14 @@
-import { batchPrefetch, HydrateClient, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { Splash } from "@/components/splash"
-import { redirect } from "next/navigation"
-import { JuryReviewClient } from "@/components/live/jury/jury-review-client"
-import { getJuryInvitationForRoute } from "@/lib/jury/jury-server"
+import { batchPrefetch, HydrateClient, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { Splash } from '@/components/splash'
+import { redirect } from 'next/navigation'
+import { JuryReviewClient } from '@/components/live/jury/jury-review-client'
+import { getJuryInvitationForRoute } from '@/lib/jury/jury-server'
 import {
   getJuryCompletedPath,
   getJuryEntryPath,
   getJurySubmissionsNextPageParam,
-} from "@/lib/jury/jury-utils"
+} from '@/lib/jury/jury-utils'
 
 export default async function JuryViewerPage({
   params,
@@ -19,11 +19,11 @@ export default async function JuryViewerPage({
 
   const invitation = await getJuryInvitationForRoute({ domain, token })
 
-  if (invitation.status === "completed") {
+  if (invitation.status === 'completed') {
     return redirect(getJuryCompletedPath(domain, token))
   }
 
-  if (invitation.status === "pending") {
+  if (invitation.status === 'pending') {
     return redirect(getJuryEntryPath(domain, token))
   }
 
@@ -43,4 +43,5 @@ export default async function JuryViewerPage({
         <JuryReviewClient />
       </Suspense>
     </HydrateClient>
-  )}
+  )
+}

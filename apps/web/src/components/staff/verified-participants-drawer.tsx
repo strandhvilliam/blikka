@@ -1,14 +1,14 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { CheckCircle2, ChevronRight, Loader2, SearchIcon, X } from "lucide-react"
-import type { Topic } from "@blikka/db"
+import { useState } from 'react'
+import { CheckCircle2, ChevronRight, Loader2, SearchIcon, X } from 'lucide-react'
+import type { Topic } from '@blikka/db'
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { DrawerLayout } from "@/components/staff/drawer-layout"
-import { ParticipantInfoDrawer } from "@/components/staff/participant-info-drawer"
-import type { StaffParticipant, StaffVerification } from "@/lib/staff/staff-types"
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { DrawerLayout } from '@/components/staff/drawer-layout'
+import { ParticipantInfoDrawer } from '@/components/staff/participant-info-drawer'
+import type { StaffParticipant, StaffVerification } from '@/lib/staff/staff-types'
 
 interface VerifiedParticipantsDrawerProps {
   open: boolean
@@ -33,10 +33,10 @@ function ParticipantRow({
   onClick: () => void
 }) {
   const warnings = verification.participant.validationResults.filter(
-    (result) => result.outcome === "failed" && result.severity === "warning" && !result.overruled
+    (result) => result.outcome === 'failed' && result.severity === 'warning' && !result.overruled,
   ).length
   const errors = verification.participant.validationResults.filter(
-    (result) => result.outcome === "failed" && result.severity === "error" && !result.overruled
+    (result) => result.outcome === 'failed' && result.severity === 'error' && !result.overruled,
   ).length
 
   return (
@@ -53,11 +53,11 @@ function ParticipantRow({
           {verification.participant.firstname} {verification.participant.lastname}
         </p>
         <p className="text-[11px] text-muted-foreground">
-          {new Date(verification.createdAt).toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
+          {new Date(verification.createdAt).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
           })}
         </p>
       </div>
@@ -103,7 +103,7 @@ export function VerifiedParticipantsDrawer({
           <div className="border-b bg-white px-5 pb-4 pt-6">
             <h2 className="font-gothic text-2xl font-medium tracking-tight">Verified</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {ownVerifications.length} verification{ownVerifications.length !== 1 ? "s" : ""}
+              {ownVerifications.length} verification{ownVerifications.length !== 1 ? 's' : ''}
             </p>
             <div className="relative mt-4">
               <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -118,7 +118,7 @@ export function VerifiedParticipantsDrawer({
                   variant="ghost"
                   size="icon"
                   className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full"
-                  onClick={() => onSearchChange("")}
+                  onClick={() => onSearchChange('')}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -193,7 +193,7 @@ export function VerifiedParticipantsDrawer({
                       Loading…
                     </>
                   ) : (
-                    "Load more"
+                    'Load more'
                   )}
                 </Button>
               </div>

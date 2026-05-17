@@ -7,19 +7,19 @@ import {
   Schedule,
   Schema,
   SchemaTransformation,
-} from "effect"
-import { RedisClient, RedisClientLayer } from "@blikka/redis"
-import { Keys } from "./key-factory"
-import { atomicIncrementCompletedScript } from "./lua-scripts/atomic-increment-completed-script"
-import { atomicIncrementFailedScript } from "./lua-scripts/atomic-increment-failed-script"
-import { atomicAddJobScript } from "./lua-scripts/atomic-add-job-script"
+} from 'effect'
+import { RedisClient, RedisClientLayer } from '@blikka/redis'
+import { Keys } from './key-factory'
+import { atomicIncrementCompletedScript } from './lua-scripts/atomic-increment-completed-script'
+import { atomicIncrementFailedScript } from './lua-scripts/atomic-increment-failed-script'
+import { atomicAddJobScript } from './lua-scripts/atomic-add-job-script'
 
 export const DownloadProcessStatusSchema = Schema.Literals([
-  "initializing",
-  "processing",
-  "completed",
-  "failed",
-  "cancelled",
+  'initializing',
+  'processing',
+  'completed',
+  'failed',
+  'cancelled',
 ])
 
 export const ChunkStateSchema = Schema.Struct({
@@ -58,8 +58,8 @@ export const StringArrayFromString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.Array(Schema.String),
     SchemaTransformation.transform({
-      decode: (s) => (s === "" ? ([] as readonly string[]) : (s.split(",") as readonly string[])),
-      encode: (arr) => arr.join(","),
+      decode: (s) => (s === '' ? ([] as readonly string[]) : (s.split(',') as readonly string[])),
+      encode: (arr) => arr.join(','),
     }),
   ),
 )
@@ -79,7 +79,7 @@ interface AtomicIncrementResult {
 const decodeStringArray = Schema.decodeSync(StringArrayFromString)
 
 export class DownloadStateStoreUnavailable extends Schema.TaggedErrorClass<DownloadStateStoreUnavailable>()(
-  "DownloadStateStoreUnavailable",
+  'DownloadStateStoreUnavailable',
   {
     operation: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -87,14 +87,14 @@ export class DownloadStateStoreUnavailable extends Schema.TaggedErrorClass<Downl
 ) {}
 
 export class DownloadProcessNotFound extends Schema.TaggedErrorClass<DownloadProcessNotFound>()(
-  "DownloadProcessNotFound",
+  'DownloadProcessNotFound',
   {
     processId: Schema.String,
   },
 ) {}
 
 export class DownloadStateScriptFailed extends Schema.TaggedErrorClass<DownloadStateScriptFailed>()(
-  "DownloadStateScriptFailed",
+  'DownloadStateScriptFailed',
   {
     operation: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -102,9 +102,9 @@ export class DownloadStateScriptFailed extends Schema.TaggedErrorClass<DownloadS
 ) {}
 
 export class DownloadStateInvariantViolated extends Schema.TaggedErrorClass<DownloadStateInvariantViolated>()(
-  "DownloadStateInvariantViolated",
+  'DownloadStateInvariantViolated',
   {
-    reason: Schema.Literal("unexpected_atomic_increment_payload"),
+    reason: Schema.Literal('unexpected_atomic_increment_payload'),
     cause: Schema.optional(Schema.Unknown),
   },
 ) {}
@@ -149,7 +149,7 @@ export class DownloadStateRepository extends Context.Service<
     /** Merge partial fields into an existing process and bump `lastUpdatedAt`; fails if the process does not exist. */
     readonly updateDownloadProcess: (
       processId: string,
-      updates: Partial<Omit<DownloadProcessState, "processId" | "domain" | "createdAt">>,
+      updates: Partial<Omit<DownloadProcessState, 'processId' | 'domain' | 'createdAt'>>,
     ) => Effect.Effect<string, DownloadStateRepositoryError>
     /** Atomically increment the completed-chunk counter and derive status (e.g. finished when all chunks complete). */
     readonly atomicIncrementCompleted: (
@@ -193,35 +193,35 @@ export class DownloadStateRepository extends Context.Service<
       processId: string,
     ) => Effect.Effect<boolean, DownloadStateRepositoryError>
   }
->()("@blikka/packages/kv-store/download-state-repository") {}
+>()('@blikka/packages/kv-store/download-state-repository') {}
 
 const makeDownloadStateRepository = Effect.gen(function* () {
   const redis = yield* RedisClient
 
   const retryPolicy = Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
 
-  const saveChunkState: DownloadStateRepository["Service"]["saveChunkState"] = Effect.fn(
-    "DownloadStateRepository.saveChunkState",
+  const saveChunkState: DownloadStateRepository['Service']['saveChunkState'] = Effect.fn(
+    'DownloadStateRepository.saveChunkState',
   )(
     function* (jobId, state) {
       const key = Keys.downloadState(jobId)
       yield* redis.use((client) => client.hset(key, state))
       yield* redis.use((client) => client.expire(key, CHUNK_TTL_SECONDS))
-      return "OK"
+      return 'OK'
     },
     Effect.retry(retryPolicy),
-    Effect.catchTag("RedisError", (e) =>
-      Effect.fail(new DownloadStateStoreUnavailable({ operation: "saveChunkState", cause: e })),
+    Effect.catchTag('RedisError', (e) =>
+      Effect.fail(new DownloadStateStoreUnavailable({ operation: 'saveChunkState', cause: e })),
     ),
     (effect, jobId) => Effect.annotateLogs(effect, { jobId }),
   )
 
-  const getChunkState: DownloadStateRepository["Service"]["getChunkState"] = Effect.fn(
-    "DownloadStateRepository.getChunkState",
+  const getChunkState: DownloadStateRepository['Service']['getChunkState'] = Effect.fn(
+    'DownloadStateRepository.getChunkState',
   )(
     function* (jobId) {
       yield* Effect.logInfo({
-        message: "Getting chunk state",
+        message: 'Getting chunk state',
         jobId,
       })
 
@@ -229,7 +229,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
       const result = yield* redis.use((client) => client.hgetall(key))
 
       yield* Effect.logInfo({
-        message: "Result",
+        message: 'Result',
         result,
       })
 
@@ -240,14 +240,14 @@ const makeDownloadStateRepository = Effect.gen(function* () {
       return Schema.decodeUnknownOption(ChunkStateSchema)(result)
     },
     Effect.retry(retryPolicy),
-    Effect.catchTag("RedisError", (e) =>
-      Effect.fail(new DownloadStateStoreUnavailable({ operation: "getChunkState", cause: e })),
+    Effect.catchTag('RedisError', (e) =>
+      Effect.fail(new DownloadStateStoreUnavailable({ operation: 'getChunkState', cause: e })),
     ),
     (effect, jobId) => Effect.annotateLogs(effect, { jobId }),
   )
 
-  const createDownloadProcess: DownloadStateRepository["Service"]["createDownloadProcess"] =
-    Effect.fn("DownloadStateRepository.createDownloadProcess")(
+  const createDownloadProcess: DownloadStateRepository['Service']['createDownloadProcess'] =
+    Effect.fn('DownloadStateRepository.createDownloadProcess')(
       function* (processId, domain, totalChunks) {
         const now = new Date().toISOString()
         const key = Keys.downloadProcess(processId)
@@ -257,7 +257,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
           domain,
           createdAt: now,
           lastUpdatedAt: now,
-          status: "initializing",
+          status: 'initializing',
           totalChunks,
           completedChunks: 0,
           failedChunks: 0,
@@ -269,20 +269,20 @@ const makeDownloadStateRepository = Effect.gen(function* () {
         yield* redis.use((client) => client.hset(key, initialState))
         yield* redis.use((client) => client.expire(key, PROCESS_TTL_SECONDS))
 
-        return "OK"
+        return 'OK'
       },
       Effect.retry(retryPolicy),
-      Effect.catchTag("RedisError", (e) =>
+      Effect.catchTag('RedisError', (e) =>
         Effect.fail(
-          new DownloadStateStoreUnavailable({ operation: "createDownloadProcess", cause: e }),
+          new DownloadStateStoreUnavailable({ operation: 'createDownloadProcess', cause: e }),
         ),
       ),
       (effect, processId, domain, totalChunks) =>
         Effect.annotateLogs(effect, { processId, domain, totalChunks }),
     )
 
-  const getDownloadProcess: DownloadStateRepository["Service"]["getDownloadProcess"] = Effect.fn(
-    "DownloadStateRepository.getDownloadProcess",
+  const getDownloadProcess: DownloadStateRepository['Service']['getDownloadProcess'] = Effect.fn(
+    'DownloadStateRepository.getDownloadProcess',
   )(
     function* (processId) {
       const key = Keys.downloadProcess(processId)
@@ -295,17 +295,17 @@ const makeDownloadStateRepository = Effect.gen(function* () {
       return Schema.decodeUnknownOption(DownloadProcessStateSchema)(result)
     },
     Effect.retry(retryPolicy),
-    Effect.catchTag("RedisError", (e) =>
-      Effect.fail(new DownloadStateStoreUnavailable({ operation: "getDownloadProcess", cause: e })),
+    Effect.catchTag('RedisError', (e) =>
+      Effect.fail(new DownloadStateStoreUnavailable({ operation: 'getDownloadProcess', cause: e })),
     ),
     (effect, processId) => Effect.annotateLogs(effect, { processId }),
   )
 
-  const updateDownloadProcess: DownloadStateRepository["Service"]["updateDownloadProcess"] =
-    Effect.fn("DownloadStateRepository.updateDownloadProcess")(
+  const updateDownloadProcess: DownloadStateRepository['Service']['updateDownloadProcess'] =
+    Effect.fn('DownloadStateRepository.updateDownloadProcess')(
       function* (processId, updates) {
         yield* Effect.logInfo({
-          message: "Updating download process",
+          message: 'Updating download process',
           processId,
           updates,
         })
@@ -324,7 +324,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
 
         const currentState = currentStateOption.value
         yield* Effect.logInfo({
-          message: "Current state",
+          message: 'Current state',
           processId,
           currentState,
         })
@@ -336,19 +336,19 @@ const makeDownloadStateRepository = Effect.gen(function* () {
 
         yield* redis.use((client) => client.hset(key, updatedState))
         yield* redis.use((client) => client.expire(key, PROCESS_TTL_SECONDS))
-        return "OK"
+        return 'OK'
       },
       Effect.retry(retryPolicy),
-      Effect.catchTag("RedisError", (e) =>
+      Effect.catchTag('RedisError', (e) =>
         Effect.fail(
-          new DownloadStateStoreUnavailable({ operation: "updateDownloadProcess", cause: e }),
+          new DownloadStateStoreUnavailable({ operation: 'updateDownloadProcess', cause: e }),
         ),
       ),
       (effect, processId) => Effect.annotateLogs(effect, { processId }),
     )
 
-  const atomicIncrementCompleted: DownloadStateRepository["Service"]["atomicIncrementCompleted"] =
-    Effect.fn("DownloadStateRepository.atomicIncrementCompleted")(
+  const atomicIncrementCompleted: DownloadStateRepository['Service']['atomicIncrementCompleted'] =
+    Effect.fn('DownloadStateRepository.atomicIncrementCompleted')(
       function* (processId, totalChunks) {
         const key = Keys.downloadProcess(processId)
         const now = new Date().toISOString()
@@ -360,7 +360,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
               args: { totalChunks, now, ttl: PROCESS_TTL_SECONDS },
             }),
           catch: (error) =>
-            new DownloadStateScriptFailed({ operation: "atomicIncrementCompleted", cause: error }),
+            new DownloadStateScriptFailed({ operation: 'atomicIncrementCompleted', cause: error }),
         })
 
         if (result === null) {
@@ -368,10 +368,10 @@ const makeDownloadStateRepository = Effect.gen(function* () {
         }
 
         const payload = yield* Effect.try({
-          try: () => (typeof result === "string" ? JSON.parse(result) : result),
+          try: () => (typeof result === 'string' ? JSON.parse(result) : result),
           catch: (error) =>
             new DownloadStateInvariantViolated({
-              reason: "unexpected_atomic_increment_payload",
+              reason: 'unexpected_atomic_increment_payload',
               cause: error,
             }),
         })
@@ -380,7 +380,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
           Effect.mapError(
             (issue) =>
               new DownloadStateInvariantViolated({
-                reason: "unexpected_atomic_increment_payload",
+                reason: 'unexpected_atomic_increment_payload',
                 cause: issue,
               }),
           ),
@@ -390,8 +390,8 @@ const makeDownloadStateRepository = Effect.gen(function* () {
       (effect, processId, totalChunks) => Effect.annotateLogs(effect, { processId, totalChunks }),
     )
 
-  const atomicIncrementFailed: DownloadStateRepository["Service"]["atomicIncrementFailed"] =
-    Effect.fn("DownloadStateRepository.atomicIncrementFailed")(
+  const atomicIncrementFailed: DownloadStateRepository['Service']['atomicIncrementFailed'] =
+    Effect.fn('DownloadStateRepository.atomicIncrementFailed')(
       function* (processId, totalChunks, failedJobId) {
         const key = Keys.downloadProcess(processId)
         const now = new Date().toISOString()
@@ -403,7 +403,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
               args: { totalChunks, now, failedJobId, ttl: PROCESS_TTL_SECONDS },
             }),
           catch: (error) =>
-            new DownloadStateScriptFailed({ operation: "atomicIncrementFailed", cause: error }),
+            new DownloadStateScriptFailed({ operation: 'atomicIncrementFailed', cause: error }),
         })
 
         if (result === null) {
@@ -411,10 +411,10 @@ const makeDownloadStateRepository = Effect.gen(function* () {
         }
 
         const payload = yield* Effect.try({
-          try: () => (typeof result === "string" ? JSON.parse(result) : result),
+          try: () => (typeof result === 'string' ? JSON.parse(result) : result),
           catch: (error) =>
             new DownloadStateInvariantViolated({
-              reason: "unexpected_atomic_increment_payload",
+              reason: 'unexpected_atomic_increment_payload',
               cause: error,
             }),
         })
@@ -423,7 +423,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
           Effect.mapError(
             (issue) =>
               new DownloadStateInvariantViolated({
-                reason: "unexpected_atomic_increment_payload",
+                reason: 'unexpected_atomic_increment_payload',
                 cause: issue,
               }),
           ),
@@ -434,8 +434,8 @@ const makeDownloadStateRepository = Effect.gen(function* () {
         Effect.annotateLogs(effect, { processId, totalChunks, failedJobId }),
     )
 
-  const addJobToProcess: DownloadStateRepository["Service"]["addJobToProcess"] = Effect.fn(
-    "DownloadStateRepository.addJobToProcess",
+  const addJobToProcess: DownloadStateRepository['Service']['addJobToProcess'] = Effect.fn(
+    'DownloadStateRepository.addJobToProcess',
   )(
     function* (processId, jobId) {
       const key = Keys.downloadProcess(processId)
@@ -448,7 +448,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
             args: { jobId, now, ttl: PROCESS_TTL_SECONDS },
           }),
         catch: (error) =>
-          new DownloadStateScriptFailed({ operation: "addJobToProcess", cause: error }),
+          new DownloadStateScriptFailed({ operation: 'addJobToProcess', cause: error }),
       })
 
       if (result === null) {
@@ -461,42 +461,42 @@ const makeDownloadStateRepository = Effect.gen(function* () {
     (effect, processId, jobId) => Effect.annotateLogs(effect, { processId, jobId }),
   )
 
-  const getProcessJobIds: DownloadStateRepository["Service"]["getProcessJobIds"] = Effect.fn(
-    "DownloadStateRepository.getProcessJobIds",
+  const getProcessJobIds: DownloadStateRepository['Service']['getProcessJobIds'] = Effect.fn(
+    'DownloadStateRepository.getProcessJobIds',
   )(
     function* (processId) {
       const key = Keys.downloadProcess(processId)
-      const result = yield* redis.use((client) => client.hget<string>(key, "jobIds"))
-      if (!result || result === "") {
+      const result = yield* redis.use((client) => client.hget<string>(key, 'jobIds'))
+      if (!result || result === '') {
         return []
       }
       return decodeStringArray(result)
     },
     Effect.retry(retryPolicy),
-    Effect.catchTag("RedisError", (e) =>
-      Effect.fail(new DownloadStateStoreUnavailable({ operation: "getProcessJobIds", cause: e })),
+    Effect.catchTag('RedisError', (e) =>
+      Effect.fail(new DownloadStateStoreUnavailable({ operation: 'getProcessJobIds', cause: e })),
     ),
     (effect, processId) => Effect.annotateLogs(effect, { processId }),
   )
 
-  const getActiveProcessForDomain: DownloadStateRepository["Service"]["getActiveProcessForDomain"] =
-    Effect.fn("DownloadStateRepository.getActiveProcessForDomain")(
+  const getActiveProcessForDomain: DownloadStateRepository['Service']['getActiveProcessForDomain'] =
+    Effect.fn('DownloadStateRepository.getActiveProcessForDomain')(
       function* (domain) {
         const key = Keys.activeDownloadProcess(domain)
         const result = yield* redis.use((client) => client.get<string | null>(key))
         return Option.fromNullishOr(result)
       },
       Effect.retry(retryPolicy),
-      Effect.catchTag("RedisError", (e) =>
+      Effect.catchTag('RedisError', (e) =>
         Effect.fail(
-          new DownloadStateStoreUnavailable({ operation: "getActiveProcessForDomain", cause: e }),
+          new DownloadStateStoreUnavailable({ operation: 'getActiveProcessForDomain', cause: e }),
         ),
       ),
       (effect, domain) => Effect.annotateLogs(effect, { domain }),
     )
 
-  const setActiveProcessForDomain: DownloadStateRepository["Service"]["setActiveProcessForDomain"] =
-    Effect.fn("DownloadStateRepository.setActiveProcessForDomain")(
+  const setActiveProcessForDomain: DownloadStateRepository['Service']['setActiveProcessForDomain'] =
+    Effect.fn('DownloadStateRepository.setActiveProcessForDomain')(
       function* (domain, processId) {
         const key = Keys.activeDownloadProcess(domain)
         return yield* redis.use((client) =>
@@ -504,31 +504,31 @@ const makeDownloadStateRepository = Effect.gen(function* () {
         )
       },
       Effect.retry(retryPolicy),
-      Effect.catchTag("RedisError", (e) =>
+      Effect.catchTag('RedisError', (e) =>
         Effect.fail(
-          new DownloadStateStoreUnavailable({ operation: "setActiveProcessForDomain", cause: e }),
+          new DownloadStateStoreUnavailable({ operation: 'setActiveProcessForDomain', cause: e }),
         ),
       ),
       (effect, domain, processId) => Effect.annotateLogs(effect, { domain, processId }),
     )
 
-  const clearActiveProcessForDomain: DownloadStateRepository["Service"]["clearActiveProcessForDomain"] =
-    Effect.fn("DownloadStateRepository.clearActiveProcessForDomain")(
+  const clearActiveProcessForDomain: DownloadStateRepository['Service']['clearActiveProcessForDomain'] =
+    Effect.fn('DownloadStateRepository.clearActiveProcessForDomain')(
       function* (domain) {
         const key = Keys.activeDownloadProcess(domain)
         return yield* redis.use((client) => client.del(key))
       },
       Effect.retry(retryPolicy),
-      Effect.catchTag("RedisError", (e) =>
+      Effect.catchTag('RedisError', (e) =>
         Effect.fail(
-          new DownloadStateStoreUnavailable({ operation: "clearActiveProcessForDomain", cause: e }),
+          new DownloadStateStoreUnavailable({ operation: 'clearActiveProcessForDomain', cause: e }),
         ),
       ),
       (effect, domain) => Effect.annotateLogs(effect, { domain }),
     )
 
-  const cancelDownloadProcess: DownloadStateRepository["Service"]["cancelDownloadProcess"] =
-    Effect.fn("DownloadStateRepository.cancelDownloadProcess")(
+  const cancelDownloadProcess: DownloadStateRepository['Service']['cancelDownloadProcess'] =
+    Effect.fn('DownloadStateRepository.cancelDownloadProcess')(
       function* (processId) {
         const key = Keys.downloadProcess(processId)
         const now = new Date().toISOString()
@@ -540,37 +540,37 @@ const makeDownloadStateRepository = Effect.gen(function* () {
 
         yield* redis.use((client) =>
           client.hset(key, {
-            status: "cancelled",
+            status: 'cancelled',
             lastUpdatedAt: now,
           }),
         )
-        return "OK"
+        return 'OK'
       },
       Effect.retry(retryPolicy),
-      Effect.catchTag("RedisError", (e) =>
+      Effect.catchTag('RedisError', (e) =>
         Effect.fail(
-          new DownloadStateStoreUnavailable({ operation: "cancelDownloadProcess", cause: e }),
+          new DownloadStateStoreUnavailable({ operation: 'cancelDownloadProcess', cause: e }),
         ),
       ),
       (effect, processId) => Effect.annotateLogs(effect, { processId }),
     )
 
-  const isProcessActive: DownloadStateRepository["Service"]["isProcessActive"] = Effect.fn(
-    "DownloadStateRepository.isProcessActive",
+  const isProcessActive: DownloadStateRepository['Service']['isProcessActive'] = Effect.fn(
+    'DownloadStateRepository.isProcessActive',
   )(
     function* (processId) {
       const key = Keys.downloadProcess(processId)
-      const status = yield* redis.use((client) => client.hget(key, "status"))
+      const status = yield* redis.use((client) => client.hget(key, 'status'))
 
       if (!status) {
         return false
       }
 
-      return status === "initializing" || status === "processing"
+      return status === 'initializing' || status === 'processing'
     },
     Effect.retry(retryPolicy),
-    Effect.catchTag("RedisError", (e) =>
-      Effect.fail(new DownloadStateStoreUnavailable({ operation: "isProcessActive", cause: e })),
+    Effect.catchTag('RedisError', (e) =>
+      Effect.fail(new DownloadStateStoreUnavailable({ operation: 'isProcessActive', cause: e })),
     ),
     (effect, processId) => Effect.annotateLogs(effect, { processId }),
   )

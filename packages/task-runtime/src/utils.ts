@@ -1,12 +1,12 @@
-import { Effect, Option, Schema } from "effect"
+import { Effect, Option, Schema } from 'effect'
 
-export class JsonParseError extends Schema.TaggedErrorClass<JsonParseError>()("JsonParseError", {
+export class JsonParseError extends Schema.TaggedErrorClass<JsonParseError>()('JsonParseError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
 export class InvalidSqsMessageError extends Schema.TaggedErrorClass<InvalidSqsMessageError>()(
-  "InvalidSqsMessageError",
+  'InvalidSqsMessageError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -15,7 +15,7 @@ export class InvalidSqsMessageError extends Schema.TaggedErrorClass<InvalidSqsMe
 ) {}
 
 export class InvalidObjectKeyFormatError extends Schema.TaggedErrorClass<InvalidObjectKeyFormatError>()(
-  "InvalidObjectKeyFormatError",
+  'InvalidObjectKeyFormatError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -23,7 +23,7 @@ export class InvalidObjectKeyFormatError extends Schema.TaggedErrorClass<Invalid
 ) {}
 
 export class InvalidBusEventBodyError extends Schema.TaggedErrorClass<InvalidBusEventBodyError>()(
-  "InvalidBusEventBodyError",
+  'InvalidBusEventBodyError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -63,14 +63,14 @@ export interface ParsedUploadObjectKey {
 export const parseJson = (input: string) =>
   Effect.try({
     try: () => JSON.parse(input),
-    catch: (cause) => new JsonParseError({ message: "Failed to parse JSON", cause }),
+    catch: (cause) => new JsonParseError({ message: 'Failed to parse JSON', cause }),
   })
 
 const BODY_PREVIEW_MAX_LENGTH = 200
 
 const decodeS3ObjectKey = (key: string): string => {
   try {
-    return decodeURIComponent(key.replace(/\+/g, " "))
+    return decodeURIComponent(key.replace(/\+/g, ' '))
   } catch {
     return key
   }
@@ -94,16 +94,16 @@ export const parseAndNormalizeMessage = (body: string) =>
 
     return yield* Effect.fail(
       new InvalidSqsMessageError({
-        message: "Message body is neither S3 event nor direct submissionKeys format",
+        message: 'Message body is neither S3 event nor direct submissionKeys format',
         bodyPreview: body.slice(0, BODY_PREVIEW_MAX_LENGTH),
       }),
     )
   })
 
-export const parseUploadObjectKey = Effect.fn("TaskRuntime.parseUploadObjectKey")(function* (
+export const parseUploadObjectKey = Effect.fn('TaskRuntime.parseUploadObjectKey')(function* (
   key: string,
 ) {
-  const [domain, reference, formattedOrderIndex, fileName] = key.split("/")
+  const [domain, reference, formattedOrderIndex, fileName] = key.split('/')
   if (!domain || !reference || !formattedOrderIndex || !fileName) {
     return yield* new InvalidObjectKeyFormatError({
       message: `Missing: domain=${domain}, reference=${reference}, orderIndex=${formattedOrderIndex}, fileName=${fileName}`,
@@ -120,7 +120,7 @@ export const parseBusEvent = <S extends Schema.Top>(input: string, detailSchema:
     const json = yield* parseJson(input)
     return yield* Schema.decodeUnknownEffect(detailSchema)((json as { detail: unknown }).detail)
   }).pipe(
-    Effect.withSpan("TaskRuntime.parseBusEvent"),
+    Effect.withSpan('TaskRuntime.parseBusEvent'),
     Effect.catch((error) =>
       Effect.fail(
         new InvalidBusEventBodyError({

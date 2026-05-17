@@ -22,23 +22,23 @@ bun add @vimmer/email
 ### 1. Basic Usage
 
 ```typescript
-import { Effect } from "effect"
-import { EmailService, makeEmailServiceLayer, sendTemplate } from "@vimmer/email"
-import { OTPEmail } from "@vimmer/email/templates/otp-email"
+import { Effect } from 'effect'
+import { EmailService, makeEmailServiceLayer, sendTemplate } from '@vimmer/email'
+import { OTPEmail } from '@vimmer/email/templates/otp-email'
 
 // Create the email service layer
 const emailLayer = makeEmailServiceLayer({
   apiKey: process.env.RESEND_API_KEY!,
-  defaultFrom: "support@example.com",
+  defaultFrom: 'support@example.com',
 })
 
 // Send an email
 const program = sendTemplate({
-  to: "user@example.com",
-  subject: "Your verification code",
+  to: 'user@example.com',
+  subject: 'Your verification code',
   template: OTPEmail({
-    otp: "123456",
-    username: "John Doe",
+    otp: '123456',
+    username: 'John Doe',
     expiryMinutes: 10,
   }),
 })
@@ -52,19 +52,19 @@ console.log(`Email sent with ID: ${result.id}`)
 ### 2. Using the Service Directly
 
 ```typescript
-import { Effect } from "effect"
-import { EmailService, makeEmailServiceLayer } from "@vimmer/email"
-import { OTPEmail } from "@vimmer/email/templates/otp-email"
+import { Effect } from 'effect'
+import { EmailService, makeEmailServiceLayer } from '@vimmer/email'
+import { OTPEmail } from '@vimmer/email/templates/otp-email'
 
 const program = Effect.gen(function* () {
   const emailService = yield* EmailService
 
   const result = yield* emailService.send({
-    to: "user@example.com",
-    subject: "Your verification code",
+    to: 'user@example.com',
+    subject: 'Your verification code',
     template: OTPEmail({
-      otp: "123456",
-      username: "John Doe",
+      otp: '123456',
+      username: 'John Doe',
     }),
   })
 
@@ -73,7 +73,7 @@ const program = Effect.gen(function* () {
 
 const emailLayer = makeEmailServiceLayer({
   apiKey: process.env.RESEND_API_KEY!,
-  defaultFrom: "support@example.com",
+  defaultFrom: 'support@example.com',
 })
 
 await Effect.runPromise(program.pipe(Effect.provide(emailLayer)))
@@ -82,20 +82,20 @@ await Effect.runPromise(program.pipe(Effect.provide(emailLayer)))
 ### 3. Batch Sending
 
 ```typescript
-import { Effect } from "effect"
-import { sendTemplateBatch, makeEmailServiceLayer } from "@vimmer/email"
-import { OTPEmail } from "@vimmer/email/templates/otp-email"
+import { Effect } from 'effect'
+import { sendTemplateBatch, makeEmailServiceLayer } from '@vimmer/email'
+import { OTPEmail } from '@vimmer/email/templates/otp-email'
 
 const program = sendTemplateBatch([
   {
-    to: "user1@example.com",
-    subject: "Your verification code",
-    template: OTPEmail({ otp: "123456", username: "User 1" }),
+    to: 'user1@example.com',
+    subject: 'Your verification code',
+    template: OTPEmail({ otp: '123456', username: 'User 1' }),
   },
   {
-    to: "user2@example.com",
-    subject: "Your verification code",
-    template: OTPEmail({ otp: "789012", username: "User 2" }),
+    to: 'user2@example.com',
+    subject: 'Your verification code',
+    template: OTPEmail({ otp: '789012', username: 'User 2' }),
   },
 ])
 
@@ -111,20 +111,20 @@ console.log(`Sent ${results.length} emails`)
 ### 4. Error Handling
 
 ```typescript
-import { Effect } from "effect"
-import { sendTemplate, makeEmailServiceLayer } from "@vimmer/email"
-import { OTPEmail } from "@vimmer/email/templates/otp-email"
+import { Effect } from 'effect'
+import { sendTemplate, makeEmailServiceLayer } from '@vimmer/email'
+import { OTPEmail } from '@vimmer/email/templates/otp-email'
 
 const program = sendTemplate({
-  to: "user@example.com",
-  subject: "Your verification code",
-  template: OTPEmail({ otp: "123456" }),
+  to: 'user@example.com',
+  subject: 'Your verification code',
+  template: OTPEmail({ otp: '123456' }),
 }).pipe(
-  Effect.catchTag("EmailError", (error) =>
+  Effect.catchTag('EmailError', (error) =>
     Effect.gen(function* () {
-      console.error("Failed to send email:", error.message)
+      console.error('Failed to send email:', error.message)
       // Handle the error (e.g., log to monitoring service)
-      return { id: "failed" }
+      return { id: 'failed' }
     }),
   ),
 )
@@ -139,8 +139,8 @@ await Effect.runPromise(program.pipe(Effect.provide(emailLayer)))
 ### 5. Creating Reusable Template Senders
 
 ```typescript
-import { createTemplateSender } from "@vimmer/email"
-import { OTPEmail, type OTPEmailProps } from "@vimmer/email/templates/otp-email"
+import { createTemplateSender } from '@vimmer/email'
+import { OTPEmail, type OTPEmailProps } from '@vimmer/email/templates/otp-email'
 
 // Create a reusable OTP email sender
 const sendOTPEmail = createTemplateSender(
@@ -150,14 +150,14 @@ const sendOTPEmail = createTemplateSender(
 
 // Use it
 const program = sendOTPEmail(
-  "user@example.com",
+  'user@example.com',
   {
-    otp: "123456",
-    username: "John Doe",
+    otp: '123456',
+    username: 'John Doe',
     expiryMinutes: 10,
   },
   {
-    tags: [{ name: "category", value: "authentication" }],
+    tags: [{ name: 'category', value: 'authentication' }],
   },
 )
 ```
@@ -168,9 +168,9 @@ const program = sendOTPEmail(
 
 ```tsx
 // src/templates/welcome-email.tsx
-import React from "react"
-import { Body, Container, Head, Heading, Html, Preview, Text } from "@react-email/components"
-import { Tailwind } from "@react-email/tailwind"
+import React from 'react'
+import { Body, Container, Head, Heading, Html, Preview, Text } from '@react-email/components'
+import { Tailwind } from '@react-email/tailwind'
 
 export interface WelcomeEmailProps {
   username: string
@@ -203,15 +203,15 @@ export function welcomeEmailSubject(props: WelcomeEmailProps): string {
 ### 2. Use the Custom Template
 
 ```typescript
-import { sendTemplate, makeEmailServiceLayer } from "@vimmer/email"
-import { WelcomeEmail } from "./templates/welcome-email"
+import { sendTemplate, makeEmailServiceLayer } from '@vimmer/email'
+import { WelcomeEmail } from './templates/welcome-email'
 
 const program = sendTemplate({
-  to: "user@example.com",
-  subject: "Welcome!",
+  to: 'user@example.com',
+  subject: 'Welcome!',
   template: WelcomeEmail({
-    username: "John Doe",
-    loginUrl: "https://example.com/login",
+    username: 'John Doe',
+    loginUrl: 'https://example.com/login',
   }),
 })
 ```
@@ -221,16 +221,16 @@ const program = sendTemplate({
 ### Composing with Other Services
 
 ```typescript
-import { Effect, Layer } from "effect"
-import { EmailService, makeEmailServiceLayer } from "@vimmer/email"
-import { OTPEmail } from "@vimmer/email/templates/otp-email"
+import { Effect, Layer } from 'effect'
+import { EmailService, makeEmailServiceLayer } from '@vimmer/email'
+import { OTPEmail } from '@vimmer/email/templates/otp-email'
 
 // Example: Compose with a user service
 interface UserService {
   readonly getUser: (id: string) => Effect.Effect<User, UserError>
 }
 
-class UserService extends Context.Tag("UserService")<UserService, UserService>() {}
+class UserService extends Context.Tag('UserService')<UserService, UserService>() {}
 
 const sendUserOTP = (userId: string, otp: string) =>
   Effect.gen(function* () {
@@ -241,7 +241,7 @@ const sendUserOTP = (userId: string, otp: string) =>
 
     const result = yield* emailService.send({
       to: user.email,
-      subject: "Your verification code",
+      subject: 'Your verification code',
       template: OTPEmail({
         otp,
         username: user.name,
@@ -252,7 +252,7 @@ const sendUserOTP = (userId: string, otp: string) =>
   })
 
 // Provide both services
-const program = sendUserOTP("user-123", "123456")
+const program = sendUserOTP('user-123', '123456')
 
 const AppLayer = Layer.mergeAll(emailLayer, userServiceLayer)
 
@@ -262,13 +262,13 @@ await Effect.runPromise(program.pipe(Effect.provide(AppLayer)))
 ### Custom Configuration
 
 ```typescript
-import { Layer } from "effect"
-import { EmailService, EmailServiceConfig, EmailServiceLive } from "@vimmer/email"
+import { Layer } from 'effect'
+import { EmailService, EmailServiceConfig, EmailServiceLive } from '@vimmer/email'
 
 // Create a custom configuration layer
 const customConfigLayer = Layer.succeed(EmailServiceConfig, {
   apiKey: process.env.RESEND_API_KEY!,
-  defaultFrom: "custom@example.com",
+  defaultFrom: 'custom@example.com',
 })
 
 // Provide it to the service
@@ -336,7 +336,7 @@ All email operations return `Effect<Result, EmailError>` where `EmailError` has 
 
 ```typescript
 interface EmailError {
-  readonly _tag: "EmailError"
+  readonly _tag: 'EmailError'
   readonly message: string
   readonly cause?: unknown
 }
@@ -347,23 +347,23 @@ Use Effect's error handling operators like `catchTag`, `catchAll`, or `retry` to
 ## Testing
 
 ```typescript
-import { Effect, Layer } from "effect"
-import { EmailService } from "@vimmer/email"
+import { Effect, Layer } from 'effect'
+import { EmailService } from '@vimmer/email'
 
 // Create a test implementation
 const TestEmailService = Layer.succeed(EmailService, {
   send: (params) =>
     Effect.succeed({
-      id: "test-email-id",
+      id: 'test-email-id',
     }),
   sendBatch: (params) => Effect.succeed(params.map((_, i) => ({ id: `test-email-id-${i}` }))),
 })
 
 // Use in tests
 const program = sendTemplate({
-  to: "test@example.com",
-  subject: "Test",
-  template: OTPEmail({ otp: "123456" }),
+  to: 'test@example.com',
+  subject: 'Test',
+  template: OTPEmail({ otp: '123456' }),
 })
 
 const result = await Effect.runPromise(program.pipe(Effect.provide(TestEmailService)))

@@ -1,26 +1,26 @@
-"use client"
+'use client'
 
-import { CheckIcon } from "lucide-react"
-import { motion } from "motion/react"
-import { BY_CAMERA_STEPS } from "@/lib/flow/constants"
-import { cn } from "@/lib/utils"
-import { useTranslations } from "next-intl"
-import { useStepState } from "@/lib/flow/step-state-context"
+import { CheckIcon } from 'lucide-react'
+import { motion } from 'motion/react'
+import { BY_CAMERA_STEPS } from '@/lib/flow/constants'
+import { cn } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
+import { useStepState } from '@/lib/flow/step-state-context'
 
 export function ByCameraStepNavigator() {
   const { step: currentStep, handleSetStep, maxSteps } = useStepState()
-  const t = useTranslations("FlowPage")
+  const t = useTranslations('FlowPage')
 
   const getStepLabel = (step: number) => {
     switch (step) {
       case BY_CAMERA_STEPS.ParticipantDetailsStep:
-        return t("steps.details")
+        return t('steps.details')
       case BY_CAMERA_STEPS.DeviceSelectionStep:
-        return t("steps.device")
+        return t('steps.device')
       case BY_CAMERA_STEPS.UploadSubmissionStep:
-        return t("steps.upload")
+        return t('steps.upload')
       default:
-        return ""
+        return ''
     }
   }
 
@@ -32,7 +32,7 @@ export function ByCameraStepNavigator() {
         {Object.values(BY_CAMERA_STEPS).map((step) => (
           <li
             key={step}
-            className={cn("flex flex-col items-center", !isLastStep(step) && "flex-1")}
+            className={cn('flex flex-col items-center', !isLastStep(step) && 'flex-1')}
           >
             <div className="flex items-center w-full">
               <motion.button
@@ -43,15 +43,15 @@ export function ByCameraStepNavigator() {
                 animate={{
                   scale: step <= currentStep ? 1 : 0.9,
                   backgroundColor:
-                    step <= currentStep ? "hsl(240 5.9% 10%)" : "hsl(240 4.8% 95.9%)",
-                  color: step <= currentStep ? "hsl(0 0% 98%)" : "hsl(240 3.8% 46.1%)",
+                    step <= currentStep ? 'hsl(240 5.9% 10%)' : 'hsl(240 4.8% 95.9%)',
+                  color: step <= currentStep ? 'hsl(0 0% 98%)' : 'hsl(240 3.8% 46.1%)',
                 }}
                 className={cn(
-                  "flex items-center justify-center rounded-full shrink-0",
-                  "w-8 h-8 sm:w-10 sm:h-10",
-                  "hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2",
-                  "focus:ring-primary transition-shadow relative z-10 bg-background",
-                  step <= currentStep ? "shadow-md" : "",
+                  'flex items-center justify-center rounded-full shrink-0',
+                  'w-8 h-8 sm:w-10 sm:h-10',
+                  'hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2',
+                  'focus:ring-primary transition-shadow relative z-10 bg-background',
+                  step <= currentStep ? 'shadow-md' : '',
                 )}
                 transition={{ duration: 0.2 }}
               >
@@ -67,7 +67,7 @@ export function ByCameraStepNavigator() {
                     initial={false}
                     animate={{
                       backgroundColor:
-                        step < currentStep ? "hsl(240 5.9% 8%)" : "hsl(240 4.8% 90%)",
+                        step < currentStep ? 'hsl(240 5.9% 8%)' : 'hsl(240 4.8% 90%)',
                     }}
                     className="absolute inset-0 mx-2 h-0.5 top-1/2 -translate-y-1/2"
                     transition={{ duration: 0.2 }}
@@ -82,8 +82,8 @@ export function ByCameraStepNavigator() {
                 y: 0,
               }}
               className={cn(
-                "hidden sm:block text-xs sm:text-sm mt-2 font-medium truncate max-w-[110px] text-center",
-                step <= currentStep ? "text-foreground" : "text-muted-foreground",
+                'hidden sm:block text-xs sm:text-sm mt-2 font-medium truncate max-w-[110px] text-center',
+                step <= currentStep ? 'text-foreground' : 'text-muted-foreground',
               )}
               transition={{ duration: 0.2, delay: 0.1 }}
             >

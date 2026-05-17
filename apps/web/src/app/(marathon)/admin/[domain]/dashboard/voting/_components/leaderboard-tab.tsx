@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Maximize2, Presentation, Trophy } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight, Maximize2, Presentation, Trophy } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -18,94 +18,78 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { useTRPC } from "@/lib/trpc/client";
-import {
-  formatDateTime,
-  getSubmissionImageUrl,
-  VOTING_PAGE_SIZE,
-} from "../_lib/utils";
-import { useDomain } from "@/lib/domain-provider";
-import { useVotingUiState } from "../_hooks/use-voting-ui-state";
-import { SubmissionFullscreenDialog } from "./submission-fullscreen-dialog";
-import { WinnersSlideshow } from "./winners-slideshow";
+} from '@/components/ui/table'
+import { useTRPC } from '@/lib/trpc/client'
+import { formatDateTime, getSubmissionImageUrl, VOTING_PAGE_SIZE } from '../_lib/utils'
+import { useDomain } from '@/lib/domain-provider'
+import { useVotingUiState } from '../_hooks/use-voting-ui-state'
+import { SubmissionFullscreenDialog } from './submission-fullscreen-dialog'
+import { WinnersSlideshow } from './winners-slideshow'
 
 interface LeaderboardEntry {
-  submissionId: number;
-  participantId: number;
-  participantFirstName: string;
-  participantLastName: string;
-  participantReference: string;
-  rank: number;
-  voteCount: number;
-  isTie: boolean;
-  tieSize: number;
-  submissionCreatedAt: string;
-  submissionThumbnailKey?: string | null;
-  submissionKey?: string | null;
+  submissionId: number
+  participantId: number
+  participantFirstName: string
+  participantLastName: string
+  participantReference: string
+  rank: number
+  voteCount: number
+  isTie: boolean
+  tieSize: number
+  submissionCreatedAt: string
+  submissionThumbnailKey?: string | null
+  submissionKey?: string | null
 }
 
 interface LeaderboardTabProps {
-  activeTopic: { id: number };
+  activeTopic: { id: number }
 }
 
 const RANK_ACCENT = {
-  1: "bg-brand-primary text-white",
-  2: "bg-zinc-800 text-white",
-  3: "bg-zinc-400 text-white",
-} as const;
+  1: 'bg-brand-primary text-white',
+  2: 'bg-zinc-800 text-white',
+  3: 'bg-zinc-400 text-white',
+} as const
 
 function getRankAccent(rank: number) {
-  return (
-    RANK_ACCENT[rank as keyof typeof RANK_ACCENT] ??
-    "bg-zinc-200 text-zinc-600"
-  );
+  return RANK_ACCENT[rank as keyof typeof RANK_ACCENT] ?? 'bg-zinc-200 text-zinc-600'
 }
 
 function getOrdinal(n: number) {
-  const suffixes = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
+  const suffixes = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0])
 }
 
 export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
-  const router = useRouter();
-  const trpc = useTRPC();
-  const domain = useDomain();
-  const {
-    leaderboardPage,
-    setLeaderboardPage,
-    leaderboardRoundId,
-    setLeaderboardRoundId,
-  } = useVotingUiState();
-  const [slideshowOpen, setSlideshowOpen] = useState(false);
-  const [fullscreenEntry, setFullscreenEntry] = useState<LeaderboardEntry | null>(
-    null,
-  );
+  const router = useRouter()
+  const trpc = useTRPC()
+  const domain = useDomain()
+  const { leaderboardPage, setLeaderboardPage, leaderboardRoundId, setLeaderboardRoundId } =
+    useVotingUiState()
+  const [slideshowOpen, setSlideshowOpen] = useState(false)
+  const [fullscreenEntry, setFullscreenEntry] = useState<LeaderboardEntry | null>(null)
 
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain }),
-  );
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   const { data: summary } = useSuspenseQuery(
     trpc.voting.getVotingAdminSummary.queryOptions({
       domain,
       topicId: activeTopic.id,
     }),
-  );
+  )
 
   const { data: rounds } = useSuspenseQuery(
     trpc.voting.getVotingRoundsForTopic.queryOptions({
       domain,
       topicId: activeTopic.id,
     }),
-  );
+  )
 
   const leaderboardRoundIdForQuery =
-    leaderboardRoundId != null &&
-    rounds.some((r) => r.id === leaderboardRoundId)
+    leaderboardRoundId != null && rounds.some((r) => r.id === leaderboardRoundId)
       ? leaderboardRoundId
-      : null;
+      : null
 
   const { data: leaderboardPageData } = useSuspenseQuery(
     trpc.voting.getVotingLeaderboardPage.queryOptions({
@@ -113,67 +97,65 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
       topicId: activeTopic.id,
       page: leaderboardPage,
       limit: VOTING_PAGE_SIZE,
-      ...(leaderboardRoundIdForQuery != null
-        ? { roundId: leaderboardRoundIdForQuery }
-        : {}),
+      ...(leaderboardRoundIdForQuery != null ? { roundId: leaderboardRoundIdForQuery } : {}),
     }),
-  );
+  )
 
-  const leaderboard = leaderboardPageData?.items ?? [];
-  const pageCount = leaderboardPageData?.pageCount ?? 0;
-  const total = leaderboardPageData?.total ?? 0;
+  const leaderboard = leaderboardPageData?.items ?? []
+  const pageCount = leaderboardPageData?.pageCount ?? 0
+  const total = leaderboardPageData?.total ?? 0
 
   useEffect(() => {
     if (pageCount > 0 && leaderboardPage > pageCount) {
-      setLeaderboardPage(pageCount);
+      setLeaderboardPage(pageCount)
     }
-  }, [pageCount, leaderboardPage, setLeaderboardPage]);
+  }, [pageCount, leaderboardPage, setLeaderboardPage])
 
   useEffect(() => {
     if (leaderboardRoundId == null || rounds.length === 0) {
-      return;
+      return
     }
-    const exists = rounds.some((r) => r.id === leaderboardRoundId);
+    const exists = rounds.some((r) => r.id === leaderboardRoundId)
     if (!exists) {
-      setLeaderboardRoundId(null);
+      setLeaderboardRoundId(null)
     }
-  }, [leaderboardRoundId, rounds, setLeaderboardRoundId]);
+  }, [leaderboardRoundId, rounds, setLeaderboardRoundId])
 
   const handleRowClick = (entry: LeaderboardEntry) => {
     router.push(
       `/admin/${domain}/dashboard/submissions/${entry.participantReference}/${entry.submissionId}`,
-    );
-  };
+    )
+  }
 
   const topCardEntries = summary.topRanks
     .flatMap((rankGroup) =>
       [...rankGroup.entries].sort((entryA, entryB) => {
         const timeDiff =
           new Date(entryA.submissionCreatedAt).getTime() -
-          new Date(entryB.submissionCreatedAt).getTime();
-        if (timeDiff !== 0) return timeDiff;
-        return entryA.submissionId - entryB.submissionId;
+          new Date(entryB.submissionCreatedAt).getTime()
+        if (timeDiff !== 0) return timeDiff
+        return entryA.submissionId - entryB.submissionId
       }),
     )
     .sort((entryA, entryB) => {
-      if (entryA.rank !== entryB.rank) return entryA.rank - entryB.rank;
+      if (entryA.rank !== entryB.rank) return entryA.rank - entryB.rank
       if (entryA.voteCount !== entryB.voteCount) {
-        return entryB.voteCount - entryA.voteCount;
+        return entryB.voteCount - entryA.voteCount
       }
       const timeDiff =
         new Date(entryA.submissionCreatedAt).getTime() -
-        new Date(entryB.submissionCreatedAt).getTime();
-      if (timeDiff !== 0) return timeDiff;
-      return entryA.submissionId - entryB.submissionId;
+        new Date(entryB.submissionCreatedAt).getTime()
+      if (timeDiff !== 0) return timeDiff
+      return entryA.submissionId - entryB.submissionId
     })
-    .slice(0, 3);
+    .slice(0, 3)
 
   const maxVotes = leaderboard.reduce((max, entry) => {
-    return Math.max(max, entry.voteCount);
-  }, 0);
+    return Math.max(max, entry.voteCount)
+  }, 0)
 
   const getDisplayName = (entry: LeaderboardEntry) =>
-    `${entry.participantFirstName} ${entry.participantLastName}`.trim();
+    `${entry.participantFirstName} ${entry.participantLastName}`.trim()
 
   if (summary.voteStats.totalVotes === 0) {
     return (
@@ -181,32 +163,26 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
         <div className="flex size-12 items-center justify-center rounded-full bg-muted">
           <Trophy className="size-5 text-muted-foreground" />
         </div>
-        <p className="mt-4 text-sm font-semibold text-foreground">
-          No votes yet
-        </p>
+        <p className="mt-4 text-sm font-semibold text-foreground">No votes yet</p>
         <p className="mt-1 max-w-xs text-center text-sm text-muted-foreground">
-          The leaderboard will populate once participants begin casting their
-          votes.
+          The leaderboard will populate once participants begin casting their votes.
         </p>
       </div>
-    );
+    )
   }
 
-  const winner = topCardEntries[0];
-  const runnerUp = topCardEntries[1];
-  const thirdPlace = topCardEntries[2];
+  const winner = topCardEntries[0]
+  const runnerUp = topCardEntries[1]
+  const thirdPlace = topCardEntries[2]
 
-  const latestRound = rounds.length > 0 ? rounds[rounds.length - 1] : undefined;
-  const tableRoundId = leaderboardRoundIdForQuery ?? latestRound?.id;
-  const selectedTableRound = tableRoundId
-    ? rounds.find((r) => r.id === tableRoundId)
-    : undefined;
-  const roundSelectValue =
-    tableRoundId !== undefined ? String(tableRoundId) : "";
+  const latestRound = rounds.length > 0 ? rounds[rounds.length - 1] : undefined
+  const tableRoundId = leaderboardRoundIdForQuery ?? latestRound?.id
+  const selectedTableRound = tableRoundId ? rounds.find((r) => r.id === tableRoundId) : undefined
+  const roundSelectValue = tableRoundId !== undefined ? String(tableRoundId) : ''
 
   return (
     <div className="space-y-6">
-      {(summary.currentRound || topCardEntries.length > 0) ? (
+      {summary.currentRound || topCardEntries.length > 0 ? (
         <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5 sm:gap-y-2">
           {summary.currentRound ? (
             <>
@@ -214,7 +190,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
                 variant="outline"
                 className="w-fit border-brand-primary/25 bg-brand-primary/5 text-brand-primary"
               >
-                {summary.currentRound.kind === "tiebreak"
+                {summary.currentRound.kind === 'tiebreak'
                   ? `Tie-break ${summary.currentRound.roundNumber}`
                   : `Round ${summary.currentRound.roundNumber}`}
               </Badge>
@@ -271,29 +247,25 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
       <SubmissionFullscreenDialog
         open={fullscreenEntry !== null}
         onOpenChange={(open) => {
-          if (!open) setFullscreenEntry(null);
+          if (!open) setFullscreenEntry(null)
         }}
-        participantDisplayName={
-          fullscreenEntry ? getDisplayName(fullscreenEntry) : ""
-        }
+        participantDisplayName={fullscreenEntry ? getDisplayName(fullscreenEntry) : ''}
         submissionKey={fullscreenEntry?.submissionKey}
       />
 
       {rounds.length > 0 ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">
-              Leaderboard table
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">Leaderboard table</p>
             <Select
               value={roundSelectValue}
               onValueChange={(value) => {
-                const nextId = Number(value);
-                const latestId = latestRound?.id;
+                const nextId = Number(value)
+                const latestId = latestRound?.id
                 if (latestId !== undefined && nextId === latestId) {
-                  setLeaderboardRoundId(null);
+                  setLeaderboardRoundId(null)
                 } else {
-                  setLeaderboardRoundId(nextId);
+                  setLeaderboardRoundId(nextId)
                 }
               }}
             >
@@ -303,7 +275,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
               <SelectContent>
                 {rounds.map((r) => (
                   <SelectItem key={r.id} value={String(r.id)}>
-                    {r.kind === "tiebreak"
+                    {r.kind === 'tiebreak'
                       ? `Round ${r.roundNumber} (tie-break)`
                       : `Round ${r.roundNumber} (initial)`}
                   </SelectItem>
@@ -311,10 +283,10 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
               </SelectContent>
             </Select>
           </div>
-          {selectedTableRound?.kind === "tiebreak" ? (
+          {selectedTableRound?.kind === 'tiebreak' ? (
             <p className="max-w-md text-xs text-muted-foreground sm:pt-5">
-              This round only lists submissions that were tied for the lead.
-              Choose an earlier round to see the full field.
+              This round only lists submissions that were tied for the lead. Choose an earlier round
+              to see the full field.
             </p>
           ) : null}
         </div>
@@ -350,8 +322,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
             <TableBody>
               {leaderboard.length > 0 ? (
                 leaderboard.map((entry) => {
-                  const voteProgress =
-                    maxVotes > 0 ? (entry.voteCount / maxVotes) * 100 : 0;
+                  const voteProgress = maxVotes > 0 ? (entry.voteCount / maxVotes) * 100 : 0
 
                   return (
                     <TableRow
@@ -377,14 +348,10 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
                         </div>
                       </TableCell>
                       <TableCell className="py-2">
-                        <p className="text-sm font-medium">
-                          {getDisplayName(entry)}
-                        </p>
+                        <p className="text-sm font-medium">{getDisplayName(entry)}</p>
                       </TableCell>
                       <TableCell className="py-2">
-                        <code className="font-mono text-xs">
-                          {entry.participantReference}
-                        </code>
+                        <code className="font-mono text-xs">{entry.participantReference}</code>
                       </TableCell>
                       <TableCell className="py-2 text-xs text-muted-foreground sm:text-sm">
                         {formatDateTime(entry.submissionCreatedAt)}
@@ -404,10 +371,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell
-                        className="py-2 text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <TableCell className="py-2 text-right" onClick={(e) => e.stopPropagation()}>
                         <Button
                           type="button"
                           variant="outline"
@@ -420,14 +384,11 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  );
+                  )
                 })
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="h-24 text-center text-muted-foreground"
-                  >
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     No submissions found for this topic.
                   </TableCell>
                 </TableRow>
@@ -446,9 +407,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
             variant="ghost"
             size="icon"
             className="min-h-10 min-w-10 sm:min-h-8 sm:min-w-8"
-            onClick={() =>
-              setLeaderboardPage(Math.max(1, leaderboardPage - 1))
-            }
+            onClick={() => setLeaderboardPage(Math.max(1, leaderboardPage - 1))}
             disabled={leaderboardPage <= 1}
           >
             <ChevronLeft className="size-4" />
@@ -462,9 +421,7 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
             className="min-h-10 min-w-10 sm:min-h-8 sm:min-w-8"
             onClick={() =>
               setLeaderboardPage(
-                pageCount > 0
-                  ? Math.min(pageCount, leaderboardPage + 1)
-                  : leaderboardPage + 1,
+                pageCount > 0 ? Math.min(pageCount, leaderboardPage + 1) : leaderboardPage + 1,
               )
             }
             disabled={pageCount === 0 || leaderboardPage >= pageCount}
@@ -474,31 +431,23 @@ export function LeaderboardTab({ activeTopic }: LeaderboardTabProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 /* ─── Podium Card ─── */
 
 interface PodiumCardProps {
-  entry: LeaderboardEntry | undefined;
-  rank: number;
-  getDisplayName: (entry: LeaderboardEntry) => string;
-  onClick?: () => void;
+  entry: LeaderboardEntry | undefined
+  rank: number
+  getDisplayName: (entry: LeaderboardEntry) => string
+  onClick?: () => void
 }
 
-function PodiumCard({
-  entry,
-  rank,
-  getDisplayName,
-  onClick,
-}: PodiumCardProps) {
-  const accent = getRankAccent(rank);
+function PodiumCard({ entry, rank, getDisplayName, onClick }: PodiumCardProps) {
+  const accent = getRankAccent(rank)
   const imageUrl = entry
-    ? getSubmissionImageUrl(
-        entry.submissionThumbnailKey,
-        entry.submissionKey,
-      )
-    : null;
+    ? getSubmissionImageUrl(entry.submissionThumbnailKey, entry.submissionKey)
+    : null
 
   if (!entry) {
     return (
@@ -510,18 +459,16 @@ function PodiumCard({
           >
             {rank}
           </span>
-          <span className="text-sm">
-            {getOrdinal(rank)} place — awaiting submission
-          </span>
+          <span className="text-sm">{getOrdinal(rank)} place — awaiting submission</span>
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <div
       className={`group relative flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm ${
-        onClick ? "cursor-pointer transition-shadow hover:shadow-md" : ""
+        onClick ? 'cursor-pointer transition-shadow hover:shadow-md' : ''
       }`}
       onClick={onClick}
     >
@@ -561,19 +508,15 @@ function PodiumCard({
           ) : null}
         </div>
 
-        <p className="mt-2 line-clamp-2 font-semibold text-foreground">
-          {getDisplayName(entry)}
-        </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          #{entry.participantReference}
-        </p>
+        <p className="mt-2 line-clamp-2 font-semibold text-foreground">{getDisplayName(entry)}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">#{entry.participantReference}</p>
 
         <div className="mt-3 flex items-baseline gap-1.5">
           <span className="font-mono text-2xl font-bold tabular-nums text-foreground">
             {entry.voteCount}
           </span>
           <span className="text-xs text-muted-foreground">
-            vote{entry.voteCount !== 1 ? "s" : ""}
+            vote{entry.voteCount !== 1 ? 's' : ''}
           </span>
         </div>
 
@@ -582,5 +525,5 @@ function PodiumCard({
         </p>
       </div>
     </div>
-  );
+  )
 }

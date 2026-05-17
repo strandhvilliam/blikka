@@ -1,34 +1,29 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useForm } from "@tanstack/react-form"
-import { AlertTriangle, HardHat, Shield, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { useDomain } from "@/lib/domain-provider"
-import { cn, formatDomainPathname } from "@/lib/utils"
-import { motion, AnimatePresence } from "motion/react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { AlertTriangle, HardHat, Shield, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useTRPC } from '@/lib/trpc/client'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useDomain } from '@/lib/domain-provider'
+import { cn, formatDomainPathname } from '@/lib/utils'
+import { motion, AnimatePresence } from 'motion/react'
+import { useRouter } from 'next/navigation'
 
 const roleTypes = [
   {
-    value: "staff",
-    label: "Staff",
+    value: 'staff',
+    label: 'Staff',
     icon: HardHat,
   },
   {
-    value: "admin",
-    label: "Admin",
+    value: 'admin',
+    label: 'Admin',
     icon: Shield,
   },
 ] as const
@@ -40,7 +35,7 @@ interface StaffEditDialogProps {
   initialData: {
     name: string
     email: string
-    role: "staff" | "admin"
+    role: 'staff' | 'admin'
   }
 }
 
@@ -81,25 +76,25 @@ export function StaffEditDialog({
       return
     }
 
-    form.setFieldValue("name", initialData.name)
-    form.setFieldValue("email", initialData.email)
-    form.setFieldValue("role", initialData.role)
+    form.setFieldValue('name', initialData.name)
+    form.setFieldValue('email', initialData.email)
+    form.setFieldValue('role', initialData.role)
   }, [form, initialData, isOpen])
 
   const { mutate: updateStaffAccess, isPending: isUpdatingStaffAccess } = useMutation(
     trpc.users.updateStaffAccess.mutationOptions({
       onError: (error) => {
-        console.error("Failed to update staff access:", error)
-        setErrorMessage(error.message || "Failed to update staff member")
+        console.error('Failed to update staff access:', error)
+        setErrorMessage(error.message || 'Failed to update staff member')
       },
       onSuccess: (data) => {
         toast.success(
-          data.kind === "pending"
-            ? "Pending access updated successfully"
-            : "Staff member updated successfully",
+          data.kind === 'pending'
+            ? 'Pending access updated successfully'
+            : 'Staff member updated successfully',
         )
         if (data.id !== accessId) {
-          const base = formatDomainPathname("/admin/dashboard/staff", domain)
+          const base = formatDomainPathname('/admin/dashboard/staff', domain)
           router.replace(`${base}?access=${encodeURIComponent(data.id)}`)
         }
         onOpenChange(false)
@@ -151,7 +146,7 @@ export function StaffEditDialog({
           <form.Field
             name="name"
             validators={{
-              onChange: ({ value }) => (!value ? "Name is required" : undefined),
+              onChange: ({ value }) => (!value ? 'Name is required' : undefined),
             }}
           >
             {(field) => (
@@ -171,7 +166,7 @@ export function StaffEditDialog({
                   placeholder="Anna Johnson"
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
-                  <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>
+                  <em className="text-sm text-red-600">{field.state.meta.errors.join(', ')}</em>
                 ) : null}
               </div>
             )}
@@ -181,9 +176,9 @@ export function StaffEditDialog({
             name="email"
             validators={{
               onChange: ({ value }) => {
-                if (!value) return "Email is required"
+                if (!value) return 'Email is required'
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-                  return "Invalid email address"
+                  return 'Invalid email address'
                 }
                 return undefined
               },
@@ -207,7 +202,7 @@ export function StaffEditDialog({
                   placeholder="anna.johnson@example.com"
                 />
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
-                  <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>
+                  <em className="text-sm text-red-600">{field.state.meta.errors.join(', ')}</em>
                 ) : null}
               </div>
             )}
@@ -216,7 +211,7 @@ export function StaffEditDialog({
           <form.Field
             name="role"
             validators={{
-              onChange: ({ value }) => (!value ? "Role is required" : undefined),
+              onChange: ({ value }) => (!value ? 'Role is required' : undefined),
             }}
           >
             {(field) => (
@@ -236,8 +231,8 @@ export function StaffEditDialog({
                         type="button"
                         variant="outline"
                         className={cn(
-                          "relative h-40 w-40 overflow-hidden p-0",
-                          field.state.value === role.value && "ring-2 ring-primary ring-offset-2",
+                          'relative h-40 w-40 overflow-hidden p-0',
+                          field.state.value === role.value && 'ring-2 ring-primary ring-offset-2',
                         )}
                         onClick={() => field.handleChange(role.value)}
                       >
@@ -246,7 +241,7 @@ export function StaffEditDialog({
                             scale: field.state.value === role.value ? 1.1 : 1,
                           }}
                           transition={{
-                            type: "spring",
+                            type: 'spring',
                             stiffness: 300,
                             damping: 20,
                           }}
@@ -273,11 +268,11 @@ export function StaffEditDialog({
                   })}
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Staff can use the verification desk. Admins keep dashboard access and can also
-                  use the staff page.
+                  Staff can use the verification desk. Admins keep dashboard access and can also use
+                  the staff page.
                 </p>
                 {field.state.meta.isTouched && field.state.meta.errors.length > 0 ? (
-                  <em className="text-sm text-red-600">{field.state.meta.errors.join(", ")}</em>
+                  <em className="text-sm text-red-600">{field.state.meta.errors.join(', ')}</em>
                 ) : null}
               </div>
             )}
@@ -288,7 +283,7 @@ export function StaffEditDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isUpdatingStaffAccess}>
-              {isUpdatingStaffAccess ? "Saving..." : "Save Changes"}
+              {isUpdatingStaffAccess ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         </form>

@@ -1,19 +1,19 @@
-"use client"
+'use client'
 
-import Image from "next/image"
-import { Eye, Images } from "lucide-react"
-import { useTranslations } from "next-intl"
-import { cn } from "@/lib/utils"
-import { useVotingSearchParams } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params"
-import { useVotingCarouselApi } from "@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-carousel-api"
-import { OwnSubmissionBadge } from "./own-submission-badge"
-import type { VotingSubmission } from "@/lib/vote/voting-submission"
+import Image from 'next/image'
+import { Eye, Images } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { cn } from '@/lib/utils'
+import { useVotingSearchParams } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params'
+import { useVotingCarouselApi } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-carousel-api'
+import { OwnSubmissionBadge } from './own-submission-badge'
+import type { VotingSubmission } from '@/lib/vote/voting-submission'
 
 interface GridViewProps {
   submissions: VotingSubmission[]
   selectedSubmissionId: number | null
   getRating: (submissionId: number) => number | undefined
-  onViewModeChange?: (mode: "carousel" | "grid") => void
+  onViewModeChange?: (mode: 'carousel' | 'grid') => void
 }
 
 export function GridView({
@@ -24,11 +24,11 @@ export function GridView({
 }: GridViewProps) {
   const { currentImageIndex, setParams } = useVotingSearchParams()
   const { isNavigatingRef } = useVotingCarouselApi()
-  const t = useTranslations("VotingViewerPage")
+  const t = useTranslations('VotingViewerPage')
 
   const handleThumbnailClick = (index: number) => {
     isNavigatingRef.current = true
-    setParams({ image: index, view: "carousel" })
+    setParams({ image: index, view: 'carousel' })
     setTimeout(() => {
       isNavigatingRef.current = false
     }, 100)
@@ -51,7 +51,7 @@ export function GridView({
               {imageUrl ? (
                 <Image
                   src={imageUrl}
-                  alt={t("gridView.photoAlt", {
+                  alt={t('gridView.photoAlt', {
                     participantId: submission.participantId,
                   })}
                   fill
@@ -62,7 +62,7 @@ export function GridView({
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-muted">
-                  <span className="text-xs text-muted-foreground">{t("gridView.noImage")}</span>
+                  <span className="text-xs text-muted-foreground">{t('gridView.noImage')}</span>
                 </div>
               )}
               {submission.isOwnSubmission && <OwnSubmissionBadge compact />}
@@ -76,20 +76,18 @@ export function GridView({
                   <div className="absolute inset-0 rounded-xl ring-2 ring-foreground ring-inset" />
                   <div
                     className={cn(
-                      "absolute left-1.5 flex items-center gap-1 rounded-full bg-foreground py-0.5 pl-1.5 pr-2 shadow-md",
-                      submission.isOwnSubmission ? "top-8" : "top-1.5",
+                      'absolute left-1.5 flex items-center gap-1 rounded-full bg-foreground py-0.5 pl-1.5 pr-2 shadow-md',
+                      submission.isOwnSubmission ? 'top-8' : 'top-1.5',
                     )}
                   >
                     <Eye className="h-3 w-3 text-background" />
                     <span className="text-[10px] font-semibold text-background">
-                      {t("gridView.viewing")}
+                      {t('gridView.viewing')}
                     </span>
                   </div>
                 </>
               )}
-              {isSelected && (
-                <div className="absolute inset-0 ring-2 ring-foreground ring-inset" />
-              )}
+              {isSelected && <div className="absolute inset-0 ring-2 ring-foreground ring-inset" />}
             </button>
           )
         })}
@@ -98,9 +96,9 @@ export function GridView({
       {onViewModeChange && (
         <div className="pointer-events-none sticky bottom-3 z-20 -mb-16 mt-4 flex justify-center">
           <button
-            onClick={() => onViewModeChange("carousel")}
+            onClick={() => onViewModeChange('carousel')}
             className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-foreground shadow-lg ring-1 ring-background/20 transition-colors hover:bg-foreground/90"
-            aria-label={t("gridView.showCarousel")}
+            aria-label={t('gridView.showCarousel')}
           >
             <Images className="h-6 w-6 text-background" />
           </button>

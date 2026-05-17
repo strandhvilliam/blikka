@@ -1,7 +1,7 @@
-import { Effect, Layer, Context } from "effect"
-import { DrizzleClient } from "../drizzle-client"
-import { and, notInArray, eq } from "drizzle-orm"
-import { participantVerifications, validationResults } from "../schema"
+import { Effect, Layer, Context } from 'effect'
+import { DrizzleClient } from '../drizzle-client'
+import { and, notInArray, eq } from 'drizzle-orm'
+import { participantVerifications, validationResults } from '../schema'
 import type {
   CompetitionClass,
   DeviceGroup,
@@ -12,8 +12,8 @@ import type {
   Submission,
   Topic,
   ValidationResult,
-} from "../types"
-import { DbError } from "../utils"
+} from '../types'
+import { DbError } from '../utils'
 
 type DomainSubmissionValidationRow = Submission & {
   participant: Participant
@@ -77,7 +77,7 @@ export class ValidationsRepository extends Context.Service<
     readonly createMultipleValidationResults: (params: {
       domain: string
       reference: string
-      data: Omit<NewValidationResult, "participantId">[]
+      data: Omit<NewValidationResult, 'participantId'>[]
     }) => Effect.Effect<ValidationResult[], DbError>
     /** Patch fields on a validation result identified by id. */
     readonly updateValidationResult: (params: {
@@ -119,13 +119,13 @@ export class ValidationsRepository extends Context.Service<
       participantId: number
     }) => Effect.Effect<void, DbError>
   }
->()("@blikka/db/validations-repository") {}
+>()('@blikka/db/validations-repository') {}
 
 const makeValidationsRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
 
-  const getValidationResultsByParticipantId: ValidationsRepository["Service"]["getValidationResultsByParticipantId"] =
-    Effect.fn("ValidationsRepository.getValidationResultsByParticipantId")(function* ({
+  const getValidationResultsByParticipantId: ValidationsRepository['Service']['getValidationResultsByParticipantId'] =
+    Effect.fn('ValidationsRepository.getValidationResultsByParticipantId')(function* ({
       participantId,
     }: {
       participantId: number
@@ -138,8 +138,8 @@ const makeValidationsRepository = Effect.gen(function* () {
       return result
     })
 
-  const getValidationResultsByDomain: ValidationsRepository["Service"]["getValidationResultsByDomain"] =
-    Effect.fn("ValidationsRepository.getValidationResultsByDomain")(function* ({
+  const getValidationResultsByDomain: ValidationsRepository['Service']['getValidationResultsByDomain'] =
+    Effect.fn('ValidationsRepository.getValidationResultsByDomain')(function* ({
       domain,
     }: {
       domain: string
@@ -169,8 +169,8 @@ const makeValidationsRepository = Effect.gen(function* () {
       )
     })
 
-  const getParticipantVerificationsByStaffId: ValidationsRepository["Service"]["getParticipantVerificationsByStaffId"] =
-    Effect.fn("ValidationsRepository.getParticipantVerificationsByStaffId")(function* ({
+  const getParticipantVerificationsByStaffId: ValidationsRepository['Service']['getParticipantVerificationsByStaffId'] =
+    Effect.fn('ValidationsRepository.getParticipantVerificationsByStaffId')(function* ({
       staffId,
       domain,
       cursor,
@@ -219,8 +219,8 @@ const makeValidationsRepository = Effect.gen(function* () {
       }
     })
 
-  const createValidationResult: ValidationsRepository["Service"]["createValidationResult"] =
-    Effect.fn("ValidationsRepository.createValidationResult")(function* ({
+  const createValidationResult: ValidationsRepository['Service']['createValidationResult'] =
+    Effect.fn('ValidationsRepository.createValidationResult')(function* ({
       data,
     }: {
       data: NewValidationResult
@@ -229,22 +229,22 @@ const makeValidationsRepository = Effect.gen(function* () {
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to create validation result",
+            message: 'Failed to create validation result',
           }),
         )
       }
       return result
     })
 
-  const createMultipleValidationResults: ValidationsRepository["Service"]["createMultipleValidationResults"] =
-    Effect.fn("ValidationsRepository.createMultipleValidationResults")(function* ({
+  const createMultipleValidationResults: ValidationsRepository['Service']['createMultipleValidationResults'] =
+    Effect.fn('ValidationsRepository.createMultipleValidationResults')(function* ({
       data,
       domain,
       reference,
     }: {
       domain: string
       reference: string
-      data: Omit<NewValidationResult, "participantId">[]
+      data: Omit<NewValidationResult, 'participantId'>[]
     }) {
       const participant = yield* use((db) =>
         db.query.participants.findFirst({
@@ -258,7 +258,7 @@ const makeValidationsRepository = Effect.gen(function* () {
       if (!participant) {
         return yield* Effect.fail(
           new DbError({
-            message: "Participant not found",
+            message: 'Participant not found',
           }),
         )
       }
@@ -319,8 +319,8 @@ const makeValidationsRepository = Effect.gen(function* () {
       return result
     })
 
-  const updateValidationResult: ValidationsRepository["Service"]["updateValidationResult"] =
-    Effect.fn("ValidationsRepository.updateValidationResult")(function* ({
+  const updateValidationResult: ValidationsRepository['Service']['updateValidationResult'] =
+    Effect.fn('ValidationsRepository.updateValidationResult')(function* ({
       id,
       data,
     }: {
@@ -333,15 +333,15 @@ const makeValidationsRepository = Effect.gen(function* () {
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to update validation result",
+            message: 'Failed to update validation result',
           }),
         )
       }
       return result
     })
 
-  const createParticipantVerification: ValidationsRepository["Service"]["createParticipantVerification"] =
-    Effect.fn("ValidationsRepository.createParticipantVerification")(function* ({
+  const createParticipantVerification: ValidationsRepository['Service']['createParticipantVerification'] =
+    Effect.fn('ValidationsRepository.createParticipantVerification')(function* ({
       data,
     }: {
       data: NewParticipantVerification
@@ -352,15 +352,15 @@ const makeValidationsRepository = Effect.gen(function* () {
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to create participant verification",
+            message: 'Failed to create participant verification',
           }),
         )
       }
       return result
     })
 
-  const clearNonEnabledRuleResults: ValidationsRepository["Service"]["clearNonEnabledRuleResults"] =
-    Effect.fn("ValidationsRepository.clearNonEnabledRuleResults")(function* ({
+  const clearNonEnabledRuleResults: ValidationsRepository['Service']['clearNonEnabledRuleResults'] =
+    Effect.fn('ValidationsRepository.clearNonEnabledRuleResults')(function* ({
       participantId,
       ruleKeys,
     }: {
@@ -379,8 +379,8 @@ const makeValidationsRepository = Effect.gen(function* () {
       )
     })
 
-  const getAllParticipantVerifications: ValidationsRepository["Service"]["getAllParticipantVerifications"] =
-    Effect.fn("ValidationsRepository.getAllParticipantVerifications")(function* ({
+  const getAllParticipantVerifications: ValidationsRepository['Service']['getAllParticipantVerifications'] =
+    Effect.fn('ValidationsRepository.getAllParticipantVerifications')(function* ({
       domain,
       page,
       pageSize,
@@ -433,8 +433,8 @@ const makeValidationsRepository = Effect.gen(function* () {
       }
     })
 
-  const getParticipantVerificationByReference: ValidationsRepository["Service"]["getParticipantVerificationByReference"] =
-    Effect.fn("ValidationsRepository.getParticipantVerificationByReference")(function* ({
+  const getParticipantVerificationByReference: ValidationsRepository['Service']['getParticipantVerificationByReference'] =
+    Effect.fn('ValidationsRepository.getParticipantVerificationByReference')(function* ({
       domain,
       reference,
     }: {
@@ -479,8 +479,8 @@ const makeValidationsRepository = Effect.gen(function* () {
         : null
     })
 
-  const clearAllValidationResults: ValidationsRepository["Service"]["clearAllValidationResults"] =
-    Effect.fn("ValidationsRepository.clearAllValidationResults")(function* ({
+  const clearAllValidationResults: ValidationsRepository['Service']['clearAllValidationResults'] =
+    Effect.fn('ValidationsRepository.clearAllValidationResults')(function* ({
       participantId,
     }: {
       participantId: number

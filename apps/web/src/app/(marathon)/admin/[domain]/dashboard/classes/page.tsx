@@ -1,11 +1,11 @@
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { ClassesHeader } from "./_components/classes-header"
-import { ClassesSkeleton } from "./_components/classes-skeleton"
-import { CompetitionClassSection } from "./_components/competition-class-section"
-import { DeviceGroupSection } from "./_components/device-group-section"
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { ClassesHeader } from './_components/classes-header'
+import { ClassesSkeleton } from './_components/classes-skeleton'
+import { CompetitionClassSection } from './_components/competition-class-section'
+import { DeviceGroupSection } from './_components/device-group-section'
 
-export default async function ClassesPage({ params }: PageProps<"/admin/[domain]/dashboard">) {
+export default async function ClassesPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
 
   prefetch(

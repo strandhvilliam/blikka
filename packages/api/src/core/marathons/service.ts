@@ -1,6 +1,6 @@
-import "server-only"
+import 'server-only'
 
-import { Effect, Result, Option, Config, Context, Layer } from "effect"
+import { Effect, Result, Option, Config, Context, Layer } from 'effect'
 import {
   DbLayer,
   CompetitionClassesRepository,
@@ -15,10 +15,10 @@ import {
   type RuleConfig,
   type Sponsor,
   type Topic,
-} from "@blikka/db"
-import { S3Service, S3ServiceLayer, type S3ClientError } from "@blikka/aws"
-import { NotFoundError, failNotFoundIfNone } from "../errors"
-import { RULE_KEYS } from "@blikka/validation"
+} from '@blikka/db'
+import { S3Service, S3ServiceLayer, type S3ClientError } from '@blikka/aws'
+import { NotFoundError, failNotFoundIfNone } from '../errors'
+import { RULE_KEYS } from '@blikka/validation'
 import type {
   GetByDomainInput,
   GetCurrentTermsInput,
@@ -27,13 +27,13 @@ import type {
   GetUserMarathonsInput,
   ResetMarathonInput,
   UpdateMarathonInput,
-} from "./contracts"
+} from './contracts'
 
 function encodeS3ObjectKeyForUrl(key: string) {
   return key
-    .split("/")
+    .split('/')
     .map((segment) => encodeURIComponent(segment))
-    .join("/")
+    .join('/')
 }
 
 function extractLogoVersion(currentKey?: string | null) {
@@ -42,9 +42,9 @@ function extractLogoVersion(currentKey?: string | null) {
   try {
     const url = new URL(currentKey)
     const decodedPath = decodeURIComponent(url.pathname)
-    return decodedPath.split("?")[1]?.split("=")[1]
+    return decodedPath.split('?')[1]?.split('=')[1]
   } catch {
-    return currentKey.split("?")[1]?.split("=")[1]
+    return currentKey.split('?')[1]?.split('=')[1]
   }
 }
 
@@ -100,18 +100,14 @@ export class MarathonService extends Context.Service<
     /** Presigned PUT for marathon terms-and-conditions text at a fixed key under `domain`. */
     readonly getTermsUploadUrl: (
       input: GetTermsUploadUrlInput,
-    ) => Effect.Effect<
-      { url: string; key: string },
-      S3ClientError | Config.ConfigError,
-      never
-    >
+    ) => Effect.Effect<{ url: string; key: string }, S3ClientError | Config.ConfigError, never>
 
     /** Reads current terms object from storage, or empty string if missing or unreadable. */
     readonly getCurrentTerms: (
       input: GetCurrentTermsInput,
     ) => Effect.Effect<string, Config.ConfigError, never>
   }
->()("@blikka/api/MarathonService") {}
+>()('@blikka/api/MarathonService') {}
 
 const makeMarathonService = Effect.gen(function* () {
   const usersRepository = yield* UsersRepository
@@ -120,133 +116,132 @@ const makeMarathonService = Effect.gen(function* () {
   const competitionClassesRepository = yield* CompetitionClassesRepository
   const s3 = yield* S3Service
 
-  const getMarathonByDomain: MarathonService["Service"]["getMarathonByDomain"] =
-    Effect.fn("MarathonService.getMarathonByDomain")(function* ({ domain }) {
-      const result = yield* marathonsRepository
-        .getMarathonByDomainWithOptions({ domain })
-        .pipe(failNotFoundIfNone("Marathon", { domain }))
+  const getMarathonByDomain: MarathonService['Service']['getMarathonByDomain'] = Effect.fn(
+    'MarathonService.getMarathonByDomain',
+  )(function* ({ domain }) {
+    const result = yield* marathonsRepository
+      .getMarathonByDomainWithOptions({ domain })
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-      if (
-        result.mode === "by-camera" &&
-        result.competitionClasses.length === 0
-      ) {
-        yield* competitionClassesRepository.createCompetitionClass({
+    if (result.mode === 'by-camera' && result.competitionClasses.length === 0) {
+      yield* competitionClassesRepository.createCompetitionClass({
+        data: {
+          name: 'Default',
+          numberOfPhotos: 1,
+          marathonId: result.id,
+          description: 'Default competition class for by-camera competitions',
+        },
+      })
+    }
+
+    return result
+  })
+
+  const getUserMarathons: MarathonService['Service']['getUserMarathons'] = Effect.fn(
+    'MarathonService.getUserMarathons',
+  )(function* ({ userId }) {
+    return yield* usersRepository.getMarathonsByUserId({ userId })
+  })
+
+  const updateMarathon: MarathonService['Service']['updateMarathon'] = Effect.fn(
+    'MarathonService.updateMarathon',
+  )(function* ({ domain, data }) {
+    const updateData = {
+      ...data,
+      updatedAt: new Date().toISOString(),
+    } satisfies Partial<NewMarathon>
+
+    const result = yield* marathonsRepository.updateMarathonByDomain({
+      domain,
+      data: updateData,
+    })
+
+    if (data.startDate !== undefined || data.endDate !== undefined) {
+      const rules = yield* rulesRepository.getRulesByDomain({ domain })
+      const withinTimerangeRule = rules.find((rule) => rule.ruleKey === RULE_KEYS.WITHIN_TIMERANGE)
+
+      if (withinTimerangeRule) {
+        const finalMarathon = yield* marathonsRepository
+          .getMarathonByDomain({ domain })
+          .pipe(failNotFoundIfNone('Marathon', { domain }))
+
+        yield* rulesRepository.updateRuleConfig({
+          id: withinTimerangeRule.id,
           data: {
-            name: "Default",
-            numberOfPhotos: 1,
-            marathonId: result.id,
-            description: "Default competition class for by-camera competitions",
+            params: {
+              start: finalMarathon.startDate,
+              end: finalMarathon.endDate,
+            },
           },
         })
       }
+    }
 
-      return result
+    return result
+  })
+
+  const resetMarathon: MarathonService['Service']['resetMarathon'] = Effect.fn(
+    'MarathonService.resetMarathon',
+  )(function* ({ domain }) {
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
+
+    return yield* marathonsRepository.resetMarathon({ id: marathon.id })
+  })
+
+  const getLogoUploadUrl: MarathonService['Service']['getLogoUploadUrl'] = Effect.fn(
+    'MarathonService.getLogoUploadUrl',
+  )(function* ({ domain, currentKey }) {
+    const bucketName = yield* Config.string('MARATHON_SETTINGS_BUCKET_NAME')
+
+    const version = extractLogoVersion(currentKey)
+    const newVersion = version ? parseInt(version) + 1 : 1
+
+    const key = `${domain}/logo?v=${newVersion}`
+    const url = yield* s3.getPresignedUrl(bucketName, key, 'PUT', {
+      expiresIn: 60 * 5,
     })
 
-  const getUserMarathons: MarathonService["Service"]["getUserMarathons"] =
-    Effect.fn("MarathonService.getUserMarathons")(function* ({ userId }) {
-      return yield* usersRepository.getMarathonsByUserId({ userId })
+    const publicUrl = `https://${bucketName}.s3.eu-north-1.amazonaws.com/${encodeS3ObjectKeyForUrl(key)}`
+
+    return { url, key, publicUrl }
+  })
+
+  const getTermsUploadUrl: MarathonService['Service']['getTermsUploadUrl'] = Effect.fn(
+    'MarathonService.getTermsUploadUrl',
+  )(function* ({ domain }) {
+    const bucketName = yield* Config.string('MARATHON_SETTINGS_BUCKET_NAME')
+
+    const key = `${domain}/terms-and-conditions.txt`
+    const url = yield* s3.getPresignedUrl(bucketName, key, 'PUT', {
+      expiresIn: 60 * 5,
+      contentType: 'text/plain',
     })
 
-  const updateMarathon: MarathonService["Service"]["updateMarathon"] =
-    Effect.fn("MarathonService.updateMarathon")(function* ({ domain, data }) {
-      const updateData = {
-        ...data,
-        updatedAt: new Date().toISOString(),
-      } satisfies Partial<NewMarathon>
+    return { url, key }
+  })
 
-      const result = yield* marathonsRepository.updateMarathonByDomain({
-        domain,
-        data: updateData,
-      })
+  const getCurrentTerms: MarathonService['Service']['getCurrentTerms'] = Effect.fn(
+    'MarathonService.getCurrentTerms',
+  )(function* ({ domain }) {
+    const bucketName = yield* Config.string('MARATHON_SETTINGS_BUCKET_NAME')
 
-      if (data.startDate !== undefined || data.endDate !== undefined) {
-        const rules = yield* rulesRepository.getRulesByDomain({ domain })
-        const withinTimerangeRule = rules.find(
-          (rule) => rule.ruleKey === RULE_KEYS.WITHIN_TIMERANGE,
-        )
+    const key = `${domain}/terms-and-conditions.txt`
+    const fileDataEither = yield* Effect.result(s3.getFile(bucketName, key))
 
-        if (withinTimerangeRule) {
-          const finalMarathon = yield* marathonsRepository
-            .getMarathonByDomain({ domain })
-            .pipe(failNotFoundIfNone("Marathon", { domain }))
+    if (Result.isFailure(fileDataEither)) {
+      return yield* Effect.succeed('')
+    }
 
-          yield* rulesRepository.updateRuleConfig({
-            id: withinTimerangeRule.id,
-            data: {
-              params: {
-                start: finalMarathon.startDate,
-                end: finalMarathon.endDate,
-              },
-            },
-          })
-        }
-      }
-
-      return result
+    return yield* Option.match(fileDataEither.success, {
+      onSome: (data) => {
+        const decoder = new TextDecoder()
+        return Effect.succeed(decoder.decode(data))
+      },
+      onNone: () => Effect.succeed(''),
     })
-
-  const resetMarathon: MarathonService["Service"]["resetMarathon"] =
-    Effect.fn("MarathonService.resetMarathon")(function* ({ domain }) {
-      const marathon = yield* marathonsRepository
-        .getMarathonByDomain({ domain })
-        .pipe(failNotFoundIfNone("Marathon", { domain }))
-
-      return yield* marathonsRepository.resetMarathon({ id: marathon.id })
-    })
-
-  const getLogoUploadUrl: MarathonService["Service"]["getLogoUploadUrl"] =
-    Effect.fn("MarathonService.getLogoUploadUrl")(function* ({
-      domain,
-      currentKey,
-    }) {
-      const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
-
-      const version = extractLogoVersion(currentKey)
-      const newVersion = version ? parseInt(version) + 1 : 1
-
-      const key = `${domain}/logo?v=${newVersion}`
-      const url = yield* s3.getPresignedUrl(bucketName, key, "PUT", {
-        expiresIn: 60 * 5,
-      })
-
-      const publicUrl = `https://${bucketName}.s3.eu-north-1.amazonaws.com/${encodeS3ObjectKeyForUrl(key)}`
-
-      return { url, key, publicUrl }
-    })
-
-  const getTermsUploadUrl: MarathonService["Service"]["getTermsUploadUrl"] =
-    Effect.fn("MarathonService.getTermsUploadUrl")(function* ({ domain }) {
-      const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
-
-      const key = `${domain}/terms-and-conditions.txt`
-      const url = yield* s3.getPresignedUrl(bucketName, key, "PUT", {
-        expiresIn: 60 * 5,
-        contentType: "text/plain",
-      })
-
-      return { url, key }
-    })
-
-  const getCurrentTerms: MarathonService["Service"]["getCurrentTerms"] =
-    Effect.fn("MarathonService.getCurrentTerms")(function* ({ domain }) {
-      const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
-
-      const key = `${domain}/terms-and-conditions.txt`
-      const fileDataEither = yield* Effect.result(s3.getFile(bucketName, key))
-
-      if (Result.isFailure(fileDataEither)) {
-        return yield* Effect.succeed("")
-      }
-
-      return yield* Option.match(fileDataEither.success, {
-        onSome: (data) => {
-          const decoder = new TextDecoder()
-          return Effect.succeed(decoder.decode(data))
-        },
-        onNone: () => Effect.succeed(""),
-      })
-    })
+  })
 
   return MarathonService.of({
     getMarathonByDomain,
@@ -259,10 +254,7 @@ const makeMarathonService = Effect.gen(function* () {
   })
 })
 
-export const MarathonServiceLayerNoDeps = Layer.effect(
-  MarathonService,
-  makeMarathonService,
-)
+export const MarathonServiceLayerNoDeps = Layer.effect(MarathonService, makeMarathonService)
 
 export const MarathonServiceLayer = MarathonServiceLayerNoDeps.pipe(
   Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer)),

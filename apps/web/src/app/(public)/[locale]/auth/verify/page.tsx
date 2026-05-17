@@ -1,16 +1,14 @@
-import { getAppSession } from "@/lib/auth/server"
-import { getDefaultPostLoginPath, sanitizeRedirectPath } from "@/lib/auth/redirect"
-import { getUserPermissions } from "@/lib/auth/permissions"
-import { VerifyForm } from "./verify-form"
-import { redirect } from "next/navigation"
+import { getAppSession } from '@/lib/auth/server'
+import { getDefaultPostLoginPath, sanitizeRedirectPath } from '@/lib/auth/redirect'
+import { getUserPermissions } from '@/lib/auth/permissions'
+import { VerifyForm } from './verify-form'
+import { redirect } from 'next/navigation'
 
-export default async function VerifyPage({
-  searchParams,
-}: PageProps<"/[locale]/auth/verify">) {
+export default async function VerifyPage({ searchParams }: PageProps<'/[locale]/auth/verify'>) {
   const session = await getAppSession()
   const params = await searchParams
-  const email = typeof params.email === "string" ? params.email : undefined
-  const next = sanitizeRedirectPath(typeof params.next === "string" ? params.next : undefined)
+  const email = typeof params.email === 'string' ? params.email : undefined
+  const next = sanitizeRedirectPath(typeof params.next === 'string' ? params.next : undefined)
 
   if (session) {
     const permissions = await getUserPermissions(session.user.id)
@@ -18,7 +16,7 @@ export default async function VerifyPage({
   }
 
   if (!email) {
-    redirect("/auth/login?error=email_required")
+    redirect('/auth/login?error=email_required')
   }
 
   return (
@@ -27,4 +25,5 @@ export default async function VerifyPage({
         <VerifyForm email={email} next={next} />
       </div>
     </div>
-  )}
+  )
+}

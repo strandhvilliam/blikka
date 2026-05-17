@@ -1,16 +1,16 @@
-"use client"
+'use client'
 
-import { Textarea } from "@/components/ui/textarea"
-import { Keyboard, Loader2, MessageSquare, Star } from "lucide-react"
-import type { ChangeEvent } from "react"
-import type { JuryInvitation, JuryListParticipant } from "@/lib/jury/jury-types"
+import { Textarea } from '@/components/ui/textarea'
+import { Keyboard, Loader2, MessageSquare, Star } from 'lucide-react'
+import type { ChangeEvent } from 'react'
+import type { JuryInvitation, JuryListParticipant } from '@/lib/jury/jury-types'
 import {
   getFinalRankingLabel,
   juryRankChipActive,
   juryRankChipNeutralOccupied,
   juryRankChipNeutralSlot,
-} from "@/lib/jury/jury-utils"
-import { JuryRankTrophyBadge } from "./jury-rank-trophy-badge"
+} from '@/lib/jury/jury-utils'
+import { JuryRankTrophyBadge } from './jury-rank-trophy-badge'
 
 export function JurySidebar({
   participant,
@@ -102,9 +102,9 @@ function JurySidebarParticipantInfo({
       </div>
 
       <p className="mt-2 text-sm leading-relaxed text-brand-gray">
-        {invitation.inviteType === "class"
-          ? "Review the generated contact sheet for this participant."
-          : "Review the submission for the assigned topic."}
+        {invitation.inviteType === 'class'
+          ? 'Review the generated contact sheet for this participant.'
+          : 'Review the submission for the assigned topic.'}
       </p>
     </div>
   )
@@ -119,9 +119,7 @@ function JurySidebarStarRating({
 }) {
   return (
     <div className="border-t border-border/60 px-5 py-4">
-      <p className="text-xs font-semibold tracking-wide text-brand-black/60 uppercase">
-        Rating
-      </p>
+      <p className="text-xs font-semibold tracking-wide text-brand-black/60 uppercase">Rating</p>
       <div className="mt-2.5 flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
@@ -133,15 +131,15 @@ function JurySidebarStarRating({
             <Star
               className={`h-6 w-6 transition-colors duration-100 ${
                 star <= rating
-                  ? "fill-brand-primary text-brand-primary"
-                  : "text-neutral-200 hover:text-neutral-300"
+                  ? 'fill-brand-primary text-brand-primary'
+                  : 'text-neutral-200 hover:text-neutral-300'
               }`}
             />
           </button>
         ))}
       </div>
       <div className="mt-1.5 flex items-center gap-2 text-xs text-brand-gray">
-        <span>{rating > 0 ? `${rating} of 5` : "Tap to rate"}</span>
+        <span>{rating > 0 ? `${rating} of 5` : 'Tap to rate'}</span>
         <span className="hidden text-brand-gray/50 sm:inline">
           &middot; Press <Kbd>1</Kbd>–<Kbd>5</Kbd> to rate, <Kbd>0</Kbd> to clear
         </span>
@@ -178,8 +176,7 @@ function JurySidebarFinalRanking({
             occupantId && !isActive
               ? participants.find((p) => p.id === occupantId)?.reference
               : null
-          const isOccupiedByOther =
-            occupantId !== undefined && occupantId !== currentParticipantId
+          const isOccupiedByOther = occupantId !== undefined && occupantId !== currentParticipantId
 
           return (
             <button
@@ -194,23 +191,14 @@ function JurySidebarFinalRanking({
               }
               onClick={() => onFinalRankingClick(rank)}
             >
-              <JuryRankTrophyBadge
-                rank={rank}
-                tone={isActive ? "active" : "idle"}
-              />
+              <JuryRankTrophyBadge rank={rank} tone={isActive ? 'active' : 'idle'} />
               {getFinalRankingLabel(rank)}
               {isActive ? (
-                <span className="text-xs font-normal opacity-80">
-                  #{participant.reference}
-                </span>
+                <span className="text-xs font-normal opacity-80">#{participant.reference}</span>
               ) : occupantRef != null ? (
-                <span className="text-xs font-normal text-brand-gray">
-                  #{occupantRef}
-                </span>
+                <span className="text-xs font-normal text-brand-gray">#{occupantRef}</span>
               ) : (
-                <span className="text-xs font-normal text-brand-gray">
-                  Not Set
-                </span>
+                <span className="text-xs font-normal text-brand-gray">Not Set</span>
               )}
             </button>
           )
@@ -231,9 +219,7 @@ function JurySidebarNotes({
     <div className="flex min-h-0 flex-1 flex-col border-t border-border/60 px-5 py-4">
       <div className="flex items-center gap-2">
         <MessageSquare className="h-3.5 w-3.5 text-brand-gray" />
-        <p className="text-xs font-semibold tracking-wide text-brand-black/60 uppercase">
-          Notes
-        </p>
+        <p className="text-xs font-semibold tracking-wide text-brand-black/60 uppercase">Notes</p>
       </div>
       <Textarea
         placeholder="Your observations on this submission..."
@@ -253,11 +239,11 @@ function JurySidebarKeyboardShortcuts() {
         <span>Shortcuts</span>
       </div>
       <div className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1">
-        <ShortcutRow keys={["←", "→"]} label="Navigate" />
-        <ShortcutRow keys={["1", "–", "5"]} label="Set rating" />
-        <ShortcutRow keys={["[", "]"]} label="Adjust rating" />
-        <ShortcutRow keys={["0"]} label="Clear rating" />
-        <ShortcutRow keys={["Esc"]} label="Back to list" />
+        <ShortcutRow keys={['←', '→']} label="Navigate" />
+        <ShortcutRow keys={['1', '–', '5']} label="Set rating" />
+        <ShortcutRow keys={['[', ']']} label="Adjust rating" />
+        <ShortcutRow keys={['0']} label="Clear rating" />
+        <ShortcutRow keys={['Esc']} label="Back to list" />
       </div>
     </div>
   )
@@ -276,8 +262,10 @@ function ShortcutRow({ keys, label }: { keys: string[]; label: string }) {
     <div className="flex items-center gap-2 text-[11px]">
       <span className="flex items-center gap-0.5">
         {keys.map((key, i) =>
-          key === "–" ? (
-            <span key={i} className="text-brand-gray/40">–</span>
+          key === '–' ? (
+            <span key={i} className="text-brand-gray/40">
+              –
+            </span>
           ) : (
             <Kbd key={i}>{key}</Kbd>
           ),

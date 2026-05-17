@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import type { Topic } from "@blikka/db"
-import { AnimatePresence, motion } from "motion/react"
-import { useMemo } from "react"
-import { buildPhotoValidationMap } from "@/lib/validation"
-import { usePhotoStore } from "@/lib/flow/photo-store"
-import { SubmissionItem } from "./submission-item"
+import type { Topic } from '@blikka/db'
+import { AnimatePresence, motion } from 'motion/react'
+import { useMemo } from 'react'
+import { buildPhotoValidationMap } from '@/lib/validation'
+import { usePhotoStore } from '@/lib/flow/photo-store'
+import { SubmissionItem } from './submission-item'
 
 interface SubmissionListProps {
   topics: Topic[]

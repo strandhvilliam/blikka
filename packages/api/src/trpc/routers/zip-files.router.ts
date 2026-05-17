@@ -1,20 +1,16 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
-import {
-  createTRPCRouter,
-  domainProcedure,
-  requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+import { Effect, Schema } from 'effect'
+import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'
+import { trpcEffect } from '../utils'
 import {
   InitializeZipDownloadsInputSchema,
   GetZipSubmissionStatusInputSchema,
   GetZipDownloadProgressInputSchema,
   GetActiveProcessInputSchema,
   CancelDownloadProcessInputSchema,
-} from "../../core/zip-files/contracts";
-import { ZipFilesService } from "../../core/zip-files/service";
+} from '../../core/zip-files/contracts'
+import { ZipFilesService } from '../../core/zip-files/service'
 
 export const zipFilesRouter = createTRPCRouter({
   initializeZipDownloads: domainProcedure
@@ -22,14 +18,12 @@ export const zipFilesRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("ZipFilesRouter.initializeZipDownloads")(function* ({
-          input,
-        }) {
+        Effect.fn('ZipFilesRouter.initializeZipDownloads')(function* ({ input }) {
           return yield* ZipFilesService.use((s) =>
             s.initializeZipDownloads({
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -39,14 +33,12 @@ export const zipFilesRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ZipFilesRouter.getZipSubmissionStatus")(function* ({
-          input,
-        }) {
+        Effect.fn('ZipFilesRouter.getZipSubmissionStatus')(function* ({ input }) {
           return yield* ZipFilesService.use((s) =>
             s.getZipSubmissionStats({
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -56,21 +48,19 @@ export const zipFilesRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ZipFilesRouter.getZipDownloadProgress")(function* ({
-          input,
-        }) {
+        Effect.fn('ZipFilesRouter.getZipDownloadProgress')(function* ({ input }) {
           const result = yield* ZipFilesService.use((s) =>
             s.getZipDownloadProgress({
               processId: input.processId,
             }),
-          );
+          )
 
           // if (result === null) {
           //   return yield* Effect.fail(
           //     new ZipFilesApiError({ message: "Download process not found" }),
           //   );
           // }
-          return result;
+          return result
         }),
       ),
     ),
@@ -80,13 +70,13 @@ export const zipFilesRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ZipFilesRouter.getZipDownloadUrls")(function* ({ input }) {
+        Effect.fn('ZipFilesRouter.getZipDownloadUrls')(function* ({ input }) {
           const result = yield* ZipFilesService.use((s) =>
             s.getZipDownloadUrls({
               processId: input.processId,
             }),
-          );
-          return result;
+          )
+          return result
         }),
       ),
     ),
@@ -96,12 +86,12 @@ export const zipFilesRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ZipFilesRouter.getActiveProcess")(function* ({ input }) {
+        Effect.fn('ZipFilesRouter.getActiveProcess')(function* ({ input }) {
           return yield* ZipFilesService.use((s) =>
             s.getActiveProcess({
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -111,16 +101,14 @@ export const zipFilesRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("ZipFilesRouter.cancelDownloadProcess")(function* ({
-          input,
-        }) {
+        Effect.fn('ZipFilesRouter.cancelDownloadProcess')(function* ({ input }) {
           return yield* ZipFilesService.use((s) =>
             s.cancelDownloadProcess({
               domain: input.domain,
               processId: input.processId,
             }),
-          );
+          )
         }),
       ),
     ),
-});
+})

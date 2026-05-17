@@ -1,5 +1,5 @@
-import { Context, Effect, Layer, Schema, Struct } from "effect"
-import { RULE_KEYS, VALIDATION_OUTCOME } from "./constants"
+import { Context, Effect, Layer, Schema, Struct } from 'effect'
+import { RULE_KEYS, VALIDATION_OUTCOME } from './constants'
 import {
   type ValidationInput,
   type ValidationResult,
@@ -9,7 +9,7 @@ import {
   type RuleKey,
   RuleParamsSchema,
   ValidationResultSchema,
-} from "./schemas"
+} from './schemas'
 import {
   validateAllowedFileTypes,
   validateMaxFileSize,
@@ -17,10 +17,10 @@ import {
   validateSameDevice,
   validateStrictTimestampOrdering,
   validateTimeframe,
-} from "./validators"
+} from './validators'
 
 export class ValidationParamError extends Schema.TaggedErrorClass<ValidationParamError>()(
-  "ValidationParamError",
+  'ValidationParamError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -28,7 +28,7 @@ export class ValidationParamError extends Schema.TaggedErrorClass<ValidationPara
 ) {}
 
 export class ValidationEngineInternalError extends Schema.TaggedErrorClass<ValidationEngineInternalError>()(
-  "ValidationEngineInternalError",
+  'ValidationEngineInternalError',
   {
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -48,7 +48,7 @@ export class ValidationEngine extends Context.Service<
       inputs: ValidationInput[],
     ) => Effect.Effect<ValidationResult[], ValidationEngineError>
   }
->()("@blikka/packages/validation/ValidationEngine") {}
+>()('@blikka/packages/validation/ValidationEngine') {}
 
 function createFailureResult(
   rule: ValidationRule,
@@ -114,7 +114,7 @@ const makeValidationEngine = Effect.sync(() => {
         const results = yield* Effect.forEach(inputs, (input) =>
           validateMaxFileSize(params.max_file_size, input).pipe(
             Effect.flatMap(() => createPassedResult(rule, input)),
-            Effect.catchTag("ValidationFailure", (error) =>
+            Effect.catchTag('ValidationFailure', (error) =>
               createFailureResult(rule, error, input),
             ),
           ),
@@ -126,10 +126,10 @@ const makeValidationEngine = Effect.sync(() => {
         const results = yield* Effect.forEach(inputs, (input) =>
           validateAllowedFileTypes(params.allowed_file_types, input).pipe(
             Effect.flatMap(() => createPassedResult(rule, input)),
-            Effect.catchTag("ValidationFailure", (error) =>
+            Effect.catchTag('ValidationFailure', (error) =>
               createFailureResult(rule, error, input),
             ),
-            Effect.catchTag("ValidationSkipped", (error) =>
+            Effect.catchTag('ValidationSkipped', (error) =>
               createSkippedResult(rule, error, input),
             ),
           ),
@@ -142,10 +142,10 @@ const makeValidationEngine = Effect.sync(() => {
         const results = yield* Effect.forEach(inputs, (input) =>
           validateTimeframe(params.within_timerange, input).pipe(
             Effect.flatMap(() => createPassedResult(rule, input)),
-            Effect.catchTag("ValidationFailure", (error) =>
+            Effect.catchTag('ValidationFailure', (error) =>
               createFailureResult(rule, error, input),
             ),
-            Effect.catchTag("ValidationSkipped", (error) =>
+            Effect.catchTag('ValidationSkipped', (error) =>
               createSkippedResult(rule, error, input),
             ),
           ),
@@ -159,8 +159,8 @@ const makeValidationEngine = Effect.sync(() => {
           inputs,
         ).pipe(
           Effect.flatMap(() => createPassedResult(rule)),
-          Effect.catchTag("ValidationFailure", (error) => createFailureResult(rule, error)),
-          Effect.catchTag("ValidationSkipped", (error) => createSkippedResult(rule, error)),
+          Effect.catchTag('ValidationFailure', (error) => createFailureResult(rule, error)),
+          Effect.catchTag('ValidationSkipped', (error) => createSkippedResult(rule, error)),
         )
         return [results]
       }
@@ -168,8 +168,8 @@ const makeValidationEngine = Effect.sync(() => {
         const params = yield* parseRuleParams(rule.ruleKey, rule.params)
         const results = yield* validateSameDevice(params.same_device, inputs).pipe(
           Effect.flatMap(() => createPassedResult(rule)),
-          Effect.catchTag("ValidationFailure", (error) => createFailureResult(rule, error)),
-          Effect.catchTag("ValidationSkipped", (error) => createSkippedResult(rule, error)),
+          Effect.catchTag('ValidationFailure', (error) => createFailureResult(rule, error)),
+          Effect.catchTag('ValidationSkipped', (error) => createSkippedResult(rule, error)),
         )
         return [results]
       }
@@ -178,7 +178,7 @@ const makeValidationEngine = Effect.sync(() => {
         const results = yield* Effect.forEach(inputs, (input) =>
           validateModified(params.modified, input).pipe(
             Effect.flatMap(() => createPassedResult(rule, input)),
-            Effect.catchTag("ValidationFailure", (error) =>
+            Effect.catchTag('ValidationFailure', (error) =>
               createFailureResult(rule, error, input),
             ),
           ),
@@ -193,13 +193,13 @@ const makeValidationEngine = Effect.sync(() => {
     }
   })
 
-  const runValidations = Effect.fn("ValidationEngine.runValidations")(
+  const runValidations = Effect.fn('ValidationEngine.runValidations')(
     function* (rules: ValidationRule[], inputs: ValidationInput[]) {
       const enabledRules = rules.filter((rule) => rule.enabled)
 
       const results = yield* Effect.forEach(enabledRules, (rule) => executeRule(rule, inputs)).pipe(
         Effect.catchTag(
-          "SchemaError",
+          'SchemaError',
           (error) =>
             new ValidationEngineInternalError({
               message: error.message,

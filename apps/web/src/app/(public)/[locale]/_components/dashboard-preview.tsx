@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   Camera,
@@ -19,13 +19,13 @@ import {
   Upload,
   Users,
   Users2,
-} from "lucide-react"
-import { FadeIn } from "./fade-in"
-import { NoiseOverlay } from "./noise-overlay"
+} from 'lucide-react'
+import { FadeIn } from './fade-in'
+import { NoiseOverlay } from './noise-overlay'
 
 /* ----------------------------- data ----------------------------- */
 
-type Status = "Completed" | "Verified" | "Uploading" | "Errors" | "Prepared"
+type Status = 'Completed' | 'Verified' | 'Uploading' | 'Errors' | 'Prepared'
 
 type Row = {
   ref: string
@@ -36,208 +36,208 @@ type Row = {
   done: number
   total: number
   className: string
-  device: "Mobile" | "Digital Camera"
+  device: 'Mobile' | 'Digital Camera'
   checks: number
   warns: number
 }
 
 const SEED: Row[] = [
   {
-    ref: "1030",
-    name: "Ludvig Larsson",
-    email: "ludvig.larsson@example.com",
-    when: "Mar 15, 08:18 PM",
-    status: "Verified",
+    ref: '1030',
+    name: 'Ludvig Larsson',
+    email: 'ludvig.larsson@example.com',
+    when: 'Mar 15, 08:18 PM',
+    status: 'Verified',
     done: 24,
     total: 24,
-    className: "24 Images",
-    device: "Mobile",
+    className: '24 Images',
+    device: 'Mobile',
     checks: 73,
     warns: 0,
   },
   {
-    ref: "1029",
-    name: "Elin Lindqvist",
-    email: "elin.lindqvist@example.com",
-    when: "Mar 15, 08:18 PM",
-    status: "Verified",
+    ref: '1029',
+    name: 'Elin Lindqvist',
+    email: 'elin.lindqvist@example.com',
+    when: 'Mar 15, 08:18 PM',
+    status: 'Verified',
     done: 8,
     total: 8,
-    className: "8 Images",
-    device: "Digital Camera",
+    className: '8 Images',
+    device: 'Digital Camera',
     checks: 25,
     warns: 0,
   },
   {
-    ref: "1028",
-    name: "Viktor Bergström",
-    email: "viktor.bergstrom@example.com",
-    when: "Mar 15, 08:18 PM",
-    status: "Verified",
+    ref: '1028',
+    name: 'Viktor Bergström',
+    email: 'viktor.bergstrom@example.com',
+    when: 'Mar 15, 08:18 PM',
+    status: 'Verified',
     done: 24,
     total: 24,
-    className: "24 Images",
-    device: "Digital Camera",
+    className: '24 Images',
+    device: 'Digital Camera',
     checks: 73,
     warns: 0,
   },
   {
-    ref: "1027",
-    name: "Maja Eklund",
-    email: "maja.eklund@example.se",
-    when: "Mar 15, 08:18 PM",
-    status: "Errors",
+    ref: '1027',
+    name: 'Maja Eklund',
+    email: 'maja.eklund@example.se',
+    when: 'Mar 15, 08:18 PM',
+    status: 'Errors',
     done: 8,
     total: 8,
-    className: "8 Images",
-    device: "Mobile",
+    className: '8 Images',
+    device: 'Mobile',
     checks: 22,
     warns: 3,
   },
   {
-    ref: "1026",
-    name: "Cecilia Holm",
-    email: "cecilia.holm@example.com",
-    when: "Mar 15, 08:18 PM",
-    status: "Verified",
+    ref: '1026',
+    name: 'Cecilia Holm',
+    email: 'cecilia.holm@example.com',
+    when: 'Mar 15, 08:18 PM',
+    status: 'Verified',
     done: 24,
     total: 24,
-    className: "24 Images",
-    device: "Mobile",
+    className: '24 Images',
+    device: 'Mobile',
     checks: 73,
     warns: 0,
   },
   {
-    ref: "1025",
-    name: "Anders Wallin",
-    email: "anders.wallin@example.com",
-    when: "Mar 15, 08:17 PM",
-    status: "Verified",
+    ref: '1025',
+    name: 'Anders Wallin',
+    email: 'anders.wallin@example.com',
+    when: 'Mar 15, 08:17 PM',
+    status: 'Verified',
     done: 8,
     total: 8,
-    className: "8 Images",
-    device: "Digital Camera",
+    className: '8 Images',
+    device: 'Digital Camera',
     checks: 25,
     warns: 0,
   },
   {
-    ref: "1024",
-    name: "Jonas Lundberg",
-    email: "jonas.lundberg@example.com",
-    when: "Mar 15, 08:17 PM",
-    status: "Verified",
+    ref: '1024',
+    name: 'Jonas Lundberg',
+    email: 'jonas.lundberg@example.com',
+    when: 'Mar 15, 08:17 PM',
+    status: 'Verified',
     done: 24,
     total: 24,
-    className: "24 Images",
-    device: "Digital Camera",
+    className: '24 Images',
+    device: 'Digital Camera',
     checks: 72,
     warns: 1,
   },
   {
-    ref: "1023",
-    name: "Simon Nyström",
-    email: "simon.nystrom@example.com",
-    when: "Mar 15, 08:17 PM",
-    status: "Verified",
+    ref: '1023',
+    name: 'Simon Nyström',
+    email: 'simon.nystrom@example.com',
+    when: 'Mar 15, 08:17 PM',
+    status: 'Verified',
     done: 8,
     total: 8,
-    className: "8 Images",
-    device: "Digital Camera",
+    className: '8 Images',
+    device: 'Digital Camera',
     checks: 25,
     warns: 0,
   },
   {
-    ref: "1022",
-    name: "Alma Hedlund",
-    email: "alma.hedlund@example.com",
-    when: "Mar 15, 08:17 PM",
-    status: "Verified",
+    ref: '1022',
+    name: 'Alma Hedlund',
+    email: 'alma.hedlund@example.com',
+    when: 'Mar 15, 08:17 PM',
+    status: 'Verified',
     done: 24,
     total: 24,
-    className: "24 Images",
-    device: "Mobile",
+    className: '24 Images',
+    device: 'Mobile',
     checks: 73,
     warns: 0,
   },
   {
-    ref: "1021",
-    name: "Janne Sjögren",
-    email: "janne.sjogren@example.com",
-    when: "Mar 15, 08:17 PM",
-    status: "Verified",
+    ref: '1021',
+    name: 'Janne Sjögren',
+    email: 'janne.sjogren@example.com',
+    when: 'Mar 15, 08:17 PM',
+    status: 'Verified',
     done: 8,
     total: 8,
-    className: "8 Images",
-    device: "Mobile",
+    className: '8 Images',
+    device: 'Mobile',
     checks: 25,
     warns: 0,
   },
   {
-    ref: "1020",
-    name: "Frida Åberg",
-    email: "frida.aberg@example.com",
-    when: "Mar 15, 08:16 PM",
-    status: "Verified",
+    ref: '1020',
+    name: 'Frida Åberg',
+    email: 'frida.aberg@example.com',
+    when: 'Mar 15, 08:16 PM',
+    status: 'Verified',
     done: 24,
     total: 24,
-    className: "24 Images",
-    device: "Mobile",
+    className: '24 Images',
+    device: 'Mobile',
     checks: 72,
     warns: 1,
   },
   {
-    ref: "1019",
-    name: "Oscar Dahl",
-    email: "oscar.dahl@example.com",
-    when: "Mar 15, 08:16 PM",
-    status: "Verified",
+    ref: '1019',
+    name: 'Oscar Dahl',
+    email: 'oscar.dahl@example.com',
+    when: 'Mar 15, 08:16 PM',
+    status: 'Verified',
     done: 8,
     total: 8,
-    className: "8 Images",
-    device: "Digital Camera",
+    className: '8 Images',
+    device: 'Digital Camera',
     checks: 25,
     warns: 0,
   },
 ]
 
-const TABS: { id: "all" | Status; label: string; match: (r: Row) => boolean }[] = [
-  { id: "all", label: "All", match: () => true },
-  { id: "Prepared", label: "Prepared", match: (r) => r.status === "Prepared" },
-  { id: "Uploading", label: "Uploading", match: (r) => r.status === "Uploading" },
+const TABS: { id: 'all' | Status; label: string; match: (r: Row) => boolean }[] = [
+  { id: 'all', label: 'All', match: () => true },
+  { id: 'Prepared', label: 'Prepared', match: (r) => r.status === 'Prepared' },
+  { id: 'Uploading', label: 'Uploading', match: (r) => r.status === 'Uploading' },
   {
-    id: "Verified",
-    label: "Verified",
-    match: (r) => r.status === "Verified" || r.status === "Completed",
+    id: 'Verified',
+    label: 'Verified',
+    match: (r) => r.status === 'Verified' || r.status === 'Completed',
   },
-  { id: "Errors", label: "Errors", match: (r) => r.status === "Errors" },
+  { id: 'Errors', label: 'Errors', match: (r) => r.status === 'Errors' },
 ]
 
 /* --------------------------- helpers --------------------------- */
 
 const STATUS_STYLES: Record<Status, string> = {
-  Completed: "bg-emerald-400/10 text-emerald-300 ring-emerald-400/20",
-  Verified: "bg-sky-400/10 text-sky-300 ring-sky-400/20",
-  Uploading: "bg-amber-300/10 text-amber-200 ring-amber-300/25",
-  Errors: "bg-rose-500/10 text-rose-300 ring-rose-500/25",
-  Prepared: "bg-white/5 text-white/70 ring-white/10",
+  Completed: 'bg-emerald-400/10 text-emerald-300 ring-emerald-400/20',
+  Verified: 'bg-sky-400/10 text-sky-300 ring-sky-400/20',
+  Uploading: 'bg-amber-300/10 text-amber-200 ring-amber-300/25',
+  Errors: 'bg-rose-500/10 text-rose-300 ring-rose-500/25',
+  Prepared: 'bg-white/5 text-white/70 ring-white/10',
 }
 
 function StatusPill({ status }: { status: Status }) {
   const Icon =
-    status === "Completed"
+    status === 'Completed'
       ? CheckCircle2
-      : status === "Verified"
+      : status === 'Verified'
         ? CheckCircle2
-        : status === "Errors"
+        : status === 'Errors'
           ? AlertTriangle
-          : status === "Uploading"
+          : status === 'Uploading'
             ? Loader2
             : Clock
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${STATUS_STYLES[status]}`}
     >
-      <Icon className={`h-3 w-3 ${status === "Uploading" ? "animate-spin" : ""}`} aria-hidden />
+      <Icon className={`h-3 w-3 ${status === 'Uploading' ? 'animate-spin' : ''}`} aria-hidden />
       {status}
     </span>
   )
@@ -246,8 +246,8 @@ function StatusPill({ status }: { status: Status }) {
 /* ------------------------- desktop frame ------------------------- */
 
 function DesktopDashboard() {
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]["id"]>("all")
-  const [query, setQuery] = useState("")
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]['id']>('all')
+  const [query, setQuery] = useState('')
   const [rows, setRows] = useState<Row[]>(SEED)
   const [liveRef, setLiveRef] = useState<string | null>(null)
   const [hoverRef, setHoverRef] = useState<string | null>(null)
@@ -256,8 +256,8 @@ function DesktopDashboard() {
 
   /* idle auto-demo: promote a row into "Uploading", tick progress, flip status */
   useEffect(() => {
-    if (typeof window === "undefined") return
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (typeof window === 'undefined') return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduced) return
 
     let cancelled = false
@@ -270,7 +270,7 @@ function DesktopDashboard() {
         if (!target) return prev
         setLiveRef(target.ref)
         const next = [...prev]
-        next[idx] = { ...target, status: "Uploading", done: 0, total: target.total }
+        next[idx] = { ...target, status: 'Uploading', done: 0, total: target.total }
         return next
       })
     }
@@ -279,10 +279,10 @@ function DesktopDashboard() {
       if (cancelled) return
       setRows((prev) =>
         prev.map((r) => {
-          if (r.status !== "Uploading") return r
+          if (r.status !== 'Uploading') return r
           const done = Math.min(r.total, r.done + Math.max(1, Math.round(r.total / 12)))
           if (done >= r.total) {
-            return { ...r, done, status: "Verified" }
+            return { ...r, done, status: 'Verified' }
           }
           return { ...r, done }
         }),
@@ -323,7 +323,7 @@ function DesktopDashboard() {
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: rows.length }
-    for (const t of TABS) if (t.id !== "all") c[t.id] = rows.filter(t.match).length
+    for (const t of TABS) if (t.id !== 'all') c[t.id] = rows.filter(t.match).length
     return c
   }, [rows])
 
@@ -358,9 +358,9 @@ function DesktopDashboard() {
         className="pointer-events-none absolute inset-0 opacity-[0.08]"
         style={{
           backgroundImage:
-            "linear-gradient(to right, rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.6) 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-          maskImage: "radial-gradient(ellipse 70% 50% at 50% 0%, black, transparent 70%)",
+            'linear-gradient(to right, rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.6) 1px, transparent 1px)',
+          backgroundSize: '44px 44px',
+          maskImage: 'radial-gradient(ellipse 70% 50% at 50% 0%, black, transparent 70%)',
         }}
       />
 
@@ -451,8 +451,8 @@ function DesktopDashboard() {
                   onClick={() => setActiveTab(t.id)}
                   className={`relative -mb-px border-b-2 px-0.5 pb-2 pt-0.5 transition ${
                     active
-                      ? "border-brand-primary text-white"
-                      : "border-transparent text-white/50 hover:text-white/80"
+                      ? 'border-brand-primary text-white'
+                      : 'border-transparent text-white/50 hover:text-white/80'
                   }`}
                 >
                   {t.label}
@@ -498,7 +498,7 @@ function DesktopDashboard() {
               )}
               {filtered.map((r) => {
                 const pct = Math.round((r.done / r.total) * 100)
-                const isLive = liveRef === r.ref || r.status === "Uploading"
+                const isLive = liveRef === r.ref || r.status === 'Uploading'
                 const isHover = hoverRef === r.ref
                 return (
                   <div
@@ -506,8 +506,8 @@ function DesktopDashboard() {
                     onMouseEnter={() => setHoverRef(r.ref)}
                     onMouseLeave={() => setHoverRef(null)}
                     className={`group/row relative grid grid-cols-[64px_1.3fr_120px_120px_1fr_96px] items-center gap-x-4 border-b border-white/[0.04] px-3 py-2 text-[12px] transition xl:px-4 xl:py-2.5 xl:text-[12.5px] ${
-                      isHover ? "bg-white/[0.05]" : "bg-transparent"
-                    } ${isLive ? "bg-brand-primary/[0.06]" : ""}`}
+                      isHover ? 'bg-white/[0.05]' : 'bg-transparent'
+                    } ${isLive ? 'bg-brand-primary/[0.06]' : ''}`}
                   >
                     {isLive && (
                       <span className="absolute left-0 top-0 h-full w-[2px] bg-brand-primary" />
@@ -522,11 +522,11 @@ function DesktopDashboard() {
                       <span className="relative h-1 w-12 overflow-hidden rounded-full bg-white/10">
                         <span
                           className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-300 ${
-                            r.status === "Errors"
-                              ? "bg-rose-400"
-                              : r.status === "Uploading"
-                                ? "bg-brand-primary"
-                                : "bg-emerald-400"
+                            r.status === 'Errors'
+                              ? 'bg-rose-400'
+                              : r.status === 'Uploading'
+                                ? 'bg-brand-primary'
+                                : 'bg-emerald-400'
                           }`}
                           style={{ width: `${pct}%` }}
                         />
@@ -557,7 +557,7 @@ function DesktopDashboard() {
                     {/* hover tooltip */}
                     <div
                       className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 translate-x-2 rounded-md border border-white/10 bg-[#0c0c0d]/95 px-2 py-1 text-[10.5px] font-medium text-white/80 shadow-lg backdrop-blur transition-all duration-150 ${
-                        isHover ? "translate-x-0 opacity-100" : "opacity-0"
+                        isHover ? 'translate-x-0 opacity-100' : 'opacity-0'
                       }`}
                     >
                       View submission →
@@ -579,7 +579,7 @@ function SideLink({
   active,
   badge,
 }: {
-  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>
+  icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
   label: string
   active?: boolean
   badge?: string
@@ -588,11 +588,11 @@ function SideLink({
     <button
       className={`mb-0.5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition ${
         active
-          ? "bg-brand-primary/10 text-white ring-1 ring-inset ring-brand-primary/20"
-          : "text-white/60 hover:bg-white/[0.04] hover:text-white/90"
+          ? 'bg-brand-primary/10 text-white ring-1 ring-inset ring-brand-primary/20'
+          : 'text-white/60 hover:bg-white/[0.04] hover:text-white/90'
       }`}
     >
-      <Icon className={`h-3.5 w-3.5 ${active ? "text-brand-primary" : ""}`} aria-hidden />
+      <Icon className={`h-3.5 w-3.5 ${active ? 'text-brand-primary' : ''}`} aria-hidden />
       <span className="flex-1 truncate text-[12px]">{label}</span>
       {badge && (
         <span className="rounded-full bg-white/10 px-1.5 text-[10px] text-white/70">{badge}</span>
@@ -608,8 +608,8 @@ function MobileDashboard() {
   const [flipped, setFlipped] = useState(false)
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (typeof window === 'undefined') return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduced) return
     const i = setInterval(() => {
       setProgress((p) => {
@@ -674,8 +674,8 @@ function MobileDashboard() {
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset transition ${
                       flipped
-                        ? "bg-sky-400/10 text-sky-300 ring-sky-400/20"
-                        : "bg-amber-300/10 text-amber-200 ring-amber-300/25"
+                        ? 'bg-sky-400/10 text-sky-300 ring-sky-400/20'
+                        : 'bg-amber-300/10 text-amber-200 ring-amber-300/25'
                     }`}
                   >
                     {flipped ? (
@@ -683,7 +683,7 @@ function MobileDashboard() {
                     ) : (
                       <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                     )}
-                    {flipped ? "Verified" : "Uploading"}
+                    {flipped ? 'Verified' : 'Uploading'}
                   </span>
                 </div>
                 <div className="mt-2.5 flex items-center gap-2">
@@ -708,15 +708,15 @@ function MobileDashboard() {
           {/* bottom tab bar */}
           <div className="sticky bottom-0 grid grid-cols-4 border-t border-white/5 bg-[#0a0a0b]/95 px-2 py-2 backdrop-blur">
             {[
-              { icon: LayoutDashboard, label: "Home" },
-              { icon: Camera, label: "Entries", active: true },
-              { icon: Users2, label: "Staff" },
-              { icon: Settings, label: "More" },
+              { icon: LayoutDashboard, label: 'Home' },
+              { icon: Camera, label: 'Entries', active: true },
+              { icon: Users2, label: 'Staff' },
+              { icon: Settings, label: 'More' },
             ].map((t) => (
               <button
                 key={t.label}
                 className={`flex flex-col items-center gap-0.5 rounded-md py-1 text-[9.5px] ${
-                  t.active ? "text-brand-primary" : "text-white/45"
+                  t.active ? 'text-brand-primary' : 'text-white/45'
                 }`}
               >
                 <t.icon className="h-4 w-4" aria-hidden />
@@ -739,14 +739,14 @@ function MobileStat({
 }: {
   label: string
   value: string
-  tone?: "ok" | "warn"
+  tone?: 'ok' | 'warn'
 }) {
   return (
     <div className="rounded-lg border border-white/5 bg-white/[0.03] p-2">
       <p className="text-[9px] font-semibold uppercase tracking-wider text-white/40">{label}</p>
       <p
         className={`font-gothic mt-0.5 text-base leading-none tabular-nums ${
-          tone === "warn" ? "text-rose-300" : tone === "ok" ? "text-emerald-300" : "text-white"
+          tone === 'warn' ? 'text-rose-300' : tone === 'ok' ? 'text-emerald-300' : 'text-white'
         }`}
       >
         {value}
@@ -785,9 +785,9 @@ function MobileCard({
 /* ---------------------------- section ---------------------------- */
 
 const badges = [
-  { icon: Camera, label: "Real-time uploads" },
-  { icon: Users, label: "Judge management" },
-  { icon: Shield, label: "Submission validation" },
+  { icon: Camera, label: 'Real-time uploads' },
+  { icon: Users, label: 'Judge management' },
+  { icon: Shield, label: 'Submission validation' },
 ]
 
 export function DashboardPreview() {

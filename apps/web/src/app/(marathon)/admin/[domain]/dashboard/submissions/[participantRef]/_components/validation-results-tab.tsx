@@ -1,8 +1,8 @@
-"use client"
-"use no memo"
+'use client'
+'use no memo'
 
-import { AlertTriangle, CheckCircle, XCircle } from "lucide-react"
-import type { ValidationResult } from "@blikka/db"
+import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import type { ValidationResult } from '@blikka/db'
 import {
   Table,
   TableBody,
@@ -10,10 +10,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   createColumnHelper,
   flexRender,
@@ -23,12 +23,12 @@ import {
   SortingState,
   type ColumnFiltersState,
   getFilteredRowModel,
-} from "@tanstack/react-table"
-import { useMemo, useState } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { toast } from "sonner"
-import { useDomain } from "@/lib/domain-provider"
+} from '@tanstack/react-table'
+import { useMemo, useState } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { toast } from 'sonner'
+import { useDomain } from '@/lib/domain-provider'
 
 type ValidationResultWithOrder = ValidationResult & {
   extractedOrderIndex: number | null
@@ -36,7 +36,7 @@ type ValidationResultWithOrder = ValidationResult & {
 }
 
 function extractOrderIndexFromKey(fileName: string): number | null {
-  const parts = fileName.split("/")
+  const parts = fileName.split('/')
   if (parts.length >= 3 && parts[2]) {
     return parseInt(parts[2], 10) - 1
   }
@@ -49,7 +49,7 @@ function extractOrderIndexFromKey(fileName: string): number | null {
 }
 
 function formatRuleKey(ruleKey: string): string {
-  return ruleKey.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+  return ruleKey.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 const columnHelper = createColumnHelper<ValidationResultWithOrder>()
@@ -57,7 +57,7 @@ const columnHelper = createColumnHelper<ValidationResultWithOrder>()
 export function ValidationResultsTab({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
   const trpc = useTRPC()
-  const [sorting, setSorting] = useState<SortingState>([{ id: "extractedOrderIndex", desc: false }])
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'extractedOrderIndex', desc: false }])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
   const { data: participant } = useSuspenseQuery(
@@ -77,7 +77,7 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
   const topics = marathon?.topics || []
 
   const updateValidationResult = ({ id, data }: { id: number; data: { overruled: boolean } }) => {
-    toast.success("Not implemented")
+    toast.success('Not implemented')
   }
 
   // const {
@@ -107,8 +107,8 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor("extractedOrderIndex", {
-        header: "Submission",
+      columnHelper.accessor('extractedOrderIndex', {
+        header: 'Submission',
         cell: (info) => {
           const orderIndex = info.getValue()
           const topicName = info.row.original.topicName
@@ -121,7 +121,7 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
               </div>
             )
           }
-          return "—"
+          return '—'
         },
         size: 180,
         sortingFn: (a, b) => {
@@ -130,12 +130,12 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
           return aOrder - bOrder
         },
       }),
-      columnHelper.accessor("outcome", {
-        header: "Status",
+      columnHelper.accessor('outcome', {
+        header: 'Status',
         cell: (info) => {
           const outcome = info.getValue()
 
-          if (outcome === "passed") {
+          if (outcome === 'passed') {
             return (
               <Badge className="bg-green-500/15 text-green-600 hover:bg-green-500/20">
                 <CheckCircle className="h-3.5 w-3.5 mr-1" />
@@ -146,42 +146,42 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
             return (
               <Badge
                 className={cn(
-                  info.row.original.severity === "error"
-                    ? "bg-destructive/15 text-destructive hover:bg-destructive/20"
-                    : "bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20",
+                  info.row.original.severity === 'error'
+                    ? 'bg-destructive/15 text-destructive hover:bg-destructive/20'
+                    : 'bg-yellow-500/15 text-yellow-600 border-yellow-200 hover:bg-yellow-500/20',
                 )}
               >
-                {info.row.original.severity === "error" ? (
+                {info.row.original.severity === 'error' ? (
                   <XCircle className="h-3.5 w-3.5 mr-1" />
                 ) : (
                   <AlertTriangle className="h-3.5 w-3.5 mr-1" />
                 )}
-                {info.row.original.severity === "error" ? "Error" : "Warning"}
+                {info.row.original.severity === 'error' ? 'Error' : 'Warning'}
               </Badge>
             )
           }
         },
         size: 120,
       }),
-      columnHelper.accessor("message", {
-        header: "Message",
+      columnHelper.accessor('message', {
+        header: 'Message',
         cell: (info) => <span className="text-xs">{info.getValue()}</span>,
         size: 400,
       }),
-      columnHelper.accessor("severity", {
-        header: "Severity",
+      columnHelper.accessor('severity', {
+        header: 'Severity',
         cell: (info) => (
           <span className="capitalize text-xs">
-            {info.getValue() === "error" ? "Restrict" : "Warning"}
+            {info.getValue() === 'error' ? 'Restrict' : 'Warning'}
           </span>
         ),
       }),
-      columnHelper.accessor("ruleKey", {
-        header: "Rule",
+      columnHelper.accessor('ruleKey', {
+        header: 'Rule',
         cell: (info) => <span className="text-xs">{formatRuleKey(info.getValue())}</span>,
       }),
-      columnHelper.accessor("overruled", {
-        header: "Overrule",
+      columnHelper.accessor('overruled', {
+        header: 'Overrule',
         cell: (info) => {
           const overruled = info.getValue()
           const outcome = info.row.original.outcome
@@ -191,7 +191,7 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
             return (
               <Badge className="bg-blue-500/15 text-blue-600 hover:bg-blue-500/20">Overruled</Badge>
             )
-          } else if (outcome === "failed") {
+          } else if (outcome === 'failed') {
             return (
               <Button
                 variant="outline"
@@ -260,7 +260,7 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
       columnFilters,
     },
     initialState: {
-      sorting: [{ id: "extractedOrderIndex", desc: false }],
+      sorting: [{ id: 'extractedOrderIndex', desc: false }],
     },
   })
 
@@ -287,8 +287,8 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
                     style={{ width: header.column.getSize() }}
                     className={
                       header.column.getCanSort()
-                        ? "cursor-pointer select-none text-muted-foreground h-10 font-medium"
-                        : ""
+                        ? 'cursor-pointer select-none text-muted-foreground h-10 font-medium'
+                        : ''
                     }
                     onClick={header.column.getToggleSortingHandler()}
                   >
@@ -305,7 +305,7 @@ export function ValidationResultsTab({ participantRef }: { participantRef: strin
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
+                  data-state={row.getIsSelected() && 'selected'}
                   className="bg-background"
                 >
                   {row.getVisibleCells().map((cell) => (

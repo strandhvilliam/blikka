@@ -1,21 +1,21 @@
-"use client";
+'use client'
 
-import { Loader2, SearchIcon } from "lucide-react";
+import { Loader2, SearchIcon } from 'lucide-react'
 
-import { Input } from "@/components/ui/input";
-import { PrimaryButton } from "@/components/ui/primary-button";
-import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
-import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
+import { Input } from '@/components/ui/input'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { normalizeParticipantReference } from '@/lib/staff/staff-utils'
+import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
 
 interface ReferenceStepProps {
-  isSubmitting: boolean;
-  onSubmitAction: (reference: string) => Promise<void> | void;
+  isSubmitting: boolean
+  onSubmitAction: (reference: string) => Promise<void> | void
 }
 
 export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepProps) {
-  const reference = useStaffUploadStore((state) => state.formValues.reference);
-  const errorMessage = useStaffUploadStore((state) => state.lookupErrorMessage);
-  const setFormField = useStaffUploadStore((state) => state.setFormField);
+  const reference = useStaffUploadStore((state) => state.formValues.reference)
+  const errorMessage = useStaffUploadStore((state) => state.lookupErrorMessage)
+  const setFormField = useStaffUploadStore((state) => state.setFormField)
 
   return (
     <div className="flex flex-col items-center py-16 text-center">
@@ -33,9 +33,9 @@ export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepPro
         noValidate
         className="mt-10 w-full max-w-xs space-y-4"
         onSubmit={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          void onSubmitAction(normalizeParticipantReference(reference));
+          event.preventDefault()
+          event.stopPropagation()
+          void onSubmitAction(normalizeParticipantReference(reference))
         }}
       >
         <div className="space-y-2">
@@ -43,14 +43,11 @@ export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepPro
             autoFocus
             value={reference}
             onChange={(event) =>
-              setFormField(
-                "reference",
-                event.target.value.replace(/\D/g, "").slice(0, 4),
-              )
+              setFormField('reference', event.target.value.replace(/\D/g, '').slice(0, 4))
             }
             onBlur={() => {
               if (reference.length > 0) {
-                setFormField("reference", normalizeParticipantReference(reference));
+                setFormField('reference', normalizeParticipantReference(reference))
               }
             }}
             placeholder="0000"
@@ -80,5 +77,5 @@ export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepPro
         </PrimaryButton>
       </form>
     </div>
-  );
+  )
 }

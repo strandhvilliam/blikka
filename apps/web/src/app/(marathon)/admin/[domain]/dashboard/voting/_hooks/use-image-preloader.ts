@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect } from 'react'
 export function useImagePreloader(urls: (string | undefined)[]) {
   const [loaded, setLoaded] = useState<Set<string>>(new Set())
 

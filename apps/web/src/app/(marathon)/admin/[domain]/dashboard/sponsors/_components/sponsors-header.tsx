@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { Handshake, ImageIcon } from "lucide-react"
+import { Handshake, ImageIcon } from 'lucide-react'
 
 interface SponsorsHeaderProps {
   activeCount: number
@@ -29,8 +29,8 @@ export function SponsorsHeader({
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
           {isByCameraMode
-            ? "Upload sponsor images for the live landing page (one composite asset if needed) and in-app success screens when those placements are enabled."
-            : "Upload sponsor images for the live landing page (one composite asset if needed), contact sheets, and in-app success screens when those placements are enabled."}
+            ? 'Upload sponsor images for the live landing page (one composite asset if needed) and in-app success screens when those placements are enabled.'
+            : 'Upload sponsor images for the live landing page (one composite asset if needed), contact sheets, and in-app success screens when those placements are enabled.'}
         </p>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70 tabular-nums">
           <div className="flex items-center gap-1">

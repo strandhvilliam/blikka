@@ -1,4 +1,4 @@
-import { Config, Context, Effect, Layer, Option } from "effect"
+import { Config, Context, Effect, Layer, Option } from 'effect'
 
 export interface AwsSdkStaticCredentials {
   readonly accessKeyId: string
@@ -22,12 +22,12 @@ export function awsSdkClientConstructorOptions(config: AwsSdkResolvedConfig): {
   }
 }
 
-export class AwsSdkConfig extends Context.Service<AwsSdkConfig>()("@blikka/aws/aws-sdk-config", {
+export class AwsSdkConfig extends Context.Service<AwsSdkConfig>()('@blikka/aws/aws-sdk-config', {
   make: Effect.gen(function* () {
-    const region = yield* Config.string("AWS_REGION")
-    const accessKeyId = yield* Config.option(Config.string("AWS_ACCESS_KEY_ID"))
-    const secretAccessKey = yield* Config.option(Config.string("AWS_SECRET_ACCESS_KEY"))
-    const sessionToken = yield* Config.option(Config.string("AWS_SESSION_TOKEN"))
+    const region = yield* Config.string('AWS_REGION')
+    const accessKeyId = yield* Config.option(Config.string('AWS_ACCESS_KEY_ID'))
+    const secretAccessKey = yield* Config.option(Config.string('AWS_SECRET_ACCESS_KEY'))
+    const sessionToken = yield* Config.option(Config.string('AWS_SESSION_TOKEN'))
 
     const credentials: AwsSdkStaticCredentials | undefined =
       Option.isSome(accessKeyId) && Option.isSome(secretAccessKey)

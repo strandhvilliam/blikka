@@ -1,21 +1,21 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { AnimatePresence, motion } from "motion/react"
-import { useTranslations } from "next-intl"
-import { Check, Clock, MoreVertical, Recycle, Vote } from "lucide-react"
-import { Icon } from "@iconify/react"
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useTranslations } from 'next-intl'
+import { Check, Clock, MoreVertical, Recycle, Vote } from 'lucide-react'
+import { Icon } from '@iconify/react'
 
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Button } from "@/components/ui/button"
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu'
 
-import type { ConfirmationImage } from "./confirmation-marathon-client"
+import type { ConfirmationImage } from './confirmation-marathon-client'
 
 interface ConfirmationByCameraClientProps {
   params: {
@@ -38,7 +38,7 @@ export function ConfirmationByCameraClient({
   image,
   handleRedirect,
 }: ConfirmationByCameraClientProps) {
-  const t = useTranslations("ConfirmationPage")
+  const t = useTranslations('ConfirmationPage')
   const [previewImage, setPreviewImage] = useState<{
     imageUrl: string
     name: string
@@ -62,14 +62,14 @@ export function ConfirmationByCameraClient({
               className="rounded-full h-8 w-8 text-muted-foreground"
             >
               <MoreVertical className="h-4 w-4" />
-              <span className="sr-only">{t("menu")}</span>
+              <span className="sr-only">{t('menu')}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
               <button onClick={handleRedirect}>
                 <Recycle className="w-4 h-4" />
-                {t("startAgain")}
+                {t('startAgain')}
               </button>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -89,7 +89,7 @@ export function ConfirmationByCameraClient({
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.15, type: "spring", stiffness: 180, damping: 14 }}
+              transition={{ delay: 0.15, type: 'spring', stiffness: 180, damping: 14 }}
               className="w-20 h-20 rounded-full bg-emerald-600 flex items-center justify-center"
             >
               <Check className="h-10 w-10 text-white" strokeWidth={3} />
@@ -103,7 +103,7 @@ export function ConfirmationByCameraClient({
               transition={{
                 delay: 0.4,
                 duration: 3.8,
-                ease: "easeInOut",
+                ease: 'easeInOut',
                 repeat: Number.POSITIVE_INFINITY,
               }}
               className="absolute inset-0 rounded-full border-2 border-emerald-600/30 scale-[1.35]"
@@ -117,7 +117,7 @@ export function ConfirmationByCameraClient({
               transition={{
                 delay: 0.75,
                 duration: 4.6,
-                ease: "easeInOut",
+                ease: 'easeInOut',
                 repeat: Number.POSITIVE_INFINITY,
               }}
               className="absolute inset-0 rounded-full border border-emerald-600/15 scale-[1.7]"
@@ -131,7 +131,7 @@ export function ConfirmationByCameraClient({
               transition={{
                 delay: 0.9,
                 duration: 2.4,
-                ease: "easeOut",
+                ease: 'easeOut',
                 repeat: Number.POSITIVE_INFINITY,
                 repeatDelay: 0.2,
               }}
@@ -146,7 +146,7 @@ export function ConfirmationByCameraClient({
               transition={{
                 delay: 2.1,
                 duration: 2.4,
-                ease: "easeOut",
+                ease: 'easeOut',
                 repeat: Number.POSITIVE_INFINITY,
                 repeatDelay: 0.2,
               }}
@@ -160,7 +160,7 @@ export function ConfirmationByCameraClient({
             transition={{ delay: 0.3 }}
             className="text-2xl font-gothic font-semibold text-foreground mt-10 tracking-tight"
           >
-            {t("congratulations")}
+            {t('congratulations')}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 8 }}
@@ -168,7 +168,7 @@ export function ConfirmationByCameraClient({
             transition={{ delay: 0.4 }}
             className="text-muted-foreground text-sm mt-1"
           >
-            {t("photoUploaded")}
+            {t('photoUploaded')}
           </motion.p>
         </motion.div>
 
@@ -216,9 +216,9 @@ export function ConfirmationByCameraClient({
                     <span className="text-[11px] text-stone-700 flex items-center gap-1 bg-stone-100 border border-stone-200/60 px-2 py-0.5 rounded-md font-medium">
                       <Icon
                         icon={
-                          participant.deviceGroup.icon === "smartphone"
-                            ? "solar:smartphone-broken"
-                            : "solar:camera-minimalistic-broken"
+                          participant.deviceGroup.icon === 'smartphone'
+                            ? 'solar:smartphone-broken'
+                            : 'solar:camera-minimalistic-broken'
                         }
                         className="w-3 h-3"
                       />
@@ -245,9 +245,9 @@ export function ConfirmationByCameraClient({
                 <Vote className="h-4 w-4 text-stone-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground text-sm">{t("votingTitle")}</h3>
+                <h3 className="font-semibold text-foreground text-sm">{t('votingTitle')}</h3>
                 <p className="text-[13px] text-muted-foreground leading-relaxed mt-0.5">
-                  {t("votingMessage")}
+                  {t('votingMessage')}
                 </p>
               </div>
             </div>
@@ -268,7 +268,7 @@ export function ConfirmationByCameraClient({
             initial={{ scale: 0.92, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.92, opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 320 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             className="relative max-w-full max-h-full"
             onClick={(e) => e.stopPropagation()}
           >

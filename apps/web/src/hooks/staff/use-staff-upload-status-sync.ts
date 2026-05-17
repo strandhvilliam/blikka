@@ -1,20 +1,20 @@
-"use client"
+'use client'
 
-import { useCallback, useEffect, useRef } from "react"
-import { useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { useTRPC } from "@/lib/trpc/client"
+import { useCallback, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useTRPC } from '@/lib/trpc/client'
 import {
   getPollingCompletionKeys,
   getRealtimeSubmissionCompletion,
   shouldCompleteUploadFlow,
   shouldReconcileUploadStatus,
   type UploadRealtimeFileSnapshot,
-} from "@/lib/upload-status-realtime"
-import { useUploadStatusRealtime } from "@/lib/use-upload-status-realtime"
-import { PARTICIPANT_UPLOAD_PHASE } from "@/lib/participant-upload-types"
-import { useStaffUploadStore } from "@/lib/staff/staff-upload-store"
-import type { StaffUploadStep } from "@/hooks/staff/use-staff-upload-step"
+} from '@/lib/upload-status-realtime'
+import { useUploadStatusRealtime } from '@/lib/use-upload-status-realtime'
+import { PARTICIPANT_UPLOAD_PHASE } from '@/lib/participant-upload-types'
+import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
+import type { StaffUploadStep } from '@/hooks/staff/use-staff-upload-step'
 
 type UploadStatusData = {
   submissions: { key: string; uploaded: boolean }[]
@@ -85,8 +85,8 @@ export function useStaffUploadStatusSync({
       uploadComplete: true,
       uploadErrorMessage: null,
     })
-    void setStep("complete")
-    toast.success("Participant created and upload completed")
+    void setStep('complete')
+    toast.success('Participant created and upload completed')
     void queryClient.invalidateQueries({
       queryKey: trpc.participants.getByDomainInfinite.pathKey(),
     })
@@ -198,7 +198,7 @@ export function useStaffUploadStatusSync({
 
     if (uploadStatusData.participant?.errors.length) {
       patchUpload({
-        uploadErrorMessage: uploadStatusData.participant.errors.join(", "),
+        uploadErrorMessage: uploadStatusData.participant.errors.join(', '),
       })
     }
 

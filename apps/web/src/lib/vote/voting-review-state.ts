@@ -1,4 +1,4 @@
-import type { VotingSubmission } from "./voting-submission"
+import type { VotingSubmission } from './voting-submission'
 
 interface SanitizeVotingStateOptions {
   submissions: VotingSubmission[]

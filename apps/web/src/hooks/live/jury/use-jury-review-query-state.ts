@@ -1,25 +1,25 @@
-"use client"
+'use client'
 
-import { useTransition } from "react"
-import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from "nuqs"
+import { useTransition } from 'react'
+import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs'
 
 export function useJuryReviewQueryState() {
   const [, startFilterTransition] = useTransition()
   const [selectedParticipantId, setSelectedParticipantId] = useQueryState(
-    "participant",
+    'participant',
     parseAsInteger,
   )
   const [currentParticipantIndex, setCurrentParticipantIndex] = useQueryState(
-    "index",
+    'index',
     parseAsInteger.withDefault(0),
   )
   const [selectedRatings, setSelectedRatings] = useQueryState(
-    "ratings",
+    'ratings',
     parseAsArrayOf(parseAsInteger).withDefault([]),
   )
   const [viewMode, setViewMode] = useQueryState(
-    "view",
-    parseAsStringLiteral(["compact", "grid"] as const).withDefault("grid"),
+    'view',
+    parseAsStringLiteral(['compact', 'grid'] as const).withDefault('grid'),
   )
 
   const clearRatingFilter = () => {

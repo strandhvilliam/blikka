@@ -1,10 +1,10 @@
-import { getAppSession } from "@/lib/auth/server"
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { StaffHomeClient } from "@/components/staff/staff-home-client"
-import { StaffLoadingSkeleton } from "@/components/staff/staff-loading-skeleton"
-import { Suspense } from "react"
+import { getAppSession } from '@/lib/auth/server'
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { StaffHomeClient } from '@/components/staff/staff-home-client'
+import { StaffLoadingSkeleton } from '@/components/staff/staff-loading-skeleton'
+import { Suspense } from 'react'
 
-export default async function StaffDomainPage({ params }: PageProps<"/staff/[domain]">) {
+export default async function StaffDomainPage({ params }: PageProps<'/staff/[domain]'>) {
   const { domain } = await params
   const session = await getAppSession()
 
@@ -37,4 +37,5 @@ export default async function StaffDomainPage({ params }: PageProps<"/staff/[dom
         />
       </Suspense>
     </HydrateClient>
-  )}
+  )
+}

@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
 export async function downloadFile(url: string, filename: string): Promise<void> {
-  const response = await fetch(url, { method: "GET" })
+  const response = await fetch(url, { method: 'GET' })
 
   if (!response.ok) {
-    throw new Error("Export failed")
+    throw new Error('Export failed')
   }
 
   const blob = await response.blob()
   const downloadUrl = window.URL.createObjectURL(blob)
-  const anchor = document.createElement("a")
+  const anchor = document.createElement('a')
 
   anchor.href = downloadUrl
   anchor.download = filename

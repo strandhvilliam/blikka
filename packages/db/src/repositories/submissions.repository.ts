@@ -1,7 +1,7 @@
-import { Effect, Layer, Option, Context } from "effect"
-import { DrizzleClient } from "../drizzle-client"
-import { participants, submissions, zippedSubmissions } from "../schema"
-import { eq, inArray } from "drizzle-orm"
+import { Effect, Layer, Option, Context } from 'effect'
+import { DrizzleClient } from '../drizzle-client'
+import { participants, submissions, zippedSubmissions } from '../schema'
+import { eq, inArray } from 'drizzle-orm'
 import type {
   CompetitionClass,
   DeviceGroup,
@@ -11,10 +11,10 @@ import type {
   Submission,
   Topic,
   ZippedSubmission,
-} from "../types"
-import { DbError } from "../utils"
-import { conflictUpdateSetAllColumns } from "../utils"
-interface SubmissionKeys extends Pick<Submission, "key" | "thumbnailKey" | "previewKey"> {}
+} from '../types'
+import { DbError } from '../utils'
+import { conflictUpdateSetAllColumns } from '../utils'
+interface SubmissionKeys extends Pick<Submission, 'key' | 'thumbnailKey' | 'previewKey'> {}
 
 interface SubmissionVoteRealtimePayload {
   submissionId: number
@@ -122,7 +122,7 @@ export class SubmissionsRepository extends Context.Service<
       updates: {
         orderIndex: number
         data: Partial<
-          Omit<NewSubmission, "id" | "createdAt" | "updatedAt" | "participantId" | "marathonId">
+          Omit<NewSubmission, 'id' | 'createdAt' | 'updatedAt' | 'participantId' | 'marathonId'>
         >
       }[]
     }) => Effect.Effect<Submission[], DbError>
@@ -135,13 +135,13 @@ export class SubmissionsRepository extends Context.Service<
       ids: number[]
     }) => Effect.Effect<Submission | undefined, DbError>
   }
->()("@blikka/db/submissions-repository") {}
+>()('@blikka/db/submissions-repository') {}
 
 const makeSubmissionsRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
 
-  const getAllSubmissionKeysForMarathon: SubmissionsRepository["Service"]["getAllSubmissionKeysForMarathon"] =
-    Effect.fn("SubmissionsRepository.getAllSubmissionKeysForMarathon")(function* ({ marathonId }) {
+  const getAllSubmissionKeysForMarathon: SubmissionsRepository['Service']['getAllSubmissionKeysForMarathon'] =
+    Effect.fn('SubmissionsRepository.getAllSubmissionKeysForMarathon')(function* ({ marathonId }) {
       const result = yield* use((db) =>
         db.query.submissions.findMany({
           where: (table, operators) => operators.eq(table.marathonId, marathonId),
@@ -155,8 +155,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       return result
     })
 
-  const getSubmissionById: SubmissionsRepository["Service"]["getSubmissionById"] = Effect.fn(
-    "SubmissionsRepository.getSubmissionById",
+  const getSubmissionById: SubmissionsRepository['Service']['getSubmissionById'] = Effect.fn(
+    'SubmissionsRepository.getSubmissionById',
   )(function* ({ id }) {
     const result = yield* use((db) =>
       db.query.submissions.findFirst({
@@ -166,8 +166,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
     return Option.fromNullishOr(result)
   })
 
-  const getSubmissionVoteRealtimePayloadById: SubmissionsRepository["Service"]["getSubmissionVoteRealtimePayloadById"] =
-    Effect.fn("SubmissionsRepository.getSubmissionVoteRealtimePayloadById")(function* ({ id }) {
+  const getSubmissionVoteRealtimePayloadById: SubmissionsRepository['Service']['getSubmissionVoteRealtimePayloadById'] =
+    Effect.fn('SubmissionsRepository.getSubmissionVoteRealtimePayloadById')(function* ({ id }) {
       const result = yield* use((db) =>
         db
           .select({
@@ -185,8 +185,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       )
       return Option.fromNullishOr(result[0])
     })
-  const getSubmissionByKey: SubmissionsRepository["Service"]["getSubmissionByKey"] = Effect.fn(
-    "SubmissionsRepository.getSubmissionByKey",
+  const getSubmissionByKey: SubmissionsRepository['Service']['getSubmissionByKey'] = Effect.fn(
+    'SubmissionsRepository.getSubmissionByKey',
   )(function* ({ key }) {
     const result = yield* use((db) =>
       db.query.submissions.findFirst({
@@ -195,8 +195,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
     )
     return Option.fromNullishOr(result)
   })
-  const getZippedSubmissionsByDomain: SubmissionsRepository["Service"]["getZippedSubmissionsByDomain"] =
-    Effect.fn("SubmissionsRepository.getZippedSubmissionsByDomain")(function* ({ domain }) {
+  const getZippedSubmissionsByDomain: SubmissionsRepository['Service']['getZippedSubmissionsByDomain'] =
+    Effect.fn('SubmissionsRepository.getZippedSubmissionsByDomain')(function* ({ domain }) {
       const result = yield* use((db) =>
         db.query.marathons.findFirst({
           where: (table, operators) => operators.eq(table.domain, domain),
@@ -222,8 +222,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       }
       return Array.from(latestByParticipant.values())
     })
-  const getZippedSubmissionsByMarathonId: SubmissionsRepository["Service"]["getZippedSubmissionsByMarathonId"] =
-    Effect.fn("SubmissionsRepository.getZippedSubmissionsByMarathonId")(function* ({ marathonId }) {
+  const getZippedSubmissionsByMarathonId: SubmissionsRepository['Service']['getZippedSubmissionsByMarathonId'] =
+    Effect.fn('SubmissionsRepository.getZippedSubmissionsByMarathonId')(function* ({ marathonId }) {
       const result = yield* use((db) =>
         db.query.zippedSubmissions.findMany({
           where: (table, operators) => operators.eq(table.marathonId, marathonId),
@@ -231,8 +231,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       )
       return result
     })
-  const getManySubmissionsByKeys: SubmissionsRepository["Service"]["getManySubmissionsByKeys"] =
-    Effect.fn("SubmissionsRepository.getManySubmissionsByKeys")(function* ({ keys }) {
+  const getManySubmissionsByKeys: SubmissionsRepository['Service']['getManySubmissionsByKeys'] =
+    Effect.fn('SubmissionsRepository.getManySubmissionsByKeys')(function* ({ keys }) {
       const result = yield* use((db) =>
         db.query.submissions.findMany({
           where: (table, operators) => operators.inArray(table.key, keys),
@@ -240,8 +240,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       )
       return result
     })
-  const getSubmissionsByParticipantId: SubmissionsRepository["Service"]["getSubmissionsByParticipantId"] =
-    Effect.fn("SubmissionsRepository.getSubmissionsByParticipantId")(function* ({ participantId }) {
+  const getSubmissionsByParticipantId: SubmissionsRepository['Service']['getSubmissionsByParticipantId'] =
+    Effect.fn('SubmissionsRepository.getSubmissionsByParticipantId')(function* ({ participantId }) {
       const result = yield* use((db) =>
         db.query.submissions.findMany({
           where: (table, operators) => operators.eq(table.participantId, participantId),
@@ -249,8 +249,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       )
       return result
     })
-  const getSubmissionByParticipantIdAndTopicId: SubmissionsRepository["Service"]["getSubmissionByParticipantIdAndTopicId"] =
-    Effect.fn("SubmissionsRepository.getSubmissionByParticipantIdAndTopicId")(function* ({
+  const getSubmissionByParticipantIdAndTopicId: SubmissionsRepository['Service']['getSubmissionByParticipantIdAndTopicId'] =
+    Effect.fn('SubmissionsRepository.getSubmissionByParticipantIdAndTopicId')(function* ({
       participantId,
       topicId,
     }: {
@@ -269,8 +269,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       return Option.fromNullishOr(result)
     })
 
-  const getSubmissionsForJuryQuery: SubmissionsRepository["Service"]["getSubmissionsForJuryQuery"] =
-    Effect.fn("SubmissionsRepository.getSubmissionsForJury")(function* ({ filters }) {
+  const getSubmissionsForJuryQuery: SubmissionsRepository['Service']['getSubmissionsForJuryQuery'] =
+    Effect.fn('SubmissionsRepository.getSubmissionsForJury')(function* ({ filters }) {
       const marathon = yield* use((db) =>
         db.query.marathons.findFirst({
           where: (table, operators) => operators.eq(table.domain, filters.domain),
@@ -284,7 +284,7 @@ const makeSubmissionsRepository = Effect.gen(function* () {
           where: (table, operators) =>
             operators.and(
               operators.eq(table.marathonId, marathon.id),
-              operators.eq(table.status, "uploaded"),
+              operators.eq(table.status, 'uploaded'),
             ),
           with: {
             participant: {
@@ -314,35 +314,35 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       return filteredResult
     })
 
-  const createSubmission: SubmissionsRepository["Service"]["createSubmission"] = Effect.fn(
-    "SubmissionsRepository.createSubmission",
+  const createSubmission: SubmissionsRepository['Service']['createSubmission'] = Effect.fn(
+    'SubmissionsRepository.createSubmission',
   )(function* ({ data }) {
     const [result] = yield* use((db) => db.insert(submissions).values(data).returning())
     if (!result) {
       return yield* Effect.fail(
         new DbError({
-          message: "Failed to create submission",
+          message: 'Failed to create submission',
         }),
       )
     }
     return result
   })
 
-  const createMultipleSubmissions: SubmissionsRepository["Service"]["createMultipleSubmissions"] =
-    Effect.fn("SubmissionsRepository.createMultipleSubmissions")(function* ({ data }) {
+  const createMultipleSubmissions: SubmissionsRepository['Service']['createMultipleSubmissions'] =
+    Effect.fn('SubmissionsRepository.createMultipleSubmissions')(function* ({ data }) {
       const result = yield* use((db) => db.insert(submissions).values(data).returning())
       if (result.length === 0) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to create multiple submissions",
+            message: 'Failed to create multiple submissions',
           }),
         )
       }
       return result
     })
 
-  const updateAllSubmissions: SubmissionsRepository["Service"]["updateAllSubmissions"] = Effect.fn(
-    "SubmissionsRepository.updateAllSubmissions",
+  const updateAllSubmissions: SubmissionsRepository['Service']['updateAllSubmissions'] = Effect.fn(
+    'SubmissionsRepository.updateAllSubmissions',
   )(function* ({ updates, reference, domain }) {
     const participant = yield* use((db) =>
       db.query.participants.findFirst({
@@ -363,7 +363,7 @@ const makeSubmissionsRepository = Effect.gen(function* () {
     if (!participant) {
       return yield* Effect.fail(
         new DbError({
-          message: "Participant not found",
+          message: 'Participant not found',
         }),
       )
     }
@@ -389,23 +389,23 @@ const makeSubmissionsRepository = Effect.gen(function* () {
     return result
   })
 
-  const updateSubmissionByKey: SubmissionsRepository["Service"]["updateSubmissionByKey"] =
-    Effect.fn("SubmissionsRepository.updateSubmissionByKeyMutation")(function* ({ key, data }) {
+  const updateSubmissionByKey: SubmissionsRepository['Service']['updateSubmissionByKey'] =
+    Effect.fn('SubmissionsRepository.updateSubmissionByKeyMutation')(function* ({ key, data }) {
       const [result] = yield* use((db) =>
         db.update(submissions).set(data).where(eq(submissions.key, key)).returning(),
       )
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to update submission by key",
+            message: 'Failed to update submission by key',
           }),
         )
       }
       return result
     })
 
-  const updateSubmissionById: SubmissionsRepository["Service"]["updateSubmissionById"] = Effect.fn(
-    "SubmissionsRepository.updateSubmissionById",
+  const updateSubmissionById: SubmissionsRepository['Service']['updateSubmissionById'] = Effect.fn(
+    'SubmissionsRepository.updateSubmissionById',
   )(function* ({ id, data }) {
     const [result] = yield* use((db) =>
       db.update(submissions).set(data).where(eq(submissions.id, id)).returning(),
@@ -413,43 +413,43 @@ const makeSubmissionsRepository = Effect.gen(function* () {
     if (!result) {
       return yield* Effect.fail(
         new DbError({
-          message: "Failed to update submission by id",
+          message: 'Failed to update submission by id',
         }),
       )
     }
     return result
   })
 
-  const createZippedSubmission: SubmissionsRepository["Service"]["createZippedSubmission"] =
-    Effect.fn("SubmissionsRepository.createZippedSubmission")(function* ({ data }) {
+  const createZippedSubmission: SubmissionsRepository['Service']['createZippedSubmission'] =
+    Effect.fn('SubmissionsRepository.createZippedSubmission')(function* ({ data }) {
       const [result] = yield* use((db) => db.insert(zippedSubmissions).values(data).returning())
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to create zipped submission",
+            message: 'Failed to create zipped submission',
           }),
         )
       }
       return result
     })
 
-  const updateZippedSubmission: SubmissionsRepository["Service"]["updateZippedSubmission"] =
-    Effect.fn("SubmissionsRepository.updateZippedSubmission")(function* ({ id, data }) {
+  const updateZippedSubmission: SubmissionsRepository['Service']['updateZippedSubmission'] =
+    Effect.fn('SubmissionsRepository.updateZippedSubmission')(function* ({ id, data }) {
       const [result] = yield* use((db) =>
         db.update(zippedSubmissions).set(data).where(eq(zippedSubmissions.id, id)).returning(),
       )
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to update zipped submission",
+            message: 'Failed to update zipped submission',
           }),
         )
       }
       return result
     })
 
-  const getZippedSubmissionByParticipantRefQuery: SubmissionsRepository["Service"]["getZippedSubmissionByParticipantRefQuery"] =
-    Effect.fn("SubmissionsRepository.getZippedSubmissionByParticipantRefQuery")(function* ({
+  const getZippedSubmissionByParticipantRefQuery: SubmissionsRepository['Service']['getZippedSubmissionByParticipantRefQuery'] =
+    Effect.fn('SubmissionsRepository.getZippedSubmissionByParticipantRefQuery')(function* ({
       domain,
       participantRef,
     }) {
@@ -471,8 +471,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       return participant.zippedSubmissions
     })
 
-  const deleteSubmissionById: SubmissionsRepository["Service"]["deleteSubmissionById"] = Effect.fn(
-    "SubmissionsRepository.deleteSubmissionById",
+  const deleteSubmissionById: SubmissionsRepository['Service']['deleteSubmissionById'] = Effect.fn(
+    'SubmissionsRepository.deleteSubmissionById',
   )(function* ({ id }) {
     const [result] = yield* use((db) =>
       db.delete(submissions).where(eq(submissions.id, id)).returning(),
@@ -480,8 +480,8 @@ const makeSubmissionsRepository = Effect.gen(function* () {
     return result
   })
 
-  const deleteMultipleSubmissions: SubmissionsRepository["Service"]["deleteMultipleSubmissions"] =
-    Effect.fn("SubmissionsRepository.deleteMultipleSubmissions")(function* ({ ids }) {
+  const deleteMultipleSubmissions: SubmissionsRepository['Service']['deleteMultipleSubmissions'] =
+    Effect.fn('SubmissionsRepository.deleteMultipleSubmissions')(function* ({ ids }) {
       const [result] = yield* use((db) =>
         db.delete(submissions).where(inArray(submissions.id, ids)).returning(),
       )

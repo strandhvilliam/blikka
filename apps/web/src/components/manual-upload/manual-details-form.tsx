@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { Input } from "@/components/ui/input"
-import { PhoneInput } from "@/components/ui/phone-input"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import type { ManualUploadFormApi } from "@/hooks/use-manual-upload-form"
+import { Input } from '@/components/ui/input'
+import { PhoneInput } from '@/components/ui/phone-input'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import type { ManualUploadFormApi } from '@/hooks/use-manual-upload-form'
 
 interface ManualDetailsFormProps {
   form: ManualUploadFormApi
@@ -28,7 +28,7 @@ export function ManualDetailsForm({ form, marathonMode }: ManualDetailsFormProps
             onChange: ({ value }) => {
               if (!/^\d{0,4}$/.test(value)) return undefined
               if (value.length > 0 && !/^\d{1,4}$/.test(value)) {
-                return "Participant reference must be 1-4 digits"
+                return 'Participant reference must be 1-4 digits'
               }
               return undefined
             },
@@ -42,12 +42,12 @@ export function ManualDetailsForm({ form, marathonMode }: ManualDetailsFormProps
               <Input
                 value={field.state.value}
                 onChange={(event) => {
-                  const value = event.target.value.replace(/\D/g, "").slice(0, 4)
+                  const value = event.target.value.replace(/\D/g, '').slice(0, 4)
                   field.handleChange(value)
                 }}
                 onBlur={() => {
                   if (field.state.value.length > 0) {
-                    field.handleChange(field.state.value.padStart(4, "0"))
+                    field.handleChange(field.state.value.padStart(4, '0'))
                   }
                   field.handleBlur()
                 }}
@@ -55,16 +55,16 @@ export function ManualDetailsForm({ form, marathonMode }: ManualDetailsFormProps
                 inputMode="numeric"
                 maxLength={4}
                 className={cn(
-                  "font-mono text-lg tracking-[0.2em]",
+                  'font-mono text-lg tracking-[0.2em]',
                   !field.state.meta.isValid &&
                     field.state.meta.isTouched &&
-                    "border-rose-400 focus-visible:ring-rose-400",
+                    'border-rose-400 focus-visible:ring-rose-400',
                 )}
               />
               {!field.state.meta.isValid &&
               field.state.meta.isTouched &&
               field.state.meta.errors.length > 0 ? (
-                <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
+                <p className="text-xs text-rose-600">{field.state.meta.errors.join(', ')}</p>
               ) : null}
             </div>
           )}
@@ -85,13 +85,13 @@ export function ManualDetailsForm({ form, marathonMode }: ManualDetailsFormProps
                   className={cn(
                     !field.state.meta.isValid &&
                       field.state.meta.isTouched &&
-                      "border-rose-400 focus-visible:ring-rose-400",
+                      'border-rose-400 focus-visible:ring-rose-400',
                   )}
                 />
                 {!field.state.meta.isValid &&
                 field.state.meta.isTouched &&
                 field.state.meta.errors.length > 0 ? (
-                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
+                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(', ')}</p>
                 ) : null}
               </div>
             )}
@@ -111,13 +111,13 @@ export function ManualDetailsForm({ form, marathonMode }: ManualDetailsFormProps
                   className={cn(
                     !field.state.meta.isValid &&
                       field.state.meta.isTouched &&
-                      "border-rose-400 focus-visible:ring-rose-400",
+                      'border-rose-400 focus-visible:ring-rose-400',
                   )}
                 />
                 {!field.state.meta.isValid &&
                 field.state.meta.isTouched &&
                 field.state.meta.errors.length > 0 ? (
-                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
+                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(', ')}</p>
                 ) : null}
               </div>
             )}
@@ -139,19 +139,19 @@ export function ManualDetailsForm({ form, marathonMode }: ManualDetailsFormProps
                   className={cn(
                     !field.state.meta.isValid &&
                       field.state.meta.isTouched &&
-                      "border-rose-400 focus-visible:ring-rose-400",
+                      'border-rose-400 focus-visible:ring-rose-400',
                   )}
                 />
                 {!field.state.meta.isValid &&
                 field.state.meta.isTouched &&
                 field.state.meta.errors.length > 0 ? (
-                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
+                  <p className="text-xs text-rose-600">{field.state.meta.errors.join(', ')}</p>
                 ) : null}
               </div>
             )}
           </form.Field>
 
-          {marathonMode === "by-camera" ? (
+          {marathonMode === 'by-camera' ? (
             <form.Field name="phone">
               {(field) => (
                 <div className="space-y-2">
@@ -160,19 +160,19 @@ export function ManualDetailsForm({ form, marathonMode }: ManualDetailsFormProps
                   </label>
                   <PhoneInput
                     value={field.state.value}
-                    onChange={(value) => field.handleChange(value || "")}
+                    onChange={(value) => field.handleChange(value || '')}
                     onBlur={field.handleBlur}
                     defaultCountry="SE"
                     className={cn(
                       !field.state.meta.isValid &&
                         field.state.meta.isTouched &&
-                        "[&_input]:border-rose-400 [&_input]:focus-visible:ring-rose-400",
+                        '[&_input]:border-rose-400 [&_input]:focus-visible:ring-rose-400',
                     )}
                   />
                   {!field.state.meta.isValid &&
                   field.state.meta.isTouched &&
                   field.state.meta.errors.length > 0 ? (
-                    <p className="text-xs text-rose-600">{field.state.meta.errors.join(", ")}</p>
+                    <p className="text-xs text-rose-600">{field.state.meta.errors.join(', ')}</p>
                   ) : null}
                 </div>
               )}

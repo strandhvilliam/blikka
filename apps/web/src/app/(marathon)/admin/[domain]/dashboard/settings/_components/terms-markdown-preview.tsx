@@ -1,31 +1,27 @@
-import React from "react"
-import ReactMarkdown from "react-markdown"
-import { cn } from "@/lib/utils"
+import React from 'react'
+import ReactMarkdown from 'react-markdown'
+import { cn } from '@/lib/utils'
 
 interface TermsMarkdownPreviewProps {
   markdown: string
-  variant?: "default" | "dialog"
+  variant?: 'default' | 'dialog'
 }
 
-export function TermsMarkdownPreview({
-  markdown,
-  variant = "default",
-}: TermsMarkdownPreviewProps) {
+export function TermsMarkdownPreview({ markdown, variant = 'default' }: TermsMarkdownPreviewProps) {
   return (
     <div
       className={cn(
-        "relative bg-background border border-border",
-        variant === "default" &&
-          "w-[440px] max-h-[580px] overflow-y-auto rounded-2xl shadow-lg",
-        variant === "dialog" && "w-full rounded-lg border-dashed",
+        'relative bg-background border border-border',
+        variant === 'default' && 'w-[440px] max-h-[580px] overflow-y-auto rounded-2xl shadow-lg',
+        variant === 'dialog' && 'w-full rounded-lg border-dashed',
       )}
     >
       {markdown.trim() ? (
         <div
           className={cn(
-            "prose max-w-none dark:prose-invert",
-            variant === "default" && "prose-sm p-2",
-            variant === "dialog" && "prose-base sm:prose-lg px-4 py-3",
+            'prose max-w-none dark:prose-invert',
+            variant === 'default' && 'prose-sm p-2',
+            variant === 'dialog' && 'prose-base sm:prose-lg px-4 py-3',
           )}
         >
           <ReactMarkdown
@@ -33,8 +29,8 @@ export function TermsMarkdownPreview({
               h1: ({ children }) => (
                 <h1
                   className={cn(
-                    "font-gothic font-bold mb-2",
-                    variant === "default" ? "text-base" : "text-xl sm:text-2xl",
+                    'font-gothic font-bold mb-2',
+                    variant === 'default' ? 'text-base' : 'text-xl sm:text-2xl',
                   )}
                 >
                   {children}
@@ -43,8 +39,8 @@ export function TermsMarkdownPreview({
               h2: ({ children }) => (
                 <h2
                   className={cn(
-                    "font-gothic font-semibold mb-2",
-                    variant === "default" ? "text-sm" : "text-lg sm:text-xl",
+                    'font-gothic font-semibold mb-2',
+                    variant === 'default' ? 'text-sm' : 'text-lg sm:text-xl',
                   )}
                 >
                   {children}
@@ -53,22 +49,24 @@ export function TermsMarkdownPreview({
               h3: ({ children }) => (
                 <h3
                   className={cn(
-                    "font-gothic font-semibold mb-1",
-                    variant === "default" ? "text-xs" : "text-base sm:text-lg",
+                    'font-gothic font-semibold mb-1',
+                    variant === 'default' ? 'text-xs' : 'text-base sm:text-lg',
                   )}
                 >
                   {children}
                 </h3>
               ),
               p: ({ children }) => (
-                <p className={cn("mb-2", variant === "default" ? "text-xs" : "text-sm sm:text-base")}>
+                <p
+                  className={cn('mb-2', variant === 'default' ? 'text-xs' : 'text-sm sm:text-base')}
+                >
                   {children}
                 </p>
               ),
               ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
               ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
               li: ({ children }) => (
-                <li className={variant === "default" ? "text-xs" : "text-sm sm:text-base"}>
+                <li className={variant === 'default' ? 'text-xs' : 'text-sm sm:text-base'}>
                   {children}
                 </li>
               ),
@@ -87,8 +85,8 @@ export function TermsMarkdownPreview({
       ) : (
         <p
           className={cn(
-            "text-muted-foreground",
-            variant === "default" ? "text-xs" : "text-sm px-4 py-6",
+            'text-muted-foreground',
+            variant === 'default' ? 'text-xs' : 'text-sm px-4 py-6',
           )}
         >
           No terms content yet.

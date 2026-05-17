@@ -1,5 +1,5 @@
-import { format } from "date-fns"
-import { Camera, FileSpreadsheet, ImageIcon, InfoIcon, ListFilter, MapPin } from "lucide-react"
+import { format } from 'date-fns'
+import { Camera, FileSpreadsheet, ImageIcon, InfoIcon, ListFilter, MapPin } from 'lucide-react'
 
 export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<string, unknown> }) {
   if (!exifData || Object.keys(exifData).length === 0) {
@@ -18,60 +18,60 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<strin
 
   const groups = {
     basic: {
-      title: "Basic Information",
+      title: 'Basic Information',
       icon: <FileSpreadsheet className="h-4 w-4" />,
-      keys: ["Make", "Model", "Software", "CreateDate", "ModifyDate", "Artist", "Copyright"],
+      keys: ['Make', 'Model', 'Software', 'CreateDate', 'ModifyDate', 'Artist', 'Copyright'],
     },
     camera: {
-      title: "Camera Settings",
+      title: 'Camera Settings',
       icon: <Camera className="h-4 w-4" />,
       keys: [
-        "ExposureTime",
-        "FNumber",
-        "ISO",
-        "ExposureProgram",
-        "FocalLength",
-        "LensModel",
-        "Flash",
-        "WhiteBalance",
+        'ExposureTime',
+        'FNumber',
+        'ISO',
+        'ExposureProgram',
+        'FocalLength',
+        'LensModel',
+        'Flash',
+        'WhiteBalance',
       ],
     },
     location: {
-      title: "Location Data",
+      title: 'Location Data',
       icon: <MapPin className="h-4 w-4" />,
       keys: [
-        "GPSLatitude",
-        "GPSLongitude",
-        "GPSAltitude",
-        "GPSDateStamp",
-        "GPSTimeStamp",
-        "GPSProcessingMethod",
+        'GPSLatitude',
+        'GPSLongitude',
+        'GPSAltitude',
+        'GPSDateStamp',
+        'GPSTimeStamp',
+        'GPSProcessingMethod',
       ],
     },
     image: {
-      title: "Image Properties",
+      title: 'Image Properties',
       icon: <ImageIcon className="h-4 w-4" />,
       keys: [
-        "ImageWidth",
-        "ImageHeight",
-        "BitsPerSample",
-        "ColorSpace",
-        "Compression",
-        "Orientation",
+        'ImageWidth',
+        'ImageHeight',
+        'BitsPerSample',
+        'ColorSpace',
+        'Compression',
+        'Orientation',
       ],
     },
   }
 
   const formatExifValue = (key: string, value: unknown) => {
-    if (value === undefined || value === null) return "Not available"
+    if (value === undefined || value === null) return 'Not available'
 
-    if (typeof value === "object" && !Array.isArray(value)) {
+    if (typeof value === 'object' && !Array.isArray(value)) {
       return (
         <div className="pl-2 border-l-2 border-border mt-1 space-y-1">
           {Object.entries(value).map(([nestedKey, nestedValue]) => (
             <div key={nestedKey} className="text-xs">
               <span className="text-muted-foreground">
-                {nestedKey.replace(/([A-Z])/g, " $1").trim()}:{" "}
+                {nestedKey.replace(/([A-Z])/g, ' $1').trim()}:{' '}
               </span>
               <span>{formatNestedValue(nestedValue)}</span>
             </div>
@@ -93,24 +93,24 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<strin
       )
     }
 
-    if (key === "ExposureTime" && typeof value === "number") {
+    if (key === 'ExposureTime' && typeof value === 'number') {
       if (value >= 1) return `${value} sec`
       return `1/${Math.round(1 / value)} sec`
     }
 
-    if (key === "FNumber" && typeof value === "number") {
+    if (key === 'FNumber' && typeof value === 'number') {
       return `f/${value.toFixed(1)}`
     }
 
-    if (key === "FocalLength" && typeof value === "number") {
+    if (key === 'FocalLength' && typeof value === 'number') {
       return `${value} mm`
     }
 
-    if ((key.includes("Date") || key.includes("Time")) && typeof value === "string") {
+    if ((key.includes('Date') || key.includes('Time')) && typeof value === 'string') {
       try {
         const date = new Date(value)
         if (!isNaN(date.getTime())) {
-          return format(date, "MMM d, yyyy HH:mm:ss")
+          return format(date, 'MMM d, yyyy HH:mm:ss')
         }
       } catch {
         return value
@@ -121,15 +121,15 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<strin
   }
 
   const formatNestedValue = (value: unknown): string | React.ReactNode => {
-    if (value === undefined || value === null) return "Not available"
+    if (value === undefined || value === null) return 'Not available'
 
-    if (typeof value === "object" && !Array.isArray(value)) {
+    if (typeof value === 'object' && !Array.isArray(value)) {
       return (
         <div className="pl-2 border-l-2 border-border mt-1 space-y-1">
           {Object.entries(value).map(([nestedKey, nestedValue]) => (
             <div key={nestedKey} className="text-xs">
               <span className="text-muted-foreground">
-                {nestedKey.replace(/([A-Z])/g, " $1").trim()}:{" "}
+                {nestedKey.replace(/([A-Z])/g, ' $1').trim()}:{' '}
               </span>
               <span>{formatNestedValue(nestedValue)}</span>
             </div>
@@ -139,7 +139,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<strin
     }
 
     if (Array.isArray(value)) {
-      if (value.length === 0) return "[]"
+      if (value.length === 0) return '[]'
 
       return (
         <div className="pl-2 border-l-2 border-border mt-1 space-y-1">
@@ -175,7 +175,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<strin
               {groupData.map((key) => (
                 <div key={key} className="flex flex-col space-y-0.5">
                   <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide leading-tight">
-                    {key.replace(/([A-Z])/g, " $1").trim()}
+                    {key.replace(/([A-Z])/g, ' $1').trim()}
                   </span>
                   <span className="font-mono text-xs">{formatExifValue(key, exifData[key])}</span>
                 </div>
@@ -195,7 +195,7 @@ export function SubmissionExifDataDisplay({ exifData }: { exifData: Record<strin
             {otherKeys.map((key) => (
               <div key={key} className="flex flex-col space-y-0.5">
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide leading-tight">
-                  {key.replace(/([A-Z])/g, " $1").trim()}
+                  {key.replace(/([A-Z])/g, ' $1').trim()}
                 </span>
                 <span className="font-mono text-xs overflow-hidden text-ellipsis">
                   {formatExifValue(key, exifData[key])}

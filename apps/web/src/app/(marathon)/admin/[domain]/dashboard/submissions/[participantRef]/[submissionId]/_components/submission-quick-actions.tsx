@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import type { Submission, ValidationResult } from "@blikka/db"
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import type { Submission, ValidationResult } from '@blikka/db'
 import {
   AlertCircle,
   CheckCircle2,
@@ -12,8 +12,8 @@ import {
   RefreshCw,
   ShieldCheck,
   UserCheck,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,16 +24,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { useTRPC } from "@/lib/trpc/client"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useDomain } from "@/lib/domain-provider"
-import { toast } from "sonner"
-import { cn } from "@/lib/utils"
-import { downloadRemoteUrl } from "../_lib/download-remote-url"
-import { SubmissionReplaceDialog } from "./submission-replace-dialog"
+} from '@/components/ui/alert-dialog'
+import { useTRPC } from '@/lib/trpc/client'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useDomain } from '@/lib/domain-provider'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { downloadRemoteUrl } from '../_lib/download-remote-url'
+import { SubmissionReplaceDialog } from './submission-replace-dialog'
 
-export type SubmissionDetailTab = "exif" | "validation"
+export type SubmissionDetailTab = 'exif' | 'validation'
 
 interface SubmissionQuickActionsProps {
   submission: Submission
@@ -63,10 +63,10 @@ export function SubmissionQuickActions({
   const hasExif = submission.exif && Object.keys(submission.exif).length > 0
   const hasThumbnail = Boolean(submission.thumbnailKey)
   const hasValidation = validationResults.length > 0
-  const hasIssues = validationResults.some((result) => result.outcome === "failed")
-  const isByCameraMode = marathonMode === "by-camera"
+  const hasIssues = validationResults.some((result) => result.outcome === 'failed')
+  const isByCameraMode = marathonMode === 'by-camera'
   const isMarathonMode = !isByCameraMode
-  const isVerified = participantStatus === "verified"
+  const isVerified = participantStatus === 'verified'
   const domain = useDomain()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -74,7 +74,7 @@ export function SubmissionQuickActions({
   const verifyMutation = useMutation(
     trpc.participants.verifyParticipant.mutationOptions({
       onSuccess: () => {
-        toast.success("Participant verified successfully")
+        toast.success('Participant verified successfully')
         queryClient.invalidateQueries({
           queryKey: trpc.participants.getByReference.queryKey({
             reference: participantRef,
@@ -83,7 +83,7 @@ export function SubmissionQuickActions({
         })
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to verify participant")
+        toast.error(error.message || 'Failed to verify participant')
       },
     }),
   )
@@ -103,7 +103,7 @@ export function SubmissionQuickActions({
         })
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to rerun validations")
+        toast.error(error.message || 'Failed to rerun validations')
       },
     }),
   )
@@ -113,12 +113,12 @@ export function SubmissionQuickActions({
       onSuccess: async (data, variables) => {
         const actionLabel =
           variables.regenerateExif && variables.regenerateThumbnail
-            ? "Submission assets refreshed"
+            ? 'Submission assets refreshed'
             : variables.regenerateExif
-              ? "EXIF regenerated"
+              ? 'EXIF regenerated'
               : variables.regenerateThumbnail
-                ? "Thumbnail generated"
-                : "Submission updated"
+                ? 'Thumbnail generated'
+                : 'Submission updated'
 
         toast.success(
           variables.rerunValidations
@@ -142,7 +142,7 @@ export function SubmissionQuickActions({
         ])
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to refresh submission assets")
+        toast.error(error.message || 'Failed to refresh submission assets')
       },
     }),
   )
@@ -224,7 +224,7 @@ export function SubmissionQuickActions({
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={handleVerify} disabled={verifyMutation.isPending}>
-                      {verifyMutation.isPending ? "Verifying..." : "Verify"}
+                      {verifyMutation.isPending ? 'Verifying...' : 'Verify'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -251,9 +251,9 @@ export function SubmissionQuickActions({
             >
               <RefreshCw
                 className={cn(
-                  "h-4 w-4",
+                  'h-4 w-4',
                   (rerunValidationsMutation.isPending || regenerateAssetsMutation.isPending) &&
-                    "animate-spin",
+                    'animate-spin',
                 )}
               />
               Rerun Validations
@@ -279,16 +279,16 @@ export function SubmissionQuickActions({
             <Button
               type="button"
               role="tab"
-              aria-selected={activeDetailTab === "exif"}
+              aria-selected={activeDetailTab === 'exif'}
               variant="ghost"
               size="sm"
               className={cn(
-                "h-8 gap-2 rounded-md shadow-none",
-                activeDetailTab === "exif"
-                  ? "bg-white font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-white"
-                  : "text-muted-foreground hover:bg-transparent hover:text-foreground",
+                'h-8 gap-2 rounded-md shadow-none',
+                activeDetailTab === 'exif'
+                  ? 'bg-white font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-white'
+                  : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
               )}
-              onClick={() => onDetailTabChange("exif")}
+              onClick={() => onDetailTabChange('exif')}
             >
               <FileCode className="h-4 w-4" />
               EXIF Data
@@ -301,16 +301,16 @@ export function SubmissionQuickActions({
             <Button
               type="button"
               role="tab"
-              aria-selected={activeDetailTab === "validation"}
+              aria-selected={activeDetailTab === 'validation'}
               variant="ghost"
               size="sm"
               className={cn(
-                "h-8 gap-2 rounded-md shadow-none",
-                activeDetailTab === "validation"
-                  ? "bg-white font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-white"
-                  : "text-muted-foreground hover:bg-transparent hover:text-foreground",
+                'h-8 gap-2 rounded-md shadow-none',
+                activeDetailTab === 'validation'
+                  ? 'bg-white font-semibold text-foreground shadow-sm ring-1 ring-border/80 hover:bg-white'
+                  : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
               )}
-              onClick={() => onDetailTabChange("validation")}
+              onClick={() => onDetailTabChange('validation')}
             >
               <ShieldCheck className="h-4 w-4" />
               Validation
@@ -319,8 +319,8 @@ export function SubmissionQuickActions({
                   variant="secondary"
                   className={
                     hasIssues
-                      ? "bg-destructive/20 text-destructive ml-1"
-                      : "bg-green-500/20 text-green-600 ml-1"
+                      ? 'bg-destructive/20 text-destructive ml-1'
+                      : 'bg-green-500/20 text-green-600 ml-1'
                   }
                 >
                   {validationResults.length}
@@ -340,10 +340,10 @@ export function SubmissionQuickActions({
                 </div>
                 <p className="text-xs text-amber-800/80">
                   {!hasExif && !hasThumbnail
-                    ? "This submission is missing EXIF data and a thumbnail."
+                    ? 'This submission is missing EXIF data and a thumbnail.'
                     : !hasExif
-                      ? "This submission is missing EXIF data."
-                      : "This submission is missing a thumbnail."}
+                      ? 'This submission is missing EXIF data.'
+                      : 'This submission is missing a thumbnail.'}
                 </p>
               </div>
 
@@ -354,10 +354,12 @@ export function SubmissionQuickActions({
                     size="sm"
                     className="gap-2 border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
                     onClick={handleGenerateThumbnail}
-                    disabled={regenerateAssetsMutation.isPending || rerunValidationsMutation.isPending}
+                    disabled={
+                      regenerateAssetsMutation.isPending || rerunValidationsMutation.isPending
+                    }
                   >
                     <FileImage className="h-4 w-4" />
-                    {isGeneratingThumbnail ? "Generating..." : "Generate thumbnail"}
+                    {isGeneratingThumbnail ? 'Generating...' : 'Generate thumbnail'}
                   </Button>
                 )}
                 {!hasExif && (
@@ -366,10 +368,12 @@ export function SubmissionQuickActions({
                     size="sm"
                     className="gap-2 border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
                     onClick={handleRegenerateExif}
-                    disabled={regenerateAssetsMutation.isPending || rerunValidationsMutation.isPending}
+                    disabled={
+                      regenerateAssetsMutation.isPending || rerunValidationsMutation.isPending
+                    }
                   >
                     <FileCode className="h-4 w-4" />
-                    {isRegeneratingExif ? "Regenerating..." : "Regenerate EXIF + revalidate"}
+                    {isRegeneratingExif ? 'Regenerating...' : 'Regenerate EXIF + revalidate'}
                   </Button>
                 )}
               </div>

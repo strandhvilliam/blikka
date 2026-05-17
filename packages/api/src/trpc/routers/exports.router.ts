@@ -1,19 +1,19 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
+import { Effect, Schema } from 'effect'
 import {
   authProcedure,
   createTRPCRouter,
   domainProcedure,
   requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+} from '../root'
+import { trpcEffect } from '../utils'
 import {
   GetParticipantsExportDataInputSchema,
   GetSubmissionsExportDataInputSchema,
   GetValidationResultsExportDataInputSchema,
-} from "../../core/exports/contracts";
-import { ExportsService } from "../../core/exports/service";
+} from '../../core/exports/contracts'
+import { ExportsService } from '../../core/exports/service'
 
 export const exportsRouter = createTRPCRouter({
   getParticipantsExportData: domainProcedure
@@ -21,14 +21,12 @@ export const exportsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ExportsRouter.getParticipantsExportData")(function* ({
-          input,
-        }) {
+        Effect.fn('ExportsRouter.getParticipantsExportData')(function* ({ input }) {
           return yield* ExportsService.use((s) =>
             s.getParticipantsExportData({
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -38,14 +36,12 @@ export const exportsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ExportsRouter.getSubmissionsExportData")(function* ({
-          input,
-        }) {
+        Effect.fn('ExportsRouter.getSubmissionsExportData')(function* ({ input }) {
           return yield* ExportsService.use((s) =>
             s.getSubmissionsExportData({
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -55,15 +51,15 @@ export const exportsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ExportsRouter.getParticipantsExportDataByCameraActiveTopic")(
-          function* ({ input }) {
-            return yield* ExportsService.use((s) =>
-              s.getParticipantsExportDataByCameraActiveTopic({
-                domain: input.domain,
-              }),
-            );
-          },
-        ),
+        Effect.fn('ExportsRouter.getParticipantsExportDataByCameraActiveTopic')(function* ({
+          input,
+        }) {
+          return yield* ExportsService.use((s) =>
+            s.getParticipantsExportDataByCameraActiveTopic({
+              domain: input.domain,
+            }),
+          )
+        }),
       ),
     ),
 
@@ -72,15 +68,15 @@ export const exportsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ExportsRouter.getParticipantsExportDataByCameraAllTopics")(
-          function* ({ input }) {
-            return yield* ExportsService.use((s) =>
-              s.getParticipantsExportDataByCameraAllTopics({
-                domain: input.domain,
-              }),
-            );
-          },
-        ),
+        Effect.fn('ExportsRouter.getParticipantsExportDataByCameraAllTopics')(function* ({
+          input,
+        }) {
+          return yield* ExportsService.use((s) =>
+            s.getParticipantsExportDataByCameraAllTopics({
+              domain: input.domain,
+            }),
+          )
+        }),
       ),
     ),
 
@@ -89,15 +85,15 @@ export const exportsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ExportsRouter.getSubmissionsExportDataByCameraActiveTopic")(
-          function* ({ input }) {
-            return yield* ExportsService.use((s) =>
-              s.getSubmissionsExportDataByCameraActiveTopic({
-                domain: input.domain,
-              }),
-            );
-          },
-        ),
+        Effect.fn('ExportsRouter.getSubmissionsExportDataByCameraActiveTopic')(function* ({
+          input,
+        }) {
+          return yield* ExportsService.use((s) =>
+            s.getSubmissionsExportDataByCameraActiveTopic({
+              domain: input.domain,
+            }),
+          )
+        }),
       ),
     ),
 
@@ -106,15 +102,13 @@ export const exportsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ExportsRouter.getValidationResultsExportData")(function* ({
-          input,
-        }) {
+        Effect.fn('ExportsRouter.getValidationResultsExportData')(function* ({ input }) {
           return yield* ExportsService.use((s) =>
             s.getValidationResultsExportData({
               domain: input.domain,
               onlyFailed: input.onlyFailed ?? undefined,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -124,16 +118,16 @@ export const exportsRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn(
-          "ExportsRouter.getValidationResultsExportDataByCameraActiveTopic",
-        )(function* ({ input }) {
+        Effect.fn('ExportsRouter.getValidationResultsExportDataByCameraActiveTopic')(function* ({
+          input,
+        }) {
           return yield* ExportsService.use((s) =>
             s.getValidationResultsExportDataByCameraActiveTopic({
               domain: input.domain,
               onlyFailed: input.onlyFailed ?? undefined,
             }),
-          );
+          )
         }),
       ),
     ),
-});
+})

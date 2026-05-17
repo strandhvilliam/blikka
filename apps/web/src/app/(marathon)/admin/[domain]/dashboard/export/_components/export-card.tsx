@@ -1,20 +1,20 @@
-"use client"
+'use client'
 
-import { Label } from "@/components/ui/label"
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Download, Loader2 } from "lucide-react"
-import { useState, useCallback } from "react"
-import { useDomain } from "@/lib/domain-provider"
-import { toast } from "sonner"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { cn } from "@/lib/utils"
-import { downloadFile } from "../_lib/download-file"
+} from '@/components/ui/select'
+import { Download, Loader2 } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { useDomain } from '@/lib/domain-provider'
+import { toast } from 'sonner'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { cn } from '@/lib/utils'
+import { downloadFile } from '../_lib/download-file'
 
 interface SelectOption {
   value: string
@@ -34,11 +34,11 @@ interface ExportCardProps {
 }
 
 function getFileExtension(exportType: string, format: string, fileFormat: string): string {
-  if (exportType === "exif") return format || "json"
-  if (exportType.startsWith("txt_validation_results")) {
-    return fileFormat === "folder" ? "zip" : "txt"
+  if (exportType === 'exif') return format || 'json'
+  if (exportType.startsWith('txt_validation_results')) {
+    return fileFormat === 'folder' ? 'zip' : 'txt'
   }
-  return "xlsx"
+  return 'xlsx'
 }
 
 function buildExportUrl(
@@ -51,24 +51,24 @@ function buildExportUrl(
     formatOptions?: SelectOption[]
     validationOptions?: SelectOption[]
     fileFormatOptions?: SelectOption[]
-  }
+  },
 ): string {
   const params = new URLSearchParams()
 
   if (options.formatOptions && options.format) {
-    params.append("format", options.format)
+    params.append('format', options.format)
   }
 
   if (options.validationOptions && options.onlyFailed !== undefined) {
-    params.append("onlyFailed", options.onlyFailed.toString())
+    params.append('onlyFailed', options.onlyFailed.toString())
   }
 
   if (options.fileFormatOptions && options.fileFormat) {
-    params.append("fileFormat", options.fileFormat)
+    params.append('fileFormat', options.fileFormat)
   }
 
   const queryString = params.toString()
-  return `/api/${domain}/export/${exportType}${queryString ? `?${queryString}` : ""}`
+  return `/api/${domain}/export/${exportType}${queryString ? `?${queryString}` : ''}`
 }
 
 function ExportSelect({
@@ -115,9 +115,9 @@ export function ExportCard({
 }: ExportCardProps) {
   const domain = useDomain()
   const [isLoading, setIsLoading] = useState(false)
-  const [format, setFormat] = useState(formatOptions?.[0]?.value || "")
-  const [onlyFailed, setOnlyFailed] = useState(validationOptions?.[0]?.value === "failed")
-  const [fileFormat, setFileFormat] = useState(fileFormatOptions?.[0]?.value || "single")
+  const [format, setFormat] = useState(formatOptions?.[0]?.value || '')
+  const [onlyFailed, setOnlyFailed] = useState(validationOptions?.[0]?.value === 'failed')
+  const [fileFormat, setFileFormat] = useState(fileFormatOptions?.[0]?.value || 'single')
 
   const hasOptions = formatOptions || validationOptions || fileFormatOptions
   const extension = getFileExtension(exportType, format, fileFormat).toUpperCase()
@@ -137,16 +137,16 @@ export function ExportCard({
 
       const exportExtension = getFileExtension(exportType, format, fileFormat)
       const filenameBase = downloadName ?? exportType
-      const filename = `${filenameBase}-export-${new Date().toISOString().split("T")[0]}.${exportExtension}`
+      const filename = `${filenameBase}-export-${new Date().toISOString().split('T')[0]}.${exportExtension}`
 
       await downloadFile(url, filename)
 
-      toast.success("Export successful", {
+      toast.success('Export successful', {
         description: `Your ${title} data has been downloaded.`,
       })
     } catch {
-      toast.error("Export failed", {
-        description: "There was an error exporting the data. Please try again.",
+      toast.error('Export failed', {
+        description: 'There was an error exporting the data. Please try again.',
       })
     } finally {
       setIsLoading(false)
@@ -167,10 +167,10 @@ export function ExportCard({
   return (
     <div
       className={cn(
-        "group relative rounded-xl border bg-white transition-shadow duration-200",
+        'group relative rounded-xl border bg-white transition-shadow duration-200',
         disabled
-          ? "border-border/60 opacity-60 cursor-not-allowed"
-          : "border-border hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]"
+          ? 'border-border/60 opacity-60 cursor-not-allowed'
+          : 'border-border hover:border-border/80 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)]',
       )}
     >
       <div className="flex items-start gap-4 p-5">
@@ -221,8 +221,8 @@ export function ExportCard({
                 </Label>
                 <ExportSelect
                   id={`${exportType}-scope`}
-                  value={onlyFailed ? "failed" : "all"}
-                  onValueChange={(value) => setOnlyFailed(value === "failed")}
+                  value={onlyFailed ? 'failed' : 'all'}
+                  onValueChange={(value) => setOnlyFailed(value === 'failed')}
                   options={validationOptions}
                   placeholder="Choose scope"
                   disabled={disabled}

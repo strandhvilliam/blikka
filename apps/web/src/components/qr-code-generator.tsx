@@ -1,16 +1,16 @@
-"use client"
+'use client'
 
-import { QRCodeSVG } from "qrcode.react"
+import { QRCodeSVG } from 'qrcode.react'
 
 interface QrCodeGeneratorProps {
   value?: string
   size?: number
-  level?: "L" | "M" | "Q" | "H"
+  level?: 'L' | 'M' | 'Q' | 'H'
 }
 
 const LOGO_ASPECT = 299 / 358
 
-export function QrCodeGenerator({ value, size = 256, level = "H" }: QrCodeGeneratorProps) {
+export function QrCodeGenerator({ value, size = 256, level = 'H' }: QrCodeGeneratorProps) {
   if (!value) {
     return null
   }
@@ -22,7 +22,7 @@ export function QrCodeGenerator({ value, size = 256, level = "H" }: QrCodeGenera
     <div className="rounded-2xl bg-muted p-4 shadow">
       <QRCodeSVG
         imageSettings={{
-          src: "/blikka-logo-dark-qr.svg",
+          src: '/blikka-logo-dark-qr.svg',
           x: undefined,
           y: undefined,
           height: logoHeight,

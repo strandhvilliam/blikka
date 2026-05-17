@@ -11,7 +11,7 @@ It contains:
 ## Usage
 
 ```ts
-import { S3Service, BusService, SMSService } from "@blikka/aws"
+import { S3Service, BusService, SMSService } from '@blikka/aws'
 ```
 
 Subpath exports are also available:

@@ -1,16 +1,14 @@
-import { defineScript, lua } from "upstash-lua";
-import { Schema } from "effect"
-import { NumberToStringSchema } from "./utils";
+import { defineScript, lua } from 'upstash-lua'
+import { Schema } from 'effect'
+import { NumberToStringSchema } from './utils'
 
 export const atomicIncrementFailedScript = defineScript({
-  name: "atomicIncrementFailed",
+  name: 'atomicIncrementFailed',
   keys: {
     key: Schema.toStandardSchemaV1(Schema.String),
   },
   args: {
-    totalChunks: Schema.toStandardSchemaV1(
-      NumberToStringSchema
-    ),
+    totalChunks: Schema.toStandardSchemaV1(NumberToStringSchema),
     now: Schema.toStandardSchemaV1(Schema.String),
     failedJobId: Schema.toStandardSchemaV1(Schema.String),
     ttl: Schema.toStandardSchemaV1(NumberToStringSchema),

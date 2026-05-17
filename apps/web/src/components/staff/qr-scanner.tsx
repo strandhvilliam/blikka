@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { Scanner } from "@yudiel/react-qr-scanner"
+import { useEffect, useState } from 'react'
+import { Scanner } from '@yudiel/react-qr-scanner'
 
 interface QrScannerProps {
   onScan: (value: string | null) => void
@@ -33,8 +33,8 @@ export function QrScanner({ onScan, onError }: QrScannerProps) {
         finder: false,
       }}
       classNames={{
-        container: "flex h-full w-full items-center justify-center",
-        video: "h-full w-full object-cover",
+        container: 'flex h-full w-full items-center justify-center',
+        video: 'h-full w-full object-cover',
       }}
       onError={(error) => {
         if (error instanceof Error) {

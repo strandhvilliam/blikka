@@ -1,12 +1,10 @@
-import Link from "next/link"
-import { protocol, rootDomain } from "@/config"
-import { getTranslations } from "next-intl/server"
+import Link from 'next/link'
+import { protocol, rootDomain } from '@/config'
+import { getTranslations } from 'next-intl/server'
 
-export default async function OnboardingPage({
-  params,
-}: PageProps<"/admin/[domain]/dashboard">) {
+export default async function OnboardingPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
-  const t = await getTranslations("DomainPage")
+  const t = await getTranslations('DomainPage')
 
   return (
     <div className="flex min-h-screen flex-col p-4">
@@ -24,8 +22,9 @@ export default async function OnboardingPage({
           <h1 className="text-4xl font-bold tracking-tight text-gray-900">
             Welcome to {domain}.{rootDomain}
           </h1>
-          <p className="mt-3 text-lg text-gray-600">{t("welcome")}</p>
+          <p className="mt-3 text-lg text-gray-600">{t('welcome')}</p>
         </div>
       </div>
     </div>
-  )}
+  )
+}

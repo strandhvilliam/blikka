@@ -1,29 +1,29 @@
-import { assert, describe, it } from "@effect/vitest"
-import { BusService, S3Service } from "@blikka/aws"
+import { assert, describe, it } from '@effect/vitest'
+import { BusService, S3Service } from '@blikka/aws'
 import {
   ExifKVRepository,
   type ExifState,
   type ParticipantState,
   type SubmissionState,
   UploadSessionRepository,
-} from "@blikka/kv-store"
-import { ExifParser, SharpImageService } from "@blikka/image-manipulation"
-import { Effect, Layer, Option, Ref } from "effect"
-import { UploadsConfig } from "./config"
+} from '@blikka/kv-store'
+import { ExifParser, SharpImageService } from '@blikka/image-manipulation'
+import { Effect, Layer, Option, Ref } from 'effect'
+import { UploadsConfig } from './config'
 import {
   PhotoNotFoundError,
   type ProcessSubmissionInput,
   SubmissionProcessor,
   SubmissionProcessorLayerNoDeps,
-} from "./submission-processor"
+} from './submission-processor'
 
-const uploadSessionId = "upload-session-1"
+const uploadSessionId = 'upload-session-1'
 const input: ProcessSubmissionInput = {
-  key: "demo/REF123/03/photo.jpg",
-  domain: "demo",
-  reference: "REF123",
+  key: 'demo/REF123/03/photo.jpg',
+  domain: 'demo',
+  reference: 'REF123',
   orderIndex: 2,
-  fileName: "photo.jpg",
+  fileName: 'photo.jpg',
 }
 const photoBytes = Uint8Array.from([1, 2, 3])
 const thumbnailBytes = Buffer.from([4, 5, 6])
@@ -37,12 +37,12 @@ interface TestState {
   readonly parseResult: Effect.Effect<ExifState, unknown>
   readonly resizeResult: Effect.Effect<Buffer, unknown>
   readonly incrementStatus:
-    | "FINALIZED"
-    | "PROCESSED_SUBMISSION"
-    | "DUPLICATE_ORDER_INDEX"
-    | "ALREADY_FINALIZED"
-    | "INVALID_ORDER_INDEX"
-    | "MISSING_DATA"
+    | 'FINALIZED'
+    | 'PROCESSED_SUBMISSION'
+    | 'DUPLICATE_ORDER_INDEX'
+    | 'ALREADY_FINALIZED'
+    | 'INVALID_ORDER_INDEX'
+    | 'MISSING_DATA'
   readonly s3Gets: ReadonlyArray<{ bucket: string; key: string }>
   readonly increments: ReadonlyArray<number>
   readonly submissionUpdates: ReadonlyArray<{
@@ -57,9 +57,9 @@ interface TestState {
   }>
 }
 
-type S3PutFileOutput = Effect.Success<ReturnType<S3Service["Service"]["putFile"]>>
+type S3PutFileOutput = Effect.Success<ReturnType<S3Service['Service']['putFile']>>
 type BusSendFinalizedEventOutput = Effect.Success<
-  ReturnType<BusService["Service"]["sendFinalizedEvent"]>
+  ReturnType<BusService['Service']['sendFinalizedEvent']>
 >
 
 const makeSubmissionState = (overrides: Partial<SubmissionState> = {}): SubmissionState => ({
@@ -78,8 +78,8 @@ const makeParticipantState = (overrides: Partial<ParticipantState> = {}): Partic
   orderIndexes: [input.orderIndex],
   processedIndexes: [0],
   validated: false,
-  zipKey: "",
-  contactSheetKey: "",
+  zipKey: '',
+  contactSheetKey: '',
   errors: [],
   finalized: false,
   checkedAt: null,
@@ -96,9 +96,9 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
     [input.key]: photoBytes,
   },
   exif: {},
-  parseResult: Effect.succeed({ Make: "Nikon", ISO: 200 }),
+  parseResult: Effect.succeed({ Make: 'Nikon', ISO: 200 }),
   resizeResult: Effect.succeed(thumbnailBytes),
-  incrementStatus: "PROCESSED_SUBMISSION",
+  incrementStatus: 'PROCESSED_SUBMISSION',
   s3Gets: [],
   increments: [],
   submissionUpdates: [],
@@ -126,7 +126,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         ...state,
         thumbnailPuts: [...state.thumbnailPuts, { bucket, key, file }],
       })).pipe(Effect.as({} as S3PutFileOutput)),
-  } as unknown as S3Service["Service"])
+  } as unknown as S3Service['Service'])
 
   const uploadKv = UploadSessionRepository.of({
     getParticipantState: () =>
@@ -176,7 +176,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         },
         submissionUpdates: [...state.submissionUpdates, { orderIndex, state: submission }],
       })).pipe(Effect.as(0)),
-  } as unknown as UploadSessionRepository["Service"])
+  } as unknown as UploadSessionRepository['Service'])
 
   const exifKv = ExifKVRepository.of({
     getExifState: (_domain: string, _reference: string, orderIndex: number) =>
@@ -191,8 +191,8 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
           ...state.exif,
           [orderIndex]: exif,
         },
-      })).pipe(Effect.as("OK")),
-  } as unknown as ExifKVRepository["Service"])
+      })).pipe(Effect.as('OK')),
+  } as unknown as ExifKVRepository['Service'])
 
   const exifParser = ExifParser.of({
     parse: () =>
@@ -200,7 +200,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         const state = yield* Ref.get(stateRef)
         return yield* state.parseResult
       }),
-  } as unknown as ExifParser["Service"])
+  } as unknown as ExifParser['Service'])
 
   const sharp = SharpImageService.of({
     resize: () =>
@@ -208,7 +208,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         const state = yield* Ref.get(stateRef)
         return yield* state.resizeResult
       }),
-  } as unknown as SharpImageService["Service"])
+  } as unknown as SharpImageService['Service'])
 
   const bus = BusService.of({
     sendFinalizedEvent: (domain: string, reference: string, finalizedUploadSessionId: string) =>
@@ -219,14 +219,14 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
           { domain, reference, uploadSessionId: finalizedUploadSessionId },
         ],
       })).pipe(Effect.as({} as BusSendFinalizedEventOutput)),
-  } as BusService["Service"])
+  } as BusService['Service'])
 
   const config = UploadsConfig.of({
-    submissionsBucketName: "submissions",
-    sponsorsBucketName: "sponsors",
-    thumbnailsBucketName: "thumbnails",
-    contactSheetsBucketName: "contact-sheets",
-    zipsBucketName: "zips",
+    submissionsBucketName: 'submissions',
+    sponsorsBucketName: 'sponsors',
+    thumbnailsBucketName: 'thumbnails',
+    contactSheetsBucketName: 'contact-sheets',
+    zipsBucketName: 'zips',
   })
 
   return SubmissionProcessorLayerNoDeps.pipe(
@@ -255,8 +255,8 @@ const runWithState = <A, E>(
     return { result, state: finalState }
   })
 
-describe("SubmissionProcessor", () => {
-  it.effect("processes a ready submission and records artifacts", () =>
+describe('SubmissionProcessor', () => {
+  it.effect('processes a ready submission and records artifacts', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(makeInitialState(), () =>
         Effect.gen(function* () {
@@ -265,12 +265,12 @@ describe("SubmissionProcessor", () => {
         }),
       )
 
-      assert.deepStrictEqual(state.s3Gets, [{ bucket: "submissions", key: input.key }])
-      assert.deepStrictEqual(state.exif[input.orderIndex], { Make: "Nikon", ISO: 200 })
+      assert.deepStrictEqual(state.s3Gets, [{ bucket: 'submissions', key: input.key }])
+      assert.deepStrictEqual(state.exif[input.orderIndex], { Make: 'Nikon', ISO: 200 })
       assert.deepStrictEqual(state.thumbnailPuts, [
         {
-          bucket: "thumbnails",
-          key: "demo/REF123/03/thumbnail_photo.jpg",
+          bucket: 'thumbnails',
+          key: 'demo/REF123/03/thumbnail_photo.jpg',
           file: thumbnailBytes,
         },
       ])
@@ -280,7 +280,7 @@ describe("SubmissionProcessor", () => {
           state: {
             uploaded: true,
             orderIndex: input.orderIndex,
-            thumbnailKey: "demo/REF123/03/thumbnail_photo.jpg",
+            thumbnailKey: 'demo/REF123/03/thumbnail_photo.jpg',
             exifProcessed: true,
           },
         },
@@ -289,18 +289,18 @@ describe("SubmissionProcessor", () => {
     }),
   )
 
-  it.effect("merges seeded EXIF over parsed EXIF", () =>
+  it.effect('merges seeded EXIF over parsed EXIF', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
         makeInitialState({
           exif: {
             [input.orderIndex]: {
-              Make: "Seeded",
-              Lens: "Prime",
+              Make: 'Seeded',
+              Lens: 'Prime',
             },
           },
           parseResult: Effect.succeed({
-            Make: "Parsed",
+            Make: 'Parsed',
             ISO: 400,
           }),
         }),
@@ -312,18 +312,18 @@ describe("SubmissionProcessor", () => {
       )
 
       assert.deepStrictEqual(state.exif[input.orderIndex], {
-        Make: "Seeded",
+        Make: 'Seeded',
         ISO: 400,
-        Lens: "Prime",
+        Lens: 'Prime',
       })
     }),
   )
 
-  it.effect("sends finalized event only after current-session finalization", () =>
+  it.effect('sends finalized event only after current-session finalization', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
         makeInitialState({
-          incrementStatus: "FINALIZED",
+          incrementStatus: 'FINALIZED',
         }),
         () =>
           Effect.gen(function* () {
@@ -342,12 +342,12 @@ describe("SubmissionProcessor", () => {
     }),
   )
 
-  it.effect("skips artifact work when the submission key is stale", () =>
+  it.effect('skips artifact work when the submission key is stale', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
         makeInitialState({
           submissions: {
-            [input.orderIndex]: makeSubmissionState({ key: "demo/REF123/03/old.jpg" }),
+            [input.orderIndex]: makeSubmissionState({ key: 'demo/REF123/03/old.jpg' }),
           },
         }),
         () =>
@@ -365,7 +365,7 @@ describe("SubmissionProcessor", () => {
     }),
   )
 
-  it.effect("fails with PhotoNotFoundError when S3 has no object", () =>
+  it.effect('fails with PhotoNotFoundError when S3 has no object', () =>
     Effect.gen(function* () {
       const { result: error, state } = yield* runWithState(
         makeInitialState({
@@ -385,11 +385,11 @@ describe("SubmissionProcessor", () => {
     }),
   )
 
-  it.effect("continues without thumbnail when resize fails", () =>
+  it.effect('continues without thumbnail when resize fails', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
         makeInitialState({
-          resizeResult: Effect.fail(new Error("resize failed")),
+          resizeResult: Effect.fail(new Error('resize failed')),
         }),
         () =>
           Effect.gen(function* () {
@@ -414,13 +414,13 @@ describe("SubmissionProcessor", () => {
     }),
   )
 
-  it.effect("skips finalized event for stale participant after increment", () =>
+  it.effect('skips finalized event for stale participant after increment', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
         makeInitialState({
-          incrementStatus: "FINALIZED",
+          incrementStatus: 'FINALIZED',
           participantAfterIncrement: makeParticipantState({
-            uploadSessionId: "stale-upload-session",
+            uploadSessionId: 'stale-upload-session',
           }),
         }),
         () =>

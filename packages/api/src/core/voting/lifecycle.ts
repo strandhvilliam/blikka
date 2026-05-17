@@ -1,4 +1,4 @@
-export type VotingLifecycleState = "not-started" | "active" | "ended"
+export type VotingLifecycleState = 'not-started' | 'active' | 'ended'
 
 type NullableTimestamp = string | null | undefined
 
@@ -14,7 +14,7 @@ function parseTimestamp(value: NullableTimestamp) {
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
-    throw new Error("Invalid voting timestamp")
+    throw new Error('Invalid voting timestamp')
   }
 
   return date
@@ -29,12 +29,12 @@ export function parseVotingScheduleInput({
 }) {
   const startsAtDate = parseTimestamp(startsAt)
   if (!startsAtDate) {
-    throw new Error("Invalid startsAt timestamp")
+    throw new Error('Invalid startsAt timestamp')
   }
 
   const endsAtDate = parseTimestamp(endsAt)
   if (endsAtDate && startsAtDate >= endsAtDate) {
-    throw new Error("endsAt must be later than startsAt")
+    throw new Error('endsAt must be later than startsAt')
   }
 
   return {
@@ -49,21 +49,18 @@ export function getVotingLifecycleState(
 ): VotingLifecycleState {
   const startsAt = parseTimestamp(schedule.startsAt)
   if (!startsAt || startsAt > now) {
-    return "not-started"
+    return 'not-started'
   }
 
   const endsAt = parseTimestamp(schedule.endsAt)
   if (endsAt && endsAt <= now) {
-    return "ended"
+    return 'ended'
   }
 
-  return "active"
+  return 'active'
 }
 
-export function hasSubmissionWindowEnded(
-  scheduledEnd: NullableTimestamp,
-  now = new Date(),
-) {
+export function hasSubmissionWindowEnded(scheduledEnd: NullableTimestamp, now = new Date()) {
   const scheduledEndDate = parseTimestamp(scheduledEnd)
   return !!scheduledEndDate && scheduledEndDate <= now
 }

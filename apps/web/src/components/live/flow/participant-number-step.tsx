@@ -1,15 +1,15 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, useState } from "react"
-import { useForm } from "@tanstack/react-form"
-import { useMutation } from "@tanstack/react-query"
-import { useTranslations } from "next-intl"
-import { ArrowRight, Loader2 } from "lucide-react"
-import { toast } from "sonner"
-import { z } from "zod"
+import { useEffect, useRef, useState } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { useMutation } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
+import { ArrowRight, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { z } from 'zod'
 
-import { Input } from "@/components/ui/input"
-import { PrimaryButton } from "@/components/ui/primary-button"
+import { Input } from '@/components/ui/input'
+import { PrimaryButton } from '@/components/ui/primary-button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,20 +19,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
-import { useStepState } from "@/lib/flow/step-state-context"
+} from '@/components/ui/alert-dialog'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
+import { useStepState } from '@/lib/flow/step-state-context'
 
-const createInitializeParticipantSchema = (
-  t: ReturnType<typeof useTranslations>,
-) =>
+const createInitializeParticipantSchema = (t: ReturnType<typeof useTranslations>) =>
   z.object({
     participantRef: z
       .string()
-      .refine((val) => /^\d{1,4}$/.test(val), t("participantNumber.required")),
-    domain: z.string().min(1, "Invalid domain"),
+      .refine((val) => /^\d{1,4}$/.test(val), t('participantNumber.required')),
+    domain: z.string().min(1, 'Invalid domain'),
   })
 
 const createParticipantValidator =
@@ -53,11 +51,11 @@ export function ParticipantNumberStep() {
   const { uploadFlowState, setUploadFlowState } = useUploadFlowState()
   const { handleNextStep, flowVariant } = useStepState()
   const domain = useDomain()
-  const t = useTranslations("FlowPage")
+  const t = useTranslations('FlowPage')
   const trpc = useTRPC()
 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
-  const [pendingRef, setPendingRef] = useState("")
+  const [pendingRef, setPendingRef] = useState('')
   const [existingParticipantStatus, setExistingParticipantStatus] = useState<string | null>(null)
   const [isCheckingParticipant, setIsCheckingParticipant] = useState(false)
   const isCheckingParticipantRef = useRef(false)
@@ -76,13 +74,13 @@ export function ParticipantNumberStep() {
 
   const form = useForm({
     defaultValues: {
-      participantRef: uploadFlowState.participantRef ?? "",
+      participantRef: uploadFlowState.participantRef ?? '',
       domain,
     },
     onSubmit: async ({ value }) => {
       if (isCheckingParticipantRef.current) return
 
-      const paddedRef = value.participantRef.padStart(4, "0")
+      const paddedRef = value.participantRef.padStart(4, '0')
       setPendingRef(paddedRef)
       isCheckingParticipantRef.current = true
       setIsCheckingParticipant(true)
@@ -93,13 +91,13 @@ export function ParticipantNumberStep() {
           reference: paddedRef,
         })
 
-        if (participantCheck.status === "completed" || participantCheck.status === "verified") {
-          toast.error(t("participantNumber.blocked"))
+        if (participantCheck.status === 'completed' || participantCheck.status === 'verified') {
+          toast.error(t('participantNumber.blocked'))
           return
         }
 
-        if (flowVariant === "prepare" && participantCheck.status === "initialized") {
-          toast.error(t("participantNumber.prepareBlocked"))
+        if (flowVariant === 'prepare' && participantCheck.status === 'initialized') {
+          toast.error(t('participantNumber.prepareBlocked'))
           return
         }
 
@@ -113,7 +111,7 @@ export function ParticipantNumberStep() {
         }
       } catch (error) {
         console.error(error)
-        toast.error(t("participantNumber.error"))
+        toast.error(t('participantNumber.error'))
       } finally {
         isCheckingParticipantRef.current = false
         if (isMountedRef.current) {
@@ -138,14 +136,14 @@ export function ParticipantNumberStep() {
       {/* Header */}
       <div className="mb-10 text-center">
         <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
-          {t("participantNumber.title")}
+          {t('participantNumber.title')}
         </h1>
         <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-          {existingParticipantStatus === "prepared" && flowVariant === "upload"
-            ? t("participantNumber.descriptionPrepared")
+          {existingParticipantStatus === 'prepared' && flowVariant === 'upload'
+            ? t('participantNumber.descriptionPrepared')
             : existingParticipantStatus
-              ? t("participantNumber.descriptionAlreadyExists")
-              : t("participantNumber.description")}
+              ? t('participantNumber.descriptionAlreadyExists')
+              : t('participantNumber.description')}
         </p>
       </div>
 
@@ -169,7 +167,7 @@ export function ParticipantNumberStep() {
                   <Input
                     id={field.name}
                     name={field.name}
-                    aria-label={t("participantNumber.title")}
+                    aria-label={t('participantNumber.title')}
                     type="text"
                     inputMode="numeric"
                     placeholder="0000"
@@ -178,8 +176,8 @@ export function ParticipantNumberStep() {
                     pattern="[0-9]*"
                     className={`h-16 rounded-xl border-2 bg-white text-center font-mono text-4xl tracking-[0.3em] leading-none transition-colors ${
                       hasError
-                        ? "border-destructive focus-visible:ring-destructive"
-                        : "border-border focus-visible:border-foreground"
+                        ? 'border-destructive focus-visible:ring-destructive'
+                        : 'border-border focus-visible:border-foreground'
                     }`}
                     aria-invalid={hasError}
                     aria-describedby={hasError ? `${field.name}-error` : undefined}
@@ -188,12 +186,12 @@ export function ParticipantNumberStep() {
                     disabled={isParticipantLookupPending}
                     value={field.state.value}
                     onChange={(e) => {
-                      const numericValue = e.target.value.replace(/\D/g, "").slice(0, 4)
+                      const numericValue = e.target.value.replace(/\D/g, '').slice(0, 4)
                       field.handleChange(numericValue)
                     }}
                     onBlur={() => {
                       if (field.state.value && field.state.value.length > 0) {
-                        field.handleChange(field.state.value.padStart(4, "0"))
+                        field.handleChange(field.state.value.padStart(4, '0'))
                       }
                       field.handleBlur()
                     }}
@@ -226,11 +224,11 @@ export function ParticipantNumberStep() {
               {isParticipantLookupPending ? (
                 <>
                   <Loader2 className="animate-spin" />
-                  <span>{t("participantNumber.checking")}</span>
+                  <span>{t('participantNumber.checking')}</span>
                 </>
               ) : (
                 <>
-                  <span>{t("participantNumber.continue")}</span>
+                  <span>{t('participantNumber.continue')}</span>
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
@@ -243,20 +241,20 @@ export function ParticipantNumberStep() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {existingParticipantStatus === "prepared" && flowVariant === "upload"
-                ? t("participantNumber.confirmDialog.titlePrepared")
-                : t("participantNumber.confirmDialog.title")}
+              {existingParticipantStatus === 'prepared' && flowVariant === 'upload'
+                ? t('participantNumber.confirmDialog.titlePrepared')
+                : t('participantNumber.confirmDialog.title')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {existingParticipantStatus === "prepared" && flowVariant === "upload"
-                ? t("participantNumber.confirmDialog.descriptionPrepared", { ref: pendingRef })
-                : t("participantNumber.confirmDialog.description", { ref: pendingRef })}
+              {existingParticipantStatus === 'prepared' && flowVariant === 'upload'
+                ? t('participantNumber.confirmDialog.descriptionPrepared', { ref: pendingRef })
+                : t('participantNumber.confirmDialog.description', { ref: pendingRef })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("participantNumber.confirmDialog.cancel")}</AlertDialogCancel>
+            <AlertDialogCancel>{t('participantNumber.confirmDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirm}>
-              {t("participantNumber.confirmDialog.confirm")}
+              {t('participantNumber.confirmDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

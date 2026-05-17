@@ -1,30 +1,27 @@
-"use client"
+'use client'
 
-import { useCallback } from "react"
-import { toast } from "sonner"
-import { useMutation } from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { uploadFileToPresignedUrl } from "@/lib/upload-client"
-import { useUploadStore, selectFailedFiles } from "@/lib/flow/upload-store"
-import { resolveSelectedImageContentType } from "@/lib/file-processing"
-import type { PhotoWithPresignedUrl, UploadFileState, UploadPhase } from "@/lib/flow/types"
-import { UPLOAD_PHASE } from "@/lib/flow/types"
-import {
-  UPLOAD_TIMEOUT_MS,
-  UPLOAD_CONCURRENCY_LIMIT,
-} from "@/lib/flow/constants"
-import { chunk } from "@/lib/flow/utils"
-import { captureByCameraS3UploadFailed } from "@/lib/sentry-by-camera"
-import { useDomain } from "@/lib/domain-provider"
-import { useUploadFlowState } from "@/hooks/live/flow/use-upload-flow-state"
-import { useUploadFinalization } from "@/hooks/live/flow/use-upload-finalization"
-import { useUploadProcessingReconciliation } from "@/hooks/live/flow/use-upload-processing-reconciliation"
+import { useCallback } from 'react'
+import { toast } from 'sonner'
+import { useMutation } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { uploadFileToPresignedUrl } from '@/lib/upload-client'
+import { useUploadStore, selectFailedFiles } from '@/lib/flow/upload-store'
+import { resolveSelectedImageContentType } from '@/lib/file-processing'
+import type { PhotoWithPresignedUrl, UploadFileState, UploadPhase } from '@/lib/flow/types'
+import { UPLOAD_PHASE } from '@/lib/flow/types'
+import { UPLOAD_TIMEOUT_MS, UPLOAD_CONCURRENCY_LIMIT } from '@/lib/flow/constants'
+import { chunk } from '@/lib/flow/utils'
+import { captureByCameraS3UploadFailed } from '@/lib/sentry-by-camera'
+import { useDomain } from '@/lib/domain-provider'
+import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
+import { useUploadFinalization } from '@/hooks/live/flow/use-upload-finalization'
+import { useUploadProcessingReconciliation } from '@/hooks/live/flow/use-upload-processing-reconciliation'
 
 export function useFileUpload() {
   const trpc = useTRPC()
   const domain = useDomain()
   const { uploadFlowState } = useUploadFlowState()
-  const reference = uploadFlowState.participantRef ?? ""
+  const reference = uploadFlowState.participantRef ?? ''
 
   const files = useUploadStore((state) => state.files)
   const isUploading = useUploadStore((state) => state.isUploading)
@@ -79,7 +76,7 @@ export function useFileUpload() {
           captureByCameraS3UploadFailed(file.orderIndex, result.error, {
             submissionKey: file.key,
             file: file.file,
-            requestContentType: file.contentType ?? (file.file.type || "image/jpeg"),
+            requestContentType: file.contentType ?? (file.file.type || 'image/jpeg'),
           })
           return
         }
@@ -141,7 +138,7 @@ export function useFileUpload() {
           orderIndexes: failedFiles.map((file) => file.orderIndex),
           uploadContentTypes: failedFiles.map(
             (file) =>
-              file.contentType ?? resolveSelectedImageContentType(file.file) ?? "image/jpeg",
+              file.contentType ?? resolveSelectedImageContentType(file.file) ?? 'image/jpeg',
           ),
         })
       } catch (error) {

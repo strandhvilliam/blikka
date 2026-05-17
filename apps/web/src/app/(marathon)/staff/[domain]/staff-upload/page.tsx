@@ -1,20 +1,20 @@
-import { getAppSession } from "@/lib/auth/server";
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server";
-import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { StaffLaptopUploadClient } from "@/components/staff/staff-laptop-upload-client";
+import { getAppSession } from '@/lib/auth/server'
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { StaffLaptopUploadClient } from '@/components/staff/staff-laptop-upload-client'
 
 export default async function StaffLaptopUploadPage({
   params,
-}: PageProps<"/staff/[domain]/staff-upload">) {
+}: PageProps<'/staff/[domain]/staff-upload'>) {
   const { domain } = await params
-  const session = await getAppSession();
+  const session = await getAppSession()
 
   if (!session) {
-    return <div />;
+    return <div />
   }
 
-  prefetch(trpc.marathons.getByDomain.queryOptions({ domain }));
+  prefetch(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   return (
     <HydrateClient>
@@ -52,4 +52,5 @@ export default async function StaffLaptopUploadPage({
         />
       </Suspense>
     </HydrateClient>
-  );}
+  )
+}

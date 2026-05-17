@@ -1,61 +1,60 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest'
 
-import { resolveStaffLaptopUploadLookupOutcome } from "./flow-helpers";
+import { resolveStaffLaptopUploadLookupOutcome } from './flow-helpers'
 
-describe("participant-upload flow helpers", () => {
-  it("routes missing participants to manual entry", () => {
+describe('participant-upload flow helpers', () => {
+  it('routes missing participants to manual entry', () => {
     expect(
       resolveStaffLaptopUploadLookupOutcome({
         exists: false,
         status: null,
       }),
-    ).toEqual({ kind: "manual-entry" });
-  });
+    ).toEqual({ kind: 'manual-entry' })
+  })
 
-  it("routes prepared participants to the existing-participant path", () => {
+  it('routes prepared participants to the existing-participant path', () => {
     expect(
       resolveStaffLaptopUploadLookupOutcome({
         exists: true,
-        status: "prepared",
+        status: 'prepared',
       }),
     ).toEqual({
-      kind: "existing",
+      kind: 'existing',
       requiresOverwriteWarning: false,
-    });
-  });
+    })
+  })
 
-  it("marks initialized participants for overwrite confirmation", () => {
+  it('marks initialized participants for overwrite confirmation', () => {
     expect(
       resolveStaffLaptopUploadLookupOutcome({
         exists: true,
-        status: "initialized",
+        status: 'initialized',
       }),
     ).toEqual({
-      kind: "existing",
+      kind: 'existing',
       requiresOverwriteWarning: true,
-    });
-  });
+    })
+  })
 
-  it("blocks completed and verified participants", () => {
+  it('blocks completed and verified participants', () => {
     expect(
       resolveStaffLaptopUploadLookupOutcome({
         exists: true,
-        status: "completed",
+        status: 'completed',
       }),
     ).toEqual({
-      kind: "blocked",
-      reason: "completed",
-    });
+      kind: 'blocked',
+      reason: 'completed',
+    })
 
     expect(
       resolveStaffLaptopUploadLookupOutcome({
         exists: true,
-        status: "verified",
+        status: 'verified',
       }),
     ).toEqual({
-      kind: "blocked",
-      reason: "verified",
-    });
-  });
-});
-
+      kind: 'blocked',
+      reason: 'verified',
+    })
+  })
+})

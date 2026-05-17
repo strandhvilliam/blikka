@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import Link from "next/link"
-import { useState } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
+import Link from 'next/link'
+import { useState } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
   BookOpen,
@@ -17,12 +17,12 @@ import {
   Tag,
   Users,
   Vote,
-} from "lucide-react"
-import type { LucideIcon } from "lucide-react"
-import { formatDomainLink, formatDomainPathname } from "@/lib/utils"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { LiveUploadQrDialog } from "./live-upload-qr-dialog"
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { formatDomainLink, formatDomainPathname } from '@/lib/utils'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { LiveUploadQrDialog } from './live-upload-qr-dialog'
 
 type NavCard = {
   name: string
@@ -33,7 +33,7 @@ type NavCard = {
 
 type EventRunCard =
   | {
-      kind: "link"
+      kind: 'link'
       title: string
       description: string
       href: string
@@ -43,7 +43,7 @@ type EventRunCard =
       attention?: boolean
     }
   | {
-      kind: "button"
+      kind: 'button'
       title: string
       description: string
       onClick: () => void
@@ -55,77 +55,77 @@ type EventRunCard =
 
 const MARATHON_CARDS: NavCard[] = [
   {
-    name: "Submissions",
-    url: "/dashboard/submissions",
+    name: 'Submissions',
+    url: '/dashboard/submissions',
     icon: Images,
     description:
-      "Review incoming photo uploads, verify participants, and manage the submission queue for your event.",
+      'Review incoming photo uploads, verify participants, and manage the submission queue for your event.',
   },
   {
-    name: "Export",
-    url: "/dashboard/export",
+    name: 'Export',
+    url: '/dashboard/export',
     icon: Download,
     description:
-      "Download contact sheets, participant lists, and photo archives ready for print or sharing.",
+      'Download contact sheets, participant lists, and photo archives ready for print or sharing.',
   },
   {
-    name: "Staff",
-    url: "/dashboard/staff",
+    name: 'Staff',
+    url: '/dashboard/staff',
     icon: Users,
     description:
-      "Invite team members who can help verify submissions and manage the event alongside you.",
+      'Invite team members who can help verify submissions and manage the event alongside you.',
   },
   {
-    name: "Jury",
-    url: "/dashboard/jury",
+    name: 'Jury',
+    url: '/dashboard/jury',
     icon: Gavel,
     description:
-      "Set up jury members with scoring links. They can review and rank entries from any device.",
+      'Set up jury members with scoring links. They can review and rank entries from any device.',
   },
   {
-    name: "Voting",
-    url: "/dashboard/voting",
+    name: 'Voting',
+    url: '/dashboard/voting',
     icon: Vote,
     description:
-      "Create voting sessions, track progress, and view live results as jury scores come in.",
+      'Create voting sessions, track progress, and view live results as jury scores come in.',
   },
 ]
 
 const CONFIGURATION_CARDS: NavCard[] = [
   {
-    name: "Topics",
-    url: "/dashboard/topics",
+    name: 'Topics',
+    url: '/dashboard/topics',
     icon: Tag,
     description:
-      "Define the photo themes participants will respond to. Control activation, scheduling, and order.",
+      'Define the photo themes participants will respond to. Control activation, scheduling, and order.',
   },
   {
-    name: "Classes",
-    url: "/dashboard/classes",
+    name: 'Classes',
+    url: '/dashboard/classes',
     icon: Layers,
     description:
-      "Organize participants into competition classes and device groups for fair judging.",
+      'Organize participants into competition classes and device groups for fair judging.',
   },
   {
-    name: "Rules",
-    url: "/dashboard/rules",
+    name: 'Rules',
+    url: '/dashboard/rules',
     icon: BookOpen,
     description:
-      "Set validation rules for uploads — file formats, image dimensions, deadlines, and more.",
+      'Set validation rules for uploads — file formats, image dimensions, deadlines, and more.',
   },
   {
-    name: "Sponsors",
-    url: "/dashboard/sponsors",
+    name: 'Sponsors',
+    url: '/dashboard/sponsors',
     icon: Handshake,
     description:
-      "Add sponsor logos that appear in the participant flow. A simple way to give partners visibility.",
+      'Add sponsor logos that appear in the participant flow. A simple way to give partners visibility.',
   },
   {
-    name: "Settings",
-    url: "/dashboard/settings",
+    name: 'Settings',
+    url: '/dashboard/settings',
     icon: Settings,
     description:
-      "Configure event dates, branding, participant flow mode, and other core marathon settings.",
+      'Configure event dates, branding, participant flow mode, and other core marathon settings.',
   },
 ]
 
@@ -146,9 +146,7 @@ function NavigationCard({ card, domain }: { card: NavCard; domain: string }) {
       </div>
 
       <div className="mt-4 flex flex-1 flex-col">
-        <h3 className="text-[15px] font-semibold tracking-tight text-foreground">
-          {card.name}
-        </h3>
+        <h3 className="text-[15px] font-semibold tracking-tight text-foreground">{card.name}</h3>
         <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
           {card.description}
         </p>
@@ -180,9 +178,7 @@ function EventRunActionCard({ card }: { card: EventRunCard }) {
             {card.meta}
           </p>
         ) : null}
-        <h3 className="text-[15px] font-semibold tracking-tight text-foreground">
-          {card.title}
-        </h3>
+        <h3 className="text-[15px] font-semibold tracking-tight text-foreground">{card.title}</h3>
         <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">
           {card.description}
         </p>
@@ -194,9 +190,9 @@ function EventRunActionCard({ card }: { card: EventRunCard }) {
     </>
   )
   const className =
-    "group relative flex min-h-64 flex-col rounded-2xl border border-border/60 bg-white p-5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    'group relative flex min-h-64 flex-col rounded-2xl border border-border/60 bg-white p-5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
-  if (card.kind === "link") {
+  if (card.kind === 'link') {
     return (
       <Link href={card.href} className={className}>
         {content}
@@ -215,56 +211,54 @@ export function DashboardHomeContent() {
   const domain = useDomain()
   const trpc = useTRPC()
   const [qrOpen, setQrOpen] = useState(false)
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain }),
-  )
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
-  if (marathon.mode === "by-camera") {
+  if (marathon.mode === 'by-camera') {
     const topics = [...(marathon.topics ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
-    const activeTopic = topics.find((topic) => topic.visibility === "active") ?? null
-    const participantSiteUrl = formatDomainLink("/live", domain)
-    const topicsHref = formatDomainPathname("/admin/dashboard/topics", domain)
-    const submissionsHref = formatDomainPathname("/admin/dashboard/submissions", domain)
-    const votingHref = formatDomainPathname("/admin/dashboard/voting", domain)
+    const activeTopic = topics.find((topic) => topic.visibility === 'active') ?? null
+    const participantSiteUrl = formatDomainLink('/live', domain)
+    const topicsHref = formatDomainPathname('/admin/dashboard/topics', domain)
+    const submissionsHref = formatDomainPathname('/admin/dashboard/submissions', domain)
+    const votingHref = formatDomainPathname('/admin/dashboard/voting', domain)
     const eventRunCards: EventRunCard[] = [
       {
-        kind: "link",
-        title: "Active topic",
+        kind: 'link',
+        title: 'Active topic',
         description: activeTopic
-          ? "Participants are submitting to this topic when uploads are open. Switch topics when the next round starts."
-          : "Choose the topic participants should submit photos for before sharing the upload link.",
+          ? 'Participants are submitting to this topic when uploads are open. Switch topics when the next round starts.'
+          : 'Choose the topic participants should submit photos for before sharing the upload link.',
         href: topicsHref,
         icon: Tag,
-        cta: activeTopic ? "Manage active topic" : "Set active topic",
-        meta: activeTopic ? `Current: ${activeTopic.name}` : "No active topic selected",
+        cta: activeTopic ? 'Manage active topic' : 'Set active topic',
+        meta: activeTopic ? `Current: ${activeTopic.name}` : 'No active topic selected',
         attention: activeTopic == null,
       },
       {
-        kind: "button",
-        title: "Participant QR code",
+        kind: 'button',
+        title: 'Participant QR code',
         description:
-          "Show the upload QR code on a screen, poster, or shared message so participants can open the live upload flow.",
+          'Show the upload QR code on a screen, poster, or shared message so participants can open the live upload flow.',
         onClick: () => setQrOpen(true),
         icon: QrCode,
-        cta: "Show QR code",
+        cta: 'Show QR code',
       },
       {
-        kind: "link",
-        title: "Submissions",
+        kind: 'link',
+        title: 'Submissions',
         description:
-          "Watch incoming uploads, verify participants, and catch missing or invalid submissions while the event is running.",
+          'Watch incoming uploads, verify participants, and catch missing or invalid submissions while the event is running.',
         href: submissionsHref,
         icon: Images,
-        cta: "Track submissions",
+        cta: 'Track submissions',
       },
       {
-        kind: "link",
-        title: "Voting",
+        kind: 'link',
+        title: 'Voting',
         description:
-          "Open the voting workspace when submissions are closed and the photos are ready to judge.",
+          'Open the voting workspace when submissions are closed and the photos are ready to judge.',
         href: votingHref,
         icon: Vote,
-        cta: "Open voting",
+        cta: 'Open voting',
       },
     ]
 
@@ -286,7 +280,7 @@ export function DashboardHomeContent() {
         <div className="mb-6 inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-border/60 bg-white px-3 py-1.5 text-xs text-muted-foreground">
           <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-brand-primary" />
           <span className="truncate">
-            {activeTopic ? `Current topic: ${activeTopic.name}` : "No active topic selected"}
+            {activeTopic ? `Current topic: ${activeTopic.name}` : 'No active topic selected'}
           </span>
         </div>
 
@@ -298,11 +292,7 @@ export function DashboardHomeContent() {
           </div>
         </section>
 
-        <LiveUploadQrDialog
-          uploadUrl={participantSiteUrl}
-          open={qrOpen}
-          onOpenChange={setQrOpen}
-        />
+        <LiveUploadQrDialog uploadUrl={participantSiteUrl} open={qrOpen} onOpenChange={setQrOpen} />
       </div>
     )
   }
@@ -317,9 +307,8 @@ export function DashboardHomeContent() {
           Welcome to your event dashboard
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground md:text-base">
-          Everything you need to run your photo event lives here. Choose a
-          section below to get started — from reviewing submissions to
-          configuring the rules of your competition.
+          Everything you need to run your photo event lives here. Choose a section below to get
+          started — from reviewing submissions to configuring the rules of your competition.
         </p>
       </header>
 

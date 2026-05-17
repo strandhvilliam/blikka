@@ -1,9 +1,9 @@
-import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
-import { Suspense } from "react"
-import { RulesSkeleton } from "./_components/rules-skeleton"
-import { RulesForm } from "./_components/rules-form"
+import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { Suspense } from 'react'
+import { RulesSkeleton } from './_components/rules-skeleton'
+import { RulesForm } from './_components/rules-form'
 
-export default async function RulesPage({ params }: PageProps<"/admin/[domain]/dashboard">) {
+export default async function RulesPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
 
   prefetch(

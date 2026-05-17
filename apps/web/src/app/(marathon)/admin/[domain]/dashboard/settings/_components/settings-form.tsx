@@ -1,51 +1,44 @@
-"use client"
+'use client'
 
-import React, { useEffect, useRef, useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import {
-  Check,
-  Globe,
-  Calendar as CalendarIcon,
-  Clock,
-  AlertTriangle,
-  Info,
-} from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import { TimePickerInput } from "@/components/ui/time-picker"
-import { toast } from "sonner"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { useForm } from "@tanstack/react-form"
+import React, { useEffect, useRef, useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Check, Globe, Calendar as CalendarIcon, Clock, AlertTriangle, Info } from 'lucide-react'
+import { Calendar } from '@/components/ui/calendar'
+import { TimePickerInput } from '@/components/ui/time-picker'
+import { toast } from 'sonner'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { useForm } from '@tanstack/react-form'
 import {
   Command,
   CommandEmpty,
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
+import { format } from 'date-fns'
+import { useDomain } from '@/lib/domain-provider'
+import { useQueryClient, useSuspenseQuery, useMutation } from '@tanstack/react-query'
+import { useTRPC } from '@/lib/trpc/client'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { LogoUploadField } from './logo-upload-field'
+import { DateDurationSummary } from './date-duration-summary'
+import { DangerZoneSection } from './danger-zone-tab'
+import { SettingsHeader } from './settings-header'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { Button } from "@/components/ui/button"
-import { format } from "date-fns"
-import { useDomain } from "@/lib/domain-provider"
-import {
-  useQueryClient,
-  useSuspenseQuery,
-  useMutation,
-} from "@tanstack/react-query"
-import { useTRPC } from "@/lib/trpc/client"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { LogoUploadField } from "./logo-upload-field"
-import { DateDurationSummary } from "./date-duration-summary"
-import { DangerZoneSection } from "./danger-zone-tab"
-import { SettingsHeader } from "./settings-header"
-import { isDateDifferent, arrayEquals, createStartTimeSetDate, createEndTimeSetDate, createStartDateCalendarOnSelect, createEndDateCalendarOnSelect, getAvailableLanguages } from "../_lib/utils"
+  isDateDifferent,
+  arrayEquals,
+  createStartTimeSetDate,
+  createEndTimeSetDate,
+  createStartDateCalendarOnSelect,
+  createEndDateCalendarOnSelect,
+  getAvailableLanguages,
+} from '../_lib/utils'
 
 export function SettingsForm() {
   const trpc = useTRPC()
@@ -60,9 +53,7 @@ export function SettingsForm() {
     }),
   )
 
-  const getLogoUploadUrlMutation = useMutation(
-    trpc.marathons.getLogoUploadUrl.mutationOptions(),
-  )
+  const getLogoUploadUrlMutation = useMutation(trpc.marathons.getLogoUploadUrl.mutationOptions())
 
   if (!marathon) {
     return (
@@ -74,7 +65,7 @@ export function SettingsForm() {
     )
   }
 
-  const isByCameraMode = marathon.mode === "by-camera"
+  const isByCameraMode = marathon.mode === 'by-camera'
 
   const [logoState, setLogoState] = useState<{
     previewUrl: string | null
@@ -89,11 +80,11 @@ export function SettingsForm() {
   const form = useForm({
     defaultValues: {
       name: marathon.name,
-      logoUrl: marathon.logoUrl || "",
+      logoUrl: marathon.logoUrl || '',
       startDate: marathon.startDate ? new Date(marathon.startDate) : null,
       endDate: marathon.endDate ? new Date(marathon.endDate) : null,
-      description: marathon.description || "",
-      languages: marathon.languages ? marathon.languages.split(",") : ["en"],
+      description: marathon.description || '',
+      languages: marathon.languages ? marathon.languages.split(',') : ['en'],
     },
     onSubmit: async ({ value }) => {
       const file = fileInputRef.current?.files?.[0]
@@ -107,8 +98,8 @@ export function SettingsForm() {
         }
       }
 
-      if (logoUrl === "pending-upload") {
-        logoUrl = marathon.logoUrl ?? ""
+      if (logoUrl === 'pending-upload') {
+        logoUrl = marathon.logoUrl ?? ''
       }
 
       updateMarathonSettings({
@@ -119,12 +110,8 @@ export function SettingsForm() {
           ...(isByCameraMode
             ? {}
             : {
-                startDate: value.startDate
-                  ? value.startDate.toISOString()
-                  : undefined,
-                endDate: value.endDate
-                  ? value.endDate.toISOString()
-                  : undefined,
+                startDate: value.startDate ? value.startDate.toISOString() : undefined,
+                endDate: value.endDate ? value.endDate.toISOString() : undefined,
               }),
           logoUrl,
         },
@@ -132,56 +119,54 @@ export function SettingsForm() {
     },
   })
 
-  const { mutate: updateMarathonSettings, isPending: isUpdatingMarathon } =
-    useMutation(
-      trpc.marathons.update.mutationOptions({
-        onSuccess: () => {
-          toast.success("Marathon settings updated successfully")
-        },
-        onError: (error) => {
-          toast.error(error.message || "Something went wrong")
-        },
-        onSettled: () => {
-          queryClient.invalidateQueries({
-            queryKey: trpc.marathons.pathKey(),
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.rules.pathKey(),
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.validations.pathKey(),
-          })
-        },
-      }),
-    )
+  const { mutate: updateMarathonSettings, isPending: isUpdatingMarathon } = useMutation(
+    trpc.marathons.update.mutationOptions({
+      onSuccess: () => {
+        toast.success('Marathon settings updated successfully')
+      },
+      onError: (error) => {
+        toast.error(error.message || 'Something went wrong')
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.marathons.pathKey(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.rules.pathKey(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.validations.pathKey(),
+        })
+      },
+    }),
+  )
 
-  const { mutateAsync: resetMarathonAsync, isPending: isResettingMarathon } =
-    useMutation(
-      trpc.marathons.reset.mutationOptions({
-        onSuccess: () => {
-          toast.success("Marathon reset successfully")
-          queryClient.invalidateQueries({
-            queryKey: trpc.marathons.pathKey(),
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.participants.pathKey(),
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.topics.pathKey(),
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.competitionClasses.pathKey(),
-          })
-          queryClient.invalidateQueries({
-            queryKey: trpc.deviceGroups.pathKey(),
-          })
-          router.refresh()
-        },
-        onError: (error) => {
-          toast.error(error.message || "Failed to reset marathon")
-        },
-      }),
-    )
+  const { mutateAsync: resetMarathonAsync, isPending: isResettingMarathon } = useMutation(
+    trpc.marathons.reset.mutationOptions({
+      onSuccess: () => {
+        toast.success('Marathon reset successfully')
+        queryClient.invalidateQueries({
+          queryKey: trpc.marathons.pathKey(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.participants.pathKey(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.topics.pathKey(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.competitionClasses.pathKey(),
+        })
+        queryClient.invalidateQueries({
+          queryKey: trpc.deviceGroups.pathKey(),
+        })
+        router.refresh()
+      },
+      onError: (error) => {
+        toast.error(error.message || 'Failed to reset marathon')
+      },
+    }),
+  )
 
   useEffect(() => {
     const fileInput = fileInputRef.current
@@ -200,7 +185,7 @@ export function SettingsForm() {
           previewUrl: url,
           hasChanged: true,
         }))
-        form.setFieldValue("logoUrl", "pending-upload")
+        form.setFieldValue('logoUrl', 'pending-upload')
       } else {
         setLogoState((prev) => ({
           ...prev,
@@ -210,9 +195,9 @@ export function SettingsForm() {
       }
     }
 
-    fileInput.addEventListener("change", handleFileChange)
+    fileInput.addEventListener('change', handleFileChange)
     return () => {
-      fileInput.removeEventListener("change", handleFileChange)
+      fileInput.removeEventListener('change', handleFileChange)
       if (logoState.previewUrl) {
         URL.revokeObjectURL(logoState.previewUrl)
       }
@@ -231,15 +216,15 @@ export function SettingsForm() {
       const { publicUrl, url } = result
 
       await fetch(url as string, {
-        method: "PUT",
+        method: 'PUT',
         body: file,
       })
 
       const logoUrl = publicUrl
-      form.setFieldValue("logoUrl", logoUrl)
+      form.setFieldValue('logoUrl', logoUrl)
       return logoUrl
     } catch (error) {
-      toast.error("Failed to upload logo")
+      toast.error('Failed to upload logo')
       return null
     } finally {
       setLogoState((prev) => ({ ...prev, isUploading: false }))
@@ -247,10 +232,10 @@ export function SettingsForm() {
   }
 
   const handleRemoveLogo = () => {
-    form.setFieldValue("logoUrl", marathon.logoUrl || "")
+    form.setFieldValue('logoUrl', marathon.logoUrl || '')
 
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = ''
     }
 
     if (logoState.previewUrl) {
@@ -266,12 +251,12 @@ export function SettingsForm() {
     const formValues = form.state.values
     const isDirtyExceptLogo =
       formValues.name !== marathon.name ||
-      formValues.description !== (marathon.description || "") ||
+      formValues.description !== (marathon.description || '') ||
       isDateDifferent(formValues.startDate, marathon.startDate) ||
       isDateDifferent(formValues.endDate, marathon.endDate) ||
       !arrayEquals(
         formValues.languages || [],
-        marathon.languages ? marathon.languages.split(",") : ["en"],
+        marathon.languages ? marathon.languages.split(',') : ['en'],
       )
 
     if (!isDirtyExceptLogo) {
@@ -302,13 +287,9 @@ export function SettingsForm() {
               <PrimaryButton
                 type="submit"
                 className="w-full shrink-0 sm:w-auto sm:self-center"
-                disabled={
-                  isSubmitting || !canSubmit || isUpdatingMarathon
-                }
+                disabled={isSubmitting || !canSubmit || isUpdatingMarathon}
               >
-                {isSubmitting || isUpdatingMarathon
-                  ? "Saving…"
-                  : "Save Changes"}
+                {isSubmitting || isUpdatingMarathon ? 'Saving…' : 'Save Changes'}
               </PrimaryButton>
             )}
           />
@@ -323,7 +304,8 @@ export function SettingsForm() {
               </p>
             </div>
             <p className="text-[13px] text-muted-foreground leading-relaxed mb-5">
-              Basic information about your marathon — name, logo, and description shown to participants.
+              Basic information about your marathon — name, logo, and description shown to
+              participants.
             </p>
             <div className="rounded-xl border border-border/60 bg-white p-5">
               <div className="grid grid-cols-1 gap-6">
@@ -341,10 +323,9 @@ export function SettingsForm() {
                         placeholder="Enter marathon name…"
                         autoComplete="organization"
                       />
-                      {field.state.meta.isTouched &&
-                        field.state.meta.errors.length ? (
+                      {field.state.meta.isTouched && field.state.meta.errors.length ? (
                         <p className="text-sm text-destructive">
-                          {field.state.meta.errors.join(", ")}
+                          {field.state.meta.errors.join(', ')}
                         </p>
                       ) : null}
                     </div>
@@ -377,13 +358,12 @@ export function SettingsForm() {
                         className="min-h-[200px] bg-background font-mono text-sm"
                       />
                       <div className="text-xs text-muted-foreground">
-                        This content will appear in the "Competition Rules"
-                        section on the participation page.
+                        This content will appear in the "Competition Rules" section on the
+                        participation page.
                       </div>
-                      {field.state.meta.isTouched &&
-                        field.state.meta.errors.length ? (
+                      {field.state.meta.isTouched && field.state.meta.errors.length ? (
                         <p className="text-sm text-destructive">
-                          {field.state.meta.errors.join(", ")}
+                          {field.state.meta.errors.join(', ')}
                         </p>
                       ) : null}
                     </div>
@@ -414,8 +394,8 @@ export function SettingsForm() {
             </p>
             <div
               className={cn(
-                "rounded-xl border border-border/60 bg-white p-5",
-                isByCameraMode && "opacity-50 pointer-events-none blur-[2px]",
+                'rounded-xl border border-border/60 bg-white p-5',
+                isByCameraMode && 'opacity-50 pointer-events-none blur-[2px]',
               )}
             >
               <div className="grid grid-cols-2 gap-4">
@@ -430,23 +410,24 @@ export function SettingsForm() {
                             id="start-date-picker"
                             variant="outline"
                             className={cn(
-                              "w-full pl-3 text-left font-normal focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                              !field.state.value && "text-muted-foreground",
+                              'w-full pl-3 text-left font-normal focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                              !field.state.value && 'text-muted-foreground',
                             )}
-                            aria-label={field.state.value ? `Start date: ${format(field.state.value, "PPP")}` : "Pick a start date"}
+                            aria-label={
+                              field.state.value
+                                ? `Start date: ${format(field.state.value, 'PPP')}`
+                                : 'Pick a start date'
+                            }
                           >
                             {field.state.value ? (
-                              format(field.state.value, "PPP")
+                              format(field.state.value, 'PPP')
                             ) : (
                               <span>Pick a start date</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" aria-hidden />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent
-                          className="w-auto p-0"
-                          align="start"
-                        >
+                        <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
                             selected={field.state.value || undefined}
@@ -454,16 +435,15 @@ export function SettingsForm() {
                               field.state.value,
                               form.state.values.endDate,
                               field.handleChange,
-                              (d) => form.setFieldValue("endDate", d),
+                              (d) => form.setFieldValue('endDate', d),
                             )}
                             initialFocus
                           />
                         </PopoverContent>
                       </Popover>
-                      {field.state.meta.isTouched &&
-                        field.state.meta.errors.length ? (
+                      {field.state.meta.isTouched && field.state.meta.errors.length ? (
                         <p className="text-sm text-destructive">
-                          {field.state.meta.errors.join(", ")}
+                          {field.state.meta.errors.join(', ')}
                         </p>
                       ) : null}
                     </div>
@@ -481,23 +461,24 @@ export function SettingsForm() {
                             id="end-date-picker"
                             variant="outline"
                             className={cn(
-                              "w-full pl-3 text-left font-normal focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                              !field.state.value && "text-muted-foreground",
+                              'w-full pl-3 text-left font-normal focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                              !field.state.value && 'text-muted-foreground',
                             )}
-                            aria-label={field.state.value ? `End date: ${format(field.state.value, "PPP")}` : "Pick an end date"}
+                            aria-label={
+                              field.state.value
+                                ? `End date: ${format(field.state.value, 'PPP')}`
+                                : 'Pick an end date'
+                            }
                           >
                             {field.state.value ? (
-                              format(field.state.value, "PPP")
+                              format(field.state.value, 'PPP')
                             ) : (
                               <span>Pick an end date</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" aria-hidden />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent
-                          className="w-auto p-0"
-                          align="start"
-                        >
+                        <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
                             selected={field.state.value || undefined}
@@ -523,10 +504,9 @@ export function SettingsForm() {
                           />
                         </PopoverContent>
                       </Popover>
-                      {field.state.meta.isTouched &&
-                        field.state.meta.errors.length ? (
+                      {field.state.meta.isTouched && field.state.meta.errors.length ? (
                         <p className="text-sm text-destructive">
-                          {field.state.meta.errors.join(", ")}
+                          {field.state.meta.errors.join(', ')}
                         </p>
                       ) : null}
                     </div>
@@ -550,7 +530,7 @@ export function SettingsForm() {
                                 field.state.value,
                                 form.state.values.endDate,
                                 field.handleChange,
-                                (d) => form.setFieldValue("endDate", d),
+                                (d) => form.setFieldValue('endDate', d),
                               )}
                               picker="hours"
                               aria-label="Hours"
@@ -562,17 +542,16 @@ export function SettingsForm() {
                                 field.state.value,
                                 form.state.values.endDate,
                                 field.handleChange,
-                                (d) => form.setFieldValue("endDate", d),
+                                (d) => form.setFieldValue('endDate', d),
                               )}
                               picker="minutes"
                               aria-label="Minutes"
                             />
                           </div>
                         </div>
-                        {field.state.meta.isTouched &&
-                          field.state.meta.errors.length ? (
+                        {field.state.meta.isTouched && field.state.meta.errors.length ? (
                           <p className="text-sm text-destructive">
-                            {field.state.meta.errors.join(", ")}
+                            {field.state.meta.errors.join(', ')}
                           </p>
                         ) : null}
                       </div>
@@ -612,10 +591,9 @@ export function SettingsForm() {
                             />
                           </div>
                         </div>
-                        {field.state.meta.isTouched &&
-                          field.state.meta.errors.length ? (
+                        {field.state.meta.isTouched && field.state.meta.errors.length ? (
                           <p className="text-sm text-destructive">
-                            {field.state.meta.errors.join(", ")}
+                            {field.state.meta.errors.join(', ')}
                           </p>
                         ) : null}
                       </div>
@@ -667,16 +645,12 @@ export function SettingsForm() {
                               className="flex items-center gap-2 px-4 py-2"
                             >
                               <div className="flex items-center justify-center rounded-sm size-5 border mr-2">
-                                {field.state.value?.includes(
-                                  language.code,
-                                ) && (
-                                    <Check className="h-4 w-4 text-primary" />
-                                  )}
+                                {field.state.value?.includes(language.code) && (
+                                  <Check className="h-4 w-4 text-primary" />
+                                )}
                               </div>
                               <Globe className="h-3 w-3 opacity-50" aria-hidden />
-                              <span className="font-medium text-sm">
-                                {language.name}
-                              </span>
+                              <span className="font-medium text-sm">{language.name}</span>
                               <span className="ml-auto text-xs text-muted-foreground">
                                 {language.code}
                               </span>
@@ -685,10 +659,9 @@ export function SettingsForm() {
                         </CommandList>
                       </Command>
                     </div>
-                    {field.state.meta.isTouched &&
-                      field.state.meta.errors.length ? (
+                    {field.state.meta.isTouched && field.state.meta.errors.length ? (
                       <p className="text-sm text-destructive">
-                        {field.state.meta.errors.join(", ")}
+                        {field.state.meta.errors.join(', ')}
                       </p>
                     ) : null}
                   </div>
@@ -696,7 +669,6 @@ export function SettingsForm() {
               />
             </div>
           </section>
-
         </div>
       </form>
 

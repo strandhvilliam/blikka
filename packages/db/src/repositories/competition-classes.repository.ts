@@ -1,9 +1,9 @@
-import { Effect, Layer, Option, Context } from "effect"
-import { DrizzleClient } from "../drizzle-client"
-import { competitionClasses, marathons } from "../schema"
-import { eq } from "drizzle-orm"
-import type { CompetitionClass, NewCompetitionClass } from "../types"
-import { DbError } from "../utils"
+import { Effect, Layer, Option, Context } from 'effect'
+import { DrizzleClient } from '../drizzle-client'
+import { competitionClasses, marathons } from '../schema'
+import { eq } from 'drizzle-orm'
+import type { CompetitionClass, NewCompetitionClass } from '../types'
+import { DbError } from '../utils'
 
 export class CompetitionClassesRepository extends Context.Service<
   CompetitionClassesRepository,
@@ -34,13 +34,13 @@ export class CompetitionClassesRepository extends Context.Service<
       id: number
     }) => Effect.Effect<CompetitionClass, DbError>
   }
->()("@blikka/db/competition-classes-repository") {}
+>()('@blikka/db/competition-classes-repository') {}
 
 const makeCompetitionClassesRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
 
-  const getCompetitionClassById: CompetitionClassesRepository["Service"]["getCompetitionClassById"] =
-    Effect.fn("CompetitionClassesRepository.getCompetitionClassById")(function* ({ id }) {
+  const getCompetitionClassById: CompetitionClassesRepository['Service']['getCompetitionClassById'] =
+    Effect.fn('CompetitionClassesRepository.getCompetitionClassById')(function* ({ id }) {
       const result = yield* use((db) =>
         db.query.competitionClasses.findFirst({
           where: (table, operators) => operators.eq(table.id, id),
@@ -49,8 +49,8 @@ const makeCompetitionClassesRepository = Effect.gen(function* () {
       return Option.fromNullishOr(result)
     })
 
-  const getCompetitionClassesByDomain: CompetitionClassesRepository["Service"]["getCompetitionClassesByDomain"] =
-    Effect.fn("CompetitionClassesRepository.getCompetitionClassesByDomain")(function* ({ domain }) {
+  const getCompetitionClassesByDomain: CompetitionClassesRepository['Service']['getCompetitionClassesByDomain'] =
+    Effect.fn('CompetitionClassesRepository.getCompetitionClassesByDomain')(function* ({ domain }) {
       const result = yield* use((db) =>
         db
           .select()
@@ -61,58 +61,58 @@ const makeCompetitionClassesRepository = Effect.gen(function* () {
       return result.map((row) => row.competition_classes)
     })
 
-  const createCompetitionClass: CompetitionClassesRepository["Service"]["createCompetitionClass"] =
-    Effect.fn("CompetitionClassesRepository.createCompetitionClass")(function* ({ data }) {
+  const createCompetitionClass: CompetitionClassesRepository['Service']['createCompetitionClass'] =
+    Effect.fn('CompetitionClassesRepository.createCompetitionClass')(function* ({ data }) {
       const [result] = yield* use((db) => db.insert(competitionClasses).values(data).returning())
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to create competition class",
+            message: 'Failed to create competition class',
           }),
         )
       }
       return result
     })
 
-  const createMultipleCompetitionClasses: CompetitionClassesRepository["Service"]["createMultipleCompetitionClasses"] =
-    Effect.fn("CompetitionClassesRepository.createMultipleCompetitionClasses")(function* ({
+  const createMultipleCompetitionClasses: CompetitionClassesRepository['Service']['createMultipleCompetitionClasses'] =
+    Effect.fn('CompetitionClassesRepository.createMultipleCompetitionClasses')(function* ({
       data,
     }) {
       const result = yield* use((db) => db.insert(competitionClasses).values(data).returning())
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to create multiple competition classes",
+            message: 'Failed to create multiple competition classes',
           }),
         )
       }
       return result
     })
 
-  const updateCompetitionClass: CompetitionClassesRepository["Service"]["updateCompetitionClass"] =
-    Effect.fn("CompetitionClassesRepository.updateCompetitionClass")(function* ({ id, data }) {
+  const updateCompetitionClass: CompetitionClassesRepository['Service']['updateCompetitionClass'] =
+    Effect.fn('CompetitionClassesRepository.updateCompetitionClass')(function* ({ id, data }) {
       const [result] = yield* use((db) =>
         db.update(competitionClasses).set(data).where(eq(competitionClasses.id, id)).returning(),
       )
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to update competition class",
+            message: 'Failed to update competition class',
           }),
         )
       }
       return result
     })
 
-  const deleteCompetitionClass: CompetitionClassesRepository["Service"]["deleteCompetitionClass"] =
-    Effect.fn("CompetitionClassesRepository.deleteCompetitionClass")(function* ({ id }) {
+  const deleteCompetitionClass: CompetitionClassesRepository['Service']['deleteCompetitionClass'] =
+    Effect.fn('CompetitionClassesRepository.deleteCompetitionClass')(function* ({ id }) {
       const [result] = yield* use((db) =>
         db.delete(competitionClasses).where(eq(competitionClasses.id, id)).returning(),
       )
       if (!result) {
         return yield* Effect.fail(
           new DbError({
-            message: "Failed to delete competition class",
+            message: 'Failed to delete competition class',
           }),
         )
       }

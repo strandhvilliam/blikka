@@ -1,11 +1,11 @@
-import "server-only"
+import 'server-only'
 
 import {
   ContactSheetBuilder,
   ContactSheetBuilderLayer,
   type ContactSheetError,
-} from "@blikka/image-manipulation"
-import { Config, Effect, Layer, Option, Context } from "effect"
+} from '@blikka/image-manipulation'
+import { Config, Effect, Layer, Option, Context } from 'effect'
 import {
   DbLayer,
   ContactSheetsRepository,
@@ -14,14 +14,10 @@ import {
   SponsorsRepository,
   DbError,
   type CompetitionClass,
-} from "@blikka/db"
-import { S3Service, S3ServiceLayer, type S3ClientError } from "@blikka/aws"
-import {
-  BadRequestError,
-  NotFoundError,
-  failNotFoundIfNone,
-} from "../errors"
-import type { GenerateContactSheet } from "./contracts"
+} from '@blikka/db'
+import { S3Service, S3ServiceLayer, type S3ClientError } from '@blikka/aws'
+import { BadRequestError, NotFoundError, failNotFoundIfNone } from '../errors'
+import type { GenerateContactSheet } from './contracts'
 
 const VALID_PHOTO_COUNTS = [8, 24]
 
@@ -36,15 +32,11 @@ export class ContactSheetsService extends Context.Service<
       input: GenerateContactSheet,
     ) => Effect.Effect<
       { success: boolean; key: string },
-      | DbError
-      | BadRequestError
-      | NotFoundError
-      | S3ClientError
-      | ContactSheetError,
+      DbError | BadRequestError | NotFoundError | S3ClientError | ContactSheetError,
       never
     >
   }
->()("@blikka/api/contact-sheets-api-service") {}
+>()('@blikka/api/contact-sheets-api-service') {}
 
 const makeContactSheetsService = Effect.gen(function* () {
   const sponsorsRepository = yield* SponsorsRepository
@@ -53,18 +45,14 @@ const makeContactSheetsService = Effect.gen(function* () {
   const contactSheetsRepository = yield* ContactSheetsRepository
   const s3 = yield* S3Service
   const contactSheetBuilder = yield* ContactSheetBuilder
-  const contactSheetsBucketName = yield* Config.string(
-    "CONTACT_SHEETS_BUCKET_NAME",
-  )
-  const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
-  const sponsorsBucketName = yield* Config.string("SPONSORS_BUCKET_NAME")
+  const contactSheetsBucketName = yield* Config.string('CONTACT_SHEETS_BUCKET_NAME')
+  const submissionsBucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
+  const sponsorsBucketName = yield* Config.string('SPONSORS_BUCKET_NAME')
 
   const generateContactSheetKey = (domain: string, reference: string) =>
-    `${domain}/${reference}/contact_sheet_${reference}_${new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5)}.jpg`
+    `${domain}/${reference}/contact_sheet_${reference}_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}.jpg`
 
-  const validatePhotoCount = Effect.fn(
-    "ContactSheetsService.validatePhotoCount",
-  )(function* (
+  const validatePhotoCount = Effect.fn('ContactSheetsService.validatePhotoCount')(function* (
     reference: string,
     domain: string,
     keys: string[],
@@ -96,97 +84,88 @@ const makeContactSheetsService = Effect.gen(function* () {
     }
   })
 
-  const generateContactSheet: ContactSheetsService["Service"]["generateContactSheet"] =
-    Effect.fn("ContactSheetsService.generateContactSheet")(
-      function* ({ domain, reference }) {
-        const participantRow = yield* participantsRepository
-          .getParticipantByReference({ reference, domain })
-          .pipe(failNotFoundIfNone("Participant", { reference, domain }))
+  const generateContactSheet: ContactSheetsService['Service']['generateContactSheet'] = Effect.fn(
+    'ContactSheetsService.generateContactSheet',
+  )(function* ({ domain, reference }) {
+    const participantRow = yield* participantsRepository
+      .getParticipantByReference({ reference, domain })
+      .pipe(failNotFoundIfNone('Participant', { reference, domain }))
 
-        const submissions = participantRow.submissions || []
-        if (submissions.length === 0) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: "Participant has no submissions",
-            }),
-          )
-        }
+    const submissions = participantRow.submissions || []
+    if (submissions.length === 0) {
+      return yield* Effect.fail(
+        new BadRequestError({
+          message: 'Participant has no submissions',
+        }),
+      )
+    }
 
-        yield* validatePhotoCount(
-          reference,
-          domain,
-          submissions.map((s) => s.key),
-          participantRow.competitionClass,
-        )
-
-        const sponsor = yield* sponsorsRepository.getLatestSponsorByType({
-          marathonId: participantRow.marathonId,
-          type: "contact-sheets",
-        })
-
-        const topics = yield* topicsRepository
-          .getTopicsByDomain({
-            domain,
-          })
-          .pipe(
-            Effect.map((topics) =>
-              topics.flatMap((t) => ({
-                name: t.name,
-                orderIndex: t.orderIndex,
-              })),
-            ),
-          )
-
-        const images = yield* Effect.forEach(
-          submissions,
-          (submission, index) =>
-            s3
-              .getFile(submissionsBucketName, submission.key)
-              .pipe(
-                failNotFoundIfNone("SubmissionImage", { key: submission.key }),
-                Effect.map((buffer) => ({ orderIndex: index, buffer })),
-              ),
-          { concurrency: 5 },
-        )
-
-        const sponsorImage = Option.isSome(sponsor)
-          ? yield* s3
-              .getFile(sponsorsBucketName, sponsor.value.key)
-              .pipe(
-                failNotFoundIfNone("SponsorImage", { key: sponsor.value.key }),
-              )
-          : undefined
-
-        const contactSheetKey = generateContactSheetKey(domain, reference)
-
-        const contactSheetBuffer = yield* contactSheetBuilder.createSheet({
-          reference,
-          images,
-          sponsorImage,
-          sponsorPosition: "bottom-right",
-          topics,
-        })
-
-        yield* s3.putFile(
-          contactSheetsBucketName,
-          contactSheetKey,
-          contactSheetBuffer,
-        )
-
-        yield* contactSheetsRepository.save({
-          data: {
-            key: contactSheetKey,
-            participantId: participantRow.id,
-            marathonId: participantRow.marathonId,
-          },
-        })
-
-        return {
-          success: true,
-          key: contactSheetKey,
-        }
-      },
+    yield* validatePhotoCount(
+      reference,
+      domain,
+      submissions.map((s) => s.key),
+      participantRow.competitionClass,
     )
+
+    const sponsor = yield* sponsorsRepository.getLatestSponsorByType({
+      marathonId: participantRow.marathonId,
+      type: 'contact-sheets',
+    })
+
+    const topics = yield* topicsRepository
+      .getTopicsByDomain({
+        domain,
+      })
+      .pipe(
+        Effect.map((topics) =>
+          topics.flatMap((t) => ({
+            name: t.name,
+            orderIndex: t.orderIndex,
+          })),
+        ),
+      )
+
+    const images = yield* Effect.forEach(
+      submissions,
+      (submission, index) =>
+        s3.getFile(submissionsBucketName, submission.key).pipe(
+          failNotFoundIfNone('SubmissionImage', { key: submission.key }),
+          Effect.map((buffer) => ({ orderIndex: index, buffer })),
+        ),
+      { concurrency: 5 },
+    )
+
+    const sponsorImage = Option.isSome(sponsor)
+      ? yield* s3
+          .getFile(sponsorsBucketName, sponsor.value.key)
+          .pipe(failNotFoundIfNone('SponsorImage', { key: sponsor.value.key }))
+      : undefined
+
+    const contactSheetKey = generateContactSheetKey(domain, reference)
+
+    const contactSheetBuffer = yield* contactSheetBuilder.createSheet({
+      reference,
+      images,
+      sponsorImage,
+      sponsorPosition: 'bottom-right',
+      topics,
+    })
+
+    yield* s3.putFile(contactSheetsBucketName, contactSheetKey, contactSheetBuffer)
+
+    yield* contactSheetsRepository.save({
+      data: {
+        key: contactSheetKey,
+        participantId: participantRow.id,
+        marathonId: participantRow.marathonId,
+      },
+    })
+
+    return {
+      success: true,
+      key: contactSheetKey,
+    }
+  })
 
   return ContactSheetsService.of({
     generateContactSheet,
@@ -199,7 +178,5 @@ export const ContactSheetsServiceLayerNoDeps = Layer.effect(
 )
 
 export const ContactSheetsServiceLayer = ContactSheetsServiceLayerNoDeps.pipe(
-  Layer.provide(
-    Layer.mergeAll(DbLayer, S3ServiceLayer, ContactSheetBuilderLayer),
-  ),
+  Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer, ContactSheetBuilderLayer)),
 )

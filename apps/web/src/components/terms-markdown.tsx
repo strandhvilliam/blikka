@@ -1,4 +1,4 @@
-import ReactMarkdown from "react-markdown"
+import ReactMarkdown from 'react-markdown'
 
 type TermsMarkdownProps = {
   markdown: string
@@ -33,14 +33,18 @@ export function TermsMarkdown({ markdown }: TermsMarkdownProps) {
             <p className="text-[0.9375rem] leading-[1.7] text-foreground/90">{children}</p>
           ),
           ul: ({ children }) => (
-            <ul className="my-4 list-disc space-y-1.5 pl-5 marker:text-muted-foreground">{children}</ul>
+            <ul className="my-4 list-disc space-y-1.5 pl-5 marker:text-muted-foreground">
+              {children}
+            </ul>
           ),
           ol: ({ children }) => (
             <ol className="my-4 list-decimal space-y-1.5 pl-5 marker:font-medium marker:text-muted-foreground">
               {children}
             </ol>
           ),
-          li: ({ children }) => <li className="text-[0.9375rem] leading-relaxed text-foreground/90">{children}</li>,
+          li: ({ children }) => (
+            <li className="text-[0.9375rem] leading-relaxed text-foreground/90">{children}</li>
+          ),
           a: ({ children, href }) => (
             <a
               href={href}
@@ -49,7 +53,9 @@ export function TermsMarkdown({ markdown }: TermsMarkdownProps) {
               {children}
             </a>
           ),
-          strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+          strong: ({ children }) => (
+            <strong className="font-semibold text-foreground">{children}</strong>
+          ),
           em: ({ children }) => <em className="italic text-foreground/85">{children}</em>,
           blockquote: ({ children }) => (
             <blockquote className="my-6 border-l-2 border-border bg-muted/30 py-1 pl-4 pr-2 text-[0.9375rem] not-italic text-muted-foreground">

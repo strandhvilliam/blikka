@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
-import { VotingSkeleton } from "./_components/voting-skeleton";
+import { VotingSkeleton } from './_components/voting-skeleton'
 
 export default function VotingLoading() {
-  return <VotingSkeleton />;
+  return <VotingSkeleton />
 }

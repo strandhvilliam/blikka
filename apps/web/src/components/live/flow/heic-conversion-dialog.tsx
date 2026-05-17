@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Dialog,
@@ -7,21 +7,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface HeicConversionDialogProps {
-  open: boolean;
-  isConverting: boolean;
-  isCancelling: boolean;
+  open: boolean
+  isConverting: boolean
+  isCancelling: boolean
   progress: {
-    current: number;
-    total: number;
-  };
-  currentFileName: string | null;
-  onCancel: () => void;
+    current: number
+    total: number
+  }
+  currentFileName: string | null
+  onCancel: () => void
 }
 
 export function HeicConversionDialog({
@@ -32,20 +32,20 @@ export function HeicConversionDialog({
   currentFileName,
   onCancel,
 }: HeicConversionDialogProps) {
-  const t = useTranslations("FlowPage.uploadStep");
+  const t = useTranslations('FlowPage.uploadStep')
 
   return (
     <Dialog open={open}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-rocgrotesk">{t("convertingHeic")}</DialogTitle>
+          <DialogTitle className="font-rocgrotesk">{t('convertingHeic')}</DialogTitle>
           <DialogDescription>
             {isCancelling
-              ? t("cancelling")
-              : t("conversionProgress", {
+              ? t('cancelling')
+              : t('conversionProgress', {
                   current: progress.current,
                   total: progress.total,
-                  fileName: currentFileName || "",
+                  fileName: currentFileName || '',
                 })}
           </DialogDescription>
         </DialogHeader>
@@ -53,23 +53,19 @@ export function HeicConversionDialog({
           <Loader2 className="h-5 w-5 animate-spin" />
           <div className="text-sm text-muted-foreground">
             {isCancelling
-              ? t("stoppingConversion")
-              : t("convertingFile", {
+              ? t('stoppingConversion')
+              : t('convertingFile', {
                   current: progress.current,
                   total: progress.total,
                 })}
           </div>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            disabled={isCancelling}
-          >
-            {t("cancel")}
+          <Button variant="outline" onClick={onCancel} disabled={isCancelling}>
+            {t('cancel')}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

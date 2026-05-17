@@ -1,22 +1,13 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import {
-  SidebarMenuButton,
-  useSidebar,
-} from "@/components/ui/sidebar"
-import { authClient, useSession } from "@/lib/auth/client"
-import { useDomain } from "@/lib/domain-provider"
-import { formatDomainPathname } from "@/lib/utils"
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-} from "lucide-react"
-import { Avatar, AvatarImage, AvatarFallback } from "@radix-ui/react-avatar"
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar'
+import { authClient, useSession } from '@/lib/auth/client'
+import { useDomain } from '@/lib/domain-provider'
+import { formatDomainPathname } from '@/lib/utils'
+import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut } from 'lucide-react'
+import { Avatar, AvatarImage, AvatarFallback } from '@radix-ui/react-avatar'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -25,8 +16,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuGroup,
   DropdownMenuItem,
-} from "@/components/ui/dropdown-menu"
-import { toast } from "sonner"
+} from '@/components/ui/dropdown-menu'
+import { toast } from 'sonner'
 
 export function SidebarNavUser() {
   const { data: session } = useSession()
@@ -41,11 +32,11 @@ export function SidebarNavUser() {
       setIsLogoutLoading(true)
       await authClient.signOut()
       router.push(
-        `/auth/login?next=${encodeURIComponent(formatDomainPathname("/admin/dashboard", domain, "admin"))}`,
+        `/auth/login?next=${encodeURIComponent(formatDomainPathname('/admin/dashboard', domain, 'admin'))}`,
       )
     } catch (error) {
       console.error(error)
-      toast.error("Failed to sign out")
+      toast.error('Failed to sign out')
     } finally {
       setIsLogoutLoading(false)
     }
@@ -73,7 +64,7 @@ export function SidebarNavUser() {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-        side={isMobile ? "bottom" : "right"}
+        side={isMobile ? 'bottom' : 'right'}
         align="end"
         sideOffset={4}
       >
@@ -104,12 +95,9 @@ export function SidebarNavUser() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => void handleLogout()}
-          disabled={isLogoutLoading}
-        >
+        <DropdownMenuItem onClick={() => void handleLogout()} disabled={isLogoutLoading}>
           <LogOut />
-          {isLogoutLoading ? "Logging out..." : "Log out"}
+          {isLogoutLoading ? 'Logging out...' : 'Log out'}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

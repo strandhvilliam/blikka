@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { ShieldBan } from "lucide-react"
-import { RuleCard, type RuleValue } from "./rule-card"
+import { ShieldBan } from 'lucide-react'
+import { RuleCard, type RuleValue } from './rule-card'
 
 type NoModificationsValue = RuleValue<null>
 

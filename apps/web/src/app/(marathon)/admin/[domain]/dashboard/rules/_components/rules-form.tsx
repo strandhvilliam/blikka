@@ -1,26 +1,26 @@
-"use client"
+'use client'
 
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { parseRules, mapRulesToDbRules } from "../_lib/parse-rules"
-import { MaxFileSizeRule } from "./max-file-size-rule"
-import { AllowedFileTypesRule } from "./allowed-file-types-rule"
-import { WithinTimerangeRule } from "./within-timerange-rule"
-import { SameDeviceRule } from "./same-device-rule"
-import { NoModificationsRule } from "./no-modifications-rule"
-import { StrictTimestampOrderingRule } from "./strict-timestamp-ordering-rule"
-import { useEffect, useState, useCallback, useMemo } from "react"
-import { useAutoSave } from "@/hooks/use-auto-save"
-import type { RulesFormValues } from "../_lib/schemas"
-import { ShieldCheck, Circle, BookOpen } from "lucide-react"
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { parseRules, mapRulesToDbRules } from '../_lib/parse-rules'
+import { MaxFileSizeRule } from './max-file-size-rule'
+import { AllowedFileTypesRule } from './allowed-file-types-rule'
+import { WithinTimerangeRule } from './within-timerange-rule'
+import { SameDeviceRule } from './same-device-rule'
+import { NoModificationsRule } from './no-modifications-rule'
+import { StrictTimestampOrderingRule } from './strict-timestamp-ordering-rule'
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useAutoSave } from '@/hooks/use-auto-save'
+import type { RulesFormValues } from '../_lib/schemas'
+import { ShieldCheck, Circle, BookOpen } from 'lucide-react'
 
 function sanitizeRulesForMarathonMode(
   rules: RulesFormValues,
-  marathonMode?: "marathon" | "by-camera",
+  marathonMode?: 'marathon' | 'by-camera',
 ): RulesFormValues {
-  if (marathonMode !== "by-camera") {
+  if (marathonMode !== 'by-camera') {
     return rules
   }
 
@@ -64,7 +64,7 @@ export function RulesForm() {
   )
 
   const normalizedServerRules = useMemo(
-    () => sanitizeRulesForMarathonMode(serverRules, marathon?.mode as "marathon" | "by-camera"),
+    () => sanitizeRulesForMarathonMode(serverRules, marathon?.mode as 'marathon' | 'by-camera'),
     [marathon?.mode, serverRules],
   )
 
@@ -73,10 +73,10 @@ export function RulesForm() {
   const { mutate: updateRules } = useMutation(
     trpc.rules.updateMultiple.mutationOptions({
       onSuccess: () => {
-        toast.success("Rules updated successfully")
+        toast.success('Rules updated successfully')
       },
       onError: () => {
-        toast.error("Failed to update rules")
+        toast.error('Failed to update rules')
       },
       onSettled: () => {
         queryClient.invalidateQueries({
@@ -97,7 +97,7 @@ export function RulesForm() {
       updateRules({
         domain,
         data: mapRulesToDbRules(
-          sanitizeRulesForMarathonMode(value, marathon.mode as "marathon" | "by-camera"),
+          sanitizeRulesForMarathonMode(value, marathon.mode as 'marathon' | 'by-camera'),
         ),
       })
     },
@@ -123,19 +123,19 @@ export function RulesForm() {
     [],
   )
 
-  const isByCamera = marathon?.mode === "by-camera"
+  const isByCamera = marathon?.mode === 'by-camera'
 
   const visibleRuleKeys = useMemo(() => {
     const all: (keyof RulesFormValues)[] = [
-      "max_file_size",
-      "allowed_file_types",
-      "within_timerange",
-      "same_device",
-      "modified",
-      "strict_timestamp_ordering",
+      'max_file_size',
+      'allowed_file_types',
+      'within_timerange',
+      'same_device',
+      'modified',
+      'strict_timestamp_ordering',
     ]
     if (isByCamera) {
-      return all.filter((k) => k !== "same_device" && k !== "strict_timestamp_ordering")
+      return all.filter((k) => k !== 'same_device' && k !== 'strict_timestamp_ordering')
     }
     return all
   }, [isByCamera])
@@ -175,32 +175,32 @@ export function RulesForm() {
       <div className="space-y-3">
         <AllowedFileTypesRule
           value={rules.allowed_file_types}
-          onChange={(value) => updateRule("allowed_file_types", value)}
+          onChange={(value) => updateRule('allowed_file_types', value)}
         />
         <WithinTimerangeRule
-          marathonMode={marathon?.mode as "by-camera" | "marathon" | undefined}
+          marathonMode={marathon?.mode as 'by-camera' | 'marathon' | undefined}
           value={rules.within_timerange}
-          onChange={(value) => updateRule("within_timerange", value)}
+          onChange={(value) => updateRule('within_timerange', value)}
         />
         {!isByCamera && (
           <SameDeviceRule
             value={rules.same_device}
-            onChange={(value) => updateRule("same_device", value)}
+            onChange={(value) => updateRule('same_device', value)}
           />
         )}
         <NoModificationsRule
           value={rules.modified}
-          onChange={(value) => updateRule("modified", value)}
+          onChange={(value) => updateRule('modified', value)}
         />
         {!isByCamera && (
           <StrictTimestampOrderingRule
             value={rules.strict_timestamp_ordering}
-            onChange={(value) => updateRule("strict_timestamp_ordering", value)}
+            onChange={(value) => updateRule('strict_timestamp_ordering', value)}
           />
         )}
         <MaxFileSizeRule
           value={rules.max_file_size}
-          onChange={(value) => updateRule("max_file_size", value)}
+          onChange={(value) => updateRule('max_file_size', value)}
         />
       </div>
     </div>

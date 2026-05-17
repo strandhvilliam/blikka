@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useRef, useCallback } from 'react'
 
 interface UseAutoSaveOptions<T> {
   value: T
@@ -16,7 +16,7 @@ export function useAutoSave<T>({
   enabled = true,
 }: UseAutoSaveOptions<T>) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const previousValueRef = useRef<string>("")
+  const previousValueRef = useRef<string>('')
   const onSaveRef = useRef(onSave)
 
   // Keep onSave ref up to date without triggering effect

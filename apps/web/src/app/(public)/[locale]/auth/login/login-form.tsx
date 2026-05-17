@@ -1,28 +1,28 @@
-"use client"
+'use client'
 
-import { Loader2, Mail } from "lucide-react"
-import { useEffect, useState } from "react"
-import { REGEXP_ONLY_DIGITS } from "input-otp"
+import { Loader2, Mail } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { REGEXP_ONLY_DIGITS } from 'input-otp'
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
-import { Input } from "@/components/ui/input"
-import { loginAction } from "./login-action"
-import { verifyAction } from "../verify/verify-action"
-import { authClient } from "@/lib/auth/client"
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
+import { Input } from '@/components/ui/input'
+import { loginAction } from './login-action'
+import { verifyAction } from '../verify/verify-action'
+import { authClient } from '@/lib/auth/client'
 
 const RESEND_COOLDOWN_SEC = 60
 
 //TODO: Remove vibe coded stuff
 function isNextRedirectError(error: unknown): boolean {
   return (
-    typeof error === "object" &&
+    typeof error === 'object' &&
     error !== null &&
-    "digest" in error &&
-    typeof (error as { digest?: unknown }).digest === "string" &&
-    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    'digest' in error &&
+    typeof (error as { digest?: unknown }).digest === 'string' &&
+    (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
   )
 }
 
@@ -36,10 +36,10 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
   const [isSubmittingGoogle, setIsSubmittingGoogle] = useState(false)
   const [showEmailLogin, setShowEmailLogin] = useState(false)
 
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState('')
   const [codeSentToEmail, setCodeSentToEmail] = useState<string | null>(null)
 
-  const [otp, setOtp] = useState("")
+  const [otp, setOtp] = useState('')
   const [verifyError, setVerifyError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
@@ -77,7 +77,7 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
     }
     setResendCooldownSec(RESEND_COOLDOWN_SEC)
     setVerifyError(null)
-    setOtp("")
+    setOtp('')
   }
 
   const handleVerifyOtp = async (event: React.FormEvent) => {
@@ -86,7 +86,7 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
       return
     }
     if (otp.length !== 6) {
-      setVerifyError("Please enter a valid 6-digit code")
+      setVerifyError('Please enter a valid 6-digit code')
       return
     }
 
@@ -106,7 +106,7 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
       if (isNextRedirectError(err)) {
         return
       }
-      setVerifyError("Invalid verification code. Please try again.")
+      setVerifyError('Invalid verification code. Please try again.')
     } finally {
       setIsVerifying(false)
     }
@@ -114,13 +114,13 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
 
   const handleBackToEmail = () => {
     setCodeSentToEmail(null)
-    setOtp("")
+    setOtp('')
     setVerifyError(null)
     setResendCooldownSec(0)
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn('flex flex-col gap-6', className)} {...props}>
       <div className="flex flex-col gap-2 text-center">
         <h1 className="font-gothic text-3xl leading-tight tracking-tight text-brand-black">
           Sign in
@@ -138,12 +138,12 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
             setError(null)
 
             const result = await authClient.signIn.social({
-              provider: "google",
-              callbackURL: next ?? "/auth/redirect",
+              provider: 'google',
+              callbackURL: next ?? '/auth/redirect',
             })
 
             if (result.error) {
-              setError(result.error.message ?? "Unable to continue with Google.")
+              setError(result.error.message ?? 'Unable to continue with Google.')
               setIsSubmittingGoogle(false)
             }
           }}
@@ -154,7 +154,7 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
               fill="currentColor"
             />
           </svg>
-          {isSubmittingGoogle ? "Redirecting to Google..." : "Continue with Google"}
+          {isSubmittingGoogle ? 'Redirecting to Google...' : 'Continue with Google'}
         </Button>
 
         <div className="flex items-center gap-3 py-1">
@@ -171,7 +171,7 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
           onClick={() => setShowEmailLogin((previous) => !previous)}
         >
           <Mail className="size-3.5" />
-          {showEmailLogin ? "Hide email login" : "Continue with email instead"}
+          {showEmailLogin ? 'Hide email login' : 'Continue with email instead'}
         </button>
       </div>
 
@@ -184,7 +184,7 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
                   Check your inbox
                 </p>
                 <p className="text-sm text-brand-black/70">
-                  Enter the 6-digit code we sent to{" "}
+                  Enter the 6-digit code we sent to{' '}
                   <span className="font-medium text-brand-black">{codeSentToEmail}</span>
                 </p>
               </div>
@@ -231,7 +231,7 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
                         Verifying…
                       </>
                     ) : (
-                      "Verify and sign in"
+                      'Verify and sign in'
                     )}
                   </Button>
                 </FieldGroup>
@@ -242,18 +242,18 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
                   type="button"
                   disabled={resendCooldownSec > 0 || isResending || isVerifying}
                   className={cn(
-                    "text-sm font-medium transition-colors",
+                    'text-sm font-medium transition-colors',
                     resendCooldownSec > 0 || isResending || isVerifying
-                      ? "cursor-not-allowed text-brand-black/35"
-                      : "text-brand-black/70 underline-offset-4 hover:text-brand-black hover:underline",
+                      ? 'cursor-not-allowed text-brand-black/35'
+                      : 'text-brand-black/70 underline-offset-4 hover:text-brand-black hover:underline',
                   )}
                   onClick={handleResendCode}
                 >
                   {isResending
-                    ? "Sending…"
+                    ? 'Sending…'
                     : resendCooldownSec > 0
                       ? `Resend code in ${resendCooldownSec}s`
-                      : "Resend code"}
+                      : 'Resend code'}
                 </button>
                 <button
                   type="button"
@@ -314,7 +314,7 @@ export function LoginForm({ className, next, ...props }: LoginFormProps) {
                 disabled={isSubmittingEmail || isSubmittingGoogle}
                 className="h-10 w-full rounded-xl border-brand-black/18 bg-brand-white text-brand-black hover:bg-brand-black/3"
               >
-                {isSubmittingEmail ? "Sending code…" : "Send one-time code"}
+                {isSubmittingEmail ? 'Sending code…' : 'Send one-time code'}
               </Button>
             </form>
           )}

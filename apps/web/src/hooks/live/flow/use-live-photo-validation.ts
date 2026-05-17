@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { useEffect } from "react"
-import type { RuleConfig } from "@blikka/db"
-import { runParticipantPhotoValidation } from "@/lib/participant-photo-validation"
-import type { UploadMarathonMode } from "@/lib/types"
-import { usePhotoStore } from "@/lib/flow/photo-store"
+import { useEffect } from 'react'
+import type { RuleConfig } from '@blikka/db'
+import { runParticipantPhotoValidation } from '@/lib/participant-photo-validation'
+import type { UploadMarathonMode } from '@/lib/types'
+import { usePhotoStore } from '@/lib/flow/photo-store'
 
 interface UseLivePhotoValidationOptions {
   ruleConfigs: RuleConfig[]
@@ -44,7 +44,7 @@ export function useLivePhotoValidation({
           setValidationResults(results)
         }
       } catch (error) {
-        console.error("Live photo validation failed:", error)
+        console.error('Live photo validation failed:', error)
 
         if (!cancelled) {
           setValidationResults([])

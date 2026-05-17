@@ -1,49 +1,49 @@
-import { assert, describe, layer } from "@effect/vitest"
-import { Effect } from "effect"
-import { RULE_KEYS, VALIDATION_OUTCOME } from "./constants"
-import { ValidationEngine, ValidationEngineLayer } from "./engine"
-import { type ValidationInput, type ValidationRule } from "./schemas"
+import { assert, describe, layer } from '@effect/vitest'
+import { Effect } from 'effect'
+import { RULE_KEYS, VALIDATION_OUTCOME } from './constants'
+import { ValidationEngine, ValidationEngineLayer } from './engine'
+import { type ValidationInput, type ValidationRule } from './schemas'
 
 function createMockInput(overrides?: Partial<ValidationInput>): ValidationInput {
   return {
-    fileName: "test_image.jpg",
+    fileName: 'test_image.jpg',
     fileSize: 5000000,
     orderIndex: 0,
-    mimeType: "image/jpeg",
+    mimeType: 'image/jpeg',
     exif: {
-      Make: "Sony",
-      Model: "ILCE-7M3",
-      DateTimeOriginal: "2023-06-15T14:30:00Z",
-      CreateDate: "2023-06-15T14:30:00Z",
-      ModifyDate: "2023-06-15T14:30:00Z",
-      Software: "",
+      Make: 'Sony',
+      Model: 'ILCE-7M3',
+      DateTimeOriginal: '2023-06-15T14:30:00Z',
+      CreateDate: '2023-06-15T14:30:00Z',
+      ModifyDate: '2023-06-15T14:30:00Z',
+      Software: '',
       FNumber: 2.8,
-      ExposureTime: "1/125",
+      ExposureTime: '1/125',
       ISO: 400,
-      LensModel: "FE 24-70mm F2.8 GM",
-      FocalLength: "50mm",
-      Flash: "Off",
-      WhiteBalance: "Auto",
-      ColorSpace: "sRGB",
+      LensModel: 'FE 24-70mm F2.8 GM',
+      FocalLength: '50mm',
+      Flash: 'Off',
+      WhiteBalance: 'Auto',
+      ColorSpace: 'sRGB',
       ExifImageWidth: 6000,
       ExifImageHeight: 4000,
-      Compression: "JPEG",
+      Compression: 'JPEG',
       Orientation: 1,
     },
     ...overrides,
   }
 }
 
-layer(ValidationEngineLayer)("ValidationEngine", (it) => {
-  describe("executeRule - MAX_FILE_SIZE", () => {
-    it.effect("should pass when file size is within limit", () =>
+layer(ValidationEngineLayer)('ValidationEngine', (it) => {
+  describe('executeRule - MAX_FILE_SIZE', () => {
+    it.effect('should pass when file size is within limit', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.MAX_FILE_SIZE,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: { max_file_size: { maxBytes: 10000000 } },
         }
 
@@ -56,14 +56,14 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should fail when file size exceeds limit", () =>
+    it.effect('should fail when file size exceeds limit', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.MAX_FILE_SIZE,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: { max_file_size: { maxBytes: 5000000 } },
         }
 
@@ -73,18 +73,18 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
         assert.lengthOf(results, 1)
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
         assert.strictEqual(results[0]?.ruleKey, RULE_KEYS.MAX_FILE_SIZE)
-        assert.include(results[0]?.message, "File size is too large")
+        assert.include(results[0]?.message, 'File size is too large')
       }),
     )
 
-    it.effect("should validate multiple inputs", () =>
+    it.effect('should validate multiple inputs', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.MAX_FILE_SIZE,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: { max_file_size: { maxBytes: 8000000 } },
         }
 
@@ -104,21 +104,21 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
     )
   })
 
-  describe("executeRule - ALLOWED_FILE_TYPES", () => {
-    it.effect("should pass for allowed file types", () =>
+  describe('executeRule - ALLOWED_FILE_TYPES', () => {
+    it.effect('should pass for allowed file types', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
-            allowed_file_types: { allowedFileTypes: ["jpg", "jpeg", "png"] },
+            allowed_file_types: { allowedFileTypes: ['jpg', 'jpeg', 'png'] },
           },
         }
 
-        const inputs = [createMockInput({ fileName: "photo.jpg", mimeType: "image/jpeg" })]
+        const inputs = [createMockInput({ fileName: 'photo.jpg', mimeType: 'image/jpeg' })]
 
         const results = yield* engine.runValidations([rule], inputs)
 
@@ -127,20 +127,20 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should treat jpg rule config as allowing jpeg files", () =>
+    it.effect('should treat jpg rule config as allowing jpeg files', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
-            allowed_file_types: { allowedFileTypes: ["jpg"] },
+            allowed_file_types: { allowedFileTypes: ['jpg'] },
           },
         }
 
-        const inputs = [createMockInput({ fileName: "photo.jpeg", mimeType: "image/jpeg" })]
+        const inputs = [createMockInput({ fileName: 'photo.jpeg', mimeType: 'image/jpeg' })]
 
         const results = yield* engine.runValidations([rule], inputs)
 
@@ -149,20 +149,20 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should treat jpeg rule config as allowing jpg files", () =>
+    it.effect('should treat jpeg rule config as allowing jpg files', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
-            allowed_file_types: { allowedFileTypes: ["jpeg"] },
+            allowed_file_types: { allowedFileTypes: ['jpeg'] },
           },
         }
 
-        const inputs = [createMockInput({ fileName: "photo.jpg", mimeType: "image/jpeg" })]
+        const inputs = [createMockInput({ fileName: 'photo.jpg', mimeType: 'image/jpeg' })]
 
         const results = yield* engine.runValidations([rule], inputs)
 
@@ -171,20 +171,20 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should deduplicate jpg and jpeg aliases during validation", () =>
+    it.effect('should deduplicate jpg and jpeg aliases during validation', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
-            allowed_file_types: { allowedFileTypes: ["jpg", "jpeg"] },
+            allowed_file_types: { allowedFileTypes: ['jpg', 'jpeg'] },
           },
         }
 
-        const inputs = [createMockInput({ fileName: "photo.jpeg", mimeType: "image/jpeg" })]
+        const inputs = [createMockInput({ fileName: 'photo.jpeg', mimeType: 'image/jpeg' })]
 
         const results = yield* engine.runValidations([rule], inputs)
 
@@ -193,66 +193,66 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should fail for disallowed file types", () =>
+    it.effect('should fail for disallowed file types', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
-            allowed_file_types: { allowedFileTypes: ["jpg", "jpeg"] },
+            allowed_file_types: { allowedFileTypes: ['jpg', 'jpeg'] },
           },
         }
 
-        const inputs = [createMockInput({ fileName: "photo.png", mimeType: "image/png" })]
+        const inputs = [createMockInput({ fileName: 'photo.png', mimeType: 'image/png' })]
 
         const results = yield* engine.runValidations([rule], inputs)
 
         assert.lengthOf(results, 1)
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
-        assert.include(results[0]?.message, "Invalid file extension")
+        assert.include(results[0]?.message, 'Invalid file extension')
       }),
     )
 
-    it.effect("should fail png files when only jpeg alias is configured", () =>
+    it.effect('should fail png files when only jpeg alias is configured', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
-            allowed_file_types: { allowedFileTypes: ["jpeg"] },
+            allowed_file_types: { allowedFileTypes: ['jpeg'] },
           },
         }
 
-        const inputs = [createMockInput({ fileName: "photo.png", mimeType: "image/png" })]
+        const inputs = [createMockInput({ fileName: 'photo.png', mimeType: 'image/png' })]
 
         const results = yield* engine.runValidations([rule], inputs)
 
         assert.lengthOf(results, 1)
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
-        assert.include(results[0]?.message, "Invalid file extension")
+        assert.include(results[0]?.message, 'Invalid file extension')
       }),
     )
 
-    it.effect("should skip when file extension cannot be determined", () =>
+    it.effect('should skip when file extension cannot be determined', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
-            allowed_file_types: { allowedFileTypes: ["jpg", "jpeg"] },
+            allowed_file_types: { allowedFileTypes: ['jpg', 'jpeg'] },
           },
         }
 
-        const inputs = [createMockInput({ fileName: "photo", mimeType: "image/jpeg" })]
+        const inputs = [createMockInput({ fileName: 'photo', mimeType: 'image/jpeg' })]
 
         const results = yield* engine.runValidations([rule], inputs)
 
@@ -262,19 +262,19 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
     )
   })
 
-  describe("executeRule - WITHIN_TIMERANGE", () => {
-    it.effect("should pass when photo is within timerange", () =>
+  describe('executeRule - WITHIN_TIMERANGE', () => {
+    it.effect('should pass when photo is within timerange', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.WITHIN_TIMERANGE,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
             within_timerange: {
-              start: "2023-06-15T12:00:00Z",
-              end: "2023-06-15T16:00:00Z",
+              start: '2023-06-15T12:00:00Z',
+              end: '2023-06-15T16:00:00Z',
             },
           },
         }
@@ -282,7 +282,7 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
         const inputs = [
           createMockInput({
             exif: {
-              DateTimeOriginal: "2023-06-15T14:30:00Z",
+              DateTimeOriginal: '2023-06-15T14:30:00Z',
             },
           }),
         ]
@@ -294,18 +294,18 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should fail when photo is outside timerange", () =>
+    it.effect('should fail when photo is outside timerange', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.WITHIN_TIMERANGE,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
             within_timerange: {
-              start: "2023-06-15T12:00:00Z",
-              end: "2023-06-15T16:00:00Z",
+              start: '2023-06-15T12:00:00Z',
+              end: '2023-06-15T16:00:00Z',
             },
           },
         }
@@ -313,7 +313,7 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
         const inputs = [
           createMockInput({
             exif: {
-              DateTimeOriginal: "2023-06-15T18:00:00Z",
+              DateTimeOriginal: '2023-06-15T18:00:00Z',
             },
           }),
         ]
@@ -322,22 +322,22 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
 
         assert.lengthOf(results, 1)
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
-        assert.include(results[0]?.message, "outside of the specified timeframe")
+        assert.include(results[0]?.message, 'outside of the specified timeframe')
       }),
     )
 
-    it.effect("should skip when timestamp cannot be determined", () =>
+    it.effect('should skip when timestamp cannot be determined', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.WITHIN_TIMERANGE,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: {
             within_timerange: {
-              start: "2023-06-15T12:00:00Z",
-              end: "2023-06-15T16:00:00Z",
+              start: '2023-06-15T12:00:00Z',
+              end: '2023-06-15T16:00:00Z',
             },
           },
         }
@@ -356,30 +356,30 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
     )
   })
 
-  describe("executeRule - STRICT_TIMESTAMP_ORDERING", () => {
-    it.effect("should pass when images are in correct chronological order", () =>
+  describe('executeRule - STRICT_TIMESTAMP_ORDERING', () => {
+    it.effect('should pass when images are in correct chronological order', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.STRICT_TIMESTAMP_ORDERING,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: { strict_timestamp_ordering: {} },
         }
 
         const inputs = [
           createMockInput({
             orderIndex: 0,
-            exif: { DateTimeOriginal: "2023-06-15T14:00:00Z" },
+            exif: { DateTimeOriginal: '2023-06-15T14:00:00Z' },
           }),
           createMockInput({
             orderIndex: 1,
-            exif: { DateTimeOriginal: "2023-06-15T15:00:00Z" },
+            exif: { DateTimeOriginal: '2023-06-15T15:00:00Z' },
           }),
           createMockInput({
             orderIndex: 2,
-            exif: { DateTimeOriginal: "2023-06-15T16:00:00Z" },
+            exif: { DateTimeOriginal: '2023-06-15T16:00:00Z' },
           }),
         ]
 
@@ -391,25 +391,25 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should fail when images are out of chronological order", () =>
+    it.effect('should fail when images are out of chronological order', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.STRICT_TIMESTAMP_ORDERING,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: { strict_timestamp_ordering: {} },
         }
 
         const inputs = [
           createMockInput({
             orderIndex: 0,
-            exif: { DateTimeOriginal: "2023-06-15T16:00:00Z" },
+            exif: { DateTimeOriginal: '2023-06-15T16:00:00Z' },
           }),
           createMockInput({
             orderIndex: 1,
-            exif: { DateTimeOriginal: "2023-06-15T14:00:00Z" },
+            exif: { DateTimeOriginal: '2023-06-15T14:00:00Z' },
           }),
         ]
 
@@ -417,18 +417,18 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
 
         assert.lengthOf(results, 1)
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
-        assert.include(results[0]?.message, "does not match chronological timestamp order")
+        assert.include(results[0]?.message, 'does not match chronological timestamp order')
       }),
     )
 
-    it.effect("should skip when not enough images", () =>
+    it.effect('should skip when not enough images', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.STRICT_TIMESTAMP_ORDERING,
           enabled: true,
-          severity: "error",
+          severity: 'error',
           params: { strict_timestamp_ordering: {} },
         }
 
@@ -442,24 +442,24 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
     )
   })
 
-  describe("executeRule - SAME_DEVICE", () => {
-    it.effect("should pass when all images are from same device", () =>
+  describe('executeRule - SAME_DEVICE', () => {
+    it.effect('should pass when all images are from same device', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.SAME_DEVICE,
           enabled: true,
-          severity: "warning",
+          severity: 'warning',
           params: { same_device: {} },
         }
 
         const inputs = [
           createMockInput({
-            exif: { Make: "Sony", Model: "ILCE-7M3" },
+            exif: { Make: 'Sony', Model: 'ILCE-7M3' },
           }),
           createMockInput({
-            exif: { Make: "Sony", Model: "ILCE-7M3" },
+            exif: { Make: 'Sony', Model: 'ILCE-7M3' },
           }),
         ]
 
@@ -470,23 +470,23 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should fail when images are from different devices", () =>
+    it.effect('should fail when images are from different devices', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.SAME_DEVICE,
           enabled: true,
-          severity: "warning",
+          severity: 'warning',
           params: { same_device: {} },
         }
 
         const inputs = [
           createMockInput({
-            exif: { Make: "Sony", Model: "ILCE-7M3" },
+            exif: { Make: 'Sony', Model: 'ILCE-7M3' },
           }),
           createMockInput({
-            exif: { Make: "Canon", Model: "EOS R5" },
+            exif: { Make: 'Canon', Model: 'EOS R5' },
           }),
         ]
 
@@ -494,18 +494,18 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
 
         assert.lengthOf(results, 1)
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
-        assert.include(results[0]?.message, "Different devices detected")
+        assert.include(results[0]?.message, 'Different devices detected')
       }),
     )
 
-    it.effect("should skip when not enough images", () =>
+    it.effect('should skip when not enough images', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.SAME_DEVICE,
           enabled: true,
-          severity: "warning",
+          severity: 'warning',
           params: { same_device: {} },
         }
 
@@ -519,15 +519,15 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
     )
   })
 
-  describe("executeRule - MODIFIED", () => {
-    it.effect("should pass when photo is unmodified", () =>
+  describe('executeRule - MODIFIED', () => {
+    it.effect('should pass when photo is unmodified', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.MODIFIED,
           enabled: true,
-          severity: "warning",
+          severity: 'warning',
           params: { modified: {} },
         }
 
@@ -540,20 +540,20 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should fail when editing software is detected", () =>
+    it.effect('should fail when editing software is detected', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.MODIFIED,
           enabled: true,
-          severity: "warning",
+          severity: 'warning',
           params: { modified: {} },
         }
 
         const inputs = [
           createMockInput({
-            exif: { Software: "Adobe Photoshop 2024" },
+            exif: { Software: 'Adobe Photoshop 2024' },
           }),
         ]
 
@@ -561,27 +561,27 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
 
         assert.lengthOf(results, 1)
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
-        assert.include(results[0]?.message, "editing software")
+        assert.include(results[0]?.message, 'editing software')
       }),
     )
 
-    it.effect("should fail when timestamps show modification", () =>
+    it.effect('should fail when timestamps show modification', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.MODIFIED,
           enabled: true,
-          severity: "warning",
+          severity: 'warning',
           params: { modified: {} },
         }
 
         const inputs = [
           createMockInput({
             exif: {
-              DateTimeOriginal: "2023-06-15T14:00:00Z",
-              CreateDate: "2023-06-15T14:00:00Z",
-              ModifyDate: "2023-06-15T16:00:00Z",
+              DateTimeOriginal: '2023-06-15T14:00:00Z',
+              CreateDate: '2023-06-15T14:00:00Z',
+              ModifyDate: '2023-06-15T16:00:00Z',
             },
           }),
         ]
@@ -590,26 +590,26 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
 
         assert.lengthOf(results, 1)
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
-        assert.include(results[0]?.message, "timestamp inconsistencies")
+        assert.include(results[0]?.message, 'timestamp inconsistencies')
       }),
     )
 
-    it.effect("should fail when EXIF data is limited", () =>
+    it.effect('should fail when EXIF data is limited', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
         const rule: ValidationRule = {
           ruleKey: RULE_KEYS.MODIFIED,
           enabled: true,
-          severity: "warning",
+          severity: 'warning',
           params: { modified: {} },
         }
 
         const inputs = [
           createMockInput({
             exif: {
-              Make: "Sony",
-              Model: "ILCE-7M3",
+              Make: 'Sony',
+              Model: 'ILCE-7M3',
             },
           }),
         ]
@@ -618,13 +618,13 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
 
         assert.lengthOf(results, 1)
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
-        assert.include(results[0]?.message, "Limited EXIF data")
+        assert.include(results[0]?.message, 'Limited EXIF data')
       }),
     )
   })
 
-  describe("runValidations - multiple rules", () => {
-    it.effect("should execute multiple rules and return all results", () =>
+  describe('runValidations - multiple rules', () => {
+    it.effect('should execute multiple rules and return all results', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
@@ -632,24 +632,24 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
           {
             ruleKey: RULE_KEYS.MAX_FILE_SIZE,
             enabled: true,
-            severity: "error",
+            severity: 'error',
             params: { max_file_size: { maxBytes: 10000000 } },
           },
           {
             ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
             enabled: true,
-            severity: "error",
+            severity: 'error',
             params: {
-              allowed_file_types: { allowedFileTypes: ["jpg", "jpeg"] },
+              allowed_file_types: { allowedFileTypes: ['jpg', 'jpeg'] },
             },
           },
         ]
 
         const inputs = [
           createMockInput({
-            fileName: "photo.jpg",
+            fileName: 'photo.jpg',
             fileSize: 5000000,
-            mimeType: "image/jpeg",
+            mimeType: 'image/jpeg',
           }),
         ]
 
@@ -661,7 +661,7 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should handle mix of passing and failing validations", () =>
+    it.effect('should handle mix of passing and failing validations', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
@@ -669,24 +669,24 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
           {
             ruleKey: RULE_KEYS.MAX_FILE_SIZE,
             enabled: true,
-            severity: "error",
+            severity: 'error',
             params: { max_file_size: { maxBytes: 4000000 } },
           },
           {
             ruleKey: RULE_KEYS.ALLOWED_FILE_TYPES,
             enabled: true,
-            severity: "error",
+            severity: 'error',
             params: {
-              allowed_file_types: { allowedFileTypes: ["jpg", "jpeg"] },
+              allowed_file_types: { allowedFileTypes: ['jpg', 'jpeg'] },
             },
           },
         ]
 
         const inputs = [
           createMockInput({
-            fileName: "photo.jpg",
+            fileName: 'photo.jpg',
             fileSize: 5000000,
-            mimeType: "image/jpeg",
+            mimeType: 'image/jpeg',
           }),
         ]
 
@@ -698,7 +698,7 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
       }),
     )
 
-    it.effect("should flatten per-input and cross-input validation results", () =>
+    it.effect('should flatten per-input and cross-input validation results', () =>
       Effect.gen(function* () {
         const engine = yield* ValidationEngine
 
@@ -706,13 +706,13 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
           {
             ruleKey: RULE_KEYS.MAX_FILE_SIZE,
             enabled: true,
-            severity: "error",
+            severity: 'error',
             params: { max_file_size: { maxBytes: 10000000 } },
           },
           {
             ruleKey: RULE_KEYS.SAME_DEVICE,
             enabled: true,
-            severity: "warning",
+            severity: 'warning',
             params: { same_device: {} },
           },
         ]
@@ -722,8 +722,14 @@ layer(ValidationEngineLayer)("ValidationEngine", (it) => {
         const results = yield* engine.runValidations(rules, inputs)
 
         assert.lengthOf(results, 3)
-        assert.lengthOf(results.filter((r) => r.ruleKey === RULE_KEYS.MAX_FILE_SIZE), 2)
-        assert.lengthOf(results.filter((r) => r.ruleKey === RULE_KEYS.SAME_DEVICE), 1)
+        assert.lengthOf(
+          results.filter((r) => r.ruleKey === RULE_KEYS.MAX_FILE_SIZE),
+          2,
+        )
+        assert.lengthOf(
+          results.filter((r) => r.ruleKey === RULE_KEYS.SAME_DEVICE),
+          1,
+        )
       }),
     )
   })

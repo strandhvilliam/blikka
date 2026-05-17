@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { HardDrive } from "lucide-react"
-import { RuleCard, type RuleValue } from "./rule-card"
-import type { MaxFileSizeParams } from "../_lib/schemas"
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { HardDrive } from 'lucide-react'
+import { RuleCard, type RuleValue } from './rule-card'
+import type { MaxFileSizeParams } from '../_lib/schemas'
 
 type MaxFileSizeValue = RuleValue<MaxFileSizeParams>
 
@@ -42,7 +42,7 @@ export function MaxFileSizeRule({ value, onChange }: MaxFileSizeRuleProps) {
           value={[getMbValue(value.params.maxBytes)]}
           onValueChange={(values) => {
             const sliderValue = values[0]
-            if (typeof sliderValue === "number") {
+            if (typeof sliderValue === 'number') {
               onChange({
                 ...value,
                 params: {

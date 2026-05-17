@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import type {
   CompetitionClass,
@@ -6,8 +6,8 @@ import type {
   Participant,
   Submission,
   ValidationResult,
-} from "@blikka/db"
-import { format } from "date-fns"
+} from '@blikka/db'
+import { format } from 'date-fns'
 import {
   AlertTriangle,
   Camera,
@@ -19,11 +19,11 @@ import {
   CheckCircle,
   Clock3,
   Link2,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import Link from "next/link"
-import { formatDomainPathname } from "@/lib/utils"
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+import Link from 'next/link'
+import { formatDomainPathname } from '@/lib/utils'
 
 interface VoteStats {
   voteCount: number
@@ -53,7 +53,7 @@ interface SubmissionMetadataPanelProps {
 }
 
 function PanelCard({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("rounded-xl border border-border bg-white", className)}>{children}</div>
+  return <div className={cn('rounded-xl border border-border bg-white', className)}>{children}</div>
 }
 
 function PanelHeader({ children }: { children: React.ReactNode }) {
@@ -79,8 +79,8 @@ function PanelHeaderWithIcon({
     <div className="pb-2 pt-4 px-4">
       <h3
         className={cn(
-          "text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1.5",
-          className ?? "text-muted-foreground/70",
+          'text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1.5',
+          className ?? 'text-muted-foreground/70',
         )}
       >
         {icon}
@@ -99,7 +99,7 @@ export function SubmissionMetadataPanel({
   voteStats,
   domain,
 }: SubmissionMetadataPanelProps) {
-  const isByCameraMode = marathonMode === "by-camera"
+  const isByCameraMode = marathonMode === 'by-camera'
   const byCameraVotingRelevant = isByCameraMode && voteStats?.roundNumber != null
 
   return (
@@ -117,10 +117,10 @@ export function SubmissionMetadataPanel({
                   Upload Time
                 </p>
                 <p className="text-sm font-medium leading-tight mt-0.5">
-                  {format(new Date(submission.createdAt), "MMM d, yyyy")}
+                  {format(new Date(submission.createdAt), 'MMM d, yyyy')}
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-tight">
-                  {format(new Date(submission.createdAt), "HH:mm:ss")}
+                  {format(new Date(submission.createdAt), 'HH:mm:ss')}
                 </p>
               </div>
             </div>
@@ -129,7 +129,7 @@ export function SubmissionMetadataPanel({
 
             <div className="flex items-start gap-2.5">
               <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600">
-                {participant.deviceGroup?.icon === "smartphone" ? (
+                {participant.deviceGroup?.icon === 'smartphone' ? (
                   <Smartphone className="h-3.5 w-3.5" />
                 ) : (
                   <Camera className="h-3.5 w-3.5" />
@@ -140,7 +140,7 @@ export function SubmissionMetadataPanel({
                   Device Type
                 </p>
                 <p className="text-sm font-medium leading-tight mt-0.5">
-                  {participant.deviceGroup?.name || "Not specified"}
+                  {participant.deviceGroup?.name || 'Not specified'}
                 </p>
                 {participant.deviceGroup?.description && (
                   <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight mt-0.5">
@@ -169,7 +169,7 @@ export function SubmissionMetadataPanel({
                       Competition Class
                     </p>
                     <p className="text-sm font-medium leading-tight mt-0.5">
-                      {participant.competitionClass?.name || "Not assigned"}
+                      {participant.competitionClass?.name || 'Not assigned'}
                     </p>
                     {participant.competitionClass?.description && (
                       <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight mt-0.5">
@@ -206,7 +206,7 @@ export function SubmissionMetadataPanel({
                 )}
                 {voteStats.roundNumber ? (
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    {voteStats.roundKind === "tiebreak"
+                    {voteStats.roundKind === 'tiebreak'
                       ? `Tie-break ${voteStats.roundNumber}`
                       : `Round ${voteStats.roundNumber}`}
                   </p>
@@ -235,8 +235,8 @@ export function SubmissionMetadataPanel({
                 </div>
                 {voteStats.participantVoteInfo.votedAt && (
                   <p className="text-[11px] text-muted-foreground">
-                    Voted on{" "}
-                    {format(new Date(voteStats.participantVoteInfo.votedAt), "MMM d, yyyy HH:mm")}
+                    Voted on{' '}
+                    {format(new Date(voteStats.participantVoteInfo.votedAt), 'MMM d, yyyy HH:mm')}
                   </p>
                 )}
                 {voteStats.participantVoteInfo.votedTopicName && (
@@ -278,7 +278,7 @@ export function SubmissionMetadataPanel({
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="p-2 rounded-lg bg-green-500/10 border border-green-200">
                 <div className="text-xl font-bold text-green-600">
-                  {validationResults.filter((r) => r.outcome === "passed").length}
+                  {validationResults.filter((r) => r.outcome === 'passed').length}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">Passed</div>
               </div>
@@ -286,7 +286,7 @@ export function SubmissionMetadataPanel({
                 <div className="text-xl font-bold text-yellow-600">
                   {
                     validationResults.filter(
-                      (r) => r.severity === "warning" && r.outcome === "failed",
+                      (r) => r.severity === 'warning' && r.outcome === 'failed',
                     ).length
                   }
                 </div>
@@ -296,7 +296,7 @@ export function SubmissionMetadataPanel({
                 <div className="text-xl font-bold text-destructive">
                   {
                     validationResults.filter(
-                      (r) => r.severity === "error" && r.outcome === "failed",
+                      (r) => r.severity === 'error' && r.outcome === 'failed',
                     ).length
                   }
                 </div>
@@ -330,9 +330,9 @@ export function SubmissionMetadataPanel({
             <span className="text-muted-foreground text-[11px]">File Key</span>
             <span
               className="font-mono text-[11px] truncate max-w-[200px]"
-              title={submission.key || "N/A"}
+              title={submission.key || 'N/A'}
             >
-              {submission.key ? `...${submission.key.slice(-20)}` : "N/A"}
+              {submission.key ? `...${submission.key.slice(-20)}` : 'N/A'}
             </span>
           </div>
           <div className="border-t border-border my-1.5" />

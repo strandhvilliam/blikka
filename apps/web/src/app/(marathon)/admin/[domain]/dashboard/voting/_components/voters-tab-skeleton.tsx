@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -8,7 +8,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from '@/components/ui/table'
 
 export function VotersTabSkeleton() {
   return (
@@ -17,7 +17,7 @@ export function VotersTabSkeleton() {
         <Skeleton className="h-7 w-40 mb-2" />
         <Skeleton className="h-4 w-96 max-w-full" />
       </div>
-      
+
       {/* Voting progress skeleton */}
       <div className="rounded-lg border bg-card shadow-sm p-4">
         <Skeleton className="h-4 w-32 mb-3" />
@@ -57,10 +57,7 @@ export function VotersTabSkeleton() {
               </TableHeader>
               <TableBody>
                 {Array.from({ length: 5 }).map((_, index) => (
-                  <TableRow
-                    key={index}
-                    className="border-b transition-colors hover:bg-muted/60"
-                  >
+                  <TableRow key={index} className="border-b transition-colors hover:bg-muted/60">
                     <TableCell className="py-2">
                       <div className="space-y-1 flex items-center gap-2">
                         <Skeleton className="h-4 w-32" />
@@ -92,7 +89,7 @@ export function VotersTabSkeleton() {
             </Table>
           </div>
         </div>
-        
+
         {/* Pagination skeleton */}
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Skeleton className="h-4 w-40" />

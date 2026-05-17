@@ -3,9 +3,9 @@ import {
   domainProcedure,
   publicProcedure,
   requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
-import { Effect, Schema } from "effect";
+} from '../root'
+import { trpcEffect } from '../utils'
+import { Effect, Schema } from 'effect'
 import {
   GetByDomainInfiniteInputSchema,
   GetByReferenceInputSchema,
@@ -16,24 +16,22 @@ import {
   VerifyParticipantInputSchema,
   UpdateByCameraParticipantContactInputSchema,
   UpdateMarathonParticipantContactInputSchema,
-} from "../../core/participants/contracts";
-import { ParticipantsService } from "../../core/participants/service";
+} from '../../core/participants/contracts'
+import { ParticipantsService } from '../../core/participants/service'
 
 export const participantRouter = createTRPCRouter({
   getPublicParticipantByReference: publicProcedure
     .input(Schema.toStandardSchemaV1(GetPublicParticipantByReferenceInputSchema))
     .query(
       trpcEffect(
-        Effect.fn("ParticipantRouter.getPublicParticipantByReference")(
-          function* ({ input }) {
-            return yield* ParticipantsService.use((s) =>
-              s.getPublicParticipantByReference({
-                reference: input.reference,
-                domain: input.domain,
-              }),
-            );
-          },
-        ),
+        Effect.fn('ParticipantRouter.getPublicParticipantByReference')(function* ({ input }) {
+          return yield* ParticipantsService.use((s) =>
+            s.getPublicParticipantByReference({
+              reference: input.reference,
+              domain: input.domain,
+            }),
+          )
+        }),
       ),
     ),
 
@@ -42,9 +40,7 @@ export const participantRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ParticipantRouter.getByDomainInfinite")(function* ({
-          input,
-        }) {
+        Effect.fn('ParticipantRouter.getByDomainInfinite')(function* ({ input }) {
           return yield* ParticipantsService.use((s) =>
             s.getInfiniteParticipantsByDomain({
               domain: input.domain,
@@ -56,16 +52,12 @@ export const participantRouter = createTRPCRouter({
               deviceGroupId: input.deviceGroupId ?? undefined,
               topicId: input.topicId ?? undefined,
               statusFilter: input.statusFilter ?? undefined,
-              excludeStatuses: input.excludeStatuses
-                ? [...input.excludeStatuses]
-                : undefined,
-              includeStatuses: input.includeStatuses
-                ? [...input.includeStatuses]
-                : undefined,
+              excludeStatuses: input.excludeStatuses ? [...input.excludeStatuses] : undefined,
+              includeStatuses: input.includeStatuses ? [...input.includeStatuses] : undefined,
               hasValidationErrors: input.hasValidationErrors ?? undefined,
               votedFilter: input.votedFilter ?? undefined,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -75,13 +67,13 @@ export const participantRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("ParticipantRouter.getByReference")(function* ({ input }) {
+        Effect.fn('ParticipantRouter.getByReference')(function* ({ input }) {
           return yield* ParticipantsService.use((s) =>
             s.getByReference({
               reference: input.reference,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -91,13 +83,13 @@ export const participantRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("ParticipantRouter.delete")(function* ({ input }) {
+        Effect.fn('ParticipantRouter.delete')(function* ({ input }) {
           return yield* ParticipantsService.use((s) =>
             s.deleteByReference({
               reference: input.reference,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -107,13 +99,13 @@ export const participantRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("ParticipantRouter.batchDelete")(function* ({ input }) {
+        Effect.fn('ParticipantRouter.batchDelete')(function* ({ input }) {
           return yield* ParticipantsService.use((s) =>
             s.batchDelete({
               ids: input.ids,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -123,13 +115,13 @@ export const participantRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("ParticipantRouter.batchVerify")(function* ({ input }) {
+        Effect.fn('ParticipantRouter.batchVerify')(function* ({ input }) {
           return yield* ParticipantsService.use((s) =>
             s.batchVerify({
               ids: input.ids,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -138,13 +130,13 @@ export const participantRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("ParticipantRouter.batchMarkCompleted")(function* ({ input }) {
+        Effect.fn('ParticipantRouter.batchMarkCompleted')(function* ({ input }) {
           return yield* ParticipantsService.use((s) =>
             s.batchMarkCompleted({
               ids: input.ids,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -154,13 +146,13 @@ export const participantRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("ParticipantRouter.verifyParticipant")(function* ({ input }) {
+        Effect.fn('ParticipantRouter.verifyParticipant')(function* ({ input }) {
           return yield* ParticipantsService.use((s) =>
             s.verifyParticipant({
               id: input.id,
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -170,20 +162,18 @@ export const participantRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("ParticipantRouter.updateByCameraParticipantContact")(
-          function* ({ input }) {
-            return yield* ParticipantsService.use((s) =>
-              s.updateByCameraParticipantContact({
-                domain: input.domain,
-                reference: input.reference,
-                firstname: input.firstname,
-                lastname: input.lastname,
-                email: input.email,
-                phone: input.phone,
-              }),
-            );
-          },
-        ),
+        Effect.fn('ParticipantRouter.updateByCameraParticipantContact')(function* ({ input }) {
+          return yield* ParticipantsService.use((s) =>
+            s.updateByCameraParticipantContact({
+              domain: input.domain,
+              reference: input.reference,
+              firstname: input.firstname,
+              lastname: input.lastname,
+              email: input.email,
+              phone: input.phone,
+            }),
+          )
+        }),
       ),
     ),
 
@@ -192,19 +182,17 @@ export const participantRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("ParticipantRouter.updateMarathonParticipantContact")(
-          function* ({ input }) {
-            return yield* ParticipantsService.use((s) =>
-              s.updateMarathonParticipantContact({
-                domain: input.domain,
-                reference: input.reference,
-                firstname: input.firstname,
-                lastname: input.lastname,
-                email: input.email,
-              }),
-            );
-          },
-        ),
+        Effect.fn('ParticipantRouter.updateMarathonParticipantContact')(function* ({ input }) {
+          return yield* ParticipantsService.use((s) =>
+            s.updateMarathonParticipantContact({
+              domain: input.domain,
+              reference: input.reference,
+              firstname: input.firstname,
+              lastname: input.lastname,
+              email: input.email,
+            }),
+          )
+        }),
       ),
     ),
-});
+})

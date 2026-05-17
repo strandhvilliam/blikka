@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import { useEffect, useMemo, useState } from "react"
-import { useInfiniteQuery, useQuery, useSuspenseQuery } from "@tanstack/react-query"
+import { useEffect, useMemo, useState } from 'react'
+import { useInfiniteQuery, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import {
   ChevronDownIcon,
   LogOutIcon,
@@ -9,39 +9,39 @@ import {
   QrCodeIcon,
   ShieldCheckIcon,
   UsersIcon,
-} from "lucide-react"
-import { parseAsString, parseAsStringEnum, useQueryState } from "nuqs"
-import { useDebounce } from "use-debounce"
-import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+} from 'lucide-react'
+import { parseAsString, parseAsStringEnum, useQueryState } from 'nuqs'
+import { useDebounce } from 'use-debounce'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
-import { useDomain } from "@/lib/domain-provider"
-import { useTRPC } from "@/lib/trpc/client"
-import { authClient } from "@/lib/auth/client"
-import { formatDomainPathname } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { DotPattern } from "@/components/dot-pattern"
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
+import { authClient } from '@/lib/auth/client'
+import { formatDomainPathname } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { DotPattern } from '@/components/dot-pattern'
 
-import { normalizeParticipantReference } from "@/lib/staff/staff-utils"
-import { StaffManualEntryDialog } from "@/components/staff/manual-entry-dialog"
-import { ParticipantInfoDrawer } from "@/components/staff/participant-info-drawer"
-import { QrScanDrawer } from "@/components/staff/qr-scan-drawer"
-import { VerifiedParticipantsDrawer } from "@/components/staff/verified-participants-drawer"
+import { normalizeParticipantReference } from '@/lib/staff/staff-utils'
+import { StaffManualEntryDialog } from '@/components/staff/manual-entry-dialog'
+import { ParticipantInfoDrawer } from '@/components/staff/participant-info-drawer'
+import { QrScanDrawer } from '@/components/staff/qr-scan-drawer'
+import { VerifiedParticipantsDrawer } from '@/components/staff/verified-participants-drawer'
 
 function getInitials(name?: string | null, email?: string | null) {
-  const source = (name || email || "Staff").trim()
+  const source = (name || email || 'Staff').trim()
   const words = source.split(/\s+/).filter(Boolean)
 
-  if (words.length === 0) return "ST"
+  if (words.length === 0) return 'ST'
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
 
   return words
     .slice(0, 2)
-    .map((word) => word[0] ?? "")
-    .join("")
+    .map((word) => word[0] ?? '')
+    .join('')
     .toUpperCase()
 }
 
@@ -64,13 +64,13 @@ export function StaffHomeClient({
   const [isLogoutLoading, setIsLogoutLoading] = useState(false)
 
   const [activeParticipantReference, setActiveParticipantReference] = useQueryState(
-    "reference",
+    'reference',
     parseAsString,
   )
-  const [searchQuery, setSearchQuery] = useQueryState("vpg", parseAsString.withDefault(""))
+  const [searchQuery, setSearchQuery] = useQueryState('vpg', parseAsString.withDefault(''))
   const [openSheet, setOpenSheet] = useQueryState(
-    "sheet",
-    parseAsStringEnum(["participant-info", "qr-scan", "manual-entry", "verified-list"]),
+    'sheet',
+    parseAsStringEnum(['participant-info', 'qr-scan', 'manual-entry', 'verified-list']),
   )
 
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300)
@@ -102,7 +102,7 @@ export function StaffHomeClient({
   const participantQuery = useQuery(
     trpc.participants.getByReference.queryOptions(
       {
-        reference: activeParticipantReference ?? "",
+        reference: activeParticipantReference ?? '',
         domain,
       },
       {
@@ -113,7 +113,7 @@ export function StaffHomeClient({
 
   const normalizedSearchQuery = debouncedSearchQuery.trim()
     ? normalizeParticipantReference(debouncedSearchQuery)
-    : ""
+    : ''
 
   const searchResultQuery = useQuery(
     trpc.validations.getParticipantVerificationByReference.queryOptions(
@@ -128,13 +128,13 @@ export function StaffHomeClient({
   )
 
   useEffect(() => {
-    if (openSheet === "participant-info" && !activeParticipantReference) {
+    if (openSheet === 'participant-info' && !activeParticipantReference) {
       void setOpenSheet(null)
     }
   }, [activeParticipantReference, openSheet, setOpenSheet])
 
   const openSheetSafely = async (
-    target: "participant-info" | "qr-scan" | "manual-entry" | "verified-list",
+    target: 'participant-info' | 'qr-scan' | 'manual-entry' | 'verified-list',
   ) => {
     if (openSheet && openSheet !== target) {
       await setOpenSheet(null)
@@ -152,17 +152,17 @@ export function StaffHomeClient({
       setIsLogoutLoading(true)
       await authClient.signOut()
       router.push(
-        `/auth/login?next=${encodeURIComponent(formatDomainPathname("/staff", domain, "staff"))}`,
+        `/auth/login?next=${encodeURIComponent(formatDomainPathname('/staff', domain, 'staff'))}`,
       )
     } catch (error) {
       console.error(error)
-      toast.error("Failed to sign out")
+      toast.error('Failed to sign out')
     } finally {
       setIsLogoutLoading(false)
     }
   }
 
-  const resolvedName = staffName?.trim() || staffEmail?.trim() || "Staff operator"
+  const resolvedName = staffName?.trim() || staffEmail?.trim() || 'Staff operator'
 
   return (
     <>
@@ -230,7 +230,7 @@ export function StaffHomeClient({
                   disabled={isLogoutLoading}
                 >
                   <LogOutIcon className="h-3.5 w-3.5" />
-                  {isLogoutLoading ? "Signing out..." : "Sign out"}
+                  {isLogoutLoading ? 'Signing out...' : 'Sign out'}
                 </Button>
               </div>
             </PopoverContent>
@@ -253,11 +253,11 @@ export function StaffHomeClient({
           <div className="flex flex-col items-center gap-4 py-8">
             <div
               className="group relative cursor-pointer"
-              onClick={() => void openSheetSafely("qr-scan")}
+              onClick={() => void openSheetSafely('qr-scan')}
             >
               <div className="absolute -inset-4 rounded-full bg-[#FE3923]/8 transition-all duration-200 group-hover:bg-[#FE3923]/12 group-active:scale-95" />
               <PrimaryButton
-                onClick={() => void openSheetSafely("qr-scan")}
+                onClick={() => void openSheetSafely('qr-scan')}
                 className="relative flex h-44 w-44 items-center justify-center rounded-full shadow-[0_16px_60px_rgba(254,57,35,0.22)] sm:h-52 sm:w-52"
               >
                 <QrCodeIcon className="h-20 w-20 sm:h-24 sm:w-24" />
@@ -269,7 +269,7 @@ export function StaffHomeClient({
           <div className="flex w-full max-w-md gap-3">
             <button
               type="button"
-              onClick={() => void openSheetSafely("manual-entry")}
+              onClick={() => void openSheetSafely('manual-entry')}
               className="flex flex-1 items-center justify-center gap-3 rounded-full border border-border bg-white px-5 py-4 shadow-sm transition-all hover:bg-muted/30 active:scale-[0.98]"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/6 text-foreground">
@@ -279,7 +279,7 @@ export function StaffHomeClient({
             </button>
             <button
               type="button"
-              onClick={() => void openSheetSafely("verified-list")}
+              onClick={() => void openSheetSafely('verified-list')}
               className="flex flex-1 items-center justify-center gap-3 rounded-full border border-border bg-white px-5 py-4 shadow-sm transition-all hover:bg-muted/30 active:scale-[0.98]"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground/6 text-foreground">
@@ -292,7 +292,7 @@ export function StaffHomeClient({
       </div>
 
       <QrScanDrawer
-        open={openSheet === "qr-scan"}
+        open={openSheet === 'qr-scan'}
         onOpenChange={(open) => {
           if (!open) {
             void setOpenSheet(null)
@@ -301,12 +301,12 @@ export function StaffHomeClient({
         currentDomain={domain}
         onScanAction={(args) => {
           void setActiveParticipantReference(args.reference)
-          void openSheetSafely("participant-info")
+          void openSheetSafely('participant-info')
         }}
       />
 
       <StaffManualEntryDialog
-        open={openSheet === "manual-entry"}
+        open={openSheet === 'manual-entry'}
         onOpenChange={(open) => {
           if (!open) {
             void setOpenSheet(null)
@@ -314,12 +314,12 @@ export function StaffHomeClient({
         }}
         onEnterAction={(args) => {
           void setActiveParticipantReference(args.reference)
-          void openSheetSafely("participant-info")
+          void openSheetSafely('participant-info')
         }}
       />
 
       <VerifiedParticipantsDrawer
-        open={openSheet === "verified-list"}
+        open={openSheet === 'verified-list'}
         onOpenChange={(open) => {
           if (!open) {
             void setOpenSheet(null)
@@ -338,7 +338,7 @@ export function StaffHomeClient({
       />
 
       <ParticipantInfoDrawer
-        open={openSheet === "participant-info"}
+        open={openSheet === 'participant-info'}
         onOpenChange={(open) => {
           if (!open) {
             void setOpenSheet(null)

@@ -1,4 +1,4 @@
-import { createLoader, parseAsInteger } from "nuqs/server"
+import { createLoader, parseAsInteger } from 'nuqs/server'
 
 export const jurySearchParams = {
   invitation: parseAsInteger,

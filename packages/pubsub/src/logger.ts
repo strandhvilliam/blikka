@@ -1,36 +1,39 @@
-import { Effect, Layer, Logger, Context } from "effect"
-import { PubSubService, PubSubServiceLayer } from "./pubsub-service"
-import { PubSubChannel, PubSubMessage } from "./schema"
+import { Effect, Layer, Logger, Context } from 'effect'
+import { PubSubService, PubSubServiceLayer } from './pubsub-service'
+import { PubSubChannel, PubSubMessage } from './schema'
 
 export const makePubSubLogger = (taskName: string) =>
-  Logger.layer([
-    Effect.gen(function* () {
-      const pubsub = yield* PubSubService
+  Logger.layer(
+    [
+      Effect.gen(function* () {
+        const pubsub = yield* PubSubService
 
-      return Logger.make(({ logLevel, message }) => {
-        const timestamp = new Date().toISOString()
-        const logMessage = `[${timestamp}] ${logLevel}: ${message}`
+        return Logger.make(({ logLevel, message }) => {
+          const timestamp = new Date().toISOString()
+          const logMessage = `[${timestamp}] ${logLevel}: ${message}`
 
-        Effect.runFork(
-          Effect.gen(function* () {
-            const channel = yield* PubSubChannel.fromString(`dev:logger:${taskName}`)
-            const msg = yield* PubSubMessage.create(channel, logMessage)
-            return yield* pubsub.publish(channel, msg)
-          }).pipe(
-            Effect.catch((error) => {
-              return Effect.logError("Failed to publish log message", error)
-            })
+          Effect.runFork(
+            Effect.gen(function* () {
+              const channel = yield* PubSubChannel.fromString(`dev:logger:${taskName}`)
+              const msg = yield* PubSubMessage.create(channel, logMessage)
+              return yield* pubsub.publish(channel, msg)
+            }).pipe(
+              Effect.catch((error) => {
+                return Effect.logError('Failed to publish log message', error)
+              }),
+            ),
           )
-        )
-      })
-    })
-  ], { mergeWithExisting: true }).pipe(Layer.provide(PubSubServiceLayer))
+        })
+      }),
+    ],
+    { mergeWithExisting: true },
+  ).pipe(Layer.provide(PubSubServiceLayer))
 
 export class PubSubLoggerService extends Context.Service<PubSubLoggerService>()(
-  "@blikka/pubsub/logger",
+  '@blikka/pubsub/logger',
   {
     make: Effect.succeed({}),
-  }
+  },
 ) {
   static readonly layer = Layer.effect(this, this.make)
 

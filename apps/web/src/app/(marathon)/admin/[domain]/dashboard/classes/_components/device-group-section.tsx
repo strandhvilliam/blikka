@@ -1,24 +1,24 @@
-"use client"
+'use client'
 
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { parseAsInteger, useQueryState } from "nuqs"
-import type { DeviceGroup } from "@blikka/db"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Plus, Trash2, Camera, Smartphone, Zap } from "lucide-react"
-import { useState } from "react"
-import { DeviceGroupCreateDialog } from "./device-group-create-dialog"
-import { DeviceGroupEditDialog } from "./device-group-edit-dialog"
-import { DeviceGroupDeleteDialog } from "./device-group-delete-dialog"
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { parseAsInteger, useQueryState } from 'nuqs'
+import type { DeviceGroup } from '@blikka/db'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Plus, Trash2, Camera, Smartphone, Zap } from 'lucide-react'
+import { useState } from 'react'
+import { DeviceGroupCreateDialog } from './device-group-create-dialog'
+import { DeviceGroupEditDialog } from './device-group-edit-dialog'
+import { DeviceGroupDeleteDialog } from './device-group-delete-dialog'
 
 function getDeviceIcon(icon: string) {
   switch (icon) {
-    case "smartphone":
+    case 'smartphone':
       return <Smartphone className="h-[18px] w-[18px]" strokeWidth={1.8} />
-    case "action-camera":
+    case 'action-camera':
       return <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} />
     default:
       return <Camera className="h-[18px] w-[18px]" strokeWidth={1.8} />
@@ -30,8 +30,8 @@ export function DeviceGroupSection() {
   const queryClient = useQueryClient()
   const domain = useDomain()
   const [editDeviceGroupId, setEditDeviceGroupId] = useQueryState(
-    "editDeviceGroupId",
-    parseAsInteger
+    'editDeviceGroupId',
+    parseAsInteger,
   )
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
@@ -42,17 +42,17 @@ export function DeviceGroupSection() {
   const { mutate: deleteDeviceGroup, isPending: isDeleting } = useMutation(
     trpc.deviceGroups.delete.mutationOptions({
       onSuccess: () => {
-        toast.success("Device group deleted successfully")
+        toast.success('Device group deleted successfully')
       },
       onError: (error) => {
-        toast.error(error.message || "Something went wrong")
+        toast.error(error.message || 'Something went wrong')
       },
       onSettled: () => {
         queryClient.invalidateQueries({
           queryKey: trpc.marathons.pathKey(),
         })
       },
-    })
+    }),
   )
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)

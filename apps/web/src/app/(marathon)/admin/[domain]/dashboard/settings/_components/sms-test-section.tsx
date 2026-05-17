@@ -1,30 +1,30 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { useMutation } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { useTRPC } from "@/lib/trpc/client"
-import { useDomain } from "@/lib/domain-provider"
+import { useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useTRPC } from '@/lib/trpc/client'
+import { useDomain } from '@/lib/domain-provider'
 
 export function SmsTestSection() {
   const trpc = useTRPC()
   const domain = useDomain()
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [message, setMessage] = useState("")
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [message, setMessage] = useState('')
 
   const { mutate: sendTestSMS, isPending: isSending } = useMutation(
     trpc.sms.sendTest.mutationOptions({
       onSuccess: (data) => {
         toast.success(`SMS sent successfully! Message ID: ${data.messageId}`)
-        setPhoneNumber("")
-        setMessage("")
+        setPhoneNumber('')
+        setMessage('')
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to send SMS")
+        toast.error(error.message || 'Failed to send SMS')
       },
     }),
   )
@@ -71,12 +71,8 @@ export function SmsTestSection() {
             {message.length}/160
           </div>
         </div>
-        <Button
-          type="button"
-          onClick={handleSend}
-          disabled={isSending || !phoneNumber || !message}
-        >
-          {isSending ? "Sending…" : "Send Test SMS"}
+        <Button type="button" onClick={handleSend} disabled={isSending || !phoneNumber || !message}>
+          {isSending ? 'Sending…' : 'Send Test SMS'}
         </Button>
       </div>
     </div>

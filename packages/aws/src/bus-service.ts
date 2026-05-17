@@ -1,10 +1,10 @@
-import { PutEventsCommand, type PutEventsCommandOutput } from "@aws-sdk/client-eventbridge"
-import { Schema, Effect, Context, Layer } from "effect"
-import { Resource as SSTResource } from "sst"
+import { PutEventsCommand, type PutEventsCommandOutput } from '@aws-sdk/client-eventbridge'
+import { Schema, Effect, Context, Layer } from 'effect'
+import { Resource as SSTResource } from 'sst'
 import {
   EventBridgeEffectClient,
   EventBridgeEffectClientLayer,
-} from "./clients/eventbridge-effect-client"
+} from './clients/eventbridge-effect-client'
 
 export const FinalizedEventSchema = Schema.Struct({
   domain: Schema.String,
@@ -12,13 +12,13 @@ export const FinalizedEventSchema = Schema.Struct({
   uploadSessionId: Schema.String,
 })
 
-export class EventBusError extends Schema.TaggedErrorClass<EventBusError>()("EventBusError", {
+export class EventBusError extends Schema.TaggedErrorClass<EventBusError>()('EventBusError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
 
 export const EventBusDetailTypes = {
-  Finalized: "blikka.bus.finalized",
+  Finalized: 'blikka.bus.finalized',
 } as const
 
 export class BusService extends Context.Service<
@@ -34,12 +34,12 @@ export class BusService extends Context.Service<
       uploadSessionId: string,
     ) => Effect.Effect<PutEventsCommandOutput, EventBusError, never>
   }
->()("@blikka/aws/bus-service") {}
+>()('@blikka/aws/bus-service') {}
 
 const makeBusService = Effect.gen(function* () {
   const eb = yield* EventBridgeEffectClient
 
-  const sendFinalizedEvent = Effect.fn("BusService.sendFinalizedEvent")(
+  const sendFinalizedEvent = Effect.fn('BusService.sendFinalizedEvent')(
     function* (domain: string, reference: string, uploadSessionId: string) {
       const command = new PutEventsCommand({
         Entries: [

@@ -1,8 +1,8 @@
-import { SQSClient } from "@aws-sdk/client-sqs"
-import { Console, Context, Effect, Layer, Schema } from "effect"
-import { AwsSdkConfig, AwsSdkConfigLayer, awsSdkClientConstructorOptions } from "../aws-sdk-config"
+import { SQSClient } from '@aws-sdk/client-sqs'
+import { Console, Context, Effect, Layer, Schema } from 'effect'
+import { AwsSdkConfig, AwsSdkConfigLayer, awsSdkClientConstructorOptions } from '../aws-sdk-config'
 
-export class SQSEffectError extends Schema.TaggedErrorClass<SQSEffectError>()("SQSEffectError", {
+export class SQSEffectError extends Schema.TaggedErrorClass<SQSEffectError>()('SQSEffectError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -17,7 +17,7 @@ export class SQSEffectClient extends Context.Service<
       fn: (client: SQSClient) => T,
     ) => Effect.Effect<Awaited<T>, SQSEffectError, never>
   }
->()("@blikka/aws/sqs-effect-client") {}
+>()('@blikka/aws/sqs-effect-client') {}
 
 const makeSQSEffectClient = Effect.gen(function* () {
   const aws = yield* AwsSdkConfig
@@ -26,7 +26,7 @@ const makeSQSEffectClient = Effect.gen(function* () {
     Effect.sync(() => new SQSClient(awsSdkClientConstructorOptions(aws))),
     (client) =>
       Effect.sync(() => {
-        Console.log("Shutting down SQS client")
+        Console.log('Shutting down SQS client')
         client.destroy()
       }),
   )
@@ -38,7 +38,7 @@ const makeSQSEffectClient = Effect.gen(function* () {
         catch: (error) =>
           new SQSEffectError({
             cause: error,
-            message: "SQS.use error (Sync)",
+            message: 'SQS.use error (Sync)',
           }),
       })
       if (result instanceof Promise) {
@@ -47,14 +47,14 @@ const makeSQSEffectClient = Effect.gen(function* () {
           catch: (e) =>
             new SQSEffectError({
               cause: e,
-              message: "SQS.use error (Async)",
+              message: 'SQS.use error (Async)',
             }),
         })
       }
       return result
     })
 
-  yield* Effect.addFinalizer(() => Console.log("Shutting down SQS client"))
+  yield* Effect.addFinalizer(() => Console.log('Shutting down SQS client'))
 
   return SQSEffectClient.of({
     use,

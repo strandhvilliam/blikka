@@ -1,27 +1,17 @@
-"use client"
+'use client'
 
-import {
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query"
-import { motion } from "motion/react"
-import { CheckCircle2, ImageIcon, PlayIcon, Tag, UserIcon } from "lucide-react"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { useTRPC } from "@/lib/trpc/client"
-import { PrimaryButton } from "@/components/ui/primary-button"
-import { Badge } from "@/components/ui/badge"
-import { getJuryViewerPath } from "@/lib/jury/jury-utils"
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { motion } from 'motion/react'
+import { CheckCircle2, ImageIcon, PlayIcon, Tag, UserIcon } from 'lucide-react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { useTRPC } from '@/lib/trpc/client'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Badge } from '@/components/ui/badge'
+import { getJuryViewerPath } from '@/lib/jury/jury-utils'
 
-export function JuryInitialClient({
-  domain,
-  token,
-}: {
-  domain: string
-  token: string
-}) {
+export function JuryInitialClient({ domain, token }: { domain: string; token: string }) {
   const trpc = useTRPC()
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -36,19 +26,19 @@ export function JuryInitialClient({
         await queryClient.invalidateQueries({
           queryKey: trpc.jury.pathKey(),
         })
-        toast.success("Review started")
+        toast.success('Review started')
         router.push(getJuryViewerPath(domain, token))
       },
       onError: (error) => {
-        toast.error(error.message || "Failed to start review")
+        toast.error(error.message || 'Failed to start review')
       },
     }),
   )
 
   const inviteLabel =
-    invitation.inviteType === "topic"
-      ? (invitation.topic?.name ?? "Topic review")
-      : (invitation.competitionClass?.name ?? "Class review")
+    invitation.inviteType === 'topic'
+      ? (invitation.topic?.name ?? 'Topic review')
+      : (invitation.competitionClass?.name ?? 'Class review')
 
   return (
     <div className="flex min-h-dvh flex-col pt-4">
@@ -76,7 +66,7 @@ export function JuryInitialClient({
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, type: "spring", stiffness: 200, damping: 24 }}
+          transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 24 }}
           className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]"
         >
           <div className="p-6">
@@ -96,9 +86,7 @@ export function JuryInitialClient({
                 </div>
                 <div>
                   <p className="text-sm font-medium">Jury member</p>
-                  <p className="text-sm text-muted-foreground">
-                    {invitation.displayName}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{invitation.displayName}</p>
                 </div>
               </div>
 
@@ -108,16 +96,12 @@ export function JuryInitialClient({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">
-                    {invitation.inviteType === "topic" ? "Topic" : "Class"}
+                    {invitation.inviteType === 'topic' ? 'Topic' : 'Class'}
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm text-muted-foreground">
-                      {inviteLabel}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{inviteLabel}</p>
                     {invitation.deviceGroup?.name ? (
-                      <Badge variant="secondary">
-                        {invitation.deviceGroup.name}
-                      </Badge>
+                      <Badge variant="secondary">{invitation.deviceGroup.name}</Badge>
                     ) : null}
                   </div>
                 </div>
@@ -130,14 +114,11 @@ export function JuryInitialClient({
                 <div>
                   <p className="text-sm font-medium">Review deadline</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(invitation.expiresAt).toLocaleDateString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      },
-                    )}
+                    {new Date(invitation.expiresAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
                   </p>
                 </div>
               </div>
@@ -146,17 +127,14 @@ export function JuryInitialClient({
             {invitation.notes ? (
               <div className="mt-4 rounded-xl bg-muted/30 px-4 py-3">
                 <p className="mb-1 text-sm font-medium">Notes</p>
-                <p className="text-sm text-muted-foreground">
-                  {invitation.notes}
-                </p>
+                <p className="text-sm text-muted-foreground">{invitation.notes}</p>
               </div>
             ) : null}
 
             <div className="mt-4 rounded-xl bg-muted/30 p-4">
               <p className="text-center text-sm leading-relaxed text-muted-foreground">
-                Stars and notes are private review aids. Before you complete
-                the review, you must also choose your ranked winners: 1st,
-                2nd, and 3rd place.
+                Stars and notes are private review aids. Before you complete the review, you must
+                also choose your ranked winners: 1st, 2nd, and 3rd place.
               </p>
             </div>
 
@@ -168,13 +146,11 @@ export function JuryInitialClient({
                   startReviewMutation.mutate({
                     token,
                     domain,
-                    status: "in_progress",
+                    status: 'in_progress',
                   })
                 }
               >
-                {startReviewMutation.isPending
-                  ? "Starting..."
-                  : "Start review"}
+                {startReviewMutation.isPending ? 'Starting...' : 'Start review'}
                 <PlayIcon className="h-4 w-4" />
               </PrimaryButton>
             </div>

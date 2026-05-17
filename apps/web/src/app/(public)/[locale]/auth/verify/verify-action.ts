@@ -1,10 +1,10 @@
-"use server"
+'use server'
 
-import { sanitizeRedirectPath } from "@/lib/auth/redirect"
-import { getPostLoginPathForCurrentUser } from "@/lib/auth/permissions"
-import { signInWithEmailOtp } from "@/lib/auth/server"
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
+import { sanitizeRedirectPath } from '@/lib/auth/redirect'
+import { getPostLoginPathForCurrentUser } from '@/lib/auth/permissions'
+import { signInWithEmailOtp } from '@/lib/auth/server'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 
 export async function verifyAction(input: { email: string; otp: string; next?: string }) {
   try {
@@ -20,7 +20,7 @@ export async function verifyAction(input: { email: string; otp: string; next?: s
 
     return {
       data: undefined,
-      error: "Invalid verification code. Please try again.",
+      error: 'Invalid verification code. Please try again.',
     }
   }
 

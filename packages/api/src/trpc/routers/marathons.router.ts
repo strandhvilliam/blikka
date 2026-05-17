@@ -1,13 +1,13 @@
-import "server-only";
+import 'server-only'
 
-import { Effect, Schema } from "effect";
+import { Effect, Schema } from 'effect'
 import {
   authProcedure,
   createTRPCRouter,
   domainProcedure,
   requireMatchingInputDomainMiddleware,
-} from "../root";
-import { trpcEffect } from "../utils";
+} from '../root'
+import { trpcEffect } from '../utils'
 import {
   GetByDomainInputSchema,
   UpdateMarathonInputSchema,
@@ -15,8 +15,8 @@ import {
   GetLogoUploadUrlInputSchema,
   GetTermsUploadUrlInputSchema,
   GetCurrentTermsInputSchema,
-} from "../../core/marathons/contracts";
-import { MarathonService } from "../../core/marathons/service";
+} from '../../core/marathons/contracts'
+import { MarathonService } from '../../core/marathons/service'
 
 export const marathonRouter = createTRPCRouter({
   getByDomain: domainProcedure
@@ -24,19 +24,17 @@ export const marathonRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("MarathonRouter.getByDomain")(function* ({ input }) {
-          return yield* MarathonService.use((s) =>
-            s.getMarathonByDomain({ domain: input.domain }),
-          );
+        Effect.fn('MarathonRouter.getByDomain')(function* ({ input }) {
+          return yield* MarathonService.use((s) => s.getMarathonByDomain({ domain: input.domain }))
         }),
       ),
     ),
   getUserMarathons: authProcedure.query(
     trpcEffect(
-      Effect.fn("MarathonRouter.getUserMarathons")(function* ({ ctx }) {
+      Effect.fn('MarathonRouter.getUserMarathons')(function* ({ ctx }) {
         return yield* MarathonService.use((s) =>
           s.getUserMarathons({ userId: ctx.session.user.id }),
-        );
+        )
       }),
     ),
   ),
@@ -45,10 +43,10 @@ export const marathonRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("MarathonRouter.update")(function* ({ input }) {
+        Effect.fn('MarathonRouter.update')(function* ({ input }) {
           return yield* MarathonService.use((s) =>
             s.updateMarathon({ domain: input.domain, data: input.data }),
-          );
+          )
         }),
       ),
     ),
@@ -57,10 +55,8 @@ export const marathonRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("MarathonRouter.reset")(function* ({ input }) {
-          return yield* MarathonService.use((s) =>
-            s.resetMarathon({ domain: input.domain }),
-          );
+        Effect.fn('MarathonRouter.reset')(function* ({ input }) {
+          return yield* MarathonService.use((s) => s.resetMarathon({ domain: input.domain }))
         }),
       ),
     ),
@@ -69,13 +65,13 @@ export const marathonRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("MarathonRouter.getLogoUploadUrl")(function* ({ input }) {
+        Effect.fn('MarathonRouter.getLogoUploadUrl')(function* ({ input }) {
           return yield* MarathonService.use((s) =>
             s.getLogoUploadUrl({
               domain: input.domain,
               currentKey: input.currentKey ?? null,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -84,12 +80,12 @@ export const marathonRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
-        Effect.fn("MarathonRouter.getTermsUploadUrl")(function* ({ input }) {
+        Effect.fn('MarathonRouter.getTermsUploadUrl')(function* ({ input }) {
           return yield* MarathonService.use((s) =>
             s.getTermsUploadUrl({
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
@@ -98,13 +94,13 @@ export const marathonRouter = createTRPCRouter({
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
-        Effect.fn("MarathonRouter.getCurrentTerms")(function* ({ input }) {
+        Effect.fn('MarathonRouter.getCurrentTerms')(function* ({ input }) {
           return yield* MarathonService.use((s) =>
             s.getCurrentTerms({
               domain: input.domain,
             }),
-          );
+          )
         }),
       ),
     ),
-});
+})
