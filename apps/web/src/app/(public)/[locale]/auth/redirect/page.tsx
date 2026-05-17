@@ -3,17 +3,16 @@ import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
 import { serverRuntime } from "@/lib/server-runtime"
 
 import { getPermissions } from "@blikka/api/trpc/utils"
-import { Option } from "effect"
 import { redirect } from "next/navigation"
 
 export default async function AuthRedirectPage() {
-  const session = await serverRuntime.runPromise(getAppSession())
+  const session = await getAppSession()
 
-  if (Option.isNone(session)) {
+  if (!session) {
     redirect("/auth/login")
   }
 
-  const permissions = await serverRuntime.runPromise(getPermissions({ userId: session.value.user.id }))
+  const permissions = await serverRuntime.runPromise(getPermissions({ userId: session.user.id }))
 
   redirect(getDefaultPostLoginPath(permissions))
 }

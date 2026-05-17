@@ -1,8 +1,7 @@
 "use server"
 
-import { Auth } from "@/lib/auth/server"
+import { getAuth } from "@/lib/auth/server"
 import { loginRatelimit, getClientIp } from "@/lib/ratelimit"
-import { serverRuntime } from "@/lib/server-runtime"
 import { headers } from "next/headers"
 
 type EmailOtpApi = {
@@ -17,7 +16,7 @@ type EmailOtpApi = {
 
 export async function loginAction(input: { email: string }) {
   try {
-    const auth = await serverRuntime.runPromise(Auth)
+    const auth = await getAuth()
     const authApi = auth.api as typeof auth.api & EmailOtpApi
     const readonlyHeaders = await headers()
     const ip = getClientIp(readonlyHeaders)

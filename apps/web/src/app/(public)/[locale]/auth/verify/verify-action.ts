@@ -1,6 +1,6 @@
 "use server"
 
-import { Auth } from "@/lib/auth/server"
+import { getAuth } from "@/lib/auth/server"
 import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
 import { serverRuntime } from "@/lib/server-runtime"
 import { getPermissions } from "@blikka/api/trpc/utils"
@@ -21,7 +21,7 @@ export async function verifyAction(input: { email: string; otp: string; next?: s
   let userId: string | undefined
 
   try {
-    const auth = await serverRuntime.runPromise(Auth)
+    const auth = await getAuth()
     const authApi = auth.api as typeof auth.api & EmailOtpApi
     const readonlyHeaders = await headers()
 

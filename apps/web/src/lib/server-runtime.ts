@@ -1,7 +1,7 @@
 import "server-only"
 import { Layer } from "effect"
 import { createRuntime, type CoreServices } from "@blikka/runtime"
-import { AuthLayer } from "./auth/server"
+import { AuthLayer } from "./auth/layer"
 // import { TelemetryLayer } from "@blikka/telemetry"
 import { ApiLayer } from "@blikka/api/trpc"
 import type { BetterAuthService } from "@blikka/auth"

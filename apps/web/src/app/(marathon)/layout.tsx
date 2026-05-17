@@ -1,21 +1,20 @@
 import Document from "@/components/document"
-import { getHeaders, getLocale } from "@/lib/server-utils"
 import { Providers } from "./providers"
 
-import { getI18nMessages } from "@/i18n/utils"
+import { getLocale, getMessages } from "next-intl/server"
+import { headers } from "next/headers"
 import { Toaster } from "sonner"
 import { DotPattern } from "@/components/dot-pattern"
-import { serverRuntime } from "@/lib/server-runtime"
 
 export default async function MarathonLayout({ children }: LayoutProps<"/">) {
-  const [locale, messages, headers] = await Promise.all([
-    serverRuntime.runPromise(getLocale()),
-    serverRuntime.runPromise(getI18nMessages()),
-    serverRuntime.runPromise(getHeaders()),
+  const [locale, messages, requestHeaders] = await Promise.all([
+    getLocale(),
+    getMessages(),
+    headers(),
   ])
 
-  const domain = headers.get("x-marathon-domain")
-  const requestCookieHeader = headers.get("cookie")
+  const domain = requestHeaders.get("x-marathon-domain")
+  const requestCookieHeader = requestHeaders.get("cookie")
 
   return (
     <Document locale={locale}>

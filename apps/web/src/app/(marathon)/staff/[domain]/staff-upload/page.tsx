@@ -1,18 +1,16 @@
 import { getAppSession } from "@/lib/auth/server";
-import { Option } from "effect";
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StaffLaptopUploadClient } from "@/components/staff/staff-laptop-upload-client";
-import { serverRuntime } from "@/lib/server-runtime"
 
 export default async function StaffLaptopUploadPage({
   params,
 }: PageProps<"/staff/[domain]/staff-upload">) {
   const { domain } = await params
-  const session = await serverRuntime.runPromise(getAppSession());
+  const session = await getAppSession();
 
-  if (Option.isNone(session)) {
+  if (!session) {
     return <div />;
   }
 
@@ -48,9 +46,9 @@ export default async function StaffLaptopUploadPage({
         }
       >
         <StaffLaptopUploadClient
-          staffName={session.value.user.name ?? session.value.user.email}
-          staffEmail={session.value.user.email}
-          staffImage={session.value.user.image ?? null}
+          staffName={session.user.name ?? session.user.email}
+          staffEmail={session.user.email}
+          staffImage={session.user.image ?? null}
         />
       </Suspense>
     </HydrateClient>

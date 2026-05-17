@@ -1,39 +1,19 @@
 import "server-only"
 
-import { AuthConfig, BetterAuthService, type Session } from "@blikka/auth"
-import { Effect, Layer, Option } from "effect"
+import { BetterAuthService, type Session } from "@blikka/auth"
 import { headers } from "next/headers"
-import { protocol } from "@/config"
+import { serverRuntime } from "@/lib/server-runtime"
+export { AuthConfigLayer, AuthLayer } from "./layer"
 
-const baseUrl =
-  process.env.BETTER_AUTH_URL ??
-  `${protocol}://${process.env.NEXT_PUBLIC_BLIKKA_PRODUCTION_URL || "localhost:3002"}`
+export function getAuth() {
+  return serverRuntime.runPromise(BetterAuthService)
+}
 
-export const AuthConfigLayer = Layer.succeed(AuthConfig, {
-  baseUrl,
-  secret: process.env.BETTER_AUTH_SECRET!,
-  emailConfig: {
-    companyName: "Blikka",
-    companyLogoUrl: "https://blikka.app/images/logo.png",
-  },
-})
-
-export const AuthLayer = Layer.provide(BetterAuthService.layer, AuthConfigLayer)
-
-export const getAppSession = Effect.fnUntraced(
-  function* () {
-    const auth = yield* BetterAuthService
-    const readonlyHeaders = yield* Effect.tryPromise(() => headers())
-    const session = yield* Effect.tryPromise(() =>
-      auth.api.getSession({
-        headers: readonlyHeaders,
-      })
-    )
-
-    return Option.fromNullishOr<Session | null>(session)
-  },
-  Effect.tapError((error) => Effect.logError(error.message)),
-  Effect.catch(() => Effect.succeed(Option.none<Session>()))
-)
+export async function getAppSession(): Promise<Session | null> {
+  const auth = await getAuth()
+  return auth.api.getSession({
+    headers: await headers(),
+  })
+}
 
 export { BetterAuthService as Auth }

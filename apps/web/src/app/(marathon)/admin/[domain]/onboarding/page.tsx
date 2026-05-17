@@ -1,13 +1,12 @@
-import { getTranslations } from "@/lib/server-utils"
 import Link from "next/link"
 import { protocol, rootDomain } from "@/config"
-import { serverRuntime } from "@/lib/server-runtime"
+import { getTranslations } from "next-intl/server"
 
 export default async function OnboardingPage({
   params,
 }: PageProps<"/admin/[domain]/dashboard">) {
   const { domain } = await params
-  const t = await serverRuntime.runPromise(getTranslations("DomainPage"))
+  const t = await getTranslations("DomainPage")
 
   return (
     <div className="flex min-h-screen flex-col p-4">

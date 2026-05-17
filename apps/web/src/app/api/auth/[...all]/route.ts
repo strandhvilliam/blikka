@@ -1,20 +1,8 @@
-import { Auth } from "@/lib/auth/server"
-import { serverRuntime } from "@/lib/server-runtime"
-import { NextRequest } from "next/server"
+import { getAuth } from "@/lib/auth/server"
 
-async function handleAuthRequest(req: NextRequest) {
-  try {
-    const auth = await serverRuntime.runPromise(Auth)
-    return auth.handler(req)
-  } catch {
-    return new Response("Internal Server Error", { status: 500 })
-  }
+async function handler(request: Request) {
+  const auth = await getAuth()
+  return auth.handler(request)
 }
 
-export async function GET(req: NextRequest) {
-  return handleAuthRequest(req)
-}
-
-export async function POST(req: NextRequest) {
-  return handleAuthRequest(req)
-}
+export { handler as GET, handler as POST }

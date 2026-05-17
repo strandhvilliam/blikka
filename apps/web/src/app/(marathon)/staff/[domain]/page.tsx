@@ -1,16 +1,14 @@
 import { getAppSession } from "@/lib/auth/server"
-import { Option } from "effect"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
 import { StaffHomeClient } from "@/components/staff/staff-home-client"
 import { StaffLoadingSkeleton } from "@/components/staff/staff-loading-skeleton"
 import { Suspense } from "react"
-import { serverRuntime } from "@/lib/server-runtime"
 
 export default async function StaffDomainPage({ params }: PageProps<"/staff/[domain]">) {
   const { domain } = await params
-  const session = await serverRuntime.runPromise(getAppSession())
+  const session = await getAppSession()
 
-  if (Option.isNone(session)) {
+  if (!session) {
     return <div />
   }
 
@@ -18,7 +16,7 @@ export default async function StaffDomainPage({ params }: PageProps<"/staff/[dom
   prefetch(
     trpc.users.getVerificationsByStaffId.infiniteQueryOptions(
       {
-        staffId: session.value.user.id,
+        staffId: session.user.id,
         domain,
         limit: 20,
       },
@@ -32,10 +30,10 @@ export default async function StaffDomainPage({ params }: PageProps<"/staff/[dom
     <HydrateClient>
       <Suspense fallback={<StaffLoadingSkeleton />}>
         <StaffHomeClient
-          staffId={session.value.user.id}
-          staffEmail={session.value.user.email}
-          staffImage={session.value.user.image ?? null}
-          staffName={session.value.user.name ?? session.value.user.email}
+          staffId={session.user.id}
+          staffEmail={session.user.email}
+          staffImage={session.user.image ?? null}
+          staffName={session.user.name ?? session.user.email}
         />
       </Suspense>
     </HydrateClient>
