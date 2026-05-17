@@ -29,3 +29,9 @@ export type RunValidations = Schema.Schema.Type<typeof RunValidationsSchema>
 export type CreateParticipantVerification = Schema.Schema.Type<typeof CreateParticipantVerificationSchema>
 export type UpdateValidationResult = Schema.Schema.Type<typeof UpdateValidationResultSchema>
 export type GetParticipantVerificationByReference = Schema.Schema.Type<typeof GetParticipantVerificationByReferenceSchema>
+
+/** Router merges `staffId` from the session onto wire `CreateParticipantVerification` payload. */
+export type CreateParticipantVerificationServiceInput = Omit<
+  CreateParticipantVerification["data"],
+  "staffId"
+> & { staffId: string };

@@ -7,9 +7,24 @@ import {
   ValidationsRepository,
   UsersRepository,
   normalizeEmail,
+  DbError,
+  type CompetitionClass,
+  type DeviceGroup,
+  type Participant,
+  type Submission,
+  type UserMarathonRelation,
+  type ValidationResult,
 } from "@blikka/db"
-import { RedisClient, RedisClientLayer } from "@blikka/redis"
+import { RedisClient, RedisClientLayer, type RedisError } from "@blikka/redis"
 import { UsersApiError } from "./errors"
+import type {
+  CreateStaffMemberInput,
+  DeleteUserMarathonRelationInput,
+  GetStaffMemberByIdInput,
+  GetStaffMembersByDomainInput,
+  GetVerificationsByStaffIdInput,
+  UpdateStaffMemberInput,
+} from "./contracts"
 
 function parseAccessId(accessId: string) {
   const decodedAccessId = accessId.includes("%")
@@ -38,371 +53,580 @@ function parseAccessId(accessId: string) {
   })
 }
 
-export class UsersService extends Context.Service<UsersService>()(
-  "@blikka/api/UsersService",
+/** Row returned for staff listing on a marathon domain (`active` vs `pending` invitation). */
+type StaffMemberListItem =
+  | {
+      kind: "active"
+      id: `u:${string}`
+      userId: string
+      name: string
+      email: string
+      role: string
+      createdAt: string
+      status: "active"
+    }
+  | {
+      kind: "pending"
+      id: `p:${number}`
+      pendingId: number
+      name: string
+      email: string
+      role: string
+      createdAt: string
+      status: "pending"
+    }
+
+type StaffUserWithRelations = {
+  id: string
+  createdAt: string
+  updatedAt: string
+  name: string
+  email: string
+  emailVerified: boolean
+  image: string | null
+} & {
+  participantVerifications: Array<
+    {
+      id: number
+      createdAt: string
+      updatedAt: string | null
+      participantId: number
+      notes: string | null
+      staffId: string
+    } & { participant: Participant }
+  >
+  userMarathons: UserMarathonRelation[]
+}
+
+/** Resolved staff access for an existing user linked to the marathon. */
+type ActiveStaffAccessDetail = {
+  createdAt: string
+  marathonId: number
+  role: string
+  userId: string
+  user: StaffUserWithRelations
+  kind: "active"
+  id: string
+  relationId: number
+}
+
+/** Pending invitation row returned as staff access. */
+type PendingStaffAccessDetail = {
+  kind: "pending"
+  id: string
+  pendingId: number
+  name: string
+  email: string
+  role: string
+  createdAt: string
+  updatedAt: string | null
+  marathonId: number
+  invitedByUserId: string | null
+  status: "pending"
+}
+
+type StaffAccessByIdResult =
+  | ActiveStaffAccessDetail
+  | PendingStaffAccessDetail
+
+type CreateStaffMemberResult =
+  | {
+      kind: "active"
+      id: `u:${string}`
+      userId: string
+      name: string
+      email: string
+      role: string
+      createdAt: string
+      status: "active"
+      pendingId?: undefined
+    }
+  | {
+      kind: "pending"
+      id: `p:${number}`
+      pendingId: number
+      name: string
+      email: string
+      role: string
+      createdAt: string
+      status: "pending"
+      userId?: undefined
+    }
+
+type DeleteStaffAccessResult =
+  | {
+      id: number
+      createdAt: string
+      updatedAt: string | null
+      name: string
+      marathonId: number
+      email: string
+      emailNormalized: string
+      role: string
+      invitedByUserId: string | null
+    }
+  | {
+      id: number
+      createdAt: string
+      marathonId: number
+      role: string
+      userId: string
+    }
+
+type VerificationParticipantWithRelations = {
+  domain: string
+  id: number
+  createdAt: string
+  updatedAt: string | null
+  marathonId: number
+  reference: string
+  email: string | null
+  status: string
+  competitionClassId: number | null
+  deviceGroupId: number | null
+  participantMode: string
+  firstname: string
+  lastname: string
+  phoneHash: string | null
+  phoneEncrypted: string | null
+} & {
+  marathon: undefined
+  submissions: Submission[]
+  competitionClass: CompetitionClass | null
+  deviceGroup: DeviceGroup | null
+  validationResults: ValidationResult[]
+}
+
+type VerificationsByStaffPage = {
+  items: Array<
+    {
+      id: number
+      createdAt: string
+      updatedAt: string | null
+      participantId: number
+      notes: string | null
+      staffId: string
+    } & { participant: VerificationParticipantWithRelations }
+  >
+  nextCursor: number | undefined
+}
+
+/** Active staff summary returned when a pending invite is promoted to an existing user. */
+type PromotedActiveStaffSummary = {
+  kind: "active"
+  id: `u:${string}`
+  userId: string
+  name: string
+  email: string
+  role: "staff" | "admin"
+  createdAt: string
+  status: "active"
+}
+
+type UpdateStaffAccessResult =
+  | StaffAccessByIdResult
+  | PromotedActiveStaffSummary
+
+export class UsersService extends Context.Service<
+  UsersService,
   {
-    make: Effect.gen(function* () {
-      const usersRepository = yield* UsersRepository
-      const validationsRepository = yield* ValidationsRepository
-      const marathonsRepository = yield* MarathonsRepository
-      const redis = yield* RedisClient
+    /**
+     * Lists staff for a marathon `domain`: active relations and pending invitations,
+     * each tagged with `kind` and an encoded `id` (`u:` or `p:`).
+     */
+    readonly getStaffMembersByDomain: (
+      input: GetStaffMembersByDomainInput,
+    ) => Effect.Effect<StaffMemberListItem[], DbError, never>
 
-      const clearPermissionsCache = (userId: string) =>
-        redis.use((client) => client.del(`permissions:${userId}`))
+    /**
+     * Resolves a staff `accessId` (`u:` user or `p:` pending) within `domain` to a full
+     * active staff payload (user + relations) or a pending row.
+     */
+    readonly getStaffAccessById: (
+      input: GetStaffMemberByIdInput,
+    ) => Effect.Effect<StaffAccessByIdResult, DbError | UsersApiError, never>
 
-      const getMarathonIdByDomain = Effect.fn("UsersService.getMarathonIdByDomain")(function* ({
+    /**
+     * Adds staff: links an existing user by normalized email or creates/updates a pending invite;
+     * clears permission cache when an active user is linked.
+     */
+    readonly createStaffMember: (
+      input: CreateStaffMemberInput,
+    ) => Effect.Effect<CreateStaffMemberResult, DbError | UsersApiError | RedisError, never>
+
+    /**
+     * Removes staff access: drops the user–marathon relation for `u:` ids or deletes the pending row for `p:`;
+     * clears permission cache for active users.
+     */
+    readonly deleteStaffAccess: (
+      input: DeleteUserMarathonRelationInput,
+    ) => Effect.Effect<DeleteStaffAccessResult, DbError | UsersApiError | RedisError, never>
+
+    /**
+     * Cursor-paged participant verifications attributed to a staff member (`staffId`) on `domain`.
+     */
+    readonly getVerificationsByStaffId: (
+      input: GetVerificationsByStaffIdInput,
+    ) => Effect.Effect<VerificationsByStaffPage, DbError, never>
+
+    /**
+     * Updates staff profile (name, email, role) for active or pending access; may promote pending to active
+     * when the email matches an existing user.
+     */
+    readonly updateStaffAccess: (
+      input: UpdateStaffMemberInput,
+    ) => Effect.Effect<UpdateStaffAccessResult, DbError | UsersApiError | RedisError, never>
+  }
+>()("@blikka/api/UsersService") {}
+
+const makeUsersService = Effect.gen(function* () {
+  const usersRepository = yield* UsersRepository
+  const validationsRepository = yield* ValidationsRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const redis = yield* RedisClient
+
+  const clearPermissionsCache = (userId: string) =>
+    redis.use((client) => client.del(`permissions:${userId}`))
+
+  const getMarathonIdByDomain = Effect.fn("UsersService.getMarathonIdByDomain")(
+    function* ({ domain }: { domain: string }) {
+      const marathon = yield* marathonsRepository.getMarathonByDomain({
         domain,
-      }: {
-        domain: string
-      }) {
-        const marathon = yield* marathonsRepository.getMarathonByDomain({
-          domain,
-        })
-
-        return yield* Option.match(marathon, {
-          onSome: (m) => Effect.succeed(m.id),
-          onNone: () =>
-            Effect.fail(
-              new UsersApiError({
-                message: `Marathon not found for domain ${domain}`,
-              }),
-            ),
-        })
       })
 
-      const getStaffMembersByDomain = Effect.fn("UsersService.getStaffMembersByDomain")(
-        function* ({ domain }: { domain: string }) {
-          return yield* usersRepository.getStaffMembersByDomain({ domain })
-        },
-      )
-
-      const getStaffAccessById = Effect.fn("UsersService.getStaffAccessById")(function* ({
-        accessId,
-        domain,
-      }: {
-        accessId: string
-        domain: string
-      }) {
-        const parsed = parseAccessId(accessId)
-
-        if (parsed.kind === "active") {
-          const result = yield* usersRepository.getStaffMemberById({
-            staffId: parsed.userId,
-            domain,
-          })
-
-          return yield* Option.match(result, {
-            onSome: (staff) => {
-              const { id: relationId, ...rest } = staff
-
-              return Effect.succeed({
-                kind: "active" as const,
-                id: accessId,
-                relationId,
-                ...rest,
-              })
-            },
-            onNone: () =>
-              Effect.fail(
-                new UsersApiError({
-                  message: `Staff member not found for id ${accessId} and domain ${domain}`,
-                }),
-              ),
-          })
-        }
-
-        const pending = yield* usersRepository.getPendingUserMarathonById({
-          pendingId: parsed.pendingId,
-          domain,
-        })
-
-        return yield* Option.match(pending, {
-          onSome: (staff) =>
-            Effect.succeed({
-              kind: "pending" as const,
-              id: accessId,
-              pendingId: staff.id,
-              name: staff.name,
-              email: staff.email,
-              role: staff.role,
-              createdAt: staff.createdAt,
-              updatedAt: staff.updatedAt,
-              marathonId: staff.marathonId,
-              invitedByUserId: staff.invitedByUserId,
-              status: "pending" as const,
+      return yield* Option.match(marathon, {
+        onSome: (m) => Effect.succeed(m.id),
+        onNone: () =>
+          Effect.fail(
+            new UsersApiError({
+              message: `Marathon not found for domain ${domain}`,
             }),
+          ),
+      })
+    },
+  )
+
+  const getStaffMembersByDomain: UsersService["Service"]["getStaffMembersByDomain"] =
+    Effect.fn("UsersService.getStaffMembersByDomain")(function* ({ domain }) {
+      return yield* usersRepository.getStaffMembersByDomain({ domain })
+    })
+
+  const getStaffAccessById: UsersService["Service"]["getStaffAccessById"] =
+    Effect.fn("UsersService.getStaffAccessById")(function* ({
+      accessId,
+      domain,
+    }) {
+      const parsed = parseAccessId(accessId)
+
+      if (parsed.kind === "active") {
+        const result = yield* usersRepository.getStaffMemberById({
+          staffId: parsed.userId,
+          domain,
+        })
+
+        return yield* Option.match(result, {
+          onSome: (staff) => {
+            const { id: relationId, ...rest } = staff
+
+            return Effect.succeed({
+              kind: "active" as const,
+              id: accessId,
+              relationId,
+              ...rest,
+            })
+          },
           onNone: () =>
             Effect.fail(
               new UsersApiError({
-                message: `Pending staff member not found for id ${accessId} and domain ${domain}`,
+                message: `Staff member not found for id ${accessId} and domain ${domain}`,
               }),
             ),
         })
+      }
+
+      const pending = yield* usersRepository.getPendingUserMarathonById({
+        pendingId: parsed.pendingId,
+        domain,
       })
 
-      const createStaffMember = Effect.fn("UsersService.createStaffMember")(function* ({
-        domain,
-        data,
-      }: {
-        domain: string
-        data: { name: string; email: string; role: "staff" | "admin" }
-      }) {
-        const marathonId = yield* getMarathonIdByDomain({ domain })
-        const trimmedEmail = data.email.trim()
-        const emailNormalized = normalizeEmail(trimmedEmail)
+      return yield* Option.match(pending, {
+        onSome: (staff) =>
+          Effect.succeed({
+            kind: "pending" as const,
+            id: accessId,
+            pendingId: staff.id,
+            name: staff.name,
+            email: staff.email,
+            role: staff.role,
+            createdAt: staff.createdAt,
+            updatedAt: staff.updatedAt,
+            marathonId: staff.marathonId,
+            invitedByUserId: staff.invitedByUserId,
+            status: "pending" as const,
+          }),
+        onNone: () =>
+          Effect.fail(
+            new UsersApiError({
+              message: `Pending staff member not found for id ${accessId} and domain ${domain}`,
+            }),
+          ),
+      })
+    })
 
-        const existingUser = yield* usersRepository.getUserByNormalizedEmail({
-          emailNormalized,
-        })
+  const createStaffMember: UsersService["Service"]["createStaffMember"] =
+    Effect.fn("UsersService.createStaffMember")(function* ({
+      domain,
+      data,
+    }) {
+      const marathonId = yield* getMarathonIdByDomain({ domain })
+      const trimmedEmail = data.email.trim()
+      const emailNormalized = normalizeEmail(trimmedEmail)
 
-        if (Option.isSome(existingUser)) {
-          const relation = yield* usersRepository.upsertUserMarathonRelation({
-            data: {
-              userId: existingUser.value.id,
-              marathonId,
-              role: data.role,
-            },
-          })
+      const existingUser = yield* usersRepository.getUserByNormalizedEmail({
+        emailNormalized,
+      })
 
-          const pendingRelations = yield* usersRepository.getPendingUserMarathonsByEmailNormalized({
-            emailNormalized,
-          })
-
-          for (const pendingRelation of pendingRelations) {
-            if (pendingRelation.marathonId === marathonId) {
-              yield* usersRepository.deletePendingUserMarathon({
-                id: pendingRelation.id,
-              })
-            }
-          }
-
-          yield* clearPermissionsCache(existingUser.value.id)
-
-          return {
-            kind: "active" as const,
-            id: `u:${existingUser.value.id}` as const,
-            userId: existingUser.value.id,
-            name: existingUser.value.name,
-            email: existingUser.value.email,
-            role: relation.role,
-            createdAt: relation.createdAt,
-            status: "active" as const,
-          }
-        }
-
-        const pending = yield* usersRepository.upsertPendingUserMarathon({
+      if (Option.isSome(existingUser)) {
+        const relation = yield* usersRepository.upsertUserMarathonRelation({
           data: {
+            userId: existingUser.value.id,
             marathonId,
-            name: data.name,
-            email: trimmedEmail,
-            emailNormalized,
             role: data.role,
           },
         })
+
+        const pendingRelations =
+          yield* usersRepository.getPendingUserMarathonsByEmailNormalized({
+            emailNormalized,
+          })
+
+        for (const pendingRelation of pendingRelations) {
+          if (pendingRelation.marathonId === marathonId) {
+            yield* usersRepository.deletePendingUserMarathon({
+              id: pendingRelation.id,
+            })
+          }
+        }
+
+        yield* clearPermissionsCache(existingUser.value.id)
 
         return {
-          kind: "pending" as const,
-          id: `p:${pending.id}` as const,
-          pendingId: pending.id,
-          name: pending.name,
-          email: pending.email,
-          role: pending.role,
-          createdAt: pending.createdAt,
-          status: "pending" as const,
+          kind: "active" as const,
+          id: `u:${existingUser.value.id}` as const,
+          userId: existingUser.value.id,
+          name: existingUser.value.name,
+          email: existingUser.value.email,
+          role: relation.role,
+          createdAt: relation.createdAt,
+          status: "active" as const,
         }
-      })
+      }
 
-      const deleteStaffAccess = Effect.fn("UsersService.deleteStaffAccess")(function* ({
-        domain,
-        accessId,
-      }: {
-        domain: string
-        accessId: string
-      }) {
-        const parsed = parseAccessId(accessId)
-
-        if (parsed.kind === "active") {
-          const marathonId = yield* getMarathonIdByDomain({ domain })
-          const deleted = yield* usersRepository.deleteUserMarathonRelation({
-            userId: parsed.userId,
-            marathonId,
-          })
-          yield* clearPermissionsCache(parsed.userId)
-          return deleted
-        }
-
-        const pending = yield* usersRepository.getPendingUserMarathonById({
-          pendingId: parsed.pendingId,
-          domain,
-        })
-
-        yield* Option.match(pending, {
-          onSome: () => Effect.void,
-          onNone: () =>
-            Effect.fail(
-              new UsersApiError({
-                message: `Pending staff member not found for id ${accessId} and domain ${domain}`,
-              }),
-            ),
-        })
-
-        return yield* usersRepository.deletePendingUserMarathon({
-          id: parsed.pendingId,
-        })
-      })
-
-      const getVerificationsByStaffId = Effect.fn("UsersService.getVerificationsByStaffId")(
-        function* ({
-          staffId,
-          domain,
-          cursor,
-          limit,
-        }: {
-          staffId: string
-          domain: string
-          cursor?: number
-          limit?: number
-        }) {
-          return yield* validationsRepository.getParticipantVerificationsByStaffId({
-            staffId,
-            domain,
-            cursor,
-            limit,
-          })
-        },
-      )
-
-      const updateStaffAccess = Effect.fn("UsersService.updateStaffAccess")(function* ({
-        accessId,
-        domain,
-        data,
-      }: {
-        accessId: string
-        domain: string
-        data: { name: string; email: string; role: "staff" | "admin" }
-      }) {
-        const parsed = parseAccessId(accessId)
-        const trimmedEmail = data.email.trim()
-        const emailNormalized = normalizeEmail(trimmedEmail)
-
-        if (parsed.kind === "active") {
-          const marathonId = yield* getMarathonIdByDomain({ domain })
-          const staffMember = yield* usersRepository.getStaffMemberById({
-            staffId: parsed.userId,
-            domain,
-          })
-
-          yield* Option.match(staffMember, {
-            onSome: () => Effect.void,
-            onNone: () =>
-              Effect.fail(
-                new UsersApiError({
-                  message: `Staff member not found for id ${accessId} and domain ${domain}`,
-                }),
-              ),
-          })
-
-          yield* usersRepository.updateUser({
-            id: parsed.userId,
-            data: {
-              name: data.name,
-              email: trimmedEmail,
-              updatedAt: new Date().toISOString(),
-            },
-          })
-
-          yield* usersRepository.updateUserMarathonRelation({
-            userId: parsed.userId,
-            marathonId,
-            data: {
-              role: data.role,
-            },
-          })
-
-          yield* clearPermissionsCache(parsed.userId)
-
-          return yield* getStaffAccessById({
-            accessId,
-            domain,
-          })
-        }
-
-        const pending = yield* usersRepository.getPendingUserMarathonById({
-          pendingId: parsed.pendingId,
-          domain,
-        })
-
-        yield* Option.match(pending, {
-          onSome: () => Effect.void,
-          onNone: () =>
-            Effect.fail(
-              new UsersApiError({
-                message: `Pending staff member not found for id ${accessId} and domain ${domain}`,
-              }),
-            ),
-        })
-
-        const existingUser = yield* usersRepository.getUserByNormalizedEmail({
+      const pending = yield* usersRepository.upsertPendingUserMarathon({
+        data: {
+          marathonId,
+          name: data.name,
+          email: trimmedEmail,
           emailNormalized,
+          role: data.role,
+        },
+      })
+
+      return {
+        kind: "pending" as const,
+        id: `p:${pending.id}` as const,
+        pendingId: pending.id,
+        name: pending.name,
+        email: pending.email,
+        role: pending.role,
+        createdAt: pending.createdAt,
+        status: "pending" as const,
+      }
+    })
+
+  const deleteStaffAccess: UsersService["Service"]["deleteStaffAccess"] =
+    Effect.fn("UsersService.deleteStaffAccess")(function* ({
+      domain,
+      accessId,
+    }) {
+      const parsed = parseAccessId(accessId)
+
+      if (parsed.kind === "active") {
+        const marathonId = yield* getMarathonIdByDomain({ domain })
+        const deleted = yield* usersRepository.deleteUserMarathonRelation({
+          userId: parsed.userId,
+          marathonId,
+        })
+        yield* clearPermissionsCache(parsed.userId)
+        return deleted
+      }
+
+      const pending = yield* usersRepository.getPendingUserMarathonById({
+        pendingId: parsed.pendingId,
+        domain,
+      })
+
+      yield* Option.match(pending, {
+        onSome: () => Effect.void,
+        onNone: () =>
+          Effect.fail(
+            new UsersApiError({
+              message: `Pending staff member not found for id ${accessId} and domain ${domain}`,
+            }),
+          ),
+      })
+
+      return yield* usersRepository.deletePendingUserMarathon({
+        id: parsed.pendingId,
+      })
+    })
+
+  const getVerificationsByStaffId: UsersService["Service"]["getVerificationsByStaffId"] =
+    Effect.fn("UsersService.getVerificationsByStaffId")(function* ({
+      staffId,
+      domain,
+      cursor,
+      limit,
+    }) {
+      return yield* validationsRepository.getParticipantVerificationsByStaffId({
+        staffId,
+        domain,
+        cursor,
+        limit,
+      })
+    })
+
+  const updateStaffAccess: UsersService["Service"]["updateStaffAccess"] =
+    Effect.fn("UsersService.updateStaffAccess")(function* ({
+      accessId,
+      domain,
+      data,
+    }) {
+      const parsed = parseAccessId(accessId)
+      const trimmedEmail = data.email.trim()
+      const emailNormalized = normalizeEmail(trimmedEmail)
+
+      if (parsed.kind === "active") {
+        const marathonId = yield* getMarathonIdByDomain({ domain })
+        const staffMember = yield* usersRepository.getStaffMemberById({
+          staffId: parsed.userId,
+          domain,
         })
 
-        if (Option.isSome(existingUser)) {
-          const marathonId = yield* getMarathonIdByDomain({ domain })
+        yield* Option.match(staffMember, {
+          onSome: () => Effect.void,
+          onNone: () =>
+            Effect.fail(
+              new UsersApiError({
+                message: `Staff member not found for id ${accessId} and domain ${domain}`,
+              }),
+            ),
+        })
 
-          yield* usersRepository.upsertUserMarathonRelation({
-            data: {
-              userId: existingUser.value.id,
-              marathonId,
-              role: data.role,
-            },
-          })
-
-          yield* usersRepository.deletePendingUserMarathon({
-            id: parsed.pendingId,
-          })
-
-          yield* clearPermissionsCache(existingUser.value.id)
-
-          return {
-            kind: "active" as const,
-            id: `u:${existingUser.value.id}` as const,
-            userId: existingUser.value.id,
-            name: existingUser.value.name,
-            email: existingUser.value.email,
-            role: data.role,
-            createdAt: new Date().toISOString(),
-            status: "active" as const,
-          }
-        }
-
-        yield* usersRepository.updatePendingUserMarathon({
-          id: parsed.pendingId,
+        yield* usersRepository.updateUser({
+          id: parsed.userId,
           data: {
             name: data.name,
             email: trimmedEmail,
-            emailNormalized,
+            updatedAt: new Date().toISOString(),
+          },
+        })
+
+        yield* usersRepository.updateUserMarathonRelation({
+          userId: parsed.userId,
+          marathonId,
+          data: {
             role: data.role,
           },
         })
+
+        yield* clearPermissionsCache(parsed.userId)
 
         return yield* getStaffAccessById({
           accessId,
           domain,
         })
+      }
+
+      const pending = yield* usersRepository.getPendingUserMarathonById({
+        pendingId: parsed.pendingId,
+        domain,
       })
 
-      return {
-        getStaffMembersByDomain,
-        getStaffAccessById,
-        createStaffMember,
-        deleteStaffAccess,
-        getVerificationsByStaffId,
-        updateStaffAccess,
-      } as const
-    }),
-  },
-) {
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(DbLayer, RedisClientLayer)),
-  )
-}
+      yield* Option.match(pending, {
+        onSome: () => Effect.void,
+        onNone: () =>
+          Effect.fail(
+            new UsersApiError({
+              message: `Pending staff member not found for id ${accessId} and domain ${domain}`,
+            }),
+          ),
+      })
+
+      const existingUser = yield* usersRepository.getUserByNormalizedEmail({
+        emailNormalized,
+      })
+
+      if (Option.isSome(existingUser)) {
+        const marathonId = yield* getMarathonIdByDomain({ domain })
+
+        yield* usersRepository.upsertUserMarathonRelation({
+          data: {
+            userId: existingUser.value.id,
+            marathonId,
+            role: data.role,
+          },
+        })
+
+        yield* usersRepository.deletePendingUserMarathon({
+          id: parsed.pendingId,
+        })
+
+        yield* clearPermissionsCache(existingUser.value.id)
+
+        return {
+          kind: "active" as const,
+          id: `u:${existingUser.value.id}` as const,
+          userId: existingUser.value.id,
+          name: existingUser.value.name,
+          email: existingUser.value.email,
+          role: data.role,
+          createdAt: new Date().toISOString(),
+          status: "active" as const,
+        }
+      }
+
+      yield* usersRepository.updatePendingUserMarathon({
+        id: parsed.pendingId,
+        data: {
+          name: data.name,
+          email: trimmedEmail,
+          emailNormalized,
+          role: data.role,
+        },
+      })
+
+      return yield* getStaffAccessById({
+        accessId,
+        domain,
+      })
+    })
+
+  return UsersService.of({
+    getStaffMembersByDomain,
+    getStaffAccessById,
+    createStaffMember,
+    deleteStaffAccess,
+    getVerificationsByStaffId,
+    updateStaffAccess,
+  })
+})
+
+export const UsersServiceLayerNoDeps = Layer.effect(
+  UsersService,
+  makeUsersService,
+)
+
+export const UsersServiceLayer = UsersServiceLayerNoDeps.pipe(
+  Layer.provide(Layer.mergeAll(DbLayer, RedisClientLayer)),
+)

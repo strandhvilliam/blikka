@@ -1,6 +1,10 @@
 import { Schema } from "effect";
 
-export const GetByDomainInputSchema = Schema.Struct({ domain: Schema.String });
+export const GetByDomainInputSchema = Schema.Struct({ domain: Schema.String })
+
+export const GetUserMarathonsInputSchema = Schema.Struct({
+  userId: Schema.String,
+})
 
 export const UpdateMarathonInputSchema = Schema.Struct({
   domain: Schema.String,
@@ -34,10 +38,13 @@ export const GetCurrentTermsInputSchema = Schema.Struct({
 
 export type GetByDomainInput = Schema.Schema.Type<
   typeof GetByDomainInputSchema
->;
+>
+export type GetUserMarathonsInput = Schema.Schema.Type<
+  typeof GetUserMarathonsInputSchema
+>
 export type UpdateMarathonInput = Schema.Schema.Type<
   typeof UpdateMarathonInputSchema
->;
+>
 export type ResetMarathonInput = Schema.Schema.Type<
   typeof ResetMarathonInputSchema
 >;

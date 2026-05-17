@@ -26,3 +26,15 @@ export const RegenerateSubmissionAssetsInputSchema = Schema.Struct({
 export type BeginAdminReplaceUploadInput = Schema.Schema.Type<typeof BeginAdminReplaceUploadInputSchema>
 export type CompleteAdminReplaceUploadInput = Schema.Schema.Type<typeof CompleteAdminReplaceUploadInputSchema>
 export type RegenerateSubmissionAssetsInput = Schema.Schema.Type<typeof RegenerateSubmissionAssetsInputSchema>
+
+export type BeginAdminReplaceUploadServiceInput = BeginAdminReplaceUploadInput & {
+  isAdminForDomain: boolean;
+};
+
+export type CompleteAdminReplaceUploadServiceInput = CompleteAdminReplaceUploadInput & {
+  isAdminForDomain: boolean;
+};
+
+export type RegenerateSubmissionAssetsServiceInput = RegenerateSubmissionAssetsInput & {
+  isAdminForDomain: boolean;
+};

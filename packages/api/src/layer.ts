@@ -1,38 +1,38 @@
 import { Layer } from "effect";
-import { UploadFlowService } from "./core/upload-flow/service";
-import { ContactSheetsService } from "./core/contact-sheets/service";
-import { ValidationsService } from "./core/validations/service";
-import { ParticipantsService } from "./core/participants/service";
-import { TopicsService } from "./core/topics/service";
-import { DeviceGroupsService } from "./core/device-groups/service";
-import { CompetitionClassesService } from "./core/competition-classes/service";
-import { RulesService } from "./core/rules/service";
-import { MarathonService } from "./core/marathons/service";
-import { UsersService } from "./core/users/service";
-import { ExportsService } from "./core/exports/service";
-import { JuryService } from "./core/jury/service";
-import { SponsorsService } from "./core/sponsors/service";
-import { ZipFilesService } from "./core/zip-files/service";
-import { VotingService } from "./core/voting/service";
-import { SubmissionsService } from "./core/submissions/service";
-import { SeedingService } from "./core/seeding/service";
+import { UploadFlowServiceLayer } from "./core/upload-flow/service";
+import { ContactSheetsServiceLayer } from "./core/contact-sheets/service";
+import { ValidationsServiceLayer } from "./core/validations/service";
+import { ParticipantsServiceLayer } from "./core/participants/service";
+import { TopicsServiceLayer } from "./core/topics/service";
+import { DeviceGroupsServiceLayer } from "./core/device-groups/service";
+import { CompetitionClassesServiceLayer } from "./core/competition-classes/service";
+import { RulesServiceLayer } from "./core/rules/service";
+import { MarathonServiceLayer } from "./core/marathons/service";
+import { UsersServiceLayer } from "./core/users/service";
+import { ExportsServiceLayer } from "./core/exports/service";
+import { JuryServiceLayer } from "./core/jury/service";
+import { SponsorsServiceLayer } from "./core/sponsors/service";
+import { ZipFilesServiceLayer } from "./core/zip-files/service";
+import { VotingServiceLayer } from "./core/voting/service";
+import { SubmissionsServiceLayer } from "./core/submissions/service";
+import { SeedingServiceLayer } from "./core/seeding/service";
 
 export const ApiLayer = Layer.mergeAll(
-  UploadFlowService.layer,
-  ContactSheetsService.layer,
-  ValidationsService.layer,
-  ParticipantsService.layer,
-  TopicsService.layer,
-  DeviceGroupsService.layer,
-  CompetitionClassesService.layer,
-  RulesService.layer,
-  MarathonService.layer,
-  UsersService.layer,
-  ExportsService.layer,
-  JuryService.layer,
-  SponsorsService.layer,
-  ZipFilesService.layer,
-  VotingService.layer,
-  SubmissionsService.layer,
-  SeedingService.layer,
+  UploadFlowServiceLayer,
+  ContactSheetsServiceLayer,
+  ValidationsServiceLayer,
+  ParticipantsServiceLayer,
+  TopicsServiceLayer,
+  DeviceGroupsServiceLayer,
+  CompetitionClassesServiceLayer,
+  RulesServiceLayer,
+  MarathonServiceLayer,
+  UsersServiceLayer,
+  ExportsServiceLayer,
+  JuryServiceLayer,
+  SponsorsServiceLayer,
+  ZipFilesServiceLayer,
+  VotingServiceLayer,
+  SubmissionsServiceLayer,
+  SeedingServiceLayer,
 );

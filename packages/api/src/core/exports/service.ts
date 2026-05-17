@@ -1,10 +1,11 @@
-import { extname } from "node:path"
+import "server-only"
 
+import { extname } from "node:path"
 import archiver from "archiver"
 import { Config, Effect, Layer, Option, Context } from "effect"
 
-import { S3Service, S3ServiceLayer } from "@blikka/aws"
-import { DbLayer, ExportsRepository, MarathonsRepository } from "@blikka/db"
+import { S3Service, S3ServiceLayer, S3ClientError } from "@blikka/aws"
+import { DbLayer, ExportsRepository, MarathonsRepository, DbError } from "@blikka/db"
 
 import {
   EncryptedPhoneNumber,
@@ -12,127 +13,270 @@ import {
   PhoneNumberEncryptionServiceLayer,
 } from "../utils/phone-number-encryption"
 import { ExportsApiError } from "./errors"
+import type {
+  DomainScopedExportInput,
+  GetValidationResultsExportDataInput,
+} from "./contracts"
 
-export class ExportsService extends Context.Service<ExportsService>()(
-  "@blikka/api/ExportsService",
+type ParticipantExportRow = {
+  reference: string
+  firstname: string
+  lastname: string
+  email: string
+  status: string
+  competitionClassName: string
+  deviceGroupName: string
+  createdAt: string
+  uploadCount: number
+}
+
+type ParticipantByCameraAllTopicsExportRow = {
+  phoneNumber: string
+  topicsParticipatedCount: number
+  latestTopicName: string
+  latestUploadedAt: string | null
+  createdAt: string
+  reference: string
+  email: string
+  status: string
+  firstname: string
+  lastname: string
+  competitionClassName: string
+  deviceGroupName: string
+}
+
+type SubmissionExportRow = {
+  phoneNumber: string
+  submissionId: number
+  participantReference: string
+  participantName: string
+  participantEmail: string
+  competitionClassName: string
+  deviceGroupName: string
+  topicName: string
+  submissionStatus: string
+  uploadDate: string
+  lastModified: string
+  fileSize: number
+  mimeType: string
+  dimensions: string
+  cameraModel: string
+  validationsPassed: number
+  validationsFailed: number
+  originalKey: string
+  thumbnailKey: string
+}
+
+type ExifExportRow = {
+  submissionId: number
+  participantReference: string
+  topicName: string
+  originalKey: string
+  exifData: Record<string, unknown>
+  uploadDate: string
+}
+
+type ValidationResultExportRow = {
+  participantId: number
+  participantReference: string
+  participantName: string
+  ruleKey: string
+  severity: string
+  outcome: string
+  message: string
+  fileName: string | null
+  createdAt: string
+  overruled: boolean
+}
+
+export class ExportsService extends Context.Service<
+  ExportsService,
   {
-    make: Effect.gen(function* () {
-      const marathonsRepository = yield* MarathonsRepository
-      const exportsRepository = yield* ExportsRepository
-      const s3 = yield* S3Service
-      const phoneEncryption = yield* PhoneNumberEncryptionService
+    /** Participants CSV-style export rows for a marathon `domain`. */
+    readonly getParticipantsExportData: (
+      input: DomainScopedExportInput,
+    ) => Effect.Effect<ParticipantExportRow[], DbError | ExportsApiError, never>
 
-      const getActiveByCameraTopic = Effect.fn("ExportsService.getActiveByCameraTopic")(
-        function* ({ domain }: { domain: string }) {
-          const marathonOption = yield* marathonsRepository.getMarathonByDomainWithOptions({
-            domain,
-          })
+    /** Participants export scoped to the active by-camera topic for `domain`. */
+    readonly getParticipantsExportDataByCameraActiveTopic: (
+      input: DomainScopedExportInput,
+    ) => Effect.Effect<ParticipantExportRow[], DbError | ExportsApiError, never>
 
-          const marathon = yield* Option.match(marathonOption, {
-            onSome: Effect.succeed,
-            onNone: () =>
-              Effect.fail(
-                new ExportsApiError({
-                  message: `Marathon not found for domain ${domain}`,
-                }),
-              ),
-          })
+    /** By-camera participants across topics with decrypted phone for export. */
+    readonly getParticipantsExportDataByCameraAllTopics: (
+      input: DomainScopedExportInput,
+    ) => Effect.Effect<
+      ParticipantByCameraAllTopicsExportRow[],
+      DbError | ExportsApiError,
+      never
+    >
 
-          if (marathon.mode !== "by-camera") {
-            return yield* Effect.fail(
-              new ExportsApiError({
-                message: `Marathon '${domain}' is not in by-camera mode`,
-              }),
-            )
-          }
+    /** Submissions export rows with decrypted phone numbers for `domain`. */
+    readonly getSubmissionsExportData: (
+      input: DomainScopedExportInput,
+    ) => Effect.Effect<SubmissionExportRow[], DbError | ExportsApiError, never>
 
-          const activeTopic = marathon.topics.find((topic) => topic.visibility === "active") ?? null
+    /** Submissions for the active by-camera topic only. */
+    readonly getSubmissionsExportDataByCameraActiveTopic: (
+      input: DomainScopedExportInput,
+    ) => Effect.Effect<SubmissionExportRow[], DbError | ExportsApiError, never>
 
-          if (!activeTopic) {
-            return yield* Effect.fail(
-              new ExportsApiError({
-                message: `No active topic found for marathon '${domain}'`,
-              }),
-            )
-          }
+    /** EXIF payloads keyed by submission for export. */
+    readonly getExifExportData: (
+      input: DomainScopedExportInput,
+    ) => Effect.Effect<ExifExportRow[], DbError | ExportsApiError, never>
 
-          return activeTopic
-        },
-      )
+    /** Validation result rows for organizer export; optional failed-only filter. */
+    readonly getValidationResultsExportData: (
+      input: GetValidationResultsExportDataInput,
+    ) => Effect.Effect<
+      ValidationResultExportRow[],
+      DbError | ExportsApiError,
+      never
+    >
 
-      const buildArchiveBuffer = Effect.fn("ExportsService.buildArchiveBuffer")(function* (
-        files: ReadonlyArray<{
-          data: Buffer
-          name: string
-        }>,
-      ) {
-        return yield* Effect.tryPromise({
-          try: () =>
-            new Promise<Buffer>((resolve, reject) => {
-              const archive = archiver("zip", {
-                zlib: { level: 6 },
-              })
-              const chunks: Buffer[] = []
+    /** Validation results for the active by-camera topic. */
+    readonly getValidationResultsExportDataByCameraActiveTopic: (
+      input: GetValidationResultsExportDataInput,
+    ) => Effect.Effect<
+      ValidationResultExportRow[],
+      DbError | ExportsApiError,
+      never
+    >
 
-              archive.on("data", (chunk: Buffer) => chunks.push(chunk))
-              archive.on("end", () => resolve(Buffer.concat(chunks)))
-              archive.on("error", reject)
+    /** Builds a ZIP of original images for the active by-camera topic. */
+    readonly buildByCameraActiveTopicImagesZip: (
+      input: DomainScopedExportInput,
+    ) => Effect.Effect<
+      { topicName: string; zipBuffer: Buffer },
+      DbError | S3ClientError | Config.ConfigError | ExportsApiError,
+      never
+    >
+  }
+>()("@blikka/api/ExportsService") {}
 
-              for (const file of files) {
-                archive.append(file.data, { name: file.name })
-              }
+const makeExportsService = Effect.gen(function* () {
+  const marathonsRepository = yield* MarathonsRepository
+  const exportsRepository = yield* ExportsRepository
+  const s3 = yield* S3Service
+  const phoneEncryption = yield* PhoneNumberEncryptionService
 
-              void archive.finalize()
-            }),
-          catch: (error) =>
-            new ExportsApiError({
-              message: "Failed to build export archive",
-              cause: error,
-            }),
-        })
+  const getActiveByCameraTopic = Effect.fn(
+    "ExportsService.getActiveByCameraTopic",
+  )(function* ({ domain }) {
+    const marathonOption =
+      yield* marathonsRepository.getMarathonByDomainWithOptions({
+        domain,
       })
 
-      const getSubmissionFileExtension = (key: string, mimeType: string | null) => {
-        const fileExtension = extname(key)
+    const marathon = yield* Option.match(marathonOption, {
+      onSome: Effect.succeed,
+      onNone: () =>
+        Effect.fail(
+          new ExportsApiError({
+            message: `Marathon not found for domain ${domain}`,
+          }),
+        ),
+    })
 
-        if (fileExtension) {
-          return fileExtension.toLowerCase()
-        }
-
-        switch (mimeType) {
-          case "image/png":
-            return ".png"
-          case "image/webp":
-            return ".webp"
-          case "image/heic":
-            return ".heic"
-          case "image/heif":
-            return ".heif"
-          case "image/tiff":
-            return ".tif"
-          default:
-            return ".jpg"
-        }
-      }
-
-      const getParticipantsExportData = Effect.fn("ExportsService.getParticipantsExportData")(
-        function* ({ domain }: { domain: string }) {
-          try {
-            return yield* exportsRepository.getParticipantsForExport({ domain })
-          } catch (error) {
-            return yield* Effect.fail(
-              new ExportsApiError({
-                message: "Failed to fetch participants export data",
-                cause: error,
-              }),
-            )
-          }
-        },
+    if (marathon.mode !== "by-camera") {
+      return yield* Effect.fail(
+        new ExportsApiError({
+          message: `Marathon '${domain}' is not in by-camera mode`,
+        }),
       )
+    }
 
-      const getParticipantsExportDataByCameraActiveTopic = Effect.fn(
-        "ExportsService.getParticipantsExportDataByCameraActiveTopic",
-      )(function* ({ domain }: { domain: string }) {
+    const activeTopic =
+      marathon.topics.find((topic) => topic.visibility === "active") ?? null
+
+    if (!activeTopic) {
+      return yield* Effect.fail(
+        new ExportsApiError({
+          message: `No active topic found for marathon '${domain}'`,
+        }),
+      )
+    }
+
+    return activeTopic
+  })
+
+  const buildArchiveBuffer = Effect.fn("ExportsService.buildArchiveBuffer")(
+    function* (
+      files: ReadonlyArray<{
+        data: Buffer
+        name: string
+      }>,
+    ) {
+      return yield* Effect.tryPromise({
+        try: () =>
+          new Promise<Buffer>((resolve, reject) => {
+            const archive = archiver("zip", {
+              zlib: { level: 6 },
+            })
+            const chunks: Buffer[] = []
+
+            archive.on("data", (chunk: Buffer) => chunks.push(chunk))
+            archive.on("end", () => resolve(Buffer.concat(chunks)))
+            archive.on("error", reject)
+
+            for (const file of files) {
+              archive.append(file.data, { name: file.name })
+            }
+
+            void archive.finalize()
+          }),
+        catch: (error) =>
+          new ExportsApiError({
+            message: "Failed to build export archive",
+            cause: error,
+          }),
+      })
+    },
+  )
+
+  const getSubmissionFileExtension = (key: string, mimeType: string | null) => {
+    const fileExtension = extname(key)
+
+    if (fileExtension) {
+      return fileExtension.toLowerCase()
+    }
+
+    switch (mimeType) {
+      case "image/png":
+        return ".png"
+      case "image/webp":
+        return ".webp"
+      case "image/heic":
+        return ".heic"
+      case "image/heif":
+        return ".heif"
+      case "image/tiff":
+        return ".tif"
+      default:
+        return ".jpg"
+    }
+  }
+
+  const getParticipantsExportData: ExportsService["Service"]["getParticipantsExportData"] =
+    Effect.fn("ExportsService.getParticipantsExportData")(
+      function* ({ domain }) {
+        try {
+          return yield* exportsRepository.getParticipantsForExport({ domain })
+        } catch (error) {
+          return yield* Effect.fail(
+            new ExportsApiError({
+              message: "Failed to fetch participants export data",
+              cause: error,
+            }),
+          )
+        }
+      },
+    )
+
+  const getParticipantsExportDataByCameraActiveTopic: ExportsService["Service"]["getParticipantsExportDataByCameraActiveTopic"] =
+    Effect.fn("ExportsService.getParticipantsExportDataByCameraActiveTopic")(
+      function* ({ domain }) {
         try {
           const activeTopic = yield* getActiveByCameraTopic({ domain })
 
@@ -148,15 +292,17 @@ export class ExportsService extends Context.Service<ExportsService>()(
             }),
           )
         }
-      })
+      },
+    )
 
-      const getParticipantsExportDataByCameraAllTopics = Effect.fn(
-        "ExportsService.getParticipantsExportDataByCameraAllTopics",
-      )(function* ({ domain }: { domain: string }) {
+  const getParticipantsExportDataByCameraAllTopics: ExportsService["Service"]["getParticipantsExportDataByCameraAllTopics"] =
+    Effect.fn("ExportsService.getParticipantsExportDataByCameraAllTopics")(
+      function* ({ domain }) {
         try {
-          const participants = yield* exportsRepository.getParticipantsForExportByCameraAllTopics({
-            domain,
-          })
+          const participants =
+            yield* exportsRepository.getParticipantsForExportByCameraAllTopics({
+              domain,
+            })
 
           return yield* Effect.forEach(
             participants,
@@ -165,7 +311,8 @@ export class ExportsService extends Context.Service<ExportsService>()(
                 const phoneNumber = participant.phoneEncrypted
                   ? yield* phoneEncryption
                       .decrypt({
-                        encrypted: participant.phoneEncrypted as EncryptedPhoneNumber,
+                        encrypted:
+                          participant.phoneEncrypted as EncryptedPhoneNumber,
                       })
                       .pipe(Effect.catch(() => Effect.succeed("")))
                   : ""
@@ -182,55 +329,59 @@ export class ExportsService extends Context.Service<ExportsService>()(
         } catch (error) {
           return yield* Effect.fail(
             new ExportsApiError({
-              message: "Failed to fetch by-camera all-topic participants export data",
+              message:
+                "Failed to fetch by-camera all-topic participants export data",
               cause: error,
             }),
           )
         }
-      })
+      },
+    )
 
-      const getSubmissionsExportData = Effect.fn("ExportsService.getSubmissionsExportData")(
-        function* ({ domain }: { domain: string }) {
-          try {
-            const rows = yield* exportsRepository.getSubmissionsForExport({
-              domain,
-            })
+  const getSubmissionsExportData: ExportsService["Service"]["getSubmissionsExportData"] =
+    Effect.fn("ExportsService.getSubmissionsExportData")(
+      function* ({ domain }) {
+        try {
+          const rows = yield* exportsRepository.getSubmissionsForExport({
+            domain,
+          })
 
-            return yield* Effect.forEach(
-              rows,
-              (submission) =>
-                Effect.gen(function* () {
-                  const phoneNumber = submission.phoneEncrypted
-                    ? yield* phoneEncryption
-                        .decrypt({
-                          encrypted: submission.phoneEncrypted as EncryptedPhoneNumber,
-                        })
-                        .pipe(Effect.catch(() => Effect.succeed("")))
-                    : ""
+          return yield* Effect.forEach(
+            rows,
+            (submission) =>
+              Effect.gen(function* () {
+                const phoneNumber = submission.phoneEncrypted
+                  ? yield* phoneEncryption
+                      .decrypt({
+                        encrypted:
+                          submission.phoneEncrypted as EncryptedPhoneNumber,
+                      })
+                      .pipe(Effect.catch(() => Effect.succeed("")))
+                  : ""
 
-                  const { phoneEncrypted, ...rest } = submission
+                const { phoneEncrypted, ...rest } = submission
 
-                  return {
-                    ...rest,
-                    phoneNumber,
-                  }
-                }),
-              { concurrency: 8 },
-            )
-          } catch (error) {
-            return yield* Effect.fail(
-              new ExportsApiError({
-                message: "Failed to fetch submissions export data",
-                cause: error,
+                return {
+                  ...rest,
+                  phoneNumber,
+                }
               }),
-            )
-          }
-        },
-      )
+            { concurrency: 8 },
+          )
+        } catch (error) {
+          return yield* Effect.fail(
+            new ExportsApiError({
+              message: "Failed to fetch submissions export data",
+              cause: error,
+            }),
+          )
+        }
+      },
+    )
 
-      const getSubmissionsExportDataByCameraActiveTopic = Effect.fn(
-        "ExportsService.getSubmissionsExportDataByCameraActiveTopic",
-      )(function* ({ domain }: { domain: string }) {
+  const getSubmissionsExportDataByCameraActiveTopic: ExportsService["Service"]["getSubmissionsExportDataByCameraActiveTopic"] =
+    Effect.fn("ExportsService.getSubmissionsExportDataByCameraActiveTopic")(
+      function* ({ domain }) {
         try {
           const activeTopic = yield* getActiveByCameraTopic({ domain })
 
@@ -246,7 +397,8 @@ export class ExportsService extends Context.Service<ExportsService>()(
                 const phoneNumber = submission.phoneEncrypted
                   ? yield* phoneEncryption
                       .decrypt({
-                        encrypted: submission.phoneEncrypted as EncryptedPhoneNumber,
+                        encrypted:
+                          submission.phoneEncrypted as EncryptedPhoneNumber,
                       })
                       .pipe(Effect.catch(() => Effect.succeed("")))
                   : ""
@@ -268,13 +420,12 @@ export class ExportsService extends Context.Service<ExportsService>()(
             }),
           )
         }
-      })
+      },
+    )
 
-      const getExifExportData = Effect.fn("ExportsService.getExifExportData")(function* ({
-        domain,
-      }: {
-        domain: string
-      }) {
+  const getExifExportData: ExportsService["Service"]["getExifExportData"] =
+    Effect.fn("ExportsService.getExifExportData")(
+      function* ({ domain }) {
         try {
           return yield* exportsRepository.getExifDataForExport({ domain })
         } catch (error) {
@@ -285,11 +436,12 @@ export class ExportsService extends Context.Service<ExportsService>()(
             }),
           )
         }
-      })
+      },
+    )
 
-      const getValidationResultsExportData = Effect.fn(
-        "ExportsService.getValidationResultsExportData",
-      )(function* ({ domain, onlyFailed }: { domain: string; onlyFailed?: boolean }) {
+  const getValidationResultsExportData: ExportsService["Service"]["getValidationResultsExportData"] =
+    Effect.fn("ExportsService.getValidationResultsExportData")(
+      function* ({ domain, onlyFailed }) {
         try {
           return yield* exportsRepository.getValidationResultsForExport({
             domain,
@@ -303,45 +455,54 @@ export class ExportsService extends Context.Service<ExportsService>()(
             }),
           )
         }
-      })
+      },
+    )
 
-      const getValidationResultsExportDataByCameraActiveTopic = Effect.fn(
-        "ExportsService.getValidationResultsExportDataByCameraActiveTopic",
-      )(function* ({ domain, onlyFailed }: { domain: string; onlyFailed?: boolean }) {
+  const getValidationResultsExportDataByCameraActiveTopic: ExportsService["Service"]["getValidationResultsExportDataByCameraActiveTopic"] =
+    Effect.fn(
+      "ExportsService.getValidationResultsExportDataByCameraActiveTopic",
+    )(function* ({ domain, onlyFailed }) {
+      try {
+        const activeTopic = yield* getActiveByCameraTopic({ domain })
+
+        return yield* exportsRepository.getValidationResultsForExportByTopic({
+          domain,
+          topicId: activeTopic.id,
+          onlyFailed,
+        })
+      } catch (error) {
+        return yield* Effect.fail(
+          new ExportsApiError({
+            message:
+              "Failed to fetch by-camera validation results export data",
+            cause: error,
+          }),
+        )
+      }
+    })
+
+  const buildByCameraActiveTopicImagesZip: ExportsService["Service"]["buildByCameraActiveTopicImagesZip"] =
+    Effect.fn("ExportsService.buildByCameraActiveTopicImagesZip")(
+      function* ({ domain }) {
         try {
           const activeTopic = yield* getActiveByCameraTopic({ domain })
-
-          return yield* exportsRepository.getValidationResultsForExportByTopic({
-            domain,
-            topicId: activeTopic.id,
-            onlyFailed,
-          })
-        } catch (error) {
-          return yield* Effect.fail(
-            new ExportsApiError({
-              message: "Failed to fetch by-camera validation results export data",
-              cause: error,
-            }),
+          const submissionsBucketName = yield* Config.string(
+            "SUBMISSIONS_BUCKET_NAME",
           )
-        }
-      })
-
-      const buildByCameraActiveTopicImagesZip = Effect.fn(
-        "ExportsService.buildByCameraActiveTopicImagesZip",
-      )(function* ({ domain }: { domain: string }) {
-        try {
-          const activeTopic = yield* getActiveByCameraTopic({ domain })
-          const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
-          const submissions = yield* exportsRepository.getSubmissionFilesForTopicExport({
-            domain,
-            topicId: activeTopic.id,
-          })
+          const submissions =
+            yield* exportsRepository.getSubmissionFilesForTopicExport({
+              domain,
+              topicId: activeTopic.id,
+            })
 
           const files = yield* Effect.forEach(
             submissions,
             (submission) =>
               Effect.gen(function* () {
-                const fileOption = yield* s3.getFile(submissionsBucketName, submission.key)
+                const fileOption = yield* s3.getFile(
+                  submissionsBucketName,
+                  submission.key,
+                )
 
                 if (Option.isNone(fileOption)) {
                   return yield* Effect.fail(
@@ -376,23 +537,29 @@ export class ExportsService extends Context.Service<ExportsService>()(
             }),
           )
         }
-      })
+      },
+    )
 
-      return {
-        getParticipantsExportData,
-        getParticipantsExportDataByCameraActiveTopic,
-        getParticipantsExportDataByCameraAllTopics,
-        getSubmissionsExportData,
-        getSubmissionsExportDataByCameraActiveTopic,
-        getExifExportData,
-        getValidationResultsExportData,
-        getValidationResultsExportDataByCameraActiveTopic,
-        buildByCameraActiveTopicImagesZip,
-      } as const
-    }),
-  },
-) {
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer, PhoneNumberEncryptionServiceLayer)),
-  )
-}
+  return ExportsService.of({
+    getParticipantsExportData,
+    getParticipantsExportDataByCameraActiveTopic,
+    getParticipantsExportDataByCameraAllTopics,
+    getSubmissionsExportData,
+    getSubmissionsExportDataByCameraActiveTopic,
+    getExifExportData,
+    getValidationResultsExportData,
+    getValidationResultsExportDataByCameraActiveTopic,
+    buildByCameraActiveTopicImagesZip,
+  })
+})
+
+export const ExportsServiceLayerNoDeps = Layer.effect(
+  ExportsService,
+  makeExportsService,
+)
+
+export const ExportsServiceLayer = ExportsServiceLayerNoDeps.pipe(
+  Layer.provide(
+    Layer.mergeAll(DbLayer, S3ServiceLayer, PhoneNumberEncryptionServiceLayer),
+  ),
+)

@@ -8,6 +8,12 @@ export const SeedFinishedScenarioInputSchema = Schema.Struct({
   domain: Schema.String,
 });
 
+/** Enriched inputs after the router merges session permissions into `{ domain }` wire payloads. */
+export const SeedingDomainContextSchema = Schema.Struct({
+  domain: Schema.String,
+  isAdminForDomain: Schema.Boolean,
+});
+
 const PreviewSchema = Schema.Struct({
   participants: Schema.Number,
   topics: Schema.Number,
@@ -43,6 +49,9 @@ export type GetSeedScenarioStatusInput = Schema.Schema.Type<
 >;
 export type SeedFinishedScenarioInput = Schema.Schema.Type<
   typeof SeedFinishedScenarioInputSchema
+>;
+export type SeedingDomainContextInput = Schema.Schema.Type<
+  typeof SeedingDomainContextSchema
 >;
 export type SeedScenarioStatus = Schema.Schema.Type<
   typeof SeedScenarioStatusSchema

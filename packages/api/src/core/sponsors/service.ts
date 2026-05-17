@@ -1,49 +1,53 @@
 import "server-only"
 
 import { Config, Effect, Layer, Option, Context } from "effect"
-import { DbLayer, MarathonsRepository, SponsorsRepository, type NewSponsor } from "@blikka/db"
-import { S3Service, S3ServiceLayer } from "@blikka/aws"
+import {
+  DbLayer,
+  DbError,
+  MarathonsRepository,
+  SponsorsRepository,
+  type Sponsor,
+} from "@blikka/db"
+import { S3Service, S3ServiceLayer, type S3ClientError } from "@blikka/aws"
+import type {
+  CreateSponsorInput,
+  GenerateSponsorUploadUrlInput,
+  GetSponsorsByMarathonInput,
+} from "./contracts"
 import { SponsorsApiError } from "./errors"
 
-export class SponsorsService extends Context.Service<SponsorsService>()(
-  "@blikka/api/sponsors-api-service",
+export class SponsorsService extends Context.Service<
+  SponsorsService,
   {
-    make: Effect.gen(function* () {
-      const sponsorsRepository = yield* SponsorsRepository
-      const marathonsRepository = yield* MarathonsRepository
-      const s3 = yield* S3Service
+    /** Lists sponsors for the marathon tied to `domain`. */
+    readonly getSponsorsByMarathon: (
+      input: GetSponsorsByMarathonInput,
+    ) => Effect.Effect<Sponsor[], DbError | SponsorsApiError, never>
 
-      const getSponsorsByMarathon = Effect.fn("SponsorsService.getSponsorsByMarathon")(
-        function* ({ domain }: { domain: string }) {
-          const marathon = yield* marathonsRepository.getMarathonByDomain({
-            domain,
-          })
+    /** Creates a sponsor row under the marathon resolved from `domain`. */
+    readonly createSponsor: (
+      input: CreateSponsorInput,
+    ) => Effect.Effect<Sponsor, DbError | SponsorsApiError, never>
 
-          if (Option.isNone(marathon)) {
-            return yield* Effect.fail(
-              new SponsorsApiError({
-                message: `Marathon not found for domain ${domain}`,
-              }),
-            )
-          }
+    /** Issues a presigned PUT URL and random object key under `domain/sponsors/`. */
+    readonly generateUploadUrl: (
+      input: GenerateSponsorUploadUrlInput,
+    ) => Effect.Effect<
+      { url: string; key: string },
+      S3ClientError | Config.ConfigError,
+      never
+    >
+  }
+>()("@blikka/api/sponsors-api-service") {}
 
-          return yield* sponsorsRepository.getSponsorsByMarathonId({
-            marathonId: marathon.value.id,
-          })
-        },
-      )
+const makeSponsorsService = Effect.gen(function* () {
+  const sponsorsRepository = yield* SponsorsRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const s3 = yield* S3Service
 
-      const createSponsor = Effect.fn("SponsorsService.createSponsor")(function* ({
-        domain,
-        type,
-        position,
-        key,
-      }: {
-        domain: string
-        type: "contact-sheets" | "live-landing" | "live-success-1" | "live-success-2"
-        position: "bottom-right" | "bottom-left" | "top-right" | "top-left"
-        key: string
-      }) {
+  const getSponsorsByMarathon: SponsorsService["Service"]["getSponsorsByMarathon"] =
+    Effect.fn("SponsorsService.getSponsorsByMarathon")(
+      function* ({ domain }) {
         const marathon = yield* marathonsRepository.getMarathonByDomain({
           domain,
         })
@@ -56,25 +60,40 @@ export class SponsorsService extends Context.Service<SponsorsService>()(
           )
         }
 
-        return yield* sponsorsRepository.createSponsor({
-          data: {
-            marathonId: marathon.value.id,
-            type,
-            position,
-            key,
-          },
+        return yield* sponsorsRepository.getSponsorsByMarathonId({
+          marathonId: marathon.value.id,
         })
-      })
+      },
+    )
 
-      const generateUploadUrl = Effect.fn("SponsorsService.generateUploadUrl")(function* ({
-        domain,
+  const createSponsor: SponsorsService["Service"]["createSponsor"] = Effect.fn(
+    "SponsorsService.createSponsor",
+  )(function* ({ domain, type, position, key }) {
+    const marathon = yield* marathonsRepository.getMarathonByDomain({
+      domain,
+    })
+
+    if (Option.isNone(marathon)) {
+      return yield* Effect.fail(
+        new SponsorsApiError({
+          message: `Marathon not found for domain ${domain}`,
+        }),
+      )
+    }
+
+    return yield* sponsorsRepository.createSponsor({
+      data: {
+        marathonId: marathon.value.id,
         type,
         position,
-      }: {
-        domain: string
-        type: "contact-sheets" | "live-landing" | "live-success-1" | "live-success-2"
-        position: "bottom-right" | "bottom-left" | "top-right" | "top-left"
-      }) {
+        key,
+      },
+    })
+  })
+
+  const generateUploadUrl: SponsorsService["Service"]["generateUploadUrl"] =
+    Effect.fn("SponsorsService.generateUploadUrl")(function* (input) {
+      const { domain } = input
         const bucketName = yield* Config.string("MARATHON_SETTINGS_BUCKET_NAME")
 
         const fileId = crypto.randomUUID()
@@ -86,17 +105,21 @@ export class SponsorsService extends Context.Service<SponsorsService>()(
         })
 
         return { url, key }
-      })
+      },
+    )
 
-      return {
-        getSponsorsByMarathon,
-        createSponsor,
-        generateUploadUrl,
-      } as const
-    }),
-  },
-) {
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer)),
-  )
-}
+  return SponsorsService.of({
+    getSponsorsByMarathon,
+    createSponsor,
+    generateUploadUrl,
+  })
+})
+
+export const SponsorsServiceLayerNoDeps = Layer.effect(
+  SponsorsService,
+  makeSponsorsService,
+)
+
+export const SponsorsServiceLayer = SponsorsServiceLayerNoDeps.pipe(
+  Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer)),
+)

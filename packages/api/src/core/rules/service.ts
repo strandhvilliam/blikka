@@ -1,108 +1,95 @@
-import "server-only";
+import "server-only"
 
-import { Effect, Layer, Option, Context } from "effect";
+import { Effect, Layer, Option, Context } from "effect"
 import {
   DbLayer,
   MarathonsRepository,
   RulesRepository,
   type NewRuleConfig,
   type RuleConfig,
-} from "@blikka/db";
-import { RulesApiError } from "./errors";
+  DbError,
+} from "@blikka/db"
+import { RulesApiError } from "./errors"
+import type { GetByDomainInput, UpdateMultipleInput } from "./contracts"
 
-export class RulesService extends Context.Service<RulesService>()(
-  "@blikka/api/RulesService",
+export class RulesService extends Context.Service<
+  RulesService,
   {
-    make: Effect.gen(function* () {
-      const rulesRepository = yield* RulesRepository;
-      const marathonsRepository = yield* MarathonsRepository;
+    /** Returns every rule configuration for the marathon tied to this domain (hostname). */
+    readonly getRulesByDomain: (input: GetByDomainInput) => Effect.Effect<RuleConfig[], DbError>
 
-      const getRulesByDomain = Effect.fn("RulesService.getRulesByDomain")(
-        function* ({ domain }: { domain: string }) {
-          return yield* rulesRepository.getRulesByDomain({ domain });
-        },
-      );
+    /**
+     * Patches existing rules keyed by `ruleKey` with optional `params`, `severity`, and `enabled`;
+     * resolves the marathon from `domain`, then persists the merged rows.
+     */
+    readonly updateMultipleRules: (
+      input: UpdateMultipleInput,
+    ) => Effect.Effect<RuleConfig[], DbError | RulesApiError, never>
+  }
+>()("@blikka/api/RulesService") {}
 
-      const updateMultipleRules = Effect.fn("RulesService.updateMultipleRules")(
-        function* ({
-          domain,
-          data,
-        }: {
-          domain: string;
-          data: Array<{
-            ruleKey: string;
-            params?: Record<string, unknown> | null | undefined;
-            severity?: string;
-            enabled?: boolean;
-          }>;
-        }) {
-          const existingRules = yield* rulesRepository.getRulesByDomain({
-            domain,
-          });
+const makeRulesService = Effect.gen(function* () {
+  const rulesRepository = yield* RulesRepository
+  const marathonsRepository = yield* MarathonsRepository
 
-          const marathon =
-            yield* marathonsRepository.getMarathonByDomainWithOptions({
-              domain,
-            });
+  const getRulesByDomain: RulesService["Service"]["getRulesByDomain"] = Effect.fn(
+    "RulesService.getRulesByDomain",
+  )(function* ({ domain }) {
+    return yield* rulesRepository.getRulesByDomain({ domain })
+  })
 
-          const marathonId = yield* Option.match(marathon, {
-            onSome: (m) => Effect.succeed(m.id),
-            onNone: () =>
-              Effect.fail(
-                new RulesApiError({
-                  message: `Marathon not found for domain ${domain}`,
-                }),
-              ),
-          });
+  const updateMultipleRules: RulesService["Service"]["updateMultipleRules"] = Effect.fn(
+    "RulesService.updateMultipleRules",
+  )(function* ({ domain, data }) {
+    const existingRules = yield* rulesRepository.getRulesByDomain({
+      domain,
+    })
 
-          const now = new Date().toISOString();
-          const rulesToUpdate: NewRuleConfig[] = existingRules.reduce(
-            (acc, rule) => {
-              const ruleToUpdate = data.find(
-                (item) => item.ruleKey === rule.ruleKey,
-              );
-              if (ruleToUpdate) {
-                acc.push({
-                  id: rule.id,
-                  createdAt: rule.createdAt,
-                  updatedAt: now,
-                  ruleKey: rule.ruleKey,
-                  marathonId,
-                  params: ruleToUpdate.params ?? rule.params,
-                  severity: ruleToUpdate.severity ?? rule.severity,
-                  enabled: ruleToUpdate.enabled ?? rule.enabled,
-                });
-              }
-              return acc;
-            },
-            [] as Array<{
-              id: number;
-              createdAt: string;
-              updatedAt: string | null;
-              ruleKey: string;
-              marathonId: number;
-              params: Record<string, unknown> | null | undefined;
-              severity: string;
-              enabled: boolean;
-            }>,
-          );
+    const marathon = yield* marathonsRepository.getMarathonByDomainWithOptions({
+      domain,
+    })
 
-          const result = yield* rulesRepository.updateMultipleRuleConfig({
-            data: rulesToUpdate,
-          });
+    const marathonId = yield* Option.match(marathon, {
+      onSome: (m) => Effect.succeed(m.id),
+      onNone: () =>
+        Effect.fail(
+          new RulesApiError({
+            message: `Marathon not found for domain ${domain}`,
+          }),
+        ),
+    })
 
-          return result;
-        },
-      );
+    const now = new Date().toISOString()
+    const rulesToUpdate: NewRuleConfig[] = existingRules.reduce((acc, rule) => {
+      const ruleToUpdate = data.find((item) => item.ruleKey === rule.ruleKey)
+      if (ruleToUpdate) {
+        acc.push({
+          id: rule.id,
+          createdAt: rule.createdAt,
+          updatedAt: now,
+          ruleKey: rule.ruleKey,
+          marathonId,
+          params: ruleToUpdate.params ?? rule.params,
+          severity: ruleToUpdate.severity ?? rule.severity,
+          enabled: ruleToUpdate.enabled ?? rule.enabled,
+        })
+      }
+      return acc
+    }, [] as NewRuleConfig[])
 
-      return {
-        getRulesByDomain,
-        updateMultipleRules,
-      } as const;
-    }),
-  },
-) {
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(DbLayer),
-  );
-}
+    const result = yield* rulesRepository.updateMultipleRuleConfig({
+      data: rulesToUpdate,
+    })
+
+    return result
+  })
+
+  return RulesService.of({
+    getRulesByDomain,
+    updateMultipleRules,
+  })
+})
+
+export const RulesServiceLayerNoDeps = Layer.effect(RulesService, makeRulesService)
+
+export const RulesServiceLayer = RulesServiceLayerNoDeps.pipe(Layer.provide(DbLayer))

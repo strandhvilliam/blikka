@@ -36,7 +36,7 @@ type ParticipantWithSubmissionsAndRelations = Participant & {
 }
 
 /** Participant from reference / by-camera lookups with topic on each submission. */
-type ParticipantWithTopicSubmissionsAndContactSheets = Participant & {
+export type ParticipantWithTopicSubmissionsAndContactSheets = Participant & {
   submissions: (Submission & { topic: Topic })[]
   competitionClass: CompetitionClass | null
   deviceGroup: DeviceGroup | null
@@ -66,7 +66,7 @@ type ParticipantDomainListBase = Omit<Participant, "phoneHash"> & {
   deviceGroup: DeviceGroup | null
 }
 
-type InfiniteDomainParticipantRow = ParticipantDomainListBase & {
+export type InfiniteDomainParticipantRow = ParticipantDomainListBase & {
   activeTopicSubmissionId: number | null
   activeTopicSubmissionCreatedAt: string | null
   submissionHealth: { hasExif: boolean; hasThumbnail: boolean } | null
@@ -78,17 +78,41 @@ type InfiniteDomainParticipantRow = ParticipantDomainListBase & {
   skippedValidationResults: ValidationSeverityCounts
 }
 
-type InfiniteParticipantsPage = {
+/** Paginated domain participant rows as returned by `getInfiniteParticipantsByDomain`. */
+export type InfiniteParticipantsPage = {
   participants: InfiniteDomainParticipantRow[]
   nextCursor: string | null
 }
 
-type DashboardRecentParticipant = Pick<
+export type DashboardRecentParticipant = Pick<
   Participant,
   "id" | "reference" | "firstname" | "lastname" | "status"
 > & {
   updatedAt: string
   validationIssueCount: number
+}
+
+export type ParticipantsDashboardOverview = {
+  totalParticipants: number
+  statusCounts: {
+    prepared: number
+    initialized: number
+    completed: number
+    verified: number
+  }
+  uploadedCount: number
+  validationIssueCount: number
+  recentParticipants: DashboardRecentParticipant[]
+}
+
+export type ParticipantsBatchDeletionResult = {
+  deletedCount: number
+  failedIds: number[]
+}
+
+export type ParticipantsBatchIdsMutationResult = {
+  updatedCount: number
+  failedIds: number[]
 }
 
 export class ParticipantsRepository extends Context.Service<
@@ -131,21 +155,9 @@ export class ParticipantsRepository extends Context.Service<
     votedFilter?: "voted" | "not-voted"
   }) => Effect.Effect<InfiniteParticipantsPage, DbError>
   /** Dashboard counts for participants in a marathon domain. */
-  readonly getDashboardOverview: (params: { domain: string }) => Effect.Effect<
-    {
-      totalParticipants: number
-      statusCounts: {
-        prepared: number
-        initialized: number
-        completed: number
-        verified: number
-      }
-      uploadedCount: number
-      validationIssueCount: number
-      recentParticipants: DashboardRecentParticipant[]
-    },
-    DbError
-  >
+  readonly getDashboardOverview: (params: {
+    domain: string
+  }) => Effect.Effect<ParticipantsDashboardOverview, DbError>
   /** Insert a new participant row. */
   readonly createParticipant: (params: {
     data: NewParticipant
@@ -173,17 +185,17 @@ export class ParticipantsRepository extends Context.Service<
   readonly batchDeleteParticipants: (params: {
     ids: number[]
     domain: string
-  }) => Effect.Effect<{ deletedCount: number; failedIds: number[] }, DbError>
+  }) => Effect.Effect<ParticipantsBatchDeletionResult, DbError>
   /** Mark participants verified by id scoped to a domain. */
   readonly batchVerifyParticipants: (params: {
     ids: number[]
     domain: string
-  }) => Effect.Effect<{ updatedCount: number; failedIds: number[] }, DbError>
+  }) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError>
   /** Mark participants completed by id scoped to a domain. */
   readonly batchMarkParticipantsCompleted: (params: {
     ids: number[]
     domain: string
-  }) => Effect.Effect<{ updatedCount: number; failedIds: number[] }, DbError>
+  }) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError>
 }
 >()("@blikka/db/participants-repository") {}
 

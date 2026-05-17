@@ -21,3 +21,6 @@ export type GetParticipantsExportDataInput = Schema.Schema.Type<typeof GetPartic
 export type GetSubmissionsExportDataInput = Schema.Schema.Type<typeof GetSubmissionsExportDataInputSchema>
 export type GetExifExportDataInput = Schema.Schema.Type<typeof GetExifExportDataInputSchema>
 export type GetValidationResultsExportDataInput = Schema.Schema.Type<typeof GetValidationResultsExportDataInputSchema>
+
+/** Shared `{ domain }` shape for exports that scope only by marathon domain. */
+export type DomainScopedExportInput = GetParticipantsExportDataInput

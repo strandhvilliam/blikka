@@ -1,3 +1,4 @@
+import type { NewParticipant } from "@blikka/db";
 import { Schema } from "effect";
 
 export const GetPublicParticipantByReferenceInputSchema =
@@ -112,3 +113,14 @@ export type VerifyParticipantInput = Schema.Schema.Type<typeof VerifyParticipant
 export type UpdateByCameraParticipantContactInput = Schema.Schema.Type<typeof UpdateByCameraParticipantContactInputSchema>
 export type UpdateMarathonParticipantContactInput = Schema.Schema.Type<typeof UpdateMarathonParticipantContactInputSchema>
 export type PublicParticipant = Schema.Schema.Type<typeof PublicParticipantSchema>
+
+/** Insert payload minus phone-secret columns; the participant service hashes/encrypts optional `phoneNumber`. */
+export type CreateParticipantParticipantRow = Omit<
+  NewParticipant,
+  "phoneHash" | "phoneEncrypted"
+>;
+
+export type CreateParticipantInput = {
+  data: CreateParticipantParticipantRow;
+  phoneNumber?: string | undefined;
+};

@@ -57,3 +57,9 @@ export type GetZipDownloadProgressInput = Schema.Schema.Type<typeof GetZipDownlo
 export type GetZipDownloadProgressOutput = Schema.Schema.Type<typeof GetZipDownloadProgressOutputSchema>
 export type GetActiveProcessInput = Schema.Schema.Type<typeof GetActiveProcessInputSchema>
 export type CancelDownloadProcessInput = Schema.Schema.Type<typeof CancelDownloadProcessInputSchema>
+
+/** Narrowing of {@link GetZipDownloadProgressInput} after domain-scoped middleware; service lookups use `processId` only. */
+export type ZipDownloadsByProcessIdInput = Pick<
+  GetZipDownloadProgressInput,
+  "processId"
+>
