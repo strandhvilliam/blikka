@@ -71,15 +71,6 @@ interface SubmissionExportRow {
   thumbnailKey: string
 }
 
-interface ExifExportRow {
-  submissionId: number
-  participantReference: string
-  topicName: string
-  originalKey: string
-  exifData: Record<string, unknown>
-  uploadDate: string
-}
-
 interface ValidationResultExportRow {
   participantId: number
   participantReference: string
@@ -132,11 +123,6 @@ export class ExportsService extends Context.Service<
       DbError | BadRequestError | NotFoundError,
       never
     >
-
-    /** EXIF payloads keyed by submission for export. */
-    readonly getExifExportData: (
-      input: DomainScopedExportInput,
-    ) => Effect.Effect<ExifExportRow[], DbError | BadRequestError, never>
 
     /** Validation result rows for organizer export; optional failed-only filter. */
     readonly getValidationResultsExportData: (
@@ -429,22 +415,6 @@ const makeExportsService = Effect.gen(function* () {
       },
     )
 
-  const getExifExportData: ExportsService["Service"]["getExifExportData"] =
-    Effect.fn("ExportsService.getExifExportData")(
-      function* ({ domain }) {
-        try {
-          return yield* exportsRepository.getExifDataForExport({ domain })
-        } catch (error) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: "Failed to fetch EXIF export data",
-              cause: error,
-            }),
-          )
-        }
-      },
-    )
-
   const getValidationResultsExportData: ExportsService["Service"]["getValidationResultsExportData"] =
     Effect.fn("ExportsService.getValidationResultsExportData")(
       function* ({ domain, onlyFailed }) {
@@ -553,7 +523,6 @@ const makeExportsService = Effect.gen(function* () {
     getParticipantsExportDataByCameraAllTopics,
     getSubmissionsExportData,
     getSubmissionsExportDataByCameraActiveTopic,
-    getExifExportData,
     getValidationResultsExportData,
     getValidationResultsExportDataByCameraActiveTopic,
     buildByCameraActiveTopicImagesZip,

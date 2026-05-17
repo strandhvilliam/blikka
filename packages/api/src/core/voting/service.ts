@@ -23,7 +23,6 @@ import type {
   ClearVote,
   CloseTopicVotingWindow,
   CreateManualVotingSession,
-  CreateOrUpdateVotingSession,
   DeleteVotingSession,
   GetParticipantsWithoutVotingSession,
   GetSubmissionVoteStats,
@@ -31,12 +30,10 @@ import type {
   GetVotingLeaderboardPage,
   GetVotingRoundsForTopic,
   GetVotingSession,
-  GetVotingSessionByParticipant,
   GetVotingSubmissions,
   GetVotingVotersPage,
   ReopenTopicVotingWindow,
   ResendVotingSessionNotification,
-  SetTopicVotingWindow,
   StartTiebreakRound,
   StartVotingSessions,
   StartVotingSessionsForParticipants,
@@ -350,14 +347,6 @@ export class VotingService extends Context.Service<
       never
     >
     /**
-     * Upserts scheduling for the voting window on the active by-camera topic.
-     */
-    readonly setTopicVotingWindow: (input: SetTopicVotingWindow) => Effect.Effect<
-      { topicId: number; startsAt: string; endsAt: string | null },
-      DbError | BadRequestError,
-      never
-    >
-    /**
      * Closes an in-progress voting window early for the active by-camera topic.
      */
     readonly closeTopicVotingWindow: (input: CloseTopicVotingWindow) => Effect.Effect<
@@ -455,91 +444,6 @@ export class VotingService extends Context.Service<
         roundKind: string | null
       },
       DbError | BadRequestError,
-      never
-    >
-    /**
-     * Creates or revisits participant-linked invites during voting, with optional SMS pushes.
-     */
-    readonly createOrUpdateVotingSessionForParticipant: (
-      input: CreateOrUpdateVotingSession,
-    ) => Effect.Effect<
-      | {
-          action: "already_voted"
-          session: {
-            id: number
-            createdAt: string
-            updatedAt: string | null
-            marathonId: number
-            email: string
-            phoneHash: string | null
-            phoneEncrypted: string | null
-            topicId: number
-            token: string
-            firstName: string
-            lastName: string
-            notificationLastSentAt: string | null
-            voteSubmissionId: number | null
-            connectedParticipantId: number | null
-            votedAt: string | null
-          }
-          smsSent?: undefined
-          smsError?: undefined
-        }
-      | {
-          action: string
-          session: {
-            notificationLastSentAt: string | null
-            id: number
-            createdAt: string
-            updatedAt: string | null
-            marathonId: number
-            email: string
-            phoneHash: string | null
-            phoneEncrypted: string | null
-            topicId: number
-            token: string
-            firstName: string
-            lastName: string
-            voteSubmissionId: number | null
-            connectedParticipantId: number | null
-            votedAt: string | null
-          }
-          smsSent: boolean
-          smsError: string | null
-        },
-      DbError | BadRequestError,
-      never
-    >
-    /**
-     * Reports whether voting exists for `(participantId, topicId)` and summarizes vote linkage.
-     */
-    readonly getVotingSessionByParticipant: (
-      input: GetVotingSessionByParticipant,
-    ) => Effect.Effect<
-      | { hasSession: false }
-      | {
-          hasSession: true
-          session: {
-            id: number
-            createdAt: string
-            updatedAt: string | null
-            marathonId: number
-            email: string
-            phoneHash: string | null
-            phoneEncrypted: string | null
-            topicId: number
-            token: string
-            firstName: string
-            lastName: string
-            notificationLastSentAt: string | null
-            voteSubmissionId: number | null
-            connectedParticipantId: number | null
-            votedAt: string | null
-          }
-          hasVoted: boolean
-          notificationLastSentAt: string | null
-        },
-      DbError,
       never
     >
     /**
@@ -1388,67 +1292,6 @@ const makeVotingService = Effect.gen(function* () {
       }
     })
 
-  const setTopicVotingWindow: VotingService["Service"]["setTopicVotingWindow"] =
-    Effect.fn("VotingService.setTopicVotingWindow")(function* ({
-      domain,
-      topicId,
-      startsAt,
-      endsAt,
-    }) {
-      const { startsAtIso, endsAtIso } = yield* parseVotingWindow({
-        startsAt,
-        endsAt,
-      })
-
-      const { marathon, topic, activeTopic } =
-        yield* getByCameraMarathonWithTopic({
-          domain,
-          topicId,
-        })
-
-      if (!activeTopic || activeTopic.id !== topic.id) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message:
-              "Voting window can only be configured for the active by-camera topic",
-          }),
-        )
-      }
-
-      const latestRound = yield* getLatestVotingRoundForTopic({
-        marathonId: marathon.id,
-        topicId,
-      })
-
-      if (!latestRound) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: "No voting round found for this topic",
-          }),
-        )
-      }
-
-      const window = yield* votingRepository.upsertTopicVotingWindow({
-        marathonId: marathon.id,
-        topicId,
-        startsAt: startsAtIso,
-        endsAt: endsAtIso,
-      })
-      if (!window) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: "Failed to upsert voting window",
-          }),
-        )
-      }
-
-      return {
-        topicId,
-        startsAt: window.startsAt,
-        endsAt: window.endsAt,
-      }
-    })
-
   const closeTopicVotingWindow: VotingService["Service"]["closeTopicVotingWindow"] =
     Effect.fn("VotingService.closeTopicVotingWindow")(function* ({
       domain,
@@ -2140,231 +1983,6 @@ const makeVotingService = Effect.gen(function* () {
         ...stats,
         participantVoteInfo,
       }
-    })
-
-  const createOrUpdateVotingSessionForParticipant: VotingService["Service"]["createOrUpdateVotingSessionForParticipant"] =
-    Effect.fn("VotingService.createOrUpdateVotingSessionForParticipant")(
-      function* ({ participantId, domain, topicId }) {
-        const marathonOpt =
-          yield* marathonsRepository.getMarathonByDomainWithOptions({
-            domain,
-          })
-
-        const marathon = yield* Option.match(marathonOpt, {
-          onSome: (m) => Effect.succeed(m),
-          onNone: () =>
-            Effect.fail(
-              new BadRequestError({
-                message: `Marathon not found for domain ${domain}`,
-              }),
-            ),
-        })
-
-        if (marathon.mode !== "by-camera") {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: `Marathon '${marathon.domain}' is not in by-camera mode`,
-            }),
-          )
-        }
-
-        const participantOpt = yield* participantsRepository.getParticipantById(
-          {
-            id: participantId,
-          },
-        )
-
-        const participant = yield* Option.match(participantOpt, {
-          onSome: (p) => Effect.succeed(p),
-          onNone: () =>
-            Effect.fail(
-              new BadRequestError({
-                message: `Participant not found with id ${participantId}`,
-              }),
-            ),
-        })
-
-        const submissions =
-          yield* submissionsRepository.getSubmissionsByParticipantId({
-            participantId,
-          })
-
-        if (!submissions.some((submission) => submission.topicId === topicId)) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: "Participant has no submissions for this topic",
-            }),
-          )
-        }
-
-        const votingWindow = yield* getTopicVotingWindow({
-          marathonId: marathon.id,
-          topicId,
-        })
-
-        yield* ensureVotingSessionWindow(votingWindow)
-
-        const existingSessionOpt =
-          yield* votingRepository.getVotingSessionByParticipantAndTopicId({
-            participantId,
-            topicId,
-          })
-        const latestRound = yield* getLatestVotingRoundForTopic({
-          marathonId: marathon.id,
-          topicId,
-        })
-
-        if (Option.isSome(existingSessionOpt)) {
-          const existingSession = existingSessionOpt.value
-          const latestRoundVote = latestRound
-            ? yield* votingRepository.getVotingRoundVoteForSession({
-                roundId: latestRound.id,
-                sessionId: existingSession.id,
-              })
-            : Option.none()
-
-          if (Option.isSome(latestRoundVote)) {
-            return {
-              action: "already_voted" as const,
-              session: existingSession,
-            }
-          }
-        }
-
-        const nowIso = new Date().toISOString()
-
-        const sessionData: NewVotingSession = {
-          token: yield* generateUniqueToken(),
-          firstName: participant.firstname,
-          lastName: participant.lastname,
-          email: participant.email ?? "",
-          phoneHash: participant.phoneHash,
-          phoneEncrypted: participant.phoneEncrypted,
-          marathonId: marathon.id,
-          voteSubmissionId: null,
-          connectedParticipantId: participantId,
-          notificationLastSentAt: Option.isSome(existingSessionOpt)
-            ? existingSessionOpt.value.notificationLastSentAt
-            : null,
-          topicId,
-        }
-
-        const session = yield* votingRepository.upsertVotingSession(sessionData)
-
-        let smsResult = null
-        if (session.phoneEncrypted && shouldSendVotingSms) {
-          const smsResult_ = yield* Effect.gen(function* () {
-            const phoneNumber = yield* phoneEncryption.decrypt({
-              encrypted: session.phoneEncrypted as EncryptedPhoneNumber,
-            })
-
-            const message = buildVotingInviteMessage({
-              marathonName: marathon.name,
-              domain,
-              token: session.token,
-            })
-
-            const result = yield* smsService.sendWithOptOutCheck({
-              phoneNumber,
-              message,
-            })
-
-            return {
-              phoneNumber,
-              smsResult: result,
-            }
-          }).pipe(
-            Effect.catch((error) =>
-              Effect.succeed({
-                phoneNumber: null,
-                error: String(error),
-              }),
-            ),
-          )
-          smsResult = smsResult_
-        }
-
-        const notificationLastSentAt =
-          smsResult && !("error" in smsResult)
-            ? nowIso
-            : session.notificationLastSentAt
-
-        if (notificationLastSentAt !== session.notificationLastSentAt) {
-          yield* votingRepository.updateMultipleLastNotificationSentAt({
-            ids: [session.id],
-            notificationLastSentAt,
-          })
-        }
-
-        const action = Option.isSome(existingSessionOpt) ? "resent" : "created"
-
-        return {
-          action,
-          session: {
-            ...session,
-            notificationLastSentAt,
-          },
-          smsSent: smsResult !== null && !("error" in smsResult),
-          smsError: smsResult && "error" in smsResult ? smsResult.error : null,
-        }
-      },
-    )
-
-  const getVotingSessionByParticipant: VotingService["Service"]["getVotingSessionByParticipant"] =
-    Effect.fn("VotingService.getVotingSessionByParticipant")(function* ({
-      participantId,
-      topicId,
-      domain,
-    }) {
-      const marathonOpt = yield* marathonsRepository.getMarathonByDomain({
-        domain,
-      })
-
-      if (Option.isNone(marathonOpt)) {
-        return { hasSession: false as const }
-      }
-
-      const marathonId = marathonOpt.value.id
-
-      const sessionOpt =
-        yield* votingRepository.getVotingSessionByParticipantAndTopicId({
-          participantId,
-          topicId,
-        })
-
-      if (
-        Option.isSome(sessionOpt) &&
-        sessionOpt.value.marathonId !== marathonId
-      ) {
-        return { hasSession: false as const }
-      }
-
-      const session = Option.getOrUndefined(sessionOpt)
-      const latestRound = session
-        ? yield* getLatestVotingRoundForTopic({
-            marathonId: session.marathonId,
-            topicId,
-          })
-        : null
-      const latestVote =
-        session && latestRound
-          ? yield* votingRepository.getVotingRoundVoteForSession({
-              roundId: latestRound.id,
-              sessionId: session.id,
-            })
-          : Option.none()
-
-      return Option.match(sessionOpt, {
-        onSome: (session) => ({
-          hasSession: true as const,
-          session,
-          hasVoted: Option.isSome(latestVote),
-          notificationLastSentAt: session.notificationLastSentAt,
-        }),
-        onNone: () => ({
-          hasSession: false as const,
-        }),
-      })
     })
 
   const getVotingAdminSummary: VotingService["Service"]["getVotingAdminSummary"] =
@@ -3264,7 +2882,6 @@ const makeVotingService = Effect.gen(function* () {
 
   return VotingService.of({
     getVotingSession,
-    setTopicVotingWindow,
     closeTopicVotingWindow,
     reopenTopicVotingWindow,
     startTiebreakRound,
@@ -3272,8 +2889,6 @@ const makeVotingService = Effect.gen(function* () {
     getParticipantsWithoutVotingSession,
     startVotingSessionsForParticipants,
     getSubmissionVoteStats,
-    createOrUpdateVotingSessionForParticipant,
-    getVotingSessionByParticipant,
     getVotingAdminSummary,
     getVotingRoundsForTopic,
     getVotingLeaderboardPage,

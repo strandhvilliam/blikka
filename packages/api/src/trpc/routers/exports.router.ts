@@ -11,7 +11,6 @@ import { trpcEffect } from "../utils";
 import {
   GetParticipantsExportDataInputSchema,
   GetSubmissionsExportDataInputSchema,
-  GetExifExportDataInputSchema,
   GetValidationResultsExportDataInputSchema,
 } from "../../core/exports/contracts";
 import { ExportsService } from "../../core/exports/service";
@@ -99,21 +98,6 @@ export const exportsRouter = createTRPCRouter({
             );
           },
         ),
-      ),
-    ),
-
-  getExifExportData: domainProcedure
-    .input(Schema.toStandardSchemaV1(GetExifExportDataInputSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .query(
-      trpcEffect(
-        Effect.fn("ExportsRouter.getExifExportData")(function* ({ input }) {
-          return yield* ExportsService.use((s) =>
-            s.getExifExportData({
-              domain: input.domain,
-            }),
-          );
-        }),
       ),
     ),
 

@@ -102,12 +102,6 @@ export const UpdateJuryRatingSchema = Schema.Struct({
     finalRanking: Schema.optional(Schema.NullOr(JuryFinalRankingValueSchema)),
   });
 
-export const GetJuryRatingSchema = Schema.Struct({
-    token: Schema.String,
-    domain: Schema.String,
-    participantId: Schema.Number,
-  });
-
 export const DeleteJuryRatingSchema = Schema.Struct({
     token: Schema.String,
     domain: Schema.String,
@@ -137,6 +131,5 @@ export type GetJuryRatingsByInvitation = Schema.Schema.Type<typeof GetJuryRating
 export type GetJuryParticipantCount = Schema.Schema.Type<typeof GetJuryParticipantCountSchema>
 export type CreateJuryRating = Schema.Schema.Type<typeof CreateJuryRatingSchema>
 export type UpdateJuryRating = Schema.Schema.Type<typeof UpdateJuryRatingSchema>
-export type GetJuryRating = Schema.Schema.Type<typeof GetJuryRatingSchema>
 export type DeleteJuryRating = Schema.Schema.Type<typeof DeleteJuryRatingSchema>
 export type UpdateJuryInvitationStatusByToken = Schema.Schema.Type<typeof UpdateJuryInvitationStatusByTokenSchema>

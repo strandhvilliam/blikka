@@ -13,7 +13,6 @@ import {
   type ParticipantWithTopicSubmissionsAndContactSheets,
   type ParticipantsBatchDeletionResult,
   type ParticipantsBatchIdsMutationResult,
-  type ParticipantsDashboardOverview,
 } from "@blikka/db"
 import {
   RealtimeEventsService,
@@ -27,7 +26,6 @@ import {
   type CreateParticipantInput,
   type GetByDomainInfiniteInput,
   type GetByReferenceInput,
-  type GetDashboardOverviewInput,
   type GetPublicParticipantByReferenceInput,
   type PublicParticipant,
   type UpdateByCameraParticipantContactInput,
@@ -55,8 +53,10 @@ import { sendParticipantVerifiedEmail } from "./notifications"
  * Repo infinite-list row minus `phoneEncrypted`, with decrypted `phoneNumber` for admins;
  * excludes `phoneHash` at persistence (see repository query).
  */
-interface InfiniteParticipantsDomainRowPublic
-  extends Omit<InfiniteDomainParticipantRow, "phoneEncrypted"> {
+interface InfiniteParticipantsDomainRowPublic extends Omit<
+  InfiniteDomainParticipantRow,
+  "phoneEncrypted"
+> {
   phoneNumber: string | null
 }
 
@@ -64,14 +64,15 @@ interface InfiniteParticipantsDomainRowPublic
  * Cursor page of {@link InfiniteParticipantsDomainRowPublic} plus `nextCursor`;
  * replaces ciphertext with a decrypted display phone at the API layer.
  */
-interface InfiniteParticipantsPageWithDecryptPhoneNumbers
-  extends Omit<InfiniteParticipantsPage, "participants"> {
+interface InfiniteParticipantsPageWithDecryptPhoneNumbers extends Omit<
+  InfiniteParticipantsPage,
+  "participants"
+> {
   participants: InfiniteParticipantsDomainRowPublic[]
 }
 
 /** Full participant + relations after decrypting `phoneEncrypted` into `phoneNumber` (dashboard / admin flows). */
-interface ParticipantDetailWithDecryptPhone
-  extends ParticipantWithTopicSubmissionsAndContactSheets {
+interface ParticipantDetailWithDecryptPhone extends ParticipantWithTopicSubmissionsAndContactSheets {
   phoneNumber: string | null
 }
 
@@ -94,22 +95,13 @@ export class ParticipantsService extends Context.Service<
       input: GetByDomainInfiniteInput,
     ) => Effect.Effect<InfiniteParticipantsPageWithDecryptPhoneNumbers, DbError, never>
 
-    /** Aggregate counts and a short recent list for organizer dashboards keyed by marathon `domain`. */
-    readonly getDashboardOverview: (
-      input: GetDashboardOverviewInput,
-    ) => Effect.Effect<ParticipantsDashboardOverview, DbError, never>
-
     /**
      * Participant with submissions, zipped files, validations, contact sheets, and decrypted `phoneNumber`
      * for the given `reference` and `domain`, or fails if missing.
      */
     readonly getByReference: (
       input: GetByReferenceInput,
-    ) => Effect.Effect<
-      ParticipantDetailWithDecryptPhone,
-      DbError | NotFoundError,
-      never
-    >
+    ) => Effect.Effect<ParticipantDetailWithDecryptPhone, DbError | NotFoundError, never>
 
     /** Deletes the participant matched by `reference` and `domain` after verifying they exist. */
     readonly deleteByReference: (
@@ -119,27 +111,27 @@ export class ParticipantsService extends Context.Service<
     /**
      * Persists a new participant; optional `phoneNumber` is hashed and encrypted before insert.
      */
-    readonly createParticipant: (input: CreateParticipantInput) => Effect.Effect<
-      Participant,
-      DbError | PhoneNumberEncryptionError,
-      never
-    >
+    readonly createParticipant: (
+      input: CreateParticipantInput,
+    ) => Effect.Effect<Participant, DbError | PhoneNumberEncryptionError, never>
 
     /** Deletes many participants by id, scoped to `domain`; returns how many succeeded and which ids failed. */
-    readonly batchDelete: (input: BatchDeleteInput) => Effect.Effect<ParticipantsBatchDeletionResult, DbError, never>
+    readonly batchDelete: (
+      input: BatchDeleteInput,
+    ) => Effect.Effect<ParticipantsBatchDeletionResult, DbError, never>
 
     /**
      * Marks many participants verified for `domain`, emits realtime “participant-verified”, and triggers
      * verification emails when possible; skips failed ids without aborting the rest.
      */
-    readonly batchVerify: (input: BatchVerifyInput) => Effect.Effect<
-      ParticipantsBatchIdsMutationResult,
-      DbError | RealtimeError,
-      EmailService
-    >
+    readonly batchVerify: (
+      input: BatchVerifyInput,
+    ) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError | RealtimeError, EmailService>
 
     /** Completes multiple participants (`completed` path) scoped to `domain`; reports per-id failures. */
-    readonly batchMarkCompleted: (input: BatchMarkCompletedInput) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError, never>
+    readonly batchMarkCompleted: (
+      input: BatchMarkCompletedInput,
+    ) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError, never>
 
     /**
      * For by-camera marathons only: trims and validates contact fields, rejects duplicate phones for others,
@@ -165,10 +157,7 @@ export class ParticipantsService extends Context.Service<
       input: UpdateMarathonParticipantContactInput,
     ) => Effect.Effect<
       undefined,
-      | DbError
-      | NotFoundError
-      | BadRequestError
-      | PreconditionFailedError,
+      DbError | NotFoundError | BadRequestError | PreconditionFailedError,
       never
     >
 
@@ -176,11 +165,9 @@ export class ParticipantsService extends Context.Service<
      * Verifies a single participant by `id` within `domain` (delegates to `batchVerify` with one id);
      * notifies via realtime + email consistent with bulk verify.
      */
-    readonly verifyParticipant: (input: VerifyParticipantInput) => Effect.Effect<
-      ParticipantsBatchIdsMutationResult,
-      DbError | RealtimeError,
-      EmailService
-    >
+    readonly verifyParticipant: (
+      input: VerifyParticipantInput,
+    ) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError | RealtimeError, EmailService>
   }
 >()("@blikka/api/ParticipantsService") {}
 
@@ -194,204 +181,175 @@ const makeParticipantsService = Effect.gen(function* () {
   )
 
   const getPublicParticipantByReference: ParticipantsService["Service"]["getPublicParticipantByReference"] =
-    Effect.fn("ParticipantsService.getPublicParticipantByReference")(
-      function* ({ reference, domain }) {
-        const result =
-          yield* participantsRepository.getParticipantByReference({
-            reference,
-            domain,
-          })
+    Effect.fn("ParticipantsService.getPublicParticipantByReference")(function* ({
+      reference,
+      domain,
+    }) {
+      const result = yield* participantsRepository.getParticipantByReference({
+        reference,
+        domain,
+      })
 
-        if (Option.isNone(result)) {
-          return yield* Effect.fail(
-            new NotFoundError({
-              resource: "Participant",
-              identifier: { reference, domain },
-            }),
-          )
-        }
+      if (Option.isNone(result)) {
+        return yield* Effect.fail(
+          new NotFoundError({
+            resource: "Participant",
+            identifier: { reference, domain },
+          }),
+        )
+      }
 
-        return {
-          reference: result.value.reference,
-          domain: result.value.domain,
-          status: result.value.status,
-          publicSubmissions: result.value.submissions.map((submission) => ({
-            topic: {
-              name:
-                submission.topic.visibility === "public" ||
-                submission.topic.visibility === "active"
-                  ? submission.topic.name
-                  : "",
-              orderIndex: submission.topic.orderIndex,
-            },
-            status: submission.status,
-            createdAt: submission.createdAt,
-            key: submission.key,
-            thumbnailKey: submission.thumbnailKey,
-          })),
-          competitionClass: {
-            name: result.value.competitionClass?.name ?? "",
-            description: result.value.competitionClass?.description ?? "",
+      return {
+        reference: result.value.reference,
+        domain: result.value.domain,
+        status: result.value.status,
+        publicSubmissions: result.value.submissions.map((submission) => ({
+          topic: {
+            name:
+              submission.topic.visibility === "public" || submission.topic.visibility === "active"
+                ? submission.topic.name
+                : "",
+            orderIndex: submission.topic.orderIndex,
           },
-          deviceGroup: {
-            name: result.value.deviceGroup?.name ?? "",
-            description: result.value.deviceGroup?.description ?? "",
-            icon: result.value.deviceGroup?.icon ?? "",
-          },
-        }
-      },
-    )
+          status: submission.status,
+          createdAt: submission.createdAt,
+          key: submission.key,
+          thumbnailKey: submission.thumbnailKey,
+        })),
+        competitionClass: {
+          name: result.value.competitionClass?.name ?? "",
+          description: result.value.competitionClass?.description ?? "",
+        },
+        deviceGroup: {
+          name: result.value.deviceGroup?.name ?? "",
+          description: result.value.deviceGroup?.description ?? "",
+          icon: result.value.deviceGroup?.icon ?? "",
+        },
+      }
+    })
 
   const getInfiniteParticipantsByDomain: ParticipantsService["Service"]["getInfiniteParticipantsByDomain"] =
-    Effect.fn("ParticipantsService.getInfiniteParticipantsByDomain")(
-      function* ({
+    Effect.fn("ParticipantsService.getInfiniteParticipantsByDomain")(function* ({
+      domain,
+      cursor,
+      limit,
+      search,
+      sortOrder,
+      competitionClassId,
+      deviceGroupId,
+      topicId,
+      statusFilter,
+      excludeStatuses,
+      includeStatuses,
+      hasValidationErrors,
+      votedFilter,
+    }) {
+      const page = yield* participantsRepository.getInfiniteParticipantsByDomain({
         domain,
-        cursor,
-        limit,
-        search,
-        sortOrder,
-        competitionClassId,
-        deviceGroupId,
-        topicId,
-        statusFilter,
-        excludeStatuses,
-        includeStatuses,
-        hasValidationErrors,
-        votedFilter,
-      }) {
-        const page =
-          yield* participantsRepository.getInfiniteParticipantsByDomain({
-            domain,
-            cursor: cursor ?? undefined,
-            limit: limit ?? undefined,
-            search: search ?? undefined,
-            sortOrder: sortOrder ?? undefined,
-            competitionClassId: competitionClassId ?? undefined,
-            deviceGroupId: deviceGroupId ?? undefined,
-            topicId: topicId ?? undefined,
-            statusFilter: statusFilter ?? undefined,
-            excludeStatuses:
-              excludeStatuses == null ? undefined : [...excludeStatuses],
-            includeStatuses:
-              includeStatuses == null ? undefined : [...includeStatuses],
-            hasValidationErrors: hasValidationErrors ?? undefined,
-            votedFilter: votedFilter ?? undefined,
+        cursor: cursor ?? undefined,
+        limit: limit ?? undefined,
+        search: search ?? undefined,
+        sortOrder: sortOrder ?? undefined,
+        competitionClassId: competitionClassId ?? undefined,
+        deviceGroupId: deviceGroupId ?? undefined,
+        topicId: topicId ?? undefined,
+        statusFilter: statusFilter ?? undefined,
+        excludeStatuses: excludeStatuses == null ? undefined : [...excludeStatuses],
+        includeStatuses: includeStatuses == null ? undefined : [...includeStatuses],
+        hasValidationErrors: hasValidationErrors ?? undefined,
+        votedFilter: votedFilter ?? undefined,
+      })
+
+      const participantsWithPhone = yield* Effect.forEach(
+        page.participants,
+        (participant) =>
+          Effect.gen(function* () {
+            const { phoneEncrypted, ...rest } = participant
+            const phoneNumber = yield* Option.match(Option.fromNullishOr(phoneEncrypted), {
+              onNone: () => Effect.succeed<string | null>(null),
+              onSome: (encrypted) =>
+                phoneEncryption
+                  .decrypt({
+                    encrypted: encrypted as EncryptedPhoneNumber,
+                  })
+                  .pipe(Effect.catch(() => Effect.succeed<string | null>(null))),
+            })
+            return { ...rest, phoneNumber }
+          }),
+        { concurrency: 8 },
+      )
+
+      return {
+        participants: participantsWithPhone,
+        nextCursor: page.nextCursor,
+      }
+    })
+
+  const getByReference: ParticipantsService["Service"]["getByReference"] = Effect.fn(
+    "ParticipantsService.getByReference",
+  )(function* ({ reference, domain }) {
+    const result = yield* participantsRepository.getParticipantByReference({
+      reference,
+      domain,
+    })
+
+    if (Option.isNone(result)) {
+      return yield* Effect.fail(
+        new NotFoundError({
+          resource: "Participant",
+          identifier: { reference, domain },
+        }),
+      )
+    }
+    const row = result.value
+    const phoneNumber = yield* Option.match(Option.fromNullishOr(row.phoneEncrypted), {
+      onNone: () => Effect.succeed<string | null>(null),
+      onSome: (encrypted) =>
+        phoneEncryption
+          .decrypt({
+            encrypted: encrypted as EncryptedPhoneNumber,
           })
+          .pipe(Effect.catch(() => Effect.succeed<string | null>(null))),
+    })
+    return { ...row, phoneNumber }
+  })
 
-        const participantsWithPhone = yield* Effect.forEach(
-          page.participants,
-          (participant) =>
-            Effect.gen(function* () {
-              const { phoneEncrypted, ...rest } = participant
-              const phoneNumber = yield* Option.match(
-                Option.fromNullishOr(phoneEncrypted),
-                {
-                  onNone: () => Effect.succeed<string | null>(null),
-                  onSome: (encrypted) =>
-                    phoneEncryption
-                      .decrypt({
-                        encrypted: encrypted as EncryptedPhoneNumber,
-                      })
-                      .pipe(
-                        Effect.catch(() =>
-                          Effect.succeed<string | null>(null),
-                        ),
-                      ),
-                },
-              )
-              return { ...rest, phoneNumber }
-            }),
-          { concurrency: 8 },
-        )
+  const deleteByReference: ParticipantsService["Service"]["deleteByReference"] = Effect.fn(
+    "ParticipantsService.deleteByReference",
+  )(function* ({ reference, domain }) {
+    const participant = yield* getByReference({ reference, domain })
+    return yield* participantsRepository.deleteParticipant({
+      id: participant.id,
+    })
+  })
 
-        return {
-          participants: participantsWithPhone,
-          nextCursor: page.nextCursor,
-        }
-      },
-    )
+  const createParticipant: ParticipantsService["Service"]["createParticipant"] = Effect.fn(
+    "ParticipantsService.createParticipant",
+  )(function* ({ data, phoneNumber }) {
+    let participantData: NewParticipant = {
+      ...data,
+      phoneHash: null,
+      phoneEncrypted: null,
+    }
 
-  const getDashboardOverview: ParticipantsService["Service"]["getDashboardOverview"] =
-    Effect.fn("ParticipantsService.getDashboardOverview")(
-      function* ({ domain }) {
-        return yield* participantsRepository.getDashboardOverview({ domain })
-      },
-    )
+    // If a phone number is provided, encrypt it and store both hash and encrypted value
+    if (phoneNumber) {
+      const { hash, encrypted } = yield* phoneEncryption.encrypt({
+        phoneNumber,
+      })
+      participantData = {
+        ...participantData,
+        phoneHash: hash,
+        phoneEncrypted: encrypted,
+      }
+    }
 
-  const getByReference: ParticipantsService["Service"]["getByReference"] =
-    Effect.fn("ParticipantsService.getByReference")(
-      function* ({ reference, domain }) {
-        const result =
-          yield* participantsRepository.getParticipantByReference({
-            reference,
-            domain,
-          })
+    const result = yield* participantsRepository.createParticipant({
+      data: participantData,
+    })
 
-        if (Option.isNone(result)) {
-          return yield* Effect.fail(
-            new NotFoundError({
-              resource: "Participant",
-              identifier: { reference, domain },
-            }),
-          )
-        }
-        const row = result.value
-        const phoneNumber = yield* Option.match(
-          Option.fromNullishOr(row.phoneEncrypted),
-          {
-            onNone: () => Effect.succeed<string | null>(null),
-            onSome: (encrypted) =>
-              phoneEncryption
-                .decrypt({
-                  encrypted: encrypted as EncryptedPhoneNumber,
-                })
-                .pipe(
-                  Effect.catch(() => Effect.succeed<string | null>(null)),
-                ),
-          },
-        )
-        return { ...row, phoneNumber }
-      },
-    )
-
-  const deleteByReference: ParticipantsService["Service"]["deleteByReference"] =
-    Effect.fn("ParticipantsService.deleteByReference")(
-      function* ({ reference, domain }) {
-        const participant = yield* getByReference({ reference, domain })
-        return yield* participantsRepository.deleteParticipant({
-          id: participant.id,
-        })
-      },
-    )
-
-  const createParticipant: ParticipantsService["Service"]["createParticipant"] =
-    Effect.fn("ParticipantsService.createParticipant")(
-      function* ({ data, phoneNumber }) {
-        let participantData: NewParticipant = {
-          ...data,
-          phoneHash: null,
-          phoneEncrypted: null,
-        }
-
-        // If a phone number is provided, encrypt it and store both hash and encrypted value
-        if (phoneNumber) {
-          const { hash, encrypted } = yield* phoneEncryption.encrypt({
-            phoneNumber,
-          })
-          participantData = {
-            ...participantData,
-            phoneHash: hash,
-            phoneEncrypted: encrypted,
-          }
-        }
-
-        const result = yield* participantsRepository.createParticipant({
-          data: participantData,
-        })
-
-        return result
-      },
-    )
+    return result
+  })
 
   const batchDelete: ParticipantsService["Service"]["batchDelete"] = Effect.fn(
     "ParticipantsService.batchDelete",
@@ -460,202 +418,193 @@ const makeParticipantsService = Effect.gen(function* () {
     return result
   })
 
-  const batchMarkCompleted: ParticipantsService["Service"]["batchMarkCompleted"] =
-    Effect.fn("ParticipantsService.batchMarkCompleted")(
-      function* ({ ids, domain }) {
-        return yield* participantsRepository.batchMarkParticipantsCompleted({
-          ids: [...ids],
-          domain,
-        })
-      },
-    )
+  const batchMarkCompleted: ParticipantsService["Service"]["batchMarkCompleted"] = Effect.fn(
+    "ParticipantsService.batchMarkCompleted",
+  )(function* ({ ids, domain }) {
+    return yield* participantsRepository.batchMarkParticipantsCompleted({
+      ids: [...ids],
+      domain,
+    })
+  })
 
   const updateByCameraParticipantContact: ParticipantsService["Service"]["updateByCameraParticipantContact"] =
-    Effect.fn("ParticipantsService.updateByCameraParticipantContact")(
-      function* ({
-        domain,
-        reference,
-        firstname,
-        lastname,
-        email,
-        phone,
-      }) {
-        const first = firstname.trim()
-        const last = lastname.trim()
-        const mail = email.trim()
-        const phoneTrimmed = phone.trim()
+    Effect.fn("ParticipantsService.updateByCameraParticipantContact")(function* ({
+      domain,
+      reference,
+      firstname,
+      lastname,
+      email,
+      phone,
+    }) {
+      const first = firstname.trim()
+      const last = lastname.trim()
+      const mail = email.trim()
+      const phoneTrimmed = phone.trim()
 
-        if (!first || !last || !mail || !phoneTrimmed) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message:
-                "First name, last name, email, and phone are required",
-            }),
-          )
-        }
+      if (!first || !last || !mail || !phoneTrimmed) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: "First name, last name, email, and phone are required",
+          }),
+        )
+      }
 
-        const marathon = yield* marathonsRepository
-          .getMarathonByDomain({ domain })
-          .pipe(failNotFoundIfNone("Marathon", { domain }))
-        if (marathon.mode !== "by-camera") {
-          return yield* Effect.fail(
-            new PreconditionFailedError({
-              message: "Marathon is not in by-camera mode",
-            }),
-          )
-        }
+      const marathon = yield* marathonsRepository
+        .getMarathonByDomain({ domain })
+        .pipe(failNotFoundIfNone("Marathon", { domain }))
+      if (marathon.mode !== "by-camera") {
+        return yield* Effect.fail(
+          new PreconditionFailedError({
+            message: "Marathon is not in by-camera mode",
+          }),
+        )
+      }
 
-        const participant = yield* participantsRepository
-          .getParticipantByReference({ reference, domain })
-          .pipe(failNotFoundIfNone("Participant", { reference, domain }))
-        if (participant.participantMode !== "by-camera") {
-          return yield* Effect.fail(
-            new PreconditionFailedError({
-              message:
-                "Only by-camera participants can be updated with this action",
-            }),
-          )
-        }
+      const participant = yield* participantsRepository
+        .getParticipantByReference({ reference, domain })
+        .pipe(failNotFoundIfNone("Participant", { reference, domain }))
+      if (participant.participantMode !== "by-camera") {
+        return yield* Effect.fail(
+          new PreconditionFailedError({
+            message: "Only by-camera participants can be updated with this action",
+          }),
+        )
+      }
 
-        const phoneHash = yield* phoneEncryption.hashLookup({
-          phoneNumber: phoneTrimmed,
-        })
-        const existingByPhone =
-          yield* participantsRepository.getByPhoneHashForByCamera({
-            marathonId: marathon.id,
-            phoneHash,
-          })
-        if (
-          Option.isSome(existingByPhone) &&
-          existingByPhone.value.id !== participant.id
-        ) {
-          return yield* Effect.fail(
-            new ConflictError({
-              message:
-                "Another participant already uses this phone number",
-            }),
-          )
-        }
+      const phoneHash = yield* phoneEncryption.hashLookup({
+        phoneNumber: phoneTrimmed,
+      })
+      const existingByPhone = yield* participantsRepository.getByPhoneHashForByCamera({
+        marathonId: marathon.id,
+        phoneHash,
+      })
+      if (Option.isSome(existingByPhone) && existingByPhone.value.id !== participant.id) {
+        return yield* Effect.fail(
+          new ConflictError({
+            message: "Another participant already uses this phone number",
+          }),
+        )
+      }
 
-        const { hash, encrypted } = yield* phoneEncryption.encrypt({
-          phoneNumber: phoneTrimmed,
-        })
+      const { hash, encrypted } = yield* phoneEncryption.encrypt({
+        phoneNumber: phoneTrimmed,
+      })
 
-        yield* participantsRepository.updateParticipantById({
-          id: participant.id,
-          data: {
-            firstname: first,
-            lastname: last,
-            email: mail,
-            phoneHash: hash,
-            phoneEncrypted: encrypted,
-            updatedAt: new Date().toISOString(),
-          },
-        })
-      },
-    )
+      yield* participantsRepository.updateParticipantById({
+        id: participant.id,
+        data: {
+          firstname: first,
+          lastname: last,
+          email: mail,
+          phoneHash: hash,
+          phoneEncrypted: encrypted,
+          updatedAt: new Date().toISOString(),
+        },
+      })
+    })
 
   const updateMarathonParticipantContact: ParticipantsService["Service"]["updateMarathonParticipantContact"] =
-    Effect.fn("ParticipantsService.updateMarathonParticipantContact")(
-      function* ({ domain, reference, firstname, lastname, email }) {
-        const first = firstname.trim()
-        const last = lastname.trim()
-        const mail = email.trim()
+    Effect.fn("ParticipantsService.updateMarathonParticipantContact")(function* ({
+      domain,
+      reference,
+      firstname,
+      lastname,
+      email,
+    }) {
+      const first = firstname.trim()
+      const last = lastname.trim()
+      const mail = email.trim()
 
-        if (!first || !last || !mail) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: "First name, last name, and email are required",
-            }),
-          )
-        }
+      if (!first || !last || !mail) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: "First name, last name, and email are required",
+          }),
+        )
+      }
 
-        const marathon = yield* marathonsRepository
-          .getMarathonByDomain({ domain })
-          .pipe(failNotFoundIfNone("Marathon", { domain }))
-        if (marathon.mode !== "marathon") {
-          return yield* Effect.fail(
-            new PreconditionFailedError({
-              message: "Marathon is not in classic marathon mode",
-            }),
-          )
-        }
+      const marathon = yield* marathonsRepository
+        .getMarathonByDomain({ domain })
+        .pipe(failNotFoundIfNone("Marathon", { domain }))
+      if (marathon.mode !== "marathon") {
+        return yield* Effect.fail(
+          new PreconditionFailedError({
+            message: "Marathon is not in classic marathon mode",
+          }),
+        )
+      }
 
-        const participant = yield* participantsRepository
-          .getParticipantByReference({ reference, domain })
-          .pipe(failNotFoundIfNone("Participant", { reference, domain }))
-        if (participant.participantMode !== "marathon") {
-          return yield* Effect.fail(
-            new PreconditionFailedError({
-              message:
-                "Only classic marathon participants can be updated with this action",
-            }),
-          )
-        }
+      const participant = yield* participantsRepository
+        .getParticipantByReference({ reference, domain })
+        .pipe(failNotFoundIfNone("Participant", { reference, domain }))
+      if (participant.participantMode !== "marathon") {
+        return yield* Effect.fail(
+          new PreconditionFailedError({
+            message: "Only classic marathon participants can be updated with this action",
+          }),
+        )
+      }
 
-        yield* participantsRepository.updateParticipantById({
-          id: participant.id,
-          data: {
-            firstname: first,
-            lastname: last,
-            email: mail,
-            updatedAt: new Date().toISOString(),
-          },
-        })
-      },
-    )
+      yield* participantsRepository.updateParticipantById({
+        id: participant.id,
+        data: {
+          firstname: first,
+          lastname: last,
+          email: mail,
+          updatedAt: new Date().toISOString(),
+        },
+      })
+    })
 
-  const verifyParticipant: ParticipantsService["Service"]["verifyParticipant"] =
-    Effect.fn("ParticipantsService.verifyParticipant")(
-      function* ({ id, domain }) {
-        const result = yield* participantsRepository.batchVerifyParticipants({
-          ids: [id],
+  const verifyParticipant: ParticipantsService["Service"]["verifyParticipant"] = Effect.fn(
+    "ParticipantsService.verifyParticipant",
+  )(function* ({ id, domain }) {
+    const result = yield* participantsRepository.batchVerifyParticipants({
+      ids: [id],
+      domain,
+    })
+
+    if (result.updatedCount > 0) {
+      const participant = yield* participantsRepository.getParticipantById({
+        id,
+      })
+      const marathon = Option.getOrUndefined(
+        yield* marathonsRepository.getMarathonByDomain({
           domain,
+        }),
+      )
+
+      if (Option.isSome(participant)) {
+        yield* realtimeEvents.emitEventResult({
+          environment,
+          domain,
+          reference: participant.value.reference,
+          eventKey: "participant-verified",
+          outcome: "success",
+          timestamp: Date.now(),
+          channels: "participant",
         })
 
-        if (result.updatedCount > 0) {
-          const participant = yield* participantsRepository.getParticipantById({
-            id,
+        if (marathon) {
+          yield* sendParticipantVerifiedEmail({
+            participantEmail: participant.value.email,
+            participantFirstName: participant.value.firstname,
+            participantLastName: participant.value.lastname,
+            participantReference: participant.value.reference,
+            marathonName: marathon.name,
+            marathonLogoUrl: marathon.logoUrl,
+            marathonMode: marathon.mode,
           })
-          const marathon = Option.getOrUndefined(
-            yield* marathonsRepository.getMarathonByDomain({
-              domain,
-            }),
-          )
-
-          if (Option.isSome(participant)) {
-            yield* realtimeEvents.emitEventResult({
-              environment,
-              domain,
-              reference: participant.value.reference,
-              eventKey: "participant-verified",
-              outcome: "success",
-              timestamp: Date.now(),
-              channels: "participant",
-            })
-
-            if (marathon) {
-              yield* sendParticipantVerifiedEmail({
-                participantEmail: participant.value.email,
-                participantFirstName: participant.value.firstname,
-                participantLastName: participant.value.lastname,
-                participantReference: participant.value.reference,
-                marathonName: marathon.name,
-                marathonLogoUrl: marathon.logoUrl,
-                marathonMode: marathon.mode,
-              })
-            }
-          }
         }
+      }
+    }
 
-        return result
-      },
-    )
+    return result
+  })
 
   return ParticipantsService.of({
     getPublicParticipantByReference,
     getInfiniteParticipantsByDomain,
-    getDashboardOverview,
     getByReference,
     deleteByReference,
     createParticipant,

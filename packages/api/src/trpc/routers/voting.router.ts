@@ -4,14 +4,11 @@ import { Effect, Schema } from "effect"
 import {
   GetVotingSessionSchema,
   StartVotingSessionsSchema,
-  SetTopicVotingWindowSchema,
   CloseTopicVotingWindowSchema,
   ReopenTopicVotingWindowSchema,
   StartTiebreakRoundSchema,
   StartVotingSessionsForParticipantsSchema,
   GetSubmissionVoteStatsSchema,
-  CreateOrUpdateVotingSessionSchema,
-  GetVotingSessionByParticipantSchema,
   GetVotingAdminSummarySchema,
   GetVotingRoundsForTopicSchema,
   GetParticipantsWithoutVotingSessionSchema,
@@ -51,17 +48,6 @@ export const votingRouter = createTRPCRouter({
       trpcEffect(
         Effect.fn("VotingRouter.startVotingSessions")(function* ({ input }) {
           return yield* VotingService.use((s) => s.startVotingSessions(input))
-        }),
-      ),
-    ),
-
-  setTopicVotingWindow: domainProcedure
-    .input(Schema.toStandardSchemaV1(SetTopicVotingWindowSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .mutation(
-      trpcEffect(
-        Effect.fn("VotingRouter.setTopicVotingWindow")(function* ({ input }) {
-          return yield* VotingService.use((s) => s.setTopicVotingWindow(input))
         }),
       ),
     ),
@@ -106,30 +92,6 @@ export const votingRouter = createTRPCRouter({
       trpcEffect(
         Effect.fn("VotingRouter.getSubmissionVoteStats")(function* ({ input }) {
           return yield* VotingService.use((s) => s.getSubmissionVoteStats(input))
-        }),
-      ),
-    ),
-
-  createOrUpdateVotingSession: domainProcedure
-    .input(Schema.toStandardSchemaV1(CreateOrUpdateVotingSessionSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .mutation(
-      trpcEffect(
-        Effect.fn("VotingRouter.createOrUpdateVotingSession")(function* ({ input }) {
-          return yield* VotingService.use((s) =>
-            s.createOrUpdateVotingSessionForParticipant(input),
-          )
-        }),
-      ),
-    ),
-
-  getVotingSessionByParticipant: domainProcedure
-    .input(Schema.toStandardSchemaV1(GetVotingSessionByParticipantSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .query(
-      trpcEffect(
-        Effect.fn("VotingRouter.getVotingSessionByParticipant")(function* ({ input }) {
-          return yield* VotingService.use((s) => s.getVotingSessionByParticipant(input))
         }),
       ),
     ),

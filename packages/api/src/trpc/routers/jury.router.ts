@@ -13,7 +13,6 @@ import {
   GetJuryInvitationByIdInputSchema,
   GetJuryReviewResultsByInvitationIdInputSchema,
   CreateJuryInvitationInputSchema,
-  UpdateJuryInvitationInputSchema,
   DeleteJuryInvitationInputSchema,
   VerifyJuryTokenSchema,
   GetJurySubmissionsFromTokenSchema,
@@ -21,7 +20,6 @@ import {
   GetJuryParticipantCountSchema,
   CreateJuryRatingSchema,
   UpdateJuryRatingSchema,
-  GetJuryRatingSchema,
   DeleteJuryRatingSchema,
   UpdateJuryInvitationStatusByTokenSchema,
 } from "../../core/jury/contracts";
@@ -80,21 +78,6 @@ export const juryRouter = createTRPCRouter({
           return yield* JuryService.use((s) =>
             s.createJuryInvitation({
               domain: input.domain,
-              data: input.data,
-            }),
-          );
-        }),
-      ),
-    ),
-
-  updateJuryInvitation: domainProcedure
-    .input(Schema.toStandardSchemaV1(UpdateJuryInvitationInputSchema))
-    .mutation(
-      trpcEffect(
-        Effect.fn("JuryRouter.updateJuryInvitation")(function* ({ input }) {
-          return yield* JuryService.use((s) =>
-            s.updateJuryInvitation({
-              id: input.id,
               data: input.data,
             }),
           );
@@ -180,14 +163,6 @@ export const juryRouter = createTRPCRouter({
     trpcEffect(
       Effect.fn("JuryRouter.updateRating")(function* ({ input }) {
         return yield* JuryService.use((s) => s.updateRating(input));
-      }),
-    ),
-  ),
-
-  getRating: publicProcedure.input(Schema.toStandardSchemaV1(GetJuryRatingSchema)).query(
-    trpcEffect(
-      Effect.fn("JuryRouter.getRating")(function* ({ input }) {
-        return yield* JuryService.use((s) => s.getRating(input));
       }),
     ),
   ),

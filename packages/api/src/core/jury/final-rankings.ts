@@ -1,9 +1,9 @@
-export type JuryFinalRankingValue = 1 | 2 | 3;
+export type JuryFinalRankingValue = 1 | 2 | 3
 
 export interface JuryFinalRankingLike {
-  participantId: number;
-  finalRanking?: number | null;
-  rank?: number | null;
+  participantId: number
+  finalRanking?: number | null
+  rank?: number | null
 }
 
 export function isValidJuryFinalRanking(
@@ -15,24 +15,22 @@ export function isValidJuryFinalRanking(
     finalRanking === 1 ||
     finalRanking === 2 ||
     finalRanking === 3
-  );
+  )
 }
 
-export function hasCompleteJuryTopThree(
-  ratings: ReadonlyArray<JuryFinalRankingLike>,
-): boolean {
-  const rankedParticipantIds = new Map<JuryFinalRankingValue, number>();
+export function hasCompleteJuryTopThree(ratings: ReadonlyArray<JuryFinalRankingLike>): boolean {
+  const rankedParticipantIds = new Map<JuryFinalRankingValue, number>()
 
   for (const rating of ratings) {
-    const finalRanking = rating.finalRanking ?? rating.rank ?? null;
+    const finalRanking = rating.finalRanking ?? rating.rank ?? null
     if (finalRanking === 1 || finalRanking === 2 || finalRanking === 3) {
-      rankedParticipantIds.set(finalRanking, rating.participantId);
+      rankedParticipantIds.set(finalRanking, rating.participantId)
     }
   }
 
   if (rankedParticipantIds.size !== 3) {
-    return false;
+    return false
   }
 
-  return new Set(rankedParticipantIds.values()).size === 3;
+  return new Set(rankedParticipantIds.values()).size === 3
 }

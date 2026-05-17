@@ -46,15 +46,6 @@ interface SubmissionExportRow {
   thumbnailKey: string
 }
 
-interface ExifExportRow {
-  submissionId: number
-  participantReference: string
-  topicName: string
-  originalKey: string
-  exifData: Record<string, unknown>
-  uploadDate: string
-}
-
 interface ValidationResultExportRow {
   participantId: number
   participantReference: string
@@ -100,10 +91,6 @@ export class ExportsRepository extends Context.Service<
     domain: string
     topicId: number
   }) => Effect.Effect<SubmissionExportRow[], DbError>
-  /** EXIF rows for a marathon export by domain. */
-  readonly getExifDataForExport: (params: {
-    domain: string
-  }) => Effect.Effect<ExifExportRow[], DbError>
   /** Validation result rows for a marathon export by domain. */
   readonly getValidationResultsForExport: (params: {
     domain: string
@@ -451,38 +438,6 @@ const makeExportsRepository = Effect.gen(function* () {
     )
   })
 
-  const getExifDataForExport: ExportsRepository["Service"]["getExifDataForExport"] = Effect.fn("ExportsRepository.getExifDataForExport")(function* ({
-    domain,
-  }) {
-    const marathon = yield* getMarathonByDomain({ domain })
-
-    if (!marathon) {
-      return []
-    }
-
-    const result = yield* use((db) =>
-      db.query.submissions.findMany({
-        where: (table, operators) => operators.eq(table.marathonId, marathon.id),
-        with: {
-          participant: true,
-          topic: true,
-        },
-        orderBy: (submissions, { asc }) => [asc(submissions.createdAt)],
-      }),
-    )
-
-    return result
-      .filter((submission) => submission.exif && submission.key)
-      .map((submission) => ({
-        submissionId: submission.id,
-        participantReference: submission.participant.reference,
-        topicName: submission.topic.name,
-        originalKey: submission.key,
-        exifData: submission.exif as Record<string, unknown>,
-        uploadDate: submission.createdAt,
-      }))
-  })
-
   const getValidationResultsForExport: ExportsRepository["Service"]["getValidationResultsForExport"] = Effect.fn(
     "ExportsRepository.getValidationResultsForExport",
   )(function* ({ domain, onlyFailed }) {
@@ -679,7 +634,6 @@ const makeExportsRepository = Effect.gen(function* () {
     getParticipantsForExportByCameraAllTopics,
     getSubmissionsForExport,
     getSubmissionsForExportByTopic,
-    getExifDataForExport,
     getValidationResultsForExport,
     getValidationResultsForExportByTopic,
     getSubmissionFilesForTopicExport,

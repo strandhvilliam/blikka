@@ -11,13 +11,6 @@ export const StartVotingSessionsSchema = Schema.Struct({
     sendInitialSms: Schema.optional(Schema.Boolean),
   });
 
-export const SetTopicVotingWindowSchema = Schema.Struct({
-    domain: Schema.String,
-    topicId: Schema.Number,
-    startsAt: Schema.String,
-    endsAt: Schema.optional(Schema.NullishOr(Schema.String)),
-  });
-
 export const CloseTopicVotingWindowSchema = Schema.Struct({
     domain: Schema.String,
     topicId: Schema.Number,
@@ -36,18 +29,6 @@ export const StartTiebreakRoundSchema = Schema.Struct({
 
 export const GetSubmissionVoteStatsSchema = Schema.Struct({
     submissionId: Schema.Number,
-    domain: Schema.String,
-  });
-
-export const CreateOrUpdateVotingSessionSchema = Schema.Struct({
-    participantId: Schema.Number,
-    domain: Schema.String,
-    topicId: Schema.Number,
-  });
-
-export const GetVotingSessionByParticipantSchema = Schema.Struct({
-    participantId: Schema.Number,
-    topicId: Schema.Number,
     domain: Schema.String,
   });
 
@@ -145,13 +126,10 @@ export const DeleteVotingSessionSchema = Schema.Struct({
 
 export type GetVotingSession = Schema.Schema.Type<typeof GetVotingSessionSchema>
 export type StartVotingSessions = Schema.Schema.Type<typeof StartVotingSessionsSchema>
-export type SetTopicVotingWindow = Schema.Schema.Type<typeof SetTopicVotingWindowSchema>
 export type CloseTopicVotingWindow = Schema.Schema.Type<typeof CloseTopicVotingWindowSchema>
 export type ReopenTopicVotingWindow = Schema.Schema.Type<typeof ReopenTopicVotingWindowSchema>
 export type StartTiebreakRound = Schema.Schema.Type<typeof StartTiebreakRoundSchema>
 export type GetSubmissionVoteStats = Schema.Schema.Type<typeof GetSubmissionVoteStatsSchema>
-export type CreateOrUpdateVotingSession = Schema.Schema.Type<typeof CreateOrUpdateVotingSessionSchema>
-export type GetVotingSessionByParticipant = Schema.Schema.Type<typeof GetVotingSessionByParticipantSchema>
 export type GetVotingAdminSummary = Schema.Schema.Type<typeof GetVotingAdminSummarySchema>
 export type GetVotingRoundsForTopic = Schema.Schema.Type<typeof GetVotingRoundsForTopicSchema>
 export type GetParticipantsWithoutVotingSession = Schema.Schema.Type<typeof GetParticipantsWithoutVotingSessionSchema>

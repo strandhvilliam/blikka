@@ -32,100 +32,104 @@ export function normalizeUploadContentType(raw: string | undefined | null): stri
 }
 
 export const GetPublicMarathonSchema = Schema.Struct({
-    domain: Schema.String,
-  });
+  domain: Schema.String,
+})
 
 export const InitializeUploadFlowSchema = Schema.Struct({
-    domain: Schema.String,
-    reference: Schema.String,
-    firstname: Schema.String,
-    lastname: Schema.String,
-    email: Schema.String,
-    competitionClassId: Schema.Number,
-    deviceGroupId: Schema.Number,
-    phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
-    uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
-    uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
-    ...TermsAcceptanceInputSchema,
-    termsAcceptanceSource: TermsAcceptanceSourceSchema.pipe(Schema.optional),
-  });
+  domain: Schema.String,
+  reference: Schema.String,
+  firstname: Schema.String,
+  lastname: Schema.String,
+  email: Schema.String,
+  competitionClassId: Schema.Number,
+  deviceGroupId: Schema.Number,
+  phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
+  uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
+  uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
+  ...TermsAcceptanceInputSchema,
+  termsAcceptanceSource: TermsAcceptanceSourceSchema.pipe(Schema.optional),
+})
 
 export const PrepareUploadFlowSchema = Schema.Struct({
-    domain: Schema.String,
-    reference: Schema.String,
-    firstname: Schema.String,
-    lastname: Schema.String,
-    email: Schema.String,
-    competitionClassId: Schema.Number,
-    deviceGroupId: Schema.Number,
-    phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
-    ...TermsAcceptanceInputSchema,
-  });
+  domain: Schema.String,
+  reference: Schema.String,
+  firstname: Schema.String,
+  lastname: Schema.String,
+  email: Schema.String,
+  competitionClassId: Schema.Number,
+  deviceGroupId: Schema.Number,
+  phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
+  ...TermsAcceptanceInputSchema,
+})
 
 export const InitializeByCameraUploadSchema = Schema.Struct({
-    domain: Schema.String,
-    firstname: Schema.String,
-    lastname: Schema.String,
-    email: Schema.String,
-    deviceGroupId: Schema.Number,
-    phoneNumber: Schema.String,
-    uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
-    uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
-    replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
-    ...TermsAcceptanceInputSchema,
-  });
+  domain: Schema.String,
+  firstname: Schema.String,
+  lastname: Schema.String,
+  email: Schema.String,
+  deviceGroupId: Schema.Number,
+  phoneNumber: Schema.String,
+  uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
+  uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
+  replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
+  ...TermsAcceptanceInputSchema,
+})
 
 /** Staff laptop flow: participant identity is the entered reference, not phone lookup. */
 export const InitializeStaffByCameraUploadSchema = Schema.Struct({
-    domain: Schema.String,
-    reference: Schema.String,
-    firstname: Schema.String,
-    lastname: Schema.String,
-    email: Schema.String,
-    deviceGroupId: Schema.Number,
-    phoneNumber: Schema.String,
-    uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
-    uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
-    replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
-    /** Staff laptop: allow new upload after participant status completed or verified. */
-    replaceFinalizedParticipantUpload: Schema.Boolean.pipe(Schema.optional),
-    ...TermsAcceptanceInputSchema,
-  });
+  domain: Schema.String,
+  reference: Schema.String,
+  firstname: Schema.String,
+  lastname: Schema.String,
+  email: Schema.String,
+  deviceGroupId: Schema.Number,
+  phoneNumber: Schema.String,
+  uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
+  uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
+  replaceExistingActiveTopicUpload: Schema.Boolean.pipe(Schema.optional),
+  /** Staff laptop: allow new upload after participant status completed or verified. */
+  replaceFinalizedParticipantUpload: Schema.Boolean.pipe(Schema.optional),
+  ...TermsAcceptanceInputSchema,
+})
 
 export const ResolveByCameraParticipantByPhoneSchema = Schema.Struct({
-    domain: Schema.String,
-    phoneNumber: Schema.String,
-  });
+  domain: Schema.String,
+  phoneNumber: Schema.String,
+})
 
 export const CheckParticipantExistsSchema = Schema.Struct({
-    domain: Schema.String,
-    reference: Schema.String,
-  });
+  domain: Schema.String,
+  reference: Schema.String,
+})
 
 export const GetUploadStatusSchema = Schema.Struct({
-    domain: Schema.String,
-    reference: Schema.String,
-    orderIndexes: Schema.Array(Schema.Number),
-  });
+  domain: Schema.String,
+  reference: Schema.String,
+  orderIndexes: Schema.Array(Schema.Number),
+})
 
 export const RefreshPresignedUploadsSchema = Schema.Struct({
-    domain: Schema.String,
-    reference: Schema.String,
-    orderIndexes: Schema.Array(Schema.Number),
-    uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
-  });
+  domain: Schema.String,
+  reference: Schema.String,
+  orderIndexes: Schema.Array(Schema.Number),
+  uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
+})
 
 export const ReTriggerUploadFlowSchema = Schema.Struct({
-    domain: Schema.String,
-    reference: Schema.String,
-  });
+  domain: Schema.String,
+  reference: Schema.String,
+})
 
 export type GetPublicMarathon = Schema.Schema.Type<typeof GetPublicMarathonSchema>
 export type InitializeUploadFlow = Schema.Schema.Type<typeof InitializeUploadFlowSchema>
 export type PrepareUploadFlow = Schema.Schema.Type<typeof PrepareUploadFlowSchema>
 export type InitializeByCameraUpload = Schema.Schema.Type<typeof InitializeByCameraUploadSchema>
-export type InitializeStaffByCameraUpload = Schema.Schema.Type<typeof InitializeStaffByCameraUploadSchema>
-export type ResolveByCameraParticipantByPhone = Schema.Schema.Type<typeof ResolveByCameraParticipantByPhoneSchema>
+export type InitializeStaffByCameraUpload = Schema.Schema.Type<
+  typeof InitializeStaffByCameraUploadSchema
+>
+export type ResolveByCameraParticipantByPhone = Schema.Schema.Type<
+  typeof ResolveByCameraParticipantByPhoneSchema
+>
 export type CheckParticipantExists = Schema.Schema.Type<typeof CheckParticipantExistsSchema>
 export type GetUploadStatus = Schema.Schema.Type<typeof GetUploadStatusSchema>
 export type RefreshPresignedUploads = Schema.Schema.Type<typeof RefreshPresignedUploadsSchema>

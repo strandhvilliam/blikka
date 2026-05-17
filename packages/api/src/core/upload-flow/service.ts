@@ -43,12 +43,7 @@ import {
   type ResolveByCameraParticipantByPhone,
   type ReTriggerUploadFlow,
 } from "./contracts"
-import {
-  BadRequestError,
-  ConflictError,
-  NotFoundError,
-  PreconditionFailedError,
-} from "../errors"
+import { BadRequestError, ConflictError, NotFoundError, PreconditionFailedError } from "../errors"
 import {
   PhoneNumberEncryptionService,
   PhoneNumberEncryptionServiceLayer,

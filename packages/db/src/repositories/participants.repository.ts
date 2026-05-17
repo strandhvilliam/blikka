@@ -84,27 +84,6 @@ export type InfiniteParticipantsPage = {
   nextCursor: string | null
 }
 
-export type DashboardRecentParticipant = Pick<
-  Participant,
-  "id" | "reference" | "firstname" | "lastname" | "status"
-> & {
-  updatedAt: string
-  validationIssueCount: number
-}
-
-export type ParticipantsDashboardOverview = {
-  totalParticipants: number
-  statusCounts: {
-    prepared: number
-    initialized: number
-    completed: number
-    verified: number
-  }
-  uploadedCount: number
-  validationIssueCount: number
-  recentParticipants: DashboardRecentParticipant[]
-}
-
 export type ParticipantsBatchDeletionResult = {
   deletedCount: number
   failedIds: number[]
@@ -154,10 +133,6 @@ export class ParticipantsRepository extends Context.Service<
     hasValidationErrors?: boolean
     votedFilter?: "voted" | "not-voted"
   }) => Effect.Effect<InfiniteParticipantsPage, DbError>
-  /** Dashboard counts for participants in a marathon domain. */
-  readonly getDashboardOverview: (params: {
-    domain: string
-  }) => Effect.Effect<ParticipantsDashboardOverview, DbError>
   /** Insert a new participant row. */
   readonly createParticipant: (params: {
     data: NewParticipant
@@ -599,102 +574,6 @@ const makeParticipantsRepository = Effect.gen(function* () {
         nextCursor,
       }
     })
-  const getDashboardOverview: ParticipantsRepository["Service"]["getDashboardOverview"] = Effect.fn(
-    "ParticipantsRepository.getDashboardOverview",
-  )(function* ({ domain }) {
-    const [statusRows, participantsWithValidationIssues, recentParticipants] = yield* Effect.all([
-      use((db) =>
-        db
-          .select({
-            status: participants.status,
-            count: count(),
-          })
-          .from(participants)
-          .where(eq(participants.domain, domain))
-          .groupBy(participants.status),
-      ),
-      use((db) =>
-        db
-          .selectDistinct({
-            participantId: validationResults.participantId,
-          })
-          .from(validationResults)
-          .innerJoin(participants, eq(participants.id, validationResults.participantId))
-          .where(
-            and(
-              eq(participants.domain, domain),
-              eq(validationResults.outcome, VALIDATION_OUTCOME.FAILED),
-              or(
-                eq(validationResults.severity, "error"),
-                eq(validationResults.severity, "warning"),
-              ),
-            ),
-          ),
-      ),
-      use((db) =>
-        db.query.participants.findMany({
-          where: (table, operators) => operators.eq(table.domain, domain),
-          columns: {
-            id: true,
-            reference: true,
-            firstname: true,
-            lastname: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-          with: {
-            validationResults: {
-              columns: {
-                outcome: true,
-                severity: true,
-              },
-            },
-          },
-          orderBy: (table, operators) => [
-            operators.desc(table.updatedAt),
-            operators.desc(table.createdAt),
-            operators.desc(table.id),
-          ],
-          limit: 6,
-        }),
-      ),
-    ])
-
-    const statusCounts = {
-      prepared: 0,
-      initialized: 0,
-      completed: 0,
-      verified: 0,
-    }
-
-    for (const row of statusRows) {
-      if (row.status === "prepared") statusCounts.prepared = row.count
-      if (row.status === "initialized") statusCounts.initialized = row.count
-      if (row.status === "completed") statusCounts.completed = row.count
-      if (row.status === "verified") statusCounts.verified = row.count
-    }
-
-    return {
-      totalParticipants: statusRows.reduce((total, row) => total + row.count, 0),
-      statusCounts,
-      uploadedCount: statusCounts.completed + statusCounts.verified,
-      validationIssueCount: participantsWithValidationIssues.length,
-      recentParticipants: recentParticipants.map((participant) => ({
-        id: participant.id,
-        reference: participant.reference,
-        firstname: participant.firstname,
-        lastname: participant.lastname,
-        status: participant.status,
-        updatedAt: participant.updatedAt ?? participant.createdAt,
-        validationIssueCount: participant.validationResults.filter(
-          (validation) =>
-            validation.outcome === VALIDATION_OUTCOME.FAILED &&
-            (validation.severity === "error" || validation.severity === "warning"),
-        ).length,
-      })),
-    }
-  })
   const createParticipant: ParticipantsRepository["Service"]["createParticipant"] = Effect.fn(
     "ParticipantsRepository.createParticipantMutation",
   )(function* ({ data }) {
@@ -848,7 +727,6 @@ const makeParticipantsRepository = Effect.gen(function* () {
     getParticipantByReference,
     getByPhoneHashForByCamera,
     getInfiniteParticipantsByDomain,
-    getDashboardOverview,
     createParticipant,
     createTermsAcceptance,
     updateParticipantById,

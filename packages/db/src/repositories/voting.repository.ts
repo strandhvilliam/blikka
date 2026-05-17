@@ -225,20 +225,6 @@ export class VotingRepository extends Context.Service<
       | undefined,
       DbError
     >
-    /** Create or replace topic voting window bounds. */
-    readonly upsertTopicVotingWindow: (params: {
-      marathonId: number
-      topicId: number
-      startsAt: string
-      endsAt: string | null
-    }) => Effect.Effect<
-      | {
-          startsAt: string
-          endsAt: string | null
-        }
-      | undefined,
-      DbError
-    >
     /** Patch start/end timestamps on a voting round. */
     readonly updateVotingRoundWindow: (params: {
       roundId: number
@@ -337,21 +323,12 @@ export class VotingRepository extends Context.Service<
     readonly getParticipantVoteInfo: (params: {
       participantId: number
       topicId: number
-    }) => Effect.Effect<Option.Option<ParticipantVoteInfo>, DbError>
-    /** Voting session for a participant and topic, or none if missing. */
-    readonly getVotingSessionByParticipantAndTopicId: (params: {
-      participantId: number
-      topicId: number
-    }) => Effect.Effect<Option.Option<VotingSession>, DbError>
+    }    ) => Effect.Effect<Option.Option<ParticipantVoteInfo>, DbError>
     /** Vote cast by a session in a round, or none if missing. */
     readonly getVotingRoundVoteForSession: (params: {
       roundId: number
       sessionId: number
     }) => Effect.Effect<Option.Option<VotingRoundVote>, DbError>
-    /** Insert or update a voting session row. */
-    readonly upsertVotingSession: (
-      sessionData: NewVotingSession,
-    ) => Effect.Effect<VotingSession, DbError>
     /** Submissions available for voting in the resolved round. */
     readonly getSubmissionsForVoting: (
       params: ResolveRoundInput,
@@ -795,36 +772,6 @@ const makeVotingRepository = Effect.gen(function* () {
     return {
       startsAt: round.startedAt,
       endsAt: round.endsAt,
-    }
-  })
-
-  const upsertTopicVotingWindow: VotingRepository["Service"]["upsertTopicVotingWindow"] = Effect.fn(
-    "VotingRepository.upsertTopicVotingWindow",
-  )(function* ({ marathonId, topicId, startsAt, endsAt }) {
-    const latestRoundOpt = yield* getLatestVotingRoundForTopic({
-      marathonId,
-      topicId,
-    })
-    const latestRound = Option.getOrUndefined(latestRoundOpt)
-
-    if (!latestRound) {
-      return undefined
-    }
-
-    const updatedRound = yield* updateVotingRoundWindow({
-      roundId: latestRound.id,
-      startedAt: startsAt,
-      endsAt,
-      updatedAt: new Date().toISOString(),
-    })
-
-    if (!updatedRound) {
-      return undefined
-    }
-
-    return {
-      startsAt: updatedRound.startedAt,
-      endsAt: updatedRound.endsAt,
     }
   })
 
@@ -1413,25 +1360,6 @@ const makeVotingRepository = Effect.gen(function* () {
     return Option.some(participantVoteInfo)
   })
 
-  const getVotingSessionByParticipantAndTopicId: VotingRepository["Service"]["getVotingSessionByParticipantAndTopicId"] =
-    Effect.fn("VotingRepository.getVotingSessionByParticipantAndTopicId")(function* ({
-      participantId,
-      topicId,
-    }) {
-      const result = yield* use((database) =>
-        database.query.votingSession.findFirst({
-          where: (table, operators) =>
-            operators.and(
-              operators.eq(table.connectedParticipantId, participantId),
-              operators.eq(table.topicId, topicId),
-            ),
-          orderBy: (table, operators) => operators.desc(table.createdAt),
-        }),
-      )
-
-      return Option.fromNullishOr(result)
-    })
-
   const getVotingRoundVoteForSession: VotingRepository["Service"]["getVotingRoundVoteForSession"] =
     Effect.fn("VotingRepository.getVotingRoundVoteForSession")(function* ({ roundId, sessionId }) {
       const result = yield* use((database) =>
@@ -1446,33 +1374,6 @@ const makeVotingRepository = Effect.gen(function* () {
 
       return Option.fromNullishOr(result)
     })
-
-  const upsertVotingSession: VotingRepository["Service"]["upsertVotingSession"] = Effect.fn(
-    "VotingRepository.upsertVotingSession",
-  )(function* (sessionData) {
-    const result = yield* use((database) =>
-      database
-        .insert(votingSession)
-        .values(sessionData)
-        .onConflictDoUpdate({
-          target: [votingSession.connectedParticipantId, votingSession.topicId],
-          set: {
-            token: sessionData.token,
-            firstName: sessionData.firstName,
-            lastName: sessionData.lastName,
-            email: sessionData.email,
-            phoneHash: sessionData.phoneHash,
-            phoneEncrypted: sessionData.phoneEncrypted,
-            marathonId: sessionData.marathonId,
-            notificationLastSentAt: sessionData.notificationLastSentAt,
-            updatedAt: new Date().toISOString(),
-          },
-        })
-        .returning(),
-    )
-
-    return result[0] as VotingSession
-  })
 
   const getSubmissionsForVoting: VotingRepository["Service"]["getSubmissionsForVoting"] = Effect.fn(
     "VotingRepository.getSubmissionsForVoting",
@@ -1600,7 +1501,6 @@ const makeVotingRepository = Effect.gen(function* () {
     getActiveVotingRoundForTopic,
     getVotingSessionStatsForTopic,
     getVotingWindowForTopic,
-    upsertTopicVotingWindow,
     updateVotingRoundWindow,
     closeTopicVotingWindow,
     reopenTopicVotingWindow,
@@ -1616,9 +1516,7 @@ const makeVotingRepository = Effect.gen(function* () {
     getVotingSessionByIdForTopic,
     getSubmissionVoteStats,
     getParticipantVoteInfo,
-    getVotingSessionByParticipantAndTopicId,
     getVotingRoundVoteForSession,
-    upsertVotingSession,
     getSubmissionsForVoting,
     recordVote,
     clearVote,

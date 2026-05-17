@@ -49,7 +49,6 @@ import type {
   GetJuryRatingsByInvitation,
   GetJuryReviewResultsByInvitationIdInput,
   GetJurySubmissionsFromToken,
-  GetJuryRating,
   UpdateJuryInvitationInput,
   UpdateJuryInvitationStatusByToken,
   UpdateJuryRating,
@@ -236,15 +235,6 @@ export class JuryService extends Context.Service<
     /** Updates or clears a rating; may delete the row when rating/notes/finalRanking clear the row. */
     readonly updateRating: (
       input: UpdateJuryRating,
-    ) => Effect.Effect<
-      JuryRating | null,
-      DbError | Config.ConfigError | JuryApiError,
-      never
-    >
-
-    /** Returns the stored rating or null. */
-    readonly getRating: (
-      input: GetJuryRating,
     ) => Effect.Effect<
       JuryRating | null,
       DbError | Config.ConfigError | JuryApiError,
@@ -853,21 +843,6 @@ const makeJuryService = Effect.gen(function* () {
     })
   })
 
-  const getRating: JuryService["Service"]["getRating"] = Effect.fn(
-    "JuryService.getRating",
-  )(function* ({ token, domain, participantId }) {
-    const invitation = yield* getInvitationFromToken({ token, domain })
-    const result = yield* juryRepository.getJuryRating({
-      invitationId: invitation.id,
-      participantId,
-    })
-
-    return yield* Option.match(result, {
-      onSome: (rating) => Effect.succeed(rating),
-      onNone: () => Effect.succeed(null),
-    })
-  })
-
   const deleteRating: JuryService["Service"]["deleteRating"] = Effect.fn(
     "JuryService.deleteRating",
   )(function* ({ token, domain, participantId }) {
@@ -935,7 +910,6 @@ const makeJuryService = Effect.gen(function* () {
     getJuryParticipantCount,
     createRating,
     updateRating,
-    getRating,
     deleteRating,
     updateInvitationStatusByToken,
   })

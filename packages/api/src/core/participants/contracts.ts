@@ -34,8 +34,6 @@ export const GetByDomainInfiniteInputSchema = Schema.Struct({
 
 export const GetByReferenceInputSchema = Schema.Struct({ reference: Schema.String, domain: Schema.String });
 
-export const GetDashboardOverviewInputSchema = Schema.Struct({ domain: Schema.String });
-
 export const BatchDeleteInputSchema = Schema.Struct({
     ids: Schema.Array(Schema.Number),
     domain: Schema.String,
@@ -105,7 +103,6 @@ export const PublicParticipantSchema = Schema.Struct({
 export type GetPublicParticipantByReferenceInput = Schema.Schema.Type<typeof GetPublicParticipantByReferenceInputSchema>
 export type GetByDomainInfiniteInput = Schema.Schema.Type<typeof GetByDomainInfiniteInputSchema>
 export type GetByReferenceInput = Schema.Schema.Type<typeof GetByReferenceInputSchema>
-export type GetDashboardOverviewInput = Schema.Schema.Type<typeof GetDashboardOverviewInputSchema>
 export type BatchDeleteInput = Schema.Schema.Type<typeof BatchDeleteInputSchema>
 export type BatchVerifyInput = Schema.Schema.Type<typeof BatchVerifyInputSchema>
 export type BatchMarkCompletedInput = Schema.Schema.Type<typeof BatchMarkCompletedInputSchema>
