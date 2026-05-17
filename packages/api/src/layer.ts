@@ -15,6 +15,7 @@ import { SponsorsService } from "./core/sponsors/service";
 import { ZipFilesService } from "./core/zip-files/service";
 import { VotingService } from "./core/voting/service";
 import { SubmissionsService } from "./core/submissions/service";
+import { SeedingService } from "./core/seeding/service";
 
 export const ApiLayer = Layer.mergeAll(
   UploadFlowService.layer,
@@ -33,4 +34,5 @@ export const ApiLayer = Layer.mergeAll(
   ZipFilesService.layer,
   VotingService.layer,
   SubmissionsService.layer,
+  SeedingService.layer,
 );

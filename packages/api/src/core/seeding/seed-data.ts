@@ -3,7 +3,7 @@ export const SEED_PREVIEW = {
   topics: 24,
   competitionClasses: 2,
   deviceGroups: 2,
-} as const
+} as const;
 
 export const SEED_TOPIC_NAMES = [
   "Reflection",
@@ -30,7 +30,7 @@ export const SEED_TOPIC_NAMES = [
   "Energy",
   "Human",
   "Finale",
-] as const
+] as const;
 
 const FIRST_NAMES = [
   "Janne",
@@ -43,9 +43,9 @@ const FIRST_NAMES = [
   "Viktor",
   "Elin",
   "Ludvig",
-] as const
+] as const;
 
-const LAST_NAMES = ["Johansson", "Karlsson", "Larsson"] as const
+const LAST_NAMES = ["Johansson", "Karlsson", "Larsson"] as const;
 
 export const SEED_COMBOS = [
   {
@@ -68,7 +68,7 @@ export const SEED_COMBOS = [
     deviceGroupName: "Digital Camera",
     competitionClassName: "24 Images",
   },
-] as const
+] as const;
 
 export const SEED_JURY_INVITATIONS = [
   {
@@ -99,22 +99,22 @@ export const SEED_JURY_INVITATIONS = [
     displayName: "Seed Jury Camera 24",
     email: "seed-jury-camera-24@example.test",
   },
-] as const
+] as const;
 
-export const SEED_VOTE_OFFSET = 7
-export const SEED_VERIFIED_PARTICIPANT_COUNT = 22
-export const SEED_VOTED_SESSION_COUNT = 18
+export const SEED_VOTE_OFFSET = 7;
+export const SEED_VERIFIED_PARTICIPANT_COUNT = 22;
+export const SEED_VOTED_SESSION_COUNT = 18;
 
 export function getSeedParticipantNames(index: number) {
-  const firstName = FIRST_NAMES[index % FIRST_NAMES.length]!
-  const lastName = LAST_NAMES[Math.floor(index / FIRST_NAMES.length)]!
+  const firstName = FIRST_NAMES[index % FIRST_NAMES.length]!;
+  const lastName = LAST_NAMES[Math.floor(index / FIRST_NAMES.length)]!;
 
   return {
     firstname: firstName,
     lastname: lastName,
-  }
+  };
 }
 
 export function getSeedReference(index: number) {
-  return (1001 + index).toString()
+  return (1001 + index).toString();
 }

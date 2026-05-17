@@ -29,7 +29,7 @@ import {
 } from "@blikka/db";
 import { Effect, Option } from "effect";
 import { JuryService } from "../jury/service";
-import { MarathonApiError } from "./errors";
+import { MarathonApiError } from "../marathons/errors";
 import {
   getSeedParticipantNames,
   getSeedReference,
@@ -257,7 +257,7 @@ function buildPlaceholderSvg({
   `.trim();
 }
 
-const buildSubmissionAssets = Effect.fn("SeedService.buildSubmissionAssets")(
+const buildSubmissionAssets = Effect.fn("SeedingService.buildSubmissionAssets")(
   function* ({
     topic,
     participant,
@@ -351,7 +351,7 @@ function buildSubmissionCreatedAt({
   return new Date(now.getTime() - (participantIndex + 1) * 4 * 60 * 1000);
 }
 
-const getSortedStaffMembers = Effect.fn("SeedService.getSortedStaffMembers")(
+const getSortedStaffMembers = Effect.fn("SeedingService.getSortedStaffMembers")(
   function* ({ domain }: { domain: string }) {
     const usersRepository = yield* UsersRepository;
     const validationsRepository = yield* ValidationsRepository;
@@ -388,7 +388,7 @@ const getSortedStaffMembers = Effect.fn("SeedService.getSortedStaffMembers")(
   },
 );
 
-const getMarathonOrFail = Effect.fn("SeedService.getMarathonOrFail")(
+const getMarathonOrFail = Effect.fn("SeedingService.getMarathonOrFail")(
   function* ({ domain }: { domain: string }) {
     const usersRepository = yield* UsersRepository;
     const validationsRepository = yield* ValidationsRepository;
@@ -417,7 +417,7 @@ const getMarathonOrFail = Effect.fn("SeedService.getMarathonOrFail")(
 );
 
 export const getSeedScenarioStatus = Effect.fn(
-  "SeedService.getSeedScenarioStatus",
+  "SeedingService.getSeedScenarioStatus",
 )(function* ({
   domain,
   isAdminForDomain,
@@ -453,7 +453,7 @@ export const getSeedScenarioStatus = Effect.fn(
   };
 });
 
-const createDeviceGroups = Effect.fn("SeedService.createDeviceGroups")(
+const createDeviceGroups = Effect.fn("SeedingService.createDeviceGroups")(
   function* ({ marathonId }: { marathonId: number }) {
     const usersRepository = yield* UsersRepository;
     const validationsRepository = yield* ValidationsRepository;
@@ -492,7 +492,7 @@ const createDeviceGroups = Effect.fn("SeedService.createDeviceGroups")(
 );
 
 const createCompetitionClasses = Effect.fn(
-  "SeedService.createCompetitionClasses",
+  "SeedingService.createCompetitionClasses",
 )(function* ({ marathonId }: { marathonId: number }) {
   const usersRepository = yield* UsersRepository;
   const validationsRepository = yield* ValidationsRepository;
@@ -539,7 +539,7 @@ const createCompetitionClasses = Effect.fn(
   } as const;
 });
 
-const createTopics = Effect.fn("SeedService.createTopics")(function* ({
+const createTopics = Effect.fn("SeedingService.createTopics")(function* ({
   marathonId,
   mode,
   now,
@@ -587,7 +587,7 @@ const createTopics = Effect.fn("SeedService.createTopics")(function* ({
   return topics;
 });
 
-const createSeedParticipants = Effect.fn("SeedService.createSeedParticipants")(
+const createSeedParticipants = Effect.fn("SeedingService.createSeedParticipants")(
   function* ({
     domain,
     marathonId,
@@ -674,7 +674,7 @@ function getParticipantTopics({
   );
 }
 
-const uploadSubmissionAssets = Effect.fn("SeedService.uploadSubmissionAssets")(
+const uploadSubmissionAssets = Effect.fn("SeedingService.uploadSubmissionAssets")(
   function* ({
     domain,
     participant,
@@ -745,7 +745,7 @@ const uploadSubmissionAssets = Effect.fn("SeedService.uploadSubmissionAssets")(
   },
 );
 
-const createSeedSubmissions = Effect.fn("SeedService.createSeedSubmissions")(
+const createSeedSubmissions = Effect.fn("SeedingService.createSeedSubmissions")(
   function* ({
     domain,
     participants,
@@ -829,7 +829,7 @@ const createSeedSubmissions = Effect.fn("SeedService.createSeedSubmissions")(
 );
 
 const syncWithinTimerangeRule = Effect.fn(
-  "SeedService.syncWithinTimerangeRule",
+  "SeedingService.syncWithinTimerangeRule",
 )(function* ({
   domain,
   startDate,
@@ -875,7 +875,7 @@ const syncWithinTimerangeRule = Effect.fn(
 });
 
 const createSeedValidationResults = Effect.fn(
-  "SeedService.createSeedValidationResults",
+  "SeedingService.createSeedValidationResults",
 )(function* ({
   domain,
   participants,
@@ -1082,7 +1082,7 @@ const createSeedValidationResults = Effect.fn(
 });
 
 const createParticipantVerifications = Effect.fn(
-  "SeedService.createParticipantVerifications",
+  "SeedingService.createParticipantVerifications",
 )(function* ({
   participants,
   staffMembers,
@@ -1131,7 +1131,7 @@ const createParticipantVerifications = Effect.fn(
   return verifiedParticipants.length;
 });
 
-const createContactSheets = Effect.fn("SeedService.createContactSheets")(
+const createContactSheets = Effect.fn("SeedingService.createContactSheets")(
   function* ({
     domain,
     participants,
@@ -1233,7 +1233,7 @@ const createContactSheets = Effect.fn("SeedService.createContactSheets")(
 );
 
 const createJuryInvitationsAndRatings = Effect.fn(
-  "SeedService.createJuryInvitationsAndRatings",
+  "SeedingService.createJuryInvitationsAndRatings",
 )(function* ({
   domain,
   participants,
@@ -1362,7 +1362,7 @@ const createJuryInvitationsAndRatings = Effect.fn(
   };
 });
 
-const createVotingSessions = Effect.fn("SeedService.createVotingSessions")(
+const createVotingSessions = Effect.fn("SeedingService.createVotingSessions")(
   function* ({
     participants,
     activeTopic,
@@ -1490,7 +1490,7 @@ const createVotingSessions = Effect.fn("SeedService.createVotingSessions")(
 );
 
 export const seedFinishedScenario = Effect.fn(
-  "SeedService.seedFinishedScenario",
+  "SeedingService.seedFinishedScenario",
 )(function* ({
   domain,
   isAdminForDomain,

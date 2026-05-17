@@ -12,8 +12,6 @@ import {
   GetByDomainInputSchema,
   UpdateMarathonInputSchema,
   ResetMarathonInputSchema,
-  GetSeedScenarioStatusInputSchema,
-  SeedFinishedScenarioInputSchema,
   GetLogoUploadUrlInputSchema,
   GetTermsUploadUrlInputSchema,
   GetCurrentTermsInputSchema,
@@ -104,52 +102,6 @@ export const marathonRouter = createTRPCRouter({
           return yield* MarathonService.use((s) =>
             s.getCurrentTerms({
               domain: input.domain,
-            }),
-          );
-        }),
-      ),
-    ),
-  getSeedScenarioStatus: domainProcedure
-    .input(Schema.toStandardSchemaV1(GetSeedScenarioStatusInputSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .query(
-      trpcEffect(
-        Effect.fn("MarathonRouter.getSeedScenarioStatus")(function* ({
-          input,
-          ctx,
-        }) {
-          const isAdminForDomain = ctx.permissions.some(
-            (permission) =>
-              permission.domain === input.domain && permission.role === "admin",
-          );
-
-          return yield* MarathonService.use((s) =>
-            s.getSeedScenarioStatusForDomain({
-              domain: input.domain,
-              isAdminForDomain,
-            }),
-          );
-        }),
-      ),
-    ),
-  seedFinishedScenario: domainProcedure
-    .input(Schema.toStandardSchemaV1(SeedFinishedScenarioInputSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .mutation(
-      trpcEffect(
-        Effect.fn("MarathonRouter.seedFinishedScenario")(function* ({
-          input,
-          ctx,
-        }) {
-          const isAdminForDomain = ctx.permissions.some(
-            (permission) =>
-              permission.domain === input.domain && permission.role === "admin",
-          );
-
-          return yield* MarathonService.use((s) =>
-            s.seedFinishedScenarioForDomain({
-              domain: input.domain,
-              isAdminForDomain,
             }),
           );
         }),
