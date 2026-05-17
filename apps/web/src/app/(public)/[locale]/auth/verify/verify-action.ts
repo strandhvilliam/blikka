@@ -2,61 +2,48 @@
 
 import { Auth } from "@/lib/auth/server"
 import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
-import { Action, toActionResponse } from "@/lib/next-utils"
+import { serverRuntime } from "@/lib/server-runtime"
 import { getPermissions } from "@blikka/api/trpc/utils"
-import { Schema, Effect } from "effect"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
-class VerifyError extends Schema.TaggedErrorClass<VerifyError>()("VerifyError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown)
-}) {
+type EmailOtpApi = {
+  signInEmailOTP(input: {
+    headers: Headers
+    body: {
+      email: string
+      otp: string
+    }
+  }): Promise<unknown>
 }
 
-const _verifyAction = Effect.fn("@blikka/web/verifyAction")(function* ({
-  email,
-  otp,
-  next,
-}: {
-  email: string
-  otp: string
-  next?: string
-}) {
-  const auth = yield* Auth
-  const readonlyHeaders = yield* Effect.tryPromise(() => headers())
-  yield* Effect.tryPromise({
-    try: () =>
-      auth.api.signInEmailOTP({
-        headers: readonlyHeaders,
-        body: {
-          email,
-          otp,
-        },
-      }),
-    catch: (error) =>
-      new VerifyError({
-        cause: error,
-        message: error instanceof Error ? error.message : "Failed to verify email",
-      }),
-  })
+export async function verifyAction(input: { email: string; otp: string; next?: string }) {
+  let userId: string | undefined
 
-  const session = yield* Effect.tryPromise({
-    try: () =>
-      auth.api.getSession({
-        headers: readonlyHeaders,
-      }),
-    catch: (error) =>
-      new VerifyError({
-        cause: error,
-        message: "Failed to resolve session after verification",
-      }),
-  })
+  try {
+    const auth = await serverRuntime.runPromise(Auth)
+    const authApi = auth.api as typeof auth.api & EmailOtpApi
+    const readonlyHeaders = await headers()
 
-  const permissions = yield* getPermissions({ userId: session?.user.id })
+    await authApi.signInEmailOTP({
+      headers: readonlyHeaders,
+      body: {
+        email: input.email,
+        otp: input.otp,
+      },
+    })
 
-  redirect(next ?? getDefaultPostLoginPath(permissions))
-}, toActionResponse)
+    const session = await auth.api.getSession({
+      headers: readonlyHeaders,
+    })
+    userId = session?.user.id
+  } catch (error) {
+    return {
+      data: undefined,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
 
-export const verifyAction = async (input: { email: string; otp: string; next?: string }) =>
-  Action(_verifyAction)(input)
+  const permissions = await serverRuntime.runPromise(getPermissions({ userId }))
+  redirect(input.next ?? getDefaultPostLoginPath(permissions))
+}

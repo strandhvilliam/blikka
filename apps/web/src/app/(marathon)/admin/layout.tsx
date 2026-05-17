@@ -1,18 +1,17 @@
 import { getAppSession } from "@/lib/auth/server"
-import { Layout } from "@/lib/next-utils"
-import { Option, Effect } from "effect"
+import { serverRuntime } from "@/lib/server-runtime"
+
+import { Option } from "effect"
 import { redirect, RedirectType } from "next/navigation"
 
-const _AdminLayout = Effect.fn("@blikka/web/AdminLayout")(function* ({
+export default async function AdminLayout({
   children,
 }: LayoutProps<"/admin">) {
-  const session = yield* getAppSession()
+  const session = await serverRuntime.runPromise(getAppSession())
 
   if (Option.isNone(session)) {
     console.log("redirecting to login")
     redirect("/auth/login", RedirectType.replace)
   }
   return <>{children}</>
-})
-
-export default Layout(_AdminLayout)
+}

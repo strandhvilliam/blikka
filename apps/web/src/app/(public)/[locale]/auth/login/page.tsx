@@ -2,12 +2,12 @@ import Image from "next/image"
 import { LoginForm } from "./login-form"
 import { getAppSession } from "@/lib/auth/server"
 import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
-import { decodeSearchParams, Page } from "@/lib/next-utils"
 import { getPermissions } from "@blikka/api/trpc/utils"
-import { Effect, Option, Schema } from "effect"
+import { Option } from "effect"
 import { redirect } from "next/navigation"
 import { DotPattern } from "@/components/dot-pattern"
 import { cn } from "@/lib/utils"
+import { serverRuntime } from "@/lib/server-runtime"
 
 function NoiseCardShell({
   children,
@@ -133,68 +133,63 @@ function BrandHeaderRow() {
   )
 }
 
-const _LoginPage = Effect.fn("@blikka/web/LoginPage")(
-  function* ({ searchParams }: PageProps<"/[locale]/auth/login">) {
-    const session = yield* getAppSession()
-    const params = yield* decodeSearchParams(
-      Schema.Struct({
-        next: Schema.optional(Schema.String),
-      }),
-    )(searchParams).pipe(Effect.catch(() => Effect.succeed({ next: undefined })))
+export default async function LoginPage({
+  searchParams,
+}: PageProps<"/[locale]/auth/login">) {
+  const session = await serverRuntime.runPromise(getAppSession())
+  const params = await searchParams
+  const next = typeof params.next === "string" ? params.next : undefined
 
-    if (Option.isSome(session)) {
-      const permissions = yield* getPermissions({ userId: session.value.user.id })
-      redirect(params.next ?? getDefaultPostLoginPath(permissions))
-    }
+  if (Option.isSome(session)) {
+    const permissions = await serverRuntime.runPromise(
+      getPermissions({ userId: session.value.user.id }),
+    )
+    redirect(next ?? getDefaultPostLoginPath(permissions))
+  }
 
-    return (
-      <div className="relative min-h-svh overflow-hidden">
-        <DotPattern />
-        <div className="pointer-events-none absolute inset-0">
-          {/* <div className="absolute inset-0 bg-dot-pattern-light opacity-30" /> */}
-          {/* <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/8 via-transparent to-brand-black/4" /> */}
-          {/* <div className="absolute -top-24 left-[-10%] h-80 w-80 rounded-full bg-brand-primary/18 blur-3xl" />
-          <div className="absolute -right-20 bottom-[-20%] h-96 w-96 rounded-full bg-brand-black/8 blur-3xl" /> */}
-        </div>
+  return (
+    <div className="relative min-h-svh overflow-hidden">
+      <DotPattern />
+      <div className="pointer-events-none absolute inset-0">
+        {/* <div className="absolute inset-0 bg-dot-pattern-light opacity-30" /> */}
+        {/* <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/8 via-transparent to-brand-black/4" /> */}
+        {/* <div className="absolute -top-24 left-[-10%] h-80 w-80 rounded-full bg-brand-primary/18 blur-3xl" />
+        <div className="absolute -right-20 bottom-[-20%] h-96 w-96 rounded-full bg-brand-black/8 blur-3xl" /> */}
+      </div>
 
-        {/* Mobile / tablet: single noise card with header + sign-in inside */}
-        <div className="relative mx-auto flex min-h-svh w-full max-w-[1720px] flex-col p-4 md:p-6 xl:hidden">
-          <NoiseCardShell className="flex min-h-0 flex-1 flex-col p-6 md:p-8">
-            <div className="relative flex min-h-0 w-full flex-1 flex-col">
-              <div className="shrink-0">
-                <BrandHeaderRow />
-              </div>
-              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-                <div className="mx-auto my-auto flex w-full max-w-lg flex-col gap-6 py-2">
-                  <WelcomeBackCopy className="text-center [&_p]:mx-auto" />
-                  <div className="w-full rounded-[1.35rem] border border-brand-black/10 bg-brand-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.08)] sm:p-9">
-                    <LoginForm next={params.next} />
-                  </div>
+      {/* Mobile / tablet: single noise card with header + sign-in inside */}
+      <div className="relative mx-auto flex min-h-svh w-full max-w-[1720px] flex-col p-4 md:p-6 xl:hidden">
+        <NoiseCardShell className="flex min-h-0 flex-1 flex-col p-6 md:p-8">
+          <div className="relative flex min-h-0 w-full flex-1 flex-col">
+            <div className="shrink-0">
+              <BrandHeaderRow />
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <div className="mx-auto my-auto flex w-full max-w-lg flex-col gap-6 py-2">
+                <WelcomeBackCopy className="text-center [&_p]:mx-auto" />
+                <div className="w-full rounded-[1.35rem] border border-brand-black/10 bg-brand-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.08)] sm:p-9">
+                  <LoginForm next={next} />
                 </div>
               </div>
             </div>
-          </NoiseCardShell>
-        </div>
-
-        {/* Desktop xl+: hero + floating login panel (unchanged pattern) */}
-        <div className="relative mx-auto hidden min-h-svh w-full max-w-[1720px] gap-5 p-4 md:p-6 xl:grid xl:grid-cols-[1.14fr_0.96fr] xl:gap-10 xl:p-10 2xl:px-14">
-          <NoiseCardShell className="flex p-8 md:p-12 xl:p-14">
-            <div className="relative flex min-h-full w-full flex-col justify-between gap-14">
-              <BrandHeaderRow />
-              <LoginHeroMarketing />
-            </div>
-          </NoiseCardShell>
-
-          <section className="flex items-center justify-center rounded-3xl border border-brand-black/10 bg-brand-white/72 p-4 shadow-[0_28px_120px_rgba(0,0,0,0.08)] backdrop-blur-xl md:p-8 xl:p-10">
-            <div className="w-full max-w-lg rounded-[1.35rem] border border-brand-black/10 bg-brand-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.08)] sm:p-9">
-              <LoginForm next={params.next} />
-            </div>
-          </section>
-        </div>
+          </div>
+        </NoiseCardShell>
       </div>
-    )
-  },
-  Effect.catch(() => Effect.succeed(<div />)),
-)
 
-export default Page(_LoginPage)
+      {/* Desktop xl+: hero + floating login panel (unchanged pattern) */}
+      <div className="relative mx-auto hidden min-h-svh w-full max-w-[1720px] gap-5 p-4 md:p-6 xl:grid xl:grid-cols-[1.14fr_0.96fr] xl:gap-10 xl:p-10 2xl:px-14">
+        <NoiseCardShell className="flex p-8 md:p-12 xl:p-14">
+          <div className="relative flex min-h-full w-full flex-col justify-between gap-14">
+            <BrandHeaderRow />
+            <LoginHeroMarketing />
+          </div>
+        </NoiseCardShell>
+
+        <section className="flex items-center justify-center rounded-3xl border border-brand-black/10 bg-brand-white/72 p-4 shadow-[0_28px_120px_rgba(0,0,0,0.08)] backdrop-blur-xl md:p-8 xl:p-10">
+          <div className="w-full max-w-lg rounded-[1.35rem] border border-brand-black/10 bg-brand-white p-7 shadow-[0_10px_40px_rgba(0,0,0,0.08)] sm:p-9">
+              <LoginForm next={next} />
+          </div>
+        </section>
+      </div>
+    </div>
+  )}

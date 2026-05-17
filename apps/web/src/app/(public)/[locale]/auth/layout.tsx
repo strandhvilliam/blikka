@@ -1,10 +1,5 @@
-import { Layout } from "@/lib/next-utils"
-import { Effect } from "effect"
-
-const _AuthLayout = Effect.fn("@blikka/web/AuthLayout")(function* ({
+export default async function AuthLayout({
   children,
 }: LayoutProps<"/[locale]/auth">) {
   return <>{children}</>
-})
-
-export default Layout(_AuthLayout)
+}

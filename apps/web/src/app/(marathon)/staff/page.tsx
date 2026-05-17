@@ -1,12 +1,10 @@
-import { Page } from "@/lib/next-utils"
-import { Effect } from "effect"
 import { Suspense } from "react"
 import { HydrateClient, prefetch, trpc } from "@/lib/trpc/server"
 import { StaffSelectDomainList } from "@/components/staff/staff-select-domain-list"
 import { StaffSelectDomainTitle } from "@/components/staff/staff-select-domain-title"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const _StaffPage = Effect.fn("@blikka/web/StaffPage")(function* () {
+export default async function StaffPage() {
   prefetch(trpc.marathons.getUserMarathons.queryOptions())
 
   return (
@@ -21,6 +19,4 @@ const _StaffPage = Effect.fn("@blikka/web/StaffPage")(function* () {
       </div>
     </HydrateClient>
   )
-})
-
-export default Page(_StaffPage)
+}

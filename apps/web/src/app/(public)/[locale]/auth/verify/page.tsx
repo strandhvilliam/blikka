@@ -1,49 +1,34 @@
-import { decodeSearchParams, Page } from "@/lib/next-utils"
 import { getAppSession } from "@/lib/auth/server"
 import { getDefaultPostLoginPath } from "@/lib/auth/redirect"
 import { getPermissions } from "@blikka/api/trpc/utils"
-import { Effect, Option, Schema } from "effect"
+import { Option } from "effect"
 import { VerifyForm } from "./verify-form"
 import { redirect } from "next/navigation"
+import { serverRuntime } from "@/lib/server-runtime"
 
-const _VerifyPage = Effect.fn("@blikka/web/VerifyPage")(
-  function* ({ searchParams }: PageProps<"/[locale]/auth/verify">) {
-    const session = yield* getAppSession()
-    const params = yield* decodeSearchParams(
-      Schema.Struct({
-        email: Schema.String,
-        next: Schema.optional(Schema.String),
-      })
-    )(searchParams).pipe(
-      Effect.catch(() =>
-        Effect.succeed({
-          email: null as string | null,
-          next: undefined as string | undefined,
-        })
-      )
+export default async function VerifyPage({
+  searchParams,
+}: PageProps<"/[locale]/auth/verify">) {
+  const session = await serverRuntime.runPromise(getAppSession())
+  const params = await searchParams
+  const email = typeof params.email === "string" ? params.email : undefined
+  const next = typeof params.next === "string" ? params.next : undefined
+
+  if (Option.isSome(session)) {
+    const permissions = await serverRuntime.runPromise(
+      getPermissions({ userId: session.value.user.id }),
     )
+    redirect(next ?? getDefaultPostLoginPath(permissions))
+  }
 
-    if (Option.isSome(session)) {
-      const permissions = yield* getPermissions({ userId: session.value.user.id })
-      redirect(params.next ?? getDefaultPostLoginPath(permissions))
-    }
+  if (!email) {
+    redirect("/auth/login?error=email_required")
+  }
 
-    if (!params.email) {
-      redirect("/auth/login?error=email_required")
-    }
-
-    return (
-      <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-        <div className="w-full max-w-sm">
-          <VerifyForm email={params.email} next={params.next} />
-        </div>
+  return (
+    <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+      <div className="w-full max-w-sm">
+        <VerifyForm email={email} next={next} />
       </div>
-    )
-  },
-  Effect.catch(() => {
-    redirect("/auth/login?error=verification_failed")
-    return Effect.succeed(<div />)
-  })
-)
-
-export default Page(_VerifyPage)
+    </div>
+  )}

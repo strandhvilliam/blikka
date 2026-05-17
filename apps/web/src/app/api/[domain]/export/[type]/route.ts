@@ -11,7 +11,6 @@ import {
 
 import { sanitizeFilenameSegment } from "@/app/(marathon)/admin/[domain]/dashboard/export/_lib/sanitize-filename-segment"
 import { getByCameraExportAccessState } from "@/lib/by-camera/by-camera-export-access-state"
-import { Route } from "@/lib/next-utils"
 import { serverRuntime, type RuntimeDependencies } from "@/lib/server-runtime"
 import { buildS3Url } from "@/lib/utils"
 import { formatByCameraAllTopicsParticipantRows } from "./by-camera-participants-export"
@@ -488,11 +487,11 @@ const handleByCameraTopicImagesExport = Effect.fn(
   })
 })
 
-const exportGetImpl = Effect.fn("@blikka/web/exportGET")(function* (
+function exportGetEffect(
   request: NextRequest,
-  routeContext: { params: Promise<{ domain: string; type: string }> },
-) {
-  const { domain, type } = yield* Effect.promise(() => routeContext.params)
+  { domain, type }: { domain: string; type: string },
+): Effect.Effect<NextResponse, unknown, RuntimeDependencies> {
+  return Effect.gen(function* () {
   const { searchParams } = new URL(request.url)
   const onlyFailed = searchParams.get("onlyFailed") === "true"
   const fileFormat = searchParams.get("fileFormat") || "single"
@@ -640,26 +639,25 @@ const exportGetImpl = Effect.fn("@blikka/web/exportGET")(function* (
         { status: 400 },
       )
   }
-})
-
-function exportGet(
-  request: NextRequest,
-  routeContext: { params: Promise<{ domain: string; type: string }> },
-): Effect.Effect<NextResponse, never, RuntimeDependencies> {
-  return exportGetImpl(request, routeContext).pipe(
-    Effect.tapError((error) => Effect.logError(error)),
-    Effect.catch((error: unknown) =>
-      Effect.succeed(
-        NextResponse.json(
-          {
-            error: "Export failed",
-            details: error instanceof Error ? error.message : "Unknown error",
-          },
-          { status: 500 },
-        ),
-      ),
-    ),
-  )
+  })
 }
 
-export const GET = Route(exportGet)
+export async function GET(
+  request: NextRequest,
+  routeContext: { params: Promise<{ domain: string; type: string }> },
+) {
+  const { domain, type } = await routeContext.params
+
+  try {
+    return await serverRuntime.runPromise(exportGetEffect(request, { domain, type }))
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json(
+      {
+        error: "Export failed",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
+  }
+}

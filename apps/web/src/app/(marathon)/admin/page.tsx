@@ -1,6 +1,5 @@
 import Image from "next/image"
-import { Page } from "@/lib/next-utils"
-import { Effect } from "effect"
+
 import { Suspense } from "react"
 import { SelectDomainTitle } from "./_components/select-domain-title"
 import { SelectDomainSkeleton } from "./_components/select-domain-skeleton"
@@ -10,7 +9,7 @@ import { DotPattern } from "@/components/dot-pattern"
 import { LanguageSwitcher } from "./_components/language-switcher"
 import { SelectDomainLogoutButton } from "./_components/select-domain-logout-button"
 
-const _AdminPage = Effect.fn("@blikka/web/AdminPage")(function* () {
+export default async function AdminPage() {
   prefetch(trpc.marathons.getUserMarathons.queryOptions())
 
   return (
@@ -49,6 +48,4 @@ const _AdminPage = Effect.fn("@blikka/web/AdminPage")(function* () {
       </div>
     </HydrateClient>
   )
-})
-
-export default Page(_AdminPage)
+}

@@ -1,18 +1,17 @@
 import { getAppSession } from "@/lib/auth/server"
-import { Layout } from "@/lib/next-utils"
-import { Effect, Option } from "effect"
+import { serverRuntime } from "@/lib/server-runtime"
+
+import { Option } from "effect"
 import { redirect, RedirectType } from "next/navigation"
 
-const _StaffLayout = Effect.fn("@blikka/web/StaffLayout")(function* ({
+export default async function StaffLayout({
   children,
 }: LayoutProps<"/staff">) {
-  const session = yield* getAppSession()
+  const session = await serverRuntime.runPromise(getAppSession())
 
   if (Option.isNone(session)) {
     redirect("/auth/login?next=/staff", RedirectType.replace)
   }
 
   return <>{children}</>
-})
-
-export default Layout(_StaffLayout)
+}

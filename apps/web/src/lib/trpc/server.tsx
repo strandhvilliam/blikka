@@ -83,3 +83,18 @@ export function fetchEffectQuery<T extends ReturnType<TRPCQueryOptions<any>>>(
       }),
   })
 }
+
+export async function fetchServerQuery<T extends ReturnType<TRPCQueryOptions<any>>>(
+  queryOptions: T,
+): Promise<QueryOptionsResult<T>> {
+  const queryClient = getQueryClient()
+
+  try {
+    return await queryClient.fetchQuery(queryOptions)
+  } catch (error) {
+    throw new TRPCServerError({
+      message: error instanceof Error ? error.message : "TRPC call failed",
+      cause: error,
+    })
+  }
+}

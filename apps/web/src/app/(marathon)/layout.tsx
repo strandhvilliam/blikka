@@ -1,5 +1,3 @@
-import { Layout } from "@/lib/next-utils"
-import { Effect } from "effect"
 import Document from "@/components/document"
 import { getHeaders, getLocale } from "@/lib/server-utils"
 import { Providers } from "./providers"
@@ -7,30 +5,30 @@ import { Providers } from "./providers"
 import { getI18nMessages } from "@/i18n/utils"
 import { Toaster } from "sonner"
 import { DotPattern } from "@/components/dot-pattern"
+import { serverRuntime } from "@/lib/server-runtime"
 
-const _MarathonLayout = Effect.fn("@blikka/web/MarathonLayout")(
-  function* ({ children }: LayoutProps<"/">) {
-    const [locale, messages] = yield* Effect.all([getLocale(), getI18nMessages()])
-    const headers = yield* getHeaders()
-    const domain = headers.get("x-marathon-domain")
-    const requestCookieHeader = headers.get("cookie")
+export default async function MarathonLayout({ children }: LayoutProps<"/">) {
+  const [locale, messages, headers] = await Promise.all([
+    serverRuntime.runPromise(getLocale()),
+    serverRuntime.runPromise(getI18nMessages()),
+    serverRuntime.runPromise(getHeaders()),
+  ])
 
-    return (
-      <Document locale={locale}>
-        <Providers
-          locale={locale}
-          messages={messages}
-          domain={domain}
-          requestCookieHeader={requestCookieHeader}
-        >
-          <DotPattern />
-          <Toaster />
-          {children}
-        </Providers>
-      </Document>
-    )
-  },
-  Effect.catch((error) => Effect.succeed(<div>Error: {error.message}</div>))
-)
+  const domain = headers.get("x-marathon-domain")
+  const requestCookieHeader = headers.get("cookie")
 
-export default Layout(_MarathonLayout)
+  return (
+    <Document locale={locale}>
+      <Providers
+        locale={locale}
+        messages={messages}
+        domain={domain}
+        requestCookieHeader={requestCookieHeader}
+      >
+        <DotPattern />
+        <Toaster />
+        {children}
+      </Providers>
+    </Document>
+  )
+}

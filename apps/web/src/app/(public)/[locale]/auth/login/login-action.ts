@@ -1,41 +1,45 @@
 "use server"
 
 import { Auth } from "@/lib/auth/server"
-import { Action, toActionResponse } from "@/lib/next-utils"
 import { loginRatelimit, getClientIp } from "@/lib/ratelimit"
-import { Schema, Effect } from "effect"
+import { serverRuntime } from "@/lib/server-runtime"
 import { headers } from "next/headers"
 
-class LoginError extends Schema.TaggedErrorClass<LoginError>()("LoginError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {}
+type EmailOtpApi = {
+  sendVerificationOTP(input: {
+    headers: Headers
+    body: {
+      email: string
+      type: "sign-in"
+    }
+  }): Promise<unknown>
+}
 
-const _loginAction = Effect.fn("@blikka/web/loginAction")(function* ({ email }: { email: string }) {
-  const auth = yield* Auth
-  const readonlyHeaders = yield* Effect.tryPromise(() => headers())
-  const ip = getClientIp(readonlyHeaders)
-  const allowed = yield* Effect.tryPromise(() => loginRatelimit.limit(ip))
-  if (!allowed) {
-    yield* Effect.fail(
-      new LoginError({ message: "Too many login attempts. Please try again later." }),
-    )
+export async function loginAction(input: { email: string }) {
+  try {
+    const auth = await serverRuntime.runPromise(Auth)
+    const authApi = auth.api as typeof auth.api & EmailOtpApi
+    const readonlyHeaders = await headers()
+    const ip = getClientIp(readonlyHeaders)
+    const allowed = await loginRatelimit.limit(ip)
+
+    if (!allowed) {
+      throw new Error("Too many login attempts. Please try again later.")
+    }
+
+    await authApi.sendVerificationOTP({
+      headers: readonlyHeaders,
+      body: {
+        email: input.email,
+        type: "sign-in",
+      },
+    })
+
+    return { data: undefined, error: null }
+  } catch (error) {
+    return {
+      data: undefined,
+      error: error instanceof Error ? error.message : String(error),
+    }
   }
-  yield* Effect.tryPromise({
-    try: () =>
-      auth.api.sendVerificationOTP({
-        headers: readonlyHeaders,
-        body: {
-          email,
-          type: "sign-in",
-        },
-      }),
-    catch: (error) =>
-      new LoginError({
-        cause: error,
-        message: "Failed to send verification OTP",
-      }),
-  })
-}, toActionResponse)
-
-export const loginAction = async (input: { email: string }) => Action(_loginAction)(input)
+}

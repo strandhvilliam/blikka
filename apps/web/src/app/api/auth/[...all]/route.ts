@@ -1,14 +1,20 @@
 import { Auth } from "@/lib/auth/server"
-import { Route } from "@/lib/next-utils"
-import { Effect } from "effect"
+import { serverRuntime } from "@/lib/server-runtime"
 import { NextRequest } from "next/server"
 
-const _route = Effect.fn("@blikka/web/authRoute")(function* (req: NextRequest) {
-  const auth = yield* Auth
-  return yield* Effect.tryPromise(() => auth.handler(req)).pipe(
-    Effect.catch(() => Effect.succeed(new Response("Internal Server Error", { status: 500 })))
-  )
-})
+async function handleAuthRequest(req: NextRequest) {
+  try {
+    const auth = await serverRuntime.runPromise(Auth)
+    return auth.handler(req)
+  } catch {
+    return new Response("Internal Server Error", { status: 500 })
+  }
+}
 
-export const GET = Route(_route)
-export const POST = Route(_route)
+export async function GET(req: NextRequest) {
+  return handleAuthRequest(req)
+}
+
+export async function POST(req: NextRequest) {
+  return handleAuthRequest(req)
+}
