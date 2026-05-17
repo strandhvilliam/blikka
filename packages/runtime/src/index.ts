@@ -8,7 +8,7 @@ import { S3ServiceLayer, SQSServiceLayer, SMSServiceLayer } from "@blikka/aws"
 import { UploadSessionRepositoryLayer } from "@blikka/kv-store"
 import { ValidationEngineLayer } from "@blikka/validation"
 import {
-  SharpImageService,
+  SharpImageServiceLayer,
   ExifParserLayer,
   ContactSheetBuilderLayer,
 } from "@blikka/image-manipulation"
@@ -25,7 +25,7 @@ export const CoreLayer = Layer.mergeAll(
   S3ServiceLayer,
   SQSServiceLayer,
   UploadSessionRepositoryLayer,
-  SharpImageService.layer,
+  SharpImageServiceLayer,
   ContactSheetBuilderLayer,
   ExifParserLayer,
   RealtimeEventsServiceLayer,

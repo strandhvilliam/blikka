@@ -1,5 +1,5 @@
 import { Effect, Layer, Schema, Context } from "effect"
-import { SharpImageService } from "./sharp-image-service"
+import { SharpImageService, SharpImageServiceLayer } from "./sharp-image-service"
 import type { SponsorPosition, SheetVariables } from "../types"
 import type { SharpError } from "./sharp-image-service"
 
@@ -450,5 +450,5 @@ export const ContactSheetBuilderLayerNoDeps = Layer.effect(
 )
 
 export const ContactSheetBuilderLayer = ContactSheetBuilderLayerNoDeps.pipe(
-  Layer.provide(SharpImageService.layer),
+  Layer.provide(SharpImageServiceLayer),
 )
