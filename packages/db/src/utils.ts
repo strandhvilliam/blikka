@@ -1,10 +1,6 @@
-import { getTableColumns, sql, type InferInsertModel } from "drizzle-orm";
-import {
-  type PgUpdateSetSource,
-  type PgTable,
-  getTableConfig,
-} from "drizzle-orm/pg-core";
-import { Schema } from "effect";
+import { getTableColumns, sql, type InferInsertModel } from "drizzle-orm"
+import { type PgUpdateSetSource, type PgTable, getTableConfig } from "drizzle-orm/pg-core"
+import { Schema } from "effect"
 
 export class DbError extends Schema.TaggedErrorClass<DbError>()("DbError", {
   message: Schema.String,
@@ -12,7 +8,7 @@ export class DbError extends Schema.TaggedErrorClass<DbError>()("DbError", {
 }) {}
 
 export function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
+  return email.trim().toLowerCase()
 }
 
 export function getDefaultRuleConfigs(
@@ -69,28 +65,28 @@ export function getDefaultRuleConfigs(
       severity: "error",
       params: null,
     },
-  ];
+  ]
 }
 
 export function conflictUpdateSetAllColumns<
   T extends PgTable,
   E extends readonly (keyof InferInsertModel<T>)[],
 >(table: T, except?: E): PgUpdateSetSource<T> {
-  const columns = getTableColumns(table);
-  const config = getTableConfig(table);
-  const { name: tableName } = config;
+  const columns = getTableColumns(table)
+  const config = getTableConfig(table)
+  const { name: tableName } = config
   const conflictUpdateSet = Object.entries(columns).reduce(
     (acc, [columnName, columnInfo]) => {
       if (except && except.includes(columnName as E[number])) {
-        return acc;
+        return acc
       }
-      const column = columnInfo as { name: string };
+      const column = columnInfo as { name: string }
       acc[columnName] = sql.raw(
         `COALESCE("excluded"."${column.name}", "${tableName}"."${column.name}")`,
-      );
-      return acc;
+      )
+      return acc
     },
     {} as Record<string, unknown>,
-  ) as PgUpdateSetSource<T>;
-  return conflictUpdateSet;
+  ) as PgUpdateSetSource<T>
+  return conflictUpdateSet
 }
