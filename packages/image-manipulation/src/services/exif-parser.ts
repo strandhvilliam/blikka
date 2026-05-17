@@ -4,57 +4,22 @@ import { Context, Effect, Schema, Layer } from "effect"
 export class ExifParseError extends Schema.TaggedErrorClass<ExifParseError>()("ExifParserError", {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
-}) {
-}
+}) {}
 
 export const ExifSchema = Schema.Record(Schema.String, Schema.Unknown)
 
 export type ExifData = typeof ExifSchema.Type
 
-export class ExifParser extends Context.Service<ExifParser>()(
-  "@blikka/exif-parser/exif-parser",
+export class ExifParser extends Context.Service<
+  ExifParser,
   {
-    make: Effect.gen(function* () {
-      const parse = Effect.fn("ExifParser.parse")(
-        function* (
-          file: Uint8Array<ArrayBufferLike>,
-          options: { keepBinaryData: boolean } = { keepBinaryData: false },
-        ) {
-          const exif = yield* Effect.tryPromise(() => exifr.parse(file))
-          const sanitizedExif = yield* Effect.try({
-            try: () => sanitizeExifData(exif, options?.keepBinaryData),
-            catch: (error) =>
-              new ExifParseError({ message: "Failed to sanitize EXIF data", cause: error }),
-          })
-
-          const decoded = Schema.decodeUnknownSync(ExifSchema)(sanitizedExif)
-          return decoded
-        },
-        Effect.mapError(
-          (error) =>
-            new ExifParseError({
-              cause: error,
-              message: "Failed to parse EXIF data",
-            }),
-        ),
-      )
-      const parseExcludeLocationData = Effect.fn("ExifParser.parseExcludeLocationData")(function* (
-        file: Buffer,
-      ) {
-        const exif = yield* parse(file)
-        const withoutLocationData = yield* removeGpsData(exif)
-        return withoutLocationData
-      })
-
-      return {
-        parse,
-        parseExcludeLocationData,
-      } as const
-    }),
-  },
-) {
-  static readonly layer = Layer.effect(this, this.make)
-}
+    readonly parse: (
+      file: Uint8Array<ArrayBufferLike>,
+      options?: { keepBinaryData: boolean },
+    ) => Effect.Effect<ExifData, ExifParseError>
+    readonly parseExcludeLocationData: (file: Buffer) => Effect.Effect<ExifData, ExifParseError>
+  }
+>()("@blikka/image-manipulation/exif-parser") {}
 
 /**
  * Sanitizes EXIF data for safe serialization and storage.
@@ -65,11 +30,11 @@ export class ExifParser extends Context.Service<ExifParser>()(
  * - Recursively traverses arrays/objects
  * - Detects and handles circular references
  */
-export const sanitizeExifData = (
+function sanitizeExifData(
   input: unknown,
   keepBinaryData: boolean = false,
   visited: WeakSet<object> = new WeakSet(),
-): unknown => {
+): unknown {
   // simple primitives
   if (
     input === null ||
@@ -140,40 +105,79 @@ export const sanitizeExifData = (
 /**
  * Removes GPS / location-related data from an EXIF object.
  */
-export const removeGpsData = (exif: ExifData) =>
-  Effect.sync(() => {
-    const gpsKeys = new Set([
-      "GPSLatitude",
-      "GPSLongitude",
-      "GPSAltitude",
-      "GPSLatitudeRef",
-      "GPSLongitudeRef",
-      "GPSPosition",
-      "GPSAltitudeRef",
-      "GPSSpeed",
-      "GPSSpeedRef",
-      "GPSTimeStamp",
-      "GPSSatellites",
-      "GPSStatus",
-      "GPSMeasureMode",
-      "GPSMapDatum",
-      "GPSDateStamp",
-      "GPSProcessingMethod",
-      "GPSAreaInformation",
-      // some makers use more generic names
-      "Location",
-      "Latitude",
-      "Longitude",
-      "Altitude",
-    ])
+function removeGpsData(exif: ExifData) {
+  const gpsKeys = new Set([
+    "GPSLatitude",
+    "GPSLongitude",
+    "GPSAltitude",
+    "GPSLatitudeRef",
+    "GPSLongitudeRef",
+    "GPSPosition",
+    "GPSAltitudeRef",
+    "GPSSpeed",
+    "GPSSpeedRef",
+    "GPSTimeStamp",
+    "GPSSatellites",
+    "GPSStatus",
+    "GPSMeasureMode",
+    "GPSMapDatum",
+    "GPSDateStamp",
+    "GPSProcessingMethod",
+    "GPSAreaInformation",
+    // some makers use more generic names
+    "Location",
+    "Latitude",
+    "Longitude",
+    "Altitude",
+  ])
 
-    const result = { ...exif }
+  const result = { ...exif }
 
-    for (const key of Object.keys(exif)) {
-      if (gpsKeys.has(key)) {
-        delete result[key as keyof ExifData]
-      }
+  for (const key of Object.keys(exif)) {
+    if (gpsKeys.has(key)) {
+      delete result[key as keyof ExifData]
     }
+  }
 
-    return result
+  return result
+}
+
+export const makeExifParser = Effect.gen(function* () {
+  const parse: ExifParser["Service"]["parse"] = Effect.fn("ExifParser.parse")(
+    function* (
+      file: Uint8Array<ArrayBufferLike>,
+      options: { keepBinaryData: boolean } = { keepBinaryData: false },
+    ) {
+      const exif = yield* Effect.tryPromise(() => exifr.parse(file))
+      const sanitizedExif = yield* Effect.try({
+        try: () => sanitizeExifData(exif, options?.keepBinaryData),
+        catch: (error) =>
+          new ExifParseError({ message: "Failed to sanitize EXIF data", cause: error }),
+      })
+
+      const decoded = Schema.decodeUnknownSync(ExifSchema)(sanitizedExif)
+      return decoded
+    },
+    Effect.mapError(
+      (error) =>
+        new ExifParseError({
+          cause: error,
+          message: "Failed to parse EXIF data",
+        }),
+    ),
+  )
+  const parseExcludeLocationData: ExifParser["Service"]["parseExcludeLocationData"] = Effect.fn(
+    "ExifParser.parseExcludeLocationData",
+  )(function* (file: Buffer) {
+    const exif = yield* parse(file)
+    const withoutLocationData = removeGpsData(exif)
+    return withoutLocationData
   })
+
+  return ExifParser.of({
+    parse,
+    parseExcludeLocationData,
+  })
+})
+
+export const ExifParserLayer = Layer.effect(ExifParser, makeExifParser)

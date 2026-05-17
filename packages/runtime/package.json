@@ -14,7 +14,6 @@
     "@blikka/kv-store": "workspace:*",
     "@blikka/validation": "workspace:*",
     "@blikka/image-manipulation": "workspace:*",
-    "@blikka/exif-parser": "workspace:*",
     "@effect/platform-node": "catalog:",
     "effect": "catalog:",
     "@blikka/aws": "workspace:*"

@@ -33,8 +33,7 @@
       "@blikka/image-manipulation": ["../../packages/image-manipulation/src"],
       "@blikka/pubsub": ["../../packages/pubsub/src"],
       "@blikka/realtime": ["../../packages/realtime/src"],
-      "@blikka/validation": ["../../packages/validation/src"],
-      "@blikka/exif-parser": ["../../packages/exif-parser/src"]
+      "@blikka/validation": ["../../packages/validation/src"]
     }
   }
 }

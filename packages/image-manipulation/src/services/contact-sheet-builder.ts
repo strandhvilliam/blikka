@@ -269,11 +269,7 @@ export class ContactSheetBuilder extends Context.Service<
     /** Create a contact sheet from a list of image files. */
     readonly createSheet: (params: CreateSheetParams) => Effect.Effect<Buffer, ContactSheetError>
   }
->()("@blikka/packages/image-manipulation/ContactSheetBuilder") {
-  static get layer() {
-    return ContactSheetBuilderLayer
-  }
-}
+>()("@blikka/packages/image-manipulation/ContactSheetBuilder") {}
 
 const makeContactSheetBuilder = Effect.gen(function* () {
   const sharp = yield* SharpImageService

@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@blikka/db": "workspace:*",
-    "@blikka/exif-parser": "workspace:*",
     "@blikka/image-manipulation": "workspace:*",
     "@blikka/kv-store": "workspace:*",
     "@blikka/pubsub": "workspace:*",
