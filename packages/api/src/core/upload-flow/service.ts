@@ -43,7 +43,12 @@ import {
   type ResolveByCameraParticipantByPhone,
   type ReTriggerUploadFlow,
 } from "./contracts"
-import { UploadFlowApiError } from "./errors"
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+  PreconditionFailedError,
+} from "../errors"
 import {
   PhoneNumberEncryptionService,
   PhoneNumberEncryptionServiceLayer,
@@ -90,7 +95,9 @@ function hasExifFields(
 }
 
 /** Marathon row with `topics` replaced for public upload entry (redaction / by-camera slice). */
-type PublicMarathonForClient = Omit<Marathon, "topics"> & { topics: Topic[] }
+interface PublicMarathonForClient extends Omit<Marathon, "topics"> {
+  topics: Topic[]
+}
 
 export class UploadFlowService extends Context.Service<
   UploadFlowService,
@@ -108,7 +115,7 @@ export class UploadFlowService extends Context.Service<
       | DbError
       | S3ClientError
       | PhoneNumberEncryptionError
-      | UploadFlowApiError
+      | BadRequestError
       | UploadSessionRepositoryError
       | InvalidKeyFormatError
       | ExifKVRepositoryError,
@@ -123,7 +130,7 @@ export class UploadFlowService extends Context.Service<
       input: PrepareUploadFlow,
     ) => Effect.Effect<
       { participantId: number; status: string },
-      DbError | PhoneNumberEncryptionError | UploadFlowApiError,
+      DbError | PhoneNumberEncryptionError | BadRequestError,
       never
     >
 
@@ -141,7 +148,7 @@ export class UploadFlowService extends Context.Service<
       | DbError
       | S3ClientError
       | PhoneNumberEncryptionError
-      | UploadFlowApiError
+      | BadRequestError
       | UploadSessionRepositoryError
       | InvalidKeyFormatError
       | ExifKVRepositoryError,
@@ -162,7 +169,7 @@ export class UploadFlowService extends Context.Service<
       | DbError
       | S3ClientError
       | PhoneNumberEncryptionError
-      | UploadFlowApiError
+      | BadRequestError
       | UploadSessionRepositoryError
       | InvalidKeyFormatError
       | ExifKVRepositoryError,
@@ -188,14 +195,14 @@ export class UploadFlowService extends Context.Service<
           reference: string
           activeTopicUploadState: "eligible" | "already-uploaded"
         },
-      DbError | PhoneNumberEncryptionError | UploadFlowApiError | UploadSessionRepositoryError,
+      DbError | PhoneNumberEncryptionError | BadRequestError | UploadSessionRepositoryError,
       never
     >
 
     /** Loads the marathon for a domain and masks non-public topic titles; by-camera responses expose at most one active topic. */
     readonly getPublicMarathon: (
       input: GetPublicMarathon,
-    ) => Effect.Effect<PublicMarathonForClient, DbError | UploadFlowApiError, never>
+    ) => Effect.Effect<PublicMarathonForClient, DbError | BadRequestError, never>
 
     /** Returns whether a participant `reference` exists under `domain` and their stored status when it does. */
     readonly checkParticipantExists: (
@@ -235,7 +242,7 @@ export class UploadFlowService extends Context.Service<
       input: RefreshPresignedUploads,
     ) => Effect.Effect<
       { key: string; url: string; contentType: string }[],
-      DbError | S3ClientError | UploadFlowApiError | UploadSessionRepositoryError,
+      DbError | S3ClientError | BadRequestError | UploadSessionRepositoryError,
       never
     >
 
@@ -244,7 +251,7 @@ export class UploadFlowService extends Context.Service<
       input: ReTriggerUploadFlow,
     ) => Effect.Effect<
       undefined,
-      UploadFlowApiError | UploadSessionRepositoryError | SQSServiceError,
+      BadRequestError | UploadSessionRepositoryError | SQSServiceError,
       never
     >
   }
@@ -278,7 +285,7 @@ const makeUploadFlowService = Effect.gen(function* () {
               onSome: (marathon) => Effect.succeed(marathon),
               onNone: () =>
                 Effect.fail(
-                  new UploadFlowApiError({
+                  new BadRequestError({
                     message: `[${domain}] Marathon not found`,
                   }),
                 ),
@@ -370,7 +377,7 @@ const makeUploadFlowService = Effect.gen(function* () {
   }) {
     if (!marathon.setupCompleted) {
       return yield* Effect.fail(
-        new UploadFlowApiError({
+        new BadRequestError({
           message: `[${domain}] Marathon setup is incomplete`,
         }),
       )
@@ -379,7 +386,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     if (marathon.mode === "marathon") {
       if (!marathon.startDate || !marathon.endDate) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Marathon upload window is not configured`,
           }),
         )
@@ -391,7 +398,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Marathon upload window is invalid`,
           }),
         )
@@ -399,7 +406,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (now < startDate || now > endDate) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Uploads are closed for this marathon`,
           }),
         )
@@ -409,35 +416,35 @@ const makeUploadFlowService = Effect.gen(function* () {
     if (marathon.mode === "by-camera") {
       if (!activeTopic) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] No active topic found for marathon`,
           }),
         )
       }
       if (activeTopic.visibility !== "active") {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Active topic is not active`,
           }),
         )
       }
       if (!activeTopic.scheduledStart) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Active topic has not been opened for submissions`,
           }),
         )
       }
       if (new Date(activeTopic.scheduledStart) > new Date()) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Submissions are scheduled to open later`,
           }),
         )
       }
       if (activeTopic.scheduledEnd && new Date(activeTopic.scheduledEnd) <= new Date()) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Submissions are closed for this topic`,
           }),
         )
@@ -459,7 +466,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (!activeTopic) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] No active topic found for marathon`,
           }),
         )
@@ -484,7 +491,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
     if (!competitionClass) {
       return yield* Effect.fail(
-        new UploadFlowApiError({
+        new BadRequestError({
           message: `[${domain}] Competition class not found`,
         }),
       )
@@ -513,7 +520,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (!deviceGroup) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Device group not found`,
           }),
         )
@@ -539,7 +546,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (!competitionClass) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Competition class not found`,
           }),
         )
@@ -606,7 +613,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
     if (marathon.mode !== "by-camera") {
       return yield* Effect.fail(
-        new UploadFlowApiError({
+        new BadRequestError({
           message: `[${domain}] Marathon is not in by-camera mode`,
         }),
       )
@@ -734,7 +741,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     }
 
     return yield* Effect.fail(
-      new UploadFlowApiError({
+      new BadRequestError({
         message: `[${domain}] Failed to allocate a unique participant reference`,
       }),
     )
@@ -809,7 +816,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (marathon.mode !== "marathon") {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}] Prepare flow is only available in marathon mode`,
           }),
         )
@@ -837,7 +844,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           existingParticipant.value.status === "verified"
         ) {
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: `[${domain}|${reference}] Participant already completed upload flow`,
             }),
           )
@@ -845,7 +852,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
         if (existingParticipant.value.status === "initialized") {
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: `[${domain}|${reference}] Participant already started upload flow`,
             }),
           )
@@ -976,7 +983,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         onSome: (existing) => {
           if (existing.status === "completed" || existing.status === "verified") {
             return Effect.fail(
-              new UploadFlowApiError({
+              new BadRequestError({
                 message: `[${domain}|${reference}] Participant already completed upload flow`,
               }),
             )
@@ -1010,7 +1017,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (uploadContentTypes !== undefined && uploadContentTypes.length !== topics.length) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}|${reference}] uploadContentTypes length must match the number of submissions (${topics.length})`,
           }),
         )
@@ -1018,7 +1025,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (uploadExif !== undefined && uploadExif.length !== topics.length) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}|${reference}] uploadExif length must match the number of submissions (${topics.length})`,
           }),
         )
@@ -1180,7 +1187,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           !replaceExistingActiveTopicUpload
         ) {
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE,
             }),
           )
@@ -1195,7 +1202,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
         if (!encrypted || !hash) {
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: `[${domain}] Phone number is required`,
             }),
           )
@@ -1203,7 +1210,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
         if (uploadExif !== undefined && uploadExif.length !== 1) {
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: `[${domain}] uploadExif must contain exactly one entry for by-camera upload`,
             }),
           )
@@ -1211,7 +1218,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
         if (uploadContentTypes !== undefined && uploadContentTypes.length !== 1) {
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: `[${domain}] uploadContentTypes must contain exactly one entry for by-camera upload`,
             }),
           )
@@ -1356,7 +1363,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
         if (marathon.mode !== "by-camera") {
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: `[${domain}] Staff by-camera upload is only available in by-camera mode`,
             }),
           )
@@ -1388,7 +1395,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
         if (!encrypted || !hash) {
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: `[${domain}] Phone number is required`,
             }),
           )
@@ -1397,7 +1404,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         if (uploadContentTypes !== undefined && uploadContentTypes.length !== 1) {
           const refLabel = reference.trim() === "" ? "new" : reference
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: `[${domain}|${refLabel}] uploadContentTypes must contain exactly one entry for by-camera staff upload`,
             }),
           )
@@ -1406,7 +1413,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         if (uploadExif !== undefined && uploadExif.length !== 1) {
           const refLabel = reference.trim() === "" ? "new" : reference
           return yield* Effect.fail(
-            new UploadFlowApiError({
+            new BadRequestError({
               message: `[${domain}|${refLabel}] uploadExif must contain exactly one entry for by-camera staff upload`,
             }),
           )
@@ -1432,7 +1439,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           if (row.status === "completed" || row.status === "verified") {
             if (!allowReplaceFinalized) {
               return yield* Effect.fail(
-                new UploadFlowApiError({
+                new BadRequestError({
                   message: `[${domain}|${reference}] Participant already completed upload flow`,
                 }),
               )
@@ -1441,7 +1448,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
           if (row.participantMode !== "by-camera") {
             return yield* Effect.fail(
-              new UploadFlowApiError({
+              new BadRequestError({
                 message: `[${domain}|${reference}] Participant is not in by-camera mode`,
               }),
             )
@@ -1454,7 +1461,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
           if (Option.isSome(otherWithPhone) && otherWithPhone.value.id !== row.id) {
             return yield* Effect.fail(
-              new UploadFlowApiError({
+              new BadRequestError({
                 message: "Another participant already uses this phone number",
               }),
             )
@@ -1483,7 +1490,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
           if (alreadyUploaded && !replaceExistingActiveTopicUpload && !allowReplaceFinalized) {
             return yield* Effect.fail(
-              new UploadFlowApiError({
+              new BadRequestError({
                 message: ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE,
               }),
             )
@@ -1523,7 +1530,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
           if (Option.isSome(otherWithPhone)) {
             return yield* Effect.fail(
-              new UploadFlowApiError({
+              new BadRequestError({
                 message: "Another participant already uses this phone number",
               }),
             )
@@ -1613,7 +1620,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     }) {
       if (orderIndexes.length === 0) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}|${reference}] orderIndexes must not be empty`,
           }),
         )
@@ -1621,7 +1628,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (uploadContentTypes !== undefined && uploadContentTypes.length !== orderIndexes.length) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}|${reference}] uploadContentTypes length must match orderIndexes length (${orderIndexes.length})`,
           }),
         )
@@ -1638,7 +1645,7 @@ const makeUploadFlowService = Effect.gen(function* () {
               onSome: (resolvedParticipant) => Effect.succeed(resolvedParticipant),
               onNone: () =>
                 Effect.fail(
-                  new UploadFlowApiError({
+                  new BadRequestError({
                     message: `[${domain}|${reference}] Participant not found`,
                   }),
                 ),
@@ -1648,7 +1655,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (isParticipantFinalized(participant.status)) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}|${reference}] Participant already completed upload flow`,
           }),
         )
@@ -1657,7 +1664,7 @@ const makeUploadFlowService = Effect.gen(function* () {
       const participantState = yield* kv.getParticipantState(domain, reference)
       if (Option.isNone(participantState)) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}|${reference}] Participant not initialized`,
           }),
         )
@@ -1689,7 +1696,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
       if (missingOrderIndexes.length > 0) {
         return yield* Effect.fail(
-          new UploadFlowApiError({
+          new BadRequestError({
             message: `[${domain}|${reference}] Missing submissions for order indexes: ${missingOrderIndexes.join(", ")}`,
           }),
         )
@@ -1734,7 +1741,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     const participantState = yield* kv.getParticipantState(domain, reference)
     if (Option.isNone(participantState)) {
       return yield* Effect.fail(
-        new UploadFlowApiError({
+        new BadRequestError({
           message: `[${domain}|${reference}] Participant not initialized`,
         }),
       )

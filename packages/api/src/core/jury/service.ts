@@ -18,7 +18,26 @@ import {
   type Submission,
   type Topic,
 } from "@blikka/db"
-import { JuryApiError, type JuryApiErrorCode } from "./errors"
+import {
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  InternalApiError,
+  NotFoundError,
+  PreconditionFailedError,
+  UnauthorizedError,
+  failNotFoundIfNone,
+  type ApiErrorCode,
+} from "../errors"
+
+type JuryApiError =
+  | BadRequestError
+  | ConflictError
+  | ForbiddenError
+  | InternalApiError
+  | NotFoundError
+  | PreconditionFailedError
+  | UnauthorizedError
 import type {
   CreateJuryInvitationInput,
   CreateJuryRating,
@@ -52,49 +71,63 @@ const JuryTokenPayloadSchema = Schema.Struct({
 
 type JuryTokenPayload = Schema.Schema.Type<typeof JuryTokenPayloadSchema>
 
-type JuryInvitationWithOptions = JuryInvitation & {
+interface JuryInvitationWithOptions extends JuryInvitation {
   topic: Topic | null
   competitionClass: CompetitionClass | null
   deviceGroup: DeviceGroup | null
 }
 
-type JuryInvitationWithMarathon = JuryInvitationWithOptions & {
+interface JuryInvitationWithMarathon extends JuryInvitationWithOptions {
   marathon: Marathon
 }
 
-type JuryReviewResultsRatingRow = {
+interface JuryReviewResultsParticipantSummary {
+  id: number
+  reference: string
+  firstname: string
+  lastname: string
+}
+
+interface JuryReviewResultsRatingRow {
   participantId: number
   rating: number
   notes: string | null
   finalRanking: number | null
-  participant: {
-    id: number
-    reference: string
-    firstname: string
-    lastname: string
-  }
+  participant: JuryReviewResultsParticipantSummary
 }
 
-type JurySubmissionListParticipant = Pick<
-  Participant,
-  "id" | "createdAt" | "reference" | "status"
-> & {
+interface JurySubmissionListParticipant
+  extends Pick<Participant, "id" | "createdAt" | "reference" | "status"> {
   submission: Submission & { topic: Topic | null }
   competitionClass: CompetitionClass | null
   deviceGroup: DeviceGroup | null
   contactSheetKey?: string | null
 }
 
-type JurySubmissionsFromTokenPage = {
+interface JurySubmissionsFromTokenPage {
   participants: JurySubmissionListParticipant[]
   nextCursor: number | null
 }
 
-function mapTokenError(message: string, code: JuryApiErrorCode) {
-  return new JuryApiError({
-    code,
-    message,
-  })
+function mapTokenError(message: string, code: ApiErrorCode): JuryApiError {
+  switch (code) {
+    case "BAD_REQUEST":
+      return new BadRequestError({ message })
+    case "UNAUTHORIZED":
+      return new UnauthorizedError({ message })
+    case "FORBIDDEN":
+      return new ForbiddenError({ message })
+    case "NOT_FOUND":
+      return new NotFoundError({
+        resource: message.replace(/ not found$/i, ""),
+      })
+    case "CONFLICT":
+      return new ConflictError({ message })
+    case "PRECONDITION_FAILED":
+      return new PreconditionFailedError({ message })
+    case "INTERNAL_SERVER_ERROR":
+      return new InternalApiError({ message })
+  }
 }
 
 /**
@@ -265,7 +298,7 @@ const makeJuryService = Effect.gen(function* () {
             .setExpirationTime(exp)
             .sign(secret),
         catch: (error) =>
-          new JuryApiError({
+          new InternalApiError({
             message: `Failed to generate jury token: ${error instanceof Error ? error.message : String(error)}`,
             cause: error,
           }),
@@ -366,33 +399,18 @@ const makeJuryService = Effect.gen(function* () {
 
   const getJuryInvitationById: JuryService["Service"]["getJuryInvitationById"] =
     Effect.fn("JuryService.getJuryInvitationById")(function* ({ id }) {
-      const result = yield* juryRepository.getJuryInvitationById({ id })
-      return yield* Option.match(result, {
-        onSome: (invitation) => Effect.succeed(invitation),
-        onNone: () =>
-          Effect.fail(
-            new JuryApiError({
-              message: `Jury invitation not found for id ${id}`,
-            }),
-          ),
-      })
+      return yield* juryRepository
+        .getJuryInvitationById({ id })
+        .pipe(failNotFoundIfNone("JuryInvitation", { id }))
     })
 
   const getJuryReviewResultsByInvitationId: JuryService["Service"]["getJuryReviewResultsByInvitationId"] =
     Effect.fn(
       "JuryService.getJuryReviewResultsByInvitationId",
     )(function* ({ id }) {
-      const invitation = yield* juryRepository.getJuryInvitationById({ id })
-
-      yield* Option.match(invitation, {
-        onSome: () => Effect.void,
-        onNone: () =>
-          Effect.fail(
-            new JuryApiError({
-              message: `Jury invitation not found for id ${id}`,
-            }),
-          ),
-      })
+      yield* juryRepository
+        .getJuryInvitationById({ id })
+        .pipe(failNotFoundIfNone("JuryInvitation", { id }))
 
       const ratings =
         yield* juryRepository.getJuryRatingsWithRankingsByInvitation({
@@ -485,7 +503,7 @@ const makeJuryService = Effect.gen(function* () {
 
         if (hasTopicId && hasCompetitionClassId) {
           return yield* Effect.fail(
-            new JuryApiError({
+            new BadRequestError({
               message:
                 "Cannot create invitation with both topic and competition class. Choose either topic invite or class invite.",
             }),
@@ -494,7 +512,7 @@ const makeJuryService = Effect.gen(function* () {
 
         if (!hasTopicId && !hasCompetitionClassId) {
           return yield* Effect.fail(
-            new JuryApiError({
+            new BadRequestError({
               message:
                 "Must specify either topicId for topic invite or competitionClassId for class invite.",
             }),
@@ -507,7 +525,7 @@ const makeJuryService = Effect.gen(function* () {
             data.competitionClassId !== undefined
           ) {
             return yield* Effect.fail(
-              new JuryApiError({
+              new BadRequestError({
                 message:
                   "Topic invites cannot have competition class specified.",
               }),
@@ -518,7 +536,7 @@ const makeJuryService = Effect.gen(function* () {
             data.deviceGroupId !== undefined
           ) {
             return yield* Effect.fail(
-              new JuryApiError({
+              new BadRequestError({
                 message: "Topic invites cannot have device group specified.",
               }),
             )
@@ -528,25 +546,17 @@ const makeJuryService = Effect.gen(function* () {
         if (hasCompetitionClassId) {
           if (data.topicId !== null && data.topicId !== undefined) {
             return yield* Effect.fail(
-              new JuryApiError({
+              new BadRequestError({
                 message: "Class invites cannot have topic specified.",
               }),
             )
           }
         }
 
-        const marathon = yield* marathonsRepository.getMarathonByDomain({
-          domain,
-        })
-        const marathonId = yield* Option.match(marathon, {
-          onSome: (m) => Effect.succeed(m.id),
-          onNone: () =>
-            Effect.fail(
-              new JuryApiError({
-                message: `Marathon not found for domain ${domain}`,
-              }),
-            ),
-        })
+        const marathon = yield* marathonsRepository
+          .getMarathonByDomain({ domain })
+          .pipe(failNotFoundIfNone("Marathon", { domain }))
+        const marathonId = marathon.id
 
         const invitationData: NewJuryInvitation = {
           email: data.email,
@@ -572,36 +582,18 @@ const makeJuryService = Effect.gen(function* () {
           data: { token },
         })
 
-        const createdInvitation = yield* juryRepository.getJuryInvitationById({
-          id: result.id,
-        })
-        return yield* Option.match(createdInvitation, {
-          onSome: (invitation) => Effect.succeed(invitation),
-          onNone: () =>
-            Effect.fail(
-              new JuryApiError({
-                message: `Failed to retrieve created invitation with id ${result.id}`,
-              }),
-            ),
-        })
+        return yield* juryRepository
+          .getJuryInvitationById({ id: result.id })
+          .pipe(failNotFoundIfNone("JuryInvitation", { id: result.id }))
       },
     )
 
   const updateJuryInvitation: JuryService["Service"]["updateJuryInvitation"] =
     Effect.fn("JuryService.updateJuryInvitation")(
       function* ({ id, data }) {
-        const existingInvitation = yield* juryRepository.getJuryInvitationById({
-          id,
-        })
-        yield* Option.match(existingInvitation, {
-          onSome: () => Effect.void,
-          onNone: () =>
-            Effect.fail(
-              new JuryApiError({
-                message: `Jury invitation not found for id ${id}`,
-              }),
-            ),
-        })
+        yield* juryRepository
+          .getJuryInvitationById({ id })
+          .pipe(failNotFoundIfNone("JuryInvitation", { id }))
 
         const updateData = {
           ...data,
@@ -617,18 +609,9 @@ const makeJuryService = Effect.gen(function* () {
 
   const deleteJuryInvitation: JuryService["Service"]["deleteJuryInvitation"] =
     Effect.fn("JuryService.deleteJuryInvitation")(function* ({ id }) {
-      const existingInvitation = yield* juryRepository.getJuryInvitationById({
-        id,
-      })
-      yield* Option.match(existingInvitation, {
-        onSome: () => Effect.void,
-        onNone: () =>
-          Effect.fail(
-            new JuryApiError({
-              message: `Jury invitation not found for id ${id}`,
-            }),
-          ),
-      })
+      yield* juryRepository
+        .getJuryInvitationById({ id })
+        .pipe(failNotFoundIfNone("JuryInvitation", { id }))
 
       return yield* juryRepository.deleteJuryInvitation({ id })
     })

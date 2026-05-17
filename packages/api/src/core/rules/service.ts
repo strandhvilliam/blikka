@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Effect, Layer, Option, Context } from "effect"
+import { Effect, Layer, Context } from "effect"
 import {
   DbLayer,
   MarathonsRepository,
@@ -9,7 +9,7 @@ import {
   type RuleConfig,
   DbError,
 } from "@blikka/db"
-import { RulesApiError } from "./errors"
+import { NotFoundError, failNotFoundIfNone } from "../errors"
 import type { GetByDomainInput, UpdateMultipleInput } from "./contracts"
 
 export class RulesService extends Context.Service<
@@ -24,7 +24,7 @@ export class RulesService extends Context.Service<
      */
     readonly updateMultipleRules: (
       input: UpdateMultipleInput,
-    ) => Effect.Effect<RuleConfig[], DbError | RulesApiError, never>
+    ) => Effect.Effect<RuleConfig[], DbError | NotFoundError, never>
   }
 >()("@blikka/api/RulesService") {}
 
@@ -45,19 +45,9 @@ const makeRulesService = Effect.gen(function* () {
       domain,
     })
 
-    const marathon = yield* marathonsRepository.getMarathonByDomainWithOptions({
-      domain,
-    })
-
-    const marathonId = yield* Option.match(marathon, {
-      onSome: (m) => Effect.succeed(m.id),
-      onNone: () =>
-        Effect.fail(
-          new RulesApiError({
-            message: `Marathon not found for domain ${domain}`,
-          }),
-        ),
-    })
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomainWithOptions({ domain })
+      .pipe(failNotFoundIfNone("Marathon", { domain }))
 
     const now = new Date().toISOString()
     const rulesToUpdate: NewRuleConfig[] = existingRules.reduce((acc, rule) => {
@@ -68,7 +58,7 @@ const makeRulesService = Effect.gen(function* () {
           createdAt: rule.createdAt,
           updatedAt: now,
           ruleKey: rule.ruleKey,
-          marathonId,
+          marathonId: marathon.id,
           params: ruleToUpdate.params ?? rule.params,
           severity: ruleToUpdate.severity ?? rule.severity,
           enabled: ruleToUpdate.enabled ?? rule.enabled,

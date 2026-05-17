@@ -26,7 +26,7 @@ import {
   ValidationsService,
   ValidationsServiceLayer,
 } from "../validations/service"
-import { ValidationsApiError } from "../validations/errors"
+import { NotFoundError } from "../errors"
 import {
   type BeginAdminReplaceUploadServiceInput,
   type CompleteAdminReplaceUploadServiceInput,
@@ -84,7 +84,7 @@ export class SubmissionsService extends Context.Service<
       | DbError
       | Config.ConfigError
       | AdminReplaceSubmissionError
-      | ValidationsApiError
+      | NotFoundError
       | ValidationEngineError,
       ValidationsService
     >
@@ -111,7 +111,7 @@ export class SubmissionsService extends Context.Service<
       | DbError
       | Config.ConfigError
       | AdminReplaceSubmissionError
-      | ValidationsApiError
+      | NotFoundError
       | ValidationEngineError,
       ValidationsService
     >

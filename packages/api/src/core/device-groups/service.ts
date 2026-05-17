@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Effect, Layer, Option, Context } from "effect"
+import { Effect, Layer, Context } from "effect"
 import {
   DbLayer,
   DeviceGroupsRepository,
@@ -13,7 +13,11 @@ import type {
   DeleteDeviceGroupInput,
   UpdateDeviceGroupInput,
 } from "./contracts"
-import { DeviceGroupApiError } from "./errors"
+import {
+  ForbiddenError,
+  NotFoundError,
+  failNotFoundIfNone,
+} from "../errors"
 
 export class DeviceGroupsService extends Context.Service<
   DeviceGroupsService,
@@ -24,7 +28,7 @@ export class DeviceGroupsService extends Context.Service<
      */
     readonly createDeviceGroup: (
       input: CreateDeviceGroupInput,
-    ) => Effect.Effect<DeviceGroup, DbError | DeviceGroupApiError, never>
+    ) => Effect.Effect<DeviceGroup, DbError | NotFoundError, never>
 
     /**
      * Applies a partial update to a device group scoped to `domain`; fails when the row is missing
@@ -32,12 +36,20 @@ export class DeviceGroupsService extends Context.Service<
      */
     readonly updateDeviceGroup: (
       input: UpdateDeviceGroupInput,
-    ) => Effect.Effect<DeviceGroup, DbError | DeviceGroupApiError, never>
+    ) => Effect.Effect<
+      DeviceGroup,
+      DbError | NotFoundError | ForbiddenError,
+      never
+    >
 
     /** Deletes a device group after verifying marathon ownership via `domain`. */
     readonly deleteDeviceGroup: (
       input: DeleteDeviceGroupInput,
-    ) => Effect.Effect<DeviceGroup, DbError | DeviceGroupApiError, never>
+    ) => Effect.Effect<
+      DeviceGroup,
+      DbError | NotFoundError | ForbiddenError,
+      never
+    >
   }
 >()("@blikka/api/DeviceGroupsService") {}
 
@@ -45,25 +57,39 @@ const makeDeviceGroupsService = Effect.gen(function* () {
   const marathonsRepository = yield* MarathonsRepository
   const deviceGroupsRepository = yield* DeviceGroupsRepository
 
+  const ensureDeviceGroupBelongsToDomain = Effect.fn(
+    "DeviceGroupsService.ensureDeviceGroupBelongsToDomain",
+  )(function* ({ id, domain }: { id: number; domain: string }) {
+    const deviceGroup = yield* deviceGroupsRepository
+      .getDeviceGroupById({ id })
+      .pipe(failNotFoundIfNone("DeviceGroup", { id }))
+
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone("Marathon", { domain }))
+
+    if (marathon.id !== deviceGroup.marathonId) {
+      return yield* Effect.fail(
+        new ForbiddenError({
+          message: `Device group ${id} does not belong to domain ${domain}`,
+        }),
+      )
+    }
+
+    return deviceGroup
+  })
+
   const createDeviceGroup: DeviceGroupsService["Service"]["createDeviceGroup"] =
     Effect.fn("DeviceGroupsService.createDeviceGroup")(
       function* ({ domain, data }) {
-        const marathon = yield* marathonsRepository.getMarathonByDomain({
-          domain,
-        })
-
-        if (Option.isNone(marathon)) {
-          return yield* Effect.fail(
-            new DeviceGroupApiError({
-              message: `Marathon not found for domain ${domain}`,
-            }),
-          )
-        }
+        const marathon = yield* marathonsRepository
+          .getMarathonByDomain({ domain })
+          .pipe(failNotFoundIfNone("Marathon", { domain }))
 
         return yield* deviceGroupsRepository.createDeviceGroup({
           data: {
             ...data,
-            marathonId: marathon.value.id,
+            marathonId: marathon.id,
             icon: data.icon ?? "camera",
           },
         })
@@ -73,33 +99,7 @@ const makeDeviceGroupsService = Effect.gen(function* () {
   const updateDeviceGroup: DeviceGroupsService["Service"]["updateDeviceGroup"] =
     Effect.fn("DeviceGroupsService.updateDeviceGroup")(
       function* ({ domain, id, data }) {
-        const deviceGroup = yield* deviceGroupsRepository.getDeviceGroupById({
-          id,
-        })
-
-        if (Option.isNone(deviceGroup)) {
-          return yield* Effect.fail(
-            new DeviceGroupApiError({
-              message: `Device group not found with id ${id}`,
-            }),
-          )
-        }
-
-        const marathon = yield* marathonsRepository.getMarathonByDomain({
-          domain,
-        })
-
-        if (
-          Option.isNone(marathon) ||
-          marathon.value.id !== deviceGroup.value.marathonId
-        ) {
-          return yield* Effect.fail(
-            new DeviceGroupApiError({
-              message: `Device group does not belong to domain ${domain}`,
-            }),
-          )
-        }
-
+        yield* ensureDeviceGroupBelongsToDomain({ id, domain })
         return yield* deviceGroupsRepository.updateDeviceGroup({
           id,
           data,
@@ -110,33 +110,7 @@ const makeDeviceGroupsService = Effect.gen(function* () {
   const deleteDeviceGroup: DeviceGroupsService["Service"]["deleteDeviceGroup"] =
     Effect.fn("DeviceGroupsService.deleteDeviceGroup")(
       function* ({ domain, id }) {
-        const deviceGroup = yield* deviceGroupsRepository.getDeviceGroupById({
-          id,
-        })
-
-        if (Option.isNone(deviceGroup)) {
-          return yield* Effect.fail(
-            new DeviceGroupApiError({
-              message: `Device group not found with id ${id}`,
-            }),
-          )
-        }
-
-        const marathon = yield* marathonsRepository.getMarathonByDomain({
-          domain,
-        })
-
-        if (
-          Option.isNone(marathon) ||
-          marathon.value.id !== deviceGroup.value.marathonId
-        ) {
-          return yield* Effect.fail(
-            new DeviceGroupApiError({
-              message: `Device group does not belong to domain ${domain}`,
-            }),
-          )
-        }
-
+        yield* ensureDeviceGroupBelongsToDomain({ id, domain })
         return yield* deviceGroupsRepository.deleteDeviceGroup({ id })
       },
     )

@@ -12,13 +12,17 @@ import {
   PhoneNumberEncryptionService,
   PhoneNumberEncryptionServiceLayer,
 } from "../utils/phone-number-encryption"
-import { ExportsApiError } from "./errors"
+import {
+  BadRequestError,
+  NotFoundError,
+  failNotFoundIfNone,
+} from "../errors"
 import type {
   DomainScopedExportInput,
   GetValidationResultsExportDataInput,
 } from "./contracts"
 
-type ParticipantExportRow = {
+interface ParticipantExportRow {
   reference: string
   firstname: string
   lastname: string
@@ -30,7 +34,7 @@ type ParticipantExportRow = {
   uploadCount: number
 }
 
-type ParticipantByCameraAllTopicsExportRow = {
+interface ParticipantByCameraAllTopicsExportRow {
   phoneNumber: string
   topicsParticipatedCount: number
   latestTopicName: string
@@ -45,7 +49,7 @@ type ParticipantByCameraAllTopicsExportRow = {
   deviceGroupName: string
 }
 
-type SubmissionExportRow = {
+interface SubmissionExportRow {
   phoneNumber: string
   submissionId: number
   participantReference: string
@@ -67,7 +71,7 @@ type SubmissionExportRow = {
   thumbnailKey: string
 }
 
-type ExifExportRow = {
+interface ExifExportRow {
   submissionId: number
   participantReference: string
   topicName: string
@@ -76,7 +80,7 @@ type ExifExportRow = {
   uploadDate: string
 }
 
-type ValidationResultExportRow = {
+interface ValidationResultExportRow {
   participantId: number
   participantReference: string
   participantName: string
@@ -95,43 +99,51 @@ export class ExportsService extends Context.Service<
     /** Participants CSV-style export rows for a marathon `domain`. */
     readonly getParticipantsExportData: (
       input: DomainScopedExportInput,
-    ) => Effect.Effect<ParticipantExportRow[], DbError | ExportsApiError, never>
+    ) => Effect.Effect<ParticipantExportRow[], DbError | BadRequestError, never>
 
     /** Participants export scoped to the active by-camera topic for `domain`. */
     readonly getParticipantsExportDataByCameraActiveTopic: (
       input: DomainScopedExportInput,
-    ) => Effect.Effect<ParticipantExportRow[], DbError | ExportsApiError, never>
+    ) => Effect.Effect<
+      ParticipantExportRow[],
+      DbError | BadRequestError | NotFoundError,
+      never
+    >
 
     /** By-camera participants across topics with decrypted phone for export. */
     readonly getParticipantsExportDataByCameraAllTopics: (
       input: DomainScopedExportInput,
     ) => Effect.Effect<
       ParticipantByCameraAllTopicsExportRow[],
-      DbError | ExportsApiError,
+      DbError | BadRequestError,
       never
     >
 
     /** Submissions export rows with decrypted phone numbers for `domain`. */
     readonly getSubmissionsExportData: (
       input: DomainScopedExportInput,
-    ) => Effect.Effect<SubmissionExportRow[], DbError | ExportsApiError, never>
+    ) => Effect.Effect<SubmissionExportRow[], DbError | BadRequestError, never>
 
     /** Submissions for the active by-camera topic only. */
     readonly getSubmissionsExportDataByCameraActiveTopic: (
       input: DomainScopedExportInput,
-    ) => Effect.Effect<SubmissionExportRow[], DbError | ExportsApiError, never>
+    ) => Effect.Effect<
+      SubmissionExportRow[],
+      DbError | BadRequestError | NotFoundError,
+      never
+    >
 
     /** EXIF payloads keyed by submission for export. */
     readonly getExifExportData: (
       input: DomainScopedExportInput,
-    ) => Effect.Effect<ExifExportRow[], DbError | ExportsApiError, never>
+    ) => Effect.Effect<ExifExportRow[], DbError | BadRequestError, never>
 
     /** Validation result rows for organizer export; optional failed-only filter. */
     readonly getValidationResultsExportData: (
       input: GetValidationResultsExportDataInput,
     ) => Effect.Effect<
       ValidationResultExportRow[],
-      DbError | ExportsApiError,
+      DbError | BadRequestError,
       never
     >
 
@@ -140,7 +152,7 @@ export class ExportsService extends Context.Service<
       input: GetValidationResultsExportDataInput,
     ) => Effect.Effect<
       ValidationResultExportRow[],
-      DbError | ExportsApiError,
+      DbError | BadRequestError | NotFoundError,
       never
     >
 
@@ -149,7 +161,11 @@ export class ExportsService extends Context.Service<
       input: DomainScopedExportInput,
     ) => Effect.Effect<
       { topicName: string; zipBuffer: Buffer },
-      DbError | S3ClientError | Config.ConfigError | ExportsApiError,
+      | DbError
+      | S3ClientError
+      | Config.ConfigError
+      | BadRequestError
+      | NotFoundError,
       never
     >
   }
@@ -164,24 +180,13 @@ const makeExportsService = Effect.gen(function* () {
   const getActiveByCameraTopic = Effect.fn(
     "ExportsService.getActiveByCameraTopic",
   )(function* ({ domain }) {
-    const marathonOption =
-      yield* marathonsRepository.getMarathonByDomainWithOptions({
-        domain,
-      })
-
-    const marathon = yield* Option.match(marathonOption, {
-      onSome: Effect.succeed,
-      onNone: () =>
-        Effect.fail(
-          new ExportsApiError({
-            message: `Marathon not found for domain ${domain}`,
-          }),
-        ),
-    })
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomainWithOptions({ domain })
+      .pipe(failNotFoundIfNone("Marathon", { domain }))
 
     if (marathon.mode !== "by-camera") {
       return yield* Effect.fail(
-        new ExportsApiError({
+        new BadRequestError({
           message: `Marathon '${domain}' is not in by-camera mode`,
         }),
       )
@@ -192,8 +197,9 @@ const makeExportsService = Effect.gen(function* () {
 
     if (!activeTopic) {
       return yield* Effect.fail(
-        new ExportsApiError({
-          message: `No active topic found for marathon '${domain}'`,
+        new NotFoundError({
+          resource: "ActiveTopic",
+          identifier: { domain },
         }),
       )
     }
@@ -227,7 +233,7 @@ const makeExportsService = Effect.gen(function* () {
             void archive.finalize()
           }),
         catch: (error) =>
-          new ExportsApiError({
+          new BadRequestError({
             message: "Failed to build export archive",
             cause: error,
           }),
@@ -265,7 +271,7 @@ const makeExportsService = Effect.gen(function* () {
           return yield* exportsRepository.getParticipantsForExport({ domain })
         } catch (error) {
           return yield* Effect.fail(
-            new ExportsApiError({
+            new BadRequestError({
               message: "Failed to fetch participants export data",
               cause: error,
             }),
@@ -286,7 +292,7 @@ const makeExportsService = Effect.gen(function* () {
           })
         } catch (error) {
           return yield* Effect.fail(
-            new ExportsApiError({
+            new BadRequestError({
               message: "Failed to fetch by-camera participants export data",
               cause: error,
             }),
@@ -328,7 +334,7 @@ const makeExportsService = Effect.gen(function* () {
           )
         } catch (error) {
           return yield* Effect.fail(
-            new ExportsApiError({
+            new BadRequestError({
               message:
                 "Failed to fetch by-camera all-topic participants export data",
               cause: error,
@@ -370,7 +376,7 @@ const makeExportsService = Effect.gen(function* () {
           )
         } catch (error) {
           return yield* Effect.fail(
-            new ExportsApiError({
+            new BadRequestError({
               message: "Failed to fetch submissions export data",
               cause: error,
             }),
@@ -414,7 +420,7 @@ const makeExportsService = Effect.gen(function* () {
           )
         } catch (error) {
           return yield* Effect.fail(
-            new ExportsApiError({
+            new BadRequestError({
               message: "Failed to fetch by-camera submissions export data",
               cause: error,
             }),
@@ -430,7 +436,7 @@ const makeExportsService = Effect.gen(function* () {
           return yield* exportsRepository.getExifDataForExport({ domain })
         } catch (error) {
           return yield* Effect.fail(
-            new ExportsApiError({
+            new BadRequestError({
               message: "Failed to fetch EXIF export data",
               cause: error,
             }),
@@ -449,7 +455,7 @@ const makeExportsService = Effect.gen(function* () {
           })
         } catch (error) {
           return yield* Effect.fail(
-            new ExportsApiError({
+            new BadRequestError({
               message: "Failed to fetch validation results export data",
               cause: error,
             }),
@@ -472,7 +478,7 @@ const makeExportsService = Effect.gen(function* () {
         })
       } catch (error) {
         return yield* Effect.fail(
-          new ExportsApiError({
+          new BadRequestError({
             message:
               "Failed to fetch by-camera validation results export data",
             cause: error,
@@ -506,8 +512,9 @@ const makeExportsService = Effect.gen(function* () {
 
                 if (Option.isNone(fileOption)) {
                   return yield* Effect.fail(
-                    new ExportsApiError({
-                      message: `Submission file not found: ${submission.key}`,
+                    new NotFoundError({
+                      resource: "SubmissionFile",
+                      identifier: { key: submission.key },
                     }),
                   )
                 }
@@ -531,7 +538,7 @@ const makeExportsService = Effect.gen(function* () {
           }
         } catch (error) {
           return yield* Effect.fail(
-            new ExportsApiError({
+            new BadRequestError({
               message: "Failed to build by-camera topic image archive",
               cause: error,
             }),

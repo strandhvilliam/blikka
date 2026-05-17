@@ -16,7 +16,11 @@ import {
   type CompetitionClass,
 } from "@blikka/db"
 import { S3Service, S3ServiceLayer, type S3ClientError } from "@blikka/aws"
-import { ContactSheetApiError } from "./errors"
+import {
+  BadRequestError,
+  NotFoundError,
+  failNotFoundIfNone,
+} from "../errors"
 import type { GenerateContactSheet } from "./contracts"
 
 const VALID_PHOTO_COUNTS = [8, 24]
@@ -33,7 +37,8 @@ export class ContactSheetsService extends Context.Service<
     ) => Effect.Effect<
       { success: boolean; key: string },
       | DbError
-      | ContactSheetApiError
+      | BadRequestError
+      | NotFoundError
       | S3ClientError
       | ContactSheetError,
       never
@@ -67,7 +72,7 @@ const makeContactSheetsService = Effect.gen(function* () {
   ) {
     if (!competitionClass?.numberOfPhotos) {
       return yield* Effect.fail(
-        new ContactSheetApiError({
+        new BadRequestError({
           message: `[${reference}|${domain}] Missing competition class photo count`,
         }),
       )
@@ -76,7 +81,7 @@ const makeContactSheetsService = Effect.gen(function* () {
     const expectedCount = competitionClass.numberOfPhotos
     if (!VALID_PHOTO_COUNTS.includes(expectedCount)) {
       return yield* Effect.fail(
-        new ContactSheetApiError({
+        new BadRequestError({
           message: `[${reference}|${domain}] Unsupported photo count ${expectedCount} for participant ${reference}`,
         }),
       )
@@ -84,7 +89,7 @@ const makeContactSheetsService = Effect.gen(function* () {
 
     if (keys.length !== expectedCount) {
       return yield* Effect.fail(
-        new ContactSheetApiError({
+        new BadRequestError({
           message: `[${reference}|${domain}] Photo count mismatch. Expected ${expectedCount}, got ${keys.length}`,
         }),
       )
@@ -94,25 +99,14 @@ const makeContactSheetsService = Effect.gen(function* () {
   const generateContactSheet: ContactSheetsService["Service"]["generateContactSheet"] =
     Effect.fn("ContactSheetsService.generateContactSheet")(
       function* ({ domain, reference }) {
-        const participant = yield* participantsRepository.getParticipantByReference(
-          {
-            reference,
-            domain,
-          },
-        )
+        const participantRow = yield* participantsRepository
+          .getParticipantByReference({ reference, domain })
+          .pipe(failNotFoundIfNone("Participant", { reference, domain }))
 
-        if (Option.isNone(participant)) {
-          return yield* Effect.fail(
-            new ContactSheetApiError({
-              message: "Participant not found",
-            }),
-          )
-        }
-
-        const submissions = participant.value.submissions || []
+        const submissions = participantRow.submissions || []
         if (submissions.length === 0) {
           return yield* Effect.fail(
-            new ContactSheetApiError({
+            new BadRequestError({
               message: "Participant has no submissions",
             }),
           )
@@ -122,11 +116,11 @@ const makeContactSheetsService = Effect.gen(function* () {
           reference,
           domain,
           submissions.map((s) => s.key),
-          participant.value.competitionClass,
+          participantRow.competitionClass,
         )
 
         const sponsor = yield* sponsorsRepository.getLatestSponsorByType({
-          marathonId: participant.value.marathonId,
+          marathonId: participantRow.marathonId,
           type: "contact-sheets",
         })
 
@@ -146,37 +140,21 @@ const makeContactSheetsService = Effect.gen(function* () {
         const images = yield* Effect.forEach(
           submissions,
           (submission, index) =>
-            Effect.gen(function* () {
-              const file = yield* s3.getFile(submissionsBucketName, submission.key)
-              if (Option.isNone(file)) {
-                return yield* Effect.fail(
-                  new ContactSheetApiError({
-                    message: `Submission image not found: ${submission.key}`,
-                  }),
-                )
-              }
-
-              return {
-                orderIndex: index,
-                buffer: file.value,
-              }
-            }),
+            s3
+              .getFile(submissionsBucketName, submission.key)
+              .pipe(
+                failNotFoundIfNone("SubmissionImage", { key: submission.key }),
+                Effect.map((buffer) => ({ orderIndex: index, buffer })),
+              ),
           { concurrency: 5 },
         )
 
         const sponsorImage = Option.isSome(sponsor)
-          ? yield* Effect.gen(function* () {
-              const file = yield* s3.getFile(sponsorsBucketName, sponsor.value.key)
-              if (Option.isNone(file)) {
-                return yield* Effect.fail(
-                  new ContactSheetApiError({
-                    message: `Sponsor image not found: ${sponsor.value.key}`,
-                  }),
-                )
-              }
-
-              return file.value
-            })
+          ? yield* s3
+              .getFile(sponsorsBucketName, sponsor.value.key)
+              .pipe(
+                failNotFoundIfNone("SponsorImage", { key: sponsor.value.key }),
+              )
           : undefined
 
         const contactSheetKey = generateContactSheetKey(domain, reference)
@@ -198,8 +176,8 @@ const makeContactSheetsService = Effect.gen(function* () {
         yield* contactSheetsRepository.save({
           data: {
             key: contactSheetKey,
-            participantId: participant.value.id,
-            marathonId: participant.value.marathonId,
+            participantId: participantRow.id,
+            marathonId: participantRow.marathonId,
           },
         })
 

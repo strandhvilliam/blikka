@@ -4,7 +4,36 @@ import { TRPCError } from "@trpc/server"
 import { BetterAuthService } from "@blikka/auth"
 import { UsersRepository } from "@blikka/db"
 import { RedisClient } from "@blikka/redis"
-import { isCodedApiError } from "../core/errors"
+import {
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  InternalApiError,
+  NotFoundError,
+  PreconditionFailedError,
+  UnauthorizedError,
+} from "../core/errors"
+
+const apiErrorToTrpc = {
+  NotFoundError: (e: NotFoundError) =>
+    new TRPCError({ code: "NOT_FOUND", message: e.message, cause: e }),
+  BadRequestError: (e: BadRequestError) =>
+    new TRPCError({ code: "BAD_REQUEST", message: e.message, cause: e }),
+  UnauthorizedError: (e: UnauthorizedError) =>
+    new TRPCError({ code: "UNAUTHORIZED", message: e.message, cause: e }),
+  ForbiddenError: (e: ForbiddenError) =>
+    new TRPCError({ code: "FORBIDDEN", message: e.message, cause: e }),
+  ConflictError: (e: ConflictError) =>
+    new TRPCError({ code: "CONFLICT", message: e.message, cause: e }),
+  PreconditionFailedError: (e: PreconditionFailedError) =>
+    new TRPCError({ code: "PRECONDITION_FAILED", message: e.message, cause: e }),
+  InternalApiError: (e: InternalApiError) =>
+    new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: e.message,
+      cause: e,
+    }),
+} as const
 
 type ContextWithoutRuntimeHelper<T extends BaseContext> = Omit<T, "runtime">
 
@@ -41,12 +70,18 @@ function mapEffectErrorToTRPC(error: unknown, cause?: Cause.Cause<unknown>): TRP
   if (error instanceof TRPCError) {
     return error
   }
-  if (isCodedApiError(error)) {
-    return new TRPCError({
-      code: error.code,
-      message: error instanceof Error ? error.message : "An unknown error occurred",
-      cause: error,
-    })
+  if (error instanceof NotFoundError) return apiErrorToTrpc.NotFoundError(error)
+  if (error instanceof BadRequestError) return apiErrorToTrpc.BadRequestError(error)
+  if (error instanceof UnauthorizedError) {
+    return apiErrorToTrpc.UnauthorizedError(error)
+  }
+  if (error instanceof ForbiddenError) return apiErrorToTrpc.ForbiddenError(error)
+  if (error instanceof ConflictError) return apiErrorToTrpc.ConflictError(error)
+  if (error instanceof PreconditionFailedError) {
+    return apiErrorToTrpc.PreconditionFailedError(error)
+  }
+  if (error instanceof InternalApiError) {
+    return apiErrorToTrpc.InternalApiError(error)
   }
   if (Schema.isSchemaError(error)) {
     const formatted = SchemaIssue.makeFormatterDefault()(error.issue)
@@ -78,13 +113,11 @@ export const getSession = Effect.fnUntraced(function* ({ headers }: { headers: H
         headers,
       }),
     catch: (error) =>
-      Effect.fail(
-        new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: error instanceof Error ? error.message : "An unknown error occurred",
-          cause: error,
-        }),
-      ),
+      new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: error instanceof Error ? error.message : "An unknown error occurred",
+        cause: error,
+      }),
   })
 })
 

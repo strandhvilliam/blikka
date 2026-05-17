@@ -11,8 +11,14 @@ import {
   type VotingRound,
   type VotingSession,
   type NewVotingSession,
+  type Participant,
 } from "@blikka/db"
-import { VotingApiError } from "./errors"
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+  PreconditionFailedError,
+} from "../errors"
 import type {
   ClearVote,
   CloseTopicVotingWindow,
@@ -76,7 +82,7 @@ interface VotingSmsQueueMessage {
   forceResend?: boolean
 }
 
-type NotificationWarning = {
+interface NotificationWarning {
   channel: "email" | "sms"
   message: string
   failedSessionIds: number[]
@@ -84,12 +90,13 @@ type NotificationWarning = {
 
 type VotingNotificationChannel = "email" | "sms" | "all"
 
-type ParticipantWithoutSessionRow = Pick<
-  import("@blikka/db").Participant,
-  "id" | "firstname" | "lastname" | "reference" | "email"
->
+interface ParticipantWithoutSessionRow
+  extends Pick<
+    Participant,
+    "id" | "firstname" | "lastname" | "reference" | "email"
+  > {}
 
-type ParticipantVoteInfo = {
+interface ParticipantVoteInfo {
   hasVoted: boolean
   votedAt: string | null
   votedSubmissionId: number | null
@@ -99,7 +106,7 @@ type ParticipantVoteInfo = {
   roundKind: string | null
 }
 
-type LeadingTieResult = {
+interface LeadingTieResult {
   roundId: number
   roundNumber: number
   roundKind: string
@@ -176,12 +183,12 @@ function parseVotingWindow({
   endsAt?: string | null
 }): Effect.Effect<
   { startsAtIso: string; endsAtIso: string | null },
-  VotingApiError
+  BadRequestError
 > {
   return Effect.try({
     try: () => parseVotingScheduleInput({ startsAt, endsAt }),
     catch: (error) =>
-      new VotingApiError({
+      new BadRequestError({
         message:
           error instanceof Error ? error.message : "Invalid voting timestamps",
         cause: error,
@@ -192,13 +199,13 @@ function parseVotingWindow({
 function ensureSessionDomain(
   votingSession: VotingSession & { marathon?: { domain: string } | null },
   domain: string,
-): Effect.Effect<void, VotingApiError> {
+): Effect.Effect<void, BadRequestError> {
   if (
     votingSession.marathon?.domain &&
     votingSession.marathon.domain !== domain
   ) {
     return Effect.fail(
-      new VotingApiError({
+      new BadRequestError({
         message: "Voting session not found",
       }),
     )
@@ -209,12 +216,12 @@ function ensureSessionDomain(
 
 function getSessionDomain(
   votingSession: VotingSession & { marathon?: { domain: string } | null },
-): Effect.Effect<string, VotingApiError> {
+): Effect.Effect<string, BadRequestError> {
   const domain = votingSession.marathon?.domain
 
   if (!domain) {
     return Effect.fail(
-      new VotingApiError({
+      new BadRequestError({
         message: "Voting session not found",
       }),
     )
@@ -226,12 +233,12 @@ function getSessionDomain(
 function ensureVotingSessionWindow(votingWindow: {
   startsAt: string | null
   endsAt: string | null
-}): Effect.Effect<void, VotingApiError> {
+}): Effect.Effect<void, BadRequestError> {
   const state = getVotingLifecycleState(votingWindow)
 
   if (state === "not-started") {
     return Effect.fail(
-      new VotingApiError({
+      new BadRequestError({
         message: "Voting session has not started yet",
       }),
     )
@@ -239,7 +246,7 @@ function ensureVotingSessionWindow(votingWindow: {
 
   if (state === "ended") {
     return Effect.fail(
-      new VotingApiError({
+      new BadRequestError({
         message: "Voting session has expired",
       }),
     )
@@ -339,7 +346,7 @@ export class VotingService extends Context.Service<
         marathon?: { domain: string } | null
         topic?: { name: string } | null
       },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -347,7 +354,7 @@ export class VotingService extends Context.Service<
      */
     readonly setTopicVotingWindow: (input: SetTopicVotingWindow) => Effect.Effect<
       { topicId: number; startsAt: string; endsAt: string | null },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -355,7 +362,7 @@ export class VotingService extends Context.Service<
      */
     readonly closeTopicVotingWindow: (input: CloseTopicVotingWindow) => Effect.Effect<
       { topicId: number; startsAt: string; endsAt: string | null },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -363,7 +370,7 @@ export class VotingService extends Context.Service<
      */
     readonly reopenTopicVotingWindow: (input: ReopenTopicVotingWindow) => Effect.Effect<
       { topicId: number; startsAt: string; endsAt: string | null },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -384,7 +391,7 @@ export class VotingService extends Context.Service<
         eligibleSubmissionCount: number
         tieSize: number
       },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -402,7 +409,7 @@ export class VotingService extends Context.Service<
         existingSessions: number
         notificationWarnings: NotificationWarning[]
       },
-      DbError | Config.ConfigError | VotingApiError,
+      DbError | Config.ConfigError | BadRequestError,
       never
     >
     /**
@@ -412,7 +419,7 @@ export class VotingService extends Context.Service<
       input: GetParticipantsWithoutVotingSession,
     ) => Effect.Effect<
       ParticipantWithoutSessionRow[],
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -431,7 +438,7 @@ export class VotingService extends Context.Service<
         smsSessionsQueued: number
         notificationWarnings: NotificationWarning[]
       },
-      DbError | Config.ConfigError | VotingApiError,
+      DbError | Config.ConfigError | BadRequestError,
       never
     >
     /**
@@ -447,7 +454,7 @@ export class VotingService extends Context.Service<
         roundNumber: number | null
         roundKind: string | null
       },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -500,7 +507,7 @@ export class VotingService extends Context.Service<
           smsSent: boolean
           smsError: string | null
         },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -588,7 +595,7 @@ export class VotingService extends Context.Service<
           }[]
         }[]
       },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -603,7 +610,7 @@ export class VotingService extends Context.Service<
         startedAt: string
         endsAt: string | null
       }[],
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -630,7 +637,7 @@ export class VotingService extends Context.Service<
         limit: number
         pageCount: number
       },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -663,7 +670,7 @@ export class VotingService extends Context.Service<
         limit: number
         pageCount: number
       },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -692,7 +699,7 @@ export class VotingService extends Context.Service<
         }
         votingUrl: string
       },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -710,7 +717,7 @@ export class VotingService extends Context.Service<
         smsError: string | null
         warningMessages: string[]
       },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -720,7 +727,7 @@ export class VotingService extends Context.Service<
       input: UpdateVotingSessionContact,
     ) => Effect.Effect<
       { sessionId: number; email: string; phoneNumber: string | null },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -780,7 +787,7 @@ export class VotingService extends Context.Service<
             } | null
           }
         },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
@@ -808,17 +815,17 @@ export class VotingService extends Context.Service<
           roundId: number
           error?: undefined
         },
-      DbError | VotingApiError,
+      DbError | BadRequestError,
       never
     >
     /**
      * Clears organizer-visible vote linkage for latest round bookkeeping.
      */
-    readonly clearVote: (input: ClearVote) => Effect.Effect<{ success: true }, DbError | VotingApiError, never>
+    readonly clearVote: (input: ClearVote) => Effect.Effect<{ success: true }, DbError | BadRequestError, never>
     /**
      * Deletes a voting invite row scoped to organizers with domain safeguards.
      */
-    readonly deleteVotingSession: (input: DeleteVotingSession) => Effect.Effect<{ success: true }, DbError | VotingApiError, never>
+    readonly deleteVotingSession: (input: DeleteVotingSession) => Effect.Effect<{ success: true }, DbError | BadRequestError, never>
   }
 >()("@blikka/api/VotingService") {}
 
@@ -1077,7 +1084,7 @@ const makeVotingService = Effect.gen(function* () {
             : "This voter has no email address or phone number, so no notification can be sent"
 
       return yield* Effect.fail(
-        new VotingApiError({
+        new BadRequestError({
           message,
         }),
       )
@@ -1139,7 +1146,7 @@ const makeVotingService = Effect.gen(function* () {
           .pipe(
             Effect.mapError(
               () =>
-                new VotingApiError({
+                new BadRequestError({
                   message: "Failed to decrypt phone number for this voter",
                 }),
             ),
@@ -1182,7 +1189,7 @@ const makeVotingService = Effect.gen(function* () {
 
     if (!emailSent && !smsSent && warningMessages.length === 0) {
       return yield* Effect.fail(
-        new VotingApiError({
+        new BadRequestError({
           message: "Failed to send voting notification to this voter",
         }),
       )
@@ -1238,7 +1245,7 @@ const makeVotingService = Effect.gen(function* () {
       onSome: (m) => Effect.succeed(m),
       onNone: () =>
         Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: `Marathon not found for domain ${domain}`,
           }),
         ),
@@ -1246,7 +1253,7 @@ const makeVotingService = Effect.gen(function* () {
 
     if (marathon.mode !== "by-camera") {
       return yield* Effect.fail(
-        new VotingApiError({
+        new BadRequestError({
           message: `Marathon '${marathon.domain}' is not in by-camera mode`,
         }),
       )
@@ -1255,7 +1262,7 @@ const makeVotingService = Effect.gen(function* () {
     const topic = marathon.topics.find((item) => item.id === topicId)
     if (!topic) {
       return yield* Effect.fail(
-        new VotingApiError({
+        new BadRequestError({
           message: "Topic not found",
         }),
       )
@@ -1284,7 +1291,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!votingWindow) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Voting topic not found",
           }),
         )
@@ -1340,7 +1347,7 @@ const makeVotingService = Effect.gen(function* () {
         onSome: (session) => Effect.succeed(session),
         onNone: () =>
           Effect.fail(
-            new VotingApiError({
+            new BadRequestError({
               message: "Voting session not found",
             }),
           ),
@@ -1401,7 +1408,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!activeTopic || activeTopic.id !== topic.id) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               "Voting window can only be configured for the active by-camera topic",
           }),
@@ -1415,7 +1422,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!latestRound) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "No voting round found for this topic",
           }),
         )
@@ -1429,7 +1436,7 @@ const makeVotingService = Effect.gen(function* () {
       })
       if (!window) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Failed to upsert voting window",
           }),
         )
@@ -1455,7 +1462,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!activeTopic || activeTopic.id !== topic.id) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               "Voting window can only be closed for the active by-camera topic",
           }),
@@ -1470,7 +1477,7 @@ const makeVotingService = Effect.gen(function* () {
       const votingState = getVotingLifecycleState(votingWindow)
       if (votingState !== "active") {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               votingState === "ended"
                 ? "Voting has already ended for this topic"
@@ -1487,7 +1494,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!latestRound) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "No voting round found for this topic",
           }),
         )
@@ -1501,7 +1508,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!updatedWindow) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Failed to close voting window",
           }),
         )
@@ -1527,7 +1534,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!activeTopic || activeTopic.id !== topic.id) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               "Voting window can only be reopened for the active by-camera topic",
           }),
@@ -1542,7 +1549,7 @@ const makeVotingService = Effect.gen(function* () {
       const votingState = getVotingLifecycleState(votingWindow)
       if (votingState !== "ended") {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               votingState === "active"
                 ? "Voting is still open for this topic"
@@ -1559,7 +1566,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!latestRound) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "No voting round found for this topic",
           }),
         )
@@ -1573,7 +1580,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!updatedWindow) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Failed to reopen voting window",
           }),
         )
@@ -1600,7 +1607,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!activeTopic || activeTopic.id !== topic.id) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               "Tie-break voting can only be started for the active by-camera topic",
           }),
@@ -1614,7 +1621,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!latestRound) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "No completed voting round exists for this topic",
           }),
         )
@@ -1622,7 +1629,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!latestRound.endsAt) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "The latest voting round is still open",
           }),
         )
@@ -1636,7 +1643,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!leadingTie) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "No lead tie exists for the latest voting round",
           }),
         )
@@ -1673,7 +1680,7 @@ const makeVotingService = Effect.gen(function* () {
         resolvedRound.kind !== "tiebreak"
       ) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Failed to create a tie-break round",
           }),
         )
@@ -1711,7 +1718,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!activeTopic || activeTopic.id !== topic.id) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               "Voting can only be started for the active by-camera topic",
           }),
@@ -1725,7 +1732,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (latestRound) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Voting has already been started for this topic",
           }),
         )
@@ -1733,7 +1740,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!hasSubmissionWindowEnded(topic.scheduledEnd)) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               "Voting cannot start until submissions have ended for the active topic",
           }),
@@ -1753,7 +1760,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (participantsWithSubmissions.length === 0) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "No participants with submissions found for this topic",
           }),
         )
@@ -1807,7 +1814,7 @@ const makeVotingService = Effect.gen(function* () {
         resolvedRound.kind !== "initial"
       ) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Failed to create voting round for this topic",
           }),
         )
@@ -1830,7 +1837,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (existingCount === 0 && participantData.length === 0) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Could not load participant data for this topic",
           }),
         )
@@ -1959,7 +1966,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!activeTopic || activeTopic.id !== topic.id) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               "Voting can only be started for the active by-camera topic",
           }),
@@ -1974,7 +1981,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (participantIds.length === 0) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "No participant IDs provided",
           }),
         )
@@ -1997,7 +2004,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (idsToProcess.length === 0) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               "None of the provided participants are eligible (they may already have sessions or no submissions for this topic)",
           }),
@@ -2016,7 +2023,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (participantData.length === 0) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Could not load participant data",
           }),
         )
@@ -2104,7 +2111,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (Option.isNone(statsResult)) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Failed to get vote stats",
           }),
         )
@@ -2147,7 +2154,7 @@ const makeVotingService = Effect.gen(function* () {
           onSome: (m) => Effect.succeed(m),
           onNone: () =>
             Effect.fail(
-              new VotingApiError({
+              new BadRequestError({
                 message: `Marathon not found for domain ${domain}`,
               }),
             ),
@@ -2155,7 +2162,7 @@ const makeVotingService = Effect.gen(function* () {
 
         if (marathon.mode !== "by-camera") {
           return yield* Effect.fail(
-            new VotingApiError({
+            new BadRequestError({
               message: `Marathon '${marathon.domain}' is not in by-camera mode`,
             }),
           )
@@ -2171,7 +2178,7 @@ const makeVotingService = Effect.gen(function* () {
           onSome: (p) => Effect.succeed(p),
           onNone: () =>
             Effect.fail(
-              new VotingApiError({
+              new BadRequestError({
                 message: `Participant not found with id ${participantId}`,
               }),
             ),
@@ -2184,7 +2191,7 @@ const makeVotingService = Effect.gen(function* () {
 
         if (!submissions.some((submission) => submission.topicId === topicId)) {
           return yield* Effect.fail(
-            new VotingApiError({
+            new BadRequestError({
               message: "Participant has no submissions for this topic",
             }),
           )
@@ -2542,7 +2549,7 @@ const makeVotingService = Effect.gen(function* () {
         })
         if (Option.isNone(roundOpt)) {
           return yield* Effect.fail(
-            new VotingApiError({ message: "Voting round not found" }),
+            new BadRequestError({ message: "Voting round not found" }),
           )
         }
       }
@@ -2680,7 +2687,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!parsedFirstName || !parsedLastName || !parsedEmail) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "First name, last name and email are required",
           }),
         )
@@ -2693,7 +2700,7 @@ const makeVotingService = Effect.gen(function* () {
         })
       if (!activeTopic || activeTopic.id !== topic.id) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message:
               "Manual invites are only allowed on the active by-camera topic",
           }),
@@ -2727,7 +2734,7 @@ const makeVotingService = Effect.gen(function* () {
       const createdSession = created[0]
       if (!createdSession) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Failed to create manual voting session",
           }),
         )
@@ -2760,7 +2767,7 @@ const makeVotingService = Effect.gen(function* () {
         onSome: (s) => Effect.succeed(s),
         onNone: () =>
           Effect.fail(
-            new VotingApiError({
+            new BadRequestError({
               message: "Voting session not found for the selected topic",
             }),
           ),
@@ -2794,7 +2801,7 @@ const makeVotingService = Effect.gen(function* () {
     }) {
       if (email === undefined && phoneNumber === undefined) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Provide an email or phone number to update",
           }),
         )
@@ -2814,7 +2821,7 @@ const makeVotingService = Effect.gen(function* () {
         onSome: (s) => Effect.succeed(s),
         onNone: () =>
           Effect.fail(
-            new VotingApiError({
+            new BadRequestError({
               message: "Voting session not found for the selected topic",
             }),
           ),
@@ -2843,7 +2850,7 @@ const makeVotingService = Effect.gen(function* () {
             .pipe(
               Effect.mapError(
                 (error) =>
-                  new VotingApiError({
+                  new BadRequestError({
                     message: error.message,
                   }),
               ),
@@ -2862,7 +2869,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!updated) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Failed to update voting session",
           }),
         )
@@ -2892,7 +2899,7 @@ const makeVotingService = Effect.gen(function* () {
         onSome: (session) => Effect.succeed(session),
         onNone: () =>
           Effect.fail(
-            new VotingApiError({
+            new BadRequestError({
               message: "Voting session not found",
             }),
           ),
@@ -2941,7 +2948,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!activeRound) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "No active voting round found",
           }),
         )
@@ -2999,7 +3006,7 @@ const makeVotingService = Effect.gen(function* () {
       onSome: (session) => Effect.succeed(session),
       onNone: () =>
         Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Voting session not found",
           }),
         ),
@@ -3020,7 +3027,7 @@ const makeVotingService = Effect.gen(function* () {
 
     if (!activeRound) {
       return yield* Effect.fail(
-        new VotingApiError({
+        new BadRequestError({
           message: "No active voting round found",
         }),
       )
@@ -3047,7 +3054,7 @@ const makeVotingService = Effect.gen(function* () {
       onSome: (resolvedSubmission) => {
         if (resolvedSubmission.marathonId !== votingSession.marathonId) {
           return Effect.fail(
-            new VotingApiError({
+            new BadRequestError({
               message: "Submission does not belong to this marathon",
             }),
           )
@@ -3055,7 +3062,7 @@ const makeVotingService = Effect.gen(function* () {
 
         if (resolvedSubmission.topicId !== votingSession.topicId) {
           return Effect.fail(
-            new VotingApiError({
+            new BadRequestError({
               message: "Submission does not belong to this voting topic",
             }),
           )
@@ -3065,7 +3072,7 @@ const makeVotingService = Effect.gen(function* () {
       },
       onNone: () =>
         Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Submission not found",
           }),
         ),
@@ -3083,7 +3090,7 @@ const makeVotingService = Effect.gen(function* () {
       )
     ) {
       return yield* Effect.fail(
-        new VotingApiError({
+        new BadRequestError({
           message: "Submission is not eligible in the active voting round",
         }),
       )
@@ -3107,7 +3114,7 @@ const makeVotingService = Effect.gen(function* () {
 
     if (!recordedVote) {
       return yield* Effect.fail(
-        new VotingApiError({
+        new BadRequestError({
           message: "Failed to record vote",
         }),
       )
@@ -3174,7 +3181,7 @@ const makeVotingService = Effect.gen(function* () {
       onSome: (s) => Effect.succeed(s),
       onNone: () =>
         Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Voting session not found",
           }),
         ),
@@ -3188,7 +3195,7 @@ const makeVotingService = Effect.gen(function* () {
 
     if (!latestRound) {
       return yield* Effect.fail(
-        new VotingApiError({
+        new BadRequestError({
           message: "No voting round found for this topic",
         }),
       )
@@ -3201,7 +3208,7 @@ const makeVotingService = Effect.gen(function* () {
 
     if (!deletedVote) {
       return yield* Effect.fail(
-        new VotingApiError({
+        new BadRequestError({
           message: "Failed to clear vote",
         }),
       )
@@ -3232,7 +3239,7 @@ const makeVotingService = Effect.gen(function* () {
         onSome: (s) => Effect.succeed(s),
         onNone: () =>
           Effect.fail(
-            new VotingApiError({
+            new BadRequestError({
               message: "Voting session not found",
             }),
           ),
@@ -3246,7 +3253,7 @@ const makeVotingService = Effect.gen(function* () {
 
       if (!deletedSession) {
         return yield* Effect.fail(
-          new VotingApiError({
+          new BadRequestError({
             message: "Failed to delete voting session",
           }),
         )

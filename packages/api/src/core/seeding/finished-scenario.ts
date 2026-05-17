@@ -29,7 +29,12 @@ import {
 } from "@blikka/db";
 import { Effect, Option } from "effect";
 import { JuryService } from "../jury/service";
-import { MarathonApiError } from "../marathons/errors";
+import {
+  BadRequestError,
+  NotFoundError,
+  PreconditionFailedError,
+  failNotFoundIfNone,
+} from "../errors";
 import {
   getSeedParticipantNames,
   getSeedReference,
@@ -402,17 +407,9 @@ const getMarathonOrFail = Effect.fn("SeedingService.getMarathonOrFail")(
     const participantsRepository = yield* ParticipantsRepository;
     const contactSheetsRepository = yield* ContactSheetsRepository;
     const votingRepository = yield* VotingRepository;
-    const marathon = yield* marathonsRepository.getMarathonByDomain({ domain });
-
-    return yield* Option.match(marathon, {
-      onSome: Effect.succeed,
-      onNone: () =>
-        Effect.fail(
-          new MarathonApiError({
-            message: `Marathon not found for domain ${domain}`,
-          }),
-        ),
-    });
+    return yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone("Marathon", { domain }));
   },
 );
 
@@ -692,7 +689,7 @@ const uploadSubmissionAssets = Effect.fn("SeedingService.uploadSubmissionAssets"
 
     if (!submissionsBucketName || !thumbnailsBucketName) {
       return yield* Effect.fail(
-        new MarathonApiError({
+        new PreconditionFailedError({
           message: "Missing submissions or thumbnails bucket configuration",
         }),
       );
@@ -1162,7 +1159,7 @@ const createContactSheets = Effect.fn("SeedingService.createContactSheets")(
 
     if (!submissionsBucketName) {
       return yield* Effect.fail(
-        new MarathonApiError({
+        new PreconditionFailedError({
           message: "Missing submissions bucket configuration",
         }),
       );
@@ -1170,7 +1167,7 @@ const createContactSheets = Effect.fn("SeedingService.createContactSheets")(
 
     if (!contactSheetsBucketName) {
       return yield* Effect.fail(
-        new MarathonApiError({
+        new PreconditionFailedError({
           message: "Missing contact sheets bucket configuration",
         }),
       );
@@ -1193,8 +1190,9 @@ const createContactSheets = Effect.fn("SeedingService.createContactSheets")(
                 const file = yield* s3.getFile(submissionsBucketName, key);
                 if (Option.isNone(file)) {
                   return yield* Effect.fail(
-                    new MarathonApiError({
-                      message: `Seed submission image not found: ${key}`,
+                    new NotFoundError({
+                      resource: "SeedSubmissionImage",
+                      identifier: { key },
                     }),
                   );
                 }
@@ -1266,7 +1264,7 @@ const createJuryInvitationsAndRatings = Effect.fn(
         );
         if (!representativeParticipant) {
           return yield* Effect.fail(
-            new MarathonApiError({
+            new PreconditionFailedError({
               message: `Missing participants for jury invitation ${template.comboKey}`,
             }),
           );
@@ -1519,7 +1517,7 @@ export const seedFinishedScenario = Effect.fn(
 
   if (!status.canRun) {
     return yield* Effect.fail(
-      new MarathonApiError({
+      new BadRequestError({
         message: status.blockers[0] ?? "Seed scenario is not available",
       }),
     );

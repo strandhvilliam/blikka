@@ -25,7 +25,7 @@ import {
   ValidationEngineLayer,
 } from "@blikka/validation"
 import type { ValidationEngineError } from "@blikka/validation"
-import { ValidationsApiError } from "./errors"
+import { NotFoundError, failNotFoundIfNone } from "../errors"
 import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract"
 import { sendParticipantVerifiedEmail } from "../participants/notifications"
 import type {
@@ -54,7 +54,7 @@ export class ValidationsService extends Context.Service<
       | Schema.SchemaError
       | DbError
       | Config.ConfigError
-      | ValidationsApiError
+      | NotFoundError
       | ValidationEngineError,
       never
     >
@@ -64,7 +64,7 @@ export class ValidationsService extends Context.Service<
       input: CreateParticipantVerificationServiceInput,
     ) => Effect.Effect<
       { id: number },
-      DbError | RealtimeError | ValidationsApiError,
+      DbError | RealtimeError | NotFoundError,
       EmailService
     >
 
@@ -99,26 +99,16 @@ const makeValidationsService = Effect.gen(function* () {
         "NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME",
       )
 
-      const participant =
-        yield* participantsRepository.getParticipantByReference({
-          reference,
-          domain,
-        })
-
-      if (Option.isNone(participant)) {
-        return yield* Effect.fail(
-          new ValidationsApiError({
-            message: "Participant not found",
-          }),
-        )
-      }
+      const participant = yield* participantsRepository
+        .getParticipantByReference({ reference, domain })
+        .pipe(failNotFoundIfNone("Participant", { reference, domain }))
 
       const rules = yield* rulesRepository.getRulesByDomain({
         domain,
       })
 
       const validationInputs = yield* Effect.forEach(
-        participant.value.submissions,
+        participant.submissions,
         (submission) =>
           Effect.gen(function* () {
             let fileSize = submission.size ?? 0
@@ -173,7 +163,7 @@ const makeValidationsService = Effect.gen(function* () {
       )
 
       yield* validationsRepository.clearAllValidationResults({
-        participantId: participant.value.id,
+        participantId: participant.id,
       })
 
       const dbValidationResults = validationResults.map((result) => ({
@@ -203,17 +193,9 @@ const makeValidationsService = Effect.gen(function* () {
       staffId,
       notes,
     }) {
-      const participant = yield* participantsRepository.getParticipantById({
-        id: participantId,
-      })
-
-      if (Option.isNone(participant)) {
-        return yield* Effect.fail(
-          new ValidationsApiError({
-            message: "Participant not found",
-          }),
-        )
-      }
+      const participant = yield* participantsRepository
+        .getParticipantById({ id: participantId })
+        .pipe(failNotFoundIfNone("Participant", { id: participantId }))
 
       const verification =
         yield* validationsRepository.createParticipantVerification({
@@ -233,16 +215,16 @@ const makeValidationsService = Effect.gen(function* () {
 
       const marathon = Option.getOrUndefined(
         yield* marathonsRepository.getMarathonByDomain({
-          domain: participant.value.domain,
+          domain: participant.domain,
         }),
       )
 
       if (marathon) {
         yield* sendParticipantVerifiedEmail({
-          participantEmail: participant.value.email,
-          participantFirstName: participant.value.firstname,
-          participantLastName: participant.value.lastname,
-          participantReference: participant.value.reference,
+          participantEmail: participant.email,
+          participantFirstName: participant.firstname,
+          participantLastName: participant.lastname,
+          participantReference: participant.reference,
           marathonName: marathon.name,
           marathonLogoUrl: marathon.logoUrl,
           marathonMode: marathon.mode,
@@ -251,8 +233,8 @@ const makeValidationsService = Effect.gen(function* () {
 
       yield* realtimeEvents.emitEventResult({
         environment,
-        domain: participant.value.domain,
-        reference: participant.value.reference,
+        domain: participant.domain,
+        reference: participant.reference,
         eventKey: "participant-verified",
         outcome: "success",
         timestamp: Date.now(),

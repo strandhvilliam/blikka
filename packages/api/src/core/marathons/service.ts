@@ -17,7 +17,7 @@ import {
   type Topic,
 } from "@blikka/db"
 import { S3Service, S3ServiceLayer, type S3ClientError } from "@blikka/aws"
-import { MarathonApiError } from "./errors"
+import { NotFoundError, failNotFoundIfNone } from "../errors"
 import { RULE_KEYS } from "@blikka/validation"
 import type {
   GetByDomainInput,
@@ -48,7 +48,7 @@ function extractLogoVersion(currentKey?: string | null) {
   }
 }
 
-type MarathonWithOptions = Marathon & {
+interface MarathonWithOptions extends Marathon {
   topics: Topic[]
   sponsors: Sponsor[]
   ruleConfigs: RuleConfig[]
@@ -56,7 +56,7 @@ type MarathonWithOptions = Marathon & {
   deviceGroups: DeviceGroup[]
 }
 
-type MarathonWithRole = Marathon & {
+interface MarathonWithRole extends Marathon {
   role: string
 }
 
@@ -69,7 +69,7 @@ export class MarathonService extends Context.Service<
      */
     readonly getMarathonByDomain: (
       input: GetByDomainInput,
-    ) => Effect.Effect<MarathonWithOptions, DbError | MarathonApiError, never>
+    ) => Effect.Effect<MarathonWithOptions, DbError | NotFoundError, never>
 
     /** Marathons the user can access, each with the relation `role`. */
     readonly getUserMarathons: (
@@ -79,14 +79,14 @@ export class MarathonService extends Context.Service<
     /** Patches marathon fields by `domain` and syncs within-timerange rule params when dates change. */
     readonly updateMarathon: (
       input: UpdateMarathonInput,
-    ) => Effect.Effect<Marathon, DbError | MarathonApiError, never>
+    ) => Effect.Effect<Marathon, DbError | NotFoundError, never>
 
     /**
      * Hard-resets marathon data keyed by `domain` (participants, submissions, topics, etc. per repository).
      */
     readonly resetMarathon: (
       input: ResetMarathonInput,
-    ) => Effect.Effect<{ id: number }, DbError | MarathonApiError, never>
+    ) => Effect.Effect<{ id: number }, DbError | NotFoundError, never>
 
     /** Presigned PUT URL for a versioned logo object plus the public URL after upload. */
     readonly getLogoUploadUrl: (
@@ -122,17 +122,9 @@ const makeMarathonService = Effect.gen(function* () {
 
   const getMarathonByDomain: MarathonService["Service"]["getMarathonByDomain"] =
     Effect.fn("MarathonService.getMarathonByDomain")(function* ({ domain }) {
-      const marathon =
-        yield* marathonsRepository.getMarathonByDomainWithOptions({ domain })
-      const result = yield* Option.match(marathon, {
-        onSome: (m) => Effect.succeed(m),
-        onNone: () =>
-          Effect.fail(
-            new MarathonApiError({
-              message: `Marathon not found for domain ${domain}`,
-            }),
-          ),
-      })
+      const result = yield* marathonsRepository
+        .getMarathonByDomainWithOptions({ domain })
+        .pipe(failNotFoundIfNone("Marathon", { domain }))
 
       if (
         result.mode === "by-camera" &&
@@ -175,19 +167,9 @@ const makeMarathonService = Effect.gen(function* () {
         )
 
         if (withinTimerangeRule) {
-          const marathonAfterUpdate =
-            yield* marathonsRepository.getMarathonByDomain({
-              domain,
-            })
-          const finalMarathon = yield* Option.match(marathonAfterUpdate, {
-            onSome: (m) => Effect.succeed(m),
-            onNone: () =>
-              Effect.fail(
-                new MarathonApiError({
-                  message: `Marathon not found after update for domain ${domain}`,
-                }),
-              ),
-          })
+          const finalMarathon = yield* marathonsRepository
+            .getMarathonByDomain({ domain })
+            .pipe(failNotFoundIfNone("Marathon", { domain }))
 
           yield* rulesRepository.updateRuleConfig({
             id: withinTimerangeRule.id,
@@ -206,23 +188,11 @@ const makeMarathonService = Effect.gen(function* () {
 
   const resetMarathon: MarathonService["Service"]["resetMarathon"] =
     Effect.fn("MarathonService.resetMarathon")(function* ({ domain }) {
-      const marathonId = yield* marathonsRepository
+      const marathon = yield* marathonsRepository
         .getMarathonByDomain({ domain })
-        .pipe(
-          Effect.andThen(
-            Option.match({
-              onSome: (m) => Effect.succeed(m.id),
-              onNone: () =>
-                Effect.fail(
-                  new MarathonApiError({
-                    message: `Marathon not found for domain ${domain}`,
-                  }),
-                ),
-            }),
-          ),
-        )
+        .pipe(failNotFoundIfNone("Marathon", { domain }))
 
-      return yield* marathonsRepository.resetMarathon({ id: marathonId })
+      return yield* marathonsRepository.resetMarathon({ id: marathon.id })
     })
 
   const getLogoUploadUrl: MarathonService["Service"]["getLogoUploadUrl"] =

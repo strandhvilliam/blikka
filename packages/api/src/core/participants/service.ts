@@ -34,7 +34,13 @@ import {
   type UpdateMarathonParticipantContactInput,
   type VerifyParticipantInput,
 } from "./contracts"
-import { ParticipantApiError } from "./errors"
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+  PreconditionFailedError,
+  failNotFoundIfNone,
+} from "../errors"
 import { getRealtimeChannelEnvironmentFromNodeEnv } from "@blikka/realtime/contract"
 import {
   EncryptedPhoneNumber,
@@ -49,10 +55,8 @@ import { sendParticipantVerifiedEmail } from "./notifications"
  * Repo infinite-list row minus `phoneEncrypted`, with decrypted `phoneNumber` for admins;
  * excludes `phoneHash` at persistence (see repository query).
  */
-type InfiniteParticipantsDomainRowPublic = Omit<
-  InfiniteDomainParticipantRow,
-  "phoneEncrypted"
-> & {
+interface InfiniteParticipantsDomainRowPublic
+  extends Omit<InfiniteDomainParticipantRow, "phoneEncrypted"> {
   phoneNumber: string | null
 }
 
@@ -60,18 +64,16 @@ type InfiniteParticipantsDomainRowPublic = Omit<
  * Cursor page of {@link InfiniteParticipantsDomainRowPublic} plus `nextCursor`;
  * replaces ciphertext with a decrypted display phone at the API layer.
  */
-type InfiniteParticipantsPageWithDecryptPhoneNumbers = Omit<
-  InfiniteParticipantsPage,
-  "participants"
-> & {
+interface InfiniteParticipantsPageWithDecryptPhoneNumbers
+  extends Omit<InfiniteParticipantsPage, "participants"> {
   participants: InfiniteParticipantsDomainRowPublic[]
 }
 
 /** Full participant + relations after decrypting `phoneEncrypted` into `phoneNumber` (dashboard / admin flows). */
-type ParticipantDetailWithDecryptPhone =
-  ParticipantWithTopicSubmissionsAndContactSheets & {
-    phoneNumber: string | null
-  }
+interface ParticipantDetailWithDecryptPhone
+  extends ParticipantWithTopicSubmissionsAndContactSheets {
+  phoneNumber: string | null
+}
 
 export class ParticipantsService extends Context.Service<
   ParticipantsService,
@@ -82,7 +84,7 @@ export class ParticipantsService extends Context.Service<
      */
     readonly getPublicParticipantByReference: (
       input: GetPublicParticipantByReferenceInput,
-    ) => Effect.Effect<PublicParticipant, DbError | ParticipantApiError, never>
+    ) => Effect.Effect<PublicParticipant, DbError | NotFoundError, never>
 
     /**
      * Cursor-paged participants for a marathon `domain`, with filters for search, class, topics, verification, votes, etc.;
@@ -105,14 +107,14 @@ export class ParticipantsService extends Context.Service<
       input: GetByReferenceInput,
     ) => Effect.Effect<
       ParticipantDetailWithDecryptPhone,
-      DbError | ParticipantApiError,
+      DbError | NotFoundError,
       never
     >
 
     /** Deletes the participant matched by `reference` and `domain` after verifying they exist. */
     readonly deleteByReference: (
       input: GetByReferenceInput,
-    ) => Effect.Effect<Participant, DbError | ParticipantApiError, never>
+    ) => Effect.Effect<Participant, DbError | NotFoundError, never>
 
     /**
      * Persists a new participant; optional `phoneNumber` is hashed and encrypted before insert.
@@ -147,7 +149,12 @@ export class ParticipantsService extends Context.Service<
       input: UpdateByCameraParticipantContactInput,
     ) => Effect.Effect<
       undefined,
-      DbError | PhoneNumberEncryptionError | ParticipantApiError,
+      | DbError
+      | PhoneNumberEncryptionError
+      | NotFoundError
+      | BadRequestError
+      | ConflictError
+      | PreconditionFailedError,
       never
     >
 
@@ -156,7 +163,14 @@ export class ParticipantsService extends Context.Service<
      */
     readonly updateMarathonParticipantContact: (
       input: UpdateMarathonParticipantContactInput,
-    ) => Effect.Effect<undefined, DbError | ParticipantApiError, never>
+    ) => Effect.Effect<
+      undefined,
+      | DbError
+      | NotFoundError
+      | BadRequestError
+      | PreconditionFailedError,
+      never
+    >
 
     /**
      * Verifies a single participant by `id` within `domain` (delegates to `batchVerify` with one id);
@@ -190,8 +204,9 @@ const makeParticipantsService = Effect.gen(function* () {
 
         if (Option.isNone(result)) {
           return yield* Effect.fail(
-            new ParticipantApiError({
-              message: "Participant not found",
+            new NotFoundError({
+              resource: "Participant",
+              identifier: { reference, domain },
             }),
           )
         }
@@ -314,8 +329,9 @@ const makeParticipantsService = Effect.gen(function* () {
 
         if (Option.isNone(result)) {
           return yield* Effect.fail(
-            new ParticipantApiError({
-              message: "Participant not found",
+            new NotFoundError({
+              resource: "Participant",
+              identifier: { reference, domain },
             }),
           )
         }
@@ -471,44 +487,30 @@ const makeParticipantsService = Effect.gen(function* () {
 
         if (!first || !last || !mail || !phoneTrimmed) {
           return yield* Effect.fail(
-            new ParticipantApiError({
+            new BadRequestError({
               message:
                 "First name, last name, email, and phone are required",
             }),
           )
         }
 
-        const marathonOption = yield* marathonsRepository.getMarathonByDomain({
-          domain,
-        })
-        if (Option.isNone(marathonOption)) {
-          return yield* Effect.fail(
-            new ParticipantApiError({ message: "Marathon not found" }),
-          )
-        }
-        const marathon = marathonOption.value
+        const marathon = yield* marathonsRepository
+          .getMarathonByDomain({ domain })
+          .pipe(failNotFoundIfNone("Marathon", { domain }))
         if (marathon.mode !== "by-camera") {
           return yield* Effect.fail(
-            new ParticipantApiError({
+            new PreconditionFailedError({
               message: "Marathon is not in by-camera mode",
             }),
           )
         }
 
-        const participantOption =
-          yield* participantsRepository.getParticipantByReference({
-            reference,
-            domain,
-          })
-        if (Option.isNone(participantOption)) {
-          return yield* Effect.fail(
-            new ParticipantApiError({ message: "Participant not found" }),
-          )
-        }
-        const participant = participantOption.value
+        const participant = yield* participantsRepository
+          .getParticipantByReference({ reference, domain })
+          .pipe(failNotFoundIfNone("Participant", { reference, domain }))
         if (participant.participantMode !== "by-camera") {
           return yield* Effect.fail(
-            new ParticipantApiError({
+            new PreconditionFailedError({
               message:
                 "Only by-camera participants can be updated with this action",
             }),
@@ -528,7 +530,7 @@ const makeParticipantsService = Effect.gen(function* () {
           existingByPhone.value.id !== participant.id
         ) {
           return yield* Effect.fail(
-            new ParticipantApiError({
+            new ConflictError({
               message:
                 "Another participant already uses this phone number",
             }),
@@ -562,43 +564,29 @@ const makeParticipantsService = Effect.gen(function* () {
 
         if (!first || !last || !mail) {
           return yield* Effect.fail(
-            new ParticipantApiError({
+            new BadRequestError({
               message: "First name, last name, and email are required",
             }),
           )
         }
 
-        const marathonOption = yield* marathonsRepository.getMarathonByDomain({
-          domain,
-        })
-        if (Option.isNone(marathonOption)) {
-          return yield* Effect.fail(
-            new ParticipantApiError({ message: "Marathon not found" }),
-          )
-        }
-        const marathon = marathonOption.value
+        const marathon = yield* marathonsRepository
+          .getMarathonByDomain({ domain })
+          .pipe(failNotFoundIfNone("Marathon", { domain }))
         if (marathon.mode !== "marathon") {
           return yield* Effect.fail(
-            new ParticipantApiError({
+            new PreconditionFailedError({
               message: "Marathon is not in classic marathon mode",
             }),
           )
         }
 
-        const participantOption =
-          yield* participantsRepository.getParticipantByReference({
-            reference,
-            domain,
-          })
-        if (Option.isNone(participantOption)) {
-          return yield* Effect.fail(
-            new ParticipantApiError({ message: "Participant not found" }),
-          )
-        }
-        const participant = participantOption.value
+        const participant = yield* participantsRepository
+          .getParticipantByReference({ reference, domain })
+          .pipe(failNotFoundIfNone("Participant", { reference, domain }))
         if (participant.participantMode !== "marathon") {
           return yield* Effect.fail(
-            new ParticipantApiError({
+            new PreconditionFailedError({
               message:
                 "Only classic marathon participants can be updated with this action",
             }),

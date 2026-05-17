@@ -14,7 +14,7 @@ import {
 } from "@blikka/kv-store"
 import { Effect, Array, Option, Config, Context, Schema, Layer } from "effect"
 
-import { ZipFilesApiError } from "./errors"
+import { BadRequestError } from "../errors"
 import type {
   CancelDownloadProcessInput,
   GetActiveProcessInput,
@@ -33,7 +33,7 @@ class UnableToRunZipDownloaderTaskError extends Schema.TaggedErrorClass<UnableTo
 
 const MAX_PARTICIPANTS_PER_ZIP = 200
 
-type ZipSubmissionStats = {
+interface ZipSubmissionStats {
   totalParticipants: number
   withZippedSubmissions: number
   missingReferences: string[]
@@ -46,7 +46,13 @@ type ZipProcessStatus =
   | "processing"
   | "cancelled"
 
-type ZipDownloadProgressView = {
+interface ZipDownloadProgressCompetitionClass {
+  readonly competitionClassId: number
+  readonly competitionClassName: string
+  readonly totalChunks: number
+}
+
+interface ZipDownloadProgressView {
   processId: string
   status: ZipProcessStatus
   totalChunks: number
@@ -54,14 +60,10 @@ type ZipDownloadProgressView = {
   failedChunks: number
   failedJobIds: readonly string[]
   lastUpdatedAt: string
-  competitionClasses: readonly {
-    readonly competitionClassId: number
-    readonly competitionClassName: string
-    readonly totalChunks: number
-  }[]
+  competitionClasses: readonly ZipDownloadProgressCompetitionClass[]
 }
 
-type ZipDownloadUrlItem = {
+interface ZipDownloadUrlItem {
   competitionClassName: string
   minReference: number
   maxReference: number
@@ -636,7 +638,7 @@ const makeZipFilesService = Effect.gen(function* () {
           }
         } catch (error) {
           return yield* Effect.fail(
-            new ZipFilesApiError({
+            new BadRequestError({
               message: "Failed to initialize zip downloads",
               cause: error,
             }),

@@ -1,6 +1,6 @@
 import "server-only"
 
-import { Config, Effect, Layer, Option, Context } from "effect"
+import { Config, Effect, Layer, Context } from "effect"
 import {
   DbLayer,
   DbError,
@@ -14,7 +14,7 @@ import type {
   GenerateSponsorUploadUrlInput,
   GetSponsorsByMarathonInput,
 } from "./contracts"
-import { SponsorsApiError } from "./errors"
+import { NotFoundError, failNotFoundIfNone } from "../errors"
 
 export class SponsorsService extends Context.Service<
   SponsorsService,
@@ -22,12 +22,12 @@ export class SponsorsService extends Context.Service<
     /** Lists sponsors for the marathon tied to `domain`. */
     readonly getSponsorsByMarathon: (
       input: GetSponsorsByMarathonInput,
-    ) => Effect.Effect<Sponsor[], DbError | SponsorsApiError, never>
+    ) => Effect.Effect<Sponsor[], DbError | NotFoundError, never>
 
     /** Creates a sponsor row under the marathon resolved from `domain`. */
     readonly createSponsor: (
       input: CreateSponsorInput,
-    ) => Effect.Effect<Sponsor, DbError | SponsorsApiError, never>
+    ) => Effect.Effect<Sponsor, DbError | NotFoundError, never>
 
     /** Issues a presigned PUT URL and random object key under `domain/sponsors/`. */
     readonly generateUploadUrl: (
@@ -48,20 +48,12 @@ const makeSponsorsService = Effect.gen(function* () {
   const getSponsorsByMarathon: SponsorsService["Service"]["getSponsorsByMarathon"] =
     Effect.fn("SponsorsService.getSponsorsByMarathon")(
       function* ({ domain }) {
-        const marathon = yield* marathonsRepository.getMarathonByDomain({
-          domain,
-        })
-
-        if (Option.isNone(marathon)) {
-          return yield* Effect.fail(
-            new SponsorsApiError({
-              message: `Marathon not found for domain ${domain}`,
-            }),
-          )
-        }
+        const marathon = yield* marathonsRepository
+          .getMarathonByDomain({ domain })
+          .pipe(failNotFoundIfNone("Marathon", { domain }))
 
         return yield* sponsorsRepository.getSponsorsByMarathonId({
-          marathonId: marathon.value.id,
+          marathonId: marathon.id,
         })
       },
     )
@@ -69,21 +61,13 @@ const makeSponsorsService = Effect.gen(function* () {
   const createSponsor: SponsorsService["Service"]["createSponsor"] = Effect.fn(
     "SponsorsService.createSponsor",
   )(function* ({ domain, type, position, key }) {
-    const marathon = yield* marathonsRepository.getMarathonByDomain({
-      domain,
-    })
-
-    if (Option.isNone(marathon)) {
-      return yield* Effect.fail(
-        new SponsorsApiError({
-          message: `Marathon not found for domain ${domain}`,
-        }),
-      )
-    }
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone("Marathon", { domain }))
 
     return yield* sponsorsRepository.createSponsor({
       data: {
-        marathonId: marathon.value.id,
+        marathonId: marathon.id,
         type,
         position,
         key,

@@ -9,8 +9,14 @@ import {
   type NewTopic,
   type Topic,
 } from "@blikka/db"
-import { Effect, Layer, Option, Context } from "effect"
-import { TopicApiError } from "./errors"
+import { Effect, Layer, Context } from "effect"
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+  PreconditionFailedError,
+  failNotFoundIfNone,
+} from "../errors"
 import type {
   ActivateTopicInput,
   CreateTopicInput,
@@ -20,7 +26,9 @@ import type {
   UpdateTopicsOrderInput,
 } from "./contracts"
 
-function validateSubmissionWindow({
+const validateSubmissionWindow = Effect.fn(
+  "TopicsService.validateSubmissionWindow",
+)(function* ({
   scheduledStart,
   scheduledEnd,
 }: {
@@ -35,17 +43,19 @@ function validateSubmissionWindow({
   const end = new Date(scheduledEnd)
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    throw new TopicApiError({
-      message: "Invalid submission window",
-    })
+    return yield* Effect.fail(
+      new BadRequestError({ message: "Invalid submission window" }),
+    )
   }
 
   if (end <= start) {
-    throw new TopicApiError({
-      message: "Submission end must be after the submission start",
-    })
+    return yield* Effect.fail(
+      new BadRequestError({
+        message: "Submission end must be after the submission start",
+      }),
+    )
   }
-}
+})
 
 export class TopicsService extends Context.Service<
   TopicsService,
@@ -55,34 +65,46 @@ export class TopicsService extends Context.Service<
       input: GetTopicsWithSubmissionCountInput,
     ) => Effect.Effect<
       { id: number; count: number }[],
-      DbError | TopicApiError,
+      DbError | NotFoundError,
       never
     >
 
     /** Creates a topic for `domain`, optionally activating it for by-camera flows (deactivates siblings). */
     readonly createTopic: (
       input: CreateTopicInput,
-    ) => Effect.Effect<Topic, DbError | TopicApiError, never>
+    ) => Effect.Effect<
+      Topic,
+      DbError | NotFoundError | BadRequestError,
+      never
+    >
 
     /** Updates a topic; blocks submission window changes once voting has started; handles activation peers. */
     readonly updateTopic: (
       input: UpdateTopicInput,
-    ) => Effect.Effect<Topic, DbError | TopicApiError, never>
+    ) => Effect.Effect<
+      Topic,
+      DbError | NotFoundError | BadRequestError | PreconditionFailedError,
+      never
+    >
 
     /** Sets one topic active for its marathon and demotes other active topics. */
     readonly activateTopic: (
       input: ActivateTopicInput,
-    ) => Effect.Effect<Topic, DbError | TopicApiError, never>
+    ) => Effect.Effect<Topic, DbError | NotFoundError, never>
 
     /** Deletes a topic after confirming it belongs to `domain`. */
     readonly deleteTopic: (
       input: DeleteTopicInput,
-    ) => Effect.Effect<Topic, DbError | TopicApiError, never>
+    ) => Effect.Effect<
+      Topic,
+      DbError | NotFoundError | ForbiddenError,
+      never
+    >
 
     /** Reorders topics within a marathon identified by `domain`. */
     readonly updateTopicsOrder: (
       input: UpdateTopicsOrderInput,
-    ) => Effect.Effect<Topic[], DbError | TopicApiError, never>
+    ) => Effect.Effect<Topic[], DbError | NotFoundError, never>
   }
 >()("@blikka/api/TopicsService") {}
 
@@ -95,17 +117,9 @@ const makeTopicsService = Effect.gen(function* () {
     Effect.fn("TopicsService.getTopicsWithSubmissionCount")(function* ({
       domain,
     }) {
-      const marathon = yield* marathonsRepository.getMarathonByDomain({
-        domain,
-      })
-
-      if (Option.isNone(marathon)) {
-        return yield* Effect.fail(
-          new TopicApiError({
-            message: `Marathon not found for domain ${domain}`,
-          }),
-        )
-      }
+      yield* marathonsRepository
+        .getMarathonByDomain({ domain })
+        .pipe(failNotFoundIfNone("Marathon", { domain }))
 
       const data = yield* topicsRepository.getTopicsWithSubmissionCount({
         domain,
@@ -120,20 +134,12 @@ const makeTopicsService = Effect.gen(function* () {
   const createTopic: TopicsService["Service"]["createTopic"] = Effect.fn(
     "TopicsService.createTopic",
   )(function* ({ domain, data }) {
-    const marathon = yield* marathonsRepository.getMarathonByDomain({
-      domain,
-    })
-
-    if (Option.isNone(marathon)) {
-      return yield* Effect.fail(
-        new TopicApiError({
-          message: `Marathon not found for domain ${domain}`,
-        }),
-      )
-    }
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone("Marathon", { domain }))
 
     const existingTopics = yield* topicsRepository.getTopicsByMarathonId({
-      id: marathon.value.id,
+      id: marathon.id,
     })
 
     let orderIndex = data.orderIndex
@@ -141,12 +147,12 @@ const makeTopicsService = Effect.gen(function* () {
       orderIndex = existingTopics.length
     }
 
-    validateSubmissionWindow({
+    yield* validateSubmissionWindow({
       scheduledStart: data.scheduledStart,
       scheduledEnd: data.scheduledEnd,
     })
 
-    const isByCamera = marathon.value.mode === "by-camera"
+    const isByCamera = marathon.mode === "by-camera"
     const shouldActivate =
       isByCamera && (data.activate === true || data.visibility === "active")
 
@@ -158,7 +164,7 @@ const makeTopicsService = Effect.gen(function* () {
       data: {
         ...createData,
         visibility: createVisibility,
-        marathonId: marathon.value.id,
+        marathonId: marathon.id,
         orderIndex,
       },
     })
@@ -182,7 +188,7 @@ const makeTopicsService = Effect.gen(function* () {
 
     const activatedAt = new Date().toISOString()
     yield* votingRepository.closeVotingWindowsForTopics({
-      marathonId: marathon.value.id,
+      marathonId: marathon.id,
       topicIds: currentlyActiveTopics.map((activeTopic) => activeTopic.id),
       nowIso: activatedAt,
     })
@@ -203,9 +209,7 @@ const makeTopicsService = Effect.gen(function* () {
 
     if (!topic) {
       return yield* Effect.fail(
-        new TopicApiError({
-          message: `Topic not found with id ${id}`,
-        }),
+        new NotFoundError({ resource: "Topic", identifier: { id } }),
       )
     }
 
@@ -222,12 +226,12 @@ const makeTopicsService = Effect.gen(function* () {
         topicId: topic.id,
       })
 
-    if (Option.isSome(latestVotingRoundOpt)) {
+    if (latestVotingRoundOpt._tag === "Some") {
       const startChanged = nextScheduledStart !== topic.scheduledStart
       const endChanged = nextScheduledEnd !== topic.scheduledEnd
       if (startChanged || endChanged) {
         return yield* Effect.fail(
-          new TopicApiError({
+          new PreconditionFailedError({
             message:
               "Submission window cannot be changed after voting has started for this topic",
           }),
@@ -235,7 +239,7 @@ const makeTopicsService = Effect.gen(function* () {
       }
     }
 
-    validateSubmissionWindow({
+    yield* validateSubmissionWindow({
       scheduledStart: nextScheduledStart,
       scheduledEnd: nextScheduledEnd,
     })
@@ -289,9 +293,7 @@ const makeTopicsService = Effect.gen(function* () {
 
     if (!topic) {
       return yield* Effect.fail(
-        new TopicApiError({
-          message: `Topic not found with id ${id}`,
-        }),
+        new NotFoundError({ resource: "Topic", identifier: { id } }),
       )
     }
 
@@ -335,20 +337,18 @@ const makeTopicsService = Effect.gen(function* () {
 
     if (!topic) {
       return yield* Effect.fail(
-        new TopicApiError({
-          message: `Topic not found with id ${id}`,
-        }),
+        new NotFoundError({ resource: "Topic", identifier: { id } }),
       )
     }
 
-    const marathon = yield* marathonsRepository.getMarathonByDomain({
-      domain,
-    })
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone("Marathon", { domain }))
 
-    if (Option.isNone(marathon) || marathon.value.id !== topic.marathonId) {
+    if (marathon.id !== topic.marathonId) {
       return yield* Effect.fail(
-        new TopicApiError({
-          message: `Topic does not belong to domain ${domain}`,
+        new ForbiddenError({
+          message: `Topic ${id} does not belong to domain ${domain}`,
         }),
       )
     }
@@ -363,21 +363,13 @@ const makeTopicsService = Effect.gen(function* () {
       domain,
       topicIds,
     }) {
-      const marathon = yield* marathonsRepository.getMarathonByDomain({
-        domain,
-      })
-
-      if (Option.isNone(marathon)) {
-        return yield* Effect.fail(
-          new TopicApiError({
-            message: `Marathon not found for domain ${domain}`,
-          }),
-        )
-      }
+      const marathon = yield* marathonsRepository
+        .getMarathonByDomain({ domain })
+        .pipe(failNotFoundIfNone("Marathon", { domain }))
 
       return yield* topicsRepository.updateTopicsOrder({
         topicIds: [...topicIds],
-        marathonId: marathon.value.id,
+        marathonId: marathon.id,
       })
     })
 

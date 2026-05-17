@@ -29,16 +29,32 @@ import {
   ContactSheetBuilderLayer,
   SharpImageServiceLayer,
 } from "@blikka/image-manipulation"
-import { JuryApiError } from "../jury/errors"
 import { JuryService, JuryServiceLayer } from "../jury/service"
-import { MarathonApiError } from "../marathons/errors"
+import type {
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  InternalApiError,
+  NotFoundError,
+  PreconditionFailedError,
+  UnauthorizedError,
+} from "../errors"
+
+type ApiError =
+  | BadRequestError
+  | ConflictError
+  | ForbiddenError
+  | InternalApiError
+  | NotFoundError
+  | PreconditionFailedError
+  | UnauthorizedError
 import {
   getSeedScenarioStatus,
   seedFinishedScenario,
 } from "./finished-scenario"
 import type { SeedingDomainContextInput } from "./contracts"
 
-type SeedScenarioStatusResult = {
+interface SeedScenarioStatusResult {
   environment: string
   mode: string
   isAdminForDomain: boolean
@@ -122,7 +138,7 @@ export class SeedingService extends Context.Service<
       input: SeedingDomainContextInput,
     ) => Effect.Effect<
       SeedScenarioStatusResult,
-      DbError | MarathonApiError,
+      DbError | ApiError,
       SeedScenarioStatusRequirements
     >
 
@@ -138,8 +154,7 @@ export class SeedingService extends Context.Service<
       | S3ClientError
       | Config.ConfigError
       | ContactSheetError
-      | JuryApiError
-      | MarathonApiError
+      | ApiError
       | SharpError,
       SeedFinishedScenarioRequirements
     >
