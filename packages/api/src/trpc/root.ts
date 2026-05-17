@@ -7,9 +7,9 @@ import type { CoreServices } from "@blikka/runtime"
 import { ApiLayer } from "../layer"
 import { assertMatchingInputDomain } from "./domain-input-middleware"
 
-type ApiServices = Layer.Success<typeof ApiLayer>
+type ApiLayerServices = Layer.Success<typeof ApiLayer>
 
-export type TRPCRequiredServices = CoreServices | ApiServices | BetterAuthService
+export type TRPCRequiredServices = CoreServices | ApiLayerServices | BetterAuthService
 
 export const createTRPCContext = async <
   T extends ManagedRuntime.ManagedRuntime<TRPCRequiredServices, any>,

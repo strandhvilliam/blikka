@@ -1,36 +1,36 @@
 import { Layer } from "effect";
-import { UploadFlowApiService } from "./trpc/routers/upload-flow/service";
-import { ContactSheetsApiService } from "./trpc/routers/contact-sheets/service";
-import { ValidationsApiService } from "./trpc/routers/validations/service";
-import { ParticipantsApiService } from "./trpc/routers/participants/service";
-import { TopicsApiService } from "./trpc/routers/topics/service";
-import { DeviceGroupsApiService } from "./trpc/routers/device-groups/service";
-import { CompetitionClassesApiService } from "./trpc/routers/competition-classes/service";
-import { RulesApiService } from "./trpc/routers/rules/service";
-import { MarathonApiService } from "./trpc/routers/marathons/service";
-import { UsersApiService } from "./trpc/routers/users/service";
-import { ExportsApiService } from "./trpc/routers/exports/service";
-import { JuryApiService } from "./trpc/routers/jury/service";
-import { SponsorsApiService } from "./trpc/routers/sponsors/service";
-import { ZipFilesApiService } from "./trpc/routers/zip-files/service";
-import { VotingApiService } from "./trpc/routers/voting/service";
-import { SubmissionsApiService } from "./trpc/routers/submissions/service";
+import { UploadFlowService } from "./core/upload-flow/service";
+import { ContactSheetsService } from "./core/contact-sheets/service";
+import { ValidationsService } from "./core/validations/service";
+import { ParticipantsService } from "./core/participants/service";
+import { TopicsService } from "./core/topics/service";
+import { DeviceGroupsService } from "./core/device-groups/service";
+import { CompetitionClassesService } from "./core/competition-classes/service";
+import { RulesService } from "./core/rules/service";
+import { MarathonService } from "./core/marathons/service";
+import { UsersService } from "./core/users/service";
+import { ExportsService } from "./core/exports/service";
+import { JuryService } from "./core/jury/service";
+import { SponsorsService } from "./core/sponsors/service";
+import { ZipFilesService } from "./core/zip-files/service";
+import { VotingService } from "./core/voting/service";
+import { SubmissionsService } from "./core/submissions/service";
 
 export const ApiLayer = Layer.mergeAll(
-  UploadFlowApiService.layer,
-  ContactSheetsApiService.layer,
-  ValidationsApiService.layer,
-  ParticipantsApiService.layer,
-  TopicsApiService.layer,
-  DeviceGroupsApiService.layer,
-  CompetitionClassesApiService.layer,
-  RulesApiService.layer,
-  MarathonApiService.layer,
-  UsersApiService.layer,
-  ExportsApiService.layer,
-  JuryApiService.layer,
-  SponsorsApiService.layer,
-  ZipFilesApiService.layer,
-  VotingApiService.layer,
-  SubmissionsApiService.layer,
+  UploadFlowService.layer,
+  ContactSheetsService.layer,
+  ValidationsService.layer,
+  ParticipantsService.layer,
+  TopicsService.layer,
+  DeviceGroupsService.layer,
+  CompetitionClassesService.layer,
+  RulesService.layer,
+  MarathonService.layer,
+  UsersService.layer,
+  ExportsService.layer,
+  JuryService.layer,
+  SponsorsService.layer,
+  ZipFilesService.layer,
+  VotingService.layer,
+  SubmissionsService.layer,
 );

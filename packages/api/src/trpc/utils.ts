@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server"
 import { BetterAuthService } from "@blikka/auth"
 import { UsersRepository } from "@blikka/db"
 import { RedisClient } from "@blikka/redis"
+import { isCodedApiError } from "../core/errors"
 
 type ContextWithoutRuntimeHelper<T extends BaseContext> = Omit<T, "runtime">
 
@@ -39,6 +40,13 @@ export function trpcEffect<
 function mapEffectErrorToTRPC(error: unknown, cause?: Cause.Cause<unknown>): TRPCError {
   if (error instanceof TRPCError) {
     return error
+  }
+  if (isCodedApiError(error)) {
+    return new TRPCError({
+      code: error.code,
+      message: error instanceof Error ? error.message : "An unknown error occurred",
+      cause: error,
+    })
   }
   if (Schema.isSchemaError(error)) {
     const formatted = SchemaIssue.makeFormatterDefault()(error.issue)

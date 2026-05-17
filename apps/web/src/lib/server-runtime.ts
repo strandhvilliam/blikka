@@ -12,7 +12,7 @@ export const serverRuntime = createRuntime({
   additionalLayers: AppSpecificLayers,
 })
 
-type ApiServices = Layer.Success<typeof ApiLayer>
+type ApiLayerServices = Layer.Success<typeof ApiLayer>
 // type TelemetryServices = Layer.Success<ReturnType<typeof TelemetryLayer>>
 
-export type RuntimeDependencies = CoreServices | ApiServices | BetterAuthService
+export type RuntimeDependencies = CoreServices | ApiLayerServices | BetterAuthService

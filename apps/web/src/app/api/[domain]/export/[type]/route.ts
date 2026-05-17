@@ -6,7 +6,7 @@ import {
   appRouter,
   createTRPCContext,
   createCallerFactory,
-  ExportsApiService,
+  ExportsService,
 } from "@blikka/api/trpc"
 
 import { sanitizeFilenameSegment } from "@/app/(marathon)/admin/[domain]/dashboard/export/_lib/sanitize-filename-segment"
@@ -472,7 +472,7 @@ const handleValidationResultsExportByCameraActiveTopic = Effect.fn(
 const handleByCameraTopicImagesExport = Effect.fn(
   "export/by-camera-topic-images",
 )(function* (domain: string) {
-  const { topicName, zipBuffer } = yield* ExportsApiService.use((service) =>
+  const { topicName, zipBuffer } = yield* ExportsService.use((service) =>
     service.buildByCameraActiveTopicImagesZip({
       domain,
     }),
