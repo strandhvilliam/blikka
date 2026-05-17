@@ -162,62 +162,61 @@ export class BetterAuthService extends Context.Service<BetterAuthService>()(
         }
       })
 
-      const makeBetterAuthOptions = (): BetterAuthOptions => ({
-        database: drizzleAdapter(client, {
-          provider: "pg",
-          schema: {
-            user: schema.user,
-            account: schema.account,
-            session: schema.session,
-            verification: schema.verification,
-          },
-        }),
-        secret: authConfig.secret,
-        baseURL: authConfig.baseUrl,
-        trustedOrigins: makeTrustedOrigins(runtimeConfig.rootDomain),
-
-        hooks: {
-          after: createAuthMiddleware((ctx) =>
-            Effect.runPromise(afterAuth(ctx.context.session?.user)),
-          ),
-        },
-
-        socialProviders: {
-          google: {
-            clientId: runtimeConfig.googleClientId,
-            clientSecret: runtimeConfig.googleClientSecret,
-            prompt: "select_account",
-          },
-        },
-
-        advanced: makeCookieOptions(runtimeConfig),
-        session: {
-          cookieCache: {
-            enabled: true,
-            maxAge: 60 * 60 * 2,
-          },
-        },
-        plugins: [
-          emailOTP({
-            expiresIn: 60 * 60 * 2,
-            sendVerificationOTP: (params) => Effect.runPromise(sendVerificationOTP(params)),
+      const makeBetterAuthOptions = () =>
+        ({
+          database: drizzleAdapter(client, {
+            provider: "pg",
+            schema: {
+              user: schema.user,
+              account: schema.account,
+              session: schema.session,
+              verification: schema.verification,
+            },
           }),
-          bearer(),
-          nextCookies(),
-        ],
-      })
+          secret: authConfig.secret,
+          baseURL: authConfig.baseUrl,
+          trustedOrigins: makeTrustedOrigins(runtimeConfig.rootDomain),
+
+          hooks: {
+            after: createAuthMiddleware((ctx) =>
+              Effect.runPromise(afterAuth(ctx.context.session?.user)),
+            ),
+          },
+
+          socialProviders: {
+            google: {
+              clientId: runtimeConfig.googleClientId,
+              clientSecret: runtimeConfig.googleClientSecret,
+              prompt: "select_account",
+            },
+          },
+
+          advanced: makeCookieOptions(runtimeConfig),
+          session: {
+            cookieCache: {
+              enabled: true,
+              maxAge: 60 * 60 * 2,
+            },
+          },
+          plugins: [
+            emailOTP({
+              expiresIn: 60 * 60 * 2,
+              sendVerificationOTP: (params) => Effect.runPromise(sendVerificationOTP(params)),
+            }),
+            bearer(),
+            nextCookies(),
+          ],
+        }) satisfies BetterAuthOptions
 
       return betterAuth(makeBetterAuthOptions())
     }),
   },
-) {
-  static readonly layerNoDeps = Layer.effect(this, this.make)
+) {}
 
-  static readonly layer = this.layerNoDeps.pipe(
-    Layer.provide(
-      Layer.mergeAll(DrizzleClient.layer, DbLayer, EmailServiceLayer, RedisClientLayer),
-    ),
-  )
-}
+export const BetterAuthServiceLayerNoDeps = Layer.effect(BetterAuthService, BetterAuthService.make)
+
+export const BetterAuthServiceLayer = BetterAuthServiceLayerNoDeps.pipe(
+  Layer.provide(Layer.mergeAll(DrizzleClient.layer, DbLayer, EmailServiceLayer, RedisClientLayer)),
+)
 
 export type Session = ReturnType<typeof betterAuth>["$Infer"]["Session"]

@@ -1,6 +1,6 @@
 import "server-only"
 
-import { AuthConfig, BetterAuthService } from "@blikka/auth"
+import { AuthConfig, BetterAuthServiceLayer } from "@blikka/auth"
 import { Layer } from "effect"
 import { protocol } from "@/config"
 
@@ -17,4 +17,4 @@ export const AuthConfigLayer = Layer.succeed(AuthConfig, {
   },
 })
 
-export const AuthLayer = Layer.provide(BetterAuthService.layer, AuthConfigLayer)
+export const AuthLayer = Layer.provide(BetterAuthServiceLayer, AuthConfigLayer)
