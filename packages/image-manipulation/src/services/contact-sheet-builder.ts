@@ -350,10 +350,17 @@ const makeContactSheetBuilder = Effect.gen(function* () {
       const sheetVariables = calculateSheetVariables(reference, cols, rows)
 
       const cellPositions = getCellPositions(rows, cols)
+      let nextImageIndex = 0
+      const positionedCells = cellPositions.map(({ row, col }) => {
+        const isSponsor = row === sponsorRow && col === sponsorCol && sponsorImage
+        const imageIndex = isSponsor ? undefined : nextImageIndex++
+
+        return { row, col, imageIndex, isSponsor }
+      })
 
       const compositeImages = yield* Effect.forEach(
-        cellPositions,
-        ({ row, col }, index) =>
+        positionedCells,
+        ({ row, col, imageIndex, isSponsor }) =>
           Effect.gen(function* () {
             const { x, y } = calculateCoordinateValues({
               col,
@@ -365,9 +372,15 @@ const makeContactSheetBuilder = Effect.gen(function* () {
               y,
               sheetVariables,
             })
-            const isSponsor = row === sponsorRow && col === sponsorCol && sponsorImage
 
             if (isSponsor) {
+              if (!sponsorImage) {
+                return yield* Effect.fail(
+                  new InvalidSheetParamsError({
+                    message: "Sponsor image not found",
+                  }),
+                )
+              }
               const preparedSponsorImage = yield* processSponsorImage(
                 Buffer.from(sponsorImage),
                 sheetVariables,
@@ -375,8 +388,8 @@ const makeContactSheetBuilder = Effect.gen(function* () {
               return [{ input: preparedSponsorImage, ...imagePosition }]
             }
 
-            if (index < imageFiles.length) {
-              const file = imageFiles[index]
+            if (imageIndex !== undefined && imageIndex < imageFiles.length) {
+              const file = imageFiles[imageIndex]
               if (!file) {
                 return yield* Effect.fail(
                   new InvalidSheetParamsError({
