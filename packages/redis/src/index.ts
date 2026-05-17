@@ -13,6 +13,10 @@ export class RedisClient extends Context.Service<
      * Wrapper around Redis client in a scoped effect.
      */
     readonly use: <T>(fn: (client: Redis) => T) => Effect.Effect<Awaited<T>, RedisError, never>
+    /**
+     * The raw Redis client.
+     */
+    readonly client: Redis
   }
 >()("@blikka/packages/redis/redis-client") {}
 
@@ -65,6 +69,7 @@ export const RedisClientLayer = Layer.effect(
       })
     return RedisClient.of({
       use,
+      client,
     })
   }),
 )
