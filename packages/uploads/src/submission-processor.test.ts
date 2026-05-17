@@ -223,6 +223,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
 
   const config = UploadsConfig.of({
     submissionsBucketName: "submissions",
+    sponsorsBucketName: "sponsors",
     thumbnailsBucketName: "thumbnails",
     contactSheetsBucketName: "contact-sheets",
     zipsBucketName: "zips",

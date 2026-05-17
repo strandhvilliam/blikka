@@ -224,6 +224,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(UploadsConfig)(
           UploadsConfig.of({
             submissionsBucketName: "submissions",
+            sponsorsBucketName: "sponsors",
             thumbnailsBucketName: "thumbnails",
             contactSheetsBucketName: "contact-sheets",
             zipsBucketName: "zips",

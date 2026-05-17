@@ -7,7 +7,10 @@ import {
   TopicsRepository,
 } from "@blikka/db";
 import type { CompetitionClass } from "@blikka/db";
-import { ContactSheetBuilder } from "@blikka/image-manipulation";
+import {
+  ContactSheetBuilder,
+  type ContactSheetImageFile,
+} from "@blikka/image-manipulation";
 import {
   type ParticipantState,
   UploadSessionRepository,
@@ -65,6 +68,18 @@ const submissionKeys = Array.from(
   { length: 8 },
   (_, index) => `demo/REF123/${String(index + 1).padStart(2, "0")}/photo.jpg`,
 );
+const submissionFiles = submissionKeys.map((_, index) =>
+  Buffer.from(`submission-${index}`),
+);
+const sponsorKey = "sponsors/contact-sheet-logo.png";
+const sponsorBytes = Buffer.from("sponsor");
+
+const createFileMap = (
+  entries: ReadonlyArray<readonly [string, string, Uint8Array]>,
+) =>
+  new Map(
+    entries.map(([bucket, key, file]) => [`${bucket}/${key}`, file] as const),
+  );
 
 interface TestState {
   readonly participantState: ParticipantState | undefined;
@@ -80,13 +95,13 @@ interface TestState {
   readonly topics: ReadonlyArray<{ name: string; orderIndex: number }>;
   readonly builderResult: Effect.Effect<Buffer, Error>;
   readonly sheetInputs: ReadonlyArray<{
-    domain: string;
     reference: string;
-    keys: string[];
-    sponsorKey?: string;
+    images: ReadonlyArray<ContactSheetImageFile>;
+    sponsorImage?: Buffer | Uint8Array;
     sponsorPosition: "bottom-right";
-    topics: { name: string; orderIndex: number }[];
+    topics: ReadonlyArray<{ name: string; orderIndex: number }>;
   }>;
+  readonly files: ReadonlyMap<string, Uint8Array>;
   readonly filePuts: ReadonlyArray<{
     bucket: string;
     key: string;
@@ -112,10 +127,17 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
     competitionClass: makeCompetitionClass(),
     submissions: submissionKeys.map((key) => ({ key })),
   },
-  sponsor: { key: "sponsors/contact-sheet-logo.png" },
+  sponsor: { key: sponsorKey },
   topics,
   builderResult: Effect.succeed(sheetBytes),
   sheetInputs: [],
+  files: createFileMap([
+    ...submissionKeys.map(
+      (key, index) =>
+        ["submissions", key, submissionFiles[index] as Uint8Array] as const,
+    ),
+    ["sponsors", sponsorKey, sponsorBytes],
+  ]),
   filePuts: [],
   participantUpdates: [],
   contactSheetWrites: [],
@@ -182,6 +204,11 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
   } as unknown as UploadSessionRepository["Service"]);
 
   const s3 = S3Service.of({
+    getFile: (bucket: string, key: string) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef);
+        return Option.fromNullishOr(state.files.get(`${bucket}/${key}`));
+      }),
     putFile: (bucket: string, key: string, file: Buffer) =>
       updateTestState(stateRef, (state) => ({
         ...state,
@@ -191,12 +218,11 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
 
   const contactSheetBuilder = ContactSheetBuilder.of({
     createSheet: (params: {
-      domain: string;
       reference: string;
-      keys: string[];
-      sponsorKey?: string;
+      images: ReadonlyArray<ContactSheetImageFile>;
+      sponsorImage?: Buffer | Uint8Array;
       sponsorPosition: "bottom-right";
-      topics: { name: string; orderIndex: number }[];
+      topics: ReadonlyArray<{ name: string; orderIndex: number }>;
     }) =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef);
@@ -220,6 +246,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(UploadsConfig)(
           UploadsConfig.of({
             submissionsBucketName: "submissions",
+            sponsorsBucketName: "sponsors",
             thumbnailsBucketName: "thumbnails",
             contactSheetsBucketName: "contact-sheets",
             zipsBucketName: "zips",
@@ -260,10 +287,12 @@ describe("ContactSheetGenerator", () => {
 
         assert.deepStrictEqual(state.sheetInputs, [
           {
-            domain: input.domain,
             reference: input.reference,
-            keys: submissionKeys,
-            sponsorKey: "sponsors/contact-sheet-logo.png",
+            images: submissionFiles.map((buffer, orderIndex) => ({
+              orderIndex,
+              buffer,
+            })),
+            sponsorImage: sponsorBytes,
             sponsorPosition: "bottom-right",
             topics,
           },
@@ -301,7 +330,7 @@ describe("ContactSheetGenerator", () => {
             }),
         );
 
-        assert.strictEqual(state.sheetInputs[0]?.sponsorKey, undefined);
+        assert.strictEqual(state.sheetInputs[0]?.sponsorImage, undefined);
         assert.lengthOf(state.filePuts, 1);
       }),
   );
@@ -462,6 +491,58 @@ describe("ContactSheetGenerator", () => {
         assert.deepStrictEqual(state.sheetInputs, []);
         assert.deepStrictEqual(state.filePuts, []);
       }),
+  );
+
+  it.effect("fails before builder call when a submission file is missing", () =>
+    Effect.gen(function* () {
+      const files = new Map(makeInitialState().files);
+      files.delete(`submissions/${submissionKeys[0]}`);
+
+      const { result: error, state } = yield* runWithState(
+        makeInitialState({ files }),
+        () =>
+          Effect.gen(function* () {
+            const generator = yield* ContactSheetGenerator;
+            return yield* Effect.flip(generator.generate(input));
+          }),
+      );
+
+      assert.instanceOf(error, InvalidSheetGenerationDataError);
+      assert.strictEqual(
+        error.message,
+        `Submission image not found: ${submissionKeys[0]}`,
+      );
+      assert.deepStrictEqual(state.sheetInputs, []);
+      assert.deepStrictEqual(state.filePuts, []);
+      assert.deepStrictEqual(state.participantUpdates, []);
+      assert.deepStrictEqual(state.contactSheetWrites, []);
+    }),
+  );
+
+  it.effect("fails before builder call when a sponsor file is missing", () =>
+    Effect.gen(function* () {
+      const files = new Map(makeInitialState().files);
+      files.delete(`sponsors/${sponsorKey}`);
+
+      const { result: error, state } = yield* runWithState(
+        makeInitialState({ files }),
+        () =>
+          Effect.gen(function* () {
+            const generator = yield* ContactSheetGenerator;
+            return yield* Effect.flip(generator.generate(input));
+          }),
+      );
+
+      assert.instanceOf(error, InvalidSheetGenerationDataError);
+      assert.strictEqual(
+        error.message,
+        `Sponsor image not found: ${sponsorKey}`,
+      );
+      assert.deepStrictEqual(state.sheetInputs, []);
+      assert.deepStrictEqual(state.filePuts, []);
+      assert.deepStrictEqual(state.participantUpdates, []);
+      assert.deepStrictEqual(state.contactSheetWrites, []);
+    }),
   );
 
   it.effect(

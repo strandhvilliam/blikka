@@ -21,6 +21,8 @@ export class SheetGeneratorService extends Context.Service<SheetGeneratorService
       const db = yield* Database
       const kvStore = yield* UploadSessionRepository
       const s3 = yield* S3Service
+      const submissionsBucketName = yield* Config.string("SUBMISSIONS_BUCKET_NAME")
+      const sponsorsBucketName = yield* Config.string("SPONSORS_BUCKET_NAME")
       const contactSheetsBucketName = yield* Config.string("CONTACT_SHEETS_BUCKET_NAME")
       const contactSheetBuilder = yield* ContactSheetBuilder
 
@@ -116,12 +118,47 @@ export class SheetGeneratorService extends Context.Service<SheetGeneratorService
 
             const contactSheetKey = generateContactSheetKey(params.domain, params.reference)
 
+            const images = yield* Effect.forEach(
+              participant.submissions,
+              (submission, index) =>
+                Effect.gen(function* () {
+                  const file = yield* s3.getFile(submissionsBucketName, submission.key)
+                  if (Option.isNone(file)) {
+                    return yield* Effect.fail(
+                      new InvalidSheetGenerationData({
+                        message: `Submission image not found: ${submission.key}`,
+                      }),
+                    )
+                  }
+
+                  return {
+                    orderIndex: index,
+                    buffer: file.value,
+                  }
+                }),
+              { concurrency: 5 },
+            )
+
+            const sponsorImage = Option.isSome(sponsor)
+              ? yield* Effect.gen(function* () {
+                  const file = yield* s3.getFile(sponsorsBucketName, sponsor.value.key)
+                  if (Option.isNone(file)) {
+                    return yield* Effect.fail(
+                      new InvalidSheetGenerationData({
+                        message: `Sponsor image not found: ${sponsor.value.key}`,
+                      }),
+                    )
+                  }
+
+                  return file.value
+                })
+              : undefined
+
             yield* contactSheetBuilder
               .createSheet({
-                domain: params.domain,
                 reference: params.reference,
-                keys,
-                sponsorKey: Option.isSome(sponsor) ? sponsor.value.key : undefined,
+                images,
+                sponsorImage,
                 sponsorPosition: "bottom-right",
                 topics,
               })

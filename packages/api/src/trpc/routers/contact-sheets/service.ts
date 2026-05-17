@@ -26,6 +26,10 @@ export class ContactSheetsApiService extends Context.Service<ContactSheetsApiSer
       const contactSheetsBucketName = yield* Config.string(
         "CONTACT_SHEETS_BUCKET_NAME",
       );
+      const submissionsBucketName = yield* Config.string(
+        "SUBMISSIONS_BUCKET_NAME",
+      );
+      const sponsorsBucketName = yield* Config.string("SPONSORS_BUCKET_NAME");
 
       const generateContactSheetKey = (domain: string, reference: string) =>
         `${domain}/${reference}/contact_sheet_${reference}_${new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5)}.jpg`;
@@ -119,11 +123,52 @@ export class ContactSheetsApiService extends Context.Service<ContactSheetsApiSer
 
         const contactSheetKey = generateContactSheetKey(domain, reference);
 
+        const images = yield* Effect.forEach(
+          submissions,
+          (submission, index) =>
+            Effect.gen(function* () {
+              const file = yield* s3.getFile(
+                submissionsBucketName,
+                submission.key,
+              );
+              if (Option.isNone(file)) {
+                return yield* Effect.fail(
+                  new ContactSheetApiError({
+                    message: `Submission image not found: ${submission.key}`,
+                  }),
+                );
+              }
+
+              return {
+                orderIndex: index,
+                buffer: file.value,
+              };
+            }),
+          { concurrency: 5 },
+        );
+
+        const sponsorImage = Option.isSome(sponsor)
+          ? yield* Effect.gen(function* () {
+              const file = yield* s3.getFile(
+                sponsorsBucketName,
+                sponsor.value.key,
+              );
+              if (Option.isNone(file)) {
+                return yield* Effect.fail(
+                  new ContactSheetApiError({
+                    message: `Sponsor image not found: ${sponsor.value.key}`,
+                  }),
+                );
+              }
+
+              return file.value;
+            })
+          : undefined;
+
         const contactSheetBuffer = yield* contactSheetBuilder.createSheet({
-          domain,
           reference,
-          keys,
-          sponsorKey: Option.isSome(sponsor) ? sponsor.value.key : undefined,
+          images,
+          sponsorImage,
           sponsorPosition: "bottom-right",
           topics,
         });

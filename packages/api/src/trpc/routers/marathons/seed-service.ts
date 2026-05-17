@@ -1157,7 +1157,16 @@ const createContactSheets = Effect.fn("SeedService.createContactSheets")(
     const votingRepository = yield* VotingRepository;
     const contactSheetBuilder = yield* ContactSheetBuilder;
     const s3 = yield* S3Service;
+    const submissionsBucketName = process.env.SUBMISSIONS_BUCKET_NAME;
     const contactSheetsBucketName = process.env.CONTACT_SHEETS_BUCKET_NAME;
+
+    if (!submissionsBucketName) {
+      return yield* Effect.fail(
+        new MarathonApiError({
+          message: "Missing submissions bucket configuration",
+        }),
+      );
+    }
 
     if (!contactSheetsBucketName) {
       return yield* Effect.fail(
@@ -1177,10 +1186,29 @@ const createContactSheets = Effect.fn("SeedService.createContactSheets")(
               (left, right) => left.topic.orderIndex - right.topic.orderIndex,
             )
             .map((plan) => plan.key);
-          const sheetBuffer = yield* contactSheetBuilder.createSheet({
-            domain,
-            reference: participant.reference,
+          const images = yield* Effect.forEach(
             keys,
+            (key, index) =>
+              Effect.gen(function* () {
+                const file = yield* s3.getFile(submissionsBucketName, key);
+                if (Option.isNone(file)) {
+                  return yield* Effect.fail(
+                    new MarathonApiError({
+                      message: `Seed submission image not found: ${key}`,
+                    }),
+                  );
+                }
+
+                return {
+                  orderIndex: index,
+                  buffer: file.value,
+                };
+              }),
+            { concurrency: 5 },
+          );
+          const sheetBuffer = yield* contactSheetBuilder.createSheet({
+            reference: participant.reference,
+            images,
             sponsorPosition: CONTACT_SHEET_SPONSOR_POSITION,
             topics: topics.map((topic) => ({
               name: topic.name,

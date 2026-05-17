@@ -15,10 +15,7 @@ import {
   type ParticipantState,
   type UploadSessionRepositoryError,
 } from "@blikka/kv-store";
-import {
-  ContactSheetBuilder,
-  type SharpError,
-} from "@blikka/image-manipulation";
+import { ContactSheetBuilder } from "@blikka/image-manipulation";
 import { UploadsConfig, UploadsConfigLayer } from "./config";
 
 export class InvalidSheetGenerationDataError extends Schema.TaggedErrorClass<InvalidSheetGenerationDataError>()(
@@ -42,8 +39,7 @@ export type ContactSheetGeneratorError =
   | FailedToGenerateContactSheetError
   | UploadSessionRepositoryError
   | S3ClientError
-  | DbError
-  | SharpError;
+  | DbError;
 
 export interface GenerateContactSheetInput {
   domain: string;
@@ -151,6 +147,49 @@ const makeContactSheetGenerator = Effect.gen(function* () {
     }
   });
 
+  const getSubmissionFiles = Effect.fn(
+    "ContactSheetGenerator.getSubmissionFiles",
+  )(function* (submissions: ReadonlyArray<{ key: string }>) {
+    return yield* Effect.forEach(
+      submissions,
+      (submission, index) =>
+        Effect.gen(function* () {
+          const file = yield* s3.getFile(
+            config.submissionsBucketName,
+            submission.key,
+          );
+          if (Option.isNone(file)) {
+            return yield* new InvalidSheetGenerationDataError({
+              message: `Submission image not found: ${submission.key}`,
+            });
+          }
+
+          return {
+            orderIndex: index,
+            buffer: file.value,
+          };
+        }),
+      { concurrency: 5 },
+    );
+  });
+
+  const getSponsorImage = Effect.fn(
+    "ContactSheetGenerator.getSponsorImage",
+  )(function* (sponsorKey: string | undefined) {
+    if (!sponsorKey) {
+      return undefined;
+    }
+
+    const file = yield* s3.getFile(config.sponsorsBucketName, sponsorKey);
+    if (Option.isNone(file)) {
+      return yield* new InvalidSheetGenerationDataError({
+        message: `Sponsor image not found: ${sponsorKey}`,
+      });
+    }
+
+    return file.value;
+  });
+
   const generate = Effect.fn("ContactSheetGenerator.generate")(
     function* (params: GenerateContactSheetInput) {
       const { domain, reference, uploadSessionId } = params;
@@ -201,6 +240,11 @@ const makeContactSheetGenerator = Effect.gen(function* () {
       const keys = participant.submissions.map((submission) => submission.key);
       yield* validatePhotoCount(reference, keys, participant.competitionClass);
 
+      const images = yield* getSubmissionFiles(participant.submissions);
+      const sponsorImage = yield* getSponsorImage(
+        Option.isSome(sponsor) ? sponsor.value.key : undefined,
+      );
+
       const timestamp = DateTime.formatIso(yield* DateTime.now);
       const contactSheetKey = createContactSheetKey(
         domain,
@@ -210,10 +254,9 @@ const makeContactSheetGenerator = Effect.gen(function* () {
 
       const buffer = yield* contactSheetBuilder
         .createSheet({
-          domain,
           reference,
-          keys,
-          sponsorKey: Option.isSome(sponsor) ? sponsor.value.key : undefined,
+          images,
+          sponsorImage,
           sponsorPosition: "bottom-right",
           topics,
         })

@@ -1,10 +1,12 @@
 import { Effect, Schema, Layer, Context } from "effect"
 
-export class CanvasImageError extends Schema.TaggedErrorClass<CanvasImageError>()("CanvasImageError", {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {
-}
+export class CanvasImageError extends Schema.TaggedErrorClass<CanvasImageError>()(
+  "CanvasImageError",
+  {
+    message: Schema.String,
+    cause: Schema.optional(Schema.Unknown),
+  },
+) {}
 
 export interface ResizeOptions {
   width: number
@@ -18,98 +20,107 @@ export interface ResizedImage {
   height: number
 }
 
-export class CanvasImageService extends Context.Service<CanvasImageService>()(
-  "@blikka/packages/image-manipulation/canvas-image-service",
+export class CanvasImageService extends Context.Service<
+  CanvasImageService,
   {
-    make: Effect.gen(function* () {
-      if (typeof window === "undefined") {
-        return yield* new CanvasImageError({
-          message: "CanvasImageService is not supported in this environment",
-        })
-      }
+    /** Resize an image to a target width using the canvas API. */
+    readonly resize: (
+      file: File,
+      options: ResizeOptions,
+    ) => Effect.Effect<ResizedImage, CanvasImageError>
+  }
+>()("@blikka/packages/image-manipulation/canvas-image-service") {}
 
-      const resize = Effect.fn("CanvasImageService.resizeImage")(function* (
-        file: File,
-        options: ResizeOptions
-      ) {
-        const { width: targetWidth, quality = 0.9, format = "image/jpeg" } = options
+const makeCanvasImageService = Effect.gen(function* () {
+  if (typeof window === "undefined") {
+    return yield* new CanvasImageError({
+      message: "CanvasImageService is not supported in this environment",
+    })
+  }
 
-        return Effect.callback<ResizedImage, Error>((resume) => {
-          const img = new Image()
+  const resize: CanvasImageService["Service"]["resize"] = Effect.fn("CanvasImageService.resize")(
+    function* (file: File, options: ResizeOptions) {
+      const { width: targetWidth, quality = 0.9, format = "image/jpeg" } = options
 
-          img.onload = () => {
-            const aspectRatio = img.height / img.width
-            const newWidth = targetWidth
-            const newHeight = Math.round(targetWidth * aspectRatio)
+      return yield* Effect.callback<ResizedImage, CanvasImageError>((resume) => {
+        const img = new Image()
+        const objectUrl = URL.createObjectURL(file)
+        const revoke = () => URL.revokeObjectURL(objectUrl)
 
-            const canvas = document.createElement("canvas")
-            const ctx = canvas.getContext("2d")
+        img.onload = () => {
+          const aspectRatio = img.height / img.width
+          const newWidth = targetWidth
+          const newHeight = Math.round(targetWidth * aspectRatio)
 
-            if (!ctx) {
-              resume(
-                Effect.fail(
-                  new CanvasImageError({
-                    message: "Failed to get canvas context",
-                  })
-                )
-              )
-              return
-            }
+          const canvas = document.createElement("canvas")
+          const ctx = canvas.getContext("2d")
 
-            canvas.width = newWidth
-            canvas.height = newHeight
-
-            ctx.imageSmoothingEnabled = true
-            ctx.imageSmoothingQuality = "high"
-
-            ctx.drawImage(img, 0, 0, newWidth, newHeight)
-
-            canvas.toBlob(
-              (blob) => {
-                if (!blob) {
-                  resume(
-                    Effect.fail(
-                      new CanvasImageError({
-                        message: "Failed to create blob from canvas",
-                      })
-                    )
-                  )
-                  return
-                }
-
-                resume(
-                  Effect.succeed({
-                    blob,
-                    width: newWidth,
-                    height: newHeight,
-                  })
-                )
-              },
-              format,
-              quality
-            )
-          }
-
-          img.onerror = () => {
+          if (!ctx) {
+            revoke()
             resume(
               Effect.fail(
                 new CanvasImageError({
-                  message: "Failed to load image",
-                })
-              )
+                  message: "Failed to get canvas context",
+                }),
+              ),
             )
+            return
           }
 
-          img.src = URL.createObjectURL(file)
-        })
+          canvas.width = newWidth
+          canvas.height = newHeight
+
+          ctx.imageSmoothingEnabled = true
+          ctx.imageSmoothingQuality = "high"
+
+          ctx.drawImage(img, 0, 0, newWidth, newHeight)
+
+          canvas.toBlob(
+            (blob) => {
+              revoke()
+              if (!blob) {
+                resume(
+                  Effect.fail(
+                    new CanvasImageError({
+                      message: "Failed to create blob from canvas",
+                    }),
+                  ),
+                )
+                return
+              }
+
+              resume(
+                Effect.succeed({
+                  blob,
+                  width: newWidth,
+                  height: newHeight,
+                }),
+              )
+            },
+            format,
+            quality,
+          )
+        }
+
+        img.onerror = () => {
+          revoke()
+          resume(
+            Effect.fail(
+              new CanvasImageError({
+                message: "Failed to load image",
+              }),
+            ),
+          )
+        }
+
+        img.src = objectUrl
       })
+    },
+  )
 
-      return {
-        resize,
-      } as const
-    }),
-  }
-) {
+  return CanvasImageService.of({
+    resize,
+  })
+})
 
-  static readonly layer = Layer.effect(this, this.make)
-}
+export const CanvasImageServiceLayer = Layer.effect(CanvasImageService, makeCanvasImageService)
