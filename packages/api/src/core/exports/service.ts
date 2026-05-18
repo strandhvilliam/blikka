@@ -12,6 +12,11 @@ import {
   PhoneNumberEncryptionService,
   PhoneNumberEncryptionServiceLayer,
 } from '../utils/phone-number-encryption'
+import {
+  getActiveByCameraTopicOrNotFound,
+  makeMarathonLoad,
+  requireByCameraMode,
+} from '../shared'
 import { BadRequestError, NotFoundError, failNotFoundIfNone } from '../errors'
 import type { DomainScopedExportInput, GetValidationResultsExportDataInput } from './contracts'
 
@@ -136,33 +141,14 @@ const makeExportsService = Effect.gen(function* () {
   const s3 = yield* S3Service
   const phoneEncryption = yield* PhoneNumberEncryptionService
 
+  const { getMarathonByDomainOrNotFound } = makeMarathonLoad(marathonsRepository)
+
   const getActiveByCameraTopic = Effect.fn('ExportsService.getActiveByCameraTopic')(function* ({
     domain,
   }) {
-    const marathon = yield* marathonsRepository
-      .getMarathonByDomainWithOptions({ domain })
-      .pipe(failNotFoundIfNone('Marathon', { domain }))
-
-    if (marathon.mode !== 'by-camera') {
-      return yield* Effect.fail(
-        new BadRequestError({
-          message: `Marathon '${domain}' is not in by-camera mode`,
-        }),
-      )
-    }
-
-    const activeTopic = marathon.topics.find((topic) => topic.visibility === 'active') ?? null
-
-    if (!activeTopic) {
-      return yield* Effect.fail(
-        new NotFoundError({
-          resource: 'ActiveTopic',
-          identifier: { domain },
-        }),
-      )
-    }
-
-    return activeTopic
+    const marathon = yield* getMarathonByDomainOrNotFound(domain)
+    yield* requireByCameraMode(marathon)
+    return yield* getActiveByCameraTopicOrNotFound({ domain, topics: marathon.topics })
   })
 
   const buildArchiveBuffer = Effect.fn('ExportsService.buildArchiveBuffer')(function* (

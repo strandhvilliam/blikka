@@ -29,12 +29,7 @@ import type {
   UpdateMarathonInput,
 } from './contracts'
 
-function encodeS3ObjectKeyForUrl(key: string) {
-  return key
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/')
-}
+import { buildVirtualHostedS3Url } from '../shared'
 
 function extractLogoVersion(currentKey?: string | null) {
   if (!currentKey) return undefined
@@ -203,7 +198,7 @@ const makeMarathonService = Effect.gen(function* () {
       expiresIn: 60 * 5,
     })
 
-    const publicUrl = `https://${bucketName}.s3.eu-north-1.amazonaws.com/${encodeS3ObjectKeyForUrl(key)}`
+    const publicUrl = buildVirtualHostedS3Url(bucketName, key)!
 
     return { url, key, publicUrl }
   })

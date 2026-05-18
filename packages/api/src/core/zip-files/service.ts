@@ -27,6 +27,13 @@ class UnableToRunZipDownloaderTaskError extends Schema.TaggedErrorClass<UnableTo
   },
 ) {}
 
+type InitializeZipDownloadsError =
+  | DbError
+  | DownloadStateRepositoryError
+  | Config.ConfigError
+  | UnableToRunZipDownloaderTaskError
+  | BadRequestError
+
 const MAX_PARTICIPANTS_PER_ZIP = 200
 
 interface ZipSubmissionStats {
@@ -72,7 +79,7 @@ type InitializeZipDownloadsResult =
     }
   | {
       message: string
-      processId: `${string}-${string}-${string}-${string}-${string}`
+      processId: string
       domain: string
       totalCompetitionClasses: number
       totalChunks: number
@@ -105,7 +112,7 @@ export class ZipFilesService extends Context.Service<
      */
     readonly initializeZipDownloads: (
       input: InitializeZipDownloadsInput,
-    ) => Effect.Effect<InitializeZipDownloadsResult, Error | Config.ConfigError, never>
+    ) => Effect.Effect<InitializeZipDownloadsResult, InitializeZipDownloadsError, never>
 
     /** Returns the in-flight download process for `domain` if any, or null. */
     readonly getActiveProcess: (
@@ -271,185 +278,172 @@ const makeZipFilesService = Effect.gen(function* () {
   const initializeZipDownloads: ZipFilesService['Service']['initializeZipDownloads'] = Effect.fn(
     'ZipFilesService.initializeZipDownloads',
   )(function* ({ domain }) {
-    try {
-      const zips = yield* zippedSubmissionsRepository.getZippedSubmissionsByDomain({
+    const zips = yield* zippedSubmissionsRepository.getZippedSubmissionsByDomain({
+      domain,
+    })
+
+    if (zips.length === 0) {
+      yield* Effect.logInfo({
+        message: 'No zipped submissions found for domain',
         domain,
       })
-
-      if (zips.length === 0) {
-        yield* Effect.logInfo({
-          message: 'No zipped submissions found for domain',
-          domain,
-        })
-        return {
-          message: 'No zipped submissions found for domain',
-          domain,
-          totalChunks: 0,
-          totalCompetitionClasses: 0,
-        }
+      return {
+        message: 'No zipped submissions found for domain',
+        domain,
+        totalChunks: 0,
+        totalCompetitionClasses: 0,
       }
+    }
 
-      const zipsWithCompetitionClass = zips.filter((zip) => !!zip.participant.competitionClass)
+    const zipsWithCompetitionClass = zips.filter((zip) => !!zip.participant.competitionClass)
 
-      if (zipsWithCompetitionClass.length === 0) {
-        yield* Effect.logInfo({
-          message: 'No zipped submissions with competition class found',
-          domain,
-        })
-        return {
-          message: 'No zipped submissions with competition class found',
-          domain,
-          totalChunks: 0,
-          totalCompetitionClasses: 0,
-        }
+    if (zipsWithCompetitionClass.length === 0) {
+      yield* Effect.logInfo({
+        message: 'No zipped submissions with competition class found',
+        domain,
+      })
+      return {
+        message: 'No zipped submissions with competition class found',
+        domain,
+        totalChunks: 0,
+        totalCompetitionClasses: 0,
       }
+    }
 
-      const byCompetitionClass = Array.groupBy(zipsWithCompetitionClass, (zip) =>
-        zip.participant.competitionClass!.id.toString(),
+    const byCompetitionClass = Array.groupBy(zipsWithCompetitionClass, (zip) =>
+      zip.participant.competitionClass!.id.toString(),
+    )
+
+    let totalChunksAcrossAllClasses = 0
+    const competitionClassesInfo: Array<{
+      competitionClassId: number
+      competitionClassName: string
+      totalChunks: number
+    }> = []
+
+    for (const zips of Object.values(byCompetitionClass)) {
+      if (zips.length === 0) continue
+      const sortedZips = zips.sort(
+        (a, b) => Number(a.participant.reference) - Number(b.participant.reference),
       )
+      const chunks = Array.chunksOf(sortedZips, MAX_PARTICIPANTS_PER_ZIP)
+      const competitionClassId = zips[0].participant.competitionClass!.id
+      const competitionClassName = zips[0].participant
+        .competitionClass!.name.toLowerCase()
+        .replace(/ /g, '-')
+      competitionClassesInfo.push({
+        competitionClassId,
+        competitionClassName,
+        totalChunks: chunks.length,
+      })
+      totalChunksAcrossAllClasses += chunks.length
+    }
 
-      let totalChunksAcrossAllClasses = 0
-      const competitionClassesInfo: Array<{
-        competitionClassId: number
-        competitionClassName: string
-        totalChunks: number
-      }> = []
+    const processId = crypto.randomUUID()
 
-      for (const zips of Object.values(byCompetitionClass)) {
-        if (zips.length === 0) continue
-        const sortedZips = zips.sort(
-          (a, b) => Number(a.participant.reference) - Number(b.participant.reference),
-        )
-        const chunks = Array.chunksOf(sortedZips, MAX_PARTICIPANTS_PER_ZIP)
+    yield* downloadStateRepository.createDownloadProcess(
+      processId,
+      domain,
+      totalChunksAcrossAllClasses,
+    )
+
+    yield* downloadStateRepository.updateDownloadProcess(processId, {
+      competitionClasses: competitionClassesInfo,
+    })
+
+    yield* downloadStateRepository.setActiveProcessForDomain(domain, processId)
+
+    yield* Effect.logInfo({
+      message: 'Download process created',
+      processId,
+      domain,
+      totalChunks: totalChunksAcrossAllClasses,
+      competitionClassesCount: competitionClassesInfo.length,
+    })
+
+    yield* Effect.forEach(Object.values(byCompetitionClass), (zips) =>
+      Effect.gen(function* () {
+        if (zips.length === 0) {
+          return
+        }
+
         const competitionClassId = zips[0].participant.competitionClass!.id
         const competitionClassName = zips[0].participant
           .competitionClass!.name.toLowerCase()
           .replace(/ /g, '-')
-        competitionClassesInfo.push({
+
+        const sortedZips = zips.sort(
+          (a, b) => Number(a.participant.reference) - Number(b.participant.reference),
+        )
+
+        const chunks = Array.chunksOf(sortedZips, MAX_PARTICIPANTS_PER_ZIP)
+        const totalChunks = chunks.length
+
+        yield* Effect.logInfo({
+          message: 'Processing competition class chunks',
+          domain,
           competitionClassId,
           competitionClassName,
-          totalChunks: chunks.length,
+          totalChunks,
+          totalZips: sortedZips.length,
         })
-        totalChunksAcrossAllClasses += chunks.length
-      }
 
-      const processId = crypto.randomUUID()
+        yield* Effect.forEach(
+          chunks,
+          (chunk, index) =>
+            Effect.gen(function* () {
+              if (chunk.length === 0) {
+                yield* Effect.logWarning({
+                  message: 'Empty chunk encountered',
+                  domain,
+                  competitionClassId,
+                  index,
+                })
+                return
+              }
 
-      yield* downloadStateRepository.createDownloadProcess(
-        processId,
-        domain,
-        totalChunksAcrossAllClasses,
-      )
+              const minParticipantReference = chunk[0]?.participant.reference
+              const maxParticipantReference = chunk[chunk.length - 1]?.participant.reference
 
-      yield* downloadStateRepository.updateDownloadProcess(processId, {
-        competitionClasses: competitionClassesInfo,
-      })
+              if (!minParticipantReference || !maxParticipantReference) {
+                yield* Effect.logError({
+                  message: 'No participant references found in chunk',
+                  domain,
+                  competitionClassId,
+                  competitionClassName,
+                  index,
+                  classChunksLength: chunks.length,
+                  chunkLength: chunk.length,
+                })
+                return yield* Effect.fail(
+                  new BadRequestError({
+                    message: `No participant references found in chunk ${index + 1} of ${chunks.length}`,
+                  }),
+                )
+              }
 
-      yield* downloadStateRepository.setActiveProcessForDomain(domain, processId)
+              const jobId = crypto.randomUUID()
 
-      yield* Effect.logInfo({
-        message: 'Download process created',
-        processId,
-        domain,
-        totalChunks: totalChunksAcrossAllClasses,
-        competitionClassesCount: competitionClassesInfo.length,
-      })
+              const minRefPadded = minParticipantReference.padStart(4, '0')
+              const maxRefPadded = maxParticipantReference.padStart(4, '0')
+              const zipKey = `${domain}/zip-downloads/${competitionClassName}/${minRefPadded}-${maxRefPadded}.zip`
 
-      yield* Effect.forEach(Object.values(byCompetitionClass), (zips) =>
-        Effect.gen(function* () {
-          if (zips.length === 0) {
-            return
-          }
-
-          const competitionClassId = zips[0].participant.competitionClass!.id
-          const competitionClassName = zips[0].participant
-            .competitionClass!.name.toLowerCase()
-            .replace(/ /g, '-')
-
-          const sortedZips = zips.sort(
-            (a, b) => Number(a.participant.reference) - Number(b.participant.reference),
-          )
-
-          const chunks = Array.chunksOf(sortedZips, MAX_PARTICIPANTS_PER_ZIP)
-          const totalChunks = chunks.length
-
-          yield* Effect.logInfo({
-            message: 'Processing competition class chunks',
-            domain,
-            competitionClassId,
-            competitionClassName,
-            totalChunks,
-            totalZips: sortedZips.length,
-          })
-
-          yield* Effect.forEach(
-            chunks,
-            (chunk, index) =>
-              Effect.gen(function* () {
-                if (chunk.length === 0) {
-                  yield* Effect.logWarning({
-                    message: 'Empty chunk encountered',
-                    domain,
-                    competitionClassId,
-                    index,
-                  })
-                  return
-                }
-
-                const minParticipantReference = chunk[0]?.participant.reference
-                const maxParticipantReference = chunk[chunk.length - 1]?.participant.reference
-
-                if (!minParticipantReference || !maxParticipantReference) {
-                  yield* Effect.logError({
-                    message: 'No participant references found in chunk',
-                    domain,
-                    competitionClassId,
-                    competitionClassName,
-                    index,
-                    classChunksLength: chunks.length,
-                    chunkLength: chunk.length,
-                  })
-                  return yield* Effect.fail(
-                    new Error(
-                      `No participant references found in chunk ${index + 1} of ${chunks.length}`,
-                    ),
-                  )
-                }
-
-                const jobId = crypto.randomUUID()
-
-                const minRefPadded = minParticipantReference.padStart(4, '0')
-                const maxRefPadded = maxParticipantReference.padStart(4, '0')
-                const zipKey = `${domain}/zip-downloads/${competitionClassName}/${minRefPadded}-${maxRefPadded}.zip`
-
-                yield* downloadStateRepository
-                  .saveChunkState(jobId, {
-                    processId,
-                    domain,
-                    competitionClassId,
-                    competitionClassName,
-                    minReference: Number(minParticipantReference),
-                    maxReference: Number(maxParticipantReference),
-                    zipKey,
-                    chunkIndex: index,
-                    totalChunks,
-                  })
-                  .pipe(
-                    Effect.tapError((error) =>
-                      Effect.logError({
-                        message: 'Failed to save chunk state to Redis',
-                        jobId,
-                        processId,
-                        error: error instanceof Error ? error.message : String(error),
-                      }),
-                    ),
-                  )
-
-                // Verify the state was saved before triggering the task
-                const savedStateOption = yield* downloadStateRepository.getChunkState(jobId).pipe(
+              yield* downloadStateRepository
+                .saveChunkState(jobId, {
+                  processId,
+                  domain,
+                  competitionClassId,
+                  competitionClassName,
+                  minReference: Number(minParticipantReference),
+                  maxReference: Number(maxParticipantReference),
+                  zipKey,
+                  chunkIndex: index,
+                  totalChunks,
+                })
+                .pipe(
                   Effect.tapError((error) =>
                     Effect.logError({
-                      message: 'Failed to retrieve chunk state from Redis for verification',
+                      message: 'Failed to save chunk state to Redis',
                       jobId,
                       processId,
                       error: error instanceof Error ? error.message : String(error),
@@ -457,123 +451,129 @@ const makeZipFilesService = Effect.gen(function* () {
                   ),
                 )
 
-                if (Option.isNone(savedStateOption)) {
-                  yield* Effect.logError({
-                    message: 'Failed to verify chunk state was saved to Redis - state not found',
+              // Verify the state was saved before triggering the task
+              const savedStateOption = yield* downloadStateRepository.getChunkState(jobId).pipe(
+                Effect.tapError((error) =>
+                  Effect.logError({
+                    message: 'Failed to retrieve chunk state from Redis for verification',
                     jobId,
                     processId,
-                  })
-                  return yield* Effect.fail(
-                    new Error(`Failed to save chunk state for jobId: ${jobId}`),
-                  )
-                }
+                    error: error instanceof Error ? error.message : String(error),
+                  }),
+                ),
+              )
 
-                // Add jobId to the download process
-                yield* downloadStateRepository.addJobToProcess(processId, jobId)
-
-                yield* Effect.logInfo({
-                  message: 'Chunk state saved to Redis and added to process',
-                  processId,
+              if (Option.isNone(savedStateOption)) {
+                yield* Effect.logError({
+                  message: 'Failed to verify chunk state was saved to Redis - state not found',
                   jobId,
-                  domain,
-                  competitionClassId,
-                  competitionClassName,
-                  minReference: minParticipantReference,
-                  maxReference: maxParticipantReference,
-                  zipKey,
-                  chunkIndex: index,
-                  totalChunks,
+                  processId,
                 })
+                return yield* Effect.fail(
+                  new BadRequestError({
+                    message: `Failed to save chunk state for jobId: ${jobId}`,
+                  }),
+                )
+              }
 
-                const cluster = yield* Config.string('AWS_CLUSTER')
-                const region = yield* Config.string('AWS_REGION')
-                const subnetsRaw = yield* Config.string('AWS_SUBNETS')
-                const subnets = subnetsRaw
-                  .split(',')
-                  .map((s: string) => s.trim())
-                  .filter(Boolean)
+              // Add jobId to the download process
+              yield* downloadStateRepository.addJobToProcess(processId, jobId)
 
-                const taskDefinition = yield* Config.string('ZIP_DOWNLOADER_TASK_DEFINITION')
+              yield* Effect.logInfo({
+                message: 'Chunk state saved to Redis and added to process',
+                processId,
+                jobId,
+                domain,
+                competitionClassId,
+                competitionClassName,
+                minReference: minParticipantReference,
+                maxReference: maxParticipantReference,
+                zipKey,
+                chunkIndex: index,
+                totalChunks,
+              })
 
-                const ecsClient = new ECSClient({ region })
-                const networkConfig: {
-                  subnets: string[]
-                  assignPublicIp: 'ENABLED' | 'DISABLED'
-                } = {
-                  subnets,
-                  assignPublicIp: 'ENABLED',
-                } satisfies AwsVpcConfiguration
+              const cluster = yield* Config.string('AWS_CLUSTER')
+              const region = yield* Config.string('AWS_REGION')
+              const subnetsRaw = yield* Config.string('AWS_SUBNETS')
+              const subnets = subnetsRaw
+                .split(',')
+                .map((s: string) => s.trim())
+                .filter(Boolean)
 
-                yield* Effect.tryPromise({
-                  try: () =>
-                    ecsClient.send(
-                      new RunTaskCommand({
-                        cluster,
-                        taskDefinition,
-                        launchType: 'FARGATE',
-                        networkConfiguration: {
-                          awsvpcConfiguration: networkConfig,
-                        },
-                        overrides: {
-                          containerOverrides: [
-                            {
-                              name: 'ZipDownloaderTask',
-                              environment: [
-                                {
-                                  name: 'JOB_ID',
-                                  value: jobId,
-                                },
-                              ],
-                            },
-                          ],
-                        },
-                      }),
-                    ),
-                  catch: (error) =>
-                    new UnableToRunZipDownloaderTaskError({
-                      message: 'Failed to trigger zip downloader task',
-                      cause: error,
-                    }),
-                }).pipe(
-                  Effect.tapError((error) =>
-                    Effect.logError({
-                      message: 'Failed to trigger zip downloader task',
-                      jobId,
-                      error: error instanceof Error ? error.message : String(error),
+              const taskDefinition = yield* Config.string('ZIP_DOWNLOADER_TASK_DEFINITION')
+
+              const ecsClient = new ECSClient({ region })
+              const networkConfig: {
+                subnets: string[]
+                assignPublicIp: 'ENABLED' | 'DISABLED'
+              } = {
+                subnets,
+                assignPublicIp: 'ENABLED',
+              } satisfies AwsVpcConfiguration
+
+              yield* Effect.tryPromise({
+                try: () =>
+                  ecsClient.send(
+                    new RunTaskCommand({
+                      cluster,
+                      taskDefinition,
+                      launchType: 'FARGATE',
+                      networkConfiguration: {
+                        awsvpcConfiguration: networkConfig,
+                      },
+                      overrides: {
+                        containerOverrides: [
+                          {
+                            name: 'ZipDownloaderTask',
+                            environment: [
+                              {
+                                name: 'JOB_ID',
+                                value: jobId,
+                              },
+                            ],
+                          },
+                        ],
+                      },
                     }),
                   ),
-                )
-              }),
-            { concurrency: 'unbounded' },
-          ).pipe(
-            Effect.tapError((error) =>
-              Effect.logError({
-                message: 'Error processing chunks',
-                error: error instanceof Error ? error.message : String(error),
-              }),
-            ),
-          )
-        }),
-      )
+                catch: (error) =>
+                  new UnableToRunZipDownloaderTaskError({
+                    message: 'Failed to trigger zip downloader task',
+                    cause: error,
+                  }),
+              }).pipe(
+                Effect.tapError((error) =>
+                  Effect.logError({
+                    message: 'Failed to trigger zip downloader task',
+                    jobId,
+                    error: error instanceof Error ? error.message : String(error),
+                  }),
+                ),
+              )
+            }),
+          { concurrency: 'unbounded' },
+        ).pipe(
+          Effect.tapError((error) =>
+            Effect.logError({
+              message: 'Error processing chunks',
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          ),
+        )
+      }),
+    )
 
-      yield* downloadStateRepository.updateDownloadProcess(processId, {
-        status: 'processing',
-      })
+    yield* downloadStateRepository.updateDownloadProcess(processId, {
+      status: 'processing',
+    })
 
-      return {
-        message: 'Zip download jobs initialized',
-        processId,
-        domain,
-        totalCompetitionClasses: Object.keys(byCompetitionClass).length,
-        totalChunks: totalChunksAcrossAllClasses,
-      }
-    } catch (error) {
-      return yield* Effect.fail(
-        new BadRequestError({
-          message: 'Failed to initialize zip downloads',
-          cause: error,
-        }),
-      )
+    return {
+      message: 'Zip download jobs initialized',
+      processId,
+      domain,
+      totalCompetitionClasses: Object.keys(byCompetitionClass).length,
+      totalChunks: totalChunksAcrossAllClasses,
     }
   })
 

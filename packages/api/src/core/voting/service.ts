@@ -53,29 +53,29 @@ import {
   type EncryptedPhoneNumber,
 } from '../utils/phone-number-encryption'
 import { randomBytes } from 'crypto'
+import { getVotingLifecycleState, hasSubmissionWindowEnded } from './lifecycle'
 import {
-  getVotingLifecycleState,
-  hasSubmissionWindowEnded,
-  parseVotingScheduleInput,
-} from './lifecycle'
-
-const AWS_S3_BASE_URL = 'https://s3.eu-north-1.amazonaws.com'
-const VOTING_SMS_CHUNK_SIZE = 30
-const VOTING_SMS_ENQUEUE_CONCURRENCY = 10
-const VOTING_EMAIL_BATCH_SIZE = 25
-
-interface VotingSmsQueueMessage {
-  votingSessionIds: number[]
-  forceResend?: boolean
-}
-
-interface NotificationWarning {
-  channel: 'email' | 'sms'
-  message: string
-  failedSessionIds: number[]
-}
-
-type VotingNotificationChannel = 'email' | 'sms' | 'all'
+  VOTING_EMAIL_BATCH_SIZE,
+  VOTING_SMS_CHUNK_SIZE,
+  VOTING_SMS_ENQUEUE_CONCURRENCY,
+  type NotificationWarning,
+  type VotingNotificationChannel,
+  type VotingSmsQueueMessage,
+  applyLatestRoundVoteToSession,
+  buildVotingInviteMessage,
+  buildVotingInviteUrl,
+  chunkItems,
+  ensureSessionDomain,
+  ensureVotingSessionWindow,
+  getErrorMessage,
+  getParticipantDisplayName,
+  getSessionDomain,
+  mapRoundSummary,
+  normalizeEmail,
+  normalizePaginationInput,
+  parseVotingWindow,
+} from './helpers'
+import { buildPathStyleS3Url, findActiveByCameraTopic, requireByCameraMode } from '../shared'
 
 interface ParticipantWithoutSessionRow extends Pick<
   Participant,
@@ -100,185 +100,6 @@ interface LeadingTieResult {
   tieSize: number
   submissionIds: number[]
 }
-
-function buildS3Url(bucketName: string, key: string | null | undefined): string | undefined {
-  if (!key) return undefined
-  return `${AWS_S3_BASE_URL}/${bucketName}/${key}`
-}
-
-function buildVotingInviteMessage({
-  marathonName,
-  domain,
-  token,
-}: {
-  marathonName: string
-  domain: string
-  token: string
-}) {
-  return `Voting is starting for ${marathonName}! Vote here: ${buildVotingInviteUrl({ domain, token })}`
-}
-
-function buildVotingInviteUrl({ domain, token }: { domain: string; token: string }) {
-  return `https://${domain}.blikka.app/live/vote/${token}`
-}
-
-function normalizeEmail(email: string | null | undefined) {
-  const trimmed = email?.trim()
-  return trimmed ? trimmed : null
-}
-
-function getParticipantDisplayName({
-  firstName,
-  lastName,
-}: {
-  firstName: string
-  lastName: string
-}) {
-  const fullName = `${firstName} ${lastName}`.trim()
-  return firstName.trim() || fullName || 'participant'
-}
-
-function chunkItems<T>(items: readonly T[], size: number): T[][] {
-  const chunks: T[][] = []
-
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
-  }
-
-  return chunks
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback
-}
-
-function parseVotingWindow({
-  startsAt,
-  endsAt,
-}: {
-  startsAt: string
-  endsAt?: string | null
-}): Effect.Effect<{ startsAtIso: string; endsAtIso: string | null }, BadRequestError> {
-  return Effect.try({
-    try: () => parseVotingScheduleInput({ startsAt, endsAt }),
-    catch: (error) =>
-      new BadRequestError({
-        message: error instanceof Error ? error.message : 'Invalid voting timestamps',
-        cause: error,
-      }),
-  })
-}
-
-function ensureSessionDomain(
-  votingSession: VotingSession & { marathon?: { domain: string } | null },
-  domain: string,
-): Effect.Effect<void, BadRequestError> {
-  if (votingSession.marathon?.domain && votingSession.marathon.domain !== domain) {
-    return Effect.fail(
-      new BadRequestError({
-        message: 'Voting session not found',
-      }),
-    )
-  }
-
-  return Effect.void
-}
-
-function getSessionDomain(
-  votingSession: VotingSession & { marathon?: { domain: string } | null },
-): Effect.Effect<string, BadRequestError> {
-  const domain = votingSession.marathon?.domain
-
-  if (!domain) {
-    return Effect.fail(
-      new BadRequestError({
-        message: 'Voting session not found',
-      }),
-    )
-  }
-
-  return Effect.succeed(domain)
-}
-
-function ensureVotingSessionWindow(votingWindow: {
-  startsAt: string | null
-  endsAt: string | null
-}): Effect.Effect<void, BadRequestError> {
-  const state = getVotingLifecycleState(votingWindow)
-
-  if (state === 'not-started') {
-    return Effect.fail(
-      new BadRequestError({
-        message: 'Voting session has not started yet',
-      }),
-    )
-  }
-
-  if (state === 'ended') {
-    return Effect.fail(
-      new BadRequestError({
-        message: 'Voting session has expired',
-      }),
-    )
-  }
-
-  return Effect.void
-}
-
-function normalizePaginationInput({
-  page,
-  limit,
-}: {
-  page?: number | null
-  limit?: number | null
-}) {
-  const normalizedPage = Number.isInteger(page) && page && page > 0 ? page : 1
-  const normalizedLimit = Number.isInteger(limit) && limit && limit > 0 ? Math.min(limit, 100) : 50
-
-  return {
-    page: normalizedPage,
-    limit: normalizedLimit,
-  }
-}
-
-function mapRoundSummary(round: VotingRound | null) {
-  if (!round) {
-    return null
-  }
-
-  return {
-    id: round.id,
-    roundNumber: round.roundNumber,
-    kind: round.kind,
-    startedAt: round.startedAt,
-    endsAt: round.endsAt,
-    sourceRoundId: round.sourceRoundId,
-  }
-}
-
-function applyLatestRoundVoteToSession({
-  votingSession,
-  round,
-  vote,
-}: {
-  votingSession: VotingSession & {
-    marathon?: { domain: string } | null
-    topic?: { name: string } | null
-  }
-  round: VotingRound | null
-  vote: {
-    submissionId: number
-    votedAt: string
-  } | null
-}) {
-  return {
-    ...votingSession,
-    voteSubmissionId: vote?.submissionId ?? null,
-    votedAt: vote?.votedAt ?? null,
-    currentRound: mapRoundSummary(round),
-  }
-}
-
 export class VotingService extends Context.Service<
   VotingService,
   {
@@ -1097,13 +918,7 @@ const makeVotingService = Effect.gen(function* () {
           ),
       })
 
-      if (marathon.mode !== 'by-camera') {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `Marathon '${marathon.domain}' is not in by-camera mode`,
-          }),
-        )
-      }
+      yield* requireByCameraMode(marathon)
 
       const topic = marathon.topics.find((item) => item.id === topicId)
       if (!topic) {
@@ -1117,7 +932,7 @@ const makeVotingService = Effect.gen(function* () {
       return {
         marathon,
         topic,
-        activeTopic: marathon.topics.find((item) => item.visibility === 'active') ?? null,
+        activeTopic: findActiveByCameraTopic(marathon.topics),
       }
     },
   )
@@ -2429,9 +2244,9 @@ const makeVotingService = Effect.gen(function* () {
       .map((submission) => ({
         submissionId: submission.id,
         participantId: submission.participantId,
-        url: buildS3Url(submissionsBucketName, submission.key),
-        thumbnailUrl: buildS3Url(thumbnailsBucketName, submission.thumbnailKey),
-        previewUrl: buildS3Url(submissionsBucketName, submission.previewKey),
+        url: buildPathStyleS3Url(submissionsBucketName, submission.key),
+        thumbnailUrl: buildPathStyleS3Url(thumbnailsBucketName, submission.thumbnailKey),
+        previewUrl: buildPathStyleS3Url(submissionsBucketName, submission.previewKey),
         topicId: submission.topicId,
         topicName: submission.topic?.name ?? '',
         isOwnSubmission:

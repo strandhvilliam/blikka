@@ -1,5 +1,5 @@
-import { Inter, Geist, Special_Gothic_Expanded_One, Special_Gothic } from 'next/font/google'
-import { ReactNode, Suspense } from 'react'
+import { Geist, Special_Gothic_Expanded_One, Special_Gothic } from 'next/font/google'
+import { ReactNode } from 'react'
 import '../app/globals.css'
 import Head from 'next/head'
 

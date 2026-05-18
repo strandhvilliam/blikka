@@ -49,6 +49,8 @@ import {
   PhoneNumberEncryptionServiceLayer,
   type PhoneNumberEncryptionError,
 } from '../utils/phone-number-encryption'
+import { getActiveByCameraTopicOrBadRequest, makeMarathonLoad } from '../shared'
+import { ensureMarathonIsOpenForUploads } from './upload-window'
 
 const ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE =
   'You have already uploaded a photo for the current topic.'
@@ -268,27 +270,8 @@ const makeUploadFlowService = Effect.gen(function* () {
     Config.map((env) => (env === 'production' ? 'prod' : 'dev')),
   )
 
-  const getMarathonByDomainOrFail = Effect.fn('UploadFlowService.getMarathonByDomainOrFail')(
-    function* (domain: string) {
-      return yield* marathonsRepository
-        .getMarathonByDomainWithOptions({
-          domain,
-        })
-        .pipe(
-          Effect.andThen(
-            Option.match({
-              onSome: (marathon) => Effect.succeed(marathon),
-              onNone: () =>
-                Effect.fail(
-                  new BadRequestError({
-                    message: `[${domain}] Marathon not found`,
-                  }),
-                ),
-            }),
-          ),
-        )
-    },
-  )
+  const { getMarathonByDomainOrBadRequest: getMarathonByDomainOrFail } =
+    makeMarathonLoad(marathonsRepository)
 
   const resetAndSeedUploadExif = Effect.fn('UploadFlowService.resetAndSeedUploadExif')(function* ({
     domain,
@@ -359,94 +342,6 @@ const makeUploadFlowService = Effect.gen(function* () {
     })
   })
 
-  const ensureMarathonIsOpenForUploads = Effect.fn(
-    'UploadFlowService.ensureMarathonIsOpenForUploads',
-  )(function* ({
-    domain,
-    marathon,
-    activeTopic,
-  }: {
-    domain: string
-    marathon: Marathon
-    activeTopic?: Topic | null
-  }) {
-    if (!marathon.setupCompleted) {
-      return yield* Effect.fail(
-        new BadRequestError({
-          message: `[${domain}] Marathon setup is incomplete`,
-        }),
-      )
-    }
-
-    if (marathon.mode === 'marathon') {
-      if (!marathon.startDate || !marathon.endDate) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] Marathon upload window is not configured`,
-          }),
-        )
-      }
-
-      const startDate = new Date(marathon.startDate)
-      const endDate = new Date(marathon.endDate)
-      const now = new Date()
-
-      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] Marathon upload window is invalid`,
-          }),
-        )
-      }
-
-      if (now < startDate || now > endDate) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] Uploads are closed for this marathon`,
-          }),
-        )
-      }
-    }
-
-    if (marathon.mode === 'by-camera') {
-      if (!activeTopic) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] No active topic found for marathon`,
-          }),
-        )
-      }
-      if (activeTopic.visibility !== 'active') {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] Active topic is not active`,
-          }),
-        )
-      }
-      if (!activeTopic.scheduledStart) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] Active topic has not been opened for submissions`,
-          }),
-        )
-      }
-      if (new Date(activeTopic.scheduledStart) > new Date()) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] Submissions are scheduled to open later`,
-          }),
-        )
-      }
-      if (activeTopic.scheduledEnd && new Date(activeTopic.scheduledEnd) <= new Date()) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] Submissions are closed for this topic`,
-          }),
-        )
-      }
-    }
-  })
-
   const getActiveByCameraTopicOrFail = Effect.fn('UploadFlowService.getActiveByCameraTopicOrFail')(
     function* ({
       domain,
@@ -457,17 +352,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         topics: Topic[]
       }
     }) {
-      const activeTopic = marathon.topics.find((topic) => topic.visibility === 'active')
-
-      if (!activeTopic) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] No active topic found for marathon`,
-          }),
-        )
-      }
-
-      return activeTopic
+      return yield* getActiveByCameraTopicOrBadRequest({ domain, topics: marathon.topics })
     },
   )
 

@@ -14,7 +14,7 @@ function normalizeImageExtensionAlias(extension: string): string {
   return normalizedExtension === 'jpeg' ? 'jpg' : normalizedExtension
 }
 
-function normalizeAllowedFileTypes(allowedFileTypes: readonly string[]): string[] {
+export function normalizeAllowedFileTypes(allowedFileTypes: readonly string[]): string[] {
   const normalizedAllowedFileTypes = new Set<string>()
 
   for (const allowedFileType of allowedFileTypes) {
