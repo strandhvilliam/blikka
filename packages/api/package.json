@@ -27,6 +27,7 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@effect/vitest": "catalog:",
     "@types/archiver": "^7.0.0",
     "@types/bun": "latest"
   },

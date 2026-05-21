@@ -38,7 +38,7 @@ import {
   PhoneNumberEncryptionServiceLayer,
   type PhoneNumberEncryptionError,
 } from '../utils/phone-number-encryption'
-import { getActiveByCameraTopicOrBadRequest } from '../shared'
+import { getActiveByCameraTopicOrBadRequest, isSuccessfulActiveTopicUpload } from '../shared'
 import {
   encryptOptionalPhoneNumber,
   ensureDeviceGroupExists,
@@ -194,27 +194,15 @@ const makeUploadFlowService = Effect.gen(function* () {
     activeTopic: { id: number; orderIndex: number; visibility: string }
     submissionStatus?: string | null
   }) {
-    if (submissionStatus && submissionStatus !== 'initialized') {
-      return true
-    }
-
     const participantState = yield* kv.getParticipantState(domain, reference)
     const submissionState = yield* kv.getSubmissionState(domain, reference, activeTopic.orderIndex)
 
-    if (
-      Option.isSome(participantState) &&
-      participantState.value.finalized &&
-      participantState.value.orderIndexes.includes(activeTopic.orderIndex)
-    ) {
-      return true
-    }
-
-    if (Option.isSome(submissionState)) {
-      const state = submissionState.value
-      return state.uploaded || state.exifProcessed || state.thumbnailKey !== null
-    }
-
-    return false
+    return isSuccessfulActiveTopicUpload({
+      submissionStatus,
+      participantState,
+      submissionState,
+      activeTopicOrderIndex: activeTopic.orderIndex,
+    })
   })
 
   const resolveExistingByCameraParticipant = Effect.fn(

@@ -22,3 +22,4 @@ export {
   type DeviceByCameraParticipantContext,
   type MarathonWithRelations,
 } from './upload'
+export { isSuccessfulActiveTopicUpload } from './upload-eligibility'

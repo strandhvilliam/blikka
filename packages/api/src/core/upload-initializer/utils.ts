@@ -22,10 +22,12 @@ export function ensureMarathonIsOpenForUploads({
   domain,
   marathon,
   activeTopic,
+  now = new Date(),
 }: {
   domain: string
   marathon: Marathon & { topics?: readonly Topic[] }
   activeTopic?: Topic | null
+  now?: Date
 }): Effect.Effect<void, BadRequestError> {
   if (!marathon.setupCompleted) {
     return Effect.fail(
@@ -46,7 +48,6 @@ export function ensureMarathonIsOpenForUploads({
 
     const startDate = new Date(marathon.startDate)
     const endDate = new Date(marathon.endDate)
-    const now = new Date()
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
       return Effect.fail(
@@ -92,7 +93,7 @@ export function ensureMarathonIsOpenForUploads({
       )
     }
 
-    if (new Date(resolvedActiveTopic.scheduledStart) > new Date()) {
+    if (new Date(resolvedActiveTopic.scheduledStart) > now) {
       return Effect.fail(
         new BadRequestError({
           message: `[${domain}] Submissions are scheduled to open later`,
@@ -102,7 +103,7 @@ export function ensureMarathonIsOpenForUploads({
 
     if (
       resolvedActiveTopic.scheduledEnd &&
-      new Date(resolvedActiveTopic.scheduledEnd) <= new Date()
+      new Date(resolvedActiveTopic.scheduledEnd) <= now
     ) {
       return Effect.fail(
         new BadRequestError({

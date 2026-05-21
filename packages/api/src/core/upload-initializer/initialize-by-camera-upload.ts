@@ -28,7 +28,7 @@ import {
   type UploadProvisionerError,
 } from './provision-upload'
 import { BadRequestError } from '../errors'
-import { getActiveByCameraTopicOrBadRequest, requireMarathonMode } from '../shared'
+import { getActiveByCameraTopicOrBadRequest, isSuccessfulActiveTopicUpload, requireMarathonMode } from '../shared'
 import {
   ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE,
   encryptOptionalPhoneNumber,
@@ -304,27 +304,15 @@ const makeByCameraUploadInitializerService = Effect.gen(function* () {
     activeTopic: { id: number; orderIndex: number; visibility: string }
     submissionStatus?: string | null
   }) {
-    if (submissionStatus && submissionStatus !== 'initialized') {
-      return true
-    }
-
     const participantState = yield* kv.getParticipantState(domain, reference)
     const submissionState = yield* kv.getSubmissionState(domain, reference, activeTopic.orderIndex)
 
-    if (
-      Option.isSome(participantState) &&
-      participantState.value.finalized &&
-      participantState.value.orderIndexes.includes(activeTopic.orderIndex)
-    ) {
-      return true
-    }
-
-    if (Option.isSome(submissionState)) {
-      const state = submissionState.value
-      return state.uploaded || state.exifProcessed || state.thumbnailKey !== null
-    }
-
-    return false
+    return isSuccessfulActiveTopicUpload({
+      submissionStatus,
+      participantState,
+      submissionState,
+      activeTopicOrderIndex: activeTopic.orderIndex,
+    })
   })
 
   const loadByCameraMarathon = Effect.fn(
