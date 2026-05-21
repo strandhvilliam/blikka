@@ -14,7 +14,6 @@ import {
 } from '../utils/phone-number-encryption'
 import {
   getActiveByCameraTopicOrNotFound,
-  makeMarathonLoad,
   requireByCameraMode,
 } from '../shared'
 import { BadRequestError, NotFoundError, failNotFoundIfNone } from '../errors'
@@ -141,12 +140,12 @@ const makeExportsService = Effect.gen(function* () {
   const s3 = yield* S3Service
   const phoneEncryption = yield* PhoneNumberEncryptionService
 
-  const { getMarathonByDomainOrNotFound } = makeMarathonLoad(marathonsRepository)
-
   const getActiveByCameraTopic = Effect.fn('ExportsService.getActiveByCameraTopic')(function* ({
     domain,
   }) {
-    const marathon = yield* getMarathonByDomainOrNotFound(domain)
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomainWithOptions({ domain })
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
     yield* requireByCameraMode(marathon)
     return yield* getActiveByCameraTopicOrNotFound({ domain, topics: marathon.topics })
   })
@@ -466,5 +465,7 @@ const makeExportsService = Effect.gen(function* () {
 export const ExportsServiceLayerNoDeps = Layer.effect(ExportsService, makeExportsService)
 
 export const ExportsServiceLayer = ExportsServiceLayerNoDeps.pipe(
-  Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer, PhoneNumberEncryptionServiceLayer)),
+  Layer.provide(
+    Layer.mergeAll(DbLayer, S3ServiceLayer, PhoneNumberEncryptionServiceLayer),
+  ),
 )

@@ -43,10 +43,10 @@ export function useManualUploadFlow({
   const [uploadComplete, setUploadComplete] = useState(false)
 
   const initializeUploadFlowMutation = useMutation(
-    trpc.uploadFlow.initializeUploadFlow.mutationOptions(),
+    trpc.uploadInitializer.initializeUploadFlow.mutationOptions(),
   )
   const initializeByCameraUploadMutation = useMutation(
-    trpc.uploadFlow.initializeByCameraUpload.mutationOptions(),
+    trpc.uploadInitializer.initializeByCameraUpload.mutationOptions(),
   )
 
   const uploadFileKeys = uploadFiles.map((file) => file.key).join(',')

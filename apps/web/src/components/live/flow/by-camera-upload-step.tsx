@@ -141,7 +141,7 @@ export function ByCameraUploadStep({
   }
 
   const { mutateAsync: initializeByCameraUpload, isPending: isInitializing } = useMutation(
-    trpc.uploadFlow.initializeByCameraUpload.mutationOptions({
+    trpc.uploadInitializer.initializeByCameraUpload.mutationOptions({
       onError: (error) => {
         toast.error(error.message || t('initializationFailed'))
       },

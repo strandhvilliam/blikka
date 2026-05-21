@@ -1,15 +1,12 @@
-import { Array, Config, Context, Effect, Layer, Option, Order, pipe } from 'effect'
-import { randomUUID } from 'node:crypto'
+import { Config, Context, Effect, Layer, Option } from 'effect'
 import {
   DbError,
   DbLayer,
   MarathonsRepository,
   ParticipantsRepository,
   SubmissionsRepository,
-  type CompetitionClass,
   type Marathon,
   type NewParticipant,
-  type Participant,
   type Topic,
 } from '@blikka/db'
 import {
@@ -21,77 +18,36 @@ import {
   SQSServiceLayer,
 } from '@blikka/aws'
 import {
-  ExifKVRepository,
-  ExifKVRepositoryError,
-  ExifKVRepositoryLayer,
-  type InvalidKeyFormatError,
   UploadSessionRepository,
   UploadSessionRepositoryLayer,
   type UploadSessionRepositoryError,
 } from '@blikka/kv-store'
 import { RealtimeEventsService, RealtimeEventsServiceLayer } from '@blikka/realtime'
 import {
-  normalizeUploadContentType,
   type CheckParticipantExists,
   type GetPublicMarathon,
   type GetUploadStatus,
-  type InitializeByCameraUpload,
-  type InitializeStaffByCameraUpload,
-  type InitializeUploadFlow,
   type PrepareUploadFlow,
   type RefreshPresignedUploads,
-  type ResolveByCameraParticipantByPhone,
   type ReTriggerUploadFlow,
+  type ResolveByCameraParticipantByPhone,
 } from './contracts'
-import { BadRequestError, ConflictError, NotFoundError, PreconditionFailedError } from '../errors'
+import { BadRequestError } from '../errors'
 import {
   PhoneNumberEncryptionService,
   PhoneNumberEncryptionServiceLayer,
   type PhoneNumberEncryptionError,
 } from '../utils/phone-number-encryption'
-import { getActiveByCameraTopicOrBadRequest, makeMarathonLoad } from '../shared'
-import { ensureMarathonIsOpenForUploads } from './upload-window'
+import { getActiveByCameraTopicOrBadRequest } from '../shared'
+import {
+  encryptOptionalPhoneNumber,
+  ensureDeviceGroupExists,
+  getCompetitionClassOrFail,
+  isParticipantFinalized,
+  maybeRecordParticipantTermsAcceptance,
+  normalizeUploadContentType,
+} from '../shared/upload'
 
-const ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE =
-  'You have already uploaded a photo for the current topic.'
-
-const MAX_REFERENCE_GENERATION_ATTEMPTS = 25
-
-const PLATFORM_TERMS_VERSION = 'blikka-terms-2026-05-01'
-
-function createRandomReference() {
-  return Math.floor(Math.random() * 10_000)
-    .toString()
-    .padStart(4, '0')
-}
-
-function createUploadSessionId() {
-  return randomUUID()
-}
-
-function normalizeOptionalPhoneNumber(phoneNumber?: string | null) {
-  const normalizedPhoneNumber = phoneNumber?.trim()
-
-  return normalizedPhoneNumber ? normalizedPhoneNumber : null
-}
-
-function normalizeAcceptedLocale(locale?: string | null) {
-  const normalizedLocale = locale?.trim()
-
-  return normalizedLocale ? normalizedLocale : null
-}
-
-function isParticipantFinalized(status: Participant['status']) {
-  return status === 'completed' || status === 'verified'
-}
-
-function hasExifFields(
-  exif: Record<string, unknown> | null | undefined,
-): exif is Record<string, unknown> {
-  return exif !== null && exif !== undefined && Object.keys(exif).length > 0
-}
-
-/** Marathon row with `topics` replaced for public upload entry (redaction / by-camera slice). */
 interface PublicMarathonForClient extends Omit<Marathon, 'topics'> {
   topics: Topic[]
 }
@@ -99,23 +55,17 @@ interface PublicMarathonForClient extends Omit<Marathon, 'topics'> {
 export class UploadFlowService extends Context.Service<
   UploadFlowService,
   {
-    /**
-     * Classic marathon: when uploads are open, upserts the participant, replaces submissions for the class topic slice,
-     * initializes KV (+ optional per-topic EXIF), and returns presigned PUT URLs; emits upload-flow-initialized.
-     */
-    readonly initializeUploadFlow: (input: InitializeUploadFlow) => Effect.Effect<
-      {
-        uploadSessionId: string
-        reference: string
-        uploads: { key: string; url: string; contentType: string }[]
-      },
-      | DbError
-      | S3ClientError
-      | PhoneNumberEncryptionError
-      | BadRequestError
-      | UploadSessionRepositoryError
-      | InvalidKeyFormatError
-      | ExifKVRepositoryError,
+    /** Loads the marathon for a domain and masks non-public topic titles; by-camera responses expose at most one active topic. */
+    readonly getPublicMarathon: (
+      input: GetPublicMarathon,
+    ) => Effect.Effect<PublicMarathonForClient, DbError | BadRequestError, never>
+
+    /** Returns whether a participant `reference` exists under `domain` and their stored status when it does. */
+    readonly checkParticipantExists: (
+      input: CheckParticipantExists,
+    ) => Effect.Effect<
+      { exists: false; status: null } | { exists: true; status: string },
+      DbError,
       never
     >
 
@@ -128,48 +78,6 @@ export class UploadFlowService extends Context.Service<
     ) => Effect.Effect<
       { participantId: number; status: string },
       DbError | PhoneNumberEncryptionError | BadRequestError,
-      never
-    >
-
-    /**
-     * By-camera device flow: resolves phone + active topic, may replace prior active-topic submission when allowed,
-     * then one submission, KV session, EXIF seed, and a single presigned PUT; emits upload-flow-initialized.
-     */
-    readonly initializeByCameraUpload: (input: InitializeByCameraUpload) => Effect.Effect<
-      {
-        participantId: number
-        reference: string
-        uploadSessionId: string
-        uploads: { key: string; url: string; contentType: string }[]
-      },
-      | DbError
-      | S3ClientError
-      | PhoneNumberEncryptionError
-      | BadRequestError
-      | UploadSessionRepositoryError
-      | InvalidKeyFormatError
-      | ExifKVRepositoryError,
-      never
-    >
-
-    /**
-     * Staff laptop flow: keyed by `reference` (existing or new), enforces by-camera mode, phone uniqueness, and optional
-     * replacement of finalized or active-topic uploads; records terms as staff-on-behalf; emits upload-flow-initialized.
-     */
-    readonly initializeStaffByCameraUpload: (input: InitializeStaffByCameraUpload) => Effect.Effect<
-      {
-        participantId: number
-        reference: string
-        uploadSessionId: string
-        uploads: { key: string; url: string; contentType: string }[]
-      },
-      | DbError
-      | S3ClientError
-      | PhoneNumberEncryptionError
-      | BadRequestError
-      | UploadSessionRepositoryError
-      | InvalidKeyFormatError
-      | ExifKVRepositoryError,
       never
     >
 
@@ -193,20 +101,6 @@ export class UploadFlowService extends Context.Service<
           activeTopicUploadState: 'eligible' | 'already-uploaded'
         },
       DbError | PhoneNumberEncryptionError | BadRequestError | UploadSessionRepositoryError,
-      never
-    >
-
-    /** Loads the marathon for a domain and masks non-public topic titles; by-camera responses expose at most one active topic. */
-    readonly getPublicMarathon: (
-      input: GetPublicMarathon,
-    ) => Effect.Effect<PublicMarathonForClient, DbError | BadRequestError, never>
-
-    /** Returns whether a participant `reference` exists under `domain` and their stored status when it does. */
-    readonly checkParticipantExists: (
-      input: CheckParticipantExists,
-    ) => Effect.Effect<
-      { exists: false; status: null } | { exists: true; status: string },
-      DbError,
       never
     >
 
@@ -255,199 +149,36 @@ export class UploadFlowService extends Context.Service<
 >()('@blikka/api/UploadFlowService') {}
 
 const makeUploadFlowService = Effect.gen(function* () {
-  const submissionsRepository = yield* SubmissionsRepository
   const marathonsRepository = yield* MarathonsRepository
   const participantsRepository = yield* ParticipantsRepository
-  const s3 = yield* S3Service
-  const sqs = yield* SQSService
+  const submissionsRepository = yield* SubmissionsRepository
   const kv = yield* UploadSessionRepository
-  const exifKv = yield* ExifKVRepository
   const phoneEncryption = yield* PhoneNumberEncryptionService
   const realtimeEvents = yield* RealtimeEventsService
+  const s3 = yield* S3Service
+  const sqs = yield* SQSService
   const bucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
   const queueUrl = yield* Config.string('UPLOAD_PROCESSOR_QUEUE_URL')
   const environment = yield* Config.string('NODE_ENV').pipe(
     Config.map((env) => (env === 'production' ? 'prod' : 'dev')),
   )
 
-  const { getMarathonByDomainOrBadRequest: getMarathonByDomainOrFail } =
-    makeMarathonLoad(marathonsRepository)
-
-  const resetAndSeedUploadExif = Effect.fn('UploadFlowService.resetAndSeedUploadExif')(function* ({
-    domain,
-    reference,
-    staleOrderIndexes,
-    orderIndexes,
-    uploadExif,
-  }: {
-    domain: string
-    reference: string
-    staleOrderIndexes: readonly number[]
-    orderIndexes: readonly number[]
-    uploadExif?: readonly (Record<string, unknown> | null)[] | undefined
-  }) {
-    const orderIndexesToClear = globalThis.Array.from(
-      new Set([...staleOrderIndexes, ...orderIndexes]),
-    )
-
-    yield* exifKv.deleteExifStates(domain, reference, orderIndexesToClear)
-
-    if (uploadExif === undefined) {
-      return
-    }
-
-    const exifEntries = orderIndexes.flatMap((orderIndex, index) => {
-      const exif = uploadExif[index]
-      return hasExifFields(exif) ? [{ orderIndex, exif }] : []
-    })
-
-    yield* Effect.forEach(
-      exifEntries,
-      ({ orderIndex, exif }) => exifKv.setExifState(domain, reference, orderIndex, exif),
-      { concurrency: 'unbounded' },
-    )
-  })
-
-  const maybeRecordParticipantTermsAcceptance = Effect.fn(
-    'UploadFlowService.maybeRecordParticipantTermsAcceptance',
-  )(function* ({
-    participant,
-    marathon,
-    domain,
-    termsAccepted,
-    acceptedLocale,
-    source,
-  }: {
-    participant: Participant
-    marathon: Marathon
-    domain: string
-    termsAccepted?: boolean
-    acceptedLocale?: string | null
-    source: 'participant' | 'staff-on-behalf'
-  }) {
-    if (termsAccepted !== true) {
-      return
-    }
-
-    yield* participantsRepository.createTermsAcceptance({
-      data: {
-        participantId: participant.id,
-        marathonId: marathon.id,
-        domain,
-        organizerTermsKey: marathon.termsAndConditionsKey,
-        platformTermsVersion: PLATFORM_TERMS_VERSION,
-        acceptedLocale: normalizeAcceptedLocale(acceptedLocale),
-        source,
-      },
-    })
-  })
-
-  const getActiveByCameraTopicOrFail = Effect.fn('UploadFlowService.getActiveByCameraTopicOrFail')(
-    function* ({
-      domain,
-      marathon,
-    }: {
-      domain: string
-      marathon: {
-        topics: Topic[]
-      }
-    }) {
-      return yield* getActiveByCameraTopicOrBadRequest({ domain, topics: marathon.topics })
-    },
-  )
-
-  const getByCameraCompetitionClassIdOrFail = Effect.fn(
-    'UploadFlowService.getByCameraCompetitionClassIdOrFail',
-  )(function* ({
-    domain,
-    marathon,
-  }: {
-    domain: string
-    marathon: { competitionClasses: CompetitionClass[] }
-  }) {
-    const competitionClass = marathon.competitionClasses.find(
-      (resolvedCompetitionClass) => resolvedCompetitionClass.numberOfPhotos === 1,
-    )
-
-    if (!competitionClass) {
-      return yield* Effect.fail(
-        new BadRequestError({
-          message: `[${domain}] Competition class not found`,
-        }),
-      )
-    }
-
-    return competitionClass.id
-  })
-
-  const ensureDeviceGroupExists = Effect.fn('UploadFlowService.ensureDeviceGroupExists')(
-    function* ({
-      domain,
-      marathon,
-      deviceGroupId,
-    }: {
-      domain: string
-      marathon: {
-        deviceGroups: {
-          id: number
-        }[]
-      }
-      deviceGroupId: number
-    }) {
-      const deviceGroup = marathon.deviceGroups.find(
-        (resolvedDeviceGroup) => resolvedDeviceGroup.id === deviceGroupId,
-      )
-
-      if (!deviceGroup) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] Device group not found`,
+  const getActiveTopicSubmissionOrNull = Effect.fn(
+    'UploadFlowService.getActiveTopicSubmissionOrNull',
+  )(function* ({ participantId, topicId }: { participantId: number; topicId: number }) {
+    return yield* submissionsRepository
+      .getSubmissionByParticipantIdAndTopicId({
+        participantId,
+        topicId,
+      })
+      .pipe(
+        Effect.map((submission) =>
+          Option.match(submission, {
+            onSome: (value) => value,
+            onNone: () => null,
           }),
-        )
-      }
-
-      return deviceGroup
-    },
-  )
-
-  const getCompetitionClassOrFail = Effect.fn('UploadFlowService.getCompetitionClassOrFail')(
-    function* ({
-      domain,
-      marathon,
-      competitionClassId,
-    }: {
-      domain: string
-      marathon: { competitionClasses: CompetitionClass[] }
-      competitionClassId: number
-    }) {
-      const competitionClass = marathon.competitionClasses.find(
-        (resolvedCompetitionClass) => resolvedCompetitionClass.id === competitionClassId,
+        ),
       )
-
-      if (!competitionClass) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}] Competition class not found`,
-          }),
-        )
-      }
-
-      return competitionClass
-    },
-  )
-
-  const encryptPhoneNumber = Effect.fn('UploadFlowService.encryptPhoneNumber')(function* (
-    phoneNumber?: string | null,
-  ) {
-    return yield* Option.match(Option.fromNullishOr(normalizeOptionalPhoneNumber(phoneNumber)), {
-      onSome: (resolvedPhoneNumber) =>
-        phoneEncryption.encrypt({ phoneNumber: resolvedPhoneNumber }),
-      onNone: () =>
-        Effect.succeed<{ encrypted: null; hash: null }>({
-          encrypted: null,
-          hash: null,
-        }),
-    })
   })
 
   const hasSuccessfulActiveTopicUpload = Effect.fn(
@@ -489,7 +220,19 @@ const makeUploadFlowService = Effect.gen(function* () {
   const resolveExistingByCameraParticipant = Effect.fn(
     'UploadFlowService.resolveExistingByCameraParticipant',
   )(function* ({ domain, phoneNumber }: { domain: string; phoneNumber: string }) {
-    const marathon = yield* getMarathonByDomainOrFail(domain)
+    const marathon = yield* marathonsRepository.getMarathonByDomainWithOptions({ domain }).pipe(
+      Effect.flatMap((option) =>
+        Option.match(option, {
+          onSome: Effect.succeed,
+          onNone: () =>
+            Effect.fail(
+              new BadRequestError({
+                message: `[${domain}] Marathon not found`,
+              }),
+            ),
+        }),
+      ),
+    )
 
     if (marathon.mode !== 'by-camera') {
       return yield* Effect.fail(
@@ -499,9 +242,9 @@ const makeUploadFlowService = Effect.gen(function* () {
       )
     }
 
-    const activeTopic = yield* getActiveByCameraTopicOrFail({
+    const activeTopic = yield* getActiveByCameraTopicOrBadRequest({
       domain,
-      marathon,
+      topics: marathon.topics,
     })
     const phoneHash = yield* phoneEncryption.hashLookup({ phoneNumber })
     const existingParticipant = yield* participantsRepository.getByPhoneHashForByCamera({
@@ -520,19 +263,10 @@ const makeUploadFlowService = Effect.gen(function* () {
       }
     }
 
-    const activeTopicSubmission = yield* submissionsRepository
-      .getSubmissionByParticipantIdAndTopicId({
-        participantId: existingParticipant.value.id,
-        topicId: activeTopic.id,
-      })
-      .pipe(
-        Effect.map((submission) =>
-          Option.match(submission, {
-            onSome: (value) => value,
-            onNone: () => null,
-          }),
-        ),
-      )
+    const activeTopicSubmission = yield* getActiveTopicSubmissionOrNull({
+      participantId: existingParticipant.value.id,
+      topicId: activeTopic.id,
+    })
 
     const alreadyUploaded = yield* hasSuccessfulActiveTopicUpload({
       domain,
@@ -553,84 +287,22 @@ const makeUploadFlowService = Effect.gen(function* () {
     }
   })
 
-  const createByCameraParticipantWithGeneratedReference = Effect.fn(
-    'UploadFlowService.createByCameraParticipantWithGeneratedReference',
-  )(function* ({
-    domain,
-    marathonId,
-    competitionClassId,
-    deviceGroupId,
-    firstname,
-    lastname,
-    email,
-    phoneHash,
-    phoneEncrypted,
-  }: {
-    domain: string
-    marathonId: number
-    competitionClassId: number
-    deviceGroupId: number
-    firstname: string
-    lastname: string
-    email: string
-    phoneHash: string
-    phoneEncrypted: string
-  }) {
-    for (let attempt = 0; attempt < MAX_REFERENCE_GENERATION_ATTEMPTS; attempt += 1) {
-      const reference = createRandomReference()
-      const existingReference = yield* participantsRepository.getParticipantByReference({
-        domain,
-        reference,
-      })
-
-      if (Option.isSome(existingReference)) {
-        continue
-      }
-
-      const participantData = {
-        reference,
-        domain,
-        competitionClassId,
-        deviceGroupId,
-        marathonId,
-        participantMode: 'by-camera',
-        firstname,
-        lastname,
-        email,
-        status: 'initialized',
-        phoneHash,
-        phoneEncrypted,
-      } satisfies NewParticipant
-
-      const created = yield* participantsRepository
-        .createParticipant({ data: participantData })
-        .pipe(
-          Effect.map((participant) => ({ participant, reference })),
-          Effect.catch((error) => {
-            const message = error instanceof Error ? error.message : String(error)
-            if (message.includes('participants_domain_reference_key')) {
-              return Effect.succeed(null)
-            }
-            return Effect.fail(error)
-          }),
-        )
-
-      if (created) {
-        return created
-      }
-    }
-
-    return yield* Effect.fail(
-      new BadRequestError({
-        message: `[${domain}] Failed to allocate a unique participant reference`,
-      }),
-    )
-  })
-
   const getPublicMarathon: UploadFlowService['Service']['getPublicMarathon'] = Effect.fn(
     'UploadFlowService.getPublicMarathon',
   )(function* ({ domain }) {
-    const marathon = yield* getMarathonByDomainOrFail(domain)
+    const marathon = yield* marathonsRepository.getMarathonByDomainWithOptions({ domain }).pipe(
+      Effect.flatMap((option) =>
+        Option.match(option, {
+          onSome: Effect.succeed,
+          onNone: () =>
+            Effect.fail(
+              new BadRequestError({
+                message: `[${domain}] Marathon not found`,
+              }),
+            ),
+        }),
+      ),
+    )
 
     const processedTopics = marathon.topics
       .reduce((acc, topic) => {
@@ -692,7 +364,19 @@ const makeUploadFlowService = Effect.gen(function* () {
     acceptedLocale,
   }) {
     const executeEffect = Effect.gen(function* () {
-      const marathon = yield* getMarathonByDomainOrFail(domain)
+      const marathon = yield* marathonsRepository.getMarathonByDomainWithOptions({ domain }).pipe(
+        Effect.flatMap((option) =>
+          Option.match(option, {
+            onSome: Effect.succeed,
+            onNone: () =>
+              Effect.fail(
+                new BadRequestError({
+                  message: `[${domain}] Marathon not found`,
+                }),
+              ),
+          }),
+        ),
+      )
 
       if (marathon.mode !== 'marathon') {
         return yield* Effect.fail(
@@ -719,10 +403,7 @@ const makeUploadFlowService = Effect.gen(function* () {
       })
 
       if (Option.isSome(existingParticipant)) {
-        if (
-          existingParticipant.value.status === 'completed' ||
-          existingParticipant.value.status === 'verified'
-        ) {
+        if (isParticipantFinalized(existingParticipant.value.status)) {
           return yield* Effect.fail(
             new BadRequestError({
               message: `[${domain}|${reference}] Participant already completed upload flow`,
@@ -739,7 +420,7 @@ const makeUploadFlowService = Effect.gen(function* () {
         }
       }
 
-      const { encrypted, hash } = yield* encryptPhoneNumber(phoneNumber)
+      const { encrypted, hash } = yield* encryptOptionalPhoneNumber(phoneEncryption, phoneNumber)
 
       const participantData = {
         reference,
@@ -767,7 +448,7 @@ const makeUploadFlowService = Effect.gen(function* () {
           }),
       })
 
-      yield* maybeRecordParticipantTermsAcceptance({
+      yield* maybeRecordParticipantTermsAcceptance(participantsRepository, {
         participant,
         marathon,
         domain,
@@ -784,192 +465,6 @@ const makeUploadFlowService = Effect.gen(function* () {
 
     return yield* realtimeEvents.withEventResult(executeEffect, {
       eventKey: 'participant-prepared',
-      environment,
-      domain,
-      reference,
-    })
-  })
-
-  const initializeUploadFlow: UploadFlowService['Service']['initializeUploadFlow'] = Effect.fn(
-    'UploadFlowService.initializeUploadFlow',
-  )(function* ({
-    domain,
-    reference,
-    firstname,
-    lastname,
-    email,
-    competitionClassId,
-    deviceGroupId,
-    phoneNumber,
-    uploadContentTypes,
-    uploadExif,
-    termsAccepted,
-    acceptedLocale,
-    termsAcceptanceSource,
-  }) {
-    const executeEffect = Effect.gen(function* () {
-      const marathon = yield* getMarathonByDomainOrFail(domain)
-
-      yield* ensureMarathonIsOpenForUploads({
-        domain,
-        marathon,
-      })
-
-      const competitionClass = yield* getCompetitionClassOrFail({
-        domain,
-        marathon,
-        competitionClassId,
-      })
-
-      yield* ensureDeviceGroupExists({
-        domain,
-        marathon,
-        deviceGroupId,
-      })
-
-      const existingParticipant = yield* participantsRepository.getParticipantByReference({
-        reference,
-        domain,
-      })
-
-      const existingParticipantState = yield* kv.getParticipantState(domain, reference)
-      const staleOrderIndexes = Option.match(existingParticipantState, {
-        onSome: (state) => state.orderIndexes,
-        onNone: () => [] as number[],
-      })
-
-      const existingSubmissions = Option.match(existingParticipant, {
-        onSome: (existing) => existing.submissions.map((submission) => submission.id),
-        onNone: () => [] as number[],
-      })
-
-      const { encrypted, hash } = yield* encryptPhoneNumber(phoneNumber)
-
-      const participantData = {
-        reference,
-        domain,
-        competitionClassId,
-        deviceGroupId,
-        marathonId: marathon.id,
-        firstname,
-        lastname,
-        email,
-        status: 'initialized',
-        phoneHash: hash,
-        phoneEncrypted: encrypted,
-      } satisfies NewParticipant
-
-      const participant: Participant = yield* Option.match(existingParticipant, {
-        onSome: (existing) => {
-          if (existing.status === 'completed' || existing.status === 'verified') {
-            return Effect.fail(
-              new BadRequestError({
-                message: `[${domain}|${reference}] Participant already completed upload flow`,
-              }),
-            )
-          }
-          return participantsRepository.updateParticipantById({
-            id: existing.id,
-            data: participantData,
-          })
-        },
-        onNone: () =>
-          participantsRepository.createParticipant({
-            data: participantData,
-          }),
-      })
-
-      yield* maybeRecordParticipantTermsAcceptance({
-        participant,
-        marathon,
-        domain,
-        termsAccepted,
-        acceptedLocale,
-        source: termsAcceptanceSource === 'staff-on-behalf' ? 'staff-on-behalf' : 'participant',
-      })
-
-      const topics = pipe(
-        marathon.topics,
-        Array.sort(Order.mapInput(Order.Number, (topic: Topic) => topic.orderIndex)),
-        Array.drop(competitionClass.topicStartIndex),
-        Array.take(competitionClass.numberOfPhotos),
-      )
-
-      if (uploadContentTypes !== undefined && uploadContentTypes.length !== topics.length) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}|${reference}] uploadContentTypes length must match the number of submissions (${topics.length})`,
-          }),
-        )
-      }
-
-      if (uploadExif !== undefined && uploadExif.length !== topics.length) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: `[${domain}|${reference}] uploadExif length must match the number of submissions (${topics.length})`,
-          }),
-        )
-      }
-
-      const submissionKeys = yield* Effect.forEach(
-        topics,
-        (topic) => s3.generateSubmissionKey(domain, reference, topic.orderIndex),
-        { concurrency: 'unbounded' },
-      )
-
-      if (existingSubmissions.length > 0) {
-        yield* submissionsRepository.deleteMultipleSubmissions({
-          ids: existingSubmissions,
-        })
-      }
-
-      yield* submissionsRepository.createMultipleSubmissions({
-        data: topics.map((topic, index) => ({
-          participantId: participant.id,
-          key: submissionKeys[index]!,
-          marathonId: marathon.id,
-          topicId: topic.id,
-          status: 'initialized',
-        })),
-      })
-
-      const uploadSessionId = createUploadSessionId()
-      yield* kv.initializeState(domain, reference, uploadSessionId, submissionKeys)
-      yield* resetAndSeedUploadExif({
-        domain,
-        reference,
-        staleOrderIndexes,
-        orderIndexes: topics.map((topic) => topic.orderIndex),
-        uploadExif,
-      })
-
-      const resolvedContentTypes =
-        uploadContentTypes === undefined
-          ? topics.map(() => 'image/jpeg')
-          : uploadContentTypes.map((raw: string) => normalizeUploadContentType(raw))
-
-      const presignedUrls = yield* Effect.forEach(
-        submissionKeys.map((key, index) => ({
-          key,
-          contentType: resolvedContentTypes[index]!,
-        })),
-        ({ key, contentType }) => s3.getPresignedUrl(bucketName, key, 'PUT', { contentType }),
-        { concurrency: 'unbounded' },
-      )
-
-      return {
-        uploadSessionId,
-        reference,
-        uploads: submissionKeys.map((key, index) => ({
-          key,
-          url: presignedUrls[index]!,
-          contentType: resolvedContentTypes[index]!,
-        })),
-      }
-    })
-
-    return yield* realtimeEvents.withEventResult(executeEffect, {
-      eventKey: 'upload-flow-initialized',
       environment,
       domain,
       reference,
@@ -1028,468 +523,6 @@ const makeUploadFlowService = Effect.gen(function* () {
       })),
     }
   })
-
-  const initializeByCameraUpload: UploadFlowService['Service']['initializeByCameraUpload'] =
-    Effect.fn('UploadFlowService.initializeByCameraUpload')(function* ({
-      domain,
-      firstname,
-      lastname,
-      deviceGroupId,
-      email,
-      phoneNumber,
-      uploadContentTypes,
-      uploadExif,
-      replaceExistingActiveTopicUpload,
-      termsAccepted,
-      acceptedLocale,
-    }) {
-      const executeEffect = Effect.gen(function* () {
-        const resolved = yield* resolveExistingByCameraParticipant({
-          domain,
-          phoneNumber,
-        })
-
-        const { marathon, activeTopic } = resolved
-        yield* ensureMarathonIsOpenForUploads({
-          domain,
-          marathon,
-          activeTopic,
-        })
-
-        yield* ensureDeviceGroupExists({
-          domain,
-          marathon,
-          deviceGroupId,
-        })
-
-        if (
-          resolved.activeTopicUploadState === 'already-uploaded' &&
-          !replaceExistingActiveTopicUpload
-        ) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE,
-            }),
-          )
-        }
-
-        const competitionClassId = yield* getByCameraCompetitionClassIdOrFail({
-          domain,
-          marathon,
-        })
-
-        const { encrypted, hash } = yield* encryptPhoneNumber(phoneNumber)
-
-        if (!encrypted || !hash) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: `[${domain}] Phone number is required`,
-            }),
-          )
-        }
-
-        if (uploadExif !== undefined && uploadExif.length !== 1) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: `[${domain}] uploadExif must contain exactly one entry for by-camera upload`,
-            }),
-          )
-        }
-
-        if (uploadContentTypes !== undefined && uploadContentTypes.length !== 1) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: `[${domain}] uploadContentTypes must contain exactly one entry for by-camera upload`,
-            }),
-          )
-        }
-
-        const resolvedContentType =
-          uploadContentTypes === undefined || uploadContentTypes.length === 0
-            ? 'image/jpeg'
-            : normalizeUploadContentType(uploadContentTypes[0])
-
-        let participant: Participant
-        let reference: string
-
-        const existingParticipantState = resolved.existingParticipant
-          ? yield* kv.getParticipantState(domain, resolved.existingParticipant.reference)
-          : Option.none()
-        const staleOrderIndexes = Option.match(existingParticipantState, {
-          onSome: (state) => state.orderIndexes,
-          onNone: () => [] as number[],
-        })
-
-        if (resolved.existingParticipant) {
-          participant = yield* participantsRepository.updateParticipantById({
-            id: resolved.existingParticipant.id,
-            data: {
-              competitionClassId,
-              deviceGroupId,
-              firstname,
-              lastname,
-              email,
-              participantMode: 'by-camera',
-              status: 'initialized',
-              phoneHash: hash,
-              phoneEncrypted: encrypted,
-            },
-          })
-          reference = resolved.existingParticipant.reference
-        } else {
-          const created = yield* createByCameraParticipantWithGeneratedReference({
-            domain,
-            marathonId: marathon.id,
-            competitionClassId,
-            deviceGroupId,
-            firstname,
-            lastname,
-            email,
-            phoneHash: hash,
-            phoneEncrypted: encrypted,
-          })
-          participant = created.participant
-          reference = created.reference
-        }
-
-        yield* maybeRecordParticipantTermsAcceptance({
-          participant,
-          marathon,
-          domain,
-          termsAccepted,
-          acceptedLocale,
-          source: 'participant',
-        })
-
-        if (resolved.activeTopicSubmission) {
-          yield* submissionsRepository.deleteSubmissionById({
-            id: resolved.activeTopicSubmission.id,
-          })
-        }
-
-        const submissionKey = yield* s3.generateSubmissionKey(
-          domain,
-          reference,
-          activeTopic.orderIndex,
-          {
-            contentType: resolvedContentType,
-          },
-        )
-
-        yield* submissionsRepository.createSubmission({
-          data: {
-            participantId: participant.id,
-            key: submissionKey,
-            marathonId: marathon.id,
-            topicId: activeTopic.id,
-            status: 'initialized',
-          },
-        })
-
-        const uploadSessionId = createUploadSessionId()
-        yield* kv.initializeState(domain, reference, uploadSessionId, [submissionKey])
-        yield* resetAndSeedUploadExif({
-          domain,
-          reference,
-          staleOrderIndexes,
-          orderIndexes: [activeTopic.orderIndex],
-          uploadExif,
-        })
-
-        const presignedUrl = yield* s3.getPresignedUrl(bucketName, submissionKey, 'PUT', {
-          contentType: resolvedContentType,
-        })
-
-        return {
-          participantId: participant.id,
-          reference,
-          uploadSessionId,
-          uploads: [
-            {
-              key: submissionKey,
-              url: presignedUrl,
-              contentType: resolvedContentType,
-            },
-          ],
-        }
-      })
-
-      return yield* realtimeEvents.withEventResult(executeEffect, {
-        eventKey: 'upload-flow-initialized',
-        environment,
-        domain,
-      })
-    })
-
-  const initializeStaffByCameraUpload: UploadFlowService['Service']['initializeStaffByCameraUpload'] =
-    Effect.fn('UploadFlowService.initializeStaffByCameraUpload')(function* ({
-      domain,
-      reference,
-      firstname,
-      lastname,
-      deviceGroupId,
-      email,
-      phoneNumber,
-      uploadContentTypes,
-      uploadExif,
-      replaceExistingActiveTopicUpload,
-      replaceFinalizedParticipantUpload,
-      termsAccepted,
-      acceptedLocale,
-    }) {
-      const executeEffect = Effect.gen(function* () {
-        const allowReplaceFinalized = replaceFinalizedParticipantUpload === true
-        const marathon = yield* getMarathonByDomainOrFail(domain)
-
-        if (marathon.mode !== 'by-camera') {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: `[${domain}] Staff by-camera upload is only available in by-camera mode`,
-            }),
-          )
-        }
-
-        const activeTopic = yield* getActiveByCameraTopicOrFail({
-          domain,
-          marathon,
-        })
-
-        yield* ensureMarathonIsOpenForUploads({
-          domain,
-          marathon,
-          activeTopic,
-        })
-
-        yield* ensureDeviceGroupExists({
-          domain,
-          marathon,
-          deviceGroupId,
-        })
-
-        const competitionClassId = yield* getByCameraCompetitionClassIdOrFail({
-          domain,
-          marathon,
-        })
-
-        const { encrypted, hash } = yield* encryptPhoneNumber(phoneNumber)
-
-        if (!encrypted || !hash) {
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: `[${domain}] Phone number is required`,
-            }),
-          )
-        }
-
-        if (uploadContentTypes !== undefined && uploadContentTypes.length !== 1) {
-          const refLabel = reference.trim() === '' ? 'new' : reference
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: `[${domain}|${refLabel}] uploadContentTypes must contain exactly one entry for by-camera staff upload`,
-            }),
-          )
-        }
-
-        if (uploadExif !== undefined && uploadExif.length !== 1) {
-          const refLabel = reference.trim() === '' ? 'new' : reference
-          return yield* Effect.fail(
-            new BadRequestError({
-              message: `[${domain}|${refLabel}] uploadExif must contain exactly one entry for by-camera staff upload`,
-            }),
-          )
-        }
-
-        const resolvedContentType =
-          uploadContentTypes === undefined || uploadContentTypes.length === 0
-            ? 'image/jpeg'
-            : normalizeUploadContentType(uploadContentTypes[0])
-
-        const existingParticipant = yield* participantsRepository.getParticipantByReference({
-          reference,
-          domain,
-        })
-
-        let participant: Participant
-        let resolvedReference: string
-        let staleOrderIndexes: readonly number[] = []
-
-        if (Option.isSome(existingParticipant)) {
-          const row = existingParticipant.value
-
-          if (row.status === 'completed' || row.status === 'verified') {
-            if (!allowReplaceFinalized) {
-              return yield* Effect.fail(
-                new BadRequestError({
-                  message: `[${domain}|${reference}] Participant already completed upload flow`,
-                }),
-              )
-            }
-          }
-
-          if (row.participantMode !== 'by-camera') {
-            return yield* Effect.fail(
-              new BadRequestError({
-                message: `[${domain}|${reference}] Participant is not in by-camera mode`,
-              }),
-            )
-          }
-
-          const otherWithPhone = yield* participantsRepository.getByPhoneHashForByCamera({
-            marathonId: marathon.id,
-            phoneHash: hash,
-          })
-
-          if (Option.isSome(otherWithPhone) && otherWithPhone.value.id !== row.id) {
-            return yield* Effect.fail(
-              new BadRequestError({
-                message: 'Another participant already uses this phone number',
-              }),
-            )
-          }
-
-          const activeTopicSubmission = yield* submissionsRepository
-            .getSubmissionByParticipantIdAndTopicId({
-              participantId: row.id,
-              topicId: activeTopic.id,
-            })
-            .pipe(
-              Effect.map((submission) =>
-                Option.match(submission, {
-                  onSome: (value) => value,
-                  onNone: () => null,
-                }),
-              ),
-            )
-
-          const alreadyUploaded = yield* hasSuccessfulActiveTopicUpload({
-            domain,
-            reference: row.reference,
-            activeTopic,
-            submissionStatus: activeTopicSubmission?.status ?? null,
-          })
-
-          if (alreadyUploaded && !replaceExistingActiveTopicUpload && !allowReplaceFinalized) {
-            return yield* Effect.fail(
-              new BadRequestError({
-                message: ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE,
-              }),
-            )
-          }
-
-          participant = yield* participantsRepository.updateParticipantById({
-            id: row.id,
-            data: {
-              competitionClassId,
-              deviceGroupId,
-              firstname,
-              lastname,
-              email,
-              participantMode: 'by-camera',
-              status: 'initialized',
-              phoneHash: hash,
-              phoneEncrypted: encrypted,
-            },
-          })
-          resolvedReference = row.reference
-          const existingParticipantState = yield* kv.getParticipantState(domain, row.reference)
-          staleOrderIndexes = Option.match(existingParticipantState, {
-            onSome: (state) => state.orderIndexes,
-            onNone: () => [] as number[],
-          })
-
-          if (activeTopicSubmission) {
-            yield* submissionsRepository.deleteSubmissionById({
-              id: activeTopicSubmission.id,
-            })
-          }
-        } else {
-          const otherWithPhone = yield* participantsRepository.getByPhoneHashForByCamera({
-            marathonId: marathon.id,
-            phoneHash: hash,
-          })
-
-          if (Option.isSome(otherWithPhone)) {
-            return yield* Effect.fail(
-              new BadRequestError({
-                message: 'Another participant already uses this phone number',
-              }),
-            )
-          }
-
-          const created = yield* createByCameraParticipantWithGeneratedReference({
-            domain,
-            marathonId: marathon.id,
-            competitionClassId,
-            deviceGroupId,
-            firstname,
-            lastname,
-            email,
-            phoneHash: hash,
-            phoneEncrypted: encrypted,
-          })
-          participant = created.participant
-          resolvedReference = created.reference
-        }
-
-        yield* maybeRecordParticipantTermsAcceptance({
-          participant,
-          marathon,
-          domain,
-          termsAccepted,
-          acceptedLocale,
-          source: 'staff-on-behalf',
-        })
-
-        const submissionKey = yield* s3.generateSubmissionKey(
-          domain,
-          resolvedReference,
-          activeTopic.orderIndex,
-        )
-
-        yield* submissionsRepository.createSubmission({
-          data: {
-            participantId: participant.id,
-            key: submissionKey,
-            marathonId: marathon.id,
-            topicId: activeTopic.id,
-            status: 'initialized',
-          },
-        })
-
-        const uploadSessionId = createUploadSessionId()
-        yield* kv.initializeState(domain, resolvedReference, uploadSessionId, [submissionKey])
-        yield* resetAndSeedUploadExif({
-          domain,
-          reference: resolvedReference,
-          staleOrderIndexes,
-          orderIndexes: [activeTopic.orderIndex],
-          uploadExif,
-        })
-
-        const presignedUrl = yield* s3.getPresignedUrl(bucketName, submissionKey, 'PUT', {
-          contentType: resolvedContentType,
-        })
-
-        return {
-          participantId: participant.id,
-          reference: resolvedReference,
-          uploadSessionId,
-          uploads: [
-            {
-              key: submissionKey,
-              url: presignedUrl,
-              contentType: resolvedContentType,
-            },
-          ],
-        }
-      })
-
-      return yield* realtimeEvents.withEventResult(executeEffect, {
-        eventKey: 'upload-flow-initialized',
-        environment,
-        domain,
-      })
-    })
 
   const refreshPresignedUploads: UploadFlowService['Service']['refreshPresignedUploads'] =
     Effect.fn('UploadFlowService.refreshPresignedUploads')(function* ({
@@ -1642,13 +675,10 @@ const makeUploadFlowService = Effect.gen(function* () {
   })
 
   return UploadFlowService.of({
-    initializeUploadFlow,
-    prepareUploadFlow,
-    initializeByCameraUpload,
-    initializeStaffByCameraUpload,
-    resolveByCameraParticipantByPhone,
     getPublicMarathon,
     checkParticipantExists,
+    prepareUploadFlow,
+    resolveByCameraParticipantByPhone,
     getUploadStatus,
     refreshPresignedUploads,
     reTriggerUploadFlow,
@@ -1664,9 +694,8 @@ export const UploadFlowServiceLayer = UploadFlowServiceLayerNoDeps.pipe(
       S3ServiceLayer,
       SQSServiceLayer,
       UploadSessionRepositoryLayer,
-      ExifKVRepositoryLayer,
-      RealtimeEventsServiceLayer,
       PhoneNumberEncryptionServiceLayer,
+      RealtimeEventsServiceLayer,
     ),
   ),
 )

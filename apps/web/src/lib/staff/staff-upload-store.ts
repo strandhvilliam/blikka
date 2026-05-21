@@ -24,7 +24,7 @@ interface ParticipantState {
   /** After phone resolve: replace existing upload for active topic (live by-camera semantics). */
   byCameraReplaceExistingTopicUpload: boolean
   /** Staff confirmed replacing upload after participant reached completed or verified. */
-  byCameraReplaceFinalizedParticipantUpload: boolean
+  byCameraReplaceCompletedParticipantUpload: boolean
   termsAccepted: boolean
 }
 
@@ -51,7 +51,7 @@ function initialParticipantState(): ParticipantState {
     participantStatus: null,
     showOverwriteDialog: false,
     byCameraReplaceExistingTopicUpload: false,
-    byCameraReplaceFinalizedParticipantUpload: false,
+    byCameraReplaceCompletedParticipantUpload: false,
     termsAccepted: false,
   }
 }

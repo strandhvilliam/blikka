@@ -177,8 +177,8 @@ export function StaffLaptopUploadClient({
   const byCameraReplaceExistingTopicUpload = useStaffUploadStore(
     (s) => s.byCameraReplaceExistingTopicUpload,
   )
-  const byCameraReplaceFinalizedParticipantUpload = useStaffUploadStore(
-    (s) => s.byCameraReplaceFinalizedParticipantUpload,
+  const byCameraReplaceCompletedParticipantUpload = useStaffUploadStore(
+    (s) => s.byCameraReplaceCompletedParticipantUpload,
   )
 
   const resetForm = useStaffUploadStore((s) => s.resetForm)
@@ -220,10 +220,10 @@ export function StaffLaptopUploadClient({
     trpc.uploadFlow.resolveByCameraParticipantByPhone.mutationOptions(),
   )
   const initializeUploadFlowMutation = useMutation(
-    trpc.uploadFlow.initializeUploadFlow.mutationOptions(),
+    trpc.uploadInitializer.initializeUploadFlow.mutationOptions(),
   )
   const initializeStaffByCameraUploadMutation = useMutation(
-    trpc.uploadFlow.initializeStaffByCameraUpload.mutationOptions(),
+    trpc.uploadInitializer.initializeStaffByCameraUpload.mutationOptions(),
   )
 
   const activeCompetitionClassId = existingParticipant
@@ -362,7 +362,7 @@ export function StaffLaptopUploadClient({
     participantDraft?: Partial<typeof formValues>,
     options?: {
       replaceExistingActiveTopicUpload?: boolean
-      replaceFinalizedParticipantUpload?: boolean
+      replaceCompletedParticipantUpload?: boolean
     },
   ) {
     if (photos.length === 0) return
@@ -421,8 +421,8 @@ export function StaffLaptopUploadClient({
               ...(options?.replaceExistingActiveTopicUpload
                 ? { replaceExistingActiveTopicUpload: true }
                 : {}),
-              ...(options?.replaceFinalizedParticipantUpload
-                ? { replaceFinalizedParticipantUpload: true }
+              ...(options?.replaceCompletedParticipantUpload
+                ? { replaceCompletedParticipantUpload: true }
                 : {}),
             })
 
@@ -498,7 +498,7 @@ export function StaffLaptopUploadClient({
       lookupErrorMessage: null,
       showOverwriteDialog: false,
       byCameraReplaceExistingTopicUpload: false,
-      byCameraReplaceFinalizedParticipantUpload: false,
+      byCameraReplaceCompletedParticipantUpload: false,
     })
     patchPhotos({ filesError: null })
     resetPhotoSelection()
@@ -568,7 +568,7 @@ export function StaffLaptopUploadClient({
       lookupErrorMessage: null,
       showOverwriteDialog: false,
       byCameraReplaceExistingTopicUpload: false,
-      byCameraReplaceFinalizedParticipantUpload: false,
+      byCameraReplaceCompletedParticipantUpload: false,
     })
     patchPhotos({ filesError: null })
     resetPhotoSelection()
@@ -640,7 +640,7 @@ export function StaffLaptopUploadClient({
         existingParticipant: participant as StaffParticipant,
         ...(continuingAfterPriorTopicFinalize
           ? {
-              byCameraReplaceFinalizedParticipantUpload: true,
+              byCameraReplaceCompletedParticipantUpload: true,
               byCameraReplaceExistingTopicUpload: false,
             }
           : {}),
@@ -703,7 +703,7 @@ export function StaffLaptopUploadClient({
 
         patchParticipant({
           byCameraReplaceExistingTopicUpload: true,
-          byCameraReplaceFinalizedParticipantUpload: true,
+          byCameraReplaceCompletedParticipantUpload: true,
           lookupErrorMessage: null,
           existingParticipant: participant as StaffParticipant,
           participantStatus: participant.status as ParticipantExistenceStatus,
@@ -733,7 +733,7 @@ export function StaffLaptopUploadClient({
 
       patchParticipant({
         byCameraReplaceExistingTopicUpload: true,
-        byCameraReplaceFinalizedParticipantUpload: false,
+        byCameraReplaceCompletedParticipantUpload: false,
         lookupErrorMessage: null,
         existingParticipant: participant as StaffParticipant,
       })
@@ -787,7 +787,7 @@ export function StaffLaptopUploadClient({
     void setStep('progress')
     await runUpload(participantSummary.reference, selectedPhotos, participantPayload, {
       replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
-      replaceFinalizedParticipantUpload: byCameraReplaceFinalizedParticipantUpload,
+      replaceCompletedParticipantUpload: byCameraReplaceCompletedParticipantUpload,
     })
   }
 
@@ -809,7 +809,7 @@ export function StaffLaptopUploadClient({
       },
       {
         replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
-        replaceFinalizedParticipantUpload: byCameraReplaceFinalizedParticipantUpload,
+        replaceCompletedParticipantUpload: byCameraReplaceCompletedParticipantUpload,
       },
     )
   }
@@ -907,7 +907,7 @@ export function StaffLaptopUploadClient({
                       existingParticipant: null,
                       participantStatus: null,
                       byCameraReplaceExistingTopicUpload: false,
-                      byCameraReplaceFinalizedParticipantUpload: false,
+                      byCameraReplaceCompletedParticipantUpload: false,
                     })
                     patchPhotos({ filesError: null })
 
@@ -954,7 +954,7 @@ export function StaffLaptopUploadClient({
                         participantStatus: null,
                         showOverwriteDialog: false,
                         byCameraReplaceExistingTopicUpload: false,
-                        byCameraReplaceFinalizedParticipantUpload: false,
+                        byCameraReplaceCompletedParticipantUpload: false,
                       })
                       void setStep(marathonMode === 'by-camera' ? 'phone' : 'reference')
                       return

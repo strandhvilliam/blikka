@@ -144,7 +144,7 @@ export function UploadSubmissionsStep({
   }
 
   const { mutateAsync: initializeUploadFlow } = useMutation(
-    trpc.uploadFlow.initializeUploadFlow.mutationOptions({
+    trpc.uploadInitializer.initializeUploadFlow.mutationOptions({
       onError: (error) => {
         toast.error(error.message || t('initializationFailed'))
       },

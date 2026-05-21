@@ -3,10 +3,7 @@ import 'server-only'
 import { Effect, Schema } from 'effect'
 import {
   GetPublicMarathonSchema,
-  InitializeUploadFlowSchema,
   PrepareUploadFlowSchema,
-  InitializeByCameraUploadSchema,
-  InitializeStaffByCameraUploadSchema,
   ResolveByCameraParticipantByPhoneSchema,
   CheckParticipantExistsSchema,
   GetUploadStatusSchema,
@@ -32,42 +29,13 @@ export const uploadFlowRouter = createTRPCRouter({
         }),
       ),
     ),
-  initializeUploadFlow: publicProcedure
-    .input(Schema.toStandardSchemaV1(InitializeUploadFlowSchema))
-    .mutation(
-      trpcEffect(
-        Effect.fn('UploadFlowRouter.initializeUploadFlow')(function* ({ input }) {
-          return yield* UploadFlowService.use((s) => s.initializeUploadFlow(input))
-        }),
-      ),
-    ),
+
   prepareUploadFlow: publicProcedure
     .input(Schema.toStandardSchemaV1(PrepareUploadFlowSchema))
     .mutation(
       trpcEffect(
         Effect.fn('UploadFlowRouter.prepareUploadFlow')(function* ({ input }) {
           return yield* UploadFlowService.use((s) => s.prepareUploadFlow(input))
-        }),
-      ),
-    ),
-
-  initializeByCameraUpload: publicProcedure
-    .input(Schema.toStandardSchemaV1(InitializeByCameraUploadSchema))
-    .mutation(
-      trpcEffect(
-        Effect.fn('UploadFlowRouter.initializeByCameraUpload')(function* ({ input }) {
-          return yield* UploadFlowService.use((s) => s.initializeByCameraUpload(input))
-        }),
-      ),
-    ),
-
-  initializeStaffByCameraUpload: domainProcedure
-    .input(Schema.toStandardSchemaV1(InitializeStaffByCameraUploadSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .mutation(
-      trpcEffect(
-        Effect.fn('UploadFlowRouter.initializeStaffByCameraUpload')(function* ({ input }) {
-          return yield* UploadFlowService.use((s) => s.initializeStaffByCameraUpload(input))
         }),
       ),
     ),

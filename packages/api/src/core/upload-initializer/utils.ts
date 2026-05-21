@@ -1,9 +1,22 @@
+import { randomUUID } from 'node:crypto'
+
 import { Effect } from 'effect'
 import type { Marathon, Topic } from '@blikka/db'
 
 import { BadRequestError } from '../errors'
-
 import { findActiveByCameraTopic } from '../shared'
+
+export const MAX_REFERENCE_GENERATION_ATTEMPTS = 25
+
+export function createUploadSessionId(): string {
+  return randomUUID()
+}
+
+export function createRandomReference() {
+  return Math.floor(Math.random() * 10_000)
+    .toString()
+    .padStart(4, '0')
+}
 
 export function ensureMarathonIsOpenForUploads({
   domain,
@@ -53,8 +66,7 @@ export function ensureMarathonIsOpenForUploads({
   }
 
   if (marathon.mode === 'by-camera') {
-    const resolvedActiveTopic =
-      activeTopic ?? findActiveByCameraTopic(marathon.topics ?? [])
+    const resolvedActiveTopic = activeTopic ?? findActiveByCameraTopic(marathon.topics ?? [])
 
     if (!resolvedActiveTopic) {
       return Effect.fail(

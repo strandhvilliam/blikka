@@ -1,5 +1,6 @@
 import { Layer } from 'effect'
 import { UploadFlowServiceLayer } from './core/upload-flow/service'
+import { UploadInitializerServiceLayer } from './core/upload-initializer/service'
 import { ContactSheetsServiceLayer } from './core/contact-sheets/service'
 import { ValidationsServiceLayer } from './core/validations/service'
 import { ParticipantsServiceLayer } from './core/participants/service'
@@ -18,6 +19,7 @@ import { SubmissionsServiceLayer } from './core/submissions/service'
 import { SeedingServiceLayer } from './core/seeding/service'
 
 export const ApiLayer = Layer.mergeAll(
+  UploadInitializerServiceLayer,
   UploadFlowServiceLayer,
   ContactSheetsServiceLayer,
   ValidationsServiceLayer,
