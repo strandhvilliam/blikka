@@ -1,4 +1,3 @@
-import 'server-only'
 
 import { Effect, Schema } from 'effect'
 import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'

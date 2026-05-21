@@ -1,4 +1,3 @@
-import 'server-only'
 
 import { extname } from 'node:path'
 import archiver from 'archiver'

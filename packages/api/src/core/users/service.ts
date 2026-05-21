@@ -1,4 +1,3 @@
-import 'server-only'
 
 import { Effect, Layer, Option, Context } from 'effect'
 import {
@@ -17,6 +16,7 @@ import {
 } from '@blikka/db'
 import { RedisClient, RedisClientLayer, type RedisError } from '@blikka/redis'
 import { BadRequestError, NotFoundError, failNotFoundIfNone } from '../errors'
+import { parseAccessId } from './parse-access-id'
 import type {
   CreateStaffMemberInput,
   DeleteUserMarathonRelationInput,
@@ -25,31 +25,6 @@ import type {
   GetVerificationsByStaffIdInput,
   UpdateStaffMemberInput,
 } from './contracts'
-
-const parseAccessId = Effect.fn('UsersService.parseAccessId')(function* (accessId: string) {
-  const decodedAccessId = accessId.includes('%')
-    ? (() => {
-        try {
-          return decodeURIComponent(accessId)
-        } catch {
-          return accessId
-        }
-      })()
-    : accessId
-
-  if (decodedAccessId.startsWith('u:')) {
-    return { kind: 'active' as const, userId: decodedAccessId.slice(2) }
-  }
-
-  if (decodedAccessId.startsWith('p:')) {
-    const pendingId = Number(decodedAccessId.slice(2))
-    if (Number.isInteger(pendingId) && pendingId > 0) {
-      return { kind: 'pending' as const, pendingId }
-    }
-  }
-
-  return yield* Effect.fail(new BadRequestError({ message: `Invalid access id: ${accessId}` }))
-})
 
 /** Row returned for staff listing on a marathon domain (`active` vs `pending` invitation). */
 type StaffMemberListItem =

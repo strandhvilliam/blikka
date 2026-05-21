@@ -1,4 +1,3 @@
-import 'server-only'
 
 import { type AwsVpcConfiguration, ECSClient, RunTaskCommand } from '@aws-sdk/client-ecs'
 import { S3Service, S3ServiceLayer, S3ClientError } from '@blikka/aws'

@@ -1,4 +1,3 @@
-import 'server-only'
 
 import { resolveSubmissionContentType, S3Service, S3ServiceLayer, S3ClientError } from '@blikka/aws'
 import {

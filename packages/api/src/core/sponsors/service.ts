@@ -1,4 +1,3 @@
-import 'server-only'
 
 import { Config, Effect, Layer, Context } from 'effect'
 import { DbLayer, DbError, MarathonsRepository, SponsorsRepository, type Sponsor } from '@blikka/db'

@@ -1,4 +1,3 @@
-import 'server-only'
 
 import { Effect, Schema } from 'effect'
 import { createTRPCRouter, authProcedure } from '../root'

@@ -1,4 +1,3 @@
-import 'server-only'
 
 import { Config, Effect, Layer, Option, Context } from 'effect'
 import {

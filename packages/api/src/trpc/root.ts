@@ -1,4 +1,3 @@
-import 'server-only'
 import { initTRPC, TRPCError } from '@trpc/server'
 import { getPermissions, getSession, type Permission } from './utils'
 import type { ManagedRuntime, Layer } from 'effect'
