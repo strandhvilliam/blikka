@@ -69,21 +69,6 @@ type QueryOptionsResult<T extends ReturnType<TRPCQueryOptions<any>>> = T extends
     ? Awaited<TResult>
     : never
 
-export function fetchEffectQuery<T extends ReturnType<TRPCQueryOptions<any>>>(
-  queryOptions: T,
-): Effect.Effect<QueryOptionsResult<T>, TRPCServerError> {
-  const queryClient = getQueryClient()
-
-  return Effect.tryPromise({
-    try: () => queryClient.fetchQuery(queryOptions),
-    catch: (error) =>
-      new TRPCServerError({
-        message: error instanceof Error ? error.message : 'TRPC call failed',
-        cause: error,
-      }),
-  })
-}
-
 export async function fetchServerQuery<T extends ReturnType<TRPCQueryOptions<any>>>(
   queryOptions: T,
 ): Promise<QueryOptionsResult<T>> {

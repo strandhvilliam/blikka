@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react'],
   },
   reactCompiler: true,
-  cacheComponents: true,
+  cacheComponents: false,
   serverExternalPackages: ['exifr', 'sharp'],
   images: {
     remotePatterns: [
