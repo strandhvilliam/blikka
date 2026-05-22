@@ -7,6 +7,9 @@ export default $config({
       name: 'blikka',
       removal: input?.stage === 'production' ? 'retain' : 'remove',
       home: 'aws',
+      types: {
+        ignore: ['repos/effect'],
+      },
     }
   },
   async run() {
