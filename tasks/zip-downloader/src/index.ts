@@ -1,9 +1,8 @@
 import { Config, Effect, Schema, Option, Layer, Data } from 'effect'
+import { ZippedSubmissionsRepository, ZippedSubmissionsRepositoryLayer } from '@blikka/db'
 import { DownloadStateRepository, DownloadStateRepositoryLayer } from '@blikka/kv-store'
-import { Database } from '@blikka/db'
-import { RedisClient } from '@blikka/redis'
 import { TelemetryLayer } from '@blikka/telemetry'
-import { S3Service } from '@blikka/aws'
+import { S3Service, S3ServiceLayer } from '@blikka/aws'
 import archiver from 'archiver'
 import JSZip from 'jszip'
 
@@ -42,9 +41,9 @@ const parseJobId = Effect.gen(function* () {
 )
 
 const processJob = Effect.gen(function* () {
-  const db = yield* Database
   const downloadStateRepository = yield* DownloadStateRepository
   const s3Service = yield* S3Service
+  const zippedSubmissionsQueries = yield* ZippedSubmissionsRepository
   const zipsBucket = yield* Config.string('ZIPS_BUCKET_NAME')
 
   const jobId = yield* parseJobId
@@ -90,14 +89,12 @@ const processJob = Effect.gen(function* () {
   }
 
   // Query zippedSubmissions for the chunk using reference range
-  const zippedSubmissions = yield* db.zippedSubmissionsQueries.getZippedSubmissionsByReferenceRange(
-    {
-      domain: chunkState.domain,
-      competitionClassId: chunkState.competitionClassId,
-      minReference: chunkState.minReference,
-      maxReference: chunkState.maxReference,
-    },
-  )
+  const zippedSubmissions = yield* zippedSubmissionsQueries.getZippedSubmissionsByReferenceRange({
+    domain: chunkState.domain,
+    competitionClassId: chunkState.competitionClassId,
+    minReference: chunkState.minReference,
+    maxReference: chunkState.maxReference,
+  })
 
   yield* Effect.logInfo({
     message: 'Retrieved zippedSubmissions for chunk',
@@ -367,10 +364,9 @@ const handleJobFailure = (
   })
 
 const mainLayer = Layer.mergeAll(
-  Database.layer,
+  ZippedSubmissionsRepositoryLayer,
   DownloadStateRepositoryLayer,
-  RedisClient.layer,
-  S3Service.layer,
+  S3ServiceLayer,
   TelemetryLayer('blikka-dev-zip-downloader'),
 )
 

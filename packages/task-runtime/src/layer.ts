@@ -1,5 +1,5 @@
 import { PubSubLoggerService } from '@blikka/pubsub'
-import { RealtimeEventsService } from '@blikka/realtime'
+import { RealtimeEventsService, RealtimeEventsServiceLayer } from '@blikka/realtime'
 import { TelemetryLayer } from '@blikka/telemetry'
 import { Layer } from 'effect'
 import { TaskEnvironment } from './environment'
@@ -17,7 +17,7 @@ export const makeTaskRuntimeLayer = <ROut, E, RIn>({
 }: TaskRuntimeLayerOptions<ROut, E, RIn>) =>
   Layer.mergeAll(
     workflowLayer,
-    RealtimeEventsService.layer,
+    RealtimeEventsServiceLayer,
     PubSubLoggerService.withTaskName(taskName),
     TelemetryLayer(`blikka-${environment}-${taskName}`),
     Layer.effect(TaskEnvironment, TaskEnvironment.make),

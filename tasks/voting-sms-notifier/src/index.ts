@@ -1,15 +1,16 @@
 import { type SQSRecord } from 'aws-lambda'
 import { LambdaHandler, type SQSEvent } from '@effect-aws/lambda'
 import { Config, Effect, Layer, Schema } from 'effect'
-import { Database } from '@blikka/db'
-import { SMSService } from '@blikka/aws'
+import { SMSService, SMSServiceLayer } from '@blikka/aws'
 import { PubSubLoggerService } from '@blikka/pubsub'
 import { getRealtimeChannelEnvironmentFromNodeEnv, type RealtimeChannelEnv } from '@blikka/realtime'
 import { TelemetryLayer } from '@blikka/telemetry'
 import {
   PhoneNumberEncryptionService,
   type EncryptedPhoneNumber,
-} from '@blikka/api/trpc/utils/phone-number-encryption'
+  PhoneNumberEncryptionServiceLayer,
+} from '@blikka/api/core/utils/phone-number-encryption'
+import { VotingRepository, VotingRepositoryLayer } from '@blikka/db'
 
 const TASK_NAME = 'voting-sms-notifier'
 const SMS_CONCURRENCY = 5
@@ -55,7 +56,7 @@ function buildVotingInviteMessage({
 
 const effectHandler = (event: SQSEvent) =>
   Effect.gen(function* () {
-    const db = yield* Database
+    const votingRepository = yield* VotingRepository
     const smsService = yield* SMSService
     const phoneEncryption = yield* PhoneNumberEncryptionService
     const environment = yield* Config.string('NODE_ENV').pipe(
@@ -102,7 +103,7 @@ const effectHandler = (event: SQSEvent) =>
         return
       }
 
-      const sessions = yield* db.votingQueries.getVotingSessionsByIdsWithMarathon({
+      const sessions = yield* votingRepository.getVotingSessionsByIdsWithMarathon({
         ids: uniqueVotingSessionIds,
       })
 
@@ -179,7 +180,7 @@ const effectHandler = (event: SQSEvent) =>
                 ),
               )
 
-            yield* db.votingQueries.updateMultipleLastNotificationSentAt({
+            yield* votingRepository.updateMultipleLastNotificationSentAt({
               ids: [session.id],
               notificationLastSentAt: new Date().toISOString(),
             })
@@ -236,9 +237,9 @@ const effectHandler = (event: SQSEvent) =>
   )
 
 const serviceLayer = Layer.mergeAll(
-  Database.layer,
-  SMSService.layer,
-  PhoneNumberEncryptionService.layer,
+  SMSServiceLayer,
+  PhoneNumberEncryptionServiceLayer,
+  VotingRepositoryLayer,
   PubSubLoggerService.withTaskName(TASK_NAME),
   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),
 )

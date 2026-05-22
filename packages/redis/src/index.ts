@@ -26,23 +26,24 @@ export const RedisClientLayer = Layer.effect(
     const url = yield* Config.string('UPSTASH_REDIS_REST_URL')
     const token = yield* Config.string('UPSTASH_REDIS_REST_TOKEN')
 
-    const makeClient = Effect.fnUntraced(
-      function* (url: string, token: string) {
-        const client = new Redis({ url, token })
-        yield* Effect.tryPromise({
-          try: () => client.ping(),
-          catch: (error) => new RedisError({ cause: error, message: 'Redis connection failed' }),
-        })
-        return client
-      },
-      Effect.retry(Schedule.both(Schedule.exponential(Duration.seconds(1)), Schedule.recurs(3))),
-      Effect.tapError((error) =>
-        Effect.logError(error.message ?? 'Redis connection failed after retries'),
-      ),
-    )
+    // const makeClient = Effect.fnUntraced(
+    //   function* (url: string, token: string) {
+    //     const client = new Redis({ url, token })
+    //     yield* Effect.tryPromise({
+    //       try: () => client.ping(),
+    //       catch: (error) => new RedisError({ cause: error, message: 'Redis connection failed' }),
+    //     })
+    //     return client
+    //   },
+    //   Effect.retry(Schedule.both(Schedule.exponential(Duration.seconds(1)), Schedule.recurs(3))),
+    //   Effect.catchAll((error) =>
+    //     Effect.logError(error.message ?? 'Redis connection failed after retries'),
+    //   ),
+    // )
 
-    const client = yield* Effect.acquireRelease(makeClient(url, token), (_client) =>
-      Console.log('Shutting down Redis client'),
+    const client = yield* Effect.acquireRelease(
+      Effect.sync(() => new Redis({ url, token })),
+      (_client) => Console.log('Shutting down Redis client'),
     )
     const use = <T>(fn: (client: Redis) => T): Effect.Effect<Awaited<T>, RedisError, never> =>
       Effect.gen(function* () {

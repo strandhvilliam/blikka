@@ -1,11 +1,7 @@
 import { task } from 'sst/aws/task'
 import { Effect, Layer, Option, Schema } from 'effect'
 import { Resource as SSTResource } from 'sst'
-import {
-  isCurrentUploadSession,
-  UploadSessionRepository,
-  UploadSessionRepositoryLayer,
-} from '@blikka/kv-store'
+import { UploadSessionRepository, UploadSessionRepositoryLayer } from '@blikka/kv-store'
 import { TelemetryLayer } from '@blikka/telemetry'
 import { FinalizedEventSchema } from '@blikka/aws'
 import {

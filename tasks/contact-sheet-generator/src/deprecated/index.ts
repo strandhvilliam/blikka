@@ -1,71 +1,71 @@
-import { Effect, Layer } from 'effect'
-import { type SQSEvent, LambdaHandler } from '@effect-aws/lambda'
-import { SheetGeneratorService } from './sheet-generator-service'
-import { TelemetryLayer } from '@blikka/telemetry'
-import { FinalizedEventSchema } from '@blikka/aws'
-import { PubSubLoggerService } from '@blikka/pubsub'
-import { RealtimeEventsService } from '@blikka/realtime'
-import { parseBusEvent } from '@blikka/task-runtime'
-import { Resource as SSTResource } from 'sst'
-import { type SQSRecord } from 'aws-lambda'
+// import { Effect, Layer } from 'effect'
+// import { type SQSEvent, LambdaHandler } from '@effect-aws/lambda'
+// import { SheetGeneratorService, SheetGeneratorServiceLayer } from './sheet-generator-service'
+// import { TelemetryLayer } from '@blikka/telemetry'
+// import { FinalizedEventSchema } from '@blikka/aws'
+// import { PubSubLoggerService } from '@blikka/pubsub'
+// import { RealtimeEventsService, RealtimeEventsServiceLayer } from '@blikka/realtime'
+// import { parseBusEvent } from '@blikka/task-runtime'
+// import { Resource as SSTResource } from 'sst'
+// import { type SQSRecord } from 'aws-lambda'
 
-const getEnvironment = (): 'prod' | 'dev' | 'staging' => {
-  const stage = SSTResource.App.stage
-  if (stage === 'production') return 'prod'
-  if (stage === 'dev' || stage === 'development') return 'dev'
-  return 'staging'
-}
+// const getEnvironment = (): 'prod' | 'dev' | 'staging' => {
+//   const stage = SSTResource.App.stage
+//   if (stage === 'production') return 'prod'
+//   if (stage === 'dev' || stage === 'development') return 'dev'
+//   return 'staging'
+// }
 
-const TASK_NAME = 'contact-sheet-generator'
-const REALTIME_EVENT = 'contact-sheet-generated'
+// const TASK_NAME = 'contact-sheet-generator'
+// const REALTIME_EVENT = 'contact-sheet-generated'
 
-const effectHandler = (event: SQSEvent) =>
-  Effect.gen(function* () {
-    const sheetGeneratorService = yield* SheetGeneratorService
-    const realtimeEvents = yield* RealtimeEventsService
-    const environment = getEnvironment()
+// const effectHandler = (event: SQSEvent) =>
+//   Effect.gen(function* () {
+//     const sheetGeneratorService = yield* SheetGeneratorService
+//     const realtimeEvents = yield* RealtimeEventsService
+//     const environment = getEnvironment()
 
-    const processSQSRecord = Effect.fn('contact-sheet-generator.processSQSRecord')(function* (
-      record: SQSRecord,
-    ) {
-      const { domain, reference, uploadSessionId } = yield* parseBusEvent(
-        record.body,
-        FinalizedEventSchema,
-      )
+//     const processSQSRecord = Effect.fn('contact-sheet-generator.processSQSRecord')(function* (
+//       record: SQSRecord,
+//     ) {
+//       const { domain, reference, uploadSessionId } = yield* parseBusEvent(
+//         record.body,
+//         FinalizedEventSchema,
+//       )
 
-      return yield* Effect.gen(function* () {
-        yield* Effect.logInfo('Generating contact sheet')
+//       return yield* Effect.gen(function* () {
+//         yield* Effect.logInfo('Generating contact sheet')
 
-        const generateContactSheetEffect = sheetGeneratorService
-          .generateContactSheet({ domain, reference, uploadSessionId })
-          .pipe(
-            Effect.tap(() => Effect.logInfo('Contact sheet generated')),
-            Effect.tapError((error) => Effect.logError('Error generating contact sheet', error)),
-          )
+//         const generateContactSheetEffect = sheetGeneratorService
+//           .generateContactSheet({ domain, reference, uploadSessionId })
+//           .pipe(
+//             Effect.tap(() => Effect.logInfo('Contact sheet generated')),
+//             Effect.tapError((error) => Effect.logError('Error generating contact sheet', error)),
+//           )
 
-        return yield* realtimeEvents.withEventResult(generateContactSheetEffect, {
-          eventKey: REALTIME_EVENT,
-          environment,
-          domain,
-          reference,
-        })
-      }).pipe(Effect.annotateLogs({ domain, reference }))
-    })
+//         return yield* realtimeEvents.withEventResult(generateContactSheetEffect, {
+//           eventKey: REALTIME_EVENT,
+//           environment,
+//           domain,
+//           reference,
+//         })
+//       }).pipe(Effect.annotateLogs({ domain, reference }))
+//     })
 
-    yield* Effect.forEach(event.Records, (record) => processSQSRecord(record), { concurrency: 2 })
-  }).pipe(
-    Effect.withSpan('ContactSheetGenerator.handler'),
-    Effect.tapError((error) => Effect.logError('Contact sheet generator failed', error)),
-  )
+//     yield* Effect.forEach(event.Records, (record) => processSQSRecord(record), { concurrency: 2 })
+//   }).pipe(
+//     Effect.withSpan('ContactSheetGenerator.handler'),
+//     Effect.tapError((error) => Effect.logError('Contact sheet generator failed', error)),
+//   )
 
-const serviceLayer = Layer.mergeAll(
-  SheetGeneratorService.layer,
-  RealtimeEventsService.layer,
-  PubSubLoggerService.withTaskName(TASK_NAME),
-  TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),
-)
+// const serviceLayer = Layer.mergeAll(
+//   SheetGeneratorServiceLayer,
+//   RealtimeEventsServiceLayer,
+//   PubSubLoggerService.withTaskName(TASK_NAME),
+//   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),
+// )
 
-export const handler = LambdaHandler.make({
-  handler: effectHandler,
-  layer: serviceLayer,
-})
+// export const handler = LambdaHandler.make({
+//   handler: effectHandler,
+//   layer: serviceLayer,
+// })

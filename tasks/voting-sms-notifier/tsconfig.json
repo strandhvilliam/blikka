@@ -16,7 +16,7 @@
     "noEmit": true,
     "allowJs": true,
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@blikka/api/*": ["../../packages/api/src/*"],
       "@blikka/aws": ["../../packages/aws/src"],
       "@blikka/db": ["../../packages/db/src"],

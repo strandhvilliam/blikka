@@ -1,5 +1,4 @@
 import { Effect, Layer } from 'effect'
-import { Database } from '@blikka/db'
 import { S3Service, FinalizedEventSchema } from '@blikka/aws'
 import { UploadSessionRepository } from '@blikka/kv-store'
 import { ContactSheetBuilder } from '@blikka/image-manipulation'
