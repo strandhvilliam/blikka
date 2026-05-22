@@ -1,6 +1,6 @@
 import { Config, Effect, Schema } from 'effect'
 import { Resource as SSTResource } from 'sst'
-import { ZipWorker, ZipWorkerLayer } from '@blikka/uploads'
+import { ZipWorker, ZipWorkerLayer } from '@blikka/uploads/zip-worker'
 import {
   getEnvironmentFromStage,
   makeContainerRealtimeTask,

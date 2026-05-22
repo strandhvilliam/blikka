@@ -4,7 +4,13 @@
   "type": "module",
   "private": true,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./config": "./src/config.ts",
+    "./participant-finalizer": "./src/participant-finalizer.ts",
+    "./contact-sheet-generator": "./src/contact-sheet-generator.ts",
+    "./submission-processor": "./src/submission-processor.ts",
+    "./validation-runner": "./src/validation-runner.ts",
+    "./zip-worker": "./src/zip-worker.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

@@ -26,6 +26,7 @@
       "@blikka/pubsub": ["../../packages/pubsub/src"],
       "@blikka/task-runtime": ["../../packages/task-runtime/src"],
       "@blikka/uploads": ["../../packages/uploads/src"],
+      "@blikka/uploads/*": ["../../packages/uploads/src/*"],
       "*": ["./*"]
     },
     "strict": true

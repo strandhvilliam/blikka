@@ -8,7 +8,7 @@ import {
   makeSqsRealtimeTask,
   parseBusEvent,
 } from '@blikka/task-runtime'
-import { UploadFinalizer, UploadFinalizerLayer } from '@blikka/uploads'
+import { UploadFinalizer, UploadFinalizerLayer } from '@blikka/uploads/participant-finalizer'
 
 const TASK_NAME = 'upload-finalizer'
 const REALTIME_EVENT = 'participant-finalized'

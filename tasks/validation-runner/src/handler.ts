@@ -8,7 +8,7 @@ import {
   makeSqsRealtimeTask,
   parseBusEvent,
 } from '@blikka/task-runtime'
-import { ValidationRunner, ValidationRunnerLayer } from '@blikka/uploads'
+import { ValidationRunner, ValidationRunnerLayer } from '@blikka/uploads/validation-runner'
 
 const TASK_NAME = 'validation-runner'
 const REALTIME_EVENT = 'participant-validated'

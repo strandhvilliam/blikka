@@ -12,7 +12,7 @@ import {
   SubmissionProcessor,
   type ProcessSubmissionInput,
   SubmissionProcessorLayer,
-} from '@blikka/uploads'
+} from '@blikka/uploads/submission-processor'
 
 const TASK_NAME = 'upload-processor'
 const REALTIME_EVENT = 'submission-processed'
