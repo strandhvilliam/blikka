@@ -1,8 +1,18 @@
+import { Suspense } from 'react'
 import { DomainProvider } from '@/lib/domain-provider'
 import { requireDomainAccess } from '@/lib/auth/permissions'
 import { formatDomainPathname } from '@/lib/utils'
+import { PortalLayoutFallback } from '@/components/portal-layout-fallback'
 
-export default async function DomainAdminLayout({
+export default function DomainAdminLayout(props: LayoutProps<'/admin/[domain]'>) {
+  return (
+    <Suspense fallback={<PortalLayoutFallback />}>
+      <DomainAdminLayoutContent {...props} />
+    </Suspense>
+  )
+}
+
+async function DomainAdminLayoutContent({
   children,
   params,
 }: LayoutProps<'/admin/[domain]'>) {

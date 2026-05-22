@@ -1,12 +1,21 @@
+import { Suspense } from 'react'
 import Document from '@/components/document'
 import { Providers } from './providers'
-
 import { getLocale, getMessages } from 'next-intl/server'
 import { headers } from 'next/headers'
 import { Toaster } from 'sonner'
 import { DotPattern } from '@/components/dot-pattern'
+import { Splash } from '@/components/splash'
 
-export default async function MarathonLayout({ children }: LayoutProps<'/'>) {
+export default function MarathonLayout(props: LayoutProps<'/'>) {
+  return (
+    <Suspense fallback={<Splash />}>
+      <MarathonLayoutContent {...props} />
+    </Suspense>
+  )
+}
+
+async function MarathonLayoutContent({ children }: LayoutProps<'/'>) {
   const [locale, messages, requestHeaders] = await Promise.all([
     getLocale(),
     getMessages(),

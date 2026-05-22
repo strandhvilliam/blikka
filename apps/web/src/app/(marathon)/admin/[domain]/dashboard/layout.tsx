@@ -1,10 +1,20 @@
+import { Suspense } from 'react'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { SidebarInset } from '@/components/ui/sidebar'
 import { DashboardSidebar } from './_components/dashboard-sidebar'
 import { DashboardHeader } from './_components/dashboard-header'
 import { HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
+import { PortalLayoutFallback } from '@/components/portal-layout-fallback'
 
-export default async function DashboardLayout({
+export default function DashboardLayout(props: LayoutProps<'/admin/[domain]/dashboard'>) {
+  return (
+    <Suspense fallback={<PortalLayoutFallback />}>
+      <DashboardLayoutContent {...props} />
+    </Suspense>
+  )
+}
+
+async function DashboardLayoutContent({
   children,
   params,
 }: LayoutProps<'/admin/[domain]/dashboard'>) {

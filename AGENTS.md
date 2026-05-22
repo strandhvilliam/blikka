@@ -2,6 +2,7 @@
 
 - Never run SST cli commands unless strictly specified by user
 - Do not try to build to verify the apps are working
+- Do not run dev server to verify implementation
 - Do not run drizzle-kit or any other db cli tool. This should be done manually
 
 ## Vendored Repositories

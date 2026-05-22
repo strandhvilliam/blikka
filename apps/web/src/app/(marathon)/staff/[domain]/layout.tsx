@@ -1,8 +1,18 @@
+import { Suspense } from 'react'
 import { DomainProvider } from '@/lib/domain-provider'
 import { requireDomainAccess } from '@/lib/auth/permissions'
 import { formatDomainPathname } from '@/lib/utils'
+import { PortalLayoutFallback } from '@/components/portal-layout-fallback'
 
-export default async function StaffDomainLayout({
+export default function StaffDomainLayout(props: LayoutProps<'/staff/[domain]'>) {
+  return (
+    <Suspense fallback={<PortalLayoutFallback />}>
+      <StaffDomainLayoutContent {...props} />
+    </Suspense>
+  )
+}
+
+async function StaffDomainLayoutContent({
   children,
   params,
 }: LayoutProps<'/staff/[domain]'>) {
