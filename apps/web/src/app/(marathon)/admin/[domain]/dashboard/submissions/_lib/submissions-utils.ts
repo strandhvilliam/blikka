@@ -29,6 +29,21 @@ export function getSubmissionRowHref({
   )
 }
 
+export function buildParticipantIndexes(participants: SubmissionTableRow[]) {
+  const participantIds: number[] = []
+  const participantIndexById = new Map<number, number>()
+  const participantsById = new Map<number, SubmissionTableRow>()
+
+  for (let index = 0; index < participants.length; index++) {
+    const participant = participants[index]
+    participantIds.push(participant.id)
+    participantIndexById.set(participant.id, index)
+    participantsById.set(participant.id, participant)
+  }
+
+  return { participantIds, participantIndexById, participantsById }
+}
+
 export function getSelectedParticipants(
   participants: SubmissionTableRow[],
   selectedIds: ReadonlySet<number>,

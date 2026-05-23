@@ -44,11 +44,6 @@ export function SubmissionsHeader({ marathon }: SubmissionsHeaderProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const [isRefreshing, setIsRefreshing] = useState(false)
-
-  const activeByCameraTopic = getActiveByCameraTopic(marathon)
-  const activeTopicName = activeByCameraTopic?.name ?? null
-  const activeTopicOrderIndex = activeByCameraTopic?.orderIndex ?? null
-
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: 'push',
   })
@@ -61,6 +56,9 @@ export function SubmissionsHeader({ marathon }: SubmissionsHeaderProps) {
     setQueryState({ tab })
   }
 
+  const activeByCameraTopic = getActiveByCameraTopic(marathon)
+  const activeTopicName = activeByCameraTopic?.name ?? null
+  const activeTopicOrderIndex = activeByCameraTopic?.orderIndex ?? null
   const tabs = getSubmissionTabsForMode(marathon.mode)
   const effectiveTab = normalizeSubmissionTabForMode(activeTab, marathon.mode)
 

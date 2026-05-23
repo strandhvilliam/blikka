@@ -356,6 +356,7 @@
     "newParticipant": "New participant",
     "waitSeconds": "Wait ({seconds}s)",
     "photoPlaceholder": "Photo {id}",
+    "photoProcessing": "Preparing your photo…",
     "secondsSuffix": "({seconds}s)",
     "steps": {
       "1": "We verify all photo series while you sleep well. (Save your photos for a week in case something goes wrong)",

@@ -1,36 +1,15 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { buildParticipantIndexes } from '../_lib/submissions-utils'
 import type { SubmissionTableRow } from '../_lib/submissions-types'
 
-function useParticipantCollections(participants: SubmissionTableRow[]) {
-  return useMemo(() => {
-    const participantIds: number[] = []
-    const participantIndexById = new Map<number, number>()
-    const participantsById = new Map<number, SubmissionTableRow>()
+export function useSubmissionsSelection(participants: SubmissionTableRow[]) {
+  const { participantIds, participantIndexById, participantsById } = useMemo(
+    () => buildParticipantIndexes(participants),
+    [participants],
+  )
 
-    for (let index = 0; index < participants.length; index++) {
-      const participant = participants[index]
-      participantIds.push(participant.id)
-      participantIndexById.set(participant.id, index)
-      participantsById.set(participant.id, participant)
-    }
-
-    return { participantIds, participantIndexById, participantsById }
-  }, [participants])
-}
-
-interface UseParticipantSelectionInput {
-  participantIds: number[]
-  participantIndexById: Map<number, number>
-  participantsById: Map<number, SubmissionTableRow>
-}
-
-function useParticipantSelection({
-  participantIds,
-  participantIndexById,
-  participantsById,
-}: UseParticipantSelectionInput) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [lastSelectedId, setLastSelectedId] = useState<number | null>(null)
 
@@ -123,15 +102,4 @@ function useParticipantSelection({
     clearSelection,
     canVerifySelected,
   }
-}
-
-export function useSubmissionsSelection(participants: SubmissionTableRow[]) {
-  const { participantIds, participantIndexById, participantsById } =
-    useParticipantCollections(participants)
-
-  return useParticipantSelection({
-    participantIds,
-    participantIndexById,
-    participantsById,
-  })
 }

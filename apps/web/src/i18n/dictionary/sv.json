@@ -356,6 +356,7 @@
     "newParticipant": "Ny deltagare",
     "waitSeconds": "Vänta ({seconds}s)",
     "photoPlaceholder": "Foto {id}",
+    "photoProcessing": "Förbereder ditt foto…",
     "secondsSuffix": "({seconds}s)",
     "steps": {
       "1": "Vi verifierar alla bildserier medan ni sover gott. (Spara era bilder i en vecka i fall vi hittar något fel)",
