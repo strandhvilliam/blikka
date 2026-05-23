@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SidebarMenuButton } from '@/components/ui/sidebar'
 import { TagIcon, ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { findActiveTopic } from '@/lib/by-camera/by-camera-active-topic'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { TopicsActivateDialog } from '../topics/_components/topics-activate-dialog'
@@ -26,7 +27,7 @@ export function DashboardHeaderTopicSwitcher() {
   )
 
   const topics = [...(marathon?.topics ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
-  const activeTopic = topics.find((topic) => topic.visibility === 'active') ?? null
+  const activeTopic = findActiveTopic(topics)
   const { data: activeVotingSummary } = useQuery({
     ...trpc.voting.getVotingAdminSummary.queryOptions({
       domain,

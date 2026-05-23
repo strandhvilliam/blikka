@@ -6,6 +6,7 @@ import { useDomain } from '@/lib/domain-provider'
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useTopicsByCameraDialogState } from '../_hooks/use-topics-by-camera-dialog-state'
+import { findActiveTopic } from '@/lib/by-camera/by-camera-active-topic'
 import { getByCameraSubmissionWindowState } from '@/lib/by-camera/by-camera-submission-window-state'
 import { getVotingLifecycleState } from '@/lib/voting-lifecycle'
 import { TopicsCreateDialog } from './topics-create-dialog'
@@ -48,7 +49,7 @@ export function TopicsByCamera() {
   const topics = marathon?.topics ?? []
   const submissionCountMap = new Map(submissionCounts.map((row) => [row.id, row.count]))
   const sortedTopics = [...topics].sort((a, b) => a.orderIndex - b.orderIndex)
-  const activeTopic = sortedTopics.find((topic) => topic.visibility === 'active') ?? null
+  const activeTopic = findActiveTopic(sortedTopics)
   const activeTopicSubmissionState = getByCameraSubmissionWindowState(activeTopic)
   const { data: activeVotingSummary } = useQuery({
     ...trpc.voting.getVotingAdminSummary.queryOptions({

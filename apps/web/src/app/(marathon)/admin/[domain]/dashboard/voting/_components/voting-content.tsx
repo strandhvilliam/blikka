@@ -5,6 +5,7 @@ import { Suspense, useEffect } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { AlertTriangle, Vote } from 'lucide-react'
 import { useTRPC } from '@/lib/trpc/client'
+import { findActiveTopic } from '@/lib/by-camera/by-camera-active-topic'
 import { useDomain } from '@/lib/domain-provider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { VotingHeader } from './voting-header'
@@ -122,7 +123,7 @@ export function VotingContent() {
     }),
   )
 
-  const activeTopic = marathon.topics.find((topic) => topic.visibility === 'active') ?? null
+  const activeTopic = findActiveTopic(marathon.topics)
   const isByCamera = marathon.mode === 'by-camera'
 
   if (!isByCamera) {

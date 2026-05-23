@@ -7,12 +7,19 @@ import { useQueryStates } from 'nuqs'
 import { submissionSearchParams } from '../_lib/search-params'
 import { useEffect, useState } from 'react'
 import { ManualUploadDialog } from './manual-upload-dialog'
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { useDomain } from '@/lib/domain-provider'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { PrimaryButton } from '@/components/ui/primary-button'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import {
+  getSubmissionTabsForMode,
+  normalizeSubmissionTabForMode,
+  SUBMISSION_TAB,
+  type SubmissionTab,
+} from '../_lib/submissions-tabs'
+import { getActiveByCameraTopic } from '@/lib/by-camera/by-camera-active-topic'
+import type { SubmissionsMarathon } from '../_lib/submissions-types'
 
 function getActiveTopicDisplayText({
   activeTopicName,
@@ -26,34 +33,19 @@ function getActiveTopicDisplayText({
   return `${orderPrefix}${activeTopicName}`
 }
 
-const TAB = {
-  ALL: 'all',
-  PREPARED: 'prepared',
-  INITIALIZED: 'initialized',
-  UPLOADED: 'uploaded',
-  NOT_VERIFIED: 'not-verified',
-  VERIFIED: 'verified',
-  NOT_VOTED: 'not-voted',
-  VOTED: 'voted',
-  VALIDATION_ERRORS: 'validation-errors',
-} as const
-
-type Tab = (typeof TAB)[keyof typeof TAB]
-
 const customTabTriggerClassName =
   "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-primary text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-brand-primary"
 
-export function SubmissionsHeader() {
-  const domain = useDomain()
+interface SubmissionsHeaderProps {
+  marathon: SubmissionsMarathon
+}
+
+export function SubmissionsHeader({ marathon }: SubmissionsHeaderProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
-  const activeByCameraTopic =
-    marathon.mode === 'by-camera'
-      ? (marathon.topics.find((topic) => topic.visibility === 'active') ?? null)
-      : null
+  const activeByCameraTopic = getActiveByCameraTopic(marathon)
   const activeTopicName = activeByCameraTopic?.name ?? null
   const activeTopicOrderIndex = activeByCameraTopic?.orderIndex ?? null
 
@@ -65,52 +57,19 @@ export function SubmissionsHeader() {
 
   const { tab: activeTab } = queryState
 
-  const onTabChange = (tab: Tab) => {
+  const onTabChange = (tab: SubmissionTab) => {
     setQueryState({ tab })
   }
 
-  const marathonTabs: { value: Tab; label: string }[] = [
-    { value: TAB.ALL, label: 'All Submissions' },
-    { value: TAB.PREPARED, label: 'Prepared' },
-    { value: TAB.INITIALIZED, label: 'Initialized' },
-    { value: TAB.UPLOADED, label: 'Uploaded' },
-    { value: TAB.NOT_VERIFIED, label: 'Not Verified' },
-    { value: TAB.VERIFIED, label: 'Verified' },
-    { value: TAB.VALIDATION_ERRORS, label: 'Validation Errors' },
-  ]
-
-  const byCameraTabs: { value: Tab; label: string }[] = [
-    { value: TAB.ALL, label: 'All Submissions' },
-    { value: TAB.INITIALIZED, label: 'Initialized' },
-    { value: TAB.UPLOADED, label: 'Uploaded' },
-    { value: TAB.NOT_VOTED, label: 'Not Voted' },
-    { value: TAB.VOTED, label: 'Voted' },
-    { value: TAB.VALIDATION_ERRORS, label: 'Validation Errors' },
-  ]
-
-  const tabs = marathon.mode === 'by-camera' ? byCameraTabs : marathonTabs
-
-  const effectiveTab =
-    marathon.mode === 'by-camera' &&
-    (activeTab === TAB.PREPARED || activeTab === TAB.NOT_VERIFIED || activeTab === TAB.VERIFIED)
-      ? TAB.ALL
-      : marathon.mode !== 'by-camera' && (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
-        ? TAB.ALL
-        : activeTab
+  const tabs = getSubmissionTabsForMode(marathon.mode)
+  const effectiveTab = normalizeSubmissionTabForMode(activeTab, marathon.mode)
 
   const activeTabLabel = tabs.find((t) => t.value === effectiveTab)?.label ?? 'All Submissions'
 
   useEffect(() => {
-    if (
-      marathon.mode === 'by-camera' &&
-      (activeTab === TAB.PREPARED || activeTab === TAB.NOT_VERIFIED || activeTab === TAB.VERIFIED)
-    ) {
-      setQueryState({ tab: TAB.ALL })
-    } else if (
-      marathon.mode !== 'by-camera' &&
-      (activeTab === TAB.NOT_VOTED || activeTab === TAB.VOTED)
-    ) {
-      setQueryState({ tab: TAB.ALL })
+    const nextTab = normalizeSubmissionTabForMode(activeTab, marathon.mode)
+    if (nextTab !== activeTab) {
+      setQueryState({ tab: SUBMISSION_TAB.ALL })
     }
   }, [marathon.mode, activeTab, setQueryState])
 
@@ -182,7 +141,7 @@ export function SubmissionsHeader() {
 
       <Tabs
         value={effectiveTab}
-        onValueChange={(value) => onTabChange(value as Tab)}
+        onValueChange={(value) => onTabChange(value as SubmissionTab)}
         className="space-y-0 hidden md:block"
       >
         <div className="border-b border-border">

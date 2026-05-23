@@ -1,5 +1,6 @@
 import type { CompetitionClass, DeviceGroup, Marathon, Topic } from '@blikka/db'
 
+import { findActiveTopic } from './by-camera-active-topic'
 import { getByCameraSubmissionWindowState } from './by-camera-submission-window-state'
 
 export type ByCameraLiveAccessState =
@@ -63,7 +64,7 @@ export function getByCameraLiveAccessState(
     }
   }
 
-  const activeTopic = marathon.topics.find((topic) => topic.visibility === 'active') ?? null
+  const activeTopic = findActiveTopic(marathon.topics)
   const submissionWindowState = getByCameraSubmissionWindowState(activeTopic, now)
 
   switch (submissionWindowState) {

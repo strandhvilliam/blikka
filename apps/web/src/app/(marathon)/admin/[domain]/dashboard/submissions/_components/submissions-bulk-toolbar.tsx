@@ -20,54 +20,36 @@ import {
   ClipboardCheck,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useSubmissionsBulkActions } from '../_hooks/use-submissions-bulk-actions'
+import type { SubmissionTableRow } from '../_lib/submissions-types'
+import { useDomain } from '@/lib/domain-provider'
 
 interface SubmissionsBulkToolbarProps {
   marathonMode?: string
+  participants: SubmissionTableRow[]
+  selectedIds: ReadonlySet<number>
   selectedCount: number
-  canVerify: boolean
-  completableCount: number
-  isDeleting: boolean
-  isVerifying: boolean
-  isMarkingCompleted: boolean
-  isReTriggering: boolean
-  isRerunningValidations: boolean
-  isRegeneratingExif: boolean
-  isGeneratingThumbnails: boolean
-  missingExifCount: number
-  missingThumbnailCount: number
+  canVerifySelected: boolean
   onClearSelection: () => void
-  onDelete: () => void
-  onVerify: () => void
-  onMarkCompleted: () => void
-  onReTriggerUploadFlow: () => void
-  onRerunValidations: () => void
-  onRegenerateExif: () => void
-  onGenerateThumbnails: () => void
 }
 
 export function SubmissionsBulkToolbar({
   marathonMode,
+  participants,
+  selectedIds,
   selectedCount,
-  canVerify,
-  completableCount,
-  isDeleting,
-  isVerifying,
-  isMarkingCompleted,
-  isReTriggering,
-  isRerunningValidations,
-  isRegeneratingExif,
-  isGeneratingThumbnails,
-  missingExifCount,
-  missingThumbnailCount,
+  canVerifySelected,
   onClearSelection,
-  onDelete,
-  onVerify,
-  onMarkCompleted,
-  onReTriggerUploadFlow,
-  onRerunValidations,
-  onRegenerateExif,
-  onGenerateThumbnails,
 }: SubmissionsBulkToolbarProps) {
+  const domain = useDomain()
+  const { counts, pending, actions } = useSubmissionsBulkActions({
+    domain,
+    participants,
+    selectedIds,
+    selectedCount,
+    canVerifySelected,
+    clearSelection: onClearSelection,
+  })
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showMarkCompletedDialog, setShowMarkCompletedDialog] = useState(false)
   const isByCameraMode = marathonMode === 'by-camera'
@@ -77,12 +59,12 @@ export function SubmissionsBulkToolbar({
   }
 
   const handleConfirmDelete = () => {
-    onDelete()
+    actions.deleteSelected()
     setShowDeleteDialog(false)
   }
 
   const handleConfirmMarkCompleted = () => {
-    onMarkCompleted()
+    actions.markCompleted()
     setShowMarkCompletedDialog(false)
   }
 
@@ -106,10 +88,10 @@ export function SubmissionsBulkToolbar({
             variant="outline"
             size="sm"
             onClick={() => setShowMarkCompletedDialog(true)}
-            disabled={completableCount === 0 || isMarkingCompleted}
+            disabled={counts.completableCount === 0 || pending.isMarkingCompleted}
             className="h-9"
           >
-            {isMarkingCompleted ? (
+            {pending.isMarkingCompleted ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
               <ClipboardCheck className="h-4 w-4 mr-1" />
@@ -121,11 +103,11 @@ export function SubmissionsBulkToolbar({
           <Button
             variant="outline"
             size="sm"
-            onClick={onVerify}
-            disabled={!canVerify || isVerifying}
+            onClick={actions.verifySelected}
+            disabled={!canVerifySelected || pending.isVerifying}
             className="h-9"
           >
-            {isVerifying ? (
+            {pending.isVerifying ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
               <CheckCircle className="h-4 w-4 mr-1" />
@@ -138,11 +120,11 @@ export function SubmissionsBulkToolbar({
             <Button
               variant="outline"
               size="sm"
-              onClick={onRerunValidations}
-              disabled={isRerunningValidations}
+              onClick={actions.rerunValidations}
+              disabled={pending.isRerunningValidations}
               className="h-9"
             >
-              {isRerunningValidations ? (
+              {pending.isRerunningValidations ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <RefreshCw className="h-4 w-4 mr-1" />
@@ -152,11 +134,11 @@ export function SubmissionsBulkToolbar({
             <Button
               variant="outline"
               size="sm"
-              onClick={onRegenerateExif}
-              disabled={missingExifCount === 0 || isRegeneratingExif}
+              onClick={actions.regenerateExif}
+              disabled={counts.missingExifCount === 0 || pending.isRegeneratingExif}
               className="h-9"
             >
-              {isRegeneratingExif ? (
+              {pending.isRegeneratingExif ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <FileCode className="h-4 w-4 mr-1" />
@@ -166,11 +148,11 @@ export function SubmissionsBulkToolbar({
             <Button
               variant="outline"
               size="sm"
-              onClick={onGenerateThumbnails}
-              disabled={missingThumbnailCount === 0 || isGeneratingThumbnails}
+              onClick={actions.generateThumbnails}
+              disabled={counts.missingThumbnailCount === 0 || pending.isGeneratingThumbnails}
               className="h-9"
             >
-              {isGeneratingThumbnails ? (
+              {pending.isGeneratingThumbnails ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
                 <FileImage className="h-4 w-4 mr-1" />
@@ -182,11 +164,11 @@ export function SubmissionsBulkToolbar({
         {/* <Button
           variant="outline"
           size="sm"
-          onClick={onReTriggerUploadFlow}
-          disabled={isReTriggering}
+          onClick={actions.reTriggerUploadFlow}
+          disabled={pending.isReTriggering}
           className="h-9"
         >
-          {isReTriggering ? (
+          {pending.isReTriggering ? (
             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
           ) : (
             <RefreshCw className="h-4 w-4 mr-1" />
@@ -197,10 +179,10 @@ export function SubmissionsBulkToolbar({
           variant="destructive"
           size="sm"
           onClick={handleDeleteClick}
-          disabled={isDeleting}
+          disabled={pending.isDeleting}
           className="h-9"
         >
-          {isDeleting ? (
+          {pending.isDeleting ? (
             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
           ) : (
             <Trash2 className="h-4 w-4 mr-1" />
@@ -216,7 +198,7 @@ export function SubmissionsBulkToolbar({
             <DialogDescription>
               Are you sure you want to delete {selectedCount} participant
               {selectedCount === 1 ? '' : 's'}? This action cannot be undone.
-              {!isByCameraMode && canVerify === false && selectedCount > 0 && (
+              {!isByCameraMode && canVerifySelected === false && selectedCount > 0 && (
                 <span className="block mt-2 text-destructive">
                   Note: Some selected participants are not in &quot;completed&quot; status and
                   cannot be verified, but they can still be deleted.
@@ -228,12 +210,16 @@ export function SubmissionsBulkToolbar({
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
-              disabled={isDeleting}
+              disabled={pending.isDeleting}
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
-              {isDeleting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={pending.isDeleting}
+            >
+              {pending.isDeleting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Delete {selectedCount} Participant
               {selectedCount === 1 ? '' : 's'}
             </Button>
@@ -246,21 +232,21 @@ export function SubmissionsBulkToolbar({
           <DialogHeader>
             <DialogTitle>Mark Participants Completed</DialogTitle>
             <DialogDescription>
-              This will set {completableCount} selected participant
-              {completableCount === 1 ? '' : 's'} to completed. Only do this when you are sure their
-              uploads are actually complete.
+              This will set {counts.completableCount} selected participant
+              {counts.completableCount === 1 ? '' : 's'} to completed. Only do this when you are
+              sure their uploads are actually complete.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setShowMarkCompletedDialog(false)}
-              disabled={isMarkingCompleted}
+              disabled={pending.isMarkingCompleted}
             >
               Cancel
             </Button>
-            <Button onClick={handleConfirmMarkCompleted} disabled={isMarkingCompleted}>
-              {isMarkingCompleted && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            <Button onClick={handleConfirmMarkCompleted} disabled={pending.isMarkingCompleted}>
+              {pending.isMarkingCompleted && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Mark Completed
             </Button>
           </DialogFooter>

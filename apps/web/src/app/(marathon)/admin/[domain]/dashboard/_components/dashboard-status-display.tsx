@@ -45,6 +45,7 @@ import {
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { getVotingLifecycleState, getSubmissionLifecycleState } from '@/lib/voting-lifecycle'
+import { findActiveTopic } from '@/lib/by-camera/by-camera-active-topic'
 import { type ByCameraPhase, useByCameraLifecycle } from '../_hooks/use-by-camera-lifecycle'
 
 interface DashboardStatusDisplayProps {
@@ -287,7 +288,7 @@ function ByCameraStatusDisplay({ domain, compact = false }: { domain: string; co
   const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   const topics = [...(marathon?.topics ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
-  const activeTopic = topics.find((t) => t.visibility === 'active') ?? null
+  const activeTopic = findActiveTopic(topics)
   const { data: activeVotingSummary } = useQuery({
     ...trpc.voting.getVotingAdminSummary.queryOptions({
       domain,

@@ -19,6 +19,7 @@ import {
   Vote,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { findActiveTopic } from '@/lib/by-camera/by-camera-active-topic'
 import { formatDomainLink, formatDomainPathname } from '@/lib/utils'
 import { useTRPC } from '@/lib/trpc/client'
 import { useDomain } from '@/lib/domain-provider'
@@ -215,7 +216,7 @@ export function DashboardHomeContent() {
 
   if (marathon.mode === 'by-camera') {
     const topics = [...(marathon.topics ?? [])].sort((a, b) => a.orderIndex - b.orderIndex)
-    const activeTopic = topics.find((topic) => topic.visibility === 'active') ?? null
+    const activeTopic = findActiveTopic(topics)
     const participantSiteUrl = formatDomainLink('/live', domain)
     const topicsHref = formatDomainPathname('/admin/dashboard/topics', domain)
     const submissionsHref = formatDomainPathname('/admin/dashboard/submissions', domain)

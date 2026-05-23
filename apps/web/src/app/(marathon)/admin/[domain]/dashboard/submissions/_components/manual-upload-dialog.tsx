@@ -7,6 +7,7 @@ import { useDropzone, type Accept } from 'react-dropzone'
 import { CheckCircle2, Loader2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { findActiveTopic } from '@/lib/by-camera/by-camera-active-topic'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -85,7 +86,7 @@ export function ManualUploadDialog({ open, onOpenChange }: ManualUploadDialogPro
   })
 
   const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
-  const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === 'active') ?? null
+  const activeByCameraTopic = findActiveTopic(sortedTopics)
   const selectedCompetitionClass =
     marathon.competitionClasses.find(
       (competitionClass) => competitionClass.id === Number(formValues.competitionClassId),

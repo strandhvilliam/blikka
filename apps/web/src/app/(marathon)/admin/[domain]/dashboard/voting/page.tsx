@@ -1,3 +1,4 @@
+import { getActiveByCameraTopic } from '@/lib/by-camera/by-camera-active-topic'
 import { fetchServerQuery, HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
 import { Suspense } from 'react'
 import { VotingContent } from './_components/voting-content'
@@ -19,7 +20,7 @@ export default async function VotingPage({ params }: PageProps<'/admin/[domain]/
   )
 
   if (marathon.mode === 'by-camera') {
-    const activeTopic = marathon.topics.find((topic) => topic.visibility === 'active')
+    const activeTopic = getActiveByCameraTopic(marathon)
     if (activeTopic) {
       prefetch(
         trpc.voting.getVotingAdminSummary.queryOptions({

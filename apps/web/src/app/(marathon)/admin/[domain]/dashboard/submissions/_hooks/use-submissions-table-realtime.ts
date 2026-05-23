@@ -11,12 +11,15 @@ import {
 import { z } from 'zod'
 
 import { useRealtime } from '@/lib/realtime-client'
-import type { TableData } from './use-submissions-table'
+import type {
+  RealtimeEnrichedSubmissionTableRow,
+  SubmissionTableRow,
+} from '../_lib/submissions-types'
 
 type ParsedRealtimeEventData = z.infer<typeof realtimeEventDataSchema>
 
 interface ParticipantsPage {
-  participants: TableData[]
+  participants: SubmissionTableRow[]
   nextCursor?: number | null
 }
 
@@ -246,10 +249,7 @@ function reduceTrackingState(
   }
 }
 
-export type RealtimeEnrichedTableData = TableData & {
-  realtimeProcessedCount: number
-  realtimeIsFinalized: boolean
-}
+export type RealtimeEnrichedTableData = RealtimeEnrichedSubmissionTableRow
 
 export function useSubmissionsTableRealtime({
   domain,
@@ -418,9 +418,9 @@ export function useSubmissionsTableRealtime({
 }
 
 export function useEnrichedParticipants(
-  participants: TableData[],
+  participants: SubmissionTableRow[],
   tracking: TrackingState,
-): RealtimeEnrichedTableData[] {
+): RealtimeEnrichedSubmissionTableRow[] {
   return useMemo(
     () =>
       participants.map((participant) => {

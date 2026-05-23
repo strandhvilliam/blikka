@@ -1,5 +1,6 @@
 import type { Marathon, Topic } from '@blikka/db'
 
+import { getActiveByCameraTopic } from './by-camera-active-topic'
 import {
   getByCameraSubmissionWindowState,
   type ByCameraSubmissionWindowState,
@@ -25,10 +26,7 @@ export function getByCameraExportAccessState(
   marathon: ByCameraExportMarathon,
   now = new Date(),
 ): ByCameraExportAccessResult {
-  const activeTopic =
-    marathon.mode === 'by-camera'
-      ? (marathon.topics.find((topic) => topic.visibility === 'active') ?? null)
-      : null
+  const activeTopic = getActiveByCameraTopic(marathon)
 
   const state = getByCameraSubmissionWindowState(activeTopic, now)
 

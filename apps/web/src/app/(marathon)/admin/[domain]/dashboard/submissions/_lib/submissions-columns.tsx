@@ -1,84 +1,42 @@
 'use client'
 
 import { type ColumnDef } from '@tanstack/react-table'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { CheckCircle2, ChevronRight, Clock, Copy, XCircle, AlertCircle, Info } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { RealtimeEnrichedTableData } from '../_hooks/use-submissions-table-realtime'
-import { format } from 'date-fns'
-import { toast } from 'sonner'
-
-function CopyableContact({
-  value,
-  copiedToast,
-  tabularNums,
-}: {
-  value: string | null | undefined
-  copiedToast: string
-  tabularNums?: boolean
-}) {
-  const trimmed = typeof value === 'string' ? value.trim() : ''
-  if (!trimmed) {
-    return <span className="text-xs text-muted-foreground">-</span>
-  }
-
-  return (
-    <button
-      type="button"
-      title={`${trimmed} — Click to copy`}
-      onClick={(e) => {
-        e.stopPropagation()
-        void (async () => {
-          try {
-            await navigator.clipboard.writeText(trimmed)
-            toast.success(copiedToast)
-          } catch {
-            toast.error('Could not copy')
-          }
-        })()
-      }}
-      className={cn(
-        'group flex w-full min-w-0 max-w-[200px] items-center gap-1 rounded-md px-2 py-1 text-left',
-        'text-xs text-muted-foreground transition-colors',
-        'hover:bg-muted/80 hover:text-foreground active:bg-muted',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background',
-      )}
-    >
-      <span className={cn('min-w-0 flex-1 truncate', tabularNums && 'tabular-nums')}>
-        {trimmed}
-      </span>
-      <Copy
-        className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-70"
-        aria-hidden
-      />
-    </button>
-  )
-}
+import type { RealtimeEnrichedSubmissionTableRow } from './submissions-types'
+import {
+  CompetitionClassCell,
+  CopyableContactCell,
+  DateCell,
+  DeviceGroupCell,
+  NameCell,
+  OpenIndicatorCell,
+  ReferenceCell,
+  SubmissionStatusBadge,
+  UploadProgressBadge,
+  ValidationResultsBadges,
+  VotedBadge,
+} from '../_components/submissions-column-cells'
 
 interface SubmissionsColumnsOptions {
   marathonMode?: string
-  participants: RealtimeEnrichedTableData[]
+  participants: RealtimeEnrichedSubmissionTableRow[]
   selectedIds: Set<number>
   onToggleSelection: (id: number, event: React.MouseEvent) => void
   onToggleAll: () => void
 }
 
-export const getSubmissionsColumns = ({
-  marathonMode,
+function getSelectionColumn({
   participants,
   selectedIds,
   onToggleSelection,
   onToggleAll,
-}: SubmissionsColumnsOptions): ColumnDef<RealtimeEnrichedTableData>[] => {
+}: SubmissionsColumnsOptions): ColumnDef<RealtimeEnrichedSubmissionTableRow> {
   const visibleIds = participants.map((p) => p.id)
   const selectedVisibleCount = visibleIds.filter((id) => selectedIds.has(id)).length
   const allVisibleSelected = visibleIds.length > 0 && selectedVisibleCount === visibleIds.length
   const someVisibleSelected = selectedVisibleCount > 0 && selectedVisibleCount < visibleIds.length
 
-  const baseColumns: ColumnDef<RealtimeEnrichedTableData>[] = []
-
-  baseColumns.push({
+  return {
     id: 'select',
     header: () => (
       <div className="flex items-center justify-center">
@@ -110,14 +68,17 @@ export const getSubmissionsColumns = ({
       )
     },
     size: 40,
-  })
-  baseColumns.push(
+  }
+}
+
+function getCommonColumns({
+  marathonMode,
+}: SubmissionsColumnsOptions): ColumnDef<RealtimeEnrichedSubmissionTableRow>[] {
+  return [
     {
       accessorKey: 'reference',
       header: 'Reference',
-      cell: ({ row }) => (
-        <div className="font-semibold text-xs text-foreground">{row.getValue('reference')}</div>
-      ),
+      cell: ({ row }) => <ReferenceCell reference={row.getValue('reference')} />,
     },
     {
       id: 'name',
@@ -125,255 +86,119 @@ export const getSubmissionsColumns = ({
       cell: ({ row }) => {
         const firstname = row.original.firstname
         const lastname = row.original.lastname
-        return <div className="font-medium text-xs">{`${firstname} ${lastname}`}</div>
+        return <NameCell firstname={firstname} lastname={lastname} />
       },
     },
-  )
-  baseColumns.push({
-    accessorKey: 'email',
-    header: 'Email',
-    cell: ({ row }) => (
-      <CopyableContact value={row.getValue('email') as string | null} copiedToast="Email copied" />
-    ),
-  })
-  baseColumns.push({
-    id: 'phone',
-    header: 'Phone',
-    cell: ({ row }) => (
-      <CopyableContact
-        value={row.original.phoneNumber ?? null}
-        copiedToast="Phone number copied"
-        tabularNums
-      />
-    ),
-  })
-  baseColumns.push({
-    accessorKey: 'createdAt',
-    header: marathonMode === 'by-camera' ? 'Uploaded At' : 'Initialized At',
-    cell: ({ row }) => {
-      const participant = row.original
-      const rawDate =
-        marathonMode === 'by-camera'
-          ? participant.activeTopicSubmissionCreatedAt
-          : (row.getValue('createdAt') as string)
-      if (!rawDate) {
-        return <span className="text-xs text-muted-foreground">-</span>
-      }
-      const date = new Date(rawDate)
-      return (
-        <div className="text-xs text-muted-foreground">{format(date, 'MMM d, yyyy, HH:mm')}</div>
-      )
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      cell: ({ row }) => (
+        <CopyableContactCell
+          value={row.getValue('email') as string | null}
+          copiedToast="Email copied"
+        />
+      ),
     },
-  })
-  baseColumns.push({
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => {
-      const status = row.original.realtimeIsFinalized
-        ? 'completed'
-        : (row.getValue('status') as string)
-      const statusConfig = {
-        prepared: {
-          variant: 'outline' as const,
-          className:
-            'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800',
-          icon: Clock,
-        },
-        completed: {
-          variant: 'default' as const,
-          className:
-            'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800',
-          icon: CheckCircle2,
-        },
-        initialized: {
-          variant: 'outline' as const,
-          className:
-            'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700',
-          icon: Clock,
-        },
-        verified: {
-          variant: 'default' as const,
-          className:
-            'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
-          icon: CheckCircle2,
-        },
-      }
-      const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.initialized
-      const Icon = config.icon
-      return (
-        <Badge
-          variant={config.variant}
-          className={cn('capitalize text-xs font-medium gap-1 h-5 px-1.5', config.className)}
-        >
-          <Icon className="size-2.5" />
-          {status}
-        </Badge>
-      )
+    {
+      id: 'phone',
+      header: 'Phone',
+      cell: ({ row }) => (
+        <CopyableContactCell
+          value={row.original.phoneNumber ?? null}
+          copiedToast="Phone number copied"
+          tabularNums
+        />
+      ),
     },
-  })
-  baseColumns.push({
-    id: 'uploadProgress',
-    header: 'Upload',
-    cell: ({ row }) => {
-      const participant = row.original
-      const expectedFromClass = participant.competitionClass?.numberOfPhotos ?? null
-      const expectedCount =
-        expectedFromClass !== null && expectedFromClass > 0
-          ? expectedFromClass
-          : marathonMode === 'by-camera'
-            ? 1
-            : null
-
-      if (expectedCount === null) {
-        return <span className="text-xs text-muted-foreground">-</span>
-      }
-
-      const isCompleted =
-        participant.realtimeIsFinalized ||
-        participant.status === 'completed' ||
-        participant.status === 'verified'
-      const processedCount = isCompleted
-        ? expectedCount
-        : Math.min(participant.realtimeProcessedCount, expectedCount)
-
-      return (
-        <Badge
-          variant={processedCount === expectedCount ? 'default' : 'outline'}
-          className={cn(
-            'h-5 px-1.5 text-xs font-medium tabular-nums',
-            processedCount === expectedCount
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
-              : 'text-muted-foreground',
-          )}
-        >
-          {processedCount}/{expectedCount}
-        </Badge>
-      )
+    {
+      accessorKey: 'createdAt',
+      header: marathonMode === 'by-camera' ? 'Uploaded At' : 'Initialized At',
+      cell: ({ row }) => (
+        <DateCell
+          participant={row.original}
+          marathonMode={marathonMode}
+          createdAt={row.getValue('createdAt') as string}
+        />
+      ),
     },
-  })
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <SubmissionStatusBadge
+          participant={row.original}
+          status={row.getValue('status') as string}
+        />
+      ),
+    },
+    {
+      id: 'uploadProgress',
+      header: 'Upload',
+      cell: ({ row }) => (
+        <UploadProgressBadge participant={row.original} marathonMode={marathonMode} />
+      ),
+    },
+  ]
+}
 
-  if (marathonMode === 'by-camera') {
-    baseColumns.push({
+function getByCameraColumns(): ColumnDef<RealtimeEnrichedSubmissionTableRow>[] {
+  return [
+    {
       id: 'voted',
       header: 'Voted',
-      cell: ({ row }) => {
-        const votedAt = row.original.votingSession?.votedAt
-        if (votedAt) {
-          const date = new Date(votedAt)
-          return (
-            <Badge
-              variant="default"
-              className="gap-1 text-xs font-medium h-5 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
-            >
-              <CheckCircle2 className="size-2.5" />
-              Voted on{' '}
-              {date.toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })}
-            </Badge>
-          )
-        }
-        return (
-          <Badge
-            variant="outline"
-            className="gap-1 text-xs font-medium h-5 px-1.5 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
-          >
-            <Clock className="size-2.5" />
-            Not voted
-          </Badge>
-        )
-      },
-    })
-  } else {
-    baseColumns.push({
+      cell: ({ row }) => <VotedBadge votedAt={row.original.votingSession?.votedAt} />,
+    },
+  ]
+}
+
+function getMarathonColumns(): ColumnDef<RealtimeEnrichedSubmissionTableRow>[] {
+  return [
+    {
       id: 'competitionClass',
       header: 'Class',
-      cell: ({ row }) => {
-        const competitionClass = row.original.competitionClass
-        return <div className="text-xs">{competitionClass?.name || '-'}</div>
-      },
-    })
-  }
-
-  baseColumns.push({
-    id: 'deviceGroup',
-    header: 'Device Group',
-    cell: ({ row }) => {
-      const deviceGroup = row.original.deviceGroup
-      return <div className="text-xs">{deviceGroup?.name || '-'}</div>
+      cell: ({ row }) => <CompetitionClassCell participant={row.original} />,
     },
-  })
+  ]
+}
 
-  if (marathonMode !== 'by-camera') {
-    baseColumns.push({
+function getDeviceGroupColumns(): ColumnDef<RealtimeEnrichedSubmissionTableRow>[] {
+  return [
+    {
+      id: 'deviceGroup',
+      header: 'Device Group',
+      cell: ({ row }) => <DeviceGroupCell participant={row.original} />,
+    },
+  ]
+}
+
+function getValidationColumns(): ColumnDef<RealtimeEnrichedSubmissionTableRow>[] {
+  return [
+    {
       id: 'validationResults',
       header: 'Validation Results',
-      cell: ({ row }) => {
-        const submissionHealth = row.original.submissionHealth
-        const hasMissingExif = submissionHealth !== null && !submissionHealth.hasExif
-        const failed = row.original.failedValidationResults
-        const passed = row.original.passedValidationResults
-        const skipped = row.original.skippedValidationResults
-        const failedCount = failed.errors + failed.warnings
-        const passedCount = passed.errors + passed.warnings
-        const skippedCount = skipped.errors + skipped.warnings
-        return (
-          <div className="flex items-center gap-1.5">
-            {failedCount > 0 && (
-              <Badge variant="destructive" className="gap-1 text-xs font-medium h-5 px-1.5">
-                <XCircle className="size-2.5" />
-                {failedCount}
-              </Badge>
-            )}
-            {passedCount > 0 && (
-              <Badge
-                variant="default"
-                className="gap-1 text-xs font-medium h-5 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
-              >
-                <CheckCircle2 className="size-2.5" />
-                {passedCount}
-              </Badge>
-            )}
-            {skippedCount > 0 && (
-              <Badge
-                variant="outline"
-                className="gap-1 text-xs font-medium h-5 px-1.5 text-muted-foreground"
-              >
-                <AlertCircle className="size-2.5" />
-                {skippedCount}
-              </Badge>
-            )}
-            {hasMissingExif && (
-              <Badge
-                variant="outline"
-                className="gap-1 text-xs font-medium h-5 px-1.5 border-amber-200 bg-amber-50 text-amber-700"
-                title="Active submission is missing EXIF"
-              >
-                <Info className="size-2.5" />
-                No EXIF
-              </Badge>
-            )}
-            {failedCount === 0 && passedCount === 0 && skippedCount === 0 && (
-              <span className="text-xs text-muted-foreground">-</span>
-            )}
-          </div>
-        )
-      },
-    })
-  }
-
-  baseColumns.push({
-    id: 'openIndicator',
-    enableSorting: false,
-    header: () => <span className="sr-only">Open details</span>,
-    cell: () => (
-      <div className="flex justify-end">
-        <ChevronRight className="size-3.5 text-muted-foreground/80 shrink-0" aria-hidden />
-      </div>
-    ),
-  })
-
-  return baseColumns
+      cell: ({ row }) => <ValidationResultsBadges participant={row.original} />,
+    },
+  ]
 }
+
+function getTrailingColumns(): ColumnDef<RealtimeEnrichedSubmissionTableRow>[] {
+  return [
+    {
+      id: 'openIndicator',
+      enableSorting: false,
+      header: () => <span className="sr-only">Open details</span>,
+      cell: () => <OpenIndicatorCell />,
+    },
+  ]
+}
+
+export const getSubmissionsColumns = (
+  options: SubmissionsColumnsOptions,
+): ColumnDef<RealtimeEnrichedSubmissionTableRow>[] => [
+  getSelectionColumn(options),
+  ...getCommonColumns(options),
+  ...(options.marathonMode === 'by-camera' ? getByCameraColumns() : getMarathonColumns()),
+  ...getDeviceGroupColumns(),
+  ...(options.marathonMode !== 'by-camera' ? getValidationColumns() : []),
+  ...getTrailingColumns(),
+]
