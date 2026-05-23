@@ -2,8 +2,6 @@ import type { Marathon, Topic } from '@blikka/db'
 
 type TopicWithVisibility = Pick<Topic, 'visibility'> | { visibility: string }
 
-type TopicWithId = TopicWithVisibility & Pick<Topic, 'id'>
-
 type MarathonWithTopics<T extends TopicWithVisibility> = Pick<Marathon, 'mode'> & {
   topics: Iterable<T> | T[]
 }
@@ -28,19 +26,4 @@ export function getActiveByCameraTopic<T extends TopicWithVisibility>(
     return null
   }
   return findActiveTopic(marathon.topics)
-}
-
-/** Active by-camera topic id for queries; null outside by-camera mode. */
-export function getActiveByCameraTopicId<T extends TopicWithId>(
-  marathon: MarathonWithTopics<T>,
-  options?: { missingIdFallback?: number | null },
-): number | null {
-  const topic = getActiveByCameraTopic(marathon)
-  if (topic) {
-    return topic.id
-  }
-  if (marathon.mode === 'by-camera') {
-    return options?.missingIdFallback ?? null
-  }
-  return null
 }

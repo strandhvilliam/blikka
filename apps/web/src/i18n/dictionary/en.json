@@ -358,6 +358,12 @@
     "photoPlaceholder": "Photo {id}",
     "photoProcessing": "Preparing your photo…",
     "secondsSuffix": "({seconds}s)",
+    "byCameraNotUploadedTitle": "You haven't uploaded",
+    "byCameraNotUploadedMessage": "You haven't uploaded a photo for {topic} yet.",
+    "byCameraGoToLive": "Go to upload page",
+    "byCameraMissedTopicTitle": "You didn't take part in this topic",
+    "byCameraMissedTopicMessage": "The upload period for {topic} has ended. You can close this page.",
+    "byCameraCurrentTopic": "the current topic",
     "steps": {
       "1": "We verify all photo series while you sleep well. (Save your photos for a week in case something goes wrong)",
       "2": "The photos go to print already at the beginning of next week",

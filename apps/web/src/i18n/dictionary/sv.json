@@ -358,6 +358,12 @@
     "photoPlaceholder": "Foto {id}",
     "photoProcessing": "Förbereder ditt foto…",
     "secondsSuffix": "({seconds}s)",
+    "byCameraNotUploadedTitle": "Du har inte laddat upp",
+    "byCameraNotUploadedMessage": "Du har inte laddat upp något foto för {topic} än.",
+    "byCameraGoToLive": "Gå till uppladdningssidan",
+    "byCameraMissedTopicTitle": "Du deltog inte i detta tema",
+    "byCameraMissedTopicMessage": "Uppladdningsperioden för {topic} har avslutats. Du kan stänga den här sidan.",
+    "byCameraCurrentTopic": "aktuella temat",
     "steps": {
       "1": "Vi verifierar alla bildserier medan ni sover gott. (Spara era bilder i en vecka i fall vi hittar något fel)",
       "2": "Bilderna går till tryck redan i början av nästa vecka",

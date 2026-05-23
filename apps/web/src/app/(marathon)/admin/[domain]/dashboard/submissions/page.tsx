@@ -1,4 +1,4 @@
-import { getActiveByCameraTopicId } from '@/lib/by-camera/by-camera-active-topic'
+import { getActiveByCameraTopic } from '@/lib/by-camera/by-camera-active-topic'
 import { fetchServerQuery, HydrateClient, prefetch, trpc } from '@/lib/trpc/server'
 import { Suspense } from 'react'
 import { loadSubmissionSearchParams } from './_lib/search-params'
@@ -15,7 +15,8 @@ export default async function SubmissionsPage({
       domain,
     }),
   )
-  const activeByCameraTopicId = getActiveByCameraTopicId(marathon, { missingIdFallback: -1 })
+  const activeByCameraTopicId =
+    getActiveByCameraTopic(marathon)?.id ?? (marathon.mode === 'by-camera' ? -1 : null)
   const queryParams = await loadSubmissionSearchParams(searchParams)
   prefetch(
     trpc.participants.getByDomainInfinite.queryOptions({

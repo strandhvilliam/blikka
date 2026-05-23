@@ -3,10 +3,13 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslations } from 'next-intl'
-import { ArrowRight, Check, Clock, MoreVertical, Recycle } from 'lucide-react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { ArrowRight, Check, MoreVertical, Recycle } from 'lucide-react'
 import { Icon } from '@iconify/react'
 
-import { PrimaryButton } from '@/components/ui/primary-button'
+import { buildS3Url, formatDomainPathname } from '@/lib/utils'
+import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -16,6 +19,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 import { ConfirmationDetailsDialog } from './confirmation-details-dialog'
+
+const THUMBNAILS_BUCKET = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
+const SUBMISSIONS_BUCKET = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
 
 export interface ConfirmationImage {
   imageUrl: string | undefined
@@ -29,25 +35,36 @@ interface ConfirmationMarathonClientProps {
     participantFirstName: string
     participantLastName: string
   }
-  participant: {
-    reference: string
-    deviceGroup?: { name: string } | null
-    competitionClass?: { name: string } | null
-  }
-  images: ConfirmationImage[]
-  submissionsCount: number
-  handleRedirect: () => void
 }
 
-export function ConfirmationMarathonClient({
-  params,
-  participant,
-  images,
-  submissionsCount,
-  handleRedirect,
-}: ConfirmationMarathonClientProps) {
+export function ConfirmationMarathonClient({ params }: ConfirmationMarathonClientProps) {
+  const domain = useDomain()
+  const trpc = useTRPC()
   const t = useTranslations('ConfirmationPage')
   const [selectedImage, setSelectedImage] = useState<ConfirmationImage | null>(null)
+
+  const handleRedirect = () => {
+    window.location.replace(formatDomainPathname('/live/marathon', domain, 'live'))
+  }
+
+  const { data: participant } = useSuspenseQuery(
+    trpc.participants.getPublicParticipantByReference.queryOptions({
+      reference: params.participantRef ?? '',
+      domain,
+    }),
+  )
+
+  const submissions = participant?.publicSubmissions ? [...participant.publicSubmissions] : []
+
+  const images = submissions
+    .sort((a, b) => (a.topic?.orderIndex ?? 0) - (b.topic?.orderIndex ?? 0))
+    .map((submission) => ({
+      imageUrl:
+        buildS3Url(THUMBNAILS_BUCKET, submission.thumbnailKey) ??
+        buildS3Url(SUBMISSIONS_BUCKET, submission.key),
+      name: submission.topic?.name ?? t('photoPlaceholder') ?? '',
+      orderIndex: submission.topic?.orderIndex ?? 0,
+    }))
   return (
     <div className="mx-auto flex min-h-dvh max-w-[540px] flex-col px-6 py-8">
       {/* Header Menu */}
@@ -120,7 +137,7 @@ export function ConfirmationMarathonClient({
             transition={{ delay: 0.4 }}
             className="mt-2 text-sm text-muted-foreground"
           >
-            {t('photosUploaded', { count: submissionsCount })}
+            {t('photosUploaded', { count: submissions.length })}
           </motion.p>
         </motion.div>
 

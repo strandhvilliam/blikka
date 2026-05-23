@@ -5,7 +5,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { useDomain } from '@/lib/domain-provider'
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll'
-import { getActiveByCameraTopicId } from '@/lib/by-camera/by-camera-active-topic'
+import { getActiveByCameraTopic } from '@/lib/by-camera/by-camera-active-topic'
 import { getTabQueryParams, normalizeSubmissionTabForMode } from '../_lib/submissions-tabs'
 import { useSubmissionsQueryState } from './use-submissions-query-state'
 import type { SubmissionTableRow, SubmissionsMarathon } from '../_lib/submissions-types'
@@ -36,7 +36,8 @@ export function useSubmissionsQuery({ marathon }: UseSubmissionsQueryInput) {
   const normalizedTab = normalizeSubmissionTabForMode(queryState.tab, marathon.mode)
   const tabQueryParams = getTabQueryParams(normalizedTab)
 
-  const activeByCameraTopicId = getActiveByCameraTopicId(marathon, { missingIdFallback: -1 })
+  const activeByCameraTopicId =
+    getActiveByCameraTopic(marathon)?.id ?? (marathon.mode === 'by-camera' ? -1 : null)
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     useInfiniteQuery(

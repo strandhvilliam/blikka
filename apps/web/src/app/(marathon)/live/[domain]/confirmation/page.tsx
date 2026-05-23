@@ -16,6 +16,7 @@ export default async function ConfirmationPage({
     return notFound()
   }
 
+  prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }))
   prefetch(
     trpc.participants.getPublicParticipantByReference.queryOptions({
       domain,
