@@ -3,11 +3,6 @@ import { SharpImageService, SharpImageServiceLayer } from './sharp-image-service
 import type { SponsorPosition, SheetVariables } from '../types'
 import type { SharpError } from './sharp-image-service'
 
-const CANVAS_WIDTH = 3986
-const CANVAS_HEIGHT = 2657
-const LANDSCAPE_ASPECT_RATIO = 3 / 2
-const DEFAULT_PADDING = 30
-
 const SMALL_GRID_SIZE = 3
 const LARGE_GRID_SIZE = 5
 const SMALL_IMAGE_COUNT = 8
@@ -24,23 +19,72 @@ const RIGHT_COL_SMALL = 2
 const CENTER_COL_LARGE = 2
 const RIGHT_COL_LARGE = 4
 
-const ROW_SPACING = 10
-const EXTRA_SPACING_ADJUSTMENT = 12
-const TEXT_SPACING_REDUCTION = 32
-const TEXT_TOP_GAP = 4
-const IMAGE_SIZE_FACTOR = 0.99
-const SEQUENCE_BOTTOM_MARGIN = 32
-
-const TEXT_HEIGHT_RATIO = 0.025
-const SEQUENCE_SPACE_RATIO = 0.04
-const LABEL_FONT_SIZE = 28
-const SEQUENCE_FONT_SIZE_MIN = 32
-const SEQUENCE_FONT_SIZE_RATIO = 0.05
-const SEQUENCE_WIDTH_RATIO = 0.12
-const TEXT_VERTICAL_POSITION = 0.45
 const LABEL_INDEX_OFFSET = 1
 
 const WHITE_BACKGROUND = '#ffffff'
+
+export type ContactSheetFormat = 'classic' | 'a3'
+
+export interface ContactSheetLayoutConfig {
+  readonly canvasWidth: number
+  readonly canvasHeight: number
+  readonly landscapeAspectRatio: number
+  readonly padding: number
+  readonly rowSpacing: number
+  readonly extraSpacingAdjustment: number
+  readonly textSpacingReduction: number
+  readonly textTopGap: number
+  readonly imageSizeFactor: number
+  readonly textHeightRatio: number
+  readonly sequenceSpaceRatio: number
+  readonly labelFontSize: number
+  readonly sequenceFontSizeMin: number
+  readonly sequenceFontSizeRatio: number
+  readonly sequenceWidthRatio: number
+  readonly sequenceBottomMargin: number
+  readonly textVerticalPosition: number
+}
+
+export const CONTACT_SHEET_LAYOUTS = {
+  classic: {
+    canvasWidth: 3986,
+    canvasHeight: 2657,
+    landscapeAspectRatio: 3 / 2,
+    padding: 30,
+    rowSpacing: 10,
+    extraSpacingAdjustment: 12,
+    textSpacingReduction: 32,
+    textTopGap: 4,
+    imageSizeFactor: 0.99,
+    textHeightRatio: 0.025,
+    sequenceSpaceRatio: 0.04,
+    labelFontSize: 28,
+    sequenceFontSizeMin: 32,
+    sequenceFontSizeRatio: 0.05,
+    sequenceWidthRatio: 0.12,
+    sequenceBottomMargin: 32,
+    textVerticalPosition: 0.45,
+  },
+  a3: {
+    canvasWidth: 4961,
+    canvasHeight: 3508,
+    landscapeAspectRatio: 3 / 2,
+    padding: 40,
+    rowSpacing: 13,
+    extraSpacingAdjustment: 16,
+    textSpacingReduction: 42,
+    textTopGap: 5,
+    imageSizeFactor: 0.99,
+    textHeightRatio: 0.025,
+    sequenceSpaceRatio: 0.04,
+    labelFontSize: 37,
+    sequenceFontSizeMin: 42,
+    sequenceFontSizeRatio: 0.05,
+    sequenceWidthRatio: 0.12,
+    sequenceBottomMargin: 42,
+    textVerticalPosition: 0.45,
+  },
+} satisfies Record<ContactSheetFormat, ContactSheetLayoutConfig>
 
 export class InvalidSheetParamsError extends Schema.TaggedErrorClass<InvalidSheetParamsError>()(
   'InvalidSheetParamsError',
@@ -69,6 +113,7 @@ interface CreateSheetParams {
   sponsorImage?: Buffer | Uint8Array
   sponsorPosition: SponsorPosition
   topics: ReadonlyArray<{ name: string; orderIndex: number }>
+  format?: ContactSheetFormat
 }
 
 export type ContactSheetError = InvalidSheetParamsError | ContactSheetBuildError
@@ -131,26 +176,31 @@ function escapeXml(unsafe: string) {
     .replace(/'/g, '&apos;')
 }
 
-function calculateSheetVariables(reference: string, cols: number, rows: number): SheetVariables {
-  const textHeight = Math.round(CANVAS_HEIGHT * TEXT_HEIGHT_RATIO)
-  const sequenceSpace = reference ? Math.round(CANVAS_HEIGHT * SEQUENCE_SPACE_RATIO) : 0
+function calculateSheetVariables(
+  reference: string,
+  cols: number,
+  rows: number,
+  layout: ContactSheetLayoutConfig,
+): SheetVariables {
+  const textHeight = Math.round(layout.canvasHeight * layout.textHeightRatio)
+  const sequenceSpace = reference ? Math.round(layout.canvasHeight * layout.sequenceSpaceRatio) : 0
 
-  const availableWidth = CANVAS_WIDTH - DEFAULT_PADDING * (cols + 1)
+  const availableWidth = layout.canvasWidth - layout.padding * (cols + 1)
   const availableHeight =
-    CANVAS_HEIGHT - DEFAULT_PADDING * (rows + 1) - sequenceSpace + EXTRA_SPACING_ADJUSTMENT
+    layout.canvasHeight - layout.padding * (rows + 1) - sequenceSpace + layout.extraSpacingAdjustment
 
   const cellWidth = Math.floor(availableWidth / cols)
   const cellHeight = Math.floor(availableHeight / rows)
-  const availableImageHeight = cellHeight - (textHeight - TEXT_SPACING_REDUCTION)
+  const availableImageHeight = cellHeight - (textHeight - layout.textSpacingReduction)
 
   let imageWidth: number
   let imageHeight: number
-  if (cellWidth / availableImageHeight > LANDSCAPE_ASPECT_RATIO) {
-    imageHeight = Math.floor(availableImageHeight * IMAGE_SIZE_FACTOR)
-    imageWidth = Math.floor(imageHeight * LANDSCAPE_ASPECT_RATIO)
+  if (cellWidth / availableImageHeight > layout.landscapeAspectRatio) {
+    imageHeight = Math.floor(availableImageHeight * layout.imageSizeFactor)
+    imageWidth = Math.floor(imageHeight * layout.landscapeAspectRatio)
   } else {
-    imageWidth = Math.floor(cellWidth * IMAGE_SIZE_FACTOR)
-    imageHeight = Math.floor(imageWidth / LANDSCAPE_ASPECT_RATIO)
+    imageWidth = Math.floor(cellWidth * layout.imageSizeFactor)
+    imageHeight = Math.floor(imageWidth / layout.landscapeAspectRatio)
   }
 
   return {
@@ -193,14 +243,16 @@ function calculateCoordinateValues({
   col,
   row,
   sheetVariables,
+  layout,
 }: {
   col: number
   row: number
   sheetVariables: SheetVariables
+  layout: ContactSheetLayoutConfig
 }) {
   return {
-    x: DEFAULT_PADDING + col * (sheetVariables.cellWidth + DEFAULT_PADDING),
-    y: DEFAULT_PADDING * 2 + row * (sheetVariables.cellHeight + ROW_SPACING),
+    x: layout.padding + col * (sheetVariables.cellWidth + layout.padding),
+    y: layout.padding * 2 + row * (sheetVariables.cellHeight + layout.rowSpacing),
   }
 }
 
@@ -210,28 +262,37 @@ function getCellPositions(rows: number, cols: number) {
   ).flat()
 }
 
-function getParticipantReferenceCompositePart(participantReferenceSvg: Buffer): CompositeImage {
-  const seqWidth = Math.floor(CANVAS_WIDTH * SEQUENCE_WIDTH_RATIO)
-  const seqHeight = Math.floor(CANVAS_HEIGHT)
+function getParticipantReferenceCompositePart(
+  participantReferenceSvg: Buffer,
+  layout: ContactSheetLayoutConfig,
+): CompositeImage {
+  const seqWidth = Math.floor(layout.canvasWidth * layout.sequenceWidthRatio)
+  const seqHeight = Math.floor(layout.canvasHeight)
 
   return {
     input: participantReferenceSvg,
-    top: CANVAS_HEIGHT - seqHeight,
-    left: CANVAS_WIDTH - seqWidth,
+    top: layout.canvasHeight - seqHeight,
+    left: layout.canvasWidth - seqWidth,
   }
 }
 
-function generateParticipantReferenceSvg({ reference }: { reference: string }) {
+function generateParticipantReferenceSvg({
+  reference,
+  layout,
+}: {
+  reference: string
+  layout: ContactSheetLayoutConfig
+}) {
   const seqFontSize = Math.max(
-    SEQUENCE_FONT_SIZE_MIN,
-    Math.floor(CANVAS_HEIGHT * SEQUENCE_FONT_SIZE_RATIO),
+    layout.sequenceFontSizeMin,
+    Math.floor(layout.canvasHeight * layout.sequenceFontSizeRatio),
   )
-  const seqWidth = Math.floor(CANVAS_WIDTH * SEQUENCE_WIDTH_RATIO)
-  const seqHeight = Math.floor(CANVAS_HEIGHT)
+  const seqWidth = Math.floor(layout.canvasWidth * layout.sequenceWidthRatio)
+  const seqHeight = Math.floor(layout.canvasHeight)
 
   const seqSvg = `
       <svg width="${seqWidth}" height="${seqHeight}">
-        <text x="${seqWidth / 2}" y="${seqHeight - SEQUENCE_BOTTOM_MARGIN}" 
+        <text x="${seqWidth / 2}" y="${seqHeight - layout.sequenceBottomMargin}" 
               font-family="Arial, sans-serif" 
               font-size="${seqFontSize}" 
               font-weight="bold"
@@ -245,15 +306,17 @@ function generateParticipantReferenceSvg({ reference }: { reference: string }) {
 function generateTextLabelSvg({
   label,
   sheetVariables,
+  layout,
 }: {
   label: string
   sheetVariables: SheetVariables
+  layout: ContactSheetLayoutConfig
 }) {
   const textSvg = `
         <svg width="${sheetVariables.cellWidth}" height="${sheetVariables.textHeight}">
-          <text x="${Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)}" y="${sheetVariables.textHeight * TEXT_VERTICAL_POSITION}" 
+          <text x="${Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)}" y="${sheetVariables.textHeight * layout.textVerticalPosition}" 
                 font-family="Arial, sans-serif" 
-                font-size="${LABEL_FONT_SIZE}" 
+                font-size="${layout.labelFontSize}" 
                 font-weight="medium"
                 fill="black" 
                 text-anchor="start"
@@ -304,6 +367,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
     orderIndex: number,
     topics: ReadonlyArray<{ name: string; orderIndex: number }>,
     sheetVariables: SheetVariables,
+    layout: ContactSheetLayoutConfig,
   ) {
     const image = yield* sharp.prepareForCanvas(
       Buffer.from(imageFile),
@@ -323,6 +387,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
     const textBuffer = generateTextLabelSvg({
       sheetVariables,
       label,
+      layout,
     })
 
     return {
@@ -336,6 +401,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
   )(
     function* (params: CreateSheetParams) {
       const { reference, images, sponsorImage, sponsorPosition, topics } = params
+      const layout = CONTACT_SHEET_LAYOUTS[params.format ?? 'classic']
 
       const imageFiles = yield* validateAndSortImageFiles(images)
 
@@ -343,7 +409,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
         sponsorPosition,
         imageFiles.length,
       )
-      const sheetVariables = calculateSheetVariables(reference, cols, rows)
+      const sheetVariables = calculateSheetVariables(reference, cols, rows, layout)
 
       const cellPositions = getCellPositions(rows, cols)
       let nextImageIndex = 0
@@ -362,6 +428,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
               col,
               row,
               sheetVariables,
+              layout,
             })
             const imagePosition = getImagePosition({
               x,
@@ -398,12 +465,13 @@ const makeContactSheetBuilder = Effect.gen(function* () {
                 file.orderIndex,
                 topics,
                 sheetVariables,
+                layout,
               )
               return [
                 { input: image, ...imagePosition },
                 {
                   input: textBuffer,
-                  top: y + sheetVariables.availableImageHeight + TEXT_TOP_GAP,
+                  top: y + sheetVariables.availableImageHeight + layout.textTopGap,
                   left: x,
                 },
               ]
@@ -416,13 +484,14 @@ const makeContactSheetBuilder = Effect.gen(function* () {
 
       const participantReferenceSvg = generateParticipantReferenceSvg({
         reference,
+        layout,
       })
       const participantReferenceCompositePart =
-        getParticipantReferenceCompositePart(participantReferenceSvg)
+        getParticipantReferenceCompositePart(participantReferenceSvg, layout)
 
       const finalSheet = yield* sharp.createCanvasSheet({
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
+        width: layout.canvasWidth,
+        height: layout.canvasHeight,
         background: WHITE_BACKGROUND,
         items: [...compositeImages, participantReferenceCompositePart],
       })

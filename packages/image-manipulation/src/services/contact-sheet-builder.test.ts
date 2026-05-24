@@ -185,6 +185,60 @@ describe('ContactSheetBuilder', () => {
     }),
   )
 
+  it.effect('builds an explicit classic contact sheet with the current canvas size', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(makeInitialState(), () =>
+        Effect.gen(function* () {
+          const builder = yield* ContactSheetBuilder
+          yield* builder.createSheet({
+            reference: 'REF123',
+            images: makeImages(8),
+            sponsorImage: Buffer.from('sponsor'),
+            sponsorPosition: 'bottom-right',
+            topics: makeTopics(8),
+            format: 'classic',
+          })
+        }),
+      )
+
+      assert.strictEqual(state.canvasCalls[0]?.width, 3986)
+      assert.strictEqual(state.canvasCalls[0]?.height, 2657)
+      assert.strictEqual(state.prepareCalls[0]?.width, 1288)
+      assert.strictEqual(state.prepareCalls[0]?.height, 780)
+      assert.strictEqual(state.prepareCalls[8]?.width, 1288)
+      assert.strictEqual(state.prepareCalls[8]?.height, 814)
+    }),
+  )
+
+  it.effect('builds an A3 contact sheet using landscape A3 dimensions', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(makeInitialState(), () =>
+        Effect.gen(function* () {
+          const builder = yield* ContactSheetBuilder
+          yield* builder.createSheet({
+            reference: 'A3<&>',
+            images: makeImages(8),
+            sponsorImage: Buffer.from('sponsor'),
+            sponsorPosition: 'bottom-right',
+            topics: makeTopics(8),
+            format: 'a3',
+          })
+        }),
+      )
+
+      assert.strictEqual(state.canvasCalls[0]?.width, 4961)
+      assert.strictEqual(state.canvasCalls[0]?.height, 3508)
+      assert.strictEqual(state.prepareCalls[0]?.width, 1600)
+      assert.strictEqual(state.prepareCalls[0]?.height, 1028)
+      assert.strictEqual(state.prepareCalls[8]?.width, 1600)
+      assert.strictEqual(state.prepareCalls[8]?.height, 1074)
+
+      const referenceSvg = state.canvasCalls[0]?.items.at(-1)?.input
+      assert.instanceOf(referenceSvg, Buffer)
+      assert.include(referenceSvg?.toString(), 'A3&lt;&amp;&gt;')
+    }),
+  )
+
   it.effect('fails before image processing when the image count is invalid', () =>
     Effect.gen(function* () {
       const { result, state } = yield* runWithState(makeInitialState(), () =>
