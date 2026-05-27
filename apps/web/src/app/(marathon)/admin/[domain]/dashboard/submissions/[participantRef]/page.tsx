@@ -23,7 +23,7 @@ export default async function ParticipantsPage({
 
   return (
     <HydrateClient>
-      <div className="mx-auto max-w-5xl px-6 py-4 space-y-6">
+      <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 space-y-5">
         <Suspense fallback={<ParticipantHeaderSkeleton />}>
           <ParticipantHeader participantRef={participantRef} />
         </Suspense>

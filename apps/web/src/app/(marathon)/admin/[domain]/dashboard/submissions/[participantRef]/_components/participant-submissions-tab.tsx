@@ -2,7 +2,6 @@
 
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
-import { AnimatePresence } from 'motion/react'
 import { ParticipantSubmissionCard } from './participant-submission-card'
 import { cn } from '@/lib/utils'
 import { useDomain } from '@/lib/domain-provider'
@@ -40,21 +39,19 @@ export function ParticipantSubmissionsTab({ participantRef }: { participantRef: 
         data.length < 12 ? 'xl:grid-cols-4' : 'xl:grid-cols-6',
       )}
     >
-      <AnimatePresence>
-        {data.map(({ submission, validationResults }) => (
-          <ParticipantSubmissionCard
-            key={submission.id}
-            participantRef={participantRef}
-            submission={submission}
-            validationResults={validationResults}
-          />
-        ))}
-        {data.length === 0 && (
-          <div className="col-span-full text-center text-muted-foreground py-12">
-            No photos submitted yet
-          </div>
-        )}
-      </AnimatePresence>
+      {data.map(({ submission, validationResults }) => (
+        <ParticipantSubmissionCard
+          key={submission.id}
+          participantRef={participantRef}
+          submission={submission}
+          validationResults={validationResults}
+        />
+      ))}
+      {data.length === 0 && (
+        <div className="col-span-full text-center text-muted-foreground py-12">
+          No photos submitted yet
+        </div>
+      )}
     </div>
   )
 }
