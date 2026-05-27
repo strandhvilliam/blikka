@@ -11,6 +11,11 @@ import { useTRPC } from '@/lib/trpc/client'
 import { cn, formatDomainPathname } from '@/lib/utils'
 import { CONTACT_SHEET_FORMATS, type ContactSheetFormatKey } from '@/lib/contact-sheet/constants'
 
+const PHOTO_COUNT_HELP =
+  " (8 or 24) comes from each participant's competition class, not this setting."
+const NEW_UPLOADS_HELP =
+  ' use the format you save here. Already generated sheets stay as they are until you regenerate them from a participant page.'
+
 const FORMAT_OPTIONS = Object.entries(CONTACT_SHEET_FORMATS).map(([key, config]) => ({
   key: key as ContactSheetFormatKey,
   ...config,
@@ -62,7 +67,7 @@ function FormatPreviewCard({
             className="mt-0.5 text-xs text-muted-foreground"
             style={{ fontVariantNumeric: 'tabular-nums' }}
           >
-            {width.toLocaleString()} × {height.toLocaleString()} px
+            {width.toLocaleString('en-US')} × {height.toLocaleString('en-US')} px
           </p>
         </div>
         {isSelected ? (
@@ -169,39 +174,40 @@ export function ContactSheetRunSettings() {
   }
 
   return (
-    <section className="mt-10 border-t border-border/80 pt-10">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10">
-            <Upload
-              aria-hidden="true"
-              className="h-[18px] w-[18px] text-brand-primary"
-              strokeWidth={1.8}
-            />
+    <section>
+      <div className="mb-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10">
+              <Upload
+                aria-hidden="true"
+                className="h-[18px] w-[18px] text-brand-primary"
+                strokeWidth={1.8}
+              />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                Auto-generated
+              </p>
+              <h1 className="text-2xl font-bold tracking-tight font-gothic leading-none">
+                Production contact sheets
+              </h1>
+            </div>
           </div>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-              Auto-generated
-            </p>
-            <h2 className="font-gothic text-xl font-medium leading-none tracking-tight">
-              Production contact sheets
-            </h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-              Sheets generated automatically when a participant finishes uploading. This is separate
-              from the preview builder above.
-            </p>
-          </div>
-        </div>
 
-        {isDirty ? (
-          <p className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900">
-            Unsaved changes
-          </p>
-        ) : (
-          <p className="shrink-0 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-3 py-1 text-xs font-medium text-emerald-800">
-            Using {CONTACT_SHEET_FORMATS[savedFormat].label}
-          </p>
-        )}
+          {isDirty ? (
+            <p className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900">
+              Unsaved changes
+            </p>
+          ) : (
+            <p className="shrink-0 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-3 py-1 text-xs font-medium text-emerald-800">
+              {`Using ${CONTACT_SHEET_FORMATS[savedFormat].label}`}
+            </p>
+          )}
+        </div>
+        <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
+          {`Sheets generated automatically when a participant finishes uploading. This is separate from the preview builder below.`}
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -224,29 +230,18 @@ export function ContactSheetRunSettings() {
         <aside className="flex flex-col justify-between gap-4 rounded-xl border border-border bg-muted/15 p-4">
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">Photo count</span> (8 or 24) comes from
-              each participant&apos;s{' '}
-              <Link
-                href={classesHref}
-                className="font-medium text-brand-primary underline-offset-2 hover:underline"
-              >
-                competition class
-              </Link>
-              , not this setting.
+              <span className="font-medium text-foreground">Photo count</span>
+              {PHOTO_COUNT_HELP}
             </p>
             <p>
-              <span className="font-medium text-foreground">New uploads</span> use the format you
-              save here. Already generated sheets stay as they are until you regenerate them from a
-              participant page.
+              <span className="font-medium text-foreground">New uploads</span>
+              {NEW_UPLOADS_HELP}
             </p>
           </div>
 
           <div className="space-y-3 border-t border-border/60 pt-4">
             <p className="text-xs text-muted-foreground">
-              Selected:{' '}
-              <span className="font-medium text-foreground">
-                {selectedConfig.label} ({selectedConfig.width} × {selectedConfig.height})
-              </span>
+              {`Selected: ${selectedConfig.label} (${selectedConfig.width} × ${selectedConfig.height})`}
             </p>
             <PrimaryButton
               type="button"

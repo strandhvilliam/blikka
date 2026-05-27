@@ -3,15 +3,7 @@
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import {
-  AlertCircle,
-  CheckCircle2,
-  Download,
-  Grid3x3,
-  Loader2,
-  Trash2,
-  Upload,
-} from 'lucide-react'
+import { AlertCircle, CheckCircle2, Download, Grid3x3, Loader2, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { SponsorPosition } from '@blikka/image-manipulation'
 import {
@@ -81,9 +73,7 @@ export function ContactSheetEditor() {
   const targetSlotRef = useRef<number | null>(null)
 
   const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
-  const { data: sponsors } = useSuspenseQuery(
-    trpc.sponsors.getByMarathon.queryOptions({ domain }),
-  )
+  const { data: sponsors } = useSuspenseQuery(trpc.sponsors.getByMarathon.queryOptions({ domain }))
 
   const contactSheetsSponsor = resolveContactSheetsSponsor(sponsors)
 
@@ -103,10 +93,8 @@ export function ContactSheetEditor() {
   const topicLabels = topicsForSheet.map((topic) => topic.name)
 
   const sponsorPreviewUrl =
-    buildS3Url(
-      process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME,
-      contactSheetsSponsor?.key,
-    ) ?? null
+    buildS3Url(process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME, contactSheetsSponsor?.key) ??
+    null
 
   const filledCount = slots.filter((slot) => slot.file).length
   const missingPhotoCount = photoCount - filledCount
@@ -260,21 +248,25 @@ export function ContactSheetEditor() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-10">
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10">
-            <Grid3x3 aria-hidden="true" className="h-[18px] w-[18px] text-brand-primary" strokeWidth={1.8} />
+            <Grid3x3
+              aria-hidden="true"
+              className="h-[18px] w-[18px] text-brand-primary"
+              strokeWidth={1.8}
+            />
           </div>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
               Print
             </p>
-            <h1 className="font-gothic text-2xl font-bold leading-none tracking-tight">
-              Contact Sheet
+            <h1 className="text-2xl font-bold tracking-tight font-gothic leading-none">
+              Manual Contact Sheet
             </h1>
           </div>
         </div>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
           Click a cell to upload, drag photos in from your desktop, or drag cells to swap. Topic
           labels come from your marathon topics and stay fixed per slot. The sponsor image is
           managed in{' '}
@@ -460,10 +452,7 @@ export function ContactSheetEditor() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   {isComplete ? (
-                    <CheckCircle2
-                      aria-hidden="true"
-                      className="h-4 w-4 text-emerald-600"
-                    />
+                    <CheckCircle2 aria-hidden="true" className="h-4 w-4 text-emerald-600" />
                   ) : showValidation ? (
                     <AlertCircle aria-hidden="true" className="h-4 w-4 text-destructive" />
                   ) : null}

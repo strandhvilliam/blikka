@@ -4,10 +4,9 @@ import { Suspense } from 'react'
 import { ContactSheetEditor } from './_components/contact-sheet-editor'
 import { ContactSheetEditorSkeleton } from './_components/contact-sheet-editor-skeleton'
 import { ContactSheetRunSettings } from './_components/contact-sheet-run-settings'
+import { ContactSheetSectionDivider } from './_components/contact-sheet-section-divider'
 
-export default async function ContactSheetPage({
-  params,
-}: PageProps<'/admin/[domain]/dashboard'>) {
+export default async function ContactSheetPage({ params }: PageProps<'/admin/[domain]/dashboard'>) {
   const { domain } = await params
 
   const marathon = await fetchServerQuery(
@@ -27,8 +26,9 @@ export default async function ContactSheetPage({
     <HydrateClient>
       <Suspense fallback={<ContactSheetEditorSkeleton />}>
         <div className="mx-auto w-full max-w-6xl px-6 py-4">
-          <ContactSheetEditor />
           <ContactSheetRunSettings />
+          <ContactSheetSectionDivider />
+          <ContactSheetEditor />
         </div>
       </Suspense>
     </HydrateClient>
