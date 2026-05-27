@@ -7,7 +7,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { Download, FileText, Gavel, Handshake, Layers, type LucideIcon } from 'lucide-react'
+import { Download, FileText, Gavel, Grid3x3, Handshake, Layers, type LucideIcon } from 'lucide-react'
 import {
   BookOpen,
   File,
@@ -44,6 +44,11 @@ export const NAV_LINKS = {
       name: 'Export',
       url: '/dashboard/export',
       icon: Download as LucideIcon,
+    },
+    {
+      name: 'Contact Sheet',
+      url: '/dashboard/contact-sheet',
+      icon: Grid3x3 as LucideIcon,
     },
     {
       name: 'Staff',
@@ -103,6 +108,9 @@ export default function SidebarLinks() {
 
   const marathonNavItems = NAV_LINKS.marathon.filter((item) => {
     if (marathon.mode === 'by-camera' && item.url === '/dashboard/jury') {
+      return false
+    }
+    if (marathon.mode === 'by-camera' && item.url === '/dashboard/contact-sheet') {
       return false
     }
     if (marathon.mode === 'marathon' && item.url === '/dashboard/voting') {

@@ -46,7 +46,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { getVotingLifecycleState, getSubmissionLifecycleState } from '@/lib/voting-lifecycle'
 import { findActiveTopic } from '@/lib/by-camera/by-camera-active-topic'
-import { type ByCameraPhase, useByCameraLifecycle } from '../_hooks/use-by-camera-lifecycle'
+import { type ByCameraPhase, useByCameraLifecycle } from '@/hooks/use-by-camera-lifecycle'
 
 interface DashboardStatusDisplayProps {
   domain: string
