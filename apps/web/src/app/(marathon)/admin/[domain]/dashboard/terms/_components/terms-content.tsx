@@ -1,46 +1,78 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Label } from '@/components/ui/label'
+import { useRef, useState } from 'react'
+import { Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { PrimaryButton } from '@/components/ui/primary-button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { useDomain } from '@/lib/domain-provider'
 import { useQueryClient, useSuspenseQuery, useMutation } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { TermsHeader } from './terms-header'
-import { TermsImportField } from '../../settings/_components/terms-import-field'
+import { TermsMarkdownPreview } from '../../settings/_components/terms-markdown-preview'
+import { parseTermsFile } from '../../_lib/parse-terms-file'
+import { cn } from '@/lib/utils'
+import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard'
+
+const EDITOR_HEIGHT_CLASS = 'h-[clamp(360px,calc(100dvh-360px),720px)]'
+
+type EditorMode = 'write' | 'preview'
+
+type TermsEditorProps = {
+  domain: string
+  currentTerms: string
+}
+
+type SaveStatusProps = {
+  isDirty: boolean
+  isSaving: boolean
+  isEmpty: boolean
+}
 
 export function TermsContent() {
   const trpc = useTRPC()
-  const queryClient = useQueryClient()
   const domain = useDomain()
-
-  useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
   const { data: currentTerms } = useSuspenseQuery(
     trpc.marathons.getCurrentTerms.queryOptions({ domain }),
   )
 
+  return (
+    <>
+      <TermsHeader />
+      <TermsEditor key={domain} domain={domain} currentTerms={currentTerms} />
+    </>
+  )
+}
+
+function TermsEditor({ domain, currentTerms }: TermsEditorProps) {
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+
   const getTermsUploadUrlMutation = useMutation(trpc.marathons.getTermsUploadUrl.mutationOptions())
 
   const [termsMarkdown, setTermsMarkdown] = useState(currentTerms)
-  const [hasChanged, setHasChanged] = useState(false)
+  const [mode, setMode] = useState<EditorMode>('write')
   const [isUploading, setIsUploading] = useState(false)
-  const prevDomainRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    if (prevDomainRef.current !== domain) {
-      prevDomainRef.current = domain
-      setTermsMarkdown(currentTerms)
-      setHasChanged(false)
-    }
-  }, [domain, currentTerms])
+  const [pendingImport, setPendingImport] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { mutate: updateMarathonSettings, isPending: isUpdating } = useMutation(
     trpc.marathons.update.mutationOptions({
       onSuccess: () => {
         toast.success('Terms and conditions updated successfully')
-        setHasChanged(false)
       },
       onError: (error) => {
         toast.error(error.message || 'Something went wrong')
@@ -56,9 +88,20 @@ export function TermsContent() {
     }),
   )
 
+  const trimmedTerms = termsMarkdown.trim()
+  const trimmedCurrentTerms = currentTerms.trim()
+  const isSaving = isUploading || isUpdating
+  const isDirty = trimmedTerms !== trimmedCurrentTerms
+  const isEmpty = trimmedTerms.length === 0
+  const canSave = isDirty && !isEmpty && !isSaving
+
+  useUnsavedChangesGuard({
+    enabled: isDirty,
+    message: 'You have unsaved changes to your terms. Leave anyway?',
+  })
+
   const handleTermsUpload = async (file: File): Promise<string | null> => {
     setIsUploading(true)
-
     try {
       const result = await getTermsUploadUrlMutation.mutateAsync({ domain })
       const { key, url } = result
@@ -81,7 +124,7 @@ export function TermsContent() {
   }
 
   const handleSave = async () => {
-    if (!hasChanged || !termsMarkdown.trim()) return
+    if (!canSave) return
 
     const termsFile = new File([termsMarkdown], 'terms-and-conditions.md', {
       type: 'text/markdown',
@@ -97,41 +140,156 @@ export function TermsContent() {
     })
   }
 
-  return (
-    <div>
-      <TermsHeader
-        markdown={termsMarkdown}
-        onSave={handleSave}
-        saveDisabled={!hasChanged || !termsMarkdown.trim() || isUploading || isUpdating}
-        isSaving={isUploading || isUpdating}
-      />
+  const applyImportedMarkdown = (markdown: string) => {
+    setTermsMarkdown(markdown)
+    setMode('write')
+  }
 
-      <section>
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="terms-markdown">Terms and Conditions</Label>
-              <span className="text-xs text-muted-foreground">Markdown only</span>
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const markdown = await parseTermsFile(file)
+      const hasExistingContent = trimmedTerms.length > 0
+      const isDifferentContent = markdown.trim() !== trimmedTerms
+
+      if (hasExistingContent && isDifferentContent) {
+        setPendingImport(markdown)
+      } else {
+        applyImportedMarkdown(markdown)
+      }
+    } catch {
+      toast.error('Failed to import terms file')
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleConfirmImport = () => {
+    if (pendingImport === null) return
+    applyImportedMarkdown(pendingImport)
+    setPendingImport(null)
+  }
+
+  const handleModeChange = (value: string) => {
+    setMode(value as EditorMode)
+  }
+
+  return (
+    <>
+      <div className="flex flex-col rounded-xl border bg-card shadow-sm">
+        <Tabs value={mode} onValueChange={handleModeChange} className="flex flex-col gap-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-3 py-2">
+            <TabsList>
+              <TabsTrigger value="write">Write</TabsTrigger>
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+            </TabsList>
+            <div className="flex items-center gap-2">
+              <span className="hidden text-xs text-muted-foreground sm:inline">Markdown</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleImportClick}
+                disabled={isSaving}
+              >
+                <Upload />
+                Import file
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".md,.txt,.docx"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
+          </div>
+
+          <TabsContent
+            value="write"
+            forceMount
+            className={cn('p-0 data-[state=inactive]:hidden', EDITOR_HEIGHT_CLASS)}
+          >
             <Textarea
               id="terms-markdown"
               value={termsMarkdown}
-              onChange={(e) => {
-                setTermsMarkdown(e.target.value)
-                setHasChanged(true)
-              }}
-              className="min-h-[320px] max-h-[min(520px,55vh)] bg-background font-mono text-sm"
+              onChange={(e) => setTermsMarkdown(e.target.value)}
+              placeholder="# Terms and Conditions&#10;&#10;Write or paste your terms in Markdown…"
+              className="h-full min-h-0 resize-none rounded-none border-0 bg-background font-mono text-sm shadow-none focus-visible:ring-0 [field-sizing:fixed] [scrollbar-gutter:stable]"
             />
-          </div>
+          </TabsContent>
 
-          <TermsImportField
-            onMarkdownImported={(markdown) => {
-              setTermsMarkdown(markdown)
-              setHasChanged(true)
-            }}
-          />
+          <TabsContent
+            value="preview"
+            forceMount
+            className={cn(
+              EDITOR_HEIGHT_CLASS,
+              'overflow-y-auto bg-background px-6 py-4 [scrollbar-gutter:stable] data-[state=inactive]:hidden',
+            )}
+          >
+            <TermsMarkdownPreview markdown={termsMarkdown} variant="dialog" />
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-4 py-3">
+          <SaveStatus isDirty={isDirty} isSaving={isSaving} isEmpty={isEmpty} />
+          <PrimaryButton type="button" onClick={handleSave} disabled={!canSave}>
+            {isSaving ? 'Saving…' : 'Save Terms'}
+          </PrimaryButton>
         </div>
-      </section>
-    </div>
+      </div>
+
+      <AlertDialog
+        open={pendingImport !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingImport(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace current terms?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Importing this file will replace the content you have in the editor. This can&apos;t
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmImport}>Replace</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
+
+function SaveStatus({ isDirty, isSaving, isEmpty }: SaveStatusProps) {
+  if (isSaving) {
+    return <span className="text-xs text-muted-foreground">Saving changes…</span>
+  }
+  if (isEmpty) {
+    return <span className="text-xs text-muted-foreground">Add content to save</span>
+  }
+  if (isDirty) {
+    return (
+      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
+        Unsaved changes
+      </span>
+    )
+  }
+  return (
+    <span className="flex items-center gap-2 text-xs text-muted-foreground">
+      <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+      All changes saved
+    </span>
   )
 }

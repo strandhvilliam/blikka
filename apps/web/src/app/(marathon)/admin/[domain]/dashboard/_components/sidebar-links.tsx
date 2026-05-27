@@ -7,7 +7,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { Download, FileText, Gavel, Grid3x3, Handshake, Layers, type LucideIcon } from 'lucide-react'
+import {
+  Download,
+  FileText,
+  Gavel,
+  Grid3x3,
+  Handshake,
+  Layers,
+  type LucideIcon,
+} from 'lucide-react'
 import {
   BookOpen,
   File,
@@ -88,16 +96,16 @@ export const NAV_LINKS = {
       icon: FileText as LucideIcon,
     },
     {
+      name: 'Contact Sheets',
+      url: '/dashboard/contact-sheet',
+      icon: Grid3x3 as LucideIcon,
+    },
+    {
       name: 'Settings',
       url: '/dashboard/settings',
       icon: Settings as LucideIcon,
     },
   ],
-  contactSheet: {
-    name: 'Contact Sheet',
-    url: '/dashboard/contact-sheet',
-    icon: Grid3x3 as LucideIcon,
-  },
 } as const
 
 export default function SidebarLinks() {
@@ -111,6 +119,13 @@ export default function SidebarLinks() {
       return false
     }
     if (marathon.mode === 'marathon' && item.url === '/dashboard/voting') {
+      return false
+    }
+    return true
+  })
+
+  const configurationNavItems = NAV_LINKS.configuration.filter((item) => {
+    if (marathon.mode !== 'marathon' && item.url === '/dashboard/contact-sheet') {
       return false
     }
     return true
@@ -153,7 +168,7 @@ export default function SidebarLinks() {
       <SidebarGroup>
         <SidebarGroupLabel>Configuration</SidebarGroupLabel>
         <SidebarMenu>
-          {NAV_LINKS.configuration.map((item) => {
+          {configurationNavItems.map((item) => {
             const href = formatDomainPathname(`/admin${item.url}`, domain)
             return (
               <SidebarMenuItem key={item.name}>
@@ -168,32 +183,6 @@ export default function SidebarLinks() {
           })}
         </SidebarMenu>
       </SidebarGroup>
-      {marathon.mode !== 'by-camera' ? (
-        <>
-          <Separator className="group-data-[collapsible=icon]:block hidden" />
-          <SidebarGroup>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive(NAV_LINKS.contactSheet.url)}
-                >
-                  <Link
-                    prefetch={true}
-                    href={formatDomainPathname(
-                      `/admin${NAV_LINKS.contactSheet.url}`,
-                      domain,
-                    )}
-                  >
-                    <NAV_LINKS.contactSheet.icon />
-                    <span>{NAV_LINKS.contactSheet.name}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        </>
-      ) : null}
     </>
   )
 }

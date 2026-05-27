@@ -3,29 +3,11 @@
 import { useRef, useState } from 'react'
 import { FileText, X } from 'lucide-react'
 import { Label } from '@/components/ui/label'
-import mammoth from 'mammoth'
-import TurndownService from 'turndown'
 import { toast } from 'sonner'
+import { parseTermsFile } from '../../_lib/parse-terms-file'
 
 interface TermsImportFieldProps {
   onMarkdownImported: (markdown: string) => void
-}
-
-async function parseTermsFile(file: File): Promise<string> {
-  const extension = file.name.split('.').pop()?.toLowerCase()
-
-  if (extension === 'md' || extension === 'txt') {
-    return file.text()
-  }
-
-  if (extension === 'docx') {
-    const arrayBuffer = await file.arrayBuffer()
-    const { value } = await mammoth.convertToHtml({ arrayBuffer })
-    const turndownService = new TurndownService()
-    return turndownService.turndown(value || '')
-  }
-
-  throw new Error('Unsupported file type')
 }
 
 export function TermsImportField({ onMarkdownImported }: TermsImportFieldProps) {

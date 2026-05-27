@@ -6,7 +6,7 @@ export function useHandleBeforeUnload(enabled = true) {
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault()
-      return 'Are you sure you want to leave? All progress will be lost.'
+      event.returnValue = ''
     }
 
     const isOnIOS = navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)
