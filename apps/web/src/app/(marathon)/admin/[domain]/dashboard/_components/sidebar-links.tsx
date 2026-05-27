@@ -46,11 +46,6 @@ export const NAV_LINKS = {
       icon: Download as LucideIcon,
     },
     {
-      name: 'Contact Sheet',
-      url: '/dashboard/contact-sheet',
-      icon: Grid3x3 as LucideIcon,
-    },
-    {
       name: 'Staff',
       url: '/dashboard/staff',
       icon: Users as LucideIcon,
@@ -98,6 +93,11 @@ export const NAV_LINKS = {
       icon: Settings as LucideIcon,
     },
   ],
+  contactSheet: {
+    name: 'Contact Sheet',
+    url: '/dashboard/contact-sheet',
+    icon: Grid3x3 as LucideIcon,
+  },
 } as const
 
 export default function SidebarLinks() {
@@ -108,9 +108,6 @@ export default function SidebarLinks() {
 
   const marathonNavItems = NAV_LINKS.marathon.filter((item) => {
     if (marathon.mode === 'by-camera' && item.url === '/dashboard/jury') {
-      return false
-    }
-    if (marathon.mode === 'by-camera' && item.url === '/dashboard/contact-sheet') {
       return false
     }
     if (marathon.mode === 'marathon' && item.url === '/dashboard/voting') {
@@ -171,6 +168,32 @@ export default function SidebarLinks() {
           })}
         </SidebarMenu>
       </SidebarGroup>
+      {marathon.mode !== 'by-camera' ? (
+        <>
+          <Separator className="group-data-[collapsible=icon]:block hidden" />
+          <SidebarGroup>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(NAV_LINKS.contactSheet.url)}
+                >
+                  <Link
+                    prefetch={true}
+                    href={formatDomainPathname(
+                      `/admin${NAV_LINKS.contactSheet.url}`,
+                      domain,
+                    )}
+                  >
+                    <NAV_LINKS.contactSheet.icon />
+                    <span>{NAV_LINKS.contactSheet.name}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        </>
+      ) : null}
     </>
   )
 }
