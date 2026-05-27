@@ -3,11 +3,13 @@ import {
   ContactSheetBuilder,
   ContactSheetBuilderLayer,
   type ContactSheetError,
+  type ContactSheetFormat,
 } from '@blikka/image-manipulation'
 import { Config, Effect, Layer, Option, Context } from 'effect'
 import {
   DbLayer,
   ContactSheetsRepository,
+  MarathonsRepository,
   ParticipantsRepository,
   TopicsRepository,
   SponsorsRepository,
@@ -19,6 +21,15 @@ import { BadRequestError, NotFoundError, failNotFoundIfNone } from '../errors'
 import type { GenerateContactSheet } from './contracts'
 
 const VALID_PHOTO_COUNTS = [8, 24]
+const VALID_CONTACT_SHEET_FORMATS = ['classic', 'a3'] as const
+
+function toContactSheetFormat(value: string): ContactSheetFormat {
+  if (VALID_CONTACT_SHEET_FORMATS.includes(value as (typeof VALID_CONTACT_SHEET_FORMATS)[number])) {
+    return value as ContactSheetFormat
+  }
+
+  return 'classic'
+}
 
 export class ContactSheetsService extends Context.Service<
   ContactSheetsService,
@@ -40,6 +51,7 @@ export class ContactSheetsService extends Context.Service<
 const makeContactSheetsService = Effect.gen(function* () {
   const sponsorsRepository = yield* SponsorsRepository
   const topicsRepository = yield* TopicsRepository
+  const marathonsRepository = yield* MarathonsRepository
   const participantsRepository = yield* ParticipantsRepository
   const contactSheetsRepository = yield* ContactSheetsRepository
   const s3 = yield* S3Service
@@ -89,6 +101,12 @@ const makeContactSheetsService = Effect.gen(function* () {
     const participantRow = yield* participantsRepository
       .getParticipantByReference({ reference, domain })
       .pipe(failNotFoundIfNone('Participant', { reference, domain }))
+
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
+
+    const contactSheetFormat = toContactSheetFormat(marathon.contactSheetFormat)
 
     const submissions = participantRow.submissions || []
     if (submissions.length === 0) {
@@ -148,6 +166,7 @@ const makeContactSheetsService = Effect.gen(function* () {
       sponsorImage,
       sponsorPosition: 'bottom-right',
       topics,
+      format: contactSheetFormat,
     })
 
     yield* s3.putFile(contactSheetsBucketName, contactSheetKey, contactSheetBuffer)

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { ContactSheetEditor } from './_components/contact-sheet-editor'
 import { ContactSheetEditorSkeleton } from './_components/contact-sheet-editor-skeleton'
+import { ContactSheetRunSettings } from './_components/contact-sheet-run-settings'
 
 export default async function ContactSheetPage({
   params,
@@ -27,6 +28,7 @@ export default async function ContactSheetPage({
       <Suspense fallback={<ContactSheetEditorSkeleton />}>
         <div className="mx-auto w-full max-w-6xl px-6 py-4">
           <ContactSheetEditor />
+          <ContactSheetRunSettings />
         </div>
       </Suspense>
     </HydrateClient>

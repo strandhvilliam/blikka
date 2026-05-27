@@ -2,6 +2,7 @@ import { assert, describe, it } from '@effect/vitest'
 import { S3Service } from '@blikka/aws'
 import {
   ContactSheetsRepository,
+  MarathonsRepository,
   ParticipantsRepository,
   SponsorsRepository,
   TopicsRepository,
@@ -78,12 +79,14 @@ interface TestState {
   readonly sponsor: { readonly key: string } | undefined
   readonly topics: ReadonlyArray<{ name: string; orderIndex: number }>
   readonly builderResult: Effect.Effect<Buffer, Error>
+  readonly marathon: { readonly contactSheetFormat: string } | undefined
   readonly sheetInputs: ReadonlyArray<{
     reference: string
     images: ReadonlyArray<ContactSheetImageFile>
     sponsorImage?: Buffer | Uint8Array
     sponsorPosition: 'bottom-right'
     topics: ReadonlyArray<{ name: string; orderIndex: number }>
+    format?: 'classic' | 'a3'
   }>
   readonly files: ReadonlyMap<string, Uint8Array>
   readonly filePuts: ReadonlyArray<{
@@ -111,6 +114,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   },
   sponsor: { key: sponsorKey },
   topics,
+  marathon: { contactSheetFormat: 'classic' },
   builderResult: Effect.succeed(sheetBytes),
   sheetInputs: [],
   files: createFileMap([
@@ -152,6 +156,14 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         return [...state.topics]
       }),
   } as unknown as TopicsRepository['Service'])
+
+  const marathonsRepository = MarathonsRepository.of({
+    getMarathonByDomain: () =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        return Option.fromNullishOr(state.marathon)
+      }),
+  } as unknown as MarathonsRepository['Service'])
 
   const contactSheetsRepository = ContactSheetsRepository.of({
     save: ({ data }: { data: { key: string; participantId: number; marathonId: number } }) =>
@@ -198,6 +210,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       sponsorImage?: Buffer | Uint8Array
       sponsorPosition: 'bottom-right'
       topics: ReadonlyArray<{ name: string; orderIndex: number }>
+      format?: 'classic' | 'a3'
     }) =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
@@ -215,6 +228,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(ParticipantsRepository)(participantsRepository),
         Layer.succeed(SponsorsRepository)(sponsorsRepository),
         Layer.succeed(TopicsRepository)(topicsRepository),
+        Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(ContactSheetsRepository)(contactSheetsRepository),
         Layer.succeed(UploadSessionRepository)(uploadKv),
         Layer.succeed(S3Service)(s3),
@@ -264,6 +278,7 @@ describe('ContactSheetGenerator', () => {
           sponsorImage: sponsorBytes,
           sponsorPosition: 'bottom-right',
           topics,
+          format: 'classic',
         },
       ])
       assert.lengthOf(state.filePuts, 1)
@@ -283,6 +298,21 @@ describe('ContactSheetGenerator', () => {
           marathonId: 456,
         },
       ])
+    }),
+  )
+
+  it.effect('uses marathon contact sheet format when generating', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({ marathon: { contactSheetFormat: 'a3' } }),
+        () =>
+          Effect.gen(function* () {
+            const generator = yield* ContactSheetGenerator
+            yield* generator.generate(input)
+          }),
+      )
+
+      assert.strictEqual(state.sheetInputs[0]?.format, 'a3')
     }),
   )
 

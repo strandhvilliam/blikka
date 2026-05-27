@@ -2,11 +2,13 @@ import { Context, DateTime, Effect, Layer, Option, Schema } from 'effect'
 import {
   DbLayer,
   ContactSheetsRepository,
+  MarathonsRepository,
   ParticipantsRepository,
   TopicsRepository,
   SponsorsRepository,
   type DbError,
 } from '@blikka/db'
+import type { ContactSheetFormat } from '@blikka/image-manipulation'
 import type { CompetitionClass } from '@blikka/db'
 import { S3ClientError, S3Service, S3ServiceLayer } from '@blikka/aws'
 import {
@@ -71,6 +73,15 @@ export class ContactSheetGenerator extends Context.Service<
 >()('@blikka/uploads/ContactSheetGenerator') {}
 
 const VALID_PHOTO_COUNTS = [8, 24]
+const VALID_CONTACT_SHEET_FORMATS = ['classic', 'a3'] as const
+
+function toContactSheetFormat(value: string): ContactSheetFormat {
+  if (VALID_CONTACT_SHEET_FORMATS.includes(value as (typeof VALID_CONTACT_SHEET_FORMATS)[number])) {
+    return value as ContactSheetFormat
+  }
+
+  return 'classic'
+}
 
 function createContactSheetKey(domain: string, reference: string, timestamp: string) {
   return `${domain}/${reference}/contact_sheet_${reference}_${timestamp.replace(/[:.]/g, '-').slice(0, -5)}.jpg`
@@ -111,6 +122,7 @@ function shouldSkipGeneration(
 const makeContactSheetGenerator = Effect.gen(function* () {
   const sponsorsRepository = yield* SponsorsRepository
   const topicsRepository = yield* TopicsRepository
+  const marathonsRepository = yield* MarathonsRepository
   const participantsRepository = yield* ParticipantsRepository
   const contactSheetsRepository = yield* ContactSheetsRepository
   const kvStore = yield* UploadSessionRepository
@@ -212,16 +224,25 @@ const makeContactSheetGenerator = Effect.gen(function* () {
       }
       const participant = participantOpt.value
 
-      const [sponsor, topics] = yield* Effect.all(
+      const [sponsor, topics, marathonOpt] = yield* Effect.all(
         [
           sponsorsRepository.getLatestSponsorByType({
             marathonId: participant.marathonId,
             type: 'contact-sheets',
           }),
           topicsRepository.getTopicsByDomain({ domain }),
+          marathonsRepository.getMarathonByDomain({ domain }),
         ],
-        { concurrency: 2 },
+        { concurrency: 3 },
       )
+
+      if (Option.isNone(marathonOpt)) {
+        return yield* new InvalidSheetGenerationDataError({
+          message: 'Marathon not found',
+        })
+      }
+
+      const contactSheetFormat = toContactSheetFormat(marathonOpt.value.contactSheetFormat)
 
       const keys = participant.submissions.map((submission) => submission.key)
       yield* validatePhotoCount(reference, keys, participant.competitionClass)
@@ -241,6 +262,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
           sponsorImage,
           sponsorPosition: 'bottom-right',
           topics,
+          format: contactSheetFormat,
         })
         .pipe(
           Effect.mapError(

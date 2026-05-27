@@ -2,6 +2,7 @@ import { assert, describe, it } from '@effect/vitest'
 import { S3Service } from '@blikka/aws'
 import {
   ContactSheetsRepository,
+  MarathonsRepository,
   ParticipantsRepository,
   SponsorsRepository,
   TopicsRepository,
@@ -27,7 +28,9 @@ interface TestState {
         competitionClass: CompetitionClass | null
       }
     | undefined
+  readonly marathon: { readonly contactSheetFormat: string } | undefined
   readonly savedContactSheets: ReadonlyArray<Record<string, unknown>>
+  readonly sheetInputs: ReadonlyArray<{ format?: 'classic' | 'a3' }>
 }
 
 const makeCompetitionClass = (numberOfPhotos: number): CompetitionClass =>
@@ -52,7 +55,9 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
       key: `${domain}/${reference}/${String(index + 1).padStart(2, '0')}/original.jpg`,
     })),
   },
+  marathon: { contactSheetFormat: 'classic' },
   savedContactSheets: [],
+  sheetInputs: [],
   ...overrides,
 })
 
@@ -76,6 +81,14 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     getTopicsByDomain: () => Effect.succeed([]),
   } as unknown as TopicsRepository['Service'])
 
+  const marathonsRepository = MarathonsRepository.of({
+    getMarathonByDomain: () =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        return Option.fromNullishOr(state.marathon)
+      }),
+  } as unknown as MarathonsRepository['Service'])
+
   const contactSheetsRepository = ContactSheetsRepository.of({
     save: ({ data }: { data: Record<string, unknown> }) =>
       updateTestState(stateRef, (state) => ({
@@ -90,7 +103,11 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
   } as unknown as S3Service['Service'])
 
   const contactSheetBuilder = ContactSheetBuilder.of({
-    createSheet: () => Effect.succeed(Buffer.from('contact-sheet')),
+    createSheet: (params: { format?: 'classic' | 'a3' }) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        sheetInputs: [...state.sheetInputs, { format: params.format }],
+      })).pipe(Effect.as(Buffer.from('contact-sheet'))),
   } as unknown as ContactSheetBuilder['Service'])
 
   return ContactSheetsServiceLayerNoDeps.pipe(
@@ -99,6 +116,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(ParticipantsRepository)(participantsRepository),
         Layer.succeed(SponsorsRepository)(sponsorsRepository),
         Layer.succeed(TopicsRepository)(topicsRepository),
+        Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(ContactSheetsRepository)(contactSheetsRepository),
         Layer.succeed(S3Service)(s3Service),
         Layer.succeed(ContactSheetBuilder)(contactSheetBuilder),
@@ -146,6 +164,28 @@ describe('ContactSheetsService', () => {
       assert.match(result.key, new RegExp(`^${domain}/${reference}/contact_sheet_`))
       assert.equal(state.savedContactSheets[0]?.participantId, 1)
       assert.equal(state.savedContactSheets[0]?.marathonId, 1)
+      assert.strictEqual(state.sheetInputs[0]?.format, 'classic')
+    }),
+  )
+
+  it.effect('uses marathon contact sheet format when generating', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(
+        makeInitialState({ marathon: { contactSheetFormat: 'a3' } }),
+      )
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* ContactSheetsService
+          return yield* service.generateContactSheet({
+            domain,
+            reference,
+          })
+        }),
+      )
+
+      assert.strictEqual(state.sheetInputs[0]?.format, 'a3')
     }),
   )
 
