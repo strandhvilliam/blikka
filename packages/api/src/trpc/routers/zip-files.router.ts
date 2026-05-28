@@ -9,6 +9,7 @@ import {
   GetActiveProcessInputSchema,
   CancelDownloadProcessInputSchema,
   GenerateParticipantZipInputSchema,
+  GetParticipantZipDownloadUrlInputSchema,
 } from '../../core/zip-files/contracts'
 import { ZipFilesService } from '../../core/zip-files/service'
 
@@ -120,6 +121,22 @@ export const zipFilesRouter = createTRPCRouter({
         Effect.fn('ZipFilesRouter.generateParticipantZip')(function* ({ input }) {
           return yield* ZipFilesService.use((s) =>
             s.generateParticipantZip({
+              domain: input.domain,
+              reference: input.reference,
+            }),
+          )
+        }),
+      ),
+    ),
+
+  getParticipantZipDownloadUrl: domainProcedure
+    .input(Schema.toStandardSchemaV1(GetParticipantZipDownloadUrlInputSchema))
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn('ZipFilesRouter.getParticipantZipDownloadUrl')(function* ({ input }) {
+          return yield* ZipFilesService.use((s) =>
+            s.getParticipantZipDownloadUrl({
               domain: input.domain,
               reference: input.reference,
             }),

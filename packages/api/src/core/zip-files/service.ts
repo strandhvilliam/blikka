@@ -19,6 +19,7 @@ import type {
   CancelDownloadProcessInput,
   GenerateParticipantZipInput,
   GetActiveProcessInput,
+  GetParticipantZipDownloadUrlInput,
   GetZipSubmissionStatusInput,
   InitializeZipDownloadsInput,
   ZipDownloadsByProcessIdInput,
@@ -135,6 +136,15 @@ export class ZipFilesService extends Context.Service<
     ) => Effect.Effect<
       { success: boolean; key: string },
       DbError | BadRequestError | NotFoundError | ZipWorkerError,
+      never
+    >
+
+    /** Returns a presigned GET URL for a participant's latest generated zip. */
+    readonly getParticipantZipDownloadUrl: (
+      input: GetParticipantZipDownloadUrlInput,
+    ) => Effect.Effect<
+      { downloadUrl: string; filename: string },
+      DbError | BadRequestError | NotFoundError | S3ClientError | Config.ConfigError,
       never
     >
   }
@@ -593,6 +603,52 @@ const makeZipFilesService = Effect.gen(function* () {
     }
   })
 
+  const getLatestZippedSubmission = (
+    zippedSubmissions: ReadonlyArray<{ createdAt: string | null; id: number; key: string }>,
+  ) => {
+    let latest: (typeof zippedSubmissions)[number] | undefined
+    for (const zip of zippedSubmissions) {
+      if (!latest) {
+        latest = zip
+        continue
+      }
+      if (zip.createdAt && latest.createdAt) {
+        if (new Date(zip.createdAt) > new Date(latest.createdAt)) {
+          latest = zip
+        }
+      } else if (zip.id > latest.id) {
+        latest = zip
+      }
+    }
+    return latest
+  }
+
+  const getParticipantZipDownloadUrl: ZipFilesService['Service']['getParticipantZipDownloadUrl'] =
+    Effect.fn('ZipFilesService.getParticipantZipDownloadUrl')(function* ({ domain, reference }) {
+      const participant = yield* participantsRepository
+        .getParticipantByReference({ reference, domain })
+        .pipe(failNotFoundIfNone('Participant', { reference, domain }))
+
+      const latestZip = getLatestZippedSubmission(participant.zippedSubmissions ?? [])
+      if (!latestZip) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: 'No zip file has been generated for this participant yet',
+          }),
+        )
+      }
+
+      const zipsBucket = yield* Config.string('ZIPS_BUCKET_NAME')
+      const downloadUrl = yield* s3Service.getPresignedUrl(zipsBucket, latestZip.key, 'GET', {
+        expiresIn: 3600,
+      })
+
+      return {
+        downloadUrl,
+        filename: `${reference}.zip`,
+      }
+    })
+
   const generateParticipantZip: ZipFilesService['Service']['generateParticipantZip'] = Effect.fn(
     'ZipFilesService.generateParticipantZip',
   )(function* ({ domain, reference }) {
@@ -624,6 +680,7 @@ const makeZipFilesService = Effect.gen(function* () {
     getActiveProcess,
     cancelDownloadProcess,
     generateParticipantZip,
+    getParticipantZipDownloadUrl,
   })
 })
 

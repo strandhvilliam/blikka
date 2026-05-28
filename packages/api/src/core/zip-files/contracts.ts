@@ -9,6 +9,21 @@ export type GenerateParticipantZipInput = Schema.Schema.Type<
   typeof GenerateParticipantZipInputSchema
 >
 
+export const GetParticipantZipDownloadUrlInputSchema = GenerateParticipantZipInputSchema
+
+export type GetParticipantZipDownloadUrlInput = Schema.Schema.Type<
+  typeof GetParticipantZipDownloadUrlInputSchema
+>
+
+export const GetParticipantZipDownloadUrlOutputSchema = Schema.Struct({
+  downloadUrl: Schema.String,
+  filename: Schema.String,
+})
+
+export type GetParticipantZipDownloadUrlOutput = Schema.Schema.Type<
+  typeof GetParticipantZipDownloadUrlOutputSchema
+>
+
 export const InitializeZipDownloadsInputSchema = Schema.Struct({
   domain: Schema.String,
 })

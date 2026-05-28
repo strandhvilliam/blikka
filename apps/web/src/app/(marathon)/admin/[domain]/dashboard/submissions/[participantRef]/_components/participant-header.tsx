@@ -26,6 +26,7 @@ import {
   ParticipantContactEditDialog,
   type ParticipantWithPhoneNumber,
 } from '../[submissionId]/_components/participant-contact-edit-dialog'
+import { downloadRemoteUrl } from '../[submissionId]/_lib/download-remote-url'
 
 export function ParticipantHeader({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
@@ -36,6 +37,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
   const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditContactOpen, setIsEditContactOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
@@ -118,9 +120,30 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
       },
     )
 
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Export clicked')
+  const handleExport = async () => {
+    const hasZip = (participant.zippedSubmissions?.length ?? 0) > 0
+    if (!hasZip) {
+      toast.info('No zip file available', {
+        description: 'Generate a zip file from the pipeline below before exporting.',
+      })
+      return
+    }
+
+    try {
+      setIsExporting(true)
+      const { downloadUrl, filename } = await queryClient.fetchQuery(
+        trpc.zipFiles.getParticipantZipDownloadUrl.queryOptions({
+          domain,
+          reference: participantRef,
+        }),
+      )
+      await downloadRemoteUrl(downloadUrl, filename)
+      toast.success('Export downloaded')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to download zip file')
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -135,6 +158,7 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         isGeneratingContactSheet={generateContactSheetMutation.isPending}
         onDeleteParticipant={() => setIsDeleteDialogOpen(true)}
         onExport={handleExport}
+        isExporting={isExporting}
       />
 
       <ParticipantActionBanner

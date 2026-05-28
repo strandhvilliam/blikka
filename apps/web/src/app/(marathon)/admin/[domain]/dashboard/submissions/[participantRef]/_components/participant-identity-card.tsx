@@ -8,6 +8,7 @@ import {
   Mail,
   MoreVertical,
   RefreshCw,
+  Loader2,
   Smartphone,
   Trash2,
   UserPen,
@@ -77,6 +78,7 @@ interface ParticipantIdentityCardProps {
   isGeneratingContactSheet: boolean
   onDeleteParticipant: () => void
   onExport: () => void
+  isExporting?: boolean
 }
 
 export function ParticipantIdentityCard({
@@ -89,6 +91,7 @@ export function ParticipantIdentityCard({
   isGeneratingContactSheet,
   onDeleteParticipant,
   onExport,
+  isExporting = false,
 }: ParticipantIdentityCardProps) {
   const domain = useDomain()
   const hasSubmissions = (participant.submissions?.length ?? 0) > 0
@@ -146,10 +149,20 @@ export function ParticipantIdentityCard({
               variant="outline"
               size="sm"
               onClick={onExport}
+              disabled={isExporting}
               className="text-xs h-8"
             >
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              Export
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  Exporting…
+                </>
+              ) : (
+                <>
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Export
+                </>
+              )}
             </Button>
           ) : null}
           {marathonMode === 'marathon' ? (

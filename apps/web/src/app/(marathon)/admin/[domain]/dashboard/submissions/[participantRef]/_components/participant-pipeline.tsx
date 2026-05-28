@@ -311,7 +311,7 @@ export function ParticipantPipeline({
         label: 'Zip file',
         state: 'ok',
         primaryText: 'Generated',
-        secondaryText: 'Available for download in exports.',
+        secondaryText: 'Use Export above to download the zip file.',
         action: zipAction,
       }
     }

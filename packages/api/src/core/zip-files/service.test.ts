@@ -1,7 +1,7 @@
 import { assert, describe, it } from '@effect/vitest'
 import { S3Service } from '@blikka/aws'
 import { DownloadStateRepository } from '@blikka/kv-store'
-import { ZippedSubmissionsRepository } from '@blikka/db'
+import { ParticipantsRepository, ZippedSubmissionsRepository } from '@blikka/db'
 import { Effect, Layer, Option, Ref } from 'effect'
 
 import { configLayerFromEnv } from '../test/config-layer'
@@ -81,10 +81,32 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     getPresignedUrl: (_bucket: string, key: string) => Effect.succeed(`https://example.com/${key}`),
   } as unknown as S3Service['Service'])
 
+  const participantsRepository = ParticipantsRepository.of({
+    getParticipantByReference: () =>
+      Effect.succeed(
+        Option.some({
+          id: 1,
+          reference: '0042',
+          domain,
+          zippedSubmissions: [
+            {
+              id: 1,
+              key: `${domain}/0042.zip`,
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: null,
+              marathonId: 1,
+              participantId: 1,
+            },
+          ],
+        }),
+      ),
+  } as unknown as ParticipantsRepository['Service'])
+
   return ZipFilesServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(ZippedSubmissionsRepository)(zippedSubmissionsRepository),
+        Layer.succeed(ParticipantsRepository)(participantsRepository),
         Layer.succeed(DownloadStateRepository)(downloadStateRepository),
         Layer.succeed(S3Service)(s3Service),
       ),
@@ -298,6 +320,23 @@ describe('ZipFilesService', () => {
 
       assert.isDefined(result)
       assert.equal(result?.[0]?.downloadUrl, `https://example.com/${domain}/zip-downloads/open/0001-0100.zip`)
+    }),
+  )
+
+  it.effect('returns a presigned download url for a participant zip', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { result } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* ZipFilesService
+          return yield* service.getParticipantZipDownloadUrl({ domain, reference: '0042' })
+        }),
+      )
+
+      assert.equal(result.downloadUrl, `https://example.com/${domain}/0042.zip`)
+      assert.equal(result.filename, '0042.zip')
     }),
   )
 })
