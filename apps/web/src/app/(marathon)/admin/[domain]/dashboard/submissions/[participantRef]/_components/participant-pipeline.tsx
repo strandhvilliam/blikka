@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { summarizeValidationResults } from '../_lib/submission-helpers'
 import type { ParticipantWithRelations } from '../_lib/utils'
 
 const VALID_CONTACT_SHEET_PHOTO_AMOUNT = [8, 24]
@@ -121,6 +122,8 @@ interface ParticipantPipelineProps {
   onRunValidations: () => void
   isGeneratingContactSheet: boolean
   onGenerateContactSheet: () => void
+  isGeneratingZip: boolean
+  onGenerateZip: () => void
 }
 
 export function ParticipantPipeline({
@@ -129,19 +132,24 @@ export function ParticipantPipeline({
   onRunValidations,
   isGeneratingContactSheet,
   onGenerateContactSheet,
+  isGeneratingZip,
+  onGenerateZip,
 }: ParticipantPipelineProps) {
   const submissions = participant.submissions ?? []
   const hasSubmissions = submissions.length > 0
 
-  const globalValidations = participant.validationResults.filter((r) => !r.fileName)
-  const hasFailedValidations = globalValidations.some((r) => r.outcome === 'failed')
-  const hasErrors = globalValidations.some(
-    (r) => r.severity === 'error' && r.outcome === 'failed',
-  )
-  const hasWarnings = globalValidations.some(
-    (r) => r.severity === 'warning' && r.outcome === 'failed',
-  )
-  const allPassed = globalValidations.length > 0 && !hasFailedValidations
+  const validationResults = participant.validationResults ?? []
+  const hasValidationResults = validationResults.length > 0
+  const { failed, hasErrors, hasWarnings } = summarizeValidationResults(validationResults)
+  const allPassed = hasValidationResults && failed.length === 0
+
+  const validationAction = hasSubmissions
+    ? {
+        label: hasValidationResults ? 'Rerun validations' : 'Run validations',
+        onClick: onRunValidations,
+        disabled: isRunningValidations,
+      }
+    : undefined
 
   const validationStage: StageProps = (() => {
     if (isRunningValidations) {
@@ -162,42 +170,36 @@ export function ParticipantPipeline({
         secondaryText: 'Validations run after photos are uploaded.',
       }
     }
-    if (globalValidations.length === 0) {
+    if (!hasValidationResults) {
       return {
         icon: ShieldAlert,
         label: 'Validations',
         state: 'warning',
         primaryText: 'Not run yet',
         secondaryText: 'Run validations to verify uploads meet the rules.',
-        action: {
-          label: 'Run validations',
-          onClick: onRunValidations,
-          disabled: isRunningValidations,
-        },
+        action: validationAction,
       }
     }
     if (hasErrors) {
-      const errorCount = globalValidations.filter(
-        (r) => r.severity === 'error' && r.outcome === 'failed',
-      ).length
+      const errorCount = failed.filter((r) => r.severity === 'error').length
       return {
         icon: XCircle,
         label: 'Validations',
         state: 'error',
         primaryText: `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} found`,
         secondaryText: 'See the Validation Results tab for details.',
+        action: validationAction,
       }
     }
     if (hasWarnings) {
-      const warnCount = globalValidations.filter(
-        (r) => r.severity === 'warning' && r.outcome === 'failed',
-      ).length
+      const warnCount = failed.filter((r) => r.severity === 'warning').length
       return {
         icon: ShieldAlert,
         label: 'Validations',
         state: 'warning',
         primaryText: `${warnCount} ${warnCount === 1 ? 'warning' : 'warnings'}`,
         secondaryText: 'Submissions passed but with notes to review.',
+        action: validationAction,
       }
     }
     if (allPassed) {
@@ -206,7 +208,8 @@ export function ParticipantPipeline({
         label: 'Validations',
         state: 'ok',
         primaryText: 'All checks passed',
-        secondaryText: `${globalValidations.length} checks completed successfully.`,
+        secondaryText: `${validationResults.length} checks completed successfully.`,
+        action: validationAction,
       }
     }
     return {
@@ -214,12 +217,22 @@ export function ParticipantPipeline({
       label: 'Validations',
       state: 'pending',
       primaryText: 'Pending',
+      action: validationAction,
     }
   })()
 
   const contactSheets = participant.contactSheets ?? []
   const hasContactSheet = contactSheets.length > 0
   const isValidPhotoCountForSheet = VALID_CONTACT_SHEET_PHOTO_AMOUNT.includes(submissions.length)
+
+  const contactSheetAction =
+    hasSubmissions && (hasContactSheet || isValidPhotoCountForSheet)
+      ? {
+          label: hasContactSheet ? 'Regenerate sheet' : 'Generate sheet',
+          onClick: onGenerateContactSheet,
+          disabled: isGeneratingContactSheet,
+        }
+      : undefined
 
   const contactSheetStage: StageProps = (() => {
     if (isGeneratingContactSheet) {
@@ -241,6 +254,7 @@ export function ParticipantPipeline({
           contactSheets.length > 1
             ? `${contactSheets.length} versions on file.`
             : 'View it under the Contact Sheet tab.',
+        action: contactSheetAction,
       }
     }
     if (!hasSubmissions) {
@@ -267,16 +281,30 @@ export function ParticipantPipeline({
       state: 'warning',
       primaryText: 'Not generated',
       secondaryText: 'Generate a printable sheet of all submissions.',
-      action: {
-        label: 'Generate sheet',
-        onClick: onGenerateContactSheet,
-        disabled: isGeneratingContactSheet,
-      },
+      action: contactSheetAction,
     }
   })()
 
   const hasZip = (participant.zippedSubmissions?.length ?? 0) > 0
+
+  const zipAction = hasSubmissions
+    ? {
+        label: hasZip ? 'Regenerate zip' : 'Generate zip',
+        onClick: onGenerateZip,
+        disabled: isGeneratingZip,
+      }
+    : undefined
+
   const zipStage: StageProps = (() => {
+    if (isGeneratingZip) {
+      return {
+        icon: Loader2,
+        label: 'Zip file',
+        state: 'running',
+        primaryText: 'Generating…',
+        secondaryText: 'Packaging submissions into a zip archive.',
+      }
+    }
     if (hasZip) {
       return {
         icon: Archive,
@@ -284,6 +312,7 @@ export function ParticipantPipeline({
         state: 'ok',
         primaryText: 'Generated',
         secondaryText: 'Available for download in exports.',
+        action: zipAction,
       }
     }
     if (!hasSubmissions) {
@@ -292,7 +321,7 @@ export function ParticipantPipeline({
         label: 'Zip file',
         state: 'pending',
         primaryText: 'Not yet available',
-        secondaryText: 'Created from the export action once photos are uploaded.',
+        secondaryText: 'Created once photos are uploaded.',
       }
     }
     return {
@@ -300,7 +329,8 @@ export function ParticipantPipeline({
       label: 'Zip file',
       state: 'warning',
       primaryText: 'Not generated',
-      secondaryText: 'Use the Export action to package the submissions.',
+      secondaryText: 'Package all submissions into a downloadable zip file.',
+      action: zipAction,
     }
   })()
 

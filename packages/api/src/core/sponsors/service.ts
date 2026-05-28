@@ -67,7 +67,7 @@ const makeSponsorsService = Effect.gen(function* () {
     'SponsorsService.generateUploadUrl',
   )(function* (input) {
     const { domain } = input
-    const bucketName = yield* Config.string('MARATHON_SETTINGS_BUCKET_NAME')
+    const bucketName = yield* Config.string('SPONSORS_BUCKET_NAME')
 
     const fileId = crypto.randomUUID()
     const key = `${domain}/sponsors/${fileId}.jpg`

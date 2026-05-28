@@ -1,5 +1,14 @@
 import { Schema } from 'effect'
 
+export const GenerateParticipantZipInputSchema = Schema.Struct({
+  domain: Schema.String,
+  reference: Schema.String,
+})
+
+export type GenerateParticipantZipInput = Schema.Schema.Type<
+  typeof GenerateParticipantZipInputSchema
+>
+
 export const InitializeZipDownloadsInputSchema = Schema.Struct({
   domain: Schema.String,
 })

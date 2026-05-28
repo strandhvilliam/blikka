@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { useDomain } from '@/lib/domain-provider'
 import type { Sponsor } from '@blikka/db'
-import { cn } from '@/lib/utils'
+import { buildS3Url, cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
 
 type SponsorType = 'contact-sheets' | 'live-landing' | 'live-success-1' | 'live-success-2'
@@ -115,9 +115,7 @@ export function SponsorCard({
 
   const triggerFileSelect = () => inputRef.current?.click()
 
-  const imageUrl = sponsor
-    ? `https://s3.eu-north-1.amazonaws.com/${process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME}/${sponsor.key}`
-    : null
+  const imageUrl = buildS3Url(process.env.NEXT_PUBLIC_SPONSORS_BUCKET_NAME, sponsor?.key) ?? null
 
   const hasImage = !!imageUrl
 

@@ -52,6 +52,9 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
   const generateContactSheetMutation = useMutation(
     trpc.contactSheets.generateContactSheet.mutationOptions(),
   )
+  const generateParticipantZipMutation = useMutation(
+    trpc.zipFiles.generateParticipantZip.mutationOptions(),
+  )
   const deleteParticipantMutation = useMutation(trpc.participants.delete.mutationOptions())
 
   const handleRunValidations = () =>
@@ -80,6 +83,21 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         },
         onError: (error) => {
           toast.error(error instanceof Error ? error.message : 'Failed to generate contact sheet')
+        },
+      },
+    )
+
+  const handleGenerateZip = () =>
+    generateParticipantZipMutation.mutate(
+      { domain, reference: participantRef },
+      {
+        onSuccess: () => {
+          toast.success('Zip file generated successfully')
+          queryClient.invalidateQueries({ queryKey: trpc.zipFiles.pathKey() })
+          queryClient.invalidateQueries({ queryKey: trpc.participants.pathKey() })
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : 'Failed to generate zip file')
         },
       },
     )
@@ -130,6 +148,8 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         onRunValidations={handleRunValidations}
         isGeneratingContactSheet={generateContactSheetMutation.isPending}
         onGenerateContactSheet={handleGenerateContactSheet}
+        isGeneratingZip={generateParticipantZipMutation.isPending}
+        onGenerateZip={handleGenerateZip}
       />
 
       {marathon?.mode === 'marathon' ? (

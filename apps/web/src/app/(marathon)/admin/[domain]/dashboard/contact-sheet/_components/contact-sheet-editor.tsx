@@ -93,7 +93,7 @@ export function ContactSheetEditor() {
   const topicLabels = topicsForSheet.map((topic) => topic.name)
 
   const sponsorPreviewUrl =
-    buildS3Url(process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME, contactSheetsSponsor?.key) ??
+    buildS3Url(process.env.NEXT_PUBLIC_SPONSORS_BUCKET_NAME, contactSheetsSponsor?.key) ??
     null
 
   const filledCount = slots.filter((slot) => slot.file).length

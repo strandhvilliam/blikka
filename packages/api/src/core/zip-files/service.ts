@@ -1,17 +1,23 @@
 
 import { type AwsVpcConfiguration, ECSClient, RunTaskCommand } from '@aws-sdk/client-ecs'
 import { S3Service, S3ServiceLayer, S3ClientError } from '@blikka/aws'
-import { DbLayer, ZippedSubmissionsRepository, DbError } from '@blikka/db'
+import { DbLayer, ParticipantsRepository, ZippedSubmissionsRepository, DbError } from '@blikka/db'
 import {
   DownloadStateRepository,
   DownloadStateRepositoryLayer,
   type DownloadStateRepositoryError,
 } from '@blikka/kv-store'
+import {
+  ZipWorker,
+  ZipWorkerLayer,
+  type ZipWorkerError,
+} from '@blikka/uploads/zip-worker'
 import { Effect, Array, Option, Config, Context, Schema, Layer } from 'effect'
 
-import { BadRequestError } from '../errors'
+import { BadRequestError, NotFoundError, failNotFoundIfNone } from '../errors'
 import type {
   CancelDownloadProcessInput,
+  GenerateParticipantZipInput,
   GetActiveProcessInput,
   GetZipSubmissionStatusInput,
   InitializeZipDownloadsInput,
@@ -122,13 +128,24 @@ export class ZipFilesService extends Context.Service<
     readonly cancelDownloadProcess: (
       input: CancelDownloadProcessInput,
     ) => Effect.Effect<{ success: boolean; message: string }, DownloadStateRepositoryError, never>
+
+    /** Builds and stores a participant zip from their current submissions. */
+    readonly generateParticipantZip: (
+      input: GenerateParticipantZipInput,
+    ) => Effect.Effect<
+      { success: boolean; key: string },
+      DbError | BadRequestError | NotFoundError | ZipWorkerError,
+      never
+    >
   }
 >()('@blikka/api/ZipFilesService') {}
 
 const makeZipFilesService = Effect.gen(function* () {
   const zippedSubmissionsRepository = yield* ZippedSubmissionsRepository
+  const participantsRepository = yield* ParticipantsRepository
   const downloadStateRepository = yield* DownloadStateRepository
   const s3Service = yield* S3Service
+  const zipWorker = yield* ZipWorker
 
   const getZipSubmissionStats: ZipFilesService['Service']['getZipSubmissionStats'] = Effect.fn(
     'ZipFilesService.getZipSubmissionStats',
@@ -576,6 +593,29 @@ const makeZipFilesService = Effect.gen(function* () {
     }
   })
 
+  const generateParticipantZip: ZipFilesService['Service']['generateParticipantZip'] = Effect.fn(
+    'ZipFilesService.generateParticipantZip',
+  )(function* ({ domain, reference }) {
+    const participant = yield* participantsRepository
+      .getParticipantByReference({ reference, domain })
+      .pipe(failNotFoundIfNone('Participant', { reference, domain }))
+
+    if (participant.submissions.length === 0) {
+      return yield* Effect.fail(
+        new BadRequestError({
+          message: 'Participant has no submissions to zip',
+        }),
+      )
+    }
+
+    yield* zipWorker.runZipTask({ domain, reference })
+
+    return {
+      success: true,
+      key: `${domain}/${reference}.zip`,
+    }
+  })
+
   return ZipFilesService.of({
     getZipSubmissionStats,
     getZipDownloadProgress,
@@ -583,11 +623,12 @@ const makeZipFilesService = Effect.gen(function* () {
     initializeZipDownloads,
     getActiveProcess,
     cancelDownloadProcess,
+    generateParticipantZip,
   })
 })
 
 export const ZipFilesServiceLayerNoDeps = Layer.effect(ZipFilesService, makeZipFilesService)
 
 export const ZipFilesServiceLayer = ZipFilesServiceLayerNoDeps.pipe(
-  Layer.provide(Layer.mergeAll(DbLayer, DownloadStateRepositoryLayer, S3ServiceLayer)),
+  Layer.provide(Layer.mergeAll(DbLayer, DownloadStateRepositoryLayer, S3ServiceLayer, ZipWorkerLayer)),
 )

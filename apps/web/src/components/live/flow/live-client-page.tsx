@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import {
+  buildS3Url,
   cn,
   formatDomainLink,
   formatDomainPathname,
@@ -33,8 +34,6 @@ import {
   type ByCameraLiveAccessResult,
 } from '@/lib/by-camera/by-camera-live-access-state'
 import { resolveLiveLandingSponsor } from '@/lib/sponsors/live-landing-sponsor'
-
-const BUCKET_NAME = process.env.NEXT_PUBLIC_MARATHON_SETTINGS_BUCKET_NAME
 
 export function LiveClientPage() {
   const domain = useDomain()
@@ -426,7 +425,8 @@ function TermsCheckbox({
 
 function SponsorsSection({ sponsor }: { sponsor: { id: number; key: string } | undefined }) {
   const t = useTranslations('LivePage')
-  if (!sponsor) return null
+  const imageUrl = buildS3Url(process.env.NEXT_PUBLIC_SPONSORS_BUCKET_NAME, sponsor?.key)
+  if (!sponsor || !imageUrl) return null
 
   return (
     <div className="mt-5 sm:mt-8 w-full max-w-4xl mx-auto px-3 sm:px-6 flex flex-col items-center">
@@ -435,7 +435,7 @@ function SponsorsSection({ sponsor }: { sponsor: { id: number; key: string } | u
       </p>
       <div className="w-full flex justify-center">
         <img
-          src={`https://s3.eu-north-1.amazonaws.com/${BUCKET_NAME}/${sponsor.key}`}
+          src={imageUrl}
           alt={t('sponsors')}
           className="w-full h-auto max-h-48 sm:max-h-64 object-contain rounded-xl border border-border/35 bg-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.05)]"
         />

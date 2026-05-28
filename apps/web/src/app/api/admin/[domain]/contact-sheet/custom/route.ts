@@ -102,7 +102,7 @@ function customContactSheetPostEffect(
         )
       }
 
-      const sponsorsBucketName = yield* Config.string('MARATHON_SETTINGS_BUCKET_NAME')
+      const sponsorsBucketName = yield* Config.string('SPONSORS_BUCKET_NAME')
       const sponsorFile = yield* S3Service.use((s3) => s3.getFile(sponsorsBucketName, sponsor.key))
 
       if (Option.isNone(sponsorFile)) {

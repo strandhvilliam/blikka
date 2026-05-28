@@ -9,7 +9,7 @@ import { SponsorsService, SponsorsServiceLayerNoDeps } from './service'
 
 const domain = 'demo'
 const marathonId = 1
-const bucketName = 'marathon-settings-bucket'
+const bucketName = 'sponsors-bucket'
 
 interface TestState {
   readonly marathon: { id: number; domain: string } | undefined
@@ -94,7 +94,7 @@ const runWithState = <A, E>(
     return { result, state }
   }).pipe(
     Effect.provide(makeTestLayer(stateRef)),
-    Effect.provide(configLayerFromEnv({ MARATHON_SETTINGS_BUCKET_NAME: bucketName })),
+    Effect.provide(configLayerFromEnv({ SPONSORS_BUCKET_NAME: bucketName })),
   )
 
 describe('SponsorsService', () => {

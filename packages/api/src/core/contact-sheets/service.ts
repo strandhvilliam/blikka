@@ -1,4 +1,3 @@
-
 import {
   ContactSheetBuilder,
   ContactSheetBuilderLayer,
