@@ -8,71 +8,34 @@ import {
   Info,
   XCircle,
 } from 'lucide-react'
-import Link from 'next/link'
 import { format } from 'date-fns'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { Submission, ValidationResult, Topic } from '@blikka/db'
-import { cn, formatDomainPathname } from '@/lib/utils'
-import { useDomain } from '@/lib/domain-provider'
+import { cn } from '@/lib/utils'
+import { getSubmissionPreviewImageUrl } from '../[submissionId]/_lib/submission-image-urls'
+import {
+  getSubmissionCaptureDate,
+  getValidationState,
+  hasExifData,
+  summarizeValidationResults,
+  type ValidationState,
+} from '../_lib/submission-helpers'
 
 interface ParticipantSubmissionCardProps {
   submission: Submission & { topic: Topic }
   validationResults: ValidationResult[]
-  participantRef: string
-}
-
-const AWS_S3_BASE_URL = 'https://s3.eu-north-1.amazonaws.com'
-
-function getImageUrl(submission: Submission): string | null {
-  const thumbnailBaseUrl = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
-  const submissionBaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
-
-  if (submission.thumbnailKey && thumbnailBaseUrl) {
-    return `${AWS_S3_BASE_URL}/${thumbnailBaseUrl}/${submission.thumbnailKey}`
-  }
-  if (submission.key && submissionBaseUrl) {
-    return `${AWS_S3_BASE_URL}/${submissionBaseUrl}/${submission.key}`
-  }
-  return null
-}
-
-const EXIF_CAPTURE_KEYS = ['DateTimeOriginal', 'CreateDate', 'ModifyDate'] as const
-
-function getCaptureDate(submission: Submission): Date | null {
-  const exif = submission.exif
-  if (exif && typeof exif === 'object') {
-    for (const key of EXIF_CAPTURE_KEYS) {
-      const raw = (exif as Record<string, unknown>)[key]
-      if (typeof raw === 'string' && raw) {
-        const parsed = new Date(raw)
-        if (!Number.isNaN(parsed.getTime())) return parsed
-      }
-    }
-  }
-  return null
-}
-
-type ValidationState = 'none' | 'valid' | 'warning' | 'error'
-
-function getValidationState(results: ValidationResult[]): ValidationState {
-  if (results.length === 0) return 'none'
-  const failed = results.filter((r) => r.outcome === 'failed')
-  if (failed.some((r) => r.severity === 'error')) return 'error'
-  if (failed.some((r) => r.severity === 'warning')) return 'warning'
-  return 'valid'
+  onSelect: (submissionId: number) => void
 }
 
 export function ParticipantSubmissionCard({
   submission,
   validationResults,
-  participantRef,
+  onSelect,
 }: ParticipantSubmissionCardProps) {
-  const domain = useDomain()
-
-  const imageUrl = getImageUrl(submission)
-  const captureDate = getCaptureDate(submission)
+  const imageUrl = getSubmissionPreviewImageUrl(submission)
+  const captureDate = getSubmissionCaptureDate(submission)
   const validationState = getValidationState(validationResults)
-  const hasExif = submission.exif && Object.keys(submission.exif).length > 0
+  const hasExif = hasExifData(submission.exif)
   const hasThumbnail = Boolean(submission.thumbnailKey)
   const orderNumber =
     typeof submission.topic?.orderIndex === 'number' ? submission.topic.orderIndex + 1 : null
@@ -82,12 +45,10 @@ export function ParticipantSubmissionCard({
   if (!hasThumbnail) qualityWarnings.push({ icon: ImageOff, label: 'No thumbnail generated' })
 
   return (
-    <Link
-      href={formatDomainPathname(
-        `/admin/dashboard/submissions/${participantRef}/${submission.id}`,
-        domain,
-      )}
-      className="group block focus:outline-none"
+    <button
+      type="button"
+      onClick={() => onSelect(submission.id)}
+      className="group block w-full text-left focus:outline-none"
     >
       <div
         className="overflow-hidden rounded-xl border border-border bg-white transition-[border-color,box-shadow] duration-200 group-hover:border-foreground/20 group-hover:shadow-[0_4px_14px_-4px_rgba(0,0,0,0.08)] group-focus-visible:ring-2 group-focus-visible:ring-brand-primary"
@@ -156,17 +117,16 @@ export function ParticipantSubmissionCard({
           <ValidationBadge state={validationState} results={validationResults} />
         </div>
       </div>
-    </Link>
+    </button>
   )
 }
 
-function ValidationBadge({
-  state,
-  results,
-}: {
+interface ValidationBadgeProps {
   state: ValidationState
   results: ValidationResult[]
-}) {
+}
+
+function ValidationBadge({ state, results }: ValidationBadgeProps) {
   if (state === 'none') {
     return (
       <span
@@ -179,7 +139,17 @@ function ValidationBadge({
     )
   }
 
-  const failed = results.filter((r) => r.outcome === 'failed')
+  const { failed } = summarizeValidationResults(results)
+  const issueCount =
+    state === 'valid' ? 0 : failed.filter((result) => result.severity === state).length
+
+  const stateStyles: Record<Exclude<ValidationState, 'none'>, string> = {
+    valid: 'bg-emerald-500/12 text-emerald-700',
+    warning: 'bg-amber-500/15 text-amber-700',
+    error: 'bg-red-500/12 text-red-700',
+  }
+
+  const StateIcon = getValidationStateIcon(state)
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -188,23 +158,11 @@ function ValidationBadge({
           <span
             className={cn(
               'inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[10.5px] font-semibold',
-              state === 'valid' && 'bg-emerald-500/12 text-emerald-700',
-              state === 'warning' && 'bg-amber-500/15 text-amber-700',
-              state === 'error' && 'bg-red-500/12 text-red-700',
+              stateStyles[state],
             )}
           >
-            {state === 'valid' ? (
-              <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.4} />
-            ) : state === 'error' ? (
-              <XCircle className="h-3.5 w-3.5" strokeWidth={2.4} />
-            ) : (
-              <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.4} />
-            )}
-            {state === 'valid'
-              ? 'Valid'
-              : state === 'error'
-                ? failed.filter((r) => r.severity === 'error').length
-                : failed.filter((r) => r.severity === 'warning').length}
+            <StateIcon className="h-3.5 w-3.5" strokeWidth={2.4} />
+            {state === 'valid' ? 'Valid' : issueCount}
           </span>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs text-xs">
@@ -231,4 +189,10 @@ function ValidationBadge({
       </Tooltip>
     </TooltipProvider>
   )
+}
+
+function getValidationStateIcon(state: Exclude<ValidationState, 'none'>) {
+  if (state === 'valid') return CheckCircle2
+  if (state === 'error') return XCircle
+  return AlertTriangle
 }

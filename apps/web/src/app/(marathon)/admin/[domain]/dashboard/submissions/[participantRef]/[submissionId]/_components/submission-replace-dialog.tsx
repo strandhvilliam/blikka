@@ -28,6 +28,11 @@ import {
 interface SubmissionReplaceDialogProps {
   submissionId: number
   participantRef: string
+  /** When provided, the dialog is controlled externally. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Hide the built-in trigger button (use when controlled externally). */
+  hideTrigger?: boolean
 }
 
 const ACCEPTED_TYPE_LABEL = 'JPG, PNG, GIF, WebP, HEIC, HEIF'
@@ -35,12 +40,21 @@ const ACCEPTED_TYPE_LABEL = 'JPG, PNG, GIF, WebP, HEIC, HEIF'
 export function SubmissionReplaceDialog({
   submissionId,
   participantRef,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }: SubmissionReplaceDialogProps) {
   const domain = useDomain()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
-  const [open, setOpen] = useState(false)
+  const isControlled = openProp !== undefined
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = isControlled ? openProp : uncontrolledOpen
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setUncontrolledOpen(next)
+    onOpenChange?.(next)
+  }
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewFailed, setPreviewFailed] = useState(false)
@@ -172,12 +186,14 @@ export function SubmissionReplaceDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <ReplaceIcon className="h-4 w-4" />
-          Replace
-        </Button>
-      </DialogTrigger>
+      {hideTrigger ? null : (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <ReplaceIcon className="h-4 w-4" />
+            Replace
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent
         className="max-w-4xl overflow-hidden p-0"
         onInteractOutside={(event) => {
@@ -202,11 +218,13 @@ export function SubmissionReplaceDialog({
               {...getRootProps()}
               className={cn(
                 'rounded-xl border border-dashed p-6 transition-colors',
-                isBusy
-                  ? 'cursor-progress border-border bg-muted/30'
-                  : isDragActive
-                    ? 'cursor-copy border-foreground/50 bg-muted/60'
-                    : 'cursor-pointer border-border bg-muted/20 hover:bg-muted/35',
+                isBusy && 'cursor-progress border-border bg-muted/30',
+                !isBusy &&
+                  isDragActive &&
+                  'cursor-copy border-foreground/50 bg-muted/60',
+                !isBusy &&
+                  !isDragActive &&
+                  'cursor-pointer border-border bg-muted/20 hover:bg-muted/35',
               )}
             >
               <input {...getInputProps()} />
@@ -240,35 +258,12 @@ export function SubmissionReplaceDialog({
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-foreground">Preview</h3>
               <div className="flex min-h-[280px] items-center justify-center rounded-xl border bg-muted/20 p-4">
-                {previewUrl && !previewFailed ? (
-                  <img
-                    src={previewUrl}
-                    alt="Replacement preview"
-                    className="max-h-[320px] w-auto max-w-full rounded-lg object-contain shadow-sm"
-                    onError={() => setPreviewFailed(true)}
-                  />
-                ) : selectedFile ? (
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border">
-                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="font-medium">{selectedFile.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Preview unavailable in the browser, but the file can still be uploaded.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border">
-                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Select a file to preview the replacement image.
-                    </p>
-                  </div>
-                )}
+                <ReplacePreviewContent
+                  previewUrl={previewUrl}
+                  previewFailed={previewFailed}
+                  selectedFile={selectedFile}
+                  onPreviewError={() => setPreviewFailed(true)}
+                />
               </div>
               <p className="text-xs text-muted-foreground">
                 This is an admin-only replacement and does not use the participant upload flow.
@@ -302,5 +297,57 @@ export function SubmissionReplaceDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+interface ReplacePreviewContentProps {
+  previewUrl: string | null
+  previewFailed: boolean
+  selectedFile: File | null
+  onPreviewError: () => void
+}
+
+function ReplacePreviewContent({
+  previewUrl,
+  previewFailed,
+  selectedFile,
+  onPreviewError,
+}: ReplacePreviewContentProps) {
+  if (previewUrl && !previewFailed) {
+    return (
+      <img
+        src={previewUrl}
+        alt="Replacement preview"
+        className="max-h-[320px] w-auto max-w-full rounded-lg object-contain shadow-sm"
+        onError={onPreviewError}
+      />
+    )
+  }
+
+  if (selectedFile) {
+    return (
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border">
+          <ImageIcon className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <div className="space-y-1">
+          <p className="font-medium">{selectedFile.name}</p>
+          <p className="text-sm text-muted-foreground">
+            Preview unavailable in the browser, but the file can still be uploaded.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border">
+        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Select a file to preview the replacement image.
+      </p>
+    </div>
   )
 }

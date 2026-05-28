@@ -1,14 +1,37 @@
 'use client'
 
+import { useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { ParticipantSubmissionCard } from './participant-submission-card'
+import {
+  SubmissionPreviewDialog,
+  type SubmissionPreviewItem,
+} from './submission-preview-dialog'
 import { cn } from '@/lib/utils'
 import { useDomain } from '@/lib/domain-provider'
+import type { ParticipantWithRelations } from '../_lib/utils'
+
+function buildSubmissionPreviewItems(
+  participant: ParticipantWithRelations,
+): SubmissionPreviewItem[] {
+  if (!participant.submissions) return []
+  return participant.submissions
+    .filter((submission) => submission.topic)
+    .map((submission) => ({
+      submission: submission as SubmissionPreviewItem['submission'],
+      validationResults:
+        participant.validationResults?.filter(
+          (result) => result.fileName && result.fileName.includes(submission.key),
+        ) ?? [],
+    }))
+    .toSorted(
+      (a, b) => (a.submission.topic?.orderIndex ?? 0) - (b.submission.topic?.orderIndex ?? 0),
+    )
+}
 
 export function ParticipantSubmissionsTab({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
-
   const trpc = useTRPC()
 
   const { data: participant } = useSuspenseQuery(
@@ -17,41 +40,43 @@ export function ParticipantSubmissionsTab({ participantRef }: { participantRef: 
       domain,
     }),
   )
+  const { data: marathon } = useSuspenseQuery(
+    trpc.marathons.getByDomain.queryOptions({ domain }),
+  )
 
-  const data = participant?.submissions
-    .map((s) => ({
-      submission: s,
-      validationResults:
-        participant?.validationResults?.filter(
-          (result) => result.fileName && result.fileName.includes(s.key),
-        ) || [],
-    }))
-    .sort((a, b) => (a.submission.topic?.orderIndex ?? 0) - (b.submission.topic?.orderIndex ?? 0))
-
-  if (!data || !participant) {
-    return <div>Participant not found</div>
-  }
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<number | null>(null)
+  const items = buildSubmissionPreviewItems(participant)
 
   return (
-    <div
-      className={cn(
-        'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4',
-        data.length < 12 ? 'xl:grid-cols-4' : 'xl:grid-cols-6',
-      )}
-    >
-      {data.map(({ submission, validationResults }) => (
-        <ParticipantSubmissionCard
-          key={submission.id}
-          participantRef={participantRef}
-          submission={submission}
-          validationResults={validationResults}
-        />
-      ))}
-      {data.length === 0 && (
-        <div className="col-span-full text-center text-muted-foreground py-12">
-          No photos submitted yet
-        </div>
-      )}
-    </div>
+    <>
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3',
+          items.length < 12 ? 'xl:grid-cols-4' : 'xl:grid-cols-6',
+        )}
+      >
+        {items.map((item) => (
+          <ParticipantSubmissionCard
+            key={item.submission.id}
+            submission={item.submission}
+            validationResults={item.validationResults}
+            onSelect={setSelectedSubmissionId}
+          />
+        ))}
+        {items.length === 0 && (
+          <div className="col-span-full text-center text-muted-foreground py-12">
+            No photos submitted yet
+          </div>
+        )}
+      </div>
+
+      <SubmissionPreviewDialog
+        items={items}
+        selectedSubmissionId={selectedSubmissionId}
+        onSelectedSubmissionIdChange={setSelectedSubmissionId}
+        participantRef={participantRef}
+        marathonMode={marathon?.mode}
+      />
+    </>
   )
 }

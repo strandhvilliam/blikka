@@ -46,14 +46,15 @@ function DialogContent({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
-  size?: 'default' | 'xl' | 'full'
+  size?: 'default' | 'lg' | 'xl' | 'full'
 }) {
-  const sizeClassName =
-    size === 'full'
-      ? 'max-w-[100vw] h-[100dvh] rounded-none'
-      : size === 'xl'
-        ? 'max-w-[96vw] h-[90dvh]'
-        : 'sm:max-w-lg'
+  const sizeClassNames: Record<NonNullable<typeof size>, string> = {
+    default: 'sm:max-w-lg',
+    lg: 'max-w-6xl w-[calc(100%-2rem)] max-h-[90dvh]',
+    xl: 'max-w-[96vw] h-[90dvh]',
+    full: 'max-w-[100vw] h-[100dvh] rounded-none',
+  }
+  const sizeClassName = sizeClassNames[size]
 
   return (
     <DialogPortal data-slot="dialog-portal">
