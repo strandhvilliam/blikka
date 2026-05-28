@@ -99,17 +99,21 @@ function getCommonColumns({
         />
       ),
     },
-    {
-      id: 'phone',
-      header: 'Phone',
-      cell: ({ row }) => (
-        <CopyableContactCell
-          value={row.original.phoneNumber ?? null}
-          copiedToast="Phone number copied"
-          tabularNums
-        />
-      ),
-    },
+    ...(marathonMode !== 'marathon'
+      ? [
+          {
+            id: 'phone',
+            header: 'Phone',
+            cell: ({ row }) => (
+              <CopyableContactCell
+                value={row.original.phoneNumber ?? null}
+                copiedToast="Phone number copied"
+                tabularNums
+              />
+            ),
+          } satisfies ColumnDef<RealtimeEnrichedSubmissionTableRow>,
+        ]
+      : []),
     {
       accessorKey: 'createdAt',
       header: marathonMode === 'by-camera' ? 'Uploaded At' : 'Initialized At',
