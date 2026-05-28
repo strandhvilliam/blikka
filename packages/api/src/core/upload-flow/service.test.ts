@@ -19,7 +19,12 @@ import { Effect, Layer, Option, Ref } from 'effect'
 import { configLayerFromEnv } from '../test/config-layer'
 import { BadRequestError } from '../errors'
 import { PhoneNumberEncryptionService } from '../utils/phone-number-encryption'
-import { UploadFlowService, UploadFlowServiceLayerNoDeps } from './service'
+import {
+  UploadFlowService,
+  UploadFlowServiceLayerNoDeps,
+  type PublicMarathonForClient,
+} from './service'
+import { PublicMarathonCache } from './public-marathon-cache'
 
 const domain = 'demo'
 const reference = '1234'
@@ -53,6 +58,14 @@ interface TestState {
   }>
   readonly realtimeEvents: ReadonlyArray<{ eventKey: string; domain: string; reference?: string }>
   readonly presignedUrl: string
+  readonly cachedPublicMarathon: PublicMarathonForClient | undefined
+  readonly publicMarathonCacheGets: ReadonlyArray<string>
+  readonly publicMarathonCacheSets: ReadonlyArray<{
+    domain: string
+    value: PublicMarathonForClient
+  }>
+  readonly publicMarathonCacheGetFails: boolean
+  readonly marathonReads: number
 }
 
 const makeTopic = (overrides: Partial<Topic> = {}): Topic =>
@@ -127,6 +140,11 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   presignedUrlCalls: [],
   realtimeEvents: [],
   presignedUrl: 'https://example.com/presigned',
+  cachedPublicMarathon: undefined,
+  publicMarathonCacheGets: [],
+  publicMarathonCacheSets: [],
+  publicMarathonCacheGetFails: false,
+  marathonReads: 0,
   ...overrides,
 })
 
@@ -137,6 +155,10 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
   const marathonsRepository = MarathonsRepository.of({
     getMarathonByDomainWithOptions: () =>
       Effect.gen(function* () {
+        yield* updateTestState(stateRef, (state) => ({
+          ...state,
+          marathonReads: state.marathonReads + 1,
+        }))
         const state = yield* Ref.get(stateRef)
         return Option.fromNullishOr(state.marathon)
       }),
@@ -306,6 +328,27 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       emitVotingVoteCast: () => Effect.void,
   } as unknown as RealtimeEventsService['Service'])
 
+  const publicMarathonCache = PublicMarathonCache.of({
+    get: (lookupDomain: string) =>
+      Effect.gen(function* () {
+        yield* updateTestState(stateRef, (state) => ({
+          ...state,
+          publicMarathonCacheGets: [...state.publicMarathonCacheGets, lookupDomain],
+        }))
+        const state = yield* Ref.get(stateRef)
+        if (state.publicMarathonCacheGetFails) {
+          return Option.none()
+        }
+        return Option.fromNullishOr(state.cachedPublicMarathon)
+      }),
+    set: (setDomain: string, value: PublicMarathonForClient) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        publicMarathonCacheSets: [...state.publicMarathonCacheSets, { domain: setDomain, value }],
+      })).pipe(Effect.asVoid),
+    invalidate: () => Effect.void,
+  } as PublicMarathonCache['Service'])
+
   return UploadFlowServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -317,6 +360,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(SQSService)(sqs),
         Layer.succeed(PhoneNumberEncryptionService)(phoneEncryption),
         Layer.succeed(RealtimeEventsService)(realtimeEvents),
+        Layer.succeed(PublicMarathonCache)(publicMarathonCache),
         configLayerFromEnv({
           SUBMISSIONS_BUCKET_NAME: 'submissions-bucket',
           UPLOAD_PROCESSOR_QUEUE_URL: 'https://sqs.example.com/queue',
@@ -341,7 +385,7 @@ const runWithState = <A, E>(
 describe('UploadFlowService', () => {
   it.effect('getPublicMarathon redacts hidden topics and keeps active ones for by-camera mode', () =>
     Effect.gen(function* () {
-      const { result } = yield* runWithState(makeInitialState(), () =>
+      const { result, state } = yield* runWithState(makeInitialState(), () =>
         Effect.gen(function* () {
           const service = yield* UploadFlowService
           return yield* service.getPublicMarathon({ domain })
@@ -351,6 +395,84 @@ describe('UploadFlowService', () => {
       assert.lengthOf(result.topics, 1)
       assert.strictEqual(result.topics[0]?.visibility, 'active')
       assert.strictEqual(result.topics[0]?.name, 'Active topic')
+      assert.deepEqual(state.publicMarathonCacheGets, [domain])
+      assert.equal(state.publicMarathonCacheSets.length, 1)
+      assert.equal(state.publicMarathonCacheSets[0]?.value.topics[0]?.name, 'Active topic')
+      assert.equal(state.marathonReads, 1)
+    }),
+  )
+
+  it.effect('getPublicMarathon returns cached public data without reading the database', () =>
+    Effect.gen(function* () {
+      const cachedPublicMarathon = {
+        ...makeMarathon(),
+        topics: [makeTopic({ id: 99, name: 'Cached active topic' })],
+      } as PublicMarathonForClient
+
+      const { result, state } = yield* runWithState(
+        makeInitialState({ cachedPublicMarathon }),
+        () =>
+          Effect.gen(function* () {
+            const service = yield* UploadFlowService
+            return yield* service.getPublicMarathon({ domain })
+          }),
+      )
+
+      assert.equal(result.topics[0]?.name, 'Cached active topic')
+      assert.equal(state.marathonReads, 0)
+      assert.equal(state.publicMarathonCacheSets.length, 0)
+    }),
+  )
+
+  it.effect('getPublicMarathon falls back to the database when the cache has no usable value', () =>
+    Effect.gen(function* () {
+      const { result, state } = yield* runWithState(
+        makeInitialState({ publicMarathonCacheGetFails: true }),
+        () =>
+          Effect.gen(function* () {
+            const service = yield* UploadFlowService
+            return yield* service.getPublicMarathon({ domain })
+          }),
+      )
+
+      assert.equal(result.topics[0]?.name, 'Active topic')
+      assert.equal(state.marathonReads, 1)
+      assert.equal(state.publicMarathonCacheSets.length, 1)
+    }),
+  )
+
+  it.effect('getPublicMarathon caches redacted topics for marathon mode', () =>
+    Effect.gen(function* () {
+      const publicTopic = makeTopic({ id: 1, orderIndex: 0, visibility: 'public', name: 'Public' })
+      const privateTopic = makeTopic({
+        id: 2,
+        orderIndex: 1,
+        visibility: 'private',
+        name: 'Private topic',
+      })
+
+      const { result, state } = yield* runWithState(
+        makeInitialState({
+          marathon: makeMarathon({
+            mode: 'marathon',
+            topics: [privateTopic, publicTopic],
+          }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const service = yield* UploadFlowService
+            return yield* service.getPublicMarathon({ domain })
+          }),
+      )
+
+      assert.deepEqual(
+        result.topics.map((topic) => topic.name),
+        ['Public', 'Redacted'],
+      )
+      assert.deepEqual(
+        state.publicMarathonCacheSets[0]?.value.topics.map((topic) => topic.name),
+        ['Public', 'Redacted'],
+      )
     }),
   )
 

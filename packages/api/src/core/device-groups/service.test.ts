@@ -4,6 +4,7 @@ import { Effect, Layer, Option, Ref } from 'effect'
 
 import { ForbiddenError } from '../errors'
 import { DeviceGroupsService, DeviceGroupsServiceLayerNoDeps } from './service'
+import { PublicMarathonCache } from '../upload-flow/public-marathon-cache'
 
 const domain = 'demo'
 const marathonId = 1
@@ -12,6 +13,7 @@ interface TestState {
   readonly marathon: { id: number; domain: string } | undefined
   readonly deviceGroup: DeviceGroup | undefined
   readonly createCalls: ReadonlyArray<Record<string, unknown>>
+  readonly invalidatedPublicMarathonDomains: ReadonlyArray<string>
 }
 
 const makeDeviceGroup = (overrides: Partial<DeviceGroup> = {}): DeviceGroup =>
@@ -29,6 +31,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   marathon: { id: marathonId, domain },
   deviceGroup: makeDeviceGroup(),
   createCalls: [],
+  invalidatedPublicMarathonDomains: [],
   ...overrides,
 })
 
@@ -63,11 +66,25 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     deleteDeviceGroup: ({ id }: { id: number }) => Effect.succeed(makeDeviceGroup({ id })),
   } as unknown as DeviceGroupsRepository['Service'])
 
+  const publicMarathonCache = PublicMarathonCache.of({
+    get: () => Effect.succeed(Option.none()),
+    set: () => Effect.void,
+    invalidate: (invalidateDomain: string) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        invalidatedPublicMarathonDomains: [
+          ...state.invalidatedPublicMarathonDomains,
+          invalidateDomain,
+        ],
+      })).pipe(Effect.asVoid),
+  } as PublicMarathonCache['Service'])
+
   return DeviceGroupsServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(DeviceGroupsRepository)(deviceGroupsRepository),
+        Layer.succeed(PublicMarathonCache)(publicMarathonCache),
       ),
     ),
   )
@@ -104,6 +121,46 @@ describe('DeviceGroupsService', () => {
       const state = yield* Ref.get(stateRef)
       assert.equal(state.createCalls[0]?.icon, 'camera')
       assert.equal(state.createCalls[0]?.marathonId, marathonId)
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache after updating a device group', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* DeviceGroupsService
+          return yield* service.updateDeviceGroup({
+            domain,
+            id: 7,
+            data: { name: 'Updated station' },
+          })
+        }),
+      )
+
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache after deleting a device group', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* DeviceGroupsService
+          return yield* service.deleteDeviceGroup({
+            domain,
+            id: 7,
+          })
+        }),
+      )
+
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
     }),
   )
 

@@ -13,6 +13,7 @@ import type {
   UpdateCompetitionClassInput,
 } from './contracts'
 import { ForbiddenError, NotFoundError, failNotFoundIfNone } from '../errors'
+import { PublicMarathonCache, PublicMarathonCacheLayer } from '../upload-flow/public-marathon-cache'
 
 export class CompetitionClassesService extends Context.Service<
   CompetitionClassesService,
@@ -43,6 +44,7 @@ export class CompetitionClassesService extends Context.Service<
 const makeCompetitionClassesService = Effect.gen(function* () {
   const marathonsRepository = yield* MarathonsRepository
   const competitionClassesRepository = yield* CompetitionClassesRepository
+  const publicMarathonCache = yield* PublicMarathonCache
 
   const ensureClassBelongsToDomain = Effect.fn(
     'CompetitionClassesService.ensureClassBelongsToDomain',
@@ -72,30 +74,36 @@ const makeCompetitionClassesService = Effect.gen(function* () {
         .getMarathonByDomain({ domain })
         .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-      return yield* competitionClassesRepository.createCompetitionClass({
+      const competitionClass = yield* competitionClassesRepository.createCompetitionClass({
         data: {
           ...data,
           marathonId: marathon.id,
           topicStartIndex: data.topicStartIndex ?? 0,
         },
       })
+      yield* publicMarathonCache.invalidate(domain)
+      return competitionClass
     })
 
   const updateCompetitionClass: CompetitionClassesService['Service']['updateCompetitionClass'] =
     Effect.fn('CompetitionClassesService.updateCompetitionClass')(function* ({ id, data, domain }) {
       yield* ensureClassBelongsToDomain({ id, domain })
-      return yield* competitionClassesRepository.updateCompetitionClass({
+      const competitionClass = yield* competitionClassesRepository.updateCompetitionClass({
         id,
         data,
       })
+      yield* publicMarathonCache.invalidate(domain)
+      return competitionClass
     })
 
   const deleteCompetitionClass: CompetitionClassesService['Service']['deleteCompetitionClass'] =
     Effect.fn('CompetitionClassesService.deleteCompetitionClass')(function* ({ id, domain }) {
       yield* ensureClassBelongsToDomain({ id, domain })
-      return yield* competitionClassesRepository.deleteCompetitionClass({
+      const competitionClass = yield* competitionClassesRepository.deleteCompetitionClass({
         id,
       })
+      yield* publicMarathonCache.invalidate(domain)
+      return competitionClass
     })
 
   return CompetitionClassesService.of({
@@ -111,5 +119,5 @@ export const CompetitionClassesServiceLayerNoDeps = Layer.effect(
 )
 
 export const CompetitionClassesServiceLayer = CompetitionClassesServiceLayerNoDeps.pipe(
-  Layer.provide(DbLayer),
+  Layer.provide(Layer.mergeAll(DbLayer, PublicMarathonCacheLayer)),
 )

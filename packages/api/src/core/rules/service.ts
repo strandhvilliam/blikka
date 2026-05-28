@@ -10,6 +10,7 @@ import {
 } from '@blikka/db'
 import { NotFoundError, failNotFoundIfNone } from '../errors'
 import type { GetByDomainInput, UpdateMultipleInput } from './contracts'
+import { PublicMarathonCache, PublicMarathonCacheLayer } from '../upload-flow/public-marathon-cache'
 
 export class RulesService extends Context.Service<
   RulesService,
@@ -30,6 +31,7 @@ export class RulesService extends Context.Service<
 const makeRulesService = Effect.gen(function* () {
   const rulesRepository = yield* RulesRepository
   const marathonsRepository = yield* MarathonsRepository
+  const publicMarathonCache = yield* PublicMarathonCache
 
   const getRulesByDomain: RulesService['Service']['getRulesByDomain'] = Effect.fn(
     'RulesService.getRulesByDomain',
@@ -70,6 +72,8 @@ const makeRulesService = Effect.gen(function* () {
       data: rulesToUpdate,
     })
 
+    yield* publicMarathonCache.invalidate(domain)
+
     return result
   })
 
@@ -81,4 +85,6 @@ const makeRulesService = Effect.gen(function* () {
 
 export const RulesServiceLayerNoDeps = Layer.effect(RulesService, makeRulesService)
 
-export const RulesServiceLayer = RulesServiceLayerNoDeps.pipe(Layer.provide(DbLayer))
+export const RulesServiceLayer = RulesServiceLayerNoDeps.pipe(
+  Layer.provide(Layer.mergeAll(DbLayer, PublicMarathonCacheLayer)),
+)

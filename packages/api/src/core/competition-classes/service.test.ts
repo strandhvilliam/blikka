@@ -11,6 +11,7 @@ import {
   CompetitionClassesService,
   CompetitionClassesServiceLayerNoDeps,
 } from './service'
+import { PublicMarathonCache } from '../upload-flow/public-marathon-cache'
 
 const domain = 'demo'
 const marathonId = 1
@@ -21,6 +22,7 @@ interface TestState {
   readonly createCalls: ReadonlyArray<Record<string, unknown>>
   readonly updateCalls: ReadonlyArray<{ id: number; data: Record<string, unknown> }>
   readonly deleteCalls: ReadonlyArray<number>
+  readonly invalidatedPublicMarathonDomains: ReadonlyArray<string>
 }
 
 const makeCompetitionClass = (overrides: Partial<CompetitionClass> = {}): CompetitionClass =>
@@ -42,6 +44,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   createCalls: [],
   updateCalls: [],
   deleteCalls: [],
+  invalidatedPublicMarathonDomains: [],
   ...overrides,
 })
 
@@ -83,11 +86,25 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       })).pipe(Effect.as(makeCompetitionClass({ id }))),
   } as unknown as CompetitionClassesRepository['Service'])
 
+  const publicMarathonCache = PublicMarathonCache.of({
+    get: () => Effect.succeed(Option.none()),
+    set: () => Effect.void,
+    invalidate: (invalidateDomain: string) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        invalidatedPublicMarathonDomains: [
+          ...state.invalidatedPublicMarathonDomains,
+          invalidateDomain,
+        ],
+      })).pipe(Effect.asVoid),
+  } as PublicMarathonCache['Service'])
+
   return CompetitionClassesServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(CompetitionClassesRepository)(competitionClassesRepository),
+        Layer.succeed(PublicMarathonCache)(publicMarathonCache),
       ),
     ),
   )
@@ -125,6 +142,46 @@ describe('CompetitionClassesService', () => {
       const state = yield* Ref.get(stateRef)
       assert.equal(state.createCalls[0]?.topicStartIndex, 0)
       assert.equal(state.createCalls[0]?.marathonId, marathonId)
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache after updating a class', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* CompetitionClassesService
+          return yield* service.updateCompetitionClass({
+            domain,
+            id: 10,
+            data: { name: 'Updated' },
+          })
+        }),
+      )
+
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache after deleting a class', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* CompetitionClassesService
+          return yield* service.deleteCompetitionClass({
+            domain,
+            id: 10,
+          })
+        }),
+      )
+
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
     }),
   )
 

@@ -13,6 +13,7 @@ import type {
   UpdateDeviceGroupInput,
 } from './contracts'
 import { ForbiddenError, NotFoundError, failNotFoundIfNone } from '../errors'
+import { PublicMarathonCache, PublicMarathonCacheLayer } from '../upload-flow/public-marathon-cache'
 
 export class DeviceGroupsService extends Context.Service<
   DeviceGroupsService,
@@ -43,6 +44,7 @@ export class DeviceGroupsService extends Context.Service<
 const makeDeviceGroupsService = Effect.gen(function* () {
   const marathonsRepository = yield* MarathonsRepository
   const deviceGroupsRepository = yield* DeviceGroupsRepository
+  const publicMarathonCache = yield* PublicMarathonCache
 
   const ensureDeviceGroupBelongsToDomain = Effect.fn(
     'DeviceGroupsService.ensureDeviceGroupBelongsToDomain',
@@ -73,30 +75,36 @@ const makeDeviceGroupsService = Effect.gen(function* () {
       .getMarathonByDomain({ domain })
       .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-    return yield* deviceGroupsRepository.createDeviceGroup({
+    const deviceGroup = yield* deviceGroupsRepository.createDeviceGroup({
       data: {
         ...data,
         marathonId: marathon.id,
         icon: data.icon ?? 'camera',
       },
     })
+    yield* publicMarathonCache.invalidate(domain)
+    return deviceGroup
   })
 
   const updateDeviceGroup: DeviceGroupsService['Service']['updateDeviceGroup'] = Effect.fn(
     'DeviceGroupsService.updateDeviceGroup',
   )(function* ({ domain, id, data }) {
     yield* ensureDeviceGroupBelongsToDomain({ id, domain })
-    return yield* deviceGroupsRepository.updateDeviceGroup({
+    const deviceGroup = yield* deviceGroupsRepository.updateDeviceGroup({
       id,
       data,
     })
+    yield* publicMarathonCache.invalidate(domain)
+    return deviceGroup
   })
 
   const deleteDeviceGroup: DeviceGroupsService['Service']['deleteDeviceGroup'] = Effect.fn(
     'DeviceGroupsService.deleteDeviceGroup',
   )(function* ({ domain, id }) {
     yield* ensureDeviceGroupBelongsToDomain({ id, domain })
-    return yield* deviceGroupsRepository.deleteDeviceGroup({ id })
+    const deviceGroup = yield* deviceGroupsRepository.deleteDeviceGroup({ id })
+    yield* publicMarathonCache.invalidate(domain)
+    return deviceGroup
   })
 
   return DeviceGroupsService.of({
@@ -111,4 +119,6 @@ export const DeviceGroupsServiceLayerNoDeps = Layer.effect(
   makeDeviceGroupsService,
 )
 
-export const DeviceGroupsServiceLayer = DeviceGroupsServiceLayerNoDeps.pipe(Layer.provide(DbLayer))
+export const DeviceGroupsServiceLayer = DeviceGroupsServiceLayerNoDeps.pipe(
+  Layer.provide(Layer.mergeAll(DbLayer, PublicMarathonCacheLayer)),
+)

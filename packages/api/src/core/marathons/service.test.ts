@@ -12,6 +12,7 @@ import { Effect, Layer, Option, Ref } from 'effect'
 
 import { configLayerFromEnv } from '../test/config-layer'
 import { MarathonService, MarathonServiceLayerNoDeps } from './service'
+import { PublicMarathonCache } from '../upload-flow/public-marathon-cache'
 
 const domain = 'demo'
 const marathonId = 1
@@ -30,6 +31,7 @@ interface TestState {
   readonly createdCompetitionClasses: ReadonlyArray<Record<string, unknown>>
   readonly updatedRules: ReadonlyArray<Record<string, unknown>>
   readonly presignedUrlCalls: ReadonlyArray<{ bucket: string; key: string }>
+  readonly invalidatedPublicMarathonDomains: ReadonlyArray<string>
 }
 
 const makeMarathon = (overrides: Partial<TestMarathon> = {}): TestMarathon =>
@@ -53,6 +55,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   createdCompetitionClasses: [],
   updatedRules: [],
   presignedUrlCalls: [],
+  invalidatedPublicMarathonDomains: [],
   ...overrides,
 })
 
@@ -82,6 +85,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         const state = yield* Ref.get(stateRef)
         return state.marathon!
       }),
+    resetMarathon: ({ id }: { id: number }) => Effect.succeed({ id }),
   } as unknown as MarathonsRepository['Service'])
 
   const competitionClassesRepository = CompetitionClassesRepository.of({
@@ -121,6 +125,19 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       }),
   } as unknown as S3Service['Service'])
 
+  const publicMarathonCache = PublicMarathonCache.of({
+    get: () => Effect.succeed(Option.none()),
+    set: () => Effect.void,
+    invalidate: (invalidateDomain: string) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        invalidatedPublicMarathonDomains: [
+          ...state.invalidatedPublicMarathonDomains,
+          invalidateDomain,
+        ],
+      })).pipe(Effect.asVoid),
+  } as PublicMarathonCache['Service'])
+
   return MarathonServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -129,6 +146,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(RulesRepository)(rulesRepository),
         Layer.succeed(UsersRepository)(usersRepository),
         Layer.succeed(S3Service)(s3Service),
+        Layer.succeed(PublicMarathonCache)(publicMarathonCache),
       ),
     ),
   )
@@ -215,6 +233,42 @@ describe('MarathonService', () => {
         start: '2026-06-01T08:00:00.000Z',
         end: '2026-06-01T20:00:00.000Z',
       })
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache after updating marathon settings', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* MarathonService
+          return yield* service.updateMarathon({
+            domain,
+            data: { name: 'Updated marathon' },
+          })
+        }),
+      )
+
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache after resetting marathon data', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* MarathonService
+          return yield* service.resetMarathon({ domain })
+        }),
+      )
+
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
     }),
   )
 })

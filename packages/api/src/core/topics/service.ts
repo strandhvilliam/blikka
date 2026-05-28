@@ -24,6 +24,7 @@ import type {
   UpdateTopicInput,
   UpdateTopicsOrderInput,
 } from './contracts'
+import { PublicMarathonCache, PublicMarathonCacheLayer } from '../upload-flow/public-marathon-cache'
 
 const validateSubmissionWindow = Effect.fn('TopicsService.validateSubmissionWindow')(function* ({
   scheduledStart,
@@ -95,6 +96,7 @@ const makeTopicsService = Effect.gen(function* () {
   const marathonsRepository = yield* MarathonsRepository
   const topicsRepository = yield* TopicsRepository
   const votingRepository = yield* VotingRepository
+  const publicMarathonCache = yield* PublicMarathonCache
 
   const getTopicsWithSubmissionCount: TopicsService['Service']['getTopicsWithSubmissionCount'] =
     Effect.fn('TopicsService.getTopicsWithSubmissionCount')(function* ({ domain }) {
@@ -149,6 +151,7 @@ const makeTopicsService = Effect.gen(function* () {
     })
 
     if (!shouldActivate) {
+      yield* publicMarathonCache.invalidate(domain)
       return createdTopic
     }
 
@@ -170,18 +173,20 @@ const makeTopicsService = Effect.gen(function* () {
       nowIso: activatedAt,
     })
 
-    return yield* topicsRepository.updateTopic({
+    const activatedTopic = yield* topicsRepository.updateTopic({
       id: createdTopic.id,
       data: {
         activatedAt,
         visibility: 'active',
       },
     })
+    yield* publicMarathonCache.invalidate(domain)
+    return activatedTopic
   })
 
   const updateTopic: TopicsService['Service']['updateTopic'] = Effect.fn(
     'TopicsService.updateTopic',
-  )(function* ({ id, data }) {
+  )(function* ({ domain, id, data }) {
     const topic = yield* topicsRepository.getTopicById({ id })
 
     if (!topic) {
@@ -248,15 +253,17 @@ const makeTopicsService = Effect.gen(function* () {
       })
     }
 
-    return yield* topicsRepository.updateTopic({
+    const updatedTopic = yield* topicsRepository.updateTopic({
       id,
       data: updateData,
     })
+    yield* publicMarathonCache.invalidate(domain)
+    return updatedTopic
   })
 
   const activateTopic: TopicsService['Service']['activateTopic'] = Effect.fn(
     'TopicsService.activateTopic',
-  )(function* ({ id }) {
+  )(function* ({ domain, id }) {
     const topic = yield* topicsRepository.getTopicById({ id })
 
     if (!topic) {
@@ -286,13 +293,15 @@ const makeTopicsService = Effect.gen(function* () {
       nowIso: activatedAt,
     })
 
-    return yield* topicsRepository.updateTopic({
+    const activatedTopic = yield* topicsRepository.updateTopic({
       id,
       data: {
         activatedAt,
         visibility: 'active',
       },
     })
+    yield* publicMarathonCache.invalidate(domain)
+    return activatedTopic
   })
 
   const deleteTopic: TopicsService['Service']['deleteTopic'] = Effect.fn(
@@ -316,9 +325,11 @@ const makeTopicsService = Effect.gen(function* () {
       )
     }
 
-    return yield* topicsRepository.deleteTopic({
+    const deletedTopic = yield* topicsRepository.deleteTopic({
       id,
     })
+    yield* publicMarathonCache.invalidate(domain)
+    return deletedTopic
   })
 
   const updateTopicsOrder: TopicsService['Service']['updateTopicsOrder'] = Effect.fn(
@@ -328,10 +339,12 @@ const makeTopicsService = Effect.gen(function* () {
       .getMarathonByDomain({ domain })
       .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-    return yield* topicsRepository.updateTopicsOrder({
+    const topics = yield* topicsRepository.updateTopicsOrder({
       topicIds: [...topicIds],
       marathonId: marathon.id,
     })
+    yield* publicMarathonCache.invalidate(domain)
+    return topics
   })
 
   return TopicsService.of({
@@ -346,4 +359,6 @@ const makeTopicsService = Effect.gen(function* () {
 
 export const TopicsServiceLayerNoDeps = Layer.effect(TopicsService, makeTopicsService)
 
-export const TopicsServiceLayer = TopicsServiceLayerNoDeps.pipe(Layer.provide(DbLayer))
+export const TopicsServiceLayer = TopicsServiceLayerNoDeps.pipe(
+  Layer.provide(Layer.mergeAll(DbLayer, PublicMarathonCacheLayer)),
+)

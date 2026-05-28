@@ -29,6 +29,7 @@ import type {
 } from './contracts'
 
 import { buildVirtualHostedS3Url } from '../shared'
+import { PublicMarathonCache, PublicMarathonCacheLayer } from '../upload-flow/public-marathon-cache'
 
 function extractLogoVersion(currentKey?: string | null) {
   if (!currentKey) return undefined
@@ -108,6 +109,7 @@ const makeMarathonService = Effect.gen(function* () {
   const rulesRepository = yield* RulesRepository
   const marathonsRepository = yield* MarathonsRepository
   const competitionClassesRepository = yield* CompetitionClassesRepository
+  const publicMarathonCache = yield* PublicMarathonCache
   const s3 = yield* S3Service
 
   const getMarathonByDomain: MarathonService['Service']['getMarathonByDomain'] = Effect.fn(
@@ -171,6 +173,8 @@ const makeMarathonService = Effect.gen(function* () {
       }
     }
 
+    yield* publicMarathonCache.invalidate(domain)
+
     return result
   })
 
@@ -181,7 +185,9 @@ const makeMarathonService = Effect.gen(function* () {
       .getMarathonByDomain({ domain })
       .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-    return yield* marathonsRepository.resetMarathon({ id: marathon.id })
+    const result = yield* marathonsRepository.resetMarathon({ id: marathon.id })
+    yield* publicMarathonCache.invalidate(domain)
+    return result
   })
 
   const getLogoUploadUrl: MarathonService['Service']['getLogoUploadUrl'] = Effect.fn(
@@ -251,5 +257,5 @@ const makeMarathonService = Effect.gen(function* () {
 export const MarathonServiceLayerNoDeps = Layer.effect(MarathonService, makeMarathonService)
 
 export const MarathonServiceLayer = MarathonServiceLayerNoDeps.pipe(
-  Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer)),
+  Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer, PublicMarathonCacheLayer)),
 )

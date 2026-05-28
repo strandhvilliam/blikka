@@ -4,6 +4,7 @@ import { Effect, Layer, Option, Ref } from 'effect'
 
 import { NotFoundError } from '../errors'
 import { RulesService, RulesServiceLayerNoDeps } from './service'
+import { PublicMarathonCache } from '../upload-flow/public-marathon-cache'
 
 const domain = 'demo'
 
@@ -11,6 +12,7 @@ interface TestState {
   readonly rules: RuleConfig[]
   readonly marathon: { id: number; domain: string } | undefined
   readonly updateCalls: ReadonlyArray<RuleConfig[]>
+  readonly invalidatedPublicMarathonDomains: ReadonlyArray<string>
 }
 
 const makeRule = (overrides: Partial<RuleConfig> = {}): RuleConfig =>
@@ -33,6 +35,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   ],
   marathon: { id: 1, domain },
   updateCalls: [],
+  invalidatedPublicMarathonDomains: [],
   ...overrides,
 })
 
@@ -61,11 +64,25 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       }),
   } as unknown as MarathonsRepository['Service'])
 
+  const publicMarathonCache = PublicMarathonCache.of({
+    get: () => Effect.succeed(Option.none()),
+    set: () => Effect.void,
+    invalidate: (invalidateDomain: string) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        invalidatedPublicMarathonDomains: [
+          ...state.invalidatedPublicMarathonDomains,
+          invalidateDomain,
+        ],
+      })).pipe(Effect.asVoid),
+  } as PublicMarathonCache['Service'])
+
   return RulesServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(RulesRepository)(rulesRepository),
         Layer.succeed(MarathonsRepository)(marathonsRepository),
+        Layer.succeed(PublicMarathonCache)(publicMarathonCache),
       ),
     ),
   )
@@ -115,6 +132,7 @@ describe('RulesService', () => {
       assert.equal(updatedRule.marathonId, 1)
       assert.notEqual(updatedRule.updatedAt, '2026-01-01T00:00:00.000Z')
       assert.equal(result.length, 1)
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
     }),
   )
 

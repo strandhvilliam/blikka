@@ -47,8 +47,9 @@ import {
   maybeRecordParticipantTermsAcceptance,
   normalizeUploadContentType,
 } from '../shared/upload'
+import { PublicMarathonCache, PublicMarathonCacheLayer } from './public-marathon-cache'
 
-interface PublicMarathonForClient extends Omit<Marathon, 'topics'> {
+export interface PublicMarathonForClient extends Omit<Marathon, 'topics'> {
   topics: Topic[]
 }
 
@@ -155,6 +156,7 @@ const makeUploadFlowService = Effect.gen(function* () {
   const kv = yield* UploadSessionRepository
   const phoneEncryption = yield* PhoneNumberEncryptionService
   const realtimeEvents = yield* RealtimeEventsService
+  const publicMarathonCache = yield* PublicMarathonCache
   const s3 = yield* S3Service
   const sqs = yield* SQSService
   const bucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
@@ -278,6 +280,11 @@ const makeUploadFlowService = Effect.gen(function* () {
   const getPublicMarathon: UploadFlowService['Service']['getPublicMarathon'] = Effect.fn(
     'UploadFlowService.getPublicMarathon',
   )(function* ({ domain }) {
+    const cached = yield* publicMarathonCache.get(domain)
+    if (Option.isSome(cached)) {
+      return cached.value
+    }
+
     const marathon = yield* marathonsRepository.getMarathonByDomainWithOptions({ domain }).pipe(
       Effect.flatMap((option) =>
         Option.match(option, {
@@ -311,10 +318,14 @@ const makeUploadFlowService = Effect.gen(function* () {
         ? processedTopics.filter((topic) => topic.visibility === 'active').slice(0, 1)
         : processedTopics
 
-    return {
+    const publicMarathon = {
       ...marathon,
       topics,
     }
+
+    yield* publicMarathonCache.set(domain, publicMarathon)
+
+    return publicMarathon
   })
 
   const checkParticipantExists: UploadFlowService['Service']['checkParticipantExists'] = Effect.fn(
@@ -684,6 +695,7 @@ export const UploadFlowServiceLayer = UploadFlowServiceLayerNoDeps.pipe(
       UploadSessionRepositoryLayer,
       PhoneNumberEncryptionServiceLayer,
       RealtimeEventsServiceLayer,
+      PublicMarathonCacheLayer,
     ),
   ),
 )

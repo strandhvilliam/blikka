@@ -17,8 +17,10 @@ import { ZipFilesServiceLayer } from './core/zip-files/service'
 import { VotingServiceLayer } from './core/voting/service'
 import { SubmissionsServiceLayer } from './core/submissions/service'
 import { SeedingServiceLayer } from './core/seeding/service'
+import { PublicMarathonCacheLayer } from './core/upload-flow/public-marathon-cache'
 
 export const ApiLayer = Layer.mergeAll(
+  PublicMarathonCacheLayer,
   UploadInitializerServiceLayer,
   UploadFlowServiceLayer,
   ContactSheetsServiceLayer,

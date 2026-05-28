@@ -6,6 +6,7 @@ import { Effect, Layer, Option, Ref } from 'effect'
 import { configLayerFromEnv } from '../test/config-layer'
 import { NotFoundError } from '../errors'
 import { SponsorsService, SponsorsServiceLayerNoDeps } from './service'
+import { PublicMarathonCache } from '../upload-flow/public-marathon-cache'
 
 const domain = 'demo'
 const marathonId = 1
@@ -16,6 +17,7 @@ interface TestState {
   readonly sponsors: Sponsor[]
   readonly createCalls: ReadonlyArray<Record<string, unknown>>
   readonly presignedUrlCalls: ReadonlyArray<{ bucket: string; key: string; method: string }>
+  readonly invalidatedPublicMarathonDomains: ReadonlyArray<string>
 }
 
 const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
@@ -23,6 +25,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   sponsors: [],
   createCalls: [],
   presignedUrlCalls: [],
+  invalidatedPublicMarathonDomains: [],
   ...overrides,
 })
 
@@ -73,12 +76,26 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       }),
   } as unknown as S3Service['Service'])
 
+  const publicMarathonCache = PublicMarathonCache.of({
+    get: () => Effect.succeed(Option.none()),
+    set: () => Effect.void,
+    invalidate: (invalidateDomain: string) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        invalidatedPublicMarathonDomains: [
+          ...state.invalidatedPublicMarathonDomains,
+          invalidateDomain,
+        ],
+      })).pipe(Effect.asVoid),
+  } as PublicMarathonCache['Service'])
+
   return SponsorsServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(SponsorsRepository)(sponsorsRepository),
         Layer.succeed(S3Service)(s3Service),
+        Layer.succeed(PublicMarathonCache)(publicMarathonCache),
       ),
     ),
   )
@@ -108,8 +125,8 @@ describe('SponsorsService', () => {
           const service = yield* SponsorsService
           return yield* service.createSponsor({
             domain,
-            type: 'gold',
-            position: 'header',
+            type: 'live-landing',
+            position: 'top-left',
             key: `${domain}/sponsors/logo.jpg`,
           })
         }),
@@ -117,7 +134,8 @@ describe('SponsorsService', () => {
 
       const state = yield* Ref.get(stateRef)
       assert.equal(state.createCalls[0]?.marathonId, marathonId)
-      assert.equal(state.createCalls[0]?.type, 'gold')
+      assert.equal(state.createCalls[0]?.type, 'live-landing')
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
     }),
   )
 
@@ -129,7 +147,11 @@ describe('SponsorsService', () => {
         stateRef,
         Effect.gen(function* () {
           const service = yield* SponsorsService
-          return yield* service.generateUploadUrl({ domain })
+          return yield* service.generateUploadUrl({
+            domain,
+            type: 'live-landing',
+            position: 'top-left',
+          })
         }),
       )
 
@@ -137,6 +159,7 @@ describe('SponsorsService', () => {
       assert.equal(state.presignedUrlCalls[0]?.bucket, bucketName)
       assert.equal(state.presignedUrlCalls[0]?.method, 'PUT')
       assert.equal(result.url, `https://example.com/${result.key}`)
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [])
     }),
   )
 

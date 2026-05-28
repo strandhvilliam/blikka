@@ -13,6 +13,7 @@ import {
 } from '../errors'
 import { makeTopic } from '../test/fixtures/topic'
 import { TopicsService, TopicsServiceLayerNoDeps } from './service'
+import { PublicMarathonCache } from '../upload-flow/public-marathon-cache'
 
 const domain = 'demo'
 const marathonId = 1
@@ -24,6 +25,9 @@ interface TestState {
   readonly createdTopics: ReadonlyArray<Partial<Topic>>
   readonly closedVotingTopicIds: number[][]
   readonly latestVotingRound: { _tag: 'Some' | 'None'; value?: { id: number } }
+  readonly deletedTopicIds: ReadonlyArray<number>
+  readonly orderUpdates: ReadonlyArray<number[]>
+  readonly invalidatedPublicMarathonDomains: ReadonlyArray<string>
 }
 
 const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
@@ -33,6 +37,9 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   createdTopics: [],
   closedVotingTopicIds: [],
   latestVotingRound: { _tag: 'None' },
+  deletedTopicIds: [],
+  orderUpdates: [],
+  invalidatedPublicMarathonDomains: [],
   ...overrides,
 })
 
@@ -94,6 +101,37 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
 
         return topic
       }),
+    deleteTopic: ({ id }: { id: number }) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        const topic = state.topics.find((candidate) => candidate.id === id)
+        if (!topic) {
+          return yield* Effect.die(`Topic ${id} not found in test state`)
+        }
+        yield* updateTestState(stateRef, (current) => ({
+          ...current,
+          deletedTopicIds: [...current.deletedTopicIds, id],
+          topics: current.topics.filter((candidate) => candidate.id !== id),
+        }))
+        return topic
+      }),
+    updateTopicsOrder: ({ topicIds }: { topicIds: number[]; marathonId: number }) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        orderUpdates: [...state.orderUpdates, topicIds],
+        topics: state.topics.map((topic) => {
+          const orderIndex = topicIds.indexOf(topic.id)
+          return orderIndex >= 0 ? ({ ...topic, orderIndex } as Topic) : topic
+        }),
+      })).pipe(
+        Effect.flatMap(() =>
+          Ref.get(stateRef).pipe(
+            Effect.map((state) =>
+              [...state.topics].sort((a, b) => a.orderIndex - b.orderIndex),
+            ),
+          ),
+        ),
+      ),
   } as unknown as TopicsRepository['Service'])
 
   const votingRepository = VotingRepository.of({
@@ -115,12 +153,26 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       })).pipe(Effect.asVoid),
   } as unknown as VotingRepository['Service'])
 
+  const publicMarathonCache = PublicMarathonCache.of({
+    get: () => Effect.succeed(Option.none()),
+    set: () => Effect.void,
+    invalidate: (invalidateDomain: string) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        invalidatedPublicMarathonDomains: [
+          ...state.invalidatedPublicMarathonDomains,
+          invalidateDomain,
+        ],
+      })).pipe(Effect.asVoid),
+  } as PublicMarathonCache['Service'])
+
   return TopicsServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(TopicsRepository)(topicsRepository),
         Layer.succeed(VotingRepository)(votingRepository),
+        Layer.succeed(PublicMarathonCache)(publicMarathonCache),
       ),
     ),
   )
@@ -137,6 +189,28 @@ const runWithState = <A, E>(
   }).pipe(Effect.provide(makeTestLayer(stateRef)))
 
 describe('TopicsService', () => {
+  it.effect('invalidates the public marathon cache after creating a topic', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* TopicsService
+          return yield* service.createTopic({
+            domain,
+            data: {
+              name: 'New topic',
+              visibility: 'public',
+            },
+          })
+        }),
+      )
+
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
   it.effect('rejects createTopic when submission end is not after start', () =>
     Effect.gen(function* () {
       const stateRef = yield* Ref.make(makeInitialState())
@@ -223,6 +297,36 @@ describe('TopicsService', () => {
         ],
       )
       assert.deepEqual(state.closedVotingTopicIds, [[1]])
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache once after activating a created by-camera topic', () =>
+    Effect.gen(function* () {
+      const activeSibling = makeTopic({ id: 1, visibility: 'active', name: 'Active sibling' })
+      const stateRef = yield* Ref.make(
+        makeInitialState({
+          marathon: { id: marathonId, domain, mode: 'by-camera' },
+          topics: [activeSibling],
+        }),
+      )
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* TopicsService
+          return yield* service.createTopic({
+            domain,
+            data: {
+              name: 'Fresh active topic',
+              visibility: 'public',
+              activate: true,
+            },
+          })
+        }),
+      )
+
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
     }),
   )
 
@@ -260,6 +364,64 @@ describe('TopicsService', () => {
       if (error instanceof PreconditionFailedError) {
         assert.include(error.message, 'Submission window cannot be changed')
       }
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache after updating a topic', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* TopicsService
+          return yield* service.updateTopic({
+            domain,
+            id: 1,
+            data: { name: 'Updated topic' },
+          })
+        }),
+      )
+
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache after deleting a topic', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* TopicsService
+          return yield* service.deleteTopic({ domain, id: 1 })
+        }),
+      )
+
+      assert.deepEqual(state.deletedTopicIds, [1])
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
+    }),
+  )
+
+  it.effect('invalidates the public marathon cache after reordering topics', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(
+        makeInitialState({
+          topics: [makeTopic({ id: 1 }), makeTopic({ id: 2 })],
+        }),
+      )
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* TopicsService
+          return yield* service.updateTopicsOrder({ domain, topicIds: [2, 1] })
+        }),
+      )
+
+      assert.deepEqual(state.orderUpdates, [[2, 1]])
+      assert.deepEqual(state.invalidatedPublicMarathonDomains, [domain])
     }),
   )
 })

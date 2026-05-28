@@ -8,6 +8,7 @@ import type {
   GetSponsorsByMarathonInput,
 } from './contracts'
 import { NotFoundError, failNotFoundIfNone } from '../errors'
+import { PublicMarathonCache, PublicMarathonCacheLayer } from '../upload-flow/public-marathon-cache'
 
 export class SponsorsService extends Context.Service<
   SponsorsService,
@@ -32,6 +33,7 @@ export class SponsorsService extends Context.Service<
 const makeSponsorsService = Effect.gen(function* () {
   const sponsorsRepository = yield* SponsorsRepository
   const marathonsRepository = yield* MarathonsRepository
+  const publicMarathonCache = yield* PublicMarathonCache
   const s3 = yield* S3Service
 
   const getSponsorsByMarathon: SponsorsService['Service']['getSponsorsByMarathon'] = Effect.fn(
@@ -53,7 +55,7 @@ const makeSponsorsService = Effect.gen(function* () {
       .getMarathonByDomain({ domain })
       .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-    return yield* sponsorsRepository.createSponsor({
+    const sponsor = yield* sponsorsRepository.createSponsor({
       data: {
         marathonId: marathon.id,
         type,
@@ -61,6 +63,8 @@ const makeSponsorsService = Effect.gen(function* () {
         key,
       },
     })
+    yield* publicMarathonCache.invalidate(domain)
+    return sponsor
   })
 
   const generateUploadUrl: SponsorsService['Service']['generateUploadUrl'] = Effect.fn(
@@ -90,5 +94,5 @@ const makeSponsorsService = Effect.gen(function* () {
 export const SponsorsServiceLayerNoDeps = Layer.effect(SponsorsService, makeSponsorsService)
 
 export const SponsorsServiceLayer = SponsorsServiceLayerNoDeps.pipe(
-  Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer)),
+  Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer, PublicMarathonCacheLayer)),
 )
