@@ -1,20 +1,19 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { useTranslations, useLocale, Locale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { PrimaryButton } from '@/components/ui/primary-button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { LiveParticipationStart } from '@/components/live/flow/live-participation-start'
 import {
   buildS3Url,
   cn,
@@ -23,18 +22,19 @@ import {
   formatPlatformTermsPathname,
 } from '@/lib/utils'
 import { format } from 'date-fns'
-import { enUS, sv, type Locale as DateFnsLocale } from 'date-fns/locale'
-import { ArrowRight, Info, ImageIcon, Play, Upload, Users } from 'lucide-react'
+import { Info, ImageIcon } from 'lucide-react'
 import ReactCountryFlag from 'react-country-flag'
 import Image from 'next/image'
 import { changeLocaleAction } from '@/lib/actions/change-locale-action'
 import { useRouter } from 'next/navigation'
 import { useDomain } from '@/lib/domain-provider'
-import {
-  getByCameraLiveAccessState,
-  type ByCameraLiveAccessResult,
-} from '@/lib/by-camera/by-camera-live-access-state'
+import { getByCameraLiveAccessState } from '@/lib/by-camera/by-camera-live-access-state'
 import { resolveLiveLandingSponsor } from '@/lib/sponsors/live-landing-sponsor'
+
+const LIVE_LANGUAGE_OPTIONS = [
+  { locale: 'en' as const, countryCode: 'GB', label: 'EN' },
+  { locale: 'sv' as const, countryCode: 'SE', label: 'SV' },
+] as const
 
 export function LiveClientPage() {
   const domain = useDomain()
@@ -42,17 +42,6 @@ export function LiveClientPage() {
   const locale = useLocale()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-
-  useEffect(() => {
-    console.info('[LiveClientPage] browser diagnostics', {
-      userAgent: navigator.userAgent,
-      userAgentData: 'userAgentData' in navigator ? navigator.userAgentData : undefined,
-      arrayAt: typeof Array.prototype.at,
-      createImageBitmap: typeof window.createImageBitmap,
-      offscreenCanvas: typeof window.OffscreenCanvas,
-      promiseAllSettled: typeof Promise.allSettled,
-    })
-  }, [])
 
   const setLocale = (locale: Locale) => {
     startTransition(async () => {
@@ -71,8 +60,9 @@ export function LiveClientPage() {
     trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }),
   )
 
+  const marathonMode = marathon.mode as 'marathon' | 'by-camera'
   const byCameraAccessState =
-    marathon.mode === 'by-camera' ? getByCameraLiveAccessState(marathon) : null
+    marathonMode === 'by-camera' ? getByCameraLiveAccessState(marathon) : null
 
   const [termsAccepted, setTermsAccepted] = useState(false)
 
@@ -85,30 +75,20 @@ export function LiveClientPage() {
   }
 
   const handleStartUpload = () => {
-    if (termsAccepted) {
-      switch (marathon.mode) {
-        case 'marathon':
-          router.push(
-            formatDomainPathname(withTermsAcceptanceParams(`/live/marathon`), domain, 'live'),
-          )
-          break
-        case 'by-camera':
-          if (byCameraAccessState?.state !== 'open') {
-            return
-          }
+    if (!termsAccepted) return
 
-          router.push(
-            formatDomainPathname(withTermsAcceptanceParams(`/live/by-camera`), domain, 'live'),
-          )
-          break
-      }
+    if (marathonMode === 'marathon') {
+      router.push(formatDomainPathname(withTermsAcceptanceParams(`/live/marathon`), domain, 'live'))
+      return
     }
+
+    if (byCameraAccessState?.state !== 'open') return
+
+    router.push(formatDomainPathname(withTermsAcceptanceParams(`/live/by-camera`), domain, 'live'))
   }
 
   const handleStartPrepare = () => {
-    if (!termsAccepted || marathon.mode !== 'marathon') {
-      return
-    }
+    if (!termsAccepted || marathonMode !== 'marathon') return
 
     router.push(
       formatDomainPathname(withTermsAcceptanceParams(`/live/marathon/prepare`), domain, 'live'),
@@ -119,23 +99,22 @@ export function LiveClientPage() {
 
   return (
     <div className="flex flex-col min-h-dvh relative overflow-hidden pt-4">
-      <PoweredByBlikka />
+      <BlikkaTopLogo />
+      <LanguageToggle locale={locale} setLocale={setLocale} isPending={isPending} />
       <div className="z-20 flex flex-col flex-1 h-full">
-        <main className="flex-1 w-full flex flex-col justify-center pb-4 sm:pb-6">
+        <main className="flex-1 w-full flex flex-col justify-center pt-5 pb-4 sm:pb-6">
           <div className="px-3 sm:px-6 max-w-md mx-auto w-full">
             <LogoAndEventInfo
               marathon={marathon}
-              mode={marathon.mode as 'marathon' | 'by-camera'}
+              mode={marathonMode}
               activeTopicName={
-                marathon.mode === 'by-camera'
+                marathonMode === 'by-camera'
                   ? (byCameraAccessState?.activeTopic?.name ?? null)
                   : null
               }
             />
 
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]">
-              <LanguageSelection locale={locale} setLocale={setLocale} isPending={isPending} />
-
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)] space-y-4">
               <RulesAndInformation description={marathon.description} />
 
               <TermsCheckbox
@@ -145,16 +124,16 @@ export function LiveClientPage() {
                 locale={locale}
               />
 
-              <OfficialBrowserTip />
-
-              <StartButtons
-                marathonMode={marathon.mode as 'marathon' | 'by-camera'}
+              <LiveParticipationStart
+                marathonMode={marathonMode}
                 onUploadClick={handleStartUpload}
                 onPrepareClick={handleStartPrepare}
                 disabled={!termsAccepted}
                 byCameraAccessState={byCameraAccessState}
                 activeTopic={byCameraAccessState?.activeTopic ?? null}
               />
+
+              <OfficialBrowserTip />
             </div>
           </div>
 
@@ -180,33 +159,44 @@ function LogoAndEventInfo({
   activeTopicName: string | null
 }) {
   const t = useTranslations('LivePage')
-  const subtitle =
-    mode === 'by-camera'
-      ? (activeTopicName ?? t('noTopicOpen'))
-      : marathon.startDate && marathon.endDate
-        ? `${format(new Date(marathon.startDate), 'dd MMMM yyyy')} - ${format(new Date(marathon.endDate), 'dd MMMM yyyy')}`
-        : t('datesToBeAnnounced')
+
+  let subtitle: string
+  if (mode === 'by-camera') {
+    subtitle = activeTopicName ?? t('noTopicOpen')
+  } else if (marathon.startDate && marathon.endDate) {
+    subtitle = `${format(new Date(marathon.startDate), 'dd MMMM yyyy')} - ${format(new Date(marathon.endDate), 'dd MMMM yyyy')}`
+  } else {
+    subtitle = t('datesToBeAnnounced')
+  }
 
   return (
-    <div className="flex flex-col items-center pb-8">
+    <div className="flex flex-col items-center pb-5 sm:pb-6">
       {marathon.logoUrl ? (
-        <div className="w-24 h-24 rounded-full flex items-center justify-center mb-3 overflow-hidden shadow border">
-          <img src={marathon.logoUrl} alt="Logo" width={96} height={96} />
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mb-3 overflow-hidden shadow border">
+          <img
+            src={marathon.logoUrl}
+            alt="Logo"
+            width={96}
+            height={96}
+            className="h-full w-full object-cover"
+          />
         </div>
       ) : (
-        <div className="w-24 h-24 rounded-full flex items-center justify-center bg-gray-200">
-          <ImageIcon className="w-12 h-12" />
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center bg-gray-200">
+          <ImageIcon className="w-10 h-10 sm:w-12 sm:h-12" />
         </div>
       )}
-      <h1 className="text-2xl font-gothic font-medium text-foreground text-center mt-2 tracking-tight">
+      <h1 className="text-xl sm:text-2xl font-gothic font-medium text-foreground text-center mt-1 tracking-tight">
         {marathon.name}
       </h1>
-      <p className="text-center text-lg mt-1 font-medium tracking-wide">{subtitle}</p>
+      <p className="text-center text-sm sm:text-base mt-1 font-medium tracking-wide text-muted-foreground">
+        {subtitle}
+      </p>
     </div>
   )
 }
 
-function LanguageSelection({
+function LanguageToggle({
   locale,
   setLocale,
   isPending,
@@ -217,48 +207,42 @@ function LanguageSelection({
 }) {
   const t = useTranslations('LivePage')
   return (
-    <section className="mb-3 sm:mb-5">
-      <p
-        id="live-language-label"
-        className="text-center text-sm font-medium text-muted-foreground mb-2 sm:mb-3"
+    <div
+      className="absolute right-3 top-3 z-30 sm:right-5 sm:top-5"
+      role="group"
+      aria-label={t('selectLanguage')}
+    >
+      <div
+        className={cn(
+          'flex items-center gap-0.5 rounded-full border border-border bg-white/90 p-1 shadow-sm backdrop-blur-sm transition-opacity',
+          isPending && 'opacity-60',
+        )}
       >
-        {t('selectLanguage')}
-      </p>
-      <div className="flex gap-2 sm:gap-3" role="group" aria-labelledby="live-language-label">
-        <Button
-          type="button"
-          variant="outline"
-          aria-pressed={locale === 'en'}
-          className={cn(
-            'min-w-0 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors',
-            locale === 'en'
-              ? 'border-primary bg-primary/5 font-medium shadow-xs'
-              : 'border-border hover:bg-accent/40',
-          )}
-          onClick={() => setLocale('en')}
-          disabled={isPending}
-        >
-          <ReactCountryFlag countryCode="GB" svg />
-          English
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          aria-pressed={locale === 'sv'}
-          className={cn(
-            'min-w-0 flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors',
-            locale === 'sv'
-              ? 'border-primary bg-primary/5 font-medium shadow-xs'
-              : 'border-border hover:bg-accent/40',
-          )}
-          onClick={() => setLocale('sv')}
-          disabled={isPending}
-        >
-          <ReactCountryFlag countryCode="SE" svg />
-          Svenska
-        </Button>
+        {LIVE_LANGUAGE_OPTIONS.map((option) => (
+          <button
+            key={option.locale}
+            type="button"
+            aria-pressed={option.locale === locale}
+            aria-busy={isPending}
+            disabled={isPending || option.locale === locale}
+            onClick={() => setLocale(option.locale)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors',
+              option.locale === locale
+                ? 'bg-foreground text-background'
+                : 'text-muted-foreground hover:bg-accent/60',
+            )}
+          >
+            <ReactCountryFlag
+              countryCode={option.countryCode}
+              svg
+              style={{ width: '1em', height: '1em' }}
+            />
+            {option.label}
+          </button>
+        ))}
       </div>
-    </section>
+    </div>
   )
 }
 
@@ -267,7 +251,7 @@ function RulesAndInformation({ description }: { description: string | null }) {
   if (!description) return null
 
   return (
-    <section className="mb-3 sm:mb-5">
+    <section>
       <Dialog>
         <DialogTrigger asChild>
           <Button
@@ -292,162 +276,15 @@ function RulesAndInformation({ description }: { description: string | null }) {
   )
 }
 
-const dateFnsLocales: Record<'en' | 'sv', DateFnsLocale> = { en: enUS, sv }
-
-function StartButtons({
-  marathonMode,
-  onUploadClick,
-  onPrepareClick,
-  disabled,
-  byCameraAccessState,
-  activeTopic,
-}: {
-  marathonMode: 'marathon' | 'by-camera'
-  onUploadClick: () => void
-  onPrepareClick: () => void
-  disabled: boolean
-  byCameraAccessState?: ByCameraLiveAccessResult | null
-  activeTopic?: {
-    scheduledStart: string | null
-  } | null
-}) {
-  const t = useTranslations('LivePage')
-  const locale = useLocale()
-  const [choiceDialogOpen, setChoiceDialogOpen] = useState(false)
-
-  if (marathonMode === 'marathon') {
-    return (
-      <>
-        <PrimaryButton
-          onClick={() => setChoiceDialogOpen(true)}
-          disabled={disabled}
-          className="w-full py-3 text-base text-white rounded-full"
-        >
-          {t('beginClassic')}
-          <Play className="h-4 w-4" />
-        </PrimaryButton>
-
-        <Dialog open={choiceDialogOpen} onOpenChange={setChoiceDialogOpen}>
-          <DialogContent className="gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-md">
-            <DialogHeader className="items-center gap-3 px-6 pt-7 pb-5 text-center sm:text-center">
-              <DialogTitle className="font-gothic text-xl font-medium tracking-tight">
-                {t('uploadChoiceTitle')}
-              </DialogTitle>
-              <DialogDescription className="text-balance">
-                {t('uploadChoiceDescription')}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-3 px-6 pb-6">
-              <UploadChoiceOption
-                icon="self"
-                title={t('uploadFromPhoneTitle')}
-                body={t('uploadFromPhoneBody')}
-                actionLabel={t('uploadFromPhoneAction')}
-                onClick={() => {
-                  setChoiceDialogOpen(false)
-                  onUploadClick()
-                }}
-              />
-              <UploadChoiceOption
-                icon="crew"
-                title={t('staffUploadTitle')}
-                body={t('staffUploadBody')}
-                actionLabel={t('staffUploadAction')}
-                onClick={() => {
-                  setChoiceDialogOpen(false)
-                  onPrepareClick()
-                }}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
-
-  if (byCameraAccessState?.state !== 'open') {
-    let message = t('submissionsUnavailable')
-
-    if (byCameraAccessState?.state === 'scheduled' && activeTopic?.scheduledStart) {
-      message = t('submissionsScheduled', {
-        date: format(new Date(activeTopic.scheduledStart), 'PPp', {
-          locale: dateFnsLocales[locale as 'en' | 'sv'] ?? enUS,
-        }),
-      })
-    } else if (byCameraAccessState?.reason === 'missing-scheduled-start') {
-      message = t('submissionsNotOpenYet')
-    } else if (byCameraAccessState?.state === 'closed') {
-      message = t('submissionsClosed')
-    }
-
-    return <p className="text-center text-muted-foreground py-4 px-2">{message}</p>
-  }
-
-  return (
-    <PrimaryButton
-      onClick={onUploadClick}
-      disabled={disabled}
-      className="w-full py-3 text-base text-white rounded-full"
-    >
-      {t('begin')}
-      <Play className="h-4 w-4" />
-    </PrimaryButton>
-  )
-}
-
-function UploadChoiceOption({
-  icon,
-  title,
-  body,
-  actionLabel,
-  onClick,
-}: {
-  icon: 'self' | 'crew'
-  title: string
-  body: string
-  actionLabel: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'group flex w-full flex-col gap-3.5 rounded-2xl border border-border bg-background p-4 text-left',
-        'transition-all duration-200 hover:border-brand-primary/45 hover:bg-brand-primary/4',
-        'hover:shadow-[0_1px_2px_rgba(254,77,58,0.05),0_12px_28px_rgba(254,77,58,0.10)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-2',
-      )}
-    >
-      <div className="flex items-start gap-3.5">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary ring-1 ring-inset ring-brand-primary/15 transition-colors duration-200 group-hover:bg-brand-primary group-hover:text-white group-hover:ring-brand-primary">
-          {icon === 'self' ? <Upload className="h-6 w-6" /> : <Users className="h-6 w-6" />}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-gothic text-base font-medium tracking-tight text-foreground">
-            {title}
-          </span>
-          <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{body}</span>
-        </span>
-      </div>
-
-      <span className="flex items-center justify-between border-t border-border/70 pt-3.5 transition-colors duration-200 group-hover:border-brand-primary/20">
-        <span className="text-sm font-semibold text-brand-primary">{actionLabel}</span>
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary transition-colors duration-200 group-hover:bg-brand-primary group-hover:text-white">
-          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-        </span>
-      </span>
-    </button>
-  )
-}
-
 function OfficialBrowserTip() {
   const t = useTranslations('LivePage')
   return (
-    <div className="mx-auto w-full space-y-1 text-balance text-center text-xs sm:text-xs text-muted-foreground leading-snug px-1 mb-4 sm:mb-5">
-      <p>{t('officialBrowserTip')}</p>
-      <p>{t('minimumDeviceTip')}</p>
+    <div className="flex items-start gap-2.5 rounded-xl bg-muted/40 px-3.5 py-3">
+      <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/80" aria-hidden />
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        {t('officialBrowserTip')}{' '}
+        <span className="text-muted-foreground/80">{t('minimumDeviceTip')}</span>
+      </p>
     </div>
   )
 }
@@ -464,46 +301,61 @@ function TermsCheckbox({
   locale: string
 }) {
   const t = useTranslations('LivePage')
+
+  const ariaLabel = `${t('termsAccept')} ${t('organizerTerms')} ${t('termsAcceptAnd')} ${t('blikkaTerms')}`
+
+  function handleRowClick(event: React.MouseEvent<HTMLDivElement>) {
+    if ((event.target as HTMLElement).closest('a')) return
+    setTermsAccepted(!termsAccepted)
+  }
+
   return (
-    <section className="mb-4 sm:mb-6 space-y-4">
-      <label htmlFor="platform-terms" className="text-sm font-medium">
-        <div className="flex items-start gap-3 px-3 py-3 rounded-xl border border-input bg-muted/30">
-          <Checkbox
-            id="platform-terms"
-            className="size-5 mt-0.5 rounded-[5px] border-foreground/20"
-            checked={termsAccepted}
-            onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
-          />
-          <span className="text-pretty leading-snug">
-            {t('termsAccept')}{' '}
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href={formatDomainLink('/terms', domain, 'terms')}
-              className="underline font-semibold"
-            >
-              {t('organizerTerms')}
-            </a>{' '}
-            {t('termsAcceptAnd')}{' '}
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href={formatPlatformTermsPathname(locale)}
-              className="underline font-semibold"
-            >
-              {t('blikkaTerms')}
-            </a>
-          </span>
-        </div>
-      </label>
+    <section>
+      <div
+        onClick={handleRowClick}
+        className={cn(
+          'flex items-start gap-3 px-4 py-4 rounded-xl border border-input bg-muted/30 cursor-pointer select-none',
+          'min-h-[60px] transition-colors hover:bg-muted/50 active:bg-muted/60',
+        )}
+      >
+        <Checkbox
+          id="platform-terms"
+          aria-label={ariaLabel}
+          className="size-6 mt-0.5 shrink-0 rounded-md border-foreground/25 pointer-events-none"
+          checked={termsAccepted}
+        />
+        <span className="text-sm font-medium text-pretty leading-snug">
+          {t('termsAccept')}{' '}
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href={formatDomainLink('/terms', domain, 'terms')}
+            className="underline font-semibold"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {t('organizerTerms')}
+          </a>{' '}
+          {t('termsAcceptAnd')}{' '}
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href={formatPlatformTermsPathname(locale)}
+            className="underline font-semibold"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {t('blikkaTerms')}
+          </a>
+        </span>
+      </div>
     </section>
   )
 }
 
 function SponsorsSection({ sponsor }: { sponsor: { id: number; key: string } | undefined }) {
   const t = useTranslations('LivePage')
+  const [failed, setFailed] = useState(false)
   const imageUrl = buildS3Url(process.env.NEXT_PUBLIC_SPONSORS_BUCKET_NAME, sponsor?.key)
-  if (!sponsor || !imageUrl) return null
+  if (!sponsor || !imageUrl || failed) return null
 
   return (
     <div className="mt-5 sm:mt-8 w-full max-w-4xl mx-auto px-3 sm:px-6 flex flex-col items-center">
@@ -514,14 +366,15 @@ function SponsorsSection({ sponsor }: { sponsor: { id: number; key: string } | u
         <img
           src={imageUrl}
           alt={t('sponsors')}
-          className="w-full h-auto max-h-48 sm:max-h-64 object-contain rounded-xl border border-border/35 bg-white/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.05)]"
+          onError={() => setFailed(true)}
+          className="h-auto w-auto max-w-full max-h-48 sm:max-h-64 object-contain rounded-xl border border-border/35 bg-white/80 p-2 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_16px_rgba(0,0,0,0.05)]"
         />
       </div>
     </div>
   )
 }
 
-function PoweredByBlikka() {
+function BlikkaTopLogo() {
   return (
     <div className="pointer-events-none absolute left-4 top-4 z-30 flex items-center gap-1 sm:left-6 sm:top-5">
       <p className="sr-only">Blikka</p>
