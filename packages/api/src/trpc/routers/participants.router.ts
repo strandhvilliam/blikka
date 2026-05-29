@@ -16,6 +16,7 @@ import {
   VerifyParticipantInputSchema,
   UpdateByCameraParticipantContactInputSchema,
   UpdateMarathonParticipantContactInputSchema,
+  UpdateMarathonParticipantRegistrationInputSchema,
 } from '../../core/participants/contracts'
 import { ParticipantsService } from '../../core/participants/service'
 
@@ -190,6 +191,29 @@ export const participantRouter = createTRPCRouter({
               firstname: input.firstname,
               lastname: input.lastname,
               email: input.email,
+            }),
+          )
+        }),
+      ),
+    ),
+
+  updateMarathonParticipantRegistration: domainProcedure
+    .input(Schema.toStandardSchemaV1(UpdateMarathonParticipantRegistrationInputSchema))
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn('ParticipantRouter.updateMarathonParticipantRegistration')(function* ({
+          input,
+        }) {
+          return yield* ParticipantsService.use((s) =>
+            s.updateMarathonParticipantRegistration({
+              domain: input.domain,
+              reference: input.reference,
+              firstname: input.firstname,
+              lastname: input.lastname,
+              email: input.email,
+              competitionClassId: input.competitionClassId,
+              deviceGroupId: input.deviceGroupId,
             }),
           )
         }),

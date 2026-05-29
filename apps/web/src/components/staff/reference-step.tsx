@@ -26,7 +26,8 @@ export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepPro
         Enter participant number
       </h2>
       <p className="mt-3 max-w-sm text-sm text-muted-foreground">
-        Type the participant number. Prepared participants skip straight to photo selection.
+        Enter the number printed on the participant card. If the participant prepared in advance,
+        their saved registration will open here.
       </p>
 
       <form
@@ -51,6 +52,7 @@ export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepPro
               }
             }}
             placeholder="0000"
+            aria-label="Participant number"
             inputMode="numeric"
             maxLength={4}
             className="h-16 rounded-2xl border-input bg-card px-6 text-center font-mono text-4xl! tracking-[0.32em] text-foreground shadow-sm"
@@ -73,7 +75,7 @@ export function ReferenceStep({ isSubmitting, onSubmitAction }: ReferenceStepPro
           ) : (
             <SearchIcon className="mr-2 h-4 w-4" />
           )}
-          Lookup participant
+          Find registration
         </PrimaryButton>
       </form>
     </div>

@@ -10,6 +10,7 @@ import { PrimaryButton } from '@/components/ui/primary-button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -23,7 +24,7 @@ import {
 } from '@/lib/utils'
 import { format } from 'date-fns'
 import { enUS, sv, type Locale as DateFnsLocale } from 'date-fns/locale'
-import { Info, ImageIcon, Play } from 'lucide-react'
+import { ArrowRight, Info, ImageIcon, Play, Upload, Users } from 'lucide-react'
 import ReactCountryFlag from 'react-country-flag'
 import Image from 'next/image'
 import { changeLocaleAction } from '@/lib/actions/change-locale-action'
@@ -312,26 +313,56 @@ function StartButtons({
 }) {
   const t = useTranslations('LivePage')
   const locale = useLocale()
+  const [choiceDialogOpen, setChoiceDialogOpen] = useState(false)
+
   if (marathonMode === 'marathon') {
     return (
-      <div className="flex flex-col gap-3">
+      <>
         <PrimaryButton
-          onClick={onUploadClick}
+          onClick={() => setChoiceDialogOpen(true)}
           disabled={disabled}
           className="w-full py-3 text-base text-white rounded-full"
         >
-          {t('beginUpload')}
+          {t('beginClassic')}
           <Play className="h-4 w-4" />
         </PrimaryButton>
-        <Button
-          variant="outline"
-          onClick={onPrepareClick}
-          disabled={disabled}
-          className="w-full py-3 text-base rounded-full"
-        >
-          {t('prepareForLater')}
-        </Button>
-      </div>
+
+        <Dialog open={choiceDialogOpen} onOpenChange={setChoiceDialogOpen}>
+          <DialogContent className="gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-md">
+            <DialogHeader className="items-center gap-3 px-6 pt-7 pb-5 text-center sm:text-center">
+              <DialogTitle className="font-gothic text-xl font-medium tracking-tight">
+                {t('uploadChoiceTitle')}
+              </DialogTitle>
+              <DialogDescription className="text-balance">
+                {t('uploadChoiceDescription')}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-3 px-6 pb-6">
+              <UploadChoiceOption
+                icon="self"
+                title={t('uploadFromPhoneTitle')}
+                body={t('uploadFromPhoneBody')}
+                actionLabel={t('uploadFromPhoneAction')}
+                onClick={() => {
+                  setChoiceDialogOpen(false)
+                  onUploadClick()
+                }}
+              />
+              <UploadChoiceOption
+                icon="crew"
+                title={t('staffUploadTitle')}
+                body={t('staffUploadBody')}
+                actionLabel={t('staffUploadAction')}
+                onClick={() => {
+                  setChoiceDialogOpen(false)
+                  onPrepareClick()
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     )
   }
 
@@ -362,6 +393,52 @@ function StartButtons({
       {t('begin')}
       <Play className="h-4 w-4" />
     </PrimaryButton>
+  )
+}
+
+function UploadChoiceOption({
+  icon,
+  title,
+  body,
+  actionLabel,
+  onClick,
+}: {
+  icon: 'self' | 'crew'
+  title: string
+  body: string
+  actionLabel: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'group flex w-full flex-col gap-3.5 rounded-2xl border border-border bg-background p-4 text-left',
+        'transition-all duration-200 hover:border-brand-primary/45 hover:bg-brand-primary/4',
+        'hover:shadow-[0_1px_2px_rgba(254,77,58,0.05),0_12px_28px_rgba(254,77,58,0.10)]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:ring-offset-2',
+      )}
+    >
+      <div className="flex items-start gap-3.5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary ring-1 ring-inset ring-brand-primary/15 transition-colors duration-200 group-hover:bg-brand-primary group-hover:text-white group-hover:ring-brand-primary">
+          {icon === 'self' ? <Upload className="h-6 w-6" /> : <Users className="h-6 w-6" />}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-gothic text-base font-medium tracking-tight text-foreground">
+            {title}
+          </span>
+          <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{body}</span>
+        </span>
+      </div>
+
+      <span className="flex items-center justify-between border-t border-border/70 pt-3.5 transition-colors duration-200 group-hover:border-brand-primary/20">
+        <span className="text-sm font-semibold text-brand-primary">{actionLabel}</span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary transition-colors duration-200 group-hover:bg-brand-primary group-hover:text-white">
+          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+        </span>
+      </span>
+    </button>
   )
 }
 

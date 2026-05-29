@@ -8,6 +8,7 @@ import { processSelectedFiles } from '@/lib/participant-selected-files'
 import { StaffParticipantCard } from '@/components/staff/staff-participant-card'
 import { StaffDropzone } from '@/components/staff/staff-dropzone'
 import { StaffPhotoList } from '@/components/staff/staff-photo-grid'
+import { StaffRegistrationEditDialog } from '@/components/staff/staff-registration-edit-dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useStaffUploadParticipantSummary } from '@/hooks/staff/use-staff-upload-participant-summary'
 import { useStaffUploadStore, selectRequiresOverwriteWarning } from '@/lib/staff/staff-upload-store'
@@ -17,6 +18,8 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { UploadMarathonMode } from '@/lib/types'
 import { BLIKKA_PLATFORM_TERMS_URL } from '@/config'
 import { formatDomainLink } from '@/lib/utils'
+import type { StaffParticipant } from '@/lib/staff/staff-types'
+import { useState } from 'react'
 
 interface UploadStepProps {
   isBusy: boolean
@@ -40,11 +43,14 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
   const uploadComplete = useStaffUploadStore((s) => s.uploadComplete)
   const termsAccepted = useStaffUploadStore((s) => s.termsAccepted)
 
+  const patchParticipant = useStaffUploadStore((s) => s.patchParticipant)
   const removeSelectedPhoto = useStaffUploadStore((s) => s.removeSelectedPhoto)
   const setSelectedPhotos = useStaffUploadStore((s) => s.setSelectedPhotos)
+  const resetPhotoSelection = useStaffUploadStore((s) => s.resetPhotoSelection)
   const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow)
   const patchPhotos = useStaffUploadStore((s) => s.patchPhotos)
   const setTermsAccepted = useStaffUploadStore((s) => s.setTermsAccepted)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
 
   const marathonMode = marathon.mode as UploadMarathonMode
   const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
@@ -123,9 +129,46 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
     return null
   }
 
+  const canEditRegistration = marathonMode === 'marathon' && existingParticipant !== null
+
+  const handleRegistrationSaved = (
+    updatedParticipant: StaffParticipant,
+    resetReason: 'class' | 'device' | null,
+  ) => {
+    patchParticipant({ existingParticipant: updatedParticipant })
+
+    if (resetReason) {
+      if (selectedPhotos.length > 0) {
+        resetPhotoSelection()
+      }
+      resetUploadFlow()
+      toast.message(
+        resetReason === 'class'
+          ? 'Photo selection was cleared because the class changed.'
+          : 'Photo selection was cleared because the device changed.',
+      )
+    }
+
+    toast.success('Registration updated')
+  }
+
   return (
     <div className="space-y-6">
-      <StaffParticipantCard {...participantSummary} />
+      <StaffParticipantCard
+        {...participantSummary}
+        onEditRegistration={canEditRegistration ? () => setEditDialogOpen(true) : undefined}
+      />
+
+      {existingParticipant && canEditRegistration ? (
+        <StaffRegistrationEditDialog
+          participant={existingParticipant}
+          competitionClasses={marathon.competitionClasses}
+          deviceGroups={marathon.deviceGroups}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSaved={handleRegistrationSaved}
+        />
+      ) : null}
 
       {requiresOverwriteWarning ? (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -174,7 +217,7 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
 
       {isComplete && blockingErrorCount === 0 ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-center text-sm font-medium text-emerald-700">
-          Ready to upload &mdash; review the photos above, then press Start upload
+          Ready to upload. Confirm the registration and selected photos, then start upload.
         </div>
       ) : null}
 
@@ -187,7 +230,7 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
             onCheckedChange={(checked) => setTermsAccepted(checked === true)}
           />
           <span className="leading-snug">
-            I confirm the participant has accepted the{' '}
+            I confirm the participant accepted the{' '}
             <a
               target="_blank"
               rel="noopener noreferrer"
@@ -205,7 +248,8 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
             >
               Blikka terms
             </a>
-            .
+            {' '}
+            before uploading.
           </span>
         </div>
       </label>

@@ -243,18 +243,28 @@ export function ParticipantNumberStep() {
             <AlertDialogTitle>
               {existingParticipantStatus === 'prepared' && flowVariant === 'upload'
                 ? t('participantNumber.confirmDialog.titlePrepared')
-                : t('participantNumber.confirmDialog.title')}
+                : flowVariant === 'prepare'
+                  ? t('participantNumber.confirmDialog.title')
+                  : t('participantNumber.confirmDialog.titleExists')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {existingParticipantStatus === 'prepared' && flowVariant === 'upload'
                 ? t('participantNumber.confirmDialog.descriptionPrepared', { ref: pendingRef })
-                : t('participantNumber.confirmDialog.description', { ref: pendingRef })}
+                : flowVariant === 'prepare'
+                  ? t('participantNumber.confirmDialog.description', { ref: pendingRef })
+                  : t('participantNumber.confirmDialog.descriptionExists', { ref: pendingRef })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('participantNumber.confirmDialog.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>
+              {flowVariant === 'upload'
+                ? t('participantNumber.confirmDialog.cancelPrepared')
+                : t('participantNumber.confirmDialog.cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirm}>
-              {t('participantNumber.confirmDialog.confirm')}
+              {flowVariant === 'upload'
+                ? t('participantNumber.confirmDialog.confirmPrepared')
+                : t('participantNumber.confirmDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

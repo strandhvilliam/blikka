@@ -92,10 +92,10 @@ function getStaffInitials(name?: string | null, email?: string | null) {
 
 function getBlockedMessage(status: ParticipantExistenceStatus) {
   if (status === 'verified') {
-    return 'This participant has already been verified and cannot be uploaded again from the staff laptop flow.'
+    return 'This participant has already been verified. Upload changes must be handled from the admin dashboard.'
   }
 
-  return 'This participant has already completed the upload flow and cannot be uploaded again from the staff laptop flow.'
+  return 'This participant has already completed upload. Use the admin dashboard if the upload needs to be changed.'
 }
 
 function formatTopicDateTime(iso: string) {
@@ -103,6 +103,32 @@ function formatTopicDateTime(iso: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   })
+}
+
+function getUploadDisabledReason({
+  isBusy,
+  termsAccepted,
+  selectedPhotosCount,
+  expectedPhotoCount,
+  hasBlockingValidationErrors,
+  validationRunError,
+}: {
+  isBusy: boolean
+  termsAccepted: boolean
+  selectedPhotosCount: number
+  expectedPhotoCount: number
+  hasBlockingValidationErrors: boolean
+  validationRunError: string | null
+}) {
+  if (isBusy) return null
+  if (expectedPhotoCount <= 0) return 'Select a registration with an uploadable photo set.'
+  if (selectedPhotosCount !== expectedPhotoCount) {
+    return `Select exactly ${expectedPhotoCount} photo${expectedPhotoCount === 1 ? '' : 's'}.`
+  }
+  if (validationRunError) return 'Validation failed. Reselect files and try again.'
+  if (hasBlockingValidationErrors) return 'Resolve blocking validation issues before uploading.'
+  if (!termsAccepted) return 'Confirm the participant accepted the terms before uploading.'
+  return null
 }
 
 type ByCameraSubmissionWindowBlockedState = Exclude<
@@ -820,6 +846,16 @@ export function StaffLaptopUploadClient({
     !termsAccepted ||
     selectedPhotos.length !== expectedPhotoCount ||
     validationResults.some((result) => result.outcome === 'failed' && result.severity === 'error')
+  const uploadDisabledReason = getUploadDisabledReason({
+    isBusy,
+    termsAccepted,
+    selectedPhotosCount: selectedPhotos.length,
+    expectedPhotoCount,
+    hasBlockingValidationErrors: validationResults.some(
+      (result) => result.outcome === 'failed' && result.severity === 'error',
+    ),
+    validationRunError,
+  })
 
   return (
     <>
@@ -892,7 +928,7 @@ export function StaffLaptopUploadClient({
 
       {showFloatingBar ? (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center p-4">
-          <div className="pointer-events-auto flex w-full max-w-3xl items-center justify-between rounded-2xl border border-border bg-background/90 px-5 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur-lg">
+          <div className="pointer-events-auto relative flex w-full max-w-3xl items-center justify-between rounded-2xl border border-border bg-background/90 px-5 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] backdrop-blur-lg">
             {step === 'details' ? (
               <>
                 <Button
@@ -981,6 +1017,11 @@ export function StaffLaptopUploadClient({
                   Start upload
                 </PrimaryButton>
               </>
+            ) : null}
+            {step === 'upload' && uploadDisabledReason ? (
+              <p className="absolute bottom-full right-4 mb-2 max-w-xs rounded-xl border border-border bg-background px-3 py-2 text-right text-xs text-muted-foreground shadow-sm">
+                {uploadDisabledReason}
+              </p>
             ) : null}
           </div>
         </div>

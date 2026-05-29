@@ -29,6 +29,7 @@ import {
   type PublicParticipant,
   type UpdateByCameraParticipantContactInput,
   type UpdateMarathonParticipantContactInput,
+  type UpdateMarathonParticipantRegistrationInput,
   type VerifyParticipantInput,
 } from './contracts'
 import {
@@ -47,6 +48,7 @@ import {
 } from '../utils/phone-number-encryption'
 import { EmailService, EmailServiceLayer } from '@blikka/email'
 import { sendParticipantVerifiedEmail } from './notifications'
+import { ensureDeviceGroupExists, getCompetitionClassOrFail } from '../shared/upload'
 
 /**
  * Repo infinite-list row minus `phoneEncrypted`, with decrypted `phoneNumber` for admins;
@@ -161,6 +163,17 @@ export class ParticipantsService extends Context.Service<
     >
 
     /**
+     * For classic marathon mode only: updates the core registration details staff need before upload.
+     */
+    readonly updateMarathonParticipantRegistration: (
+      input: UpdateMarathonParticipantRegistrationInput,
+    ) => Effect.Effect<
+      ParticipantDetailWithDecryptPhone,
+      DbError | NotFoundError | BadRequestError | PreconditionFailedError,
+      never
+    >
+
+    /**
      * Verifies a single participant by `id` within `domain` (delegates to `batchVerify` with one id);
      * notifies via realtime + email consistent with bulk verify.
      */
@@ -178,6 +191,7 @@ const makeParticipantsService = Effect.gen(function* () {
   const environment = getRealtimeChannelEnvironmentFromNodeEnv(
     yield* Config.string('NODE_ENV').pipe(Config.withDefault('development')),
   )
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   const getPublicParticipantByReference: ParticipantsService['Service']['getPublicParticipantByReference'] =
     Effect.fn('ParticipantsService.getPublicParticipantByReference')(function* ({
@@ -555,6 +569,84 @@ const makeParticipantsService = Effect.gen(function* () {
       })
     })
 
+  const updateMarathonParticipantRegistration: ParticipantsService['Service']['updateMarathonParticipantRegistration'] =
+    Effect.fn('ParticipantsService.updateMarathonParticipantRegistration')(function* ({
+      domain,
+      reference,
+      firstname,
+      lastname,
+      email,
+      competitionClassId,
+      deviceGroupId,
+    }) {
+      const first = firstname.trim()
+      const last = lastname.trim()
+      const mail = email.trim()
+
+      if (!first || !last || !mail) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: 'First name, last name, and email are required',
+          }),
+        )
+      }
+
+      if (!emailPattern.test(mail)) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: 'Enter a valid email address',
+          }),
+        )
+      }
+
+      const marathon = yield* marathonsRepository
+        .getMarathonByDomainWithOptions({ domain })
+        .pipe(failNotFoundIfNone('Marathon', { domain }))
+      if (marathon.mode !== 'marathon') {
+        return yield* Effect.fail(
+          new PreconditionFailedError({
+            message: 'Marathon is not in classic marathon mode',
+          }),
+        )
+      }
+
+      const participant = yield* participantsRepository
+        .getParticipantByReference({ reference, domain })
+        .pipe(failNotFoundIfNone('Participant', { reference, domain }))
+      if (participant.participantMode !== 'marathon') {
+        return yield* Effect.fail(
+          new PreconditionFailedError({
+            message: 'Only classic marathon participants can be updated with this action',
+          }),
+        )
+      }
+
+      yield* getCompetitionClassOrFail({
+        domain,
+        marathon,
+        competitionClassId,
+      })
+      yield* ensureDeviceGroupExists({
+        domain,
+        marathon,
+        deviceGroupId,
+      })
+
+      yield* participantsRepository.updateParticipantById({
+        id: participant.id,
+        data: {
+          firstname: first,
+          lastname: last,
+          email: mail,
+          competitionClassId,
+          deviceGroupId,
+          updatedAt: new Date().toISOString(),
+        },
+      })
+
+      return yield* getByReference({ reference, domain })
+    })
+
   const verifyParticipant: ParticipantsService['Service']['verifyParticipant'] = Effect.fn(
     'ParticipantsService.verifyParticipant',
   )(function* ({ id, domain }) {
@@ -612,6 +704,7 @@ const makeParticipantsService = Effect.gen(function* () {
     batchMarkCompleted,
     updateByCameraParticipantContact,
     updateMarathonParticipantContact,
+    updateMarathonParticipantRegistration,
     verifyParticipant,
   })
 })

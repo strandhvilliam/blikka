@@ -66,6 +66,16 @@ export const UpdateMarathonParticipantContactInputSchema = Schema.Struct({
   email: Schema.String,
 })
 
+export const UpdateMarathonParticipantRegistrationInputSchema = Schema.Struct({
+  domain: Schema.String,
+  reference: Schema.String,
+  firstname: Schema.String,
+  lastname: Schema.String,
+  email: Schema.String,
+  competitionClassId: Schema.Number,
+  deviceGroupId: Schema.Number,
+})
+
 export const PublicParticipantSchema = Schema.Struct({
   reference: Schema.String,
   domain: Schema.String,
@@ -107,6 +117,9 @@ export type UpdateByCameraParticipantContactInput = Schema.Schema.Type<
 >
 export type UpdateMarathonParticipantContactInput = Schema.Schema.Type<
   typeof UpdateMarathonParticipantContactInputSchema
+>
+export type UpdateMarathonParticipantRegistrationInput = Schema.Schema.Type<
+  typeof UpdateMarathonParticipantRegistrationInputSchema
 >
 export type PublicParticipant = Schema.Schema.Type<typeof PublicParticipantSchema>
 

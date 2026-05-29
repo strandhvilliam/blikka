@@ -8,7 +8,7 @@ import {
   flowStateServerParamSerializer,
 } from '@/lib/flow-state-params-server'
 import { notFound, redirect } from 'next/navigation'
-import { VerificationClient } from '@/components/live/verification-client'
+import { VerificationClient } from '@/components/live/flow/verification-client'
 import { formatDomainPathname } from '@/lib/utils'
 
 export default async function VerificationPage({

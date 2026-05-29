@@ -2,6 +2,7 @@ import { flowStateServerLoader } from '@/lib/flow-state-params-server'
 import { notFound } from 'next/navigation'
 
 import { PrepareCompletedClient } from '@/components/live/flow/prepare-completed-client'
+import { fetchServerQuery, trpc } from '@/lib/trpc/server'
 
 export default async function PrepareCompletedPage({
   params,
@@ -14,6 +15,13 @@ export default async function PrepareCompletedPage({
     return notFound()
   }
 
+  const participant = await fetchServerQuery(
+    trpc.participants.getPublicParticipantByReference.queryOptions({
+      domain,
+      reference: queryParams.participantRef,
+    }),
+  )
+
   return (
     <PrepareCompletedClient
       domain={domain}
@@ -22,6 +30,8 @@ export default async function PrepareCompletedPage({
         participantFirstName: queryParams.participantFirstName ?? '',
         participantLastName: queryParams.participantLastName ?? '',
         participantEmail: queryParams.participantEmail ?? '',
+        competitionClassName: participant.competitionClass.name,
+        deviceGroupName: participant.deviceGroup.name,
       }}
     />
   )

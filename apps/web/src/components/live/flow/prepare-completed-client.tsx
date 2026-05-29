@@ -17,6 +17,8 @@ interface PrepareCompletedClientProps {
     participantFirstName: string
     participantLastName: string
     participantEmail: string
+    competitionClassName?: string
+    deviceGroupName?: string
   }
 }
 
@@ -41,9 +43,9 @@ export function PrepareCompletedClient({ domain, params }: PrepareCompletedClien
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 150 }}
-            className="w-28 h-28 bg-green-500 rounded-full flex items-center justify-center shadow-xl shadow-green-500/30"
+            className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-xl shadow-green-500/30"
           >
-            <CheckCircle2 className="h-16 w-16 text-white" />
+            <CheckCircle2 className="h-9 w-9 text-white" />
           </motion.div>
         </div>
 
@@ -95,6 +97,20 @@ export function PrepareCompletedClient({ domain, params }: PrepareCompletedClien
                 label={t('statusLabel')}
                 value={t('statusValue')}
               />
+              {params.competitionClassName ? (
+                <InfoRow
+                  icon={<Hash className="h-4 w-4" />}
+                  label={t('classLabel')}
+                  value={params.competitionClassName}
+                />
+              ) : null}
+              {params.deviceGroupName ? (
+                <InfoRow
+                  icon={<ShieldCheck className="h-4 w-4" />}
+                  label={t('deviceLabel')}
+                  value={params.deviceGroupName}
+                />
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -142,6 +158,7 @@ export function PrepareCompletedClient({ domain, params }: PrepareCompletedClien
           <span>{t('prepareAnother')}</span>
           <ArrowRight className="ml-2 h-5 w-5" />
         </PrimaryButton>
+        <p className="text-center text-sm text-muted-foreground">{t('staffEditHelp')}</p>
       </motion.div>
     </div>
   )

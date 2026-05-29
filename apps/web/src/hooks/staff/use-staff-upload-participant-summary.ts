@@ -52,8 +52,8 @@ export function useStaffUploadParticipantSummary() {
           deviceGroupName: selectedDeviceGroup.name,
           statusLabel:
             participantStatus === 'initialized'
-              ? 'Existing in-progress upload'
-              : 'Prepared participant',
+              ? 'Upload in progress'
+              : 'Saved registration',
           statusTone:
             participantStatus === 'initialized' ? ('warning' as const) : ('default' as const),
         }
@@ -85,8 +85,8 @@ export function useStaffUploadParticipantSummary() {
         deviceGroupName: selectedDeviceGroup.name,
         statusLabel:
           participantStatus === 'initialized'
-            ? 'Existing in-progress upload'
-            : 'Prepared participant',
+            ? 'Upload in progress'
+            : 'Saved registration',
         statusTone:
           participantStatus === 'initialized' ? ('warning' as const) : ('default' as const),
       }
@@ -100,7 +100,7 @@ export function useStaffUploadParticipantSummary() {
         email: formValues.email,
         detailChip: { label: 'Class' as const, value: selectedCompetitionClass.name },
         deviceGroupName: selectedDeviceGroup.name,
-        statusLabel: 'Manual entry',
+        statusLabel: 'New registration',
         statusTone: 'default' as const,
       }
     }

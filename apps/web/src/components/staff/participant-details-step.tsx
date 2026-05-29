@@ -198,8 +198,11 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">First name</label>
+            <label htmlFor="staff-first-name" className="text-sm font-medium text-foreground">
+              First name
+            </label>
             <Input
+              id="staff-first-name"
               value={values.firstName}
               onChange={(event) => setFormField('firstName', event.target.value)}
               placeholder="James"
@@ -214,8 +217,11 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Last name</label>
+            <label htmlFor="staff-last-name" className="text-sm font-medium text-foreground">
+              Last name
+            </label>
             <Input
+              id="staff-last-name"
               value={values.lastName}
               onChange={(event) => setFormField('lastName', event.target.value)}
               placeholder="Bond"
@@ -231,8 +237,11 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Email</label>
+          <label htmlFor="staff-email" className="text-sm font-medium text-foreground">
+            Email
+          </label>
           <Input
+            id="staff-email"
             value={values.email}
             onChange={(event) => setFormField('email', event.target.value)}
             placeholder="participant@example.com"

@@ -11,6 +11,7 @@ interface StaffParticipantCardProps {
   deviceGroupName: string
   statusLabel: string
   statusTone?: 'default' | 'warning' | 'success'
+  onEditRegistration?: () => void
 }
 
 const STATUS_STYLES = {
@@ -28,6 +29,7 @@ export function StaffParticipantCard({
   deviceGroupName,
   statusLabel,
   statusTone = 'default',
+  onEditRegistration,
 }: StaffParticipantCardProps) {
   return (
     <div className="rounded-2xl border border-border bg-card shadow-sm">
@@ -49,20 +51,34 @@ export function StaffParticipantCard({
               </p>
               <p className="mt-1 truncate text-sm text-muted-foreground">{email}</p>
             </div>
-            <span
-              className={cn(
-                'shrink-0 rounded-full border px-3 py-1 text-xs font-semibold',
-                STATUS_STYLES[statusTone],
-              )}
-            >
-              {statusLabel}
-            </span>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <span
+                className={cn(
+                  'rounded-full border px-3 py-1 text-xs font-semibold',
+                  STATUS_STYLES[statusTone],
+                )}
+              >
+                {statusLabel}
+              </span>
+              {onEditRegistration ? (
+                <button
+                  type="button"
+                  onClick={onEditRegistration}
+                  className="rounded-full px-2 py-1 text-xs font-semibold text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  Edit registration
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <InfoChip label={detailChip.label} value={detailChip.value} />
             <InfoChip label="Device" value={deviceGroupName} />
           </div>
+          {onEditRegistration ? (
+            <p className="text-xs text-muted-foreground">Check these details before selecting photos.</p>
+          ) : null}
         </div>
       </div>
     </div>

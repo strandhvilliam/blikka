@@ -5,9 +5,13 @@ import {
   MarathonsRepository,
   ParticipantsRepository,
   SubmissionsRepository,
+  type CompetitionClass,
+  type DeviceGroup,
   type Marathon,
   type NewParticipant,
+  type RuleConfig,
   type Topic,
+  type Sponsor,
 } from '@blikka/db'
 import {
   S3ClientError,
@@ -49,8 +53,12 @@ import {
 } from '../shared/upload'
 import { PublicMarathonCache, PublicMarathonCacheLayer } from './public-marathon-cache'
 
-export interface PublicMarathonForClient extends Omit<Marathon, 'topics'> {
+export interface PublicMarathonForClient extends Marathon {
   topics: Topic[]
+  competitionClasses: CompetitionClass[]
+  deviceGroups: DeviceGroup[]
+  ruleConfigs: RuleConfig[]
+  sponsors: Sponsor[]
 }
 
 export class UploadFlowService extends Context.Service<
