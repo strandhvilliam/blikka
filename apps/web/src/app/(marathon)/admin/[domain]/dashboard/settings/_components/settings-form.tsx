@@ -28,6 +28,7 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { LogoUploadField } from './logo-upload-field'
 import { DateDurationSummary } from './date-duration-summary'
+import { revalidateTermsMarathonMetaCache } from '@/lib/terms-page-cache.actions'
 import { DangerZoneSection } from './danger-zone-tab'
 import { SettingsHeader } from './settings-header'
 import {
@@ -123,6 +124,7 @@ export function SettingsForm() {
     trpc.marathons.update.mutationOptions({
       onSuccess: () => {
         toast.success('Marathon settings updated successfully')
+        void revalidateTermsMarathonMetaCache(domain)
       },
       onError: (error) => {
         toast.error(error.message || 'Something went wrong')

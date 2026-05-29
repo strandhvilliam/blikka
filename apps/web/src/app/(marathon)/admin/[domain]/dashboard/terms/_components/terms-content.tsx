@@ -25,6 +25,7 @@ import { TermsMarkdownPreview } from '../../settings/_components/terms-markdown-
 import { parseTermsFile } from '../../_lib/parse-terms-file'
 import { cn } from '@/lib/utils'
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard'
+import { revalidateTermsPageCache } from '@/lib/terms-page-cache.actions'
 
 const EDITOR_HEIGHT_CLASS = 'h-[clamp(360px,calc(100dvh-360px),720px)]'
 
@@ -73,6 +74,7 @@ function TermsEditor({ domain, currentTerms }: TermsEditorProps) {
     trpc.marathons.update.mutationOptions({
       onSuccess: () => {
         toast.success('Terms and conditions updated successfully')
+        void revalidateTermsPageCache(domain)
       },
       onError: (error) => {
         toast.error(error.message || 'Something went wrong')
