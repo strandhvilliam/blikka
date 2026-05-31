@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Image from 'next/image'
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel'
 import { FullscreenImage } from '@/components/fullscreen-image'
+import {
+  getOriginalViewerSource,
+  SubmissionOptimizedOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 import { useVotingCarouselApi } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-carousel-api'
 import { useVotingSearchParams } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params'
 import { OwnSubmissionBadge } from './own-submission-badge'
@@ -49,6 +53,11 @@ export function CarouselView({ submissions }: CarouselViewProps) {
           <CarouselContent className="h-full">
             {submissions.map((submission, index) => {
               const shouldRenderImage = isSubmissionInRenderWindow(index, currentImageIndex)
+              const imageSource = getOriginalViewerSource({
+                thumbnailUrl: submission.thumbnailUrl,
+                originalUrl: submission.url,
+              })
+              const imageAlt = `photo-${submission.submissionId}`
 
               return (
                 <CarouselItem
@@ -56,24 +65,29 @@ export function CarouselView({ submissions }: CarouselViewProps) {
                   className="h-full flex items-center justify-center"
                 >
                   <div className="relative w-full h-full flex items-center justify-center p-2">
-                    {submission.url && shouldRenderImage ? (
+                    {imageSource.kind !== 'missing' && shouldRenderImage ? (
                       <button
                         onClick={() => setIsFullscreen(true)}
                         className="relative w-full h-full cursor-zoom-in flex items-center justify-center overflow-hidden rounded-lg"
                       >
                         {submission.isOwnSubmission && <OwnSubmissionBadge />}
-                        <Image
-                          src={submission.url}
-                          alt={`photo-${submission.submissionId}`}
-                          fill
-                          sizes="100vw"
-                          quality={75}
-                          priority={index === currentImageIndex}
-                          loading={index === currentImageIndex ? 'eager' : 'lazy'}
-                          className="object-contain"
-                        />
+                        {imageSource.kind === 'optimized-original' ? (
+                          <SubmissionOptimizedOriginalImage
+                            src={imageSource.src}
+                            alt={imageAlt}
+                            priority={index === currentImageIndex}
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <SubmissionThumbnailImage
+                            src={imageSource.src}
+                            alt={imageAlt}
+                            priority={index === currentImageIndex}
+                            className="h-full w-full object-contain"
+                          />
+                        )}
                       </button>
-                    ) : submission.url ? (
+                    ) : imageSource.kind !== 'missing' ? (
                       <div className="h-full w-full rounded-lg bg-muted/40" aria-hidden />
                     ) : (
                       <div className="flex items-center justify-center w-full h-full bg-muted rounded-lg">
@@ -90,8 +104,9 @@ export function CarouselView({ submissions }: CarouselViewProps) {
 
       {currentSubmission && (
         <FullscreenImage
-          src={currentSubmission.url || ''}
+          src={currentSubmission.url || currentSubmission.thumbnailUrl || ''}
           alt={`photo-${currentSubmission.submissionId}`}
+          sourceKind={currentSubmission.url ? 'original' : 'thumbnail'}
           isOpen={isFullscreen}
           onClose={() => setIsFullscreen(false)}
         />

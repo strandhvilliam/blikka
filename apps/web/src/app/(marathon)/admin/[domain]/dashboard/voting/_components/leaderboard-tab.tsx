@@ -20,11 +20,21 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useTRPC } from '@/lib/trpc/client'
-import { formatDateTime, getSubmissionImageUrl, VOTING_PAGE_SIZE } from '../_lib/utils'
+import {
+  formatDateTime,
+  getSubmissionFullImageUrl,
+  getSubmissionThumbnailImageUrl,
+  VOTING_PAGE_SIZE,
+} from '../_lib/utils'
 import { useDomain } from '@/lib/domain-provider'
 import { useVotingUiState } from '../_hooks/use-voting-ui-state'
 import { SubmissionFullscreenDialog } from './submission-fullscreen-dialog'
 import { WinnersSlideshow } from './winners-slideshow'
+import {
+  getThumbnailDisplaySource,
+  SubmissionRawOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 
 interface LeaderboardEntry {
   submissionId: number
@@ -445,9 +455,12 @@ interface PodiumCardProps {
 
 function PodiumCard({ entry, rank, getDisplayName, onClick }: PodiumCardProps) {
   const accent = getRankAccent(rank)
-  const imageUrl = entry
-    ? getSubmissionImageUrl(entry.submissionThumbnailKey, entry.submissionKey)
-    : null
+  const imageSource = entry
+    ? getThumbnailDisplaySource({
+        thumbnailUrl: getSubmissionThumbnailImageUrl(entry.submissionThumbnailKey),
+        originalUrl: getSubmissionFullImageUrl(entry.submissionKey),
+      })
+    : { kind: 'missing' as const }
 
   if (!entry) {
     return (
@@ -474,9 +487,15 @@ function PodiumCard({ entry, rank, getDisplayName, onClick }: PodiumCardProps) {
     >
       {/* Image */}
       <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-muted">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
+        {imageSource.kind === 'optimized-thumbnail' ? (
+          <SubmissionThumbnailImage
+            src={imageSource.src}
+            alt={`Submission by ${getDisplayName(entry)}`}
+            className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+        ) : imageSource.kind === 'raw-original-fallback' ? (
+          <SubmissionRawOriginalImage
+            src={imageSource.src}
             alt={`Submission by ${getDisplayName(entry)}`}
             className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
           />

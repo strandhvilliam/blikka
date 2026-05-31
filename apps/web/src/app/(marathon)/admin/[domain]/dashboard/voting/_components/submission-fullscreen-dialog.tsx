@@ -2,6 +2,7 @@
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { getSubmissionFullImageUrl } from '../_lib/utils'
+import { SubmissionOptimizedOriginalImage } from '@/components/submission-image'
 
 type SubmissionFullscreenDialogProps = {
   open: boolean
@@ -26,7 +27,7 @@ export function SubmissionFullscreenDialog({
       >
         <DialogTitle className="sr-only">{participantDisplayName} — submission photo</DialogTitle>
         {imageUrl ? (
-          <img
+          <SubmissionOptimizedOriginalImage
             src={imageUrl}
             alt={`Submission by ${participantDisplayName}`}
             className="max-h-[calc(100dvh-1rem)] max-w-full object-contain"

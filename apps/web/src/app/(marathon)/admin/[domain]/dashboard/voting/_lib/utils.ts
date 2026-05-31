@@ -27,17 +27,9 @@ export function formatDateTime(value?: string | null) {
   return format(new Date(value), 'MMM d, yyyy HH:mm')
 }
 
-export function getSubmissionImageUrl(
-  submissionThumbnailKey?: string | null,
-  submissionKey?: string | null,
-) {
+export function getSubmissionThumbnailImageUrl(submissionThumbnailKey?: string | null) {
   const thumbnailBucket = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
-  const submissionsBucket = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
-
-  return (
-    buildS3Url(thumbnailBucket, submissionThumbnailKey) ??
-    buildS3Url(submissionsBucket, submissionKey)
-  )
+  return buildS3Url(thumbnailBucket, submissionThumbnailKey)
 }
 
 /** Original submission object in the submissions bucket (not the thumbnail). */

@@ -30,7 +30,7 @@ import {
   parseSubmissionStorageKey,
 } from './replace-submission'
 
-const THUMBNAIL_WIDTH = 400
+const THUMBNAIL_WIDTH = 512
 
 export class SubmissionsService extends Context.Service<
   SubmissionsService,

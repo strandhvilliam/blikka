@@ -62,7 +62,7 @@ export class SubmissionProcessor extends Context.Service<
   }
 >()('@blikka/uploads/SubmissionProcessor') {}
 
-const THUMBNAIL_WIDTH = 400
+const THUMBNAIL_WIDTH = 512
 
 function hasExifFields(exif: ExifState | null | undefined): exif is ExifState {
   return exif !== null && exif !== undefined && Object.keys(exif).length > 0

@@ -1,9 +1,13 @@
 'use client'
 
-import Image from 'next/image'
 import { Eye, Images } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
+import {
+  getThumbnailDisplaySource,
+  SubmissionRawOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 import { useVotingSearchParams } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-search-params'
 import { useVotingCarouselApi } from '@/app/(marathon)/live/[domain]/vote/[token]/viewer/_hooks/use-voting-carousel-api'
 import { OwnSubmissionBadge } from './own-submission-badge'
@@ -41,24 +45,30 @@ export function GridView({
           const rating = getRating(submission.submissionId)
           const isSelected = submission.submissionId === selectedSubmissionId
           const isActive = index === currentImageIndex
-          const imageUrl = submission.thumbnailUrl ?? submission.url
+          const imageSource = getThumbnailDisplaySource({
+            thumbnailUrl: submission.thumbnailUrl,
+            originalUrl: submission.url,
+          })
+          const imageAlt = t('gridView.photoAlt', {
+            participantId: submission.participantId,
+          })
           return (
             <button
               key={submission.submissionId}
               onClick={() => handleThumbnailClick(index)}
               className="relative aspect-square overflow-hidden rounded-xl bg-muted"
             >
-              {imageUrl ? (
-                <Image
-                  src={imageUrl}
-                  alt={t('gridView.photoAlt', {
-                    participantId: submission.participantId,
-                  })}
-                  fill
-                  sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 20vw"
-                  quality={50}
-                  loading="lazy"
-                  className="object-cover"
+              {imageSource.kind === 'optimized-thumbnail' ? (
+                <SubmissionThumbnailImage
+                  src={imageSource.src}
+                  alt={imageAlt}
+                  className="h-full w-full object-cover"
+                />
+              ) : imageSource.kind === 'raw-original-fallback' ? (
+                <SubmissionRawOriginalImage
+                  src={imageSource.src}
+                  alt={imageAlt}
+                  className="h-full w-full object-cover"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-muted">

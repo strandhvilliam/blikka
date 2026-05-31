@@ -82,10 +82,7 @@ export function getParticipantAssetUrl(
     return buildS3Url(CONTACT_SHEETS_BUCKET, participant.contactSheetKey)
   }
 
-  return (
-    buildS3Url(SUBMISSIONS_BUCKET, participant.submission?.previewKey) ??
-    buildS3Url(SUBMISSIONS_BUCKET, participant.submission?.key)
-  )
+  return buildS3Url(SUBMISSIONS_BUCKET, participant.submission?.key)
 }
 
 export function getAssignedFinalRankingCount(ratings: ReadonlyArray<JuryRatingEntry>): number {

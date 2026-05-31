@@ -12,7 +12,15 @@ import { format } from 'date-fns'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { Submission, ValidationResult, Topic } from '@blikka/db'
 import { cn } from '@/lib/utils'
-import { getSubmissionPreviewImageUrl } from '../[submissionId]/_lib/submission-image-urls'
+import {
+  getSubmissionOriginalImageUrl,
+  getSubmissionThumbnailImageUrl,
+} from '../[submissionId]/_lib/submission-image-urls'
+import {
+  getThumbnailDisplaySource,
+  SubmissionRawOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 import {
   getSubmissionCaptureDate,
   getValidationState,
@@ -32,7 +40,10 @@ export function ParticipantSubmissionCard({
   validationResults,
   onSelect,
 }: ParticipantSubmissionCardProps) {
-  const imageUrl = getSubmissionPreviewImageUrl(submission)
+  const imageSource = getThumbnailDisplaySource({
+    thumbnailUrl: getSubmissionThumbnailImageUrl(submission),
+    originalUrl: getSubmissionOriginalImageUrl(submission),
+  })
   const captureDate = getSubmissionCaptureDate(submission)
   const validationState = getValidationState(validationResults)
   const hasExif = hasExifData(submission.exif)
@@ -86,12 +97,17 @@ export function ParticipantSubmissionCard({
             </div>
           ) : null}
 
-          {imageUrl ? (
-            <img
+          {imageSource.kind === 'optimized-thumbnail' ? (
+            <SubmissionThumbnailImage
               className="h-full w-full object-cover"
-              src={imageUrl}
+              src={imageSource.src}
               alt={submission.topic?.name ?? ''}
-              loading="lazy"
+            />
+          ) : imageSource.kind === 'raw-original-fallback' ? (
+            <SubmissionRawOriginalImage
+              className="h-full w-full object-cover"
+              src={imageSource.src}
+              alt={submission.topic?.name ?? ''}
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
@@ -149,8 +165,6 @@ function ValidationBadge({ state, results }: ValidationBadgeProps) {
     error: 'bg-red-500/12 text-red-700',
   }
 
-  const StateIcon = getValidationStateIcon(state)
-
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
@@ -161,7 +175,13 @@ function ValidationBadge({ state, results }: ValidationBadgeProps) {
               stateStyles[state],
             )}
           >
-            <StateIcon className="h-3.5 w-3.5" strokeWidth={2.4} />
+            {state === 'valid' ? (
+              <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.4} />
+            ) : state === 'error' ? (
+              <XCircle className="h-3.5 w-3.5" strokeWidth={2.4} />
+            ) : (
+              <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.4} />
+            )}
             {state === 'valid' ? 'Valid' : issueCount}
           </span>
         </TooltipTrigger>
@@ -189,10 +209,4 @@ function ValidationBadge({ state, results }: ValidationBadgeProps) {
       </Tooltip>
     </TooltipProvider>
   )
-}
-
-function getValidationStateIcon(state: Exclude<ValidationState, 'none'>) {
-  if (state === 'valid') return CheckCircle2
-  if (state === 'error') return XCircle
-  return AlertTriangle
 }

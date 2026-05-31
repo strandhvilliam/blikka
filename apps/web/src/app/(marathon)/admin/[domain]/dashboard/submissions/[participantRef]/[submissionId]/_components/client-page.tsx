@@ -27,7 +27,7 @@ import { formatDomainPathname } from '@/lib/utils'
 import {
   getSubmissionDownloadFileName,
   getSubmissionOriginalImageUrl,
-  getSubmissionPreviewImageUrl,
+  getSubmissionThumbnailImageUrl,
 } from '../_lib/submission-image-urls'
 
 interface VotingDataPanelProps {
@@ -144,10 +144,10 @@ export function ParticipantSubmissionClientPage({
     notFound()
   }
 
-  const previewImageUrl = getSubmissionPreviewImageUrl(submission)
+  const thumbnailImageUrl = getSubmissionThumbnailImageUrl(submission)
   const originalImageUrl = getSubmissionOriginalImageUrl(submission)
   const submissionDownloadFileName = getSubmissionDownloadFileName(submission)
-  const submissionDownloadUrl = originalImageUrl ?? previewImageUrl
+  const submissionDownloadUrl = originalImageUrl ?? thumbnailImageUrl
 
   return (
     <div className="space-y-6">
@@ -165,7 +165,7 @@ export function ParticipantSubmissionClientPage({
               />
             )}
             <SubmissionImageViewer
-              imageUrl={previewImageUrl}
+              imageUrl={thumbnailImageUrl}
               originalImageUrl={originalImageUrl}
               downloadFileName={submissionDownloadFileName}
               topic={topic}

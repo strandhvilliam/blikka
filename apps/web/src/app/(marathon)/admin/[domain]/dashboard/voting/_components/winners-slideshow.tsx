@@ -3,9 +3,12 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { ChevronLeft, ChevronRight, Loader2, X, Trophy } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Trophy } from 'lucide-react'
 import { buildS3Url } from '@/lib/utils'
-import { useImagePreloader } from '../_hooks/use-image-preloader'
+import {
+  SubmissionOptimizedOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 
 interface WinnerEntry {
   rank: number
@@ -71,10 +74,8 @@ export function WinnersSlideshow({
 
   const imageUrls = useMemo(() => winners.map((w) => getFullImageUrl(w)), [winners])
   const thumbnailUrls = useMemo(() => winners.map((w) => getThumbnailUrl(w)), [winners])
-  const { loaded: loadedImages, allLoaded } = useImagePreloader(imageUrls)
 
   const currentImageUrl = imageUrls[currentIndex]
-  const isCurrentReady = !currentImageUrl || loadedImages.has(currentImageUrl)
 
   const goNext = useCallback(() => {
     if (currentIndex >= winners.length - 1) return
@@ -141,43 +142,14 @@ export function WinnersSlideshow({
           transition={{ duration: 0.6 }}
         >
           {thumbnailUrls[currentIndex] && (
-            <img
+            <SubmissionThumbnailImage
               src={thumbnailUrls[currentIndex]}
               alt=""
-              aria-hidden="true"
               className="absolute inset-0 h-full w-full scale-125 object-cover blur-[80px] opacity-30 saturate-150"
             />
           )}
           <div className="absolute inset-0 bg-brand-black/60" />
         </motion.div>
-      </AnimatePresence>
-
-      {/*
-        Hidden pre-rendered images — keeps all winner images decoded in GPU memory
-        so switching slides is instant. Positioned offscreen, not display:none
-        (display:none would let the browser evict the decoded bitmap).
-      */}
-      <div className="pointer-events-none fixed -left-[9999px] -top-[9999px]" aria-hidden="true">
-        {imageUrls.map((url, i) =>
-          url ? <img key={i} src={url} alt="" decoding="async" /> : null,
-        )}
-      </div>
-
-      {/* Loading overlay — shown until the current slide's image is ready */}
-      <AnimatePresence>
-        {!isCurrentReady && (
-          <motion.div
-            className="absolute inset-0 z-50 flex items-center justify-center bg-brand-black"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-white/40" />
-              <p className="text-sm text-white/40">Loading image…</p>
-            </div>
-          </motion.div>
-        )}
       </AnimatePresence>
 
       {/* Top bar — logos and marathon name */}
@@ -188,10 +160,12 @@ export function WinnersSlideshow({
         transition={{ duration: 0.4, delay: 0.15 }}
       >
         <div className="flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/blikka-logo-white.svg" alt="Blikka" className="h-6 w-auto opacity-80 md:h-7" />
           {marathonLogoUrl && (
             <>
               <div className="h-5 w-px bg-white/20" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={marathonLogoUrl}
                 alt={marathonName}
@@ -233,11 +207,10 @@ export function WinnersSlideshow({
             {/* Photo */}
             <div className="relative flex h-auto max-h-[45vh] min-h-0 w-full shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-black/40 shadow-2xl shadow-black/50 lg:h-auto lg:max-h-none lg:min-h-0 lg:flex-1 lg:self-stretch lg:rounded-3xl">
               {imageUrl ? (
-                <img
+                <SubmissionOptimizedOriginalImage
                   src={imageUrl}
                   alt={`Photo by ${getDisplayName(winner)}`}
                   className="max-h-full max-w-full object-contain"
-                  decoding="async"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
@@ -301,8 +274,6 @@ export function WinnersSlideshow({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             {winners.map((_, index) => {
-              const url = imageUrls[index]
-              const isLoaded = !url || loadedImages.has(url)
               return (
                 <button
                   key={index}
@@ -313,16 +284,13 @@ export function WinnersSlideshow({
                   className={`h-1.5 rounded-full transition-all duration-300 ${
                     index === currentIndex
                       ? 'w-8 bg-brand-primary'
-                      : isLoaded
-                        ? 'w-4 bg-white/20 hover:bg-white/40'
-                        : 'w-4 bg-white/10'
+                      : 'w-4 bg-white/20 hover:bg-white/40'
                   }`}
                   aria-label={`Go to winner ${index + 1}`}
                 />
               )
             })}
           </div>
-          {!allLoaded && <span className="text-[11px] text-white/30">Loading images…</span>}
         </div>
 
         <div className="flex items-center gap-2">

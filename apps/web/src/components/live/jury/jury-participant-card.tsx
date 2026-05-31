@@ -8,6 +8,10 @@ import {
   juryRankChipCardBadge,
 } from '@/lib/jury/jury-utils'
 import { JuryRankTrophyBadge } from './jury-rank-trophy-badge'
+import {
+  SubmissionRawOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 
 function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'xs' }) {
   const iconClass = size === 'sm' ? 'h-3.5 w-3.5' : 'h-3 w-3'
@@ -48,12 +52,19 @@ function CompactCard({
     >
       <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
         {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt={`Preview for ${participant.reference}`}
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
+          participant.contactSheetKey ? (
+            <SubmissionRawOriginalImage
+              src={previewUrl}
+              alt={`Preview for ${participant.reference}`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <SubmissionThumbnailImage
+              src={previewUrl}
+              alt={`Preview for ${participant.reference}`}
+              className="h-full w-full object-cover"
+            />
+          )
         ) : (
           <div className="flex h-full w-full items-center justify-center text-brand-gray/40">
             <ImageIcon className="h-5 w-5" />
@@ -116,12 +127,19 @@ function GridCard({
     >
       <div className="aspect-[4/3] w-full overflow-hidden bg-neutral-100">
         {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt={`Preview for ${participant.reference}`}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
+          participant.contactSheetKey ? (
+            <SubmissionRawOriginalImage
+              src={previewUrl}
+              alt={`Preview for ${participant.reference}`}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <SubmissionThumbnailImage
+              src={previewUrl}
+              alt={`Preview for ${participant.reference}`}
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          )
         ) : (
           <div className="flex h-full w-full items-center justify-center text-brand-gray/30">
             <ImageIcon className="h-8 w-8" />

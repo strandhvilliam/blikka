@@ -13,6 +13,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { downloadRemoteUrl } from '../_lib/download-remote-url'
+import {
+  getOriginalViewerSource,
+  SubmissionOptimizedOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 
 interface SubmissionImageViewerProps {
   imageUrl: string | null
@@ -38,7 +43,10 @@ export function SubmissionImageViewer({
   const isByCameraMode = marathonMode === 'by-camera'
 
   const downloadSourceUrl = originalImageUrl ?? imageUrl
-  const largeViewImageUrl = originalImageUrl ?? imageUrl
+  const viewerSource = getOriginalViewerSource({
+    thumbnailUrl: imageUrl,
+    originalUrl: originalImageUrl,
+  })
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3))
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5))
@@ -112,7 +120,7 @@ export function SubmissionImageViewer({
             variant="ghost"
             size="icon"
             className="h-8 w-8"
-            disabled={!largeViewImageUrl}
+            disabled={viewerSource.kind === 'missing'}
             onClick={() => setLargeViewOpen(true)}
             aria-label="View larger image"
           >
@@ -136,9 +144,15 @@ export function SubmissionImageViewer({
             </DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-auto bg-muted/30 p-4">
-            {largeViewImageUrl ? (
-              <img
-                src={largeViewImageUrl}
+            {viewerSource.kind === 'optimized-original' ? (
+              <SubmissionOptimizedOriginalImage
+                src={viewerSource.src}
+                alt=""
+                className="mx-auto max-h-[calc(90dvh-7rem)] w-auto max-w-full object-contain shadow-lg"
+              />
+            ) : viewerSource.kind === 'optimized-thumbnail-fallback' ? (
+              <SubmissionThumbnailImage
+                src={viewerSource.src}
                 alt=""
                 className="mx-auto max-h-[calc(90dvh-7rem)] w-auto max-w-full object-contain shadow-lg"
               />
@@ -149,19 +163,28 @@ export function SubmissionImageViewer({
 
       {/* Image Display Area */}
       <div className="relative bg-muted/20 flex items-center justify-center min-h-[500px] max-h-[70vh] overflow-auto">
-        {imageUrl && !hasError ? (
+        {viewerSource.kind !== 'missing' && !hasError ? (
           <div
             className="transition-transform duration-200 ease-out p-8"
             style={{ transform: `scale(${zoom + 0.5})` }}
           >
-            <img
-              src={imageUrl}
-              alt={topic.name}
-              className="max-w-full h-auto object-contain shadow-2xl"
-              onError={() => setHasError(true)}
-            />
+            {viewerSource.kind === 'optimized-original' ? (
+              <SubmissionOptimizedOriginalImage
+                src={viewerSource.src}
+                alt={topic.name}
+                className="max-w-full h-auto object-contain shadow-2xl"
+                onError={() => setHasError(true)}
+              />
+            ) : (
+              <SubmissionThumbnailImage
+                src={viewerSource.src}
+                alt={topic.name}
+                className="max-w-full h-auto object-contain shadow-2xl"
+                onError={() => setHasError(true)}
+              />
+            )}
           </div>
-        ) : imageUrl && hasError ? (
+        ) : viewerSource.kind !== 'missing' && hasError ? (
           <div className="flex flex-col items-center justify-center gap-4 p-8 text-center max-w-md">
             <div className="p-4 rounded-full bg-orange-500/10">
               <AlertTriangle className="h-8 w-8 text-orange-500" />

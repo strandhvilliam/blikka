@@ -16,6 +16,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { PrimaryButton } from '@/components/ui/primary-button'
+import {
+  getThumbnailDisplaySource,
+  SubmissionRawOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 
 interface VoteButtonProps {
   isSelected: boolean
@@ -26,7 +31,8 @@ interface VoteButtonProps {
   showComplete?: boolean
   className?: string
   submissionTitle?: string
-  imageUrl?: string
+  thumbnailUrl?: string
+  originalUrl?: string
 }
 
 export function VoteButton({
@@ -37,10 +43,12 @@ export function VoteButton({
   onVote,
   className,
   submissionTitle,
-  imageUrl,
+  thumbnailUrl,
+  originalUrl,
 }: VoteButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const t = useTranslations('VotingViewerPage')
+  const imageSource = getThumbnailDisplaySource({ thumbnailUrl, originalUrl })
   const isDisabled = !isEnabled || isSelected || hasVoted || isOwnSubmission
   const buttonLabel = isOwnSubmission
     ? t('voteButton.cannotVoteForYourself')
@@ -64,13 +72,21 @@ export function VoteButton({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{t('voteButton.dialogTitle')}</AlertDialogTitle>
-          {imageUrl && (
+          {imageSource.kind !== 'missing' && (
             <div className="max-h-32 overflow-hidden rounded-xl bg-muted aspect-video">
-              <img
-                src={imageUrl}
-                alt={t('voteButton.imageAlt')}
-                className="h-full w-full object-contain"
-              />
+              {imageSource.kind === 'optimized-thumbnail' ? (
+                <SubmissionThumbnailImage
+                  src={imageSource.src}
+                  alt={t('voteButton.imageAlt')}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <SubmissionRawOriginalImage
+                  src={imageSource.src}
+                  alt={t('voteButton.imageAlt')}
+                  className="h-full w-full object-contain"
+                />
+              )}
             </div>
           )}
           <AlertDialogDescription>

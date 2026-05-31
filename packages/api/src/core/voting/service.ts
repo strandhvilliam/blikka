@@ -459,7 +459,6 @@ export class VotingService extends Context.Service<
             participantId: number
             url: string | undefined
             thumbnailUrl: string | undefined
-            previewUrl: string | undefined
             topicId: number
             topicName: string
             isOwnSubmission: boolean
@@ -2245,7 +2244,6 @@ const makeVotingService = Effect.gen(function* () {
         participantId: submission.participantId,
         url: buildPathStyleS3Url(submissionsBucketName, submission.key),
         thumbnailUrl: buildPathStyleS3Url(thumbnailsBucketName, submission.thumbnailKey),
-        previewUrl: buildPathStyleS3Url(submissionsBucketName, submission.previewKey),
         topicId: submission.topicId,
         topicName: submission.topic?.name ?? '',
         isOwnSubmission:

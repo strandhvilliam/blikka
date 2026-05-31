@@ -11,7 +11,6 @@ const submissions: VotingSubmission[] = [
     topicName: 'Topic',
     url: 'https://example.com/1.jpg',
     thumbnailUrl: 'https://example.com/1-thumb.jpg',
-    previewUrl: 'https://example.com/1-preview.jpg',
     isOwnSubmission: false,
   },
   {
@@ -21,7 +20,6 @@ const submissions: VotingSubmission[] = [
     topicName: 'Topic',
     url: 'https://example.com/2.jpg',
     thumbnailUrl: 'https://example.com/2-thumb.jpg',
-    previewUrl: 'https://example.com/2-preview.jpg',
     isOwnSubmission: true,
   },
   {
@@ -31,7 +29,6 @@ const submissions: VotingSubmission[] = [
     topicName: 'Topic',
     url: 'https://example.com/3.jpg',
     thumbnailUrl: 'https://example.com/3-thumb.jpg',
-    previewUrl: 'https://example.com/3-preview.jpg',
     isOwnSubmission: false,
   },
 ]

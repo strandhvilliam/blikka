@@ -19,7 +19,8 @@ interface VotingFooterProps {
   totalCount: number
   completionMessage?: string
   submissionTitle?: string
-  submissionImageUrl?: string
+  submissionThumbnailUrl?: string
+  submissionOriginalUrl?: string
   onViewModeChange?: (mode: 'carousel' | 'grid') => void
 }
 
@@ -38,7 +39,8 @@ export function VotingFooter({
   totalCount,
   completionMessage,
   submissionTitle,
-  submissionImageUrl,
+  submissionThumbnailUrl,
+  submissionOriginalUrl,
   onViewModeChange,
 }: VotingFooterProps) {
   const { viewMode, currentImageIndex } = useVotingSearchParams()
@@ -106,7 +108,8 @@ export function VotingFooter({
             isEnabled={hasImages}
             onVote={onVote}
             submissionTitle={submissionTitle}
-            imageUrl={submissionImageUrl}
+            thumbnailUrl={submissionThumbnailUrl}
+            originalUrl={submissionOriginalUrl}
             className="w-full"
           />
         )}

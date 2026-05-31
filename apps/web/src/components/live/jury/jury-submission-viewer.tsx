@@ -32,6 +32,10 @@ import { useJuryReviewData } from './jury-review-data-provider'
 import { useJuryLocalRatingSync } from '@/hooks/live/jury/use-jury-local-rating-sync'
 import { useJuryNotesDebouncedSave } from '@/hooks/live/jury/use-jury-notes-debounced-save'
 import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
+import {
+  SubmissionOptimizedOriginalImage,
+  SubmissionRawOriginalImage,
+} from '@/components/submission-image'
 
 export function JurySubmissionViewer({ initialIndex }: { initialIndex: number }) {
   const { selectedRatings, backToList } = useJuryReviewQueryState()
@@ -309,12 +313,21 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
         <div className="grid xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="relative flex min-h-[55vh] items-center justify-center bg-neutral-100 xl:min-h-[65vh]">
             {currentAssetUrl && !imageErrors.has(currentAssetId) ? (
-              <img
-                src={currentAssetUrl}
-                alt={currentParticipant.reference}
-                className="max-h-[75vh] max-w-full object-contain"
-                onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
-              />
+              invitation.inviteType === 'class' ? (
+                <SubmissionRawOriginalImage
+                  src={currentAssetUrl}
+                  alt={currentParticipant.reference}
+                  className="max-h-[75vh] max-w-full object-contain"
+                  onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
+                />
+              ) : (
+                <SubmissionOptimizedOriginalImage
+                  src={currentAssetUrl}
+                  alt={currentParticipant.reference}
+                  className="max-h-[75vh] max-w-full object-contain"
+                  onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
+                />
+              )
             ) : (
               <div className="flex max-w-sm flex-col items-center justify-center px-6 text-center">
                 <ImageOff className="mb-4 h-12 w-12 text-brand-gray/30" />
@@ -360,6 +373,7 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
         <FullscreenImage
           src={currentAssetUrl}
           alt={`Submission ${currentParticipant.reference}`}
+          sourceKind={invitation.inviteType === 'class' ? 'raw' : 'original'}
           isOpen={isFullscreenOpen}
           onClose={() => setIsFullscreenOpen(false)}
         />

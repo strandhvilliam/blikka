@@ -1,13 +1,18 @@
 'use client'
 
-import Image from 'next/image'
 import type { MouseEvent, TouchEvent, WheelEvent } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, ZoomIn, ZoomOut } from 'lucide-react'
+import {
+  SubmissionOptimizedOriginalImage,
+  SubmissionRawOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 
 export type FullscreenImageProps = {
   src: string
   alt: string
+  sourceKind?: 'original' | 'thumbnail' | 'raw'
   isOpen: boolean
   onClose: () => void
 }
@@ -15,7 +20,13 @@ export type FullscreenImageProps = {
 const isFullscreenSupported =
   typeof document !== 'undefined' && 'fullscreenEnabled' in document && document.fullscreenEnabled
 
-export function FullscreenImage({ src, alt, isOpen, onClose }: FullscreenImageProps) {
+export function FullscreenImage({
+  src,
+  alt,
+  sourceKind = 'original',
+  isOpen,
+  onClose,
+}: FullscreenImageProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
   const [position, setPosition] = useState({ x: 0, y: 0 })
@@ -280,15 +291,25 @@ export function FullscreenImage({ src, alt, isOpen, onClose }: FullscreenImagePr
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
           }}
         >
-          <Image
-            src={src}
-            alt={alt}
-            fill
-            sizes="100vw"
-            quality={75}
-            className="select-none object-contain"
-            draggable={false}
-          />
+          {sourceKind === 'original' ? (
+            <SubmissionOptimizedOriginalImage
+              src={src}
+              alt={alt}
+              className="h-full w-full select-none object-contain"
+            />
+          ) : sourceKind === 'thumbnail' ? (
+            <SubmissionThumbnailImage
+              src={src}
+              alt={alt}
+              className="h-full w-full select-none object-contain"
+            />
+          ) : (
+            <SubmissionRawOriginalImage
+              src={src}
+              alt={alt}
+              className="h-full w-full select-none object-contain"
+            />
+          )}
         </div>
       </div>
 

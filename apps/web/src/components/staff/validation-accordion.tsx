@@ -17,6 +17,7 @@ import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/acco
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { SubmissionThumbnailImage } from '@/components/submission-image'
 
 import {
   getCaptureDateLabel,
@@ -284,8 +285,11 @@ function ValidationSummary({
   const thumbnailIsInteractive = Boolean(onThumbnailClick && submission)
 
   const thumbnailInner = thumbnailUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={thumbnailUrl} alt={title} className="h-full w-full object-cover" />
+    <SubmissionThumbnailImage
+      src={thumbnailUrl}
+      alt={title}
+      className="h-full w-full object-cover"
+    />
   ) : (
     <ImageIcon className="h-6 w-6 text-muted-foreground" />
   )

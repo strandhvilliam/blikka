@@ -15,6 +15,14 @@ export function getSubmissionPreviewImageUrl(submission: Submission): string | n
   return null
 }
 
+/** Stored thumbnail only. Use this when original fallback should stay unoptimized. */
+export function getSubmissionThumbnailImageUrl(submission: Submission): string | null {
+  if (submission.thumbnailKey && thumbnailBaseUrl) {
+    return buildS3Url(thumbnailBaseUrl, submission.thumbnailKey) ?? null
+  }
+  return null
+}
+
 /** Original file in the submissions bucket. */
 export function getSubmissionOriginalImageUrl(submission: Submission): string | null {
   if (submission.key && submissionBaseUrl) {

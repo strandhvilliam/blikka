@@ -38,11 +38,21 @@ import { useDomain } from '@/lib/domain-provider'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { PrimaryButton } from '@/components/ui/primary-button'
 import { getVotingLifecycleState } from '@/lib/voting-lifecycle'
-import { formatDateTime, getSubmissionImageUrl, VOTING_PAGE_SIZE } from '../_lib/utils'
+import {
+  formatDateTime,
+  getSubmissionFullImageUrl,
+  getSubmissionThumbnailImageUrl,
+  VOTING_PAGE_SIZE,
+} from '../_lib/utils'
 import { useVotingUiState } from '../_hooks/use-voting-ui-state'
 import { formatDomainLink } from '@/lib/utils'
 import { VotingProgress } from './voting-progress'
 import { VoterContactCell } from './voter-contact-cell'
+import {
+  getThumbnailDisplaySource,
+  SubmissionRawOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 
 interface VotersTabProps {
   activeTopic: { id: number; name: string; orderIndex: number }
@@ -454,24 +464,45 @@ export function VotersTab({ activeTopic }: VotersTabProps) {
                                     Submitted: {formatDateTime(voter.voteSubmission.createdAt)}
                                   </p>
                                 </div>
-                                {voter.voteSubmission.thumbnailKey || voter.voteSubmission.key ? (
-                                  <div className="rounded-lg overflow-hidden border bg-muted">
-                                    <img
-                                      src={getSubmissionImageUrl(
-                                        voter.voteSubmission.thumbnailKey,
-                                        voter.voteSubmission.key,
+                                {(() => {
+                                  const source = getThumbnailDisplaySource({
+                                    thumbnailUrl: getSubmissionThumbnailImageUrl(
+                                      voter.voteSubmission.thumbnailKey,
+                                    ),
+                                    originalUrl: getSubmissionFullImageUrl(
+                                      voter.voteSubmission.key,
+                                    ),
+                                  })
+                                  const alt = `Submission by ${voter.voteSubmission.participantReference || 'Unknown'}`
+
+                                  if (source.kind === 'missing') {
+                                    return (
+                                      <div className="rounded-lg border bg-muted h-32 flex items-center justify-center">
+                                        <p className="text-xs text-muted-foreground">
+                                          No image available
+                                        </p>
+                                      </div>
+                                    )
+                                  }
+
+                                  return (
+                                    <div className="rounded-lg overflow-hidden border bg-muted">
+                                      {source.kind === 'optimized-thumbnail' ? (
+                                        <SubmissionThumbnailImage
+                                          src={source.src}
+                                          alt={alt}
+                                          className="w-full h-auto object-contain max-h-64"
+                                        />
+                                      ) : (
+                                        <SubmissionRawOriginalImage
+                                          src={source.src}
+                                          alt={alt}
+                                          className="w-full h-auto object-contain max-h-64"
+                                        />
                                       )}
-                                      alt={`Submission by ${voter.voteSubmission.participantReference || 'Unknown'}`}
-                                      className="w-full h-auto object-contain max-h-64"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="rounded-lg border bg-muted h-32 flex items-center justify-center">
-                                    <p className="text-xs text-muted-foreground">
-                                      No image available
-                                    </p>
-                                  </div>
-                                )}
+                                    </div>
+                                  )
+                                })()}
                                 {voter.voteSubmission.participantReference && (
                                   <Link
                                     href={`/admin/${domain}/dashboard/submissions/${voter.voteSubmission.participantReference}/${voter.voteSubmission.submissionId}`}

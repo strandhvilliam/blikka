@@ -30,12 +30,17 @@ import { downloadRemoteUrl } from '../[submissionId]/_lib/download-remote-url'
 import {
   getSubmissionDownloadFileName,
   getSubmissionOriginalImageUrl,
-  getSubmissionPreviewImageUrl,
+  getSubmissionThumbnailImageUrl,
 } from '../[submissionId]/_lib/submission-image-urls'
 import { SubmissionReplaceDialog } from '../[submissionId]/_components/submission-replace-dialog'
 import { getSubmissionCaptureDate, summarizeValidationResults } from '../_lib/submission-helpers'
 import { SubmissionPreviewActionsMenu } from './submission-preview-actions-menu'
 import { SubmissionPreviewSidebar } from './submission-preview-sidebar'
+import {
+  getOriginalViewerSource,
+  SubmissionOptimizedOriginalImage,
+  SubmissionThumbnailImage,
+} from '@/components/submission-image'
 
 export interface SubmissionPreviewItem {
   submission: Submission & { topic: Topic }
@@ -154,9 +159,9 @@ function SubmissionPreviewBody({
   const topic = submission.topic
   const orderNumber = typeof topic?.orderIndex === 'number' ? topic.orderIndex + 1 : null
 
-  const previewUrl = getSubmissionPreviewImageUrl(submission)
+  const thumbnailUrl = getSubmissionThumbnailImageUrl(submission)
   const originalUrl = getSubmissionOriginalImageUrl(submission)
-  const downloadUrl = originalUrl ?? previewUrl
+  const downloadUrl = originalUrl ?? thumbnailUrl
   const downloadFileName = getSubmissionDownloadFileName(submission)
   const captureDate = getSubmissionCaptureDate(submission)
 
@@ -227,7 +232,7 @@ function SubmissionPreviewBody({
 
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[minmax(0,1fr)_400px]">
         <ImagePane
-          previewUrl={previewUrl}
+          thumbnailUrl={thumbnailUrl}
           originalUrl={originalUrl}
           imageError={imageError}
           onImageError={() => setImageError(true)}
@@ -346,7 +351,7 @@ function OverallStatusBadge({
 }
 
 interface ImagePaneProps {
-  previewUrl: string | null
+  thumbnailUrl: string | null
   originalUrl: string | null
   imageError: boolean
   onImageError: () => void
@@ -358,7 +363,7 @@ interface ImagePaneProps {
 }
 
 function ImagePane({
-  previewUrl,
+  thumbnailUrl,
   originalUrl,
   imageError,
   onImageError,
@@ -368,18 +373,31 @@ function ImagePane({
   onNext,
   alt,
 }: ImagePaneProps) {
-  const openTarget = originalUrl ?? previewUrl
+  const openTarget = originalUrl ?? thumbnailUrl
+  const viewerSource = getOriginalViewerSource({
+    thumbnailUrl,
+    originalUrl,
+  })
 
   let mainContent: ReactNode
-  if (previewUrl && !imageError) {
+  if (viewerSource.kind !== 'missing' && !imageError) {
     mainContent = (
       <>
-        <img
-          src={previewUrl}
-          alt={alt}
-          onError={onImageError}
-          className="max-h-full max-w-full object-contain shadow-[0_8px_30px_-8px_rgba(0,0,0,0.6)]"
-        />
+        {viewerSource.kind === 'optimized-original' ? (
+          <SubmissionOptimizedOriginalImage
+            src={viewerSource.src}
+            alt={alt}
+            onError={onImageError}
+            className="max-h-full max-w-full object-contain shadow-[0_8px_30px_-8px_rgba(0,0,0,0.6)]"
+          />
+        ) : (
+          <SubmissionThumbnailImage
+            src={viewerSource.src}
+            alt={alt}
+            onError={onImageError}
+            className="max-h-full max-w-full object-contain shadow-[0_8px_30px_-8px_rgba(0,0,0,0.6)]"
+          />
+        )}
         {openTarget ? (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
@@ -402,7 +420,7 @@ function ImagePane({
         ) : null}
       </>
     )
-  } else if (previewUrl && imageError) {
+  } else if (viewerSource.kind !== 'missing' && imageError) {
     mainContent = (
       <div className="flex max-w-xs flex-col items-center gap-3 text-center text-white/85">
         <div className="rounded-full bg-amber-500/15 p-3">
