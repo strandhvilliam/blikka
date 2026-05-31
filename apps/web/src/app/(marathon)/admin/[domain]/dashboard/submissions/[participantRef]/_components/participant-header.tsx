@@ -20,6 +20,7 @@ import { useDomain } from '@/lib/domain-provider'
 import { formatDomainPathname } from '@/lib/utils'
 import { ParticipantIdentityCard } from './participant-identity-card'
 import { ParticipantActionBanner } from './participant-action-banner'
+import { ParticipantMetadata } from './participant-metadata'
 import { ParticipantPipeline } from './participant-pipeline'
 import { ParticipantVerifyDialog } from './participant-verify-dialog'
 import {
@@ -161,19 +162,23 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         isExporting={isExporting}
       />
 
+      <div className="rounded-xl border border-border bg-white overflow-hidden">
+        <ParticipantMetadata participant={participant} />
+        <ParticipantPipeline
+          embedded
+          participant={participant}
+          isRunningValidations={runValidationsMutation.isPending}
+          onRunValidations={handleRunValidations}
+          isGeneratingContactSheet={generateContactSheetMutation.isPending}
+          onGenerateContactSheet={handleGenerateContactSheet}
+          isGeneratingZip={generateParticipantZipMutation.isPending}
+          onGenerateZip={handleGenerateZip}
+        />
+      </div>
+
       <ParticipantActionBanner
         participant={participant}
         onVerify={() => setIsVerifyDialogOpen(true)}
-      />
-
-      <ParticipantPipeline
-        participant={participant}
-        isRunningValidations={runValidationsMutation.isPending}
-        onRunValidations={handleRunValidations}
-        isGeneratingContactSheet={generateContactSheetMutation.isPending}
-        onGenerateContactSheet={handleGenerateContactSheet}
-        isGeneratingZip={generateParticipantZipMutation.isPending}
-        onGenerateZip={handleGenerateZip}
       />
 
       {marathon?.mode === 'marathon' ? (

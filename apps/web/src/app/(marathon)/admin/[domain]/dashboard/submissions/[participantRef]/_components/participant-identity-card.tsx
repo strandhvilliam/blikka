@@ -2,21 +2,16 @@
 
 import {
   ArrowLeft,
-  Camera,
   Download,
-  Image as ImageIcon,
   Mail,
   MoreVertical,
   RefreshCw,
   Loader2,
-  Smartphone,
   Trash2,
   UserPen,
   Grid3x3,
-  Zap,
 } from 'lucide-react'
 import Link from 'next/link'
-import { format } from 'date-fns'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,17 +29,6 @@ function getInitials(firstname?: string | null, lastname?: string | null) {
   const a = firstname?.trim().charAt(0) ?? ''
   const b = lastname?.trim().charAt(0) ?? ''
   return (a + b).toUpperCase() || '?'
-}
-
-function DeviceIcon({ icon, className }: { icon?: string; className?: string }) {
-  switch (icon) {
-    case 'smartphone':
-      return <Smartphone className={className} />
-    case 'action-camera':
-      return <Zap className={className} />
-    default:
-      return <Camera className={className} />
-  }
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -96,18 +80,9 @@ export function ParticipantIdentityCard({
   const domain = useDomain()
   const hasSubmissions = (participant.submissions?.length ?? 0) > 0
 
-  const submissionCount = participant.submissions?.length ?? 0
-  const expectedPhotos = participant.competitionClass?.numberOfPhotos ?? null
-  const latestSubmissionAt = participant.submissions?.reduce<string | null>((latest, s) => {
-    if (!s.createdAt) return latest
-    if (!latest || new Date(s.createdAt) > new Date(latest)) return s.createdAt
-    return latest
-  }, null)
-
   return (
-    <div className="rounded-xl border border-border bg-white overflow-hidden">
-      <div className="flex items-start gap-3 p-4 sm:p-5">
-        <Button variant="ghost" size="icon" asChild className="h-8 w-8 shrink-0 -ml-1">
+    <div className="flex items-start gap-3">
+      <Button variant="ghost" size="icon" asChild className="h-8 w-8 shrink-0 -ml-1">
           <Link
             href={formatDomainPathname('/admin/dashboard/submissions', domain)}
             aria-label="Back to submissions"
@@ -211,85 +186,6 @@ export function ParticipantIdentityCard({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
-
-      <div className="border-t border-border bg-muted/30 px-4 py-3 sm:px-5">
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-          <MetaCell
-            label="Status"
-            value={<StatusPill status={participant.status} />}
-            className="sm:hidden"
-          />
-          <MetaCell
-            icon={<ImageIcon className="h-3.5 w-3.5" />}
-            label="Photos"
-            value={
-              <span className="font-mono">
-                {submissionCount}
-                {expectedPhotos !== null ? (
-                  <span className="text-muted-foreground"> / {expectedPhotos}</span>
-                ) : null}
-              </span>
-            }
-          />
-          <MetaCell
-            icon={
-              <span className="inline-flex h-4 w-4 items-center justify-center text-[10px] font-bold font-mono">
-                {participant.competitionClass?.numberOfPhotos ?? '?'}
-              </span>
-            }
-            label="Class"
-            value={participant.competitionClass?.name ?? 'Unassigned'}
-            muted={!participant.competitionClass}
-          />
-          <MetaCell
-            icon={<DeviceIcon icon={participant.deviceGroup?.icon} className="h-3.5 w-3.5" />}
-            label="Device"
-            value={participant.deviceGroup?.name ?? 'Unassigned'}
-            muted={!participant.deviceGroup}
-          />
-          <MetaCell
-            label="Submitted"
-            value={
-              latestSubmissionAt
-                ? format(new Date(latestSubmissionAt), 'MMM d, HH:mm')
-                : '—'
-            }
-            muted={!latestSubmissionAt}
-          />
-        </dl>
-      </div>
-    </div>
-  )
-}
-
-function MetaCell({
-  icon,
-  label,
-  value,
-  muted,
-  className,
-}: {
-  icon?: React.ReactNode
-  label: string
-  value: React.ReactNode
-  muted?: boolean
-  className?: string
-}) {
-  return (
-    <div className={cn('min-w-0', className)}>
-      <dt className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-        {icon ? <span className="text-muted-foreground/70">{icon}</span> : null}
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          'mt-1 text-[13px] font-medium leading-tight truncate',
-          muted && 'text-muted-foreground font-normal',
-        )}
-      >
-        {value}
-      </dd>
     </div>
   )
 }

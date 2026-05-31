@@ -124,6 +124,7 @@ interface ParticipantPipelineProps {
   onGenerateContactSheet: () => void
   isGeneratingZip: boolean
   onGenerateZip: () => void
+  embedded?: boolean
 }
 
 export function ParticipantPipeline({
@@ -134,6 +135,7 @@ export function ParticipantPipeline({
   onGenerateContactSheet,
   isGeneratingZip,
   onGenerateZip,
+  embedded = false,
 }: ParticipantPipelineProps) {
   const submissions = participant.submissions ?? []
   const hasSubmissions = submissions.length > 0
@@ -336,13 +338,17 @@ export function ParticipantPipeline({
 
   const stages: StageProps[] = [validationStage, contactSheetStage, zipStage]
 
-  return (
-    <div className="rounded-xl border border-border bg-white">
-      <div className="grid grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
-        {stages.map((stage) => (
-          <PipelineStage key={stage.label} {...stage} />
-        ))}
-      </div>
+  const grid = (
+    <div className="grid grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
+      {stages.map((stage) => (
+        <PipelineStage key={stage.label} {...stage} />
+      ))}
     </div>
   )
+
+  if (embedded) {
+    return <div className="border-t border-border">{grid}</div>
+  }
+
+  return <div className="rounded-xl border border-border bg-white">{grid}</div>
 }
