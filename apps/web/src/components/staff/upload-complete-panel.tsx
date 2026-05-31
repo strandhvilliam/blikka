@@ -7,6 +7,7 @@ import { useDomain } from '@/lib/domain-provider'
 import { useTRPC } from '@/lib/trpc/client'
 import type { UploadMarathonMode } from '@/lib/types'
 import { StaffParticipantCard } from '@/components/staff/staff-participant-card'
+import { StaffUploadedPhotoGrid } from '@/components/staff/staff-uploaded-photo-grid'
 import { useStaffUploadParticipantSummary } from '@/hooks/staff/use-staff-upload-participant-summary'
 import { useStaffUploadStep } from '@/hooks/staff/use-staff-upload-step'
 import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
@@ -52,6 +53,8 @@ export function UploadCompletePanel() {
           Next participant
         </PrimaryButton>
       </div>
+
+      <StaffUploadedPhotoGrid />
     </div>
   )
 }

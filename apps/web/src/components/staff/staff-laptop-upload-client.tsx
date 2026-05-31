@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { getByCameraSubmissionWindowState } from '@/lib/by-camera/by-camera-submission-window-state'
+import { getMarathonUploadWindowState } from '@/lib/marathon/marathon-upload-window-state'
 import { normalizeParticipantReference } from '@/lib/staff/staff-utils'
 import type { StaffParticipant } from '@/lib/staff/staff-types'
 import { useStaffUploadParticipantSummary } from '@/hooks/staff/use-staff-upload-participant-summary'
@@ -52,6 +53,11 @@ import { ReferenceStep } from '@/components/staff/reference-step'
 import { UploadCompletePanel } from '@/components/staff/upload-complete-panel'
 import { UploadProgressPanel } from '@/components/staff/upload-progress-panel'
 import { UploadStep } from '@/components/staff/upload-step'
+import {
+  getStaffByCameraUploadWindowGateMessage,
+  getStaffMarathonUploadWindowGateMessage,
+  StaffUploadWindowGate,
+} from '@/components/staff/staff-upload-window-gate'
 
 const POLLING_INTERVAL_MS = 3000
 
@@ -98,13 +104,6 @@ function getBlockedMessage(status: ParticipantExistenceStatus) {
   return 'This participant has already completed upload. Use the admin dashboard if the upload needs to be changed.'
 }
 
-function formatTopicDateTime(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
-}
-
 function getUploadDisabledReason({
   isBusy,
   termsAccepted,
@@ -129,60 +128,6 @@ function getUploadDisabledReason({
   if (hasBlockingValidationErrors) return 'Resolve blocking validation issues before uploading.'
   if (!termsAccepted) return 'Confirm the participant accepted the terms before uploading.'
   return null
-}
-
-type ByCameraSubmissionWindowBlockedState = Exclude<
-  ReturnType<typeof getByCameraSubmissionWindowState>,
-  'open'
->
-
-interface StaffByCameraSubmissionWindowGateProps {
-  state: ByCameraSubmissionWindowBlockedState | null
-  topicName: string | null
-  scheduledStart: string | null
-  scheduledEnd: string | null
-}
-
-function StaffByCameraSubmissionWindowGate({
-  state,
-  topicName,
-  scheduledStart,
-  scheduledEnd,
-}: StaffByCameraSubmissionWindowGateProps) {
-  let body: string
-  if (state === 'no-active-topic') {
-    body =
-      'There is no active topic for this event. Staff cannot upload until a topic is activated in the dashboard.'
-  } else if (state === 'not-opened') {
-    body =
-      'The submission window for this topic has not been opened yet. Open submissions from the dashboard when you are ready.'
-  } else if (state === 'scheduled' && scheduledStart) {
-    body = `Submissions open ${formatTopicDateTime(scheduledStart)}.`
-  } else if (state === 'scheduled') {
-    body = 'Submissions are scheduled to open later.'
-  } else {
-    body =
-      scheduledEnd != null
-        ? `Submissions closed ${formatTopicDateTime(scheduledEnd)}.`
-        : 'Submissions are closed for this topic.'
-  }
-
-  return (
-    <div className="flex flex-col items-center py-16 text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-        Submission window
-      </p>
-      <h2 className="mt-3 font-gothic text-4xl font-medium leading-none tracking-tight text-foreground">
-        Uploads unavailable
-      </h2>
-      {topicName ? (
-        <p className="mt-2 text-sm font-medium text-foreground/80">{topicName}</p>
-      ) : null}
-      <div className="mt-8 w-full max-w-md rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
-        {body}
-      </div>
-    </div>
-  )
 }
 
 export function StaffLaptopUploadClient({
@@ -300,7 +245,7 @@ export function StaffLaptopUploadClient({
     participantId: number
   } | null>(null)
   /** Re-render periodically so scheduled → open transitions without a full page reload. */
-  const [, setByCameraSubmissionClock] = useState(0)
+  const [, setUploadWindowClock] = useState(0)
 
   const isBusy =
     lookupParticipantMutation.isPending ||
@@ -320,16 +265,20 @@ export function StaffLaptopUploadClient({
   }, [marathonMode, resetAllState, setStep])
 
   useEffect(() => {
-    if (marathonMode !== 'by-camera') return
     const id = window.setInterval(() => {
-      setByCameraSubmissionClock((c) => c + 1)
+      setUploadWindowClock((c) => c + 1)
     }, 15_000)
     return () => window.clearInterval(id)
-  }, [marathonMode])
+  }, [])
 
+  const uploadWindowNow = new Date()
   const byCameraSubmissionWindowState =
     marathonMode === 'by-camera'
-      ? getByCameraSubmissionWindowState(activeByCameraTopic, new Date())
+      ? getByCameraSubmissionWindowState(activeByCameraTopic, uploadWindowNow)
+      : null
+  const marathonUploadWindowState =
+    marathonMode === 'marathon'
+      ? getMarathonUploadWindowState(marathon, uploadWindowNow)
       : null
 
   useEffect(() => {
@@ -889,11 +838,13 @@ export function StaffLaptopUploadClient({
           >
             {step === 'phone' && marathonMode === 'by-camera' ? (
               byCameraSubmissionWindowState !== 'open' ? (
-                <StaffByCameraSubmissionWindowGate
-                  state={byCameraSubmissionWindowState}
-                  topicName={activeByCameraTopic?.name ?? null}
-                  scheduledStart={activeByCameraTopic?.scheduledStart ?? null}
-                  scheduledEnd={activeByCameraTopic?.scheduledEnd ?? null}
+                <StaffUploadWindowGate
+                  subtitle={activeByCameraTopic?.name ?? null}
+                  body={getStaffByCameraUploadWindowGateMessage({
+                    state: byCameraSubmissionWindowState ?? 'closed',
+                    scheduledStart: activeByCameraTopic?.scheduledStart ?? null,
+                    scheduledEnd: activeByCameraTopic?.scheduledEnd ?? null,
+                  })}
                 />
               ) : (
                 <PhoneLookupStep
@@ -907,10 +858,21 @@ export function StaffLaptopUploadClient({
             ) : null}
 
             {step === 'reference' && marathonMode === 'marathon' ? (
-              <ReferenceStep
-                isSubmitting={lookupParticipantMutation.isPending}
-                onSubmitAction={handleLookup}
-              />
+              marathonUploadWindowState !== 'open' ? (
+                <StaffUploadWindowGate
+                  subtitle={marathon.name}
+                  body={getStaffMarathonUploadWindowGateMessage({
+                    state: marathonUploadWindowState ?? 'closed',
+                    startDate: marathon.startDate,
+                    endDate: marathon.endDate,
+                  })}
+                />
+              ) : (
+                <ReferenceStep
+                  isSubmitting={lookupParticipantMutation.isPending}
+                  onSubmitAction={handleLookup}
+                />
+              )
             ) : null}
 
             {step === 'details' ? <ParticipantDetailsStep isBusy={isBusy} /> : null}
