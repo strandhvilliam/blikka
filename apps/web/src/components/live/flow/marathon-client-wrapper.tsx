@@ -20,6 +20,7 @@ import { UploadSubmissionsStep } from '@/components/live/flow/upload-submissions
 import { useStepState } from '@/lib/flow/step-state-context'
 import { PrepareNextStep } from '@/components/live/flow/prepare-next-step'
 import { formatDomainPathname } from '@/lib/utils'
+import { toMarathonVerificationMode } from '@/lib/flow/verification-routing'
 
 const NetworkStatusBanner = dynamic(
   () =>
@@ -129,6 +130,7 @@ export function MarathonClientWrapper() {
                 competitionClass={selectedCompetitionClass}
                 topics={topicsForClass}
                 ruleConfigs={marathon.ruleConfigs}
+                verificationMode={toMarathonVerificationMode(marathon.verificationMode)}
                 validationStartDate={validationWindow.validationStartDate}
                 validationEndDate={validationWindow.validationEndDate}
               />

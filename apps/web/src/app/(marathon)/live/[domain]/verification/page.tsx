@@ -10,6 +10,7 @@ import {
 import { notFound, redirect } from 'next/navigation'
 import { VerificationClient } from '@/components/live/flow/verification-client'
 import { formatDomainPathname } from '@/lib/utils'
+import { toMarathonVerificationMode } from '@/lib/flow/verification-routing'
 
 export default async function VerificationPage({
   params,
@@ -28,21 +29,26 @@ export default async function VerificationPage({
       reference: queryParams.participantRef,
     }),
   )
+  prefetch(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain }))
 
   const queryClient = getQueryClient()
-  const participant = await queryClient.fetchQuery(
-    trpc.participants.getPublicParticipantByReference.queryOptions({
-      domain,
-      reference: queryParams.participantRef!,
-    }),
-  )
+  const [participant, marathon] = await Promise.all([
+    queryClient.fetchQuery(
+      trpc.participants.getPublicParticipantByReference.queryOptions({
+        domain,
+        reference: queryParams.participantRef!,
+      }),
+    ),
+    queryClient.fetchQuery(trpc.uploadFlow.getPublicMarathon.queryOptions({ domain })),
+  ])
 
   if (!participant) {
     return notFound()
   }
 
-  // If already verified, redirect to confirmation
-  if (participant.status === 'verified') {
+  const verificationMode = toMarathonVerificationMode(marathon.verificationMode)
+
+  if (participant.status === 'verified' || verificationMode === 'none') {
     const redirectParams = flowStateServerParamSerializer(queryParams)
     redirect(formatDomainPathname(`/live/confirmation${redirectParams}`, domain))
   }
@@ -53,6 +59,7 @@ export default async function VerificationPage({
         <VerificationClient
           participantRef={queryParams.participantRef}
           participantId={queryParams.participantId ?? undefined}
+          verificationMode={verificationMode}
         />
       </Suspense>
     </HydrateClient>

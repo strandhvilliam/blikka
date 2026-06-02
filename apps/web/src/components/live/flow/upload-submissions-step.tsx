@@ -36,6 +36,10 @@ import {
   getUploadFlowIssueMessageKeys,
 } from '@/lib/flow/upload-flow-state'
 import { buildUploadExifPayload } from '@/lib/upload-exif'
+import {
+  getPostUploadDestination,
+  type MarathonVerificationMode,
+} from '@/lib/flow/verification-routing'
 
 import { SubmissionList } from './submission-list'
 import { UploadProgress } from './upload-progress'
@@ -50,12 +54,14 @@ export function UploadSubmissionsStep({
   competitionClass,
   validationStartDate,
   validationEndDate,
+  verificationMode,
 }: {
   ruleConfigs: DbRuleConfig[]
   topics: Topic[]
   competitionClass: CompetitionClass
   validationStartDate: string
   validationEndDate: string
+  verificationMode: MarathonVerificationMode
 }) {
   const t = useTranslations('FlowPage.uploadStep')
   const trpc = useTRPC()
@@ -128,8 +134,16 @@ export function UploadSubmissionsStep({
 
     hasRedirectedRef.current = true
     const serializedParams = flowStateClientParamSerializer(uploadFlowState)
-    router.push(formatDomainPathname(`/live/verification${serializedParams}`, domain))
-  }, [domain, shouldNavigate, minimumProgressDisplayReached, router, uploadFlowState])
+    const destination = getPostUploadDestination({ verificationMode, serializedParams })
+    router.push(formatDomainPathname(destination, domain))
+  }, [
+    domain,
+    shouldNavigate,
+    minimumProgressDisplayReached,
+    router,
+    uploadFlowState,
+    verificationMode,
+  ])
 
   const handleResetAndGoBack = () => {
     const confirmed = window.confirm(t('confirmGoBack'))

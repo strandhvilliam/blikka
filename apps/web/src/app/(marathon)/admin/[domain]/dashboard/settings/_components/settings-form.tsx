@@ -4,7 +4,15 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Check, Globe, Calendar as CalendarIcon, Clock, AlertTriangle, Info } from 'lucide-react'
+import {
+  Check,
+  Globe,
+  Calendar as CalendarIcon,
+  Clock,
+  AlertTriangle,
+  Info,
+  ShieldCheck,
+} from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { TimePickerInput } from '@/components/ui/time-picker'
 import { toast } from 'sonner'
@@ -24,6 +32,7 @@ import { useDomain } from '@/lib/domain-provider'
 import { useQueryClient, useSuspenseQuery, useMutation } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { LogoUploadField } from './logo-upload-field'
@@ -31,6 +40,7 @@ import { DateDurationSummary } from './date-duration-summary'
 import { revalidateTermsMarathonMetaCache } from '@/lib/terms-page-cache.actions'
 import { DangerZoneSection } from './danger-zone-tab'
 import { SettingsHeader } from './settings-header'
+import { toMarathonVerificationMode } from '@/lib/flow/verification-routing'
 import {
   isDateDifferent,
   arrayEquals,
@@ -40,6 +50,24 @@ import {
   createEndDateCalendarOnSelect,
   getAvailableLanguages,
 } from '../_lib/utils'
+
+const VERIFICATION_MODES = [
+  {
+    value: 'all',
+    title: 'Full verification required',
+    description: 'Every participant must show the QR code to staff after upload.',
+  },
+  {
+    value: 'flagged',
+    title: 'Flagged only verification',
+    description: 'Participants wait for validation and only flagged submissions need staff.',
+  },
+  {
+    value: 'none',
+    title: 'No verification',
+    description: 'Participants go directly to confirmation after upload finalization.',
+  },
+] as const
 
 export function SettingsForm() {
   const trpc = useTRPC()
@@ -86,6 +114,7 @@ export function SettingsForm() {
       endDate: marathon.endDate ? new Date(marathon.endDate) : null,
       description: marathon.description || '',
       languages: marathon.languages ? marathon.languages.split(',') : ['en'],
+      verificationMode: toMarathonVerificationMode(marathon.verificationMode),
     },
     onSubmit: async ({ value }) => {
       const file = fileInputRef.current?.files?.[0]
@@ -115,6 +144,7 @@ export function SettingsForm() {
                 endDate: value.endDate ? value.endDate.toISOString() : undefined,
               }),
           logoUrl,
+          verificationMode: value.verificationMode,
         },
       })
     },
@@ -256,6 +286,7 @@ export function SettingsForm() {
       formValues.description !== (marathon.description || '') ||
       isDateDifferent(formValues.startDate, marathon.startDate) ||
       isDateDifferent(formValues.endDate, marathon.endDate) ||
+      formValues.verificationMode !== toMarathonVerificationMode(marathon.verificationMode) ||
       !arrayEquals(
         formValues.languages || [],
         marathon.languages ? marathon.languages.split(',') : ['en'],
@@ -607,6 +638,72 @@ export function SettingsForm() {
               <DateDurationSummary
                 startDate={form.state.values.startDate}
                 endDate={form.state.values.endDate}
+              />
+            </div>
+          </section>
+
+          {/* Verification */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
+                <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
+                  Verification
+                </p>
+              </div>
+              {isByCameraMode && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  <Info className="h-3 w-3" />
+                  Marathon mode only
+                </span>
+              )}
+            </div>
+            <p className="text-[13px] text-muted-foreground leading-relaxed mb-5">
+              Choose when participants need staff verification after submitting their photos.
+            </p>
+            <div
+              className={cn(
+                'rounded-xl border border-border/60 bg-white p-5',
+                isByCameraMode && 'opacity-50 pointer-events-none blur-[2px]',
+              )}
+            >
+              <form.Field
+                name="verificationMode"
+                children={(field) => (
+                  <RadioGroup
+                    value={field.state.value}
+                    onValueChange={(value) =>
+                      field.handleChange(value as (typeof VERIFICATION_MODES)[number]['value'])
+                    }
+                    className="gap-3"
+                  >
+                    {VERIFICATION_MODES.map((option) => (
+                      <label
+                        key={option.value}
+                        htmlFor={`verification-${option.value}`}
+                        className={cn(
+                          'flex cursor-pointer gap-3 rounded-lg border border-border bg-background p-4 transition-colors hover:bg-muted/40',
+                          field.state.value === option.value && 'border-foreground bg-muted/40',
+                        )}
+                      >
+                        <RadioGroupItem
+                          id={`verification-${option.value}`}
+                          value={option.value}
+                          className="mt-0.5"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                            {option.title}
+                          </span>
+                          <span className="mt-1 block text-[13px] leading-relaxed text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                )}
               />
             </div>
           </section>
