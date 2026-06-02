@@ -1,6 +1,7 @@
 import { Schema } from 'effect'
 
 export const ContactSheetFormatSchema = Schema.Literals(['classic', 'a3'])
+export const VerificationModeSchema = Schema.Literals(['all', 'flagged', 'none'])
 
 export const GetByDomainInputSchema = Schema.Struct({ domain: Schema.String })
 
@@ -19,6 +20,7 @@ export const UpdateMarathonInputSchema = Schema.Struct({
     languages: Schema.optional(Schema.String),
     termsAndConditionsKey: Schema.optional(Schema.String),
     contactSheetFormat: Schema.optional(ContactSheetFormatSchema),
+    verificationMode: Schema.optional(VerificationModeSchema),
   }),
 })
 

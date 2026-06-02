@@ -13,6 +13,7 @@ export function makeMarathon(
     startDate: '2026-05-21T10:00:00.000Z',
     endDate: '2026-05-21T18:00:00.000Z',
     contactSheetFormat: 'classic',
+    verificationMode: 'all',
     topics: [makeTopic()],
     ...overrides,
   } as Marathon & { topics: Topic[] }
