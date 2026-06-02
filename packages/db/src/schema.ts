@@ -431,12 +431,17 @@ export const marathons = pgTable(
     termsAndConditionsKey: text('terms_and_conditions_key'),
     mode: text().default('marathon').notNull(),
     contactSheetFormat: text('contact_sheet_format').default('classic').notNull(),
+    verificationMode: text('verification_mode').default('all').notNull(),
   },
   (table) => [
     index('marathons_domain_idx').using('btree', table.domain.asc().nullsLast().op('text_ops')),
     check(
       'marathons_contact_sheet_format_check',
       sql`${table.contactSheetFormat} in ('classic', 'a3')`,
+    ),
+    check(
+      'marathons_verification_mode_check',
+      sql`${table.verificationMode} in ('all', 'flagged', 'none')`,
     ),
   ],
 )
