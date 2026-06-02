@@ -6,6 +6,7 @@ import {
   ResolveByCameraParticipantByPhoneSchema,
   CheckParticipantExistsSchema,
   GetUploadStatusSchema,
+  GetParticipantValidationStatusSchema,
   RefreshPresignedUploadsSchema,
   ReTriggerUploadFlowSchema,
 } from '../../core/upload-flow/contracts'
@@ -66,6 +67,16 @@ export const uploadFlowRouter = createTRPCRouter({
       }),
     ),
   ),
+
+  getParticipantValidationStatus: publicProcedure
+    .input(Schema.toStandardSchemaV1(GetParticipantValidationStatusSchema))
+    .query(
+      trpcEffect(
+        Effect.fn('UploadFlowRouter.getParticipantValidationStatus')(function* ({ input }) {
+          return yield* UploadFlowService.use((s) => s.getParticipantValidationStatus(input))
+        }),
+      ),
+    ),
 
   refreshPresignedUploads: publicProcedure
     .input(Schema.toStandardSchemaV1(RefreshPresignedUploadsSchema))

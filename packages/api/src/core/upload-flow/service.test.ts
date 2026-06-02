@@ -491,6 +491,35 @@ describe('UploadFlowService', () => {
     }),
   )
 
+  it.effect('getParticipantValidationStatus returns validation decision from KV', () =>
+    Effect.gen(function* () {
+      const { result } = yield* runWithState(
+        makeInitialState({
+          participantState: makeParticipantState({
+            finalized: true,
+            validated: true,
+            validationDecision: 'flagged',
+            validatedAt: '2026-06-01T10:00:00.000Z',
+          }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const service = yield* UploadFlowService
+            return yield* service.getParticipantValidationStatus({ domain, reference })
+          }),
+      )
+
+      assert.deepStrictEqual(result, {
+        participant: {
+          finalized: true,
+          validated: true,
+          validationDecision: 'flagged',
+          validatedAt: '2026-06-01T10:00:00.000Z',
+        },
+      })
+    }),
+  )
+
   it.effect('resolveByCameraParticipantByPhone returns eligible when no participant matches', () =>
     Effect.gen(function* () {
       const { result } = yield* runWithState(makeInitialState(), () =>

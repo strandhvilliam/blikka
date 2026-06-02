@@ -29,6 +29,7 @@ import {
 import { RealtimeEventsService, RealtimeEventsServiceLayer } from '@blikka/realtime'
 import {
   type CheckParticipantExists,
+  type GetParticipantValidationStatus,
   type GetPublicMarathon,
   type GetUploadStatus,
   type PrepareUploadFlow,
@@ -98,17 +99,17 @@ export class UploadFlowService extends Context.Service<
       input: ResolveByCameraParticipantByPhone,
     ) => Effect.Effect<
       | {
-          match: false
-          participantId?: undefined
-          reference?: undefined
-          activeTopicUploadState?: undefined
-        }
+        match: false
+        participantId?: undefined
+        reference?: undefined
+        activeTopicUploadState?: undefined
+      }
       | {
-          match: true
-          participantId: number
-          reference: string
-          activeTopicUploadState: 'eligible' | 'already-uploaded'
-        },
+        match: true
+        participantId: number
+        reference: string
+        activeTopicUploadState: 'eligible' | 'already-uploaded'
+      },
       DbError | PhoneNumberEncryptionError | BadRequestError | UploadSessionRepositoryError,
       never
     >
@@ -121,6 +122,8 @@ export class UploadFlowService extends Context.Service<
           expectedCount: number
           processedIndexes: readonly number[]
           validated: boolean
+          validationDecision: 'pending' | 'passed' | 'flagged' | null
+          validatedAt: string | null
           finalized: boolean
           errors: readonly string[]
         } | null
@@ -132,6 +135,22 @@ export class UploadFlowService extends Context.Service<
           thumbnailKey: string | null
           exifProcessed: boolean
         }[]
+      },
+      UploadSessionRepositoryError,
+      never
+    >
+
+    /** Reads only participant validation decision from KV for post-upload participant routing. */
+    readonly getParticipantValidationStatus: (
+      input: GetParticipantValidationStatus,
+    ) => Effect.Effect<
+      {
+        participant: {
+          validated: boolean
+          validationDecision: 'pending' | 'passed' | 'flagged' | null
+          validatedAt: string | null
+          finalized: boolean
+        } | null
       },
       UploadSessionRepositoryError,
       never
@@ -155,9 +174,9 @@ export class UploadFlowService extends Context.Service<
       never
     >
   }
->()('@blikka/api/UploadFlowService') {}
+>()('@blikka/api/UploadFlowService') { }
 
-const makeUploadFlowService = Effect.gen(function* () {
+const makeUploadFlowService = Effect.gen(function*() {
   const marathonsRepository = yield* MarathonsRepository
   const participantsRepository = yield* ParticipantsRepository
   const submissionsRepository = yield* SubmissionsRepository
@@ -175,7 +194,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
   const getActiveTopicSubmissionOrNull = Effect.fn(
     'UploadFlowService.getActiveTopicSubmissionOrNull',
-  )(function* ({ participantId, topicId }: { participantId: number; topicId: number }) {
+  )(function*({ participantId, topicId }: { participantId: number; topicId: number }) {
     return yield* submissionsRepository
       .getSubmissionByParticipantIdAndTopicId({
         participantId,
@@ -193,7 +212,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
   const hasSuccessfulActiveTopicUpload = Effect.fn(
     'UploadFlowService.hasSuccessfulActiveTopicUpload',
-  )(function* ({
+  )(function*({
     domain,
     reference,
     activeTopic,
@@ -217,7 +236,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
   const resolveExistingByCameraParticipant = Effect.fn(
     'UploadFlowService.resolveExistingByCameraParticipant',
-  )(function* ({ domain, phoneNumber }: { domain: string; phoneNumber: string }) {
+  )(function*({ domain, phoneNumber }: { domain: string; phoneNumber: string }) {
     const marathon = yield* marathonsRepository.getMarathonByDomainWithOptions({ domain }).pipe(
       Effect.flatMap((option) =>
         Option.match(option, {
@@ -287,7 +306,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
   const getPublicMarathon: UploadFlowService['Service']['getPublicMarathon'] = Effect.fn(
     'UploadFlowService.getPublicMarathon',
-  )(function* ({ domain }) {
+  )(function*({ domain }) {
     const cached = yield* publicMarathonCache.get(domain)
     if (Option.isSome(cached)) {
       return cached.value
@@ -338,7 +357,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
   const checkParticipantExists: UploadFlowService['Service']['checkParticipantExists'] = Effect.fn(
     'UploadFlowService.checkParticipantExists',
-  )(function* ({ domain, reference }) {
+  )(function*({ domain, reference }) {
     const participant = yield* participantsRepository.getParticipantByReference({
       domain,
       reference,
@@ -358,7 +377,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
   const prepareUploadFlow: UploadFlowService['Service']['prepareUploadFlow'] = Effect.fn(
     'UploadFlowService.prepareUploadFlow',
-  )(function* ({
+  )(function*({
     domain,
     reference,
     firstname,
@@ -370,7 +389,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     termsAccepted,
     acceptedLocale,
   }) {
-    const executeEffect = Effect.gen(function* () {
+    const executeEffect = Effect.gen(function*() {
       const marathon = yield* marathonsRepository.getMarathonByDomainWithOptions({ domain }).pipe(
         Effect.flatMap((option) =>
           Option.match(option, {
@@ -479,7 +498,7 @@ const makeUploadFlowService = Effect.gen(function* () {
   })
 
   const resolveByCameraParticipantByPhone: UploadFlowService['Service']['resolveByCameraParticipantByPhone'] =
-    Effect.fn('UploadFlowService.resolveByCameraParticipantByPhone')(function* ({
+    Effect.fn('UploadFlowService.resolveByCameraParticipantByPhone')(function*({
       domain,
       phoneNumber,
     }) {
@@ -504,7 +523,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
   const getUploadStatus: UploadFlowService['Service']['getUploadStatus'] = Effect.fn(
     'UploadFlowService.getUploadStatus',
-  )(function* ({ domain, reference, orderIndexes }) {
+  )(function*({ domain, reference, orderIndexes }) {
     const participantState = yield* kv.getParticipantState(domain, reference)
     const submissionStates = yield* kv.getAllSubmissionStates(domain, reference, [...orderIndexes])
 
@@ -515,6 +534,8 @@ const makeUploadFlowService = Effect.gen(function* () {
           expectedCount: state.expectedCount,
           processedIndexes: state.processedIndexes,
           validated: state.validated,
+          validationDecision: state.validationDecision ?? null,
+          validatedAt: state.validatedAt ?? null,
           finalized: state.finalized,
           errors: state.errors,
         }),
@@ -531,8 +552,25 @@ const makeUploadFlowService = Effect.gen(function* () {
     }
   })
 
+  const getParticipantValidationStatus: UploadFlowService['Service']['getParticipantValidationStatus'] =
+    Effect.fn('UploadFlowService.getParticipantValidationStatus')(function*({ domain, reference }) {
+      const participantState = yield* kv.getParticipantState(domain, reference)
+
+      return {
+        participant: Option.match(participantState, {
+          onSome: (state) => ({
+            validated: state.validated,
+            validationDecision: state.validationDecision ?? null,
+            validatedAt: state.validatedAt ?? null,
+            finalized: state.finalized,
+          }),
+          onNone: () => null,
+        }),
+      }
+    })
+
   const refreshPresignedUploads: UploadFlowService['Service']['refreshPresignedUploads'] =
-    Effect.fn('UploadFlowService.refreshPresignedUploads')(function* ({
+    Effect.fn('UploadFlowService.refreshPresignedUploads')(function*({
       domain,
       reference,
       orderIndexes,
@@ -657,7 +695,7 @@ const makeUploadFlowService = Effect.gen(function* () {
 
   const reTriggerUploadFlow: UploadFlowService['Service']['reTriggerUploadFlow'] = Effect.fn(
     'UploadFlowService.reTriggerUploadFlow',
-  )(function* ({ domain, reference }) {
+  )(function*({ domain, reference }) {
     const participantState = yield* kv.getParticipantState(domain, reference)
     if (Option.isNone(participantState)) {
       return yield* Effect.fail(
@@ -687,6 +725,7 @@ const makeUploadFlowService = Effect.gen(function* () {
     prepareUploadFlow,
     resolveByCameraParticipantByPhone,
     getUploadStatus,
+    getParticipantValidationStatus,
     refreshPresignedUploads,
     reTriggerUploadFlow,
   })

@@ -37,6 +37,11 @@ export const GetUploadStatusSchema = Schema.Struct({
   orderIndexes: Schema.Array(Schema.Number),
 })
 
+export const GetParticipantValidationStatusSchema = Schema.Struct({
+  domain: Schema.String,
+  reference: Schema.String,
+})
+
 export const RefreshPresignedUploadsSchema = Schema.Struct({
   domain: Schema.String,
   reference: Schema.String,
@@ -56,5 +61,8 @@ export type ResolveByCameraParticipantByPhone = Schema.Schema.Type<
 >
 export type CheckParticipantExists = Schema.Schema.Type<typeof CheckParticipantExistsSchema>
 export type GetUploadStatus = Schema.Schema.Type<typeof GetUploadStatusSchema>
+export type GetParticipantValidationStatus = Schema.Schema.Type<
+  typeof GetParticipantValidationStatusSchema
+>
 export type RefreshPresignedUploads = Schema.Schema.Type<typeof RefreshPresignedUploadsSchema>
 export type ReTriggerUploadFlow = Schema.Schema.Type<typeof ReTriggerUploadFlowSchema>
