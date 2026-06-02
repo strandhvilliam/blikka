@@ -16,6 +16,10 @@ describe('realtime contract', () => {
         getRealtimeResultEventName('submission-processed'),
         'event.result.submission-processed',
       )
+      assert.strictEqual(
+        getRealtimeResultEventName('participant-validated'),
+        'event.result.participant-validated',
+      )
     })
   })
 
@@ -36,7 +40,7 @@ describe('realtime contract', () => {
     it('should accept success payloads', () => {
       assert.ok(
         Schema.is(RealtimeEventResultPayloadSchema)({
-          eventKey: 'participant-finalized',
+          eventKey: 'participant-validated',
           outcome: 'success',
           domain: 'demo',
           reference: '1234',
