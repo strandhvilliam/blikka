@@ -92,6 +92,7 @@ function SubmissionItemLargePreview({ photo, index }: { photo: SelectedPhoto; in
 interface SubmissionItemProps {
   photo?: SelectedPhoto
   validationResults?: ValidationResult[]
+  showPassedValidation?: boolean
   topic?: Topic
   index: number
   onRemove?: (orderIndex: number) => void
@@ -101,6 +102,7 @@ interface SubmissionItemProps {
 export function SubmissionItem({
   photo,
   validationResults,
+  showPassedValidation = true,
   topic,
   index,
   onRemove,
@@ -137,6 +139,9 @@ export function SubmissionItem({
     severity: highestPriorityResult?.severity,
     ruleKey: highestPriorityResult?.ruleKey,
   }
+  const showValidationMessage =
+    Boolean(displayValidation.message) &&
+    displayValidation.outcome !== VALIDATION_OUTCOME.PASSED
 
   if (!photo) {
     return (
@@ -171,65 +176,69 @@ export function SubmissionItem({
         <X className="h-3.5 w-3.5 text-muted-foreground" />
       </button>
 
-      <div className="flex gap-3 p-3">
-        {/* Thumbnail */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.2 }}
-          className="h-24 w-24 shrink-0 overflow-hidden rounded-xl"
-        >
-          <SubmissionItemThumbnail
-            key={photo.id}
-            photo={photo}
-            index={index}
-            onOpenDialog={() => {
-              setLargePreviewNonce((n) => n + 1)
-              setShowImageDialog(true)
-            }}
-          />
-        </motion.div>
+      <div className="p-3">
+        <div className="flex gap-3">
+          {/* Thumbnail */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="h-24 w-24 shrink-0 overflow-hidden rounded-xl"
+          >
+            <SubmissionItemThumbnail
+              key={photo.id}
+              photo={photo}
+              index={index}
+              onOpenDialog={() => {
+                setLargePreviewNonce((n) => n + 1)
+                setShowImageDialog(true)
+              }}
+            />
+          </motion.div>
 
-        {/* Info */}
-        <div className="min-w-0 flex-1 py-0.5">
-          <p className="text-xs font-semibold text-muted-foreground">#{index + 1}</p>
-          <p className="mt-0.5 text-base font-semibold text-foreground">{topic?.name}</p>
+          {/* Info */}
+          <div className="min-w-0 flex-1 py-0.5 pr-6">
+            <p className="text-xs font-semibold text-muted-foreground">#{index + 1}</p>
+            <p className="mt-0.5 text-base font-semibold text-foreground">{topic?.name}</p>
 
-          {validationResults && validationResults.length === 0 && (
-            <div className="mt-1.5 flex items-center gap-2">
-              <ValidationStatusBadge outcome={VALIDATION_OUTCOME.PASSED} severity="error" />
-            </div>
-          )}
+            {validationResults &&
+              validationResults.length === 0 &&
+              showPassedValidation && (
+              <div className="mt-1.5 flex items-center gap-2">
+                <ValidationStatusBadge outcome={VALIDATION_OUTCOME.PASSED} severity="error" />
+              </div>
+            )}
 
-          {validationResults && validationResults.length > 0 && (
-            <div className="mt-1.5 space-y-0.5">
-              <ValidationStatusBadge
-                outcome={displayValidation.outcome}
-                severity={displayValidation.severity}
-              />
-              {displayValidation.message &&
-                displayValidation.outcome !== VALIDATION_OUTCOME.PASSED && (
-                  <p
-                    className={`text-xs ${
-                      displayValidation.severity === 'error'
-                        ? 'text-destructive'
-                        : displayValidation.outcome === VALIDATION_OUTCOME.FAILED
-                          ? 'text-amber-700'
-                          : 'text-muted-foreground'
-                    }`}
-                  >
-                    {displayValidation.message}
-                  </p>
-                )}
-            </div>
-          )}
+            {validationResults && validationResults.length > 0 && (
+              <div className="mt-1.5">
+                <ValidationStatusBadge
+                  outcome={displayValidation.outcome}
+                  severity={displayValidation.severity}
+                />
+              </div>
+            )}
 
-          <p className="mt-1 truncate text-[11px] text-muted-foreground">
-            {takenAt && `${format(takenAt, 'cccc, HH:mm')}`}
-            {takenAt && photo.file.name && ' · '}
-            {photo.file.name}
-          </p>
+            <p className="mt-1 truncate text-[11px] text-muted-foreground">
+              {takenAt && `${format(takenAt, 'cccc, HH:mm')}`}
+              {takenAt && photo.file.name && ' · '}
+              {photo.file.name}
+            </p>
+          </div>
         </div>
+
+        {showValidationMessage ? (
+          <p
+            className={`mt-2.5 text-xs leading-relaxed ${
+              displayValidation.severity === 'error'
+                ? 'text-destructive'
+                : displayValidation.outcome === VALIDATION_OUTCOME.FAILED
+                  ? 'text-amber-700'
+                  : 'text-muted-foreground'
+            }`}
+          >
+            {displayValidation.message}
+          </p>
+        ) : null}
       </div>
 
       {/* Photo details toggle, or no-EXIF notice in the same footer row */}

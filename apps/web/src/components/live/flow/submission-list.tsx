@@ -3,8 +3,9 @@
 import type { Topic } from '@blikka/db'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMemo } from 'react'
-import { buildPhotoValidationMap } from '@/lib/validation'
+import { buildPhotoValidationMap, getVisibleGeneralValidationResults } from '@/lib/validation'
 import { usePhotoStore } from '@/lib/flow/photo-store'
+import { CrossSubmissionValidationCard } from './cross-submission-validation-card'
 import { SubmissionItem } from './submission-item'
 
 interface SubmissionListProps {
@@ -12,6 +13,8 @@ interface SubmissionListProps {
   maxPhotos: number
   onUploadClick?: () => void
   onRemovePhoto?: (orderIndex: number) => void
+  showCrossSubmissionValidation?: boolean
+  isValidationRunning?: boolean
 }
 
 export function SubmissionList({
@@ -19,6 +22,8 @@ export function SubmissionList({
   maxPhotos,
   onUploadClick,
   onRemovePhoto,
+  showCrossSubmissionValidation = false,
+  isValidationRunning = false,
 }: SubmissionListProps) {
   const photos = usePhotoStore((state) => state.photos)
   const validationResults = usePhotoStore((state) => state.validationResults)
@@ -26,6 +31,10 @@ export function SubmissionList({
   const validationMap = useMemo(
     () => buildPhotoValidationMap(photos, validationResults),
     [photos, validationResults],
+  )
+  const generalValidationResults = useMemo(
+    () => getVisibleGeneralValidationResults(validationResults),
+    [validationResults],
   )
   const topicsByOrderIndex = useMemo(
     () => new Map(topics.map((topic) => [topic.orderIndex, topic])),
@@ -35,6 +44,9 @@ export function SubmissionList({
   return (
     <AnimatePresence>
       <div className="flex flex-col gap-2.5">
+        {showCrossSubmissionValidation && generalValidationResults.length > 0 ? (
+          <CrossSubmissionValidationCard results={generalValidationResults} />
+        ) : null}
         {photos.map((photo, index) => (
           <motion.div
             key={photo.id}
@@ -46,6 +58,7 @@ export function SubmissionList({
               photo={photo}
               topic={topicsByOrderIndex.get(photo.orderIndex) ?? topics[index]}
               validationResults={validationMap.get(photo.id) ?? []}
+              showPassedValidation={!isValidationRunning}
               index={index}
               onRemove={onRemovePhoto}
             />

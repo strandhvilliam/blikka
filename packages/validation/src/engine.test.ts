@@ -517,6 +517,34 @@ layer(ValidationEngineLayer)('ValidationEngine', (it) => {
         assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.SKIPPED)
       }),
     )
+
+    it.effect('should fail when some images are missing camera metadata', () =>
+      Effect.gen(function* () {
+        const engine = yield* ValidationEngine
+
+        const rule: ValidationRule = {
+          ruleKey: RULE_KEYS.SAME_DEVICE,
+          enabled: true,
+          severity: 'warning',
+          params: { same_device: {} },
+        }
+
+        const inputs = [
+          createMockInput({
+            exif: { Make: 'Sony', Model: 'ILCE-7M3' },
+          }),
+          createMockInput({
+            exif: { DateTimeOriginal: '2023-06-15T16:00:00Z' },
+          }),
+        ]
+
+        const results = yield* engine.runValidations([rule], inputs)
+
+        assert.lengthOf(results, 1)
+        assert.strictEqual(results[0]?.outcome, VALIDATION_OUTCOME.FAILED)
+        assert.include(results[0]?.message, 'Camera information missing')
+      }),
+    )
   })
 
   describe('executeRule - MODIFIED', () => {

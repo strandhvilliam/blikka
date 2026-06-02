@@ -117,6 +117,55 @@ describe('validation helpers', () => {
     expect(split.warnings).toHaveLength(1)
   })
 
+  it('extracts general and visible general validation results', async () => {
+    mockValidationDependencies()
+    const { VALIDATION_OUTCOME } = await import('@blikka/validation')
+    const { getGeneralValidationResults, getVisibleGeneralValidationResults } = await import(
+      './validation'
+    )
+
+    const results = [
+      {
+        ruleKey: 'same_device',
+        message: 'Different devices detected',
+        outcome: VALIDATION_OUTCOME.FAILED,
+        severity: 'error',
+        isGeneral: true,
+      },
+      {
+        ruleKey: 'same_device',
+        message: 'Not enough images to compare devices',
+        outcome: VALIDATION_OUTCOME.SKIPPED,
+        severity: 'warning',
+        isGeneral: true,
+      },
+      {
+        ruleKey: 'same_device',
+        message: 'Same device',
+        outcome: VALIDATION_OUTCOME.PASSED,
+        severity: 'error',
+        isGeneral: true,
+      },
+      {
+        ruleKey: 'within_timerange',
+        message: 'Outside range',
+        outcome: VALIDATION_OUTCOME.FAILED,
+        severity: 'warning',
+        orderIndex: 1,
+        isGeneral: false,
+      },
+    ]
+
+    expect(getGeneralValidationResults(results as never).map((result) => result.message)).toEqual([
+      'Different devices detected',
+      'Not enough images to compare devices',
+      'Same device',
+    ])
+    expect(getVisibleGeneralValidationResults(results as never).map((result) => result.message)).toEqual(
+      ['Different devices detected'],
+    )
+  })
+
   it('maps photo validation results by order index or file name', async () => {
     mockValidationDependencies()
     const { VALIDATION_OUTCOME } = await import('@blikka/validation')

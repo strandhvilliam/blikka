@@ -295,30 +295,41 @@ export const validateSameDevice = Effect.fn('validateSameDevice')(function* (
     })
   }
 
-  const deviceIdentifiers = inputs
-    .map(({ exif }) => getDeviceIdentifier(exif))
-    .filter((identifier) => Option.isSome(identifier))
-    .map((identifier) => identifier.value)
+  const identifiersPerInput = inputs.map(({ exif }) => Option.getOrNull(getDeviceIdentifier(exif)))
+  const knownIdentifiers = identifiersPerInput.filter(
+    (identifier): identifier is string => identifier !== null,
+  )
 
-  if (deviceIdentifiers.length !== inputs.length) {
+  if (knownIdentifiers.length === 0) {
     return yield* new ValidationSkipped({
       ruleKey: RULE_KEYS.SAME_DEVICE,
-      reason: `No device information found for ${inputs.length - deviceIdentifiers.length} images`,
+      reason: `No device information found for ${inputs.length} images`,
     })
   }
 
-  const firstIdentifier = deviceIdentifiers[0]
-  const allSameDevice = deviceIdentifiers.every((identifier) => identifier === firstIdentifier)
+  const uniqueKnown = [...new Set(knownIdentifiers)]
 
-  if (!allSameDevice) {
-    const uniqueIdentifiers = deviceIdentifiers.filter(
-      (identifier, index) => deviceIdentifiers.indexOf(identifier) === index,
-    )
-
+  if (uniqueKnown.length > 1) {
     return yield* new ValidationFailure({
       ruleKey: RULE_KEYS.SAME_DEVICE,
-      message: `Different devices detected: ${uniqueIdentifiers.join(', ')}`,
-      context: { devices: uniqueIdentifiers },
+      message: `Different devices detected: ${uniqueKnown.join(', ')}`,
+      context: { devices: uniqueKnown },
+    })
+  }
+
+  const missingCount = inputs.length - knownIdentifiers.length
+  if (missingCount > 0) {
+    const detectedDevice = uniqueKnown[0]
+    return yield* new ValidationFailure({
+      ruleKey: RULE_KEYS.SAME_DEVICE,
+      message:
+        missingCount === 1
+          ? `Camera information missing for 1 photo; other photo(s) used ${detectedDevice}`
+          : `Camera information missing for ${missingCount} photos; other photo(s) used ${detectedDevice}`,
+      context: {
+        devices: uniqueKnown,
+        missingDeviceInfoCount: missingCount,
+      },
     })
   }
 })

@@ -5,7 +5,11 @@ import type { ValidationResult } from '@blikka/validation'
 import type { RuleConfig } from '@blikka/db'
 import type { ParticipantSelectedPhoto } from '@/lib/participant-upload-types'
 import { toast } from 'sonner'
-import { buildPhotoValidationMap, splitValidationResultsBySeverity } from '@/lib/validation'
+import {
+  buildPhotoValidationMap,
+  getGeneralValidationResults,
+  splitValidationResultsBySeverity,
+} from '@/lib/validation'
 import { processSelectedFiles } from '@/lib/participant-selected-files'
 import { reassignOrderIndexes, revokePreviewUrls } from '@/lib/file-processing'
 import { runParticipantPhotoValidation } from '@/lib/participant-photo-validation'
@@ -101,9 +105,7 @@ export function useManualPhotoSelection({
     }
   }, [open, selectedPhotos, ruleConfigs, marathonStartDate, marathonEndDate, marathonMode])
 
-  const generalValidationResults = validationResults.filter(
-    (result) => result.isGeneral || (result.orderIndex === undefined && !result.fileName),
-  )
+  const generalValidationResults = getGeneralValidationResults(validationResults)
 
   const photoValidationMap = buildPhotoValidationMap(selectedPhotos, validationResults)
 

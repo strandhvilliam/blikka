@@ -135,6 +135,18 @@ export function splitValidationResultsBySeverity(results: ValidationResult[]) {
   return { blocking, warnings }
 }
 
+export function getGeneralValidationResults(results: ValidationResult[]): ValidationResult[] {
+  return results.filter(
+    (result) => result.isGeneral || (result.orderIndex === undefined && !result.fileName),
+  )
+}
+
+export function getVisibleGeneralValidationResults(results: ValidationResult[]): ValidationResult[] {
+  return getGeneralValidationResults(results).filter(
+    (result) => result.outcome === VALIDATION_OUTCOME.FAILED,
+  )
+}
+
 export function buildPhotoValidationMap<
   T extends {
     id: string

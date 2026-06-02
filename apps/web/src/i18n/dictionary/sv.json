@@ -199,6 +199,7 @@
       "noExifData": "Ingen EXIF-metadata hittades. Den här inlämningen kommer att flaggas.",
       "taken": "Tagen:",
       "file": "Fil:",
+      "crossSubmissionManualReview": "Den här inlämningen kommer att flaggas för manuell granskning av funktionärer. Du kan fortfarande ladda upp.",
       "photoDetails": "Fotodetaljer",
       "uploadPreviewAlt": "Förhandsvisning av foto {index}",
       "photoPreviewTitle": "Förhandsvisning av foto - {topic}",

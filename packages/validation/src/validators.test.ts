@@ -67,6 +67,31 @@ describe('validators', () => {
     }),
   )
 
+  it.effect('fails same-device check when only some photos include camera metadata', () =>
+    Effect.gen(function* () {
+      const failure = yield* validateSameDevice({}, [
+        createMockInput({ exif: { Make: 'Sony', Model: 'ILCE-7M3' } }),
+        createMockInput({ exif: { DateTimeOriginal: '2023-06-15T14:30:00Z' } }),
+      ]).pipe(Effect.flip)
+
+      assert.strictEqual(failure.ruleKey, RULE_KEYS.SAME_DEVICE)
+      assert.include(failure.message, 'Camera information missing')
+      assert.include(failure.message, 'Sony-ILCE-7M3')
+    }),
+  )
+
+  it.effect('fails same-device check when known camera models differ', () =>
+    Effect.gen(function* () {
+      const failure = yield* validateSameDevice({}, [
+        createMockInput({ exif: { Make: 'Sony', Model: 'ILCE-7M3' } }),
+        createMockInput({ exif: { Make: 'Canon', Model: 'EOS R5' } }),
+      ]).pipe(Effect.flip)
+
+      assert.strictEqual(failure.ruleKey, RULE_KEYS.SAME_DEVICE)
+      assert.include(failure.message, 'Different devices detected')
+    }),
+  )
+
   it.effect('deduplicates jpg and jpeg aliases in failure context', () =>
     Effect.gen(function* () {
       const failure = yield* validateAllowedFileTypes(

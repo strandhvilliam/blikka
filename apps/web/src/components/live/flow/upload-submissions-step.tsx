@@ -48,6 +48,16 @@ import { HeicConversionDialog } from './heic-conversion-dialog'
 import { ManualPhotoOrderDialog } from './manual-photo-order-dialog'
 import { ParticipantConfirmationDialog } from './participant-confirmation-dialog'
 
+interface UploadSubmissionStepProps {
+
+  ruleConfigs: DbRuleConfig[]
+  topics: Topic[]
+  competitionClass: CompetitionClass
+  validationStartDate: string
+  validationEndDate: string
+  verificationMode: MarathonVerificationMode
+}
+
 export function UploadSubmissionsStep({
   ruleConfigs,
   topics,
@@ -55,14 +65,7 @@ export function UploadSubmissionsStep({
   validationStartDate,
   validationEndDate,
   verificationMode,
-}: {
-  ruleConfigs: DbRuleConfig[]
-  topics: Topic[]
-  competitionClass: CompetitionClass
-  validationStartDate: string
-  validationEndDate: string
-  verificationMode: MarathonVerificationMode
-}) {
+}: UploadSubmissionStepProps) {
   const t = useTranslations('FlowPage.uploadStep')
   const trpc = useTRPC()
   const domain = useDomain()
@@ -98,7 +101,7 @@ export function UploadSubmissionsStep({
     t,
   })
 
-  useLivePhotoValidation({
+  const { isValidationRunning } = useLivePhotoValidation({
     ruleConfigs,
     validationStartDate,
     validationEndDate,
@@ -215,8 +218,8 @@ export function UploadSubmissionsStep({
     if (!initializeUploadFlowResult?.ok) {
       const issueLabels = initializeUploadFlowResult
         ? getUploadFlowIssueMessageKeys(initializeUploadFlowResult.issues).map((messageKey) =>
-            t(messageKey),
-          )
+          t(messageKey),
+        )
         : []
       toast.error(
         issueLabels.length > 0
@@ -361,6 +364,8 @@ export function UploadSubmissionsStep({
                 maxPhotos={competitionClass.numberOfPhotos}
                 onUploadClick={handleUploadClick}
                 onRemovePhoto={removePhoto}
+                showCrossSubmissionValidation
+                isValidationRunning={isValidationRunning}
               />
               <input
                 ref={fileInputRef}

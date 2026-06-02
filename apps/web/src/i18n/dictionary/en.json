@@ -199,6 +199,7 @@
       "noExifData": "No EXIF metadata found. This submission will be flagged.",
       "taken": "Taken:",
       "file": "File:",
+      "crossSubmissionManualReview": "This submission will be flagged for manual review by staff. You can still upload.",
       "photoDetails": "Photo Details",
       "uploadPreviewAlt": "Preview of photo {index}",
       "photoPreviewTitle": "Photo Preview - {topic}",
