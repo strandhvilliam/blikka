@@ -87,6 +87,7 @@ interface TestState {
   readonly rules: readonly RuleConfig[]
   readonly validationInputs: readonly ValidationInput[]
   readonly validationRules: readonly ValidationRule[]
+  readonly engineResults: readonly ValidationResult[]
   readonly validationWrites: ReadonlyArray<{
     domain: string
     reference: string
@@ -104,6 +105,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   rules: [maxFileSizeRule],
   validationInputs: [],
   validationRules: [],
+  engineResults: [validationResult],
   validationWrites: [],
   participantUpdates: [],
   headRequests: [],
@@ -191,11 +193,15 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
 
   const validationEngine = ValidationEngine.of({
     runValidations: (rules: ValidationRule[], validationInputs: ValidationInput[]) =>
-      updateTestState(stateRef, (state) => ({
-        ...state,
-        validationRules: rules,
-        validationInputs,
-      })).pipe(Effect.as([validationResult])),
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        yield* updateTestState(stateRef, (current) => ({
+          ...current,
+          validationRules: rules,
+          validationInputs,
+        }))
+        return [...state.engineResults]
+      }),
   })
 
   return ValidationRunnerLayerNoDeps.pipe(
@@ -262,7 +268,78 @@ describe('ValidationRunner', () => {
           data: [validationResult],
         },
       ])
-      assert.deepStrictEqual(state.participantUpdates, [{ validated: true }])
+      assert.strictEqual(state.participantUpdates.length, 1)
+      assert.strictEqual(state.participantUpdates[0]?.validated, true)
+      assert.strictEqual(state.participantUpdates[0]?.validationDecision, 'passed')
+      assert.isString(state.participantUpdates[0]?.validatedAt)
+    }),
+  )
+
+  it.effect('marks participant validation flagged when exif is missing', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          exifStates: [],
+        }),
+        () =>
+          Effect.gen(function* () {
+            const runner = yield* ValidationRunner
+            yield* runner.execute(input)
+          }),
+      )
+
+      assert.strictEqual(state.participantUpdates.length, 1)
+      assert.strictEqual(state.participantUpdates[0]?.validated, true)
+      assert.strictEqual(state.participantUpdates[0]?.validationDecision, 'flagged')
+      assert.isString(state.participantUpdates[0]?.validatedAt)
+    }),
+  )
+
+  it.effect('marks participant validation flagged when exif state has no fields', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          exifStates: [{ orderIndex: 0, exif: {} }],
+        }),
+        () =>
+          Effect.gen(function* () {
+            const runner = yield* ValidationRunner
+            yield* runner.execute(input)
+          }),
+      )
+
+      assert.strictEqual(state.participantUpdates.length, 1)
+      assert.strictEqual(state.participantUpdates[0]?.validated, true)
+      assert.strictEqual(state.participantUpdates[0]?.validationDecision, 'flagged')
+      assert.isString(state.participantUpdates[0]?.validatedAt)
+    }),
+  )
+
+  it.effect('marks participant validation passed when no rules produce results', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          rules: [],
+          engineResults: [],
+        }),
+        () =>
+          Effect.gen(function* () {
+            const runner = yield* ValidationRunner
+            yield* runner.execute(input)
+          }),
+      )
+
+      assert.deepStrictEqual(state.validationWrites, [
+        {
+          domain: input.domain,
+          reference: input.reference,
+          data: [],
+        },
+      ])
+      assert.strictEqual(state.participantUpdates.length, 1)
+      assert.strictEqual(state.participantUpdates[0]?.validated, true)
+      assert.strictEqual(state.participantUpdates[0]?.validationDecision, 'passed')
+      assert.isString(state.participantUpdates[0]?.validatedAt)
     }),
   )
 
@@ -322,7 +399,10 @@ describe('ValidationRunner', () => {
       assert.isTrue(error instanceof ValidationRunnerInvalidDataError)
       assert.strictEqual(error.message, 'No submission states found')
       assert.deepStrictEqual(state.validationWrites, [])
-      assert.deepStrictEqual(state.participantUpdates, [])
+      assert.strictEqual(state.participantUpdates.length, 1)
+      assert.strictEqual(state.participantUpdates[0]?.validated, true)
+      assert.strictEqual(state.participantUpdates[0]?.validationDecision, 'flagged')
+      assert.isString(state.participantUpdates[0]?.validatedAt)
     }),
   )
 
@@ -346,7 +426,10 @@ describe('ValidationRunner', () => {
 
       assert.isTrue(error instanceof InvalidValidationRuleError)
       assert.deepStrictEqual(state.validationWrites, [])
-      assert.deepStrictEqual(state.participantUpdates, [])
+      assert.strictEqual(state.participantUpdates.length, 1)
+      assert.strictEqual(state.participantUpdates[0]?.validated, true)
+      assert.strictEqual(state.participantUpdates[0]?.validationDecision, 'flagged')
+      assert.isString(state.participantUpdates[0]?.validatedAt)
     }),
   )
 })

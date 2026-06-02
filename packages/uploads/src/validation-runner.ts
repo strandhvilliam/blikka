@@ -20,6 +20,7 @@ import {
 } from '@blikka/validation'
 import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { UploadsConfig, UploadsConfigLayer } from './config'
+import { getValidationDecision } from './validation-decision'
 
 export class ValidationRunnerInvalidDataError extends Schema.TaggedErrorClass<ValidationRunnerInvalidDataError>()(
   'ValidationRunnerInvalidDataError',
@@ -131,6 +132,9 @@ const makeValidationRunner = Effect.gen(function* () {
     ),
   )
 
+  const hasExifFields = (exif: ExifState | null | undefined) =>
+    exif !== null && exif !== undefined && Object.keys(exif).length > 0
+
   const execute = Effect.fn('ValidationRunner.execute')(
     function* ({ domain, reference, uploadSessionId }: ValidateParticipantInput) {
       const participantState = yield* uploadKv.getParticipantState(domain, reference)
@@ -158,54 +162,71 @@ const makeValidationRunner = Effect.gen(function* () {
         return
       }
 
-      const rules = yield* rulesRepository.getRulesByDomain({ domain })
-      const orderIndexes = [...participantState.value.orderIndexes]
-
-      const [exifStates, submissionStates] = yield* Effect.all(
-        [
-          exifKv.getAllExifStates(domain, reference, orderIndexes),
-          uploadKv.getAllSubmissionStates(domain, reference, orderIndexes),
-        ],
-        { concurrency: 2 },
-      )
-
-      if (submissionStates.length === 0) {
-        return yield* new ValidationRunnerInvalidDataError({
-          message: 'No submission states found',
-        })
-      }
-
-      if (submissionStates.length !== orderIndexes.length) {
-        return yield* new ValidationRunnerInvalidDataError({
-          message: `Submission states length mismatch: expected ${orderIndexes.length} but got ${submissionStates.length}`,
-        })
-      }
-
-      const exifStatesByOrderIndex = new Set(exifStates.map((state) => state.orderIndex))
-      const missingExifOrderIndexes = submissionStates
-        .filter((state) => !exifStatesByOrderIndex.has(state.orderIndex))
-        .map((state) => state.orderIndex)
-
-      if (missingExifOrderIndexes.length > 0) {
-        yield* Effect.logWarning(
-          'Missing EXIF state during validation; continuing with empty EXIF data',
-          { missingExifOrderIndexes },
-        )
-      }
-
-      const validationInputs = yield* createValidationInputs(exifStates, submissionStates)
-      const validationRules = yield* createValidationRules(rules)
-      const validationResults = yield* engine.runValidations(validationRules, validationInputs)
-
-      yield* validationsRepository.createMultipleValidationResults({
-        data: validationResults,
-        domain,
-        reference,
-      })
-
-      yield* uploadKv.updateParticipantSession(domain, reference, {
+      const markFlagged = uploadKv.updateParticipantSession(domain, reference, {
         validated: true,
+        validationDecision: 'flagged',
+        validatedAt: new Date().toISOString(),
       })
+
+      yield* Effect.gen(function* () {
+        const rules = yield* rulesRepository.getRulesByDomain({ domain })
+        const orderIndexes = [...participantState.value.orderIndexes]
+
+        const [exifStates, submissionStates] = yield* Effect.all(
+          [
+            exifKv.getAllExifStates(domain, reference, orderIndexes),
+            uploadKv.getAllSubmissionStates(domain, reference, orderIndexes),
+          ],
+          { concurrency: 2 },
+        )
+
+        if (submissionStates.length === 0) {
+          return yield* new ValidationRunnerInvalidDataError({
+            message: 'No submission states found',
+          })
+        }
+
+        if (submissionStates.length !== orderIndexes.length) {
+          return yield* new ValidationRunnerInvalidDataError({
+            message: `Submission states length mismatch: expected ${orderIndexes.length} but got ${submissionStates.length}`,
+          })
+        }
+
+        const exifStatesWithFieldsByOrderIndex = new Set(
+          exifStates
+            .filter((state) => hasExifFields(state.exif))
+            .map((state) => state.orderIndex),
+        )
+        const missingExifOrderIndexes = submissionStates
+          .filter((state) => !exifStatesWithFieldsByOrderIndex.has(state.orderIndex))
+          .map((state) => state.orderIndex)
+
+        if (missingExifOrderIndexes.length > 0) {
+          yield* Effect.logWarning(
+            'Missing EXIF state during validation; continuing with empty EXIF data',
+            { missingExifOrderIndexes },
+          )
+        }
+
+        const validationInputs = yield* createValidationInputs(exifStates, submissionStates)
+        const validationRules = yield* createValidationRules(rules)
+        const validationResults = yield* engine.runValidations(validationRules, validationInputs)
+
+        yield* validationsRepository.createMultipleValidationResults({
+          data: validationResults,
+          domain,
+          reference,
+        })
+
+        yield* uploadKv.updateParticipantSession(domain, reference, {
+          validated: true,
+          validationDecision: getValidationDecision({
+            results: validationResults,
+            missingExifOrderIndexes,
+          }),
+          validatedAt: new Date().toISOString(),
+        })
+      }).pipe(Effect.catch((error) => markFlagged.pipe(Effect.andThen(Effect.fail(error)))))
     },
     (effect, input) => Effect.annotateLogs(effect, { ...input }),
   )
