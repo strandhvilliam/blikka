@@ -2,6 +2,7 @@ import type {
   ParticipantSelectedPhoto,
   ProcessSelectedFilesResult,
 } from './participant-upload-types'
+import { orderPhotosForTopicSlots } from './flow/photo-ordering'
 import { type ExifData, parseExifData } from './exif-parsing'
 import {
   COMMON_IMAGE_EXTENSIONS,
@@ -11,7 +12,6 @@ import {
   limitImageCandidates,
   normalizeSelectedImageFiles,
   reassignOrderIndexes,
-  sortByExifDate,
   type NormalizedImageCandidate,
 } from './file-processing'
 
@@ -128,13 +128,10 @@ export async function prepareParticipantSelectedPhotos({
     createParticipantSelectedPhoto,
   )
 
-  const sortedPhotos = sortByExifDate([...existingPhotos, ...newPhotos], (photo) => photo.exif)
+  const combinedPhotos = [...existingPhotos, ...newPhotos]
 
   return {
-    photos: reassignOrderIndexes(sortedPhotos, topicOrderIndexes, (photo, orderIndex) => ({
-      ...photo,
-      orderIndex,
-    })),
+    photos: orderPhotosForTopicSlots(combinedPhotos, topicOrderIndexes),
     warnings,
     errors,
   }

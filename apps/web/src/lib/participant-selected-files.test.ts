@@ -20,19 +20,25 @@ async function importParticipantSelectedFiles() {
     .mockReturnValue('generated-next')
   const generateThumbnailUrl = vi.fn(async (file: File) => `blob:${file.name}`)
 
-  vi.doMock('./exif-parsing', () => ({
-    getExifDate: (exif?: Record<string, unknown> | null) => {
-      if (!exif) return null
-      const dateValue = exif.DateTimeOriginal || exif.CreateDate
-      if (typeof dateValue !== 'string') {
-        return null
-      }
+  const getCapturedAtDate = (exif?: Record<string, unknown> | null) => {
+    if (!exif) return null
+    const dateValue = exif.DateTimeOriginal ?? exif.DateTimeDigitized ?? exif.CreateDate
+    if (typeof dateValue !== 'string' && !(dateValue instanceof Date)) {
+      return null
+    }
 
-      const date = new Date(dateValue)
-      return Number.isNaN(date.getTime()) ? null : date
-    },
+    const date = new Date(dateValue)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+
+  const exifParsingMock = () => ({
+    getCapturedAtDate,
+    getExifDate: getCapturedAtDate,
     parseExifData,
-  }))
+  })
+
+  vi.doMock('./exif-parsing', exifParsingMock)
+  vi.doMock('@/lib/exif-parsing', exifParsingMock)
   vi.doMock('./file-processing', async () => {
     const actual = await vi.importActual<typeof import('./file-processing')>('./file-processing')
 
@@ -59,6 +65,7 @@ afterEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
   vi.doUnmock('./exif-parsing')
+  vi.doUnmock('@/lib/exif-parsing')
   vi.doUnmock('./file-processing')
 })
 
@@ -159,6 +166,43 @@ describe('participant-upload/participant-selected-files', () => {
     expect(mocks.parseExifData).toHaveBeenCalledWith(expect.objectContaining({ name: 'first.jpg' }))
   })
 
+  it('skips automatic sorting when any selected photo is missing a capture time', async () => {
+    const { prepareParticipantSelectedPhotos } = await importParticipantSelectedFiles()
+
+    const result = await prepareParticipantSelectedPhotos({
+      candidates: [
+        {
+          file: new File(['late'], 'late.jpg', { type: 'image/jpeg' }),
+          preconvertedExif: {
+            DateTimeOriginal: '2024-03-01T11:00:00.000Z',
+          },
+        },
+        {
+          file: new File(['missing'], 'missing.jpg', { type: 'image/jpeg' }),
+          preconvertedExif: {},
+        },
+      ],
+      existingPhotos: [
+        {
+          id: 'existing',
+          file: new File(['early'], 'early.jpg', { type: 'image/jpeg' }),
+          exif: { DateTimeOriginal: '2024-03-01T08:00:00.000Z' },
+          previewUrl: 'blob:early',
+          orderIndex: 0,
+          preconvertedExif: null,
+        },
+      ],
+      maxPhotos: 3,
+      topicOrderIndexes: [2, 4, 6],
+    })
+
+    expect(result.photos.map((photo) => photo.file.name)).toEqual([
+      'early.jpg',
+      'late.jpg',
+      'missing.jpg',
+    ])
+  })
+
   it('places photos without timestamps last during initial automatic sorting', async () => {
     const { prepareParticipantSelectedPhotos } = await importParticipantSelectedFiles()
 
@@ -194,10 +238,14 @@ describe('participant-upload/participant-selected-files', () => {
       return null
     })
 
-    vi.doMock('./exif-parsing', () => ({
+    const exifParsingMock = () => ({
+      getCapturedAtDate: () => null,
       getExifDate: () => null,
       parseExifData,
-    }))
+    })
+
+    vi.doMock('./exif-parsing', exifParsingMock)
+    vi.doMock('@/lib/exif-parsing', exifParsingMock)
     vi.doMock('./file-processing', async () => {
       const actual = await vi.importActual<typeof import('./file-processing')>('./file-processing')
 

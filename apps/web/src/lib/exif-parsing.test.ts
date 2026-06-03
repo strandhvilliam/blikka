@@ -46,6 +46,11 @@ describe('getExifDate', () => {
     expect(getExifDate({ CreateDate: '2024-02-03T04:05:06.000Z' })?.toISOString()).toBe(
       '2024-02-03T04:05:06.000Z',
     )
+    expect(
+      getExifDate({
+        DateTimeDigitized: '2024-03-04T05:06:07.000Z',
+      })?.toISOString(),
+    ).toBe('2024-03-04T05:06:07.000Z')
   })
 })
 

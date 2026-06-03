@@ -1,12 +1,17 @@
 'use client'
 /* eslint-disable @next/next/no-img-element */
 
-import { Trash2 } from 'lucide-react'
+import { useMemo } from 'react'
+import { AlertTriangle, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { motion, AnimatePresence } from 'motion/react'
 
 import { Button } from '@/components/ui/button'
+import { PhotoReorderBanner } from '@/components/photos/photo-reorder-banner'
+import { PhotoReorderControls } from '@/components/photos/photo-reorder-controls'
 import { cn } from '@/lib/utils'
-import { getExifDate } from '@/lib/exif-parsing'
+import { canReorderPhotos, sortPhotosByOrderIndex } from '@/lib/flow/photo-ordering'
+import { getCapturedAtDate } from '@/lib/exif-parsing'
 import type { ParticipantSelectedPhoto } from '@/lib/participant-upload-types'
 import type { ValidationResult } from '@blikka/validation'
 import { VALIDATION_OUTCOME } from '@blikka/validation'
@@ -19,6 +24,7 @@ interface StaffPhotoListProps {
   photoValidationMap: Map<string, ValidationResult[]>
   isBusy: boolean
   onRemove: (photoId: string) => void
+  onMovePhoto?: (displayIndex: number, direction: 'up' | 'down') => void
 }
 
 type PhotoStatus = 'ok' | 'warning' | 'error'
@@ -49,11 +55,6 @@ const STATUS_LABEL: Record<PhotoStatus, { text: string; className: string } | nu
   error: { text: 'Issue found', className: 'text-rose-600 bg-rose-50 border-rose-200' },
 }
 
-function resolveTopicName(orderIndex: number, topics: Topic[]): string | null {
-  const topic = topics.find((t) => t.orderIndex === orderIndex)
-  return topic?.name ?? null
-}
-
 function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -80,7 +81,16 @@ export function StaffPhotoList({
   photoValidationMap,
   isBusy,
   onRemove,
+  onMovePhoto,
 }: StaffPhotoListProps) {
+  const t = useTranslations('FlowPage.uploadStep')
+  const topicsByOrderIndex = useMemo(
+    () => new Map(topics.map((topic) => [topic.orderIndex, topic])),
+    [topics],
+  )
+  const sortedPhotos = useMemo(() => sortPhotosByOrderIndex(photos), [photos])
+  const showReorderControls = canReorderPhotos(sortedPhotos) && Boolean(onMovePhoto)
+
   if (photos.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
@@ -100,15 +110,20 @@ export function StaffPhotoList({
         </span>
       </div>
 
+      {showReorderControls ? (
+        <PhotoReorderBanner className="mb-3" message={t('reorderPhotosBannerUpload')} />
+      ) : null}
+
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
-          {photos.map((photo) => {
+          {sortedPhotos.map((photo, index) => {
             const validations = photoValidationMap.get(photo.id) ?? []
             const status = getPhotoStatus(validations)
-            const topicName = resolveTopicName(photo.orderIndex, topics)
+            const topicName = topicsByOrderIndex.get(photo.orderIndex)?.name ?? null
             const statusLabel = STATUS_LABEL[status]
-            const captureDate = getExifDate(photo.exif)
+            const captureDate = getCapturedAtDate(photo.exif)
             const captureDateFormatted = captureDate ? formatCaptureDate(captureDate) : null
+            const hasCaptureTime = captureDate !== null
 
             return (
               <motion.div
@@ -148,17 +163,29 @@ export function StaffPhotoList({
                       </p>
                     </div>
 
-                    {!isBusy ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-600"
-                        onClick={() => onRemove(photo.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    ) : null}
+                    <div className="flex shrink-0 items-start gap-1">
+                      {showReorderControls && onMovePhoto ? (
+                        <PhotoReorderControls
+                          displayIndex={index}
+                          isFirst={index === 0}
+                          isLast={index === sortedPhotos.length - 1}
+                          moveUpLabel={t('movePhotoUp', { index: index + 1 })}
+                          moveDownLabel={t('movePhotoDown', { index: index + 1 })}
+                          onMove={(direction) => onMovePhoto(index, direction)}
+                        />
+                      ) : null}
+                      {!isBusy ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-rose-600"
+                          onClick={() => onRemove(photo.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
 
                   <p className="text-sm text-muted-foreground">
@@ -171,22 +198,30 @@ export function StaffPhotoList({
                     ) : null}
                   </p>
 
-                  {statusLabel ? (
-                    <span
-                      className={cn(
-                        'mt-0.5 inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium',
-                        statusLabel.className,
-                      )}
-                    >
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                    {statusLabel ? (
                       <span
                         className={cn(
-                          'h-1.5 w-1.5 rounded-full',
-                          status === 'error' ? 'bg-rose-500' : 'bg-amber-500',
+                          'inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                          statusLabel.className,
                         )}
-                      />
-                      {statusLabel.text}
-                    </span>
-                  ) : null}
+                      >
+                        <span
+                          className={cn(
+                            'h-1.5 w-1.5 rounded-full',
+                            status === 'error' ? 'bg-rose-500' : 'bg-amber-500',
+                          )}
+                        />
+                        {statusLabel.text}
+                      </span>
+                    ) : null}
+                    {!hasCaptureTime ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-amber-800">
+                        <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
+                        {t('noExifData')}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </motion.div>
             )

@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import type { Topic } from '@blikka/db'
 import { format } from 'date-fns'
 import { AlertTriangle, ChevronDown, ChevronUp, ImageIcon, Info, X } from 'lucide-react'
+import { PhotoReorderControls } from '@/components/photos/photo-reorder-controls'
+import { getCapturedAtDate } from '@/lib/exif-parsing'
 import { useTranslations } from 'next-intl'
 import { motion } from 'motion/react'
 import { useState } from 'react'
@@ -97,6 +99,8 @@ interface SubmissionItemProps {
   index: number
   onRemove?: (orderIndex: number) => void
   onUploadClick?: () => void
+  listLength?: number
+  onMovePhoto?: (direction: 'up' | 'down') => void
 }
 
 export function SubmissionItem({
@@ -107,6 +111,8 @@ export function SubmissionItem({
   index,
   onRemove,
   onUploadClick,
+  listLength = 1,
+  onMovePhoto,
 }: SubmissionItemProps) {
   const t = useTranslations('FlowPage.uploadStep')
   const [expanded, setExpanded] = useState(false)
@@ -115,8 +121,9 @@ export function SubmissionItem({
 
   const exifData = photo?.exif || {}
   const relevantExifData = getRelevantExifData(exifData)
+  const hasCaptureTime = getCapturedAtDate(photo?.exif) !== null
   const hasExifData = Object.keys(relevantExifData).length > 0
-  const takenAt = getTimeTaken(photo?.exif)
+  const takenAt = getCapturedAtDate(photo?.exif)
 
   const sortedValidationResults = validationResults?.toSorted((a, b) => {
     if (a.outcome !== b.outcome) {
@@ -167,15 +174,6 @@ export function SubmissionItem({
 
   return (
     <div className="relative overflow-hidden rounded-2xl border-2 border-border bg-white">
-      {/* Remove button */}
-      <button
-        type="button"
-        onClick={() => onRemove?.(photo.orderIndex)}
-        className="absolute top-2.5 right-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-muted transition-colors hover:bg-muted-foreground/20"
-      >
-        <X className="h-3.5 w-3.5 text-muted-foreground" />
-      </button>
-
       <div className="p-3">
         <div className="flex gap-3">
           {/* Thumbnail */}
@@ -197,7 +195,7 @@ export function SubmissionItem({
           </motion.div>
 
           {/* Info */}
-          <div className="min-w-0 flex-1 py-0.5 pr-6">
+          <div className="min-w-0 flex-1 py-0.5">
             <p className="text-xs font-semibold text-muted-foreground">#{index + 1}</p>
             <p className="mt-0.5 text-base font-semibold text-foreground">{topic?.name}</p>
 
@@ -224,6 +222,29 @@ export function SubmissionItem({
               {photo.file.name}
             </p>
           </div>
+
+          <div className="flex shrink-0 flex-col items-center gap-0.5">
+            {onRemove ? (
+              <button
+                type="button"
+                onClick={() => onRemove(photo.orderIndex)}
+                aria-label={t('remove')}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-muted transition-colors hover:bg-muted-foreground/20"
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            ) : null}
+            {onMovePhoto ? (
+              <PhotoReorderControls
+                displayIndex={index}
+                isFirst={index === 0}
+                isLast={index === listLength - 1}
+                moveUpLabel={t('movePhotoUp', { index: index + 1 })}
+                moveDownLabel={t('movePhotoDown', { index: index + 1 })}
+                onMove={onMovePhoto}
+              />
+            ) : null}
+          </div>
         </div>
 
         {showValidationMessage ? (
@@ -243,9 +264,9 @@ export function SubmissionItem({
 
       {/* Photo details toggle, or no-EXIF notice in the same footer row */}
       <div
-        className={`border-t border-dashed border-border px-3 py-2 ${!hasExifData ? 'bg-amber-50/60' : ''}`}
+        className={`border-t border-dashed border-border px-3 py-2 ${!hasCaptureTime ? 'bg-amber-50/60' : ''}`}
       >
-        {hasExifData ? (
+        {hasCaptureTime && hasExifData ? (
           <Button
             variant="ghost"
             size="sm"
@@ -260,12 +281,12 @@ export function SubmissionItem({
               <ChevronDown className="h-3.5 w-3.5" />
             )}
           </Button>
-        ) : (
+        ) : !hasCaptureTime ? (
           <div role="alert" className="flex items-start gap-2 text-xs text-amber-900">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
             <span className="min-w-0 leading-snug">{t('noExifData')}</span>
           </div>
-        )}
+        ) : null}
       </div>
 
       {expanded && hasExifData && (
@@ -310,18 +331,6 @@ export function SubmissionItem({
   )
 }
 
-function getTimeTaken(exif?: Record<string, unknown>): Date | null {
-  if (!exif?.DateTimeOriginal) return null
-  try {
-    const dateString = String(exif.DateTimeOriginal)
-    const date = new Date(dateString)
-    if (!Number.isNaN(date.getTime())) return date
-  } catch {
-    // Skip if date parsing fails
-  }
-  return null
-}
-
 function getRelevantExifData(exif: Record<string, unknown>): Record<string, string> {
   const relevantData: Record<string, string> = {}
   if (!exif) return relevantData
@@ -344,17 +353,10 @@ function getRelevantExifData(exif: Record<string, unknown>): Record<string, stri
   if (exif.FocalLength && typeof exif.FocalLength === 'number')
     relevantData['Focal Length'] = `${exif.FocalLength}mm`
 
-  if (exif.DateTimeOriginal) {
-    try {
-      const dateString = String(exif.DateTimeOriginal)
-      const date = new Date(dateString)
-      if (!Number.isNaN(date.getTime())) {
-        relevantData['Date Taken'] = date.toLocaleDateString()
-        relevantData['Time Taken'] = date.toLocaleTimeString()
-      }
-    } catch {
-      // Skip if date parsing fails
-    }
+  const capturedAt = getCapturedAtDate(exif)
+  if (capturedAt) {
+    relevantData['Date Taken'] = capturedAt.toLocaleDateString()
+    relevantData['Time Taken'] = capturedAt.toLocaleTimeString()
   }
 
   if (exif.LensModel && typeof exif.LensModel === 'string') relevantData['Lens'] = exif.LensModel

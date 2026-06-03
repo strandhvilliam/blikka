@@ -21,10 +21,6 @@ import { useFileUpload } from '@/hooks/live/flow/use-file-upload'
 import { useLivePhotoValidation } from '@/hooks/live/flow/use-live-photo-validation'
 import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
 import { useSelectFile } from '@/hooks/live/flow/use-select-file'
-import {
-  hasMissingCapturedAtTimestamp,
-  reassignPhotosToTopicOrder,
-} from '@/lib/flow/photo-ordering'
 import { usePhotoStore } from '@/lib/flow/photo-store'
 import { useHeicStore } from '@/lib/flow/heic-store'
 import { useStepState } from '@/lib/flow/step-state-context'
@@ -45,7 +41,6 @@ import { SubmissionList } from './submission-list'
 import { UploadProgress } from './upload-progress'
 import { UploadSection } from './upload-section'
 import { HeicConversionDialog } from './heic-conversion-dialog'
-import { ManualPhotoOrderDialog } from './manual-photo-order-dialog'
 import { ParticipantConfirmationDialog } from './participant-confirmation-dialog'
 
 interface UploadSubmissionStepProps {
@@ -78,7 +73,6 @@ export function UploadSubmissionsStep({
   const clearPhotos = usePhotoStore((state) => state.clearPhotos)
   const photos = usePhotoStore((state) => state.photos)
   const removePhoto = usePhotoStore((state) => state.removePhoto)
-  const reorderPhotos = usePhotoStore((state) => state.reorderPhotos)
   const validationResults = usePhotoStore((state) => state.validationResults)
   const isProcessingFiles = usePhotoStore((state) => state.isProcessingFiles)
 
@@ -88,8 +82,6 @@ export function UploadSubmissionsStep({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const hasRedirectedRef = useRef(false)
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false)
-  const [showManualOrderDialog, setShowManualOrderDialog] = useState(false)
-
   const heicIsConverting = useHeicStore((state) => state.isConverting)
   const heicIsCancelling = useHeicStore((state) => state.isCancelling)
   const heicProgress = useHeicStore((state) => state.progress)
@@ -155,7 +147,6 @@ export function UploadSubmissionsStep({
     clearPhotos()
     clearFiles()
     setIsUploading(false)
-    setShowManualOrderDialog(false)
     setShowConfirmationDialog(false)
     handlePrevStep()
   }
@@ -192,19 +183,6 @@ export function UploadSubmissionsStep({
       return
     }
 
-    if (hasMissingCapturedAtTimestamp(photos)) {
-      setShowManualOrderDialog(true)
-      return
-    }
-
-    setShowConfirmationDialog(true)
-  }
-
-  const handleManualOrderContinue = (manuallyOrderedPhotos: typeof photos) => {
-    const normalizedPhotos = reassignPhotosToTopicOrder(manuallyOrderedPhotos, topicOrderIndexes)
-
-    reorderPhotos(normalizedPhotos)
-    setShowManualOrderDialog(false)
     setShowConfirmationDialog(true)
   }
 
@@ -303,14 +281,6 @@ export function UploadSubmissionsStep({
         onClose={() => setShowConfirmationDialog(false)}
         onConfirm={handleConfirmedUpload}
         expectedParticipantRef={uploadFlowState.participantRef || ''}
-      />
-
-      <ManualPhotoOrderDialog
-        open={showManualOrderDialog}
-        photos={photos}
-        topics={topics}
-        onClose={() => setShowManualOrderDialog(false)}
-        onContinue={handleManualOrderContinue}
       />
 
       <AnimatePresence mode="wait">

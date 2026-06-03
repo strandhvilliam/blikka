@@ -3,6 +3,9 @@
 import type { Topic } from '@blikka/db'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
+import { PhotoReorderBanner } from '@/components/photos/photo-reorder-banner'
+import { canReorderPhotos, sortPhotosByOrderIndex } from '@/lib/flow/photo-ordering'
 import { buildPhotoValidationMap, getVisibleGeneralValidationResults } from '@/lib/validation'
 import { usePhotoStore } from '@/lib/flow/photo-store'
 import { CrossSubmissionValidationCard } from './cross-submission-validation-card'
@@ -25,8 +28,12 @@ export function SubmissionList({
   showCrossSubmissionValidation = false,
   isValidationRunning = false,
 }: SubmissionListProps) {
+  const t = useTranslations('FlowPage.uploadStep')
   const photos = usePhotoStore((state) => state.photos)
+  const movePhoto = usePhotoStore((state) => state.movePhoto)
   const validationResults = usePhotoStore((state) => state.validationResults)
+  const sortedPhotos = useMemo(() => sortPhotosByOrderIndex(photos), [photos])
+  const showReorderControls = canReorderPhotos(sortedPhotos)
   const remainingSlots = maxPhotos - photos.length
   const validationMap = useMemo(
     () => buildPhotoValidationMap(photos, validationResults),
@@ -47,7 +54,8 @@ export function SubmissionList({
         {showCrossSubmissionValidation && generalValidationResults.length > 0 ? (
           <CrossSubmissionValidationCard results={generalValidationResults} />
         ) : null}
-        {photos.map((photo, index) => (
+        {showReorderControls ? <PhotoReorderBanner message={t('reorderPhotosBanner')} /> : null}
+        {sortedPhotos.map((photo, index) => (
           <motion.div
             key={photo.id}
             initial={{ opacity: 0 }}
@@ -61,6 +69,10 @@ export function SubmissionList({
               showPassedValidation={!isValidationRunning}
               index={index}
               onRemove={onRemovePhoto}
+              listLength={sortedPhotos.length}
+              onMovePhoto={
+                showReorderControls ? (direction) => movePhoto(index, direction) : undefined
+              }
             />
           </motion.div>
         ))}

@@ -9,6 +9,7 @@ import type {
   ParticipantUploadFileState,
   ParticipantUploadPhase,
 } from '@/lib/participant-upload-types'
+import { movePhotoAtDisplayIndex, orderPhotosForTopicSlots } from '@/lib/flow/photo-ordering'
 import { reassignOrderIndexes, revokePreviewUrls } from '@/lib/file-processing'
 import { type ParticipantExistenceStatus } from '@/lib/flow-helpers'
 import type { StaffParticipant } from './staff-types'
@@ -102,6 +103,11 @@ interface PhotoState {
 interface PhotoActions {
   setSelectedPhotos: (photos: ParticipantSelectedPhoto[]) => void
   removeSelectedPhoto: (photoId: string, topicOrderIndexes: number[]) => void
+  moveSelectedPhoto: (
+    displayIndex: number,
+    direction: 'up' | 'down',
+    topicOrderIndexes: number[],
+  ) => void
   resetPhotoSelection: () => void
   patchPhotos: (patch: Partial<PhotoState>) => void
 }
@@ -126,17 +132,22 @@ const createPhotoSlice: StateCreator<StaffUploadStore, [], [], PhotoSlice> = (se
       const target = state.selectedPhotos.find((p) => p.id === photoId)
       if (target) URL.revokeObjectURL(target.previewUrl)
 
+      const remaining = state.selectedPhotos.filter((p) => p.id !== photoId)
+
       return {
-        selectedPhotos: reassignOrderIndexes(
-          state.selectedPhotos.filter((p) => p.id !== photoId),
-          topicOrderIndexes,
-          (photo, orderIndex) => ({
-            ...photo,
-            orderIndex,
-          }),
-        ),
+        selectedPhotos: orderPhotosForTopicSlots(remaining, topicOrderIndexes),
       }
     })
+  },
+  moveSelectedPhoto: (displayIndex, direction, topicOrderIndexes) => {
+    set((state) => ({
+      selectedPhotos: movePhotoAtDisplayIndex(
+        state.selectedPhotos,
+        displayIndex,
+        direction,
+        topicOrderIndexes,
+      ),
+    }))
   },
   resetPhotoSelection: () => {
     revokePreviewUrls(get().selectedPhotos, (photo) => photo.previewUrl)

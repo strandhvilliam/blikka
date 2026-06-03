@@ -19,7 +19,7 @@ import { UploadMarathonMode } from '@/lib/types'
 import { BLIKKA_PLATFORM_TERMS_URL } from '@/config'
 import { formatDomainLink } from '@/lib/utils'
 import type { StaffParticipant } from '@/lib/staff/staff-types'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 interface UploadStepProps {
   isBusy: boolean
@@ -45,6 +45,7 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
 
   const patchParticipant = useStaffUploadStore((s) => s.patchParticipant)
   const removeSelectedPhoto = useStaffUploadStore((s) => s.removeSelectedPhoto)
+  const moveSelectedPhoto = useStaffUploadStore((s) => s.moveSelectedPhoto)
   const setSelectedPhotos = useStaffUploadStore((s) => s.setSelectedPhotos)
   const resetPhotoSelection = useStaffUploadStore((s) => s.resetPhotoSelection)
   const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow)
@@ -86,7 +87,10 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
 
   const { blocking: blockingValidationErrors, warnings: warningValidationResults } =
     splitValidationResultsBySeverity(validationResults)
-  const photoValidationMap = buildPhotoValidationMap(selectedPhotos, validationResults)
+  const photoValidationMap = useMemo(
+    () => buildPhotoValidationMap(selectedPhotos, validationResults),
+    [selectedPhotos, validationResults],
+  )
   const selectedCount = selectedPhotos.length
   const blockingErrorCount = blockingValidationErrors.length
   const warningCount = warningValidationResults.length
@@ -195,6 +199,10 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
         onRemove={(photoId) => {
           resetUploadFlow()
           removeSelectedPhoto(photoId, topicOrderIndexes)
+        }}
+        onMovePhoto={(displayIndex, direction) => {
+          resetUploadFlow()
+          moveSelectedPhoto(displayIndex, direction, topicOrderIndexes)
         }}
       />
 

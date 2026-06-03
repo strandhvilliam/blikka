@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { type ValidationResult } from '@blikka/validation'
+import { movePhotoAtDisplayIndex, orderPhotosForTopicSlots } from '@/lib/flow/photo-ordering'
 import type { SelectedPhoto } from './types'
 import { reassignOrderIndexes, revokePreviewUrls } from '@/lib/file-processing'
 
@@ -16,7 +17,7 @@ interface PhotoStore {
   setPhotos: (photos: SelectedPhoto[]) => void
   removePhoto: (orderIndex: number) => void
   clearPhotos: () => void
-  reorderPhotos: (photos: SelectedPhoto[]) => void
+  movePhoto: (displayIndex: number, direction: 'up' | 'down') => void
   setValidationResults: (results: ValidationResult[]) => void
   setIsProcessingFiles: (isProcessing: boolean) => void
   cleanup: () => void
@@ -67,14 +68,7 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       newObjectUrls.delete(photoToRemove.preview)
 
       const remaining = state.photos.filter((p) => p.orderIndex !== orderIndex)
-      const reorderedPhotos = reassignOrderIndexes(
-        remaining,
-        state.topicOrderIndexes,
-        (photo, nextOrderIndex) => ({
-          ...photo,
-          orderIndex: nextOrderIndex,
-        }),
-      )
+      const reorderedPhotos = orderPhotosForTopicSlots(remaining, state.topicOrderIndexes)
 
       set({ photos: reorderedPhotos, objectUrls: newObjectUrls })
     }
@@ -93,8 +87,16 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     })
   },
 
-  reorderPhotos: (reorderedPhotos) => {
-    set({ photos: reorderedPhotos })
+  movePhoto: (displayIndex, direction) => {
+    const state = get()
+    set({
+      photos: movePhotoAtDisplayIndex(
+        state.photos,
+        displayIndex,
+        direction,
+        state.topicOrderIndexes,
+      ),
+    })
   },
 
   setValidationResults: (results) => set({ validationResults: results }),

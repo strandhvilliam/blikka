@@ -34,16 +34,7 @@ export function getCapturedAtDate(exif?: ExifData | null): Date | null {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
+/** Uses the same capture-time fields as reorder detection and EXIF sorting. */
 export function getExifDate(exif?: ExifData | null): Date | null {
-  if (!exif) {
-    return null
-  }
-
-  const dateValue = exif.DateTimeOriginal || exif.CreateDate
-  if (typeof dateValue !== 'string') {
-    return null
-  }
-
-  const date = new Date(dateValue)
-  return Number.isNaN(date.getTime()) ? null : date
+  return getCapturedAtDate(exif)
 }
