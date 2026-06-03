@@ -31,12 +31,12 @@ export function getFlaggedVerificationOutcome({
   timedOut: boolean
   hasError: boolean
 }): FlaggedVerificationOutcome {
-  if (hasError || timedOut || decision === 'flagged') {
-    return 'qr'
-  }
-
   if (decision === 'passed') {
     return 'confirmation'
+  }
+
+  if (hasError || timedOut || decision === 'flagged') {
+    return 'qr'
   }
 
   return 'checking'

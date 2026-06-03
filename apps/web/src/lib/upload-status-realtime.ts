@@ -4,6 +4,7 @@ import { z } from 'zod'
 
 const uploadRealtimeEventDataSchema = z
   .object({
+    domain: z.string().nullish(),
     reference: z.string().nullish(),
     orderIndex: z.number().nullish(),
     outcome: z.enum(['success', 'error']).optional(),

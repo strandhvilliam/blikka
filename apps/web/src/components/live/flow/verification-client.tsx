@@ -26,6 +26,7 @@ import {
   getFlaggedVerificationOutcome,
   VALIDATION_DECISION_TIMEOUT_MS,
   type MarathonVerificationMode,
+  type ValidationDecision,
 } from '@/lib/flow/verification-routing'
 
 interface VerificationClientProps {
@@ -34,14 +35,14 @@ interface VerificationClientProps {
   verificationMode: MarathonVerificationMode
 }
 
-const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(
-  typeof process !== 'undefined' ? process.env.NODE_ENV : undefined,
-)
+const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(process.env.NODE_ENV)
 const PARTICIPANT_VERIFIED_EVENT = getRealtimeResultEventName('participant-verified')
 const PARTICIPANT_VALIDATED_EVENT = getRealtimeResultEventName('participant-validated')
 const VERIFICATION_EVENTS = [PARTICIPANT_VERIFIED_EVENT, PARTICIPANT_VALIDATED_EVENT] as const
 const VERIFICATION_POLL_INTERVAL_MS = 60_000
-const VALIDATION_DECISION_POLL_INTERVAL_MS = 2_000
+const VALIDATION_DECISION_POLL_INTERVAL_MS = 10_000
+const VALIDATION_DECISION_QR_POLL_INTERVAL_MS = 30_000
+const FINAL_VALIDATION_DECISIONS = new Set<ValidationDecision>(['passed', 'flagged'])
 
 const LIVE_QUERY_REFETCH_OPTIONS = {
   refetchOnMount: true,
@@ -66,6 +67,26 @@ const VERIFICATION_TONE_STYLES = {
   },
 } as const
 
+function getValidationDecisionPollInterval({
+  decision,
+  showQrCode,
+  timedOut,
+  hasError,
+}: {
+  decision: ValidationDecision
+  showQrCode: boolean
+  timedOut: boolean
+  hasError: boolean
+}): number | false {
+  if (FINAL_VALIDATION_DECISIONS.has(decision)) {
+    return false
+  }
+
+  return showQrCode || timedOut || hasError
+    ? VALIDATION_DECISION_QR_POLL_INTERVAL_MS
+    : VALIDATION_DECISION_POLL_INTERVAL_MS
+}
+
 export function VerificationClient({
   participantRef,
   participantId,
@@ -89,7 +110,43 @@ export function VerificationClient({
     () => getParticipantRealtimeChannel(REALTIME_CHANNEL_ENV, domain, participantRef),
     [domain, participantRef],
   )
-  const shouldCheckValidation = verificationMode === 'flagged' && !showQrCode
+  const isFlaggedMode = verificationMode === 'flagged'
+
+  const {
+    data: validationStatus,
+    refetch: refetchValidationStatus,
+    isError: validationStatusIsError,
+  } = useQuery(
+    trpc.uploadFlow.getParticipantValidationStatus.queryOptions(
+      {
+        domain,
+        reference: participantRef,
+      },
+      {
+        enabled: isFlaggedMode,
+        ...LIVE_QUERY_REFETCH_OPTIONS,
+        refetchInterval: (query) => {
+          if (!isFlaggedMode) {
+            return false
+          }
+
+          return getValidationDecisionPollInterval({
+            decision: query.state.data?.participant?.validationDecision,
+            showQrCode,
+            timedOut: validationTimedOut,
+            hasError: Boolean(query.state.error),
+          })
+        },
+        refetchIntervalInBackground: true,
+      },
+    ),
+  )
+  const validationDecision = validationStatus?.participant?.validationDecision
+  const shouldShowQrCode =
+    showQrCode ||
+    (isFlaggedMode &&
+      (validationDecision === 'flagged' || validationTimedOut || validationStatusIsError))
+  const shouldShowValidationCheck = isFlaggedMode && !shouldShowQrCode
 
   const {
     data: participant,
@@ -104,26 +161,7 @@ export function VerificationClient({
       {
         enabled: !!participantRef,
         ...LIVE_QUERY_REFETCH_OPTIONS,
-        refetchInterval: showQrCode ? VERIFICATION_POLL_INTERVAL_MS : false,
-      },
-    ),
-  )
-
-  const {
-    data: validationStatus,
-    refetch: refetchValidationStatus,
-    isError: validationStatusIsError,
-  } = useQuery(
-    trpc.uploadFlow.getParticipantValidationStatus.queryOptions(
-      {
-        domain,
-        reference: participantRef,
-      },
-      {
-        enabled: shouldCheckValidation,
-        ...LIVE_QUERY_REFETCH_OPTIONS,
-        refetchInterval: shouldCheckValidation ? VALIDATION_DECISION_POLL_INTERVAL_MS : false,
-        refetchIntervalInBackground: true,
+        refetchInterval: shouldShowQrCode ? VERIFICATION_POLL_INTERVAL_MS : false,
       },
     ),
   )
@@ -161,24 +199,21 @@ export function VerificationClient({
   }, [confirmationHref, isLoading, participant, router, verificationMode])
 
   useEffect(() => {
-    if (!shouldCheckValidation) {
-      return
-    }
+    if (!shouldShowValidationCheck) return
 
     const timeout = window.setTimeout(() => {
       setValidationTimedOut(true)
     }, VALIDATION_DECISION_TIMEOUT_MS)
 
     return () => window.clearTimeout(timeout)
-  }, [shouldCheckValidation])
+  }, [shouldShowValidationCheck])
 
   useEffect(() => {
-    if (!shouldCheckValidation) {
-      return
-    }
+    if (!isFlaggedMode) return
 
+    const decision = validationStatus?.participant?.validationDecision
     const outcome = getFlaggedVerificationOutcome({
-      decision: validationStatus?.participant?.validationDecision,
+      decision,
       timedOut: validationTimedOut,
       hasError: validationStatusIsError,
     })
@@ -187,14 +222,10 @@ export function VerificationClient({
       router.replace(confirmationHref)
       return
     }
-
-    if (outcome === 'qr') {
-      setShowQrCode(true)
-    }
   }, [
     confirmationHref,
+    isFlaggedMode,
     router,
-    shouldCheckValidation,
     validationStatus,
     validationStatusIsError,
     validationTimedOut,
@@ -206,9 +237,9 @@ export function VerificationClient({
     enabled: Boolean(domain) && Boolean(participantRef) && participantChannel.length > 0,
     onData: ({ event, data: rawData }) => {
       const data = parseUploadRealtimeEventData(rawData)
-      if (!data) {
-        return
-      }
+      if (!data) return
+      if (data.domain && data.domain !== domain) return
+      if (data.reference !== participantRef) return
 
       if (event === PARTICIPANT_VERIFIED_EVENT) {
         if (data.outcome !== 'error') {
@@ -239,13 +270,19 @@ export function VerificationClient({
   }, [refreshTimeout])
 
   const handleRefresh = async () => {
-    await refetchParticipant()
+    await Promise.all([
+      refetchParticipant(),
+      isFlaggedMode ? refetchValidationStatus() : Promise.resolve(),
+    ])
     setRefreshTimeout(5)
   }
 
   const qrCodeValue = `${domain}-${participantId ?? ''}-${participantRef}`
 
-  if (shouldCheckValidation) {
+  const isFlaggedQrView = verificationMode === 'flagged'
+  const toneStyles = VERIFICATION_TONE_STYLES[isFlaggedQrView ? 'orange' : 'amber']
+
+  if (shouldShowValidationCheck) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center px-6 py-10 text-center">
         <motion.div
@@ -275,9 +312,6 @@ export function VerificationClient({
       </div>
     )
   }
-
-  const isFlaggedQrView = verificationMode === 'flagged'
-  const toneStyles = VERIFICATION_TONE_STYLES[isFlaggedQrView ? 'orange' : 'amber']
 
   return (
     <div className="flex min-h-dvh flex-col items-center px-6 py-10">

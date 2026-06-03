@@ -26,6 +26,16 @@ describe('verification routing', () => {
     ).toBe('confirmation')
   })
 
+  it('redirects flagged mode to confirmation when a passed decision arrives after timeout', () => {
+    expect(
+      getFlaggedVerificationOutcome({
+        decision: 'passed',
+        timedOut: true,
+        hasError: false,
+      }),
+    ).toBe('confirmation')
+  })
+
   it('shows QR in flagged mode when validation flags the submission', () => {
     expect(
       getFlaggedVerificationOutcome({

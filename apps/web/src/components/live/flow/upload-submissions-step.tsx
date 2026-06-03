@@ -44,7 +44,6 @@ import { HeicConversionDialog } from './heic-conversion-dialog'
 import { ParticipantConfirmationDialog } from './participant-confirmation-dialog'
 
 interface UploadSubmissionStepProps {
-
   ruleConfigs: DbRuleConfig[]
   topics: Topic[]
   competitionClass: CompetitionClass
@@ -196,8 +195,8 @@ export function UploadSubmissionsStep({
     if (!initializeUploadFlowResult?.ok) {
       const issueLabels = initializeUploadFlowResult
         ? getUploadFlowIssueMessageKeys(initializeUploadFlowResult.issues).map((messageKey) =>
-          t(messageKey),
-        )
+            t(messageKey),
+          )
         : []
       toast.error(
         issueLabels.length > 0
@@ -258,7 +257,8 @@ export function UploadSubmissionsStep({
     (result) => result.outcome === VALIDATION_OUTCOME.FAILED && result.severity === 'error',
   )
 
-  const canSubmit = allPhotosSelected && !hasValidationErrors && !isProcessingFiles
+  const canSubmit =
+    allPhotosSelected && !hasValidationErrors && !isProcessingFiles && !isValidationRunning
 
   return (
     <>
