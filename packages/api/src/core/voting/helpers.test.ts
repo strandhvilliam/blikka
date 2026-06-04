@@ -7,7 +7,6 @@ import {
   applyLatestRoundVoteToSession,
   buildVotingInviteMessage,
   buildVotingInviteUrl,
-  chunkItems,
   ensureSessionDomain,
   ensureVotingSessionWindow,
   getErrorMessage,
@@ -64,12 +63,6 @@ describe('getParticipantDisplayName', () => {
   it('falls back to full name or participant', () => {
     expect(getParticipantDisplayName({ firstName: ' ', lastName: 'Doe' })).toBe('Doe')
     expect(getParticipantDisplayName({ firstName: ' ', lastName: ' ' })).toBe('participant')
-  })
-})
-
-describe('chunkItems', () => {
-  it('splits items into fixed-size chunks', () => {
-    expect(chunkItems([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]])
   })
 })
 

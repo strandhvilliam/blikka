@@ -53,16 +53,6 @@ export function getParticipantDisplayName({
   return firstName.trim() || fullName || 'participant'
 }
 
-export function chunkItems<T>(items: readonly T[], size: number): T[][] {
-  const chunks: T[][] = []
-
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
-  }
-
-  return chunks
-}
-
 export function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }

@@ -12,6 +12,7 @@ import {
   type NewVotingSession,
   type Participant,
 } from '@blikka/db'
+import { chunkItems } from '../shared/chunk-items'
 import { BadRequestError, ConflictError, NotFoundError, PreconditionFailedError } from '../errors'
 import type {
   ClearVote,
@@ -63,7 +64,6 @@ import {
   applyLatestRoundVoteToSession,
   buildVotingInviteMessage,
   buildVotingInviteUrl,
-  chunkItems,
   ensureSessionDomain,
   ensureVotingSessionWindow,
   getErrorMessage,
