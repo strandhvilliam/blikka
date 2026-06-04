@@ -1,14 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { AlertTriangle, CheckCircle, MoreHorizontal } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CheckCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { formatDomainPathname } from '@/lib/utils'
 import type { ZipSubmissionStatus } from '../_lib/types'
 
 interface StatusDisplayProps {
   domain: string
   status: ZipSubmissionStatus
+}
+
+function submissionsNeedsPackingHref(domain: string): string {
+  return formatDomainPathname('/admin/dashboard/submissions?needsPacking=true', domain)
 }
 
 export function StatusDisplay({ domain, status }: StatusDisplayProps) {
@@ -36,86 +41,44 @@ export function StatusDisplay({ domain, status }: StatusDisplayProps) {
     )
   }
 
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-muted-foreground">
-          {status.withZippedSubmissions.toLocaleString()} of{' '}
-          {status.totalParticipants.toLocaleString()} participants have photo folders ready.
-        </span>
-      </div>
-      <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
-        <AlertTriangle className="h-4 w-4 shrink-0" />
-        <span>{missingCount.toLocaleString()} still need packing before export: </span>
-        {missingCount <= 3 ? (
-          <div className="flex gap-1">
-            {status.missingReferences.map((ref) => (
-              <Link
-                key={ref}
-                href={formatDomainPathname('/admin/dashboard/submissions/' + ref, domain)}
-                className="font-mono text-amber-700 dark:text-amber-400 hover:underline"
-              >
-                #{ref}
-              </Link>
-            ))}
-          </div>
-        ) : missingCount <= 8 ? (
-          <div className="flex gap-1 flex-wrap">
-            {status.missingReferences.slice(0, 8).map((ref) => (
-              <Link
-                key={ref}
-                href={formatDomainPathname('/admin/dashboard/submissions/' + ref, domain)}
-                className="font-mono text-amber-700 dark:text-amber-400 hover:underline"
-              >
-                #{ref}
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <MissingParticipantsPopover domain={domain} references={status.missingReferences} />
-        )}
-      </div>
-    </div>
+  const readyPercent = Math.round(
+    (status.withZippedSubmissions / status.totalParticipants) * 100,
   )
-}
-
-interface MissingParticipantsPopoverProps {
-  domain: string
-  references: string[]
-}
-
-function MissingParticipantsPopover({ domain, references }: MissingParticipantsPopoverProps) {
-  const displayCount = 12
-  const visibleRefs = references.slice(0, displayCount)
-  const remainingCount = references.length - displayCount
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button className="text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1">
-          <span>
-            {visibleRefs.map((r) => '#' + r).join(', ')}
-            {remainingCount > 0 && ' +' + remainingCount + ' more'}
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <span className="text-muted-foreground">
+            {status.withZippedSubmissions.toLocaleString()} of{' '}
+            {status.totalParticipants.toLocaleString()} participants have photo folders ready
           </span>
-          <MoreHorizontal className="h-3.5 w-3.5" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="max-h-80 overflow-y-auto w-64">
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Participants not ready for export</h4>
-          <div className="grid grid-cols-2 gap-1">
-            {references.map((ref) => (
-              <Link
-                key={ref}
-                href={formatDomainPathname('/admin/dashboard/submissions/' + ref, domain)}
-                className="text-xs font-mono text-amber-700 dark:text-amber-400 hover:underline p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900/30"
-              >
-                #{ref}
-              </Link>
-            ))}
+          <span className="tabular-nums text-muted-foreground">{readyPercent}%</span>
+        </div>
+        <Progress value={readyPercent} className="h-2" />
+      </div>
+
+      <div className="rounded-lg border border-amber-200/80 bg-amber-50/50 px-3 py-2.5 space-y-2.5 dark:border-amber-900/50 dark:bg-amber-950/30">
+        <div className="flex items-start gap-2 text-sm text-amber-900 dark:text-amber-100">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+          <div className="space-y-1 min-w-0">
+            <p className="font-medium">
+              Export blocked — {missingCount.toLocaleString()}{' '}
+              {missingCount === 1 ? 'participant needs' : 'participants need'} a packed zip
+            </p>
+            <p className="text-amber-800/90 dark:text-amber-200/90 leading-relaxed">
+              Packing happens per participant in Submissions. Generate a zip for each missing
+              participant before starting the marathon export.
+            </p>
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+        <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
+          <Link href={submissionsNeedsPackingHref(domain)}>
+            Open submissions needing packing
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      </div>
+    </div>
   )
 }

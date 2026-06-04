@@ -1,5 +1,6 @@
 import {
   createLoader,
+  parseAsBoolean,
   parseAsInteger,
   parseAsStringLiteral,
   parseAsString,
@@ -22,6 +23,8 @@ export const submissionSearchParams = {
   sortOrder: parseAsStringLiteral(['asc', 'desc']).withDefault('desc'),
   competitionClassId: parseAsArrayOf(parseAsInteger),
   deviceGroupId: parseAsArrayOf(parseAsInteger),
+  /** Participants missing a packed zip folder (wired from export readiness). */
+  needsPacking: parseAsBoolean.withDefault(false),
 }
 
 export const loadSubmissionSearchParams = createLoader(submissionSearchParams)
