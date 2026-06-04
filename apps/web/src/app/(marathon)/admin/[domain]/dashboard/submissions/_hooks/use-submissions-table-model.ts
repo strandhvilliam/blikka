@@ -12,6 +12,7 @@ import type { RealtimeEnrichedSubmissionTableRow } from '../_lib/submissions-typ
 
 interface UseSubmissionsTableModelInput {
   marathonMode?: string
+  verificationMode?: string
   participants: RealtimeEnrichedSubmissionTableRow[]
   selectedIds: Set<number>
   toggleSelection: (id: number, event: React.MouseEvent) => void
@@ -20,6 +21,7 @@ interface UseSubmissionsTableModelInput {
 
 export function useSubmissionsTableModel({
   marathonMode,
+  verificationMode,
   participants,
   selectedIds,
   toggleSelection,
@@ -32,12 +34,13 @@ export function useSubmissionsTableModel({
     () =>
       getSubmissionsColumns({
         marathonMode,
+        verificationMode,
         participants,
         selectedIds,
         onToggleSelection: toggleSelection,
         onToggleAll: toggleAllVisible,
       }),
-    [marathonMode, participants, selectedIds, toggleSelection, toggleAllVisible],
+    [marathonMode, verificationMode, participants, selectedIds, toggleSelection, toggleAllVisible],
   )
 
   const table = useReactTable({

@@ -21,6 +21,7 @@ interface SubmissionsTableViewProps {
   participants: RealtimeEnrichedSubmissionTableRow[]
   columnsCount: number
   marathonMode?: string
+  verificationMode?: string
   domain: string
   isLoading: boolean
   isError: boolean
@@ -37,6 +38,7 @@ export function SubmissionsTableView({
   participants,
   columnsCount,
   marathonMode,
+  verificationMode,
   domain,
   isLoading,
   isError,
@@ -99,6 +101,7 @@ export function SubmissionsTableView({
                         row={row}
                         participant={participant}
                         marathonMode={marathonMode}
+                        verificationMode={verificationMode}
                         domain={domain}
                         isSelected={isSelected(row.original.id)}
                       />

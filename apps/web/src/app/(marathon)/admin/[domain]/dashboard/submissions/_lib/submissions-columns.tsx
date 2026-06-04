@@ -19,6 +19,7 @@ import {
 
 interface SubmissionsColumnsOptions {
   marathonMode?: string
+  verificationMode?: string
   participants: RealtimeEnrichedSubmissionTableRow[]
   selectedIds: Set<number>
   onToggleSelection: (id: number, event: React.MouseEvent) => void
@@ -73,6 +74,7 @@ function getSelectionColumn({
 
 function getCommonColumns({
   marathonMode,
+  verificationMode,
 }: SubmissionsColumnsOptions): ColumnDef<RealtimeEnrichedSubmissionTableRow>[] {
   return [
     {
@@ -132,6 +134,8 @@ function getCommonColumns({
         <SubmissionStatusBadge
           participant={row.original}
           status={row.getValue('status') as string}
+          marathonMode={marathonMode}
+          verificationMode={verificationMode}
         />
       ),
     },

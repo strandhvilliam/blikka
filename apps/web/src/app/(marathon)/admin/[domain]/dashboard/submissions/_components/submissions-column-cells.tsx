@@ -83,11 +83,20 @@ export function DateCell({
 export function SubmissionStatusBadge({
   participant,
   status,
+  marathonMode,
+  verificationMode,
 }: {
   participant: RealtimeEnrichedSubmissionTableRow
   status: string
+  marathonMode?: string
+  verificationMode?: string
 }) {
-  const displayStatus = participant.realtimeIsFinalized ? 'completed' : status
+  const displayStatus = getSubmissionDisplayStatus({
+    participant,
+    status,
+    marathonMode,
+    verificationMode,
+  })
   const statusConfig = {
     prepared: {
       variant: 'outline' as const,
@@ -113,6 +122,12 @@ export function SubmissionStatusBadge({
         'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
       icon: CheckCircle2,
     },
+    'needs-verification': {
+      variant: 'outline' as const,
+      className:
+        'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800',
+      icon: AlertCircle,
+    },
   }
   const config =
     statusConfig[displayStatus as keyof typeof statusConfig] || statusConfig.initialized
@@ -123,9 +138,39 @@ export function SubmissionStatusBadge({
       className={cn('capitalize text-xs font-medium gap-1 h-5 px-1.5', config.className)}
     >
       <Icon className="size-2.5" />
-      {displayStatus}
+      {displayStatus.replaceAll('-', ' ')}
     </Badge>
   )
+}
+
+/**
+ * Maps DB/realtime status to the badge label. Uses Postgres `status` only (no KV reads).
+ * Completed rows in `all` or `flagged` verification marathons await admin verify → needs-verification.
+ */
+export function getSubmissionDisplayStatus({
+  participant,
+  status,
+  verificationMode,
+}: {
+  participant: Pick<RealtimeEnrichedSubmissionTableRow, 'realtimeIsFinalized'>
+  status: string
+  marathonMode?: string
+  verificationMode?: string
+}) {
+  if (status === 'verified') {
+    return 'verified'
+  }
+
+  const effectiveStatus = participant.realtimeIsFinalized ? 'completed' : status
+
+  if (
+    effectiveStatus === 'completed' &&
+    (verificationMode === 'all' || verificationMode === 'flagged')
+  ) {
+    return 'needs-verification'
+  }
+
+  return effectiveStatus
 }
 
 export function UploadProgressBadge({

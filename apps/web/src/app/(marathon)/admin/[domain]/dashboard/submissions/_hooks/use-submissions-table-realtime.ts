@@ -44,9 +44,11 @@ interface TrackingState {
 
 interface BatchedRealtimeEffects {
   invalidateInitializer: boolean
+  invalidateValidation: boolean
   invalidateTaskError: boolean
   invalidateFinalizeSafety: boolean
   finalizedReferences: Set<string>
+  verifiedReferences: Set<string>
 }
 
 const realtimeEventDataSchema = z
@@ -66,6 +68,8 @@ const RESULT_EVENT = {
   participantPrepared: getRealtimeResultEventName('participant-prepared'),
   submissionProcessed: getRealtimeResultEventName('submission-processed'),
   participantFinalized: getRealtimeResultEventName('participant-finalized'),
+  participantValidated: getRealtimeResultEventName('participant-validated'),
+  participantVerified: getRealtimeResultEventName('participant-verified'),
 } as const
 
 const SUBSCRIBED_EVENTS = [
@@ -73,6 +77,8 @@ const SUBSCRIBED_EVENTS = [
   RESULT_EVENT.participantPrepared,
   RESULT_EVENT.submissionProcessed,
   RESULT_EVENT.participantFinalized,
+  RESULT_EVENT.participantValidated,
+  RESULT_EVENT.participantVerified,
 ] as const
 
 const INITIALIZER_INVALIDATE_DEBOUNCE_MS = 750
@@ -108,9 +114,11 @@ function parseRealtimeEventData(raw: unknown): ParsedRealtimeEventData {
 function collectBatchedEffects(queuedEvents: QueuedRealtimeEvent[]): BatchedRealtimeEffects {
   const effects: BatchedRealtimeEffects = {
     invalidateInitializer: false,
+    invalidateValidation: false,
     invalidateTaskError: false,
     invalidateFinalizeSafety: false,
     finalizedReferences: new Set(),
+    verifiedReferences: new Set(),
   }
 
   for (const queuedEvent of queuedEvents) {
@@ -137,6 +145,18 @@ function collectBatchedEffects(queuedEvents: QueuedRealtimeEvent[]): BatchedReal
         if (data.reference) {
           effects.invalidateFinalizeSafety = true
           effects.finalizedReferences.add(data.reference)
+        }
+        break
+      }
+      // Refetch participants so DB verify status stays in sync after validation/auto-verify.
+      case RESULT_EVENT.participantValidated: {
+        effects.invalidateValidation = true
+        break
+      }
+      case RESULT_EVENT.participantVerified: {
+        effects.invalidateValidation = true
+        if (data.reference) {
+          effects.verifiedReferences.add(data.reference)
         }
         break
       }
@@ -273,6 +293,11 @@ export function useSubmissionsTableRealtime({
     participantsQueryPathKey,
     TASK_ERROR_INVALIDATE_DEBOUNCE_MS,
   )
+  const scheduleValidationInvalidate = useDebouncedInvalidate(
+    queryClient,
+    participantsQueryPathKey,
+    TASK_ERROR_INVALIDATE_DEBOUNCE_MS,
+  )
   const scheduleFinalizeSafetyInvalidate = useDebouncedInvalidate(
     queryClient,
     participantsQueryPathKey,
@@ -284,8 +309,8 @@ export function useSubmissionsTableRealtime({
    * event arrives. A delayed invalidate still runs afterwards to reconcile any
    * fields that are not patched locally.
    */
-  const patchParticipantAsCompleted = useCallback(
-    (reference: string) => {
+  const patchParticipantStatus = useCallback(
+    (reference: string, status: 'completed' | 'verified') => {
       queryClient.setQueriesData<InfiniteParticipantsData>(
         { queryKey: participantsQueryPathKey },
         (currentData) => {
@@ -304,13 +329,17 @@ export function useSubmissionsTableRealtime({
                 return participant
               }
 
-              if (participant.status === 'completed' || participant.status === 'verified') {
+              if (participant.status === status) {
+                return participant
+              }
+
+              if (status === 'completed' && participant.status === 'verified') {
                 return participant
               }
 
               pageChanged = true
               hasChanges = true
-              return { ...participant, status: 'completed' as const }
+              return { ...participant, status }
             })
 
             return pageChanged ? { ...page, participants: nextParticipants } : page
@@ -347,22 +376,31 @@ export function useSubmissionsTableRealtime({
       scheduleTaskErrorInvalidate()
     }
 
+    if (effects.invalidateValidation) {
+      scheduleValidationInvalidate()
+    }
+
     if (effects.invalidateFinalizeSafety) {
       scheduleFinalizeSafetyInvalidate()
     }
 
     for (const reference of effects.finalizedReferences) {
-      patchParticipantAsCompleted(reference)
+      patchParticipantStatus(reference, 'completed')
+    }
+
+    for (const reference of effects.verifiedReferences) {
+      patchParticipantStatus(reference, 'verified')
     }
 
     startTransition(() => {
       setTracking((previous) => reduceTrackingState(previous, queuedEvents))
     })
   }, [
-    patchParticipantAsCompleted,
+    patchParticipantStatus,
     scheduleFinalizeSafetyInvalidate,
     scheduleInitializerInvalidate,
     scheduleTaskErrorInvalidate,
+    scheduleValidationInvalidate,
   ])
 
   /**

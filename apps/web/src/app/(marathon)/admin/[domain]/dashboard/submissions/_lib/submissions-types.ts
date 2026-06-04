@@ -4,6 +4,7 @@ export type MarathonMode = 'marathon' | 'by-camera' | string
 
 export interface SubmissionsMarathon {
   mode: MarathonMode
+  verificationMode?: string
   topics: {
     id: number
     name: string

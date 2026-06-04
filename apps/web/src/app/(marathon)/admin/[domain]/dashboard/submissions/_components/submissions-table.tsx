@@ -31,6 +31,7 @@ export function SubmissionsTable({ marathon }: SubmissionsTableProps) {
   const selection = useSubmissionsSelection(query.participants)
   const { table, columns } = useSubmissionsTableModel({
     marathonMode: marathon.mode,
+    verificationMode: marathon.verificationMode,
     participants: enrichedParticipants,
     selectedIds: selection.selectedIds,
     toggleSelection: selection.toggleSelection,
@@ -71,6 +72,7 @@ export function SubmissionsTable({ marathon }: SubmissionsTableProps) {
         participants={enrichedParticipants}
         columnsCount={columns.length}
         marathonMode={marathon.mode}
+        verificationMode={marathon.verificationMode}
         domain={domain}
         isLoading={query.isLoading}
         isError={query.isError}

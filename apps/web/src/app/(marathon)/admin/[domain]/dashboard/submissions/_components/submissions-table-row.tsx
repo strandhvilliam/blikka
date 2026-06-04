@@ -12,6 +12,7 @@ interface SubmissionsTableRowProps {
   row: Row<RealtimeEnrichedSubmissionTableRow>
   participant: RealtimeEnrichedSubmissionTableRow
   marathonMode?: string
+  verificationMode?: string
   domain: string
   isSelected: boolean
 }
@@ -28,6 +29,7 @@ export function SubmissionsTableRow({
   row,
   participant,
   marathonMode,
+  verificationMode,
   domain,
   isSelected,
 }: SubmissionsTableRowProps) {
@@ -55,13 +57,15 @@ export function SubmissionsTableRow({
       {row.getVisibleCells().map((cell) => (
         <TableCell
           key={cell.id}
-          className={cn(
-            'py-2',
-            cell.column.id === 'openIndicator' && 'w-10 px-2 align-middle',
-          )}
+          className={cn('py-2', cell.column.id === 'openIndicator' && 'w-10 px-2 align-middle')}
         >
           {cell.column.id === 'status' ? (
-            <SubmissionStatusBadge participant={participant} status={participant.status} />
+            <SubmissionStatusBadge
+              participant={participant}
+              status={participant.status}
+              marathonMode={marathonMode}
+              verificationMode={verificationMode}
+            />
           ) : cell.column.id === 'uploadProgress' ? (
             <UploadProgressBadge participant={participant} marathonMode={marathonMode} />
           ) : (
