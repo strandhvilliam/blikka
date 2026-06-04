@@ -68,6 +68,7 @@ export function SubmissionsTable({ marathon }: SubmissionsTableProps) {
 
       <SubmissionsTableView
         table={table}
+        participants={enrichedParticipants}
         columnsCount={columns.length}
         marathonMode={marathon.mode}
         domain={domain}

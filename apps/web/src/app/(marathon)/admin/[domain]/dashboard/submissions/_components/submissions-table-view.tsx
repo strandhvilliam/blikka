@@ -18,6 +18,7 @@ import { SubmissionsTableStateRow } from './submissions-table-state-row'
 
 interface SubmissionsTableViewProps {
   table: TanstackTable<RealtimeEnrichedSubmissionTableRow>
+  participants: RealtimeEnrichedSubmissionTableRow[]
   columnsCount: number
   marathonMode?: string
   domain: string
@@ -33,6 +34,7 @@ interface SubmissionsTableViewProps {
 
 export function SubmissionsTableView({
   table,
+  participants,
   columnsCount,
   marathonMode,
   domain,
@@ -45,6 +47,11 @@ export function SubmissionsTableView({
   observerTarget,
   isSelected,
 }: SubmissionsTableViewProps) {
+  'use no memo'
+
+  const rows = table.getRowModel().rows
+  const participantById = new Map(participants.map((participant) => [participant.id, participant]))
+
   return (
     <div className="flex-1 flex flex-col min-h-0 rounded-xl border border-border bg-white overflow-hidden">
       <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
@@ -82,15 +89,21 @@ export function SubmissionsTableView({
                 />
               ) : (
                 <>
-                  {table.getRowModel().rows.map((row) => (
-                    <SubmissionsTableRow
-                      key={row.id}
-                      row={row}
-                      marathonMode={marathonMode}
-                      domain={domain}
-                      isSelected={isSelected(row.original.id)}
-                    />
-                  ))}
+                  {rows.map((row) => {
+                    const participant = participantById.get(row.original.id) ?? row.original
+                    return (
+                      <SubmissionsTableRow
+                        key={`${row.id}-${participant.realtimeProcessedCount}-${
+                          participant.realtimeIsFinalized ? 'finalized' : 'open'
+                        }-${participant.status}`}
+                        row={row}
+                        participant={participant}
+                        marathonMode={marathonMode}
+                        domain={domain}
+                        isSelected={isSelected(row.original.id)}
+                      />
+                    )
+                  })}
                   <TableRow>
                     <TableCell colSpan={columnsCount} className="py-2">
                       <div ref={observerTarget} className="flex items-center justify-center">

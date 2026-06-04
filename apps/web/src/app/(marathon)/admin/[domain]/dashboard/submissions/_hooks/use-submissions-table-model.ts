@@ -25,6 +25,8 @@ export function useSubmissionsTableModel({
   toggleSelection,
   toggleAllVisible,
 }: UseSubmissionsTableModelInput) {
+  'use no memo'
+
   const [sorting, setSorting] = useState<SortingState>([])
   const columns = useMemo(
     () =>
