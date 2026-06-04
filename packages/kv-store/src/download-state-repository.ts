@@ -31,7 +31,10 @@ export const ChunkStateSchema = Schema.Struct({
   maxReference: Schema.Number,
   zipKey: Schema.String,
   chunkIndex: Schema.Number,
-  totalChunks: Schema.Number,
+  /** Chunk count for this competition class (metadata only). */
+  classTotalChunks: Schema.Number,
+  /** Marathon-wide chunk count used for process completion in atomic counters. */
+  processTotalChunks: Schema.Number,
 })
 
 export const DownloadProcessStateSchema = Schema.Struct({
@@ -77,6 +80,35 @@ interface AtomicIncrementResult {
 }
 
 const decodeStringArray = Schema.decodeSync(StringArrayFromString)
+
+/** jobIds are stored as JSON arrays (add-job script) or comma-separated strings (legacy). */
+export const parseJobIdsField = (value: unknown): readonly string[] => {
+  if (value == null || value === '') {
+    return []
+  }
+
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string')
+  }
+
+  if (typeof value !== 'string') {
+    return []
+  }
+
+  const trimmed = value.trim()
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed)
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === 'string')
+      }
+    } catch {
+      return []
+    }
+  }
+
+  return decodeStringArray(trimmed)
+}
 
 export class DownloadStateStoreUnavailable extends Schema.TaggedErrorClass<DownloadStateStoreUnavailable>()(
   'DownloadStateStoreUnavailable',
@@ -188,6 +220,14 @@ export class DownloadStateRepository extends Context.Service<
     readonly cancelDownloadProcess: (
       processId: string,
     ) => Effect.Effect<string, DownloadStateRepositoryError>
+    /** Remove chunk-level state for a job id. */
+    readonly deleteChunkState: (
+      jobId: string,
+    ) => Effect.Effect<number, DownloadStateRepositoryError>
+    /** Remove the process aggregate hash. */
+    readonly deleteDownloadProcess: (
+      processId: string,
+    ) => Effect.Effect<number, DownloadStateRepositoryError>
     /** True when status is `initializing` or `processing`; false when absent or any terminal/other status. */
     readonly isProcessActive: (
       processId: string,
@@ -466,11 +506,8 @@ const makeDownloadStateRepository = Effect.gen(function* () {
   )(
     function* (processId) {
       const key = Keys.downloadProcess(processId)
-      const result = yield* redis.use((client) => client.hget<string>(key, 'jobIds'))
-      if (!result || result === '') {
-        return []
-      }
-      return decodeStringArray(result)
+      const result = yield* redis.use((client) => client.hget(key, 'jobIds'))
+      return parseJobIdsField(result)
     },
     Effect.retry(retryPolicy),
     Effect.catchTag('RedisError', (e) =>
@@ -555,6 +592,35 @@ const makeDownloadStateRepository = Effect.gen(function* () {
       (effect, processId) => Effect.annotateLogs(effect, { processId }),
     )
 
+  const deleteChunkState: DownloadStateRepository['Service']['deleteChunkState'] = Effect.fn(
+    'DownloadStateRepository.deleteChunkState',
+  )(
+    function* (jobId) {
+      const key = Keys.downloadState(jobId)
+      return yield* redis.use((client) => client.del(key))
+    },
+    Effect.retry(retryPolicy),
+    Effect.catchTag('RedisError', (e) =>
+      Effect.fail(new DownloadStateStoreUnavailable({ operation: 'deleteChunkState', cause: e })),
+    ),
+    (effect, jobId) => Effect.annotateLogs(effect, { jobId }),
+  )
+
+  const deleteDownloadProcess: DownloadStateRepository['Service']['deleteDownloadProcess'] =
+    Effect.fn('DownloadStateRepository.deleteDownloadProcess')(
+      function* (processId) {
+        const key = Keys.downloadProcess(processId)
+        return yield* redis.use((client) => client.del(key))
+      },
+      Effect.retry(retryPolicy),
+      Effect.catchTag('RedisError', (e) =>
+        Effect.fail(
+          new DownloadStateStoreUnavailable({ operation: 'deleteDownloadProcess', cause: e }),
+        ),
+      ),
+      (effect, processId) => Effect.annotateLogs(effect, { processId }),
+    )
+
   const isProcessActive: DownloadStateRepository['Service']['isProcessActive'] = Effect.fn(
     'DownloadStateRepository.isProcessActive',
   )(
@@ -589,6 +655,8 @@ const makeDownloadStateRepository = Effect.gen(function* () {
     setActiveProcessForDomain,
     clearActiveProcessForDomain,
     cancelDownloadProcess,
+    deleteChunkState,
+    deleteDownloadProcess,
     isProcessActive,
   })
 })
