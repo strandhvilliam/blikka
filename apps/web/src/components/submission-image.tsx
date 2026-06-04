@@ -8,6 +8,7 @@ export type SubmissionImageProps = {
   className?: string
   priority?: boolean
   onError?: () => void
+  onLoad?: () => void
 }
 
 export type SubmissionImageSources = {
@@ -61,6 +62,7 @@ export function SubmissionThumbnailImage({
   className,
   priority,
   onError,
+  onLoad,
 }: SubmissionImageProps) {
   if (!src) return null
 
@@ -75,6 +77,7 @@ export function SubmissionThumbnailImage({
       loading={priority ? 'eager' : 'lazy'}
       className={className}
       onError={onError}
+      onLoad={onLoad}
     />
   )
 }
@@ -85,6 +88,7 @@ export function SubmissionOptimizedOriginalImage({
   className,
   priority,
   onError,
+  onLoad,
 }: SubmissionImageProps) {
   if (!src) return null
 
@@ -99,6 +103,7 @@ export function SubmissionOptimizedOriginalImage({
       loading={priority ? 'eager' : 'lazy'}
       className={className}
       onError={onError}
+      onLoad={onLoad}
     />
   )
 }
@@ -109,9 +114,12 @@ export function SubmissionRawOriginalImage({
   className,
   loading = 'lazy',
   onError,
+  onLoad,
 }: SubmissionImageProps & { loading?: 'lazy' | 'eager' }) {
   if (!src) return null
 
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} className={className} loading={loading} onError={onError} />
+  return (
+    <img src={src} alt={alt} className={className} loading={loading} onError={onError} onLoad={onLoad} />
+  )
 }

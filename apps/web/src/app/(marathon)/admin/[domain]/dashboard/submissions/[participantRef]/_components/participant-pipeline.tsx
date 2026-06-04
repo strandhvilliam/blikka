@@ -5,12 +5,14 @@ import {
   CheckCircle2,
   Grid3x3,
   Loader2,
+  RefreshCw,
   ShieldAlert,
   ShieldCheck,
   XCircle,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { summarizeValidationResults } from '../_lib/submission-helpers'
 import type { ParticipantWithRelations } from '../_lib/utils'
@@ -19,15 +21,26 @@ const VALID_CONTACT_SHEET_PHOTO_AMOUNT = [8, 24]
 
 type StageState = 'ok' | 'pending' | 'warning' | 'error' | 'running'
 
+type StageAction = {
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}
+
+type RefreshAction = {
+  onClick: () => void
+  disabled?: boolean
+  ariaLabel: string
+}
+
 interface StageProps {
   icon: LucideIcon
   label: string
   state: StageState
   primaryText: string
   secondaryText?: string
-  action?: { label: string; onClick: () => void; disabled?: boolean }
-  isFirst?: boolean
-  isLast?: boolean
+  primaryAction?: StageAction
+  refreshAction?: RefreshAction
 }
 
 const stateBadgeStyles: Record<StageState, { dot: string; iconBox: string; primary: string }> = {
@@ -58,15 +71,43 @@ const stateBadgeStyles: Record<StageState, { dot: string; iconBox: string; prima
   },
 }
 
+function PipelineRefreshButton({ refreshAction }: { refreshAction: RefreshAction }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={refreshAction.onClick}
+            disabled={refreshAction.disabled}
+            aria-label={refreshAction.ariaLabel}
+            className="h-7 w-7 shrink-0"
+          >
+            <RefreshCw
+              className={cn('h-3.5 w-3.5', refreshAction.disabled && 'animate-spin')}
+            />
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="text-xs">
+        {refreshAction.ariaLabel}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 function PipelineStage({
   icon: Icon,
   label,
   state,
   primaryText,
   secondaryText,
-  action,
+  primaryAction,
+  refreshAction,
 }: StageProps) {
   const styles = stateBadgeStyles[state]
+  const hasActions = primaryAction ?? refreshAction
 
   return (
     <div className="flex min-w-0 flex-1 items-start gap-3 px-4 py-3.5">
@@ -93,23 +134,21 @@ function PipelineStage({
             {secondaryText}
           </p>
         ) : null}
-        {action ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={action.onClick}
-            disabled={action.disabled}
-            className="mt-2 h-7 text-[11px] px-2.5"
-          >
-            {action.disabled ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Working…
-              </>
-            ) : (
-              action.label
-            )}
-          </Button>
+        {hasActions ? (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {primaryAction ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={primaryAction.onClick}
+                disabled={primaryAction.disabled}
+                className="h-7 text-[11px] px-2.5"
+              >
+                {primaryAction.label}
+              </Button>
+            ) : null}
+            {refreshAction ? <PipelineRefreshButton refreshAction={refreshAction} /> : null}
+          </div>
         ) : null}
       </div>
     </div>
@@ -120,10 +159,14 @@ interface ParticipantPipelineProps {
   participant: ParticipantWithRelations
   isRunningValidations: boolean
   onRunValidations: () => void
+  onViewValidationResults: () => void
   isGeneratingContactSheet: boolean
   onGenerateContactSheet: () => void
+  onShowContactSheet: () => void
   isGeneratingZip: boolean
   onGenerateZip: () => void
+  onDownloadZip: () => void
+  isDownloadingZip?: boolean
   embedded?: boolean
 }
 
@@ -131,10 +174,14 @@ export function ParticipantPipeline({
   participant,
   isRunningValidations,
   onRunValidations,
+  onViewValidationResults,
   isGeneratingContactSheet,
   onGenerateContactSheet,
+  onShowContactSheet,
   isGeneratingZip,
   onGenerateZip,
+  onDownloadZip,
+  isDownloadingZip = false,
   embedded = false,
 }: ParticipantPipelineProps) {
   const submissions = participant.submissions ?? []
@@ -145,11 +192,18 @@ export function ParticipantPipeline({
   const { failed, hasErrors, hasWarnings } = summarizeValidationResults(validationResults)
   const allPassed = hasValidationResults && failed.length === 0
 
-  const validationAction = hasSubmissions
+  const validationRefreshAction = hasSubmissions
     ? {
-        label: hasValidationResults ? 'Rerun validations' : 'Run validations',
         onClick: onRunValidations,
         disabled: isRunningValidations,
+        ariaLabel: hasValidationResults ? 'Rerun validations' : 'Run validations',
+      }
+    : undefined
+
+  const validationPrimaryAction = hasValidationResults
+    ? {
+        label: 'View results',
+        onClick: onViewValidationResults,
       }
     : undefined
 
@@ -179,7 +233,7 @@ export function ParticipantPipeline({
         state: 'warning',
         primaryText: 'Not run yet',
         secondaryText: 'Run validations to verify uploads meet the rules.',
-        action: validationAction,
+        refreshAction: validationRefreshAction,
       }
     }
     if (hasErrors) {
@@ -189,8 +243,9 @@ export function ParticipantPipeline({
         label: 'Validations',
         state: 'error',
         primaryText: `${errorCount} ${errorCount === 1 ? 'error' : 'errors'} found`,
-        secondaryText: 'See the Validation Results tab for details.',
-        action: validationAction,
+        secondaryText: 'Review failed checks in the results view.',
+        primaryAction: validationPrimaryAction,
+        refreshAction: validationRefreshAction,
       }
     }
     if (hasWarnings) {
@@ -201,7 +256,8 @@ export function ParticipantPipeline({
         state: 'warning',
         primaryText: `${warnCount} ${warnCount === 1 ? 'warning' : 'warnings'}`,
         secondaryText: 'Submissions passed but with notes to review.',
-        action: validationAction,
+        primaryAction: validationPrimaryAction,
+        refreshAction: validationRefreshAction,
       }
     }
     if (allPassed) {
@@ -211,7 +267,8 @@ export function ParticipantPipeline({
         state: 'ok',
         primaryText: 'All checks passed',
         secondaryText: `${validationResults.length} checks completed successfully.`,
-        action: validationAction,
+        primaryAction: validationPrimaryAction,
+        refreshAction: validationRefreshAction,
       }
     }
     return {
@@ -219,7 +276,8 @@ export function ParticipantPipeline({
       label: 'Validations',
       state: 'pending',
       primaryText: 'Pending',
-      action: validationAction,
+      primaryAction: validationPrimaryAction,
+      refreshAction: validationRefreshAction,
     }
   })()
 
@@ -227,14 +285,21 @@ export function ParticipantPipeline({
   const hasContactSheet = contactSheets.length > 0
   const isValidPhotoCountForSheet = VALID_CONTACT_SHEET_PHOTO_AMOUNT.includes(submissions.length)
 
-  const contactSheetAction =
+  const contactSheetRefreshAction =
     hasSubmissions && (hasContactSheet || isValidPhotoCountForSheet)
       ? {
-          label: hasContactSheet ? 'Regenerate sheet' : 'Generate sheet',
           onClick: onGenerateContactSheet,
           disabled: isGeneratingContactSheet,
+          ariaLabel: hasContactSheet ? 'Regenerate contact sheet' : 'Generate contact sheet',
         }
       : undefined
+
+  const contactSheetPrimaryAction = hasContactSheet
+    ? {
+        label: 'Show Sheet',
+        onClick: onShowContactSheet,
+      }
+    : undefined
 
   const contactSheetStage: StageProps = (() => {
     if (isGeneratingContactSheet) {
@@ -255,8 +320,9 @@ export function ParticipantPipeline({
         secondaryText:
           contactSheets.length > 1
             ? `${contactSheets.length} versions on file.`
-            : 'View it under the Contact Sheet tab.',
-        action: contactSheetAction,
+            : 'Open the contact sheet preview.',
+        primaryAction: contactSheetPrimaryAction,
+        refreshAction: contactSheetRefreshAction,
       }
     }
     if (!hasSubmissions) {
@@ -283,17 +349,25 @@ export function ParticipantPipeline({
       state: 'warning',
       primaryText: 'Not generated',
       secondaryText: 'Generate a printable sheet of all submissions.',
-      action: contactSheetAction,
+      refreshAction: contactSheetRefreshAction,
     }
   })()
 
   const hasZip = (participant.zippedSubmissions?.length ?? 0) > 0
 
-  const zipAction = hasSubmissions
+  const zipRefreshAction = hasSubmissions
     ? {
-        label: hasZip ? 'Regenerate zip' : 'Generate zip',
         onClick: onGenerateZip,
         disabled: isGeneratingZip,
+        ariaLabel: hasZip ? 'Regenerate zip file' : 'Generate zip file',
+      }
+    : undefined
+
+  const zipPrimaryAction = hasZip
+    ? {
+        label: 'Download File',
+        onClick: onDownloadZip,
+        disabled: isDownloadingZip,
       }
     : undefined
 
@@ -313,8 +387,9 @@ export function ParticipantPipeline({
         label: 'Zip file',
         state: 'ok',
         primaryText: 'Generated',
-        secondaryText: 'Use Export above to download the zip file.',
-        action: zipAction,
+        secondaryText: 'Download the packaged submissions.',
+        primaryAction: zipPrimaryAction,
+        refreshAction: zipRefreshAction,
       }
     }
     if (!hasSubmissions) {
@@ -332,7 +407,7 @@ export function ParticipantPipeline({
       state: 'warning',
       primaryText: 'Not generated',
       secondaryText: 'Package all submissions into a downloadable zip file.',
-      action: zipAction,
+      refreshAction: zipRefreshAction,
     }
   })()
 

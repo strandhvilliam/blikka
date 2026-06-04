@@ -195,29 +195,31 @@ export function SubmissionReplaceDialog({
         </DialogTrigger>
       )}
       <DialogContent
-        className="max-w-4xl overflow-hidden p-0"
+        size="lg"
+        className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0"
         onInteractOutside={(event) => {
           if (isBusy) {
             event.preventDefault()
           }
         }}
       >
-        <DialogHeader className="border-b px-6 py-5 text-left">
+        <DialogHeader className="shrink-0 gap-1.5 border-b px-6 py-4 text-left">
           <DialogTitle className="font-gothic text-xl font-normal tracking-tight">
             Replace Submission Image
           </DialogTitle>
-          <DialogDescription>
-            Upload a new file for this submission. The original object is replaced, thumbnails are
-            regenerated, and validations run again automatically.
+          <DialogDescription className="max-w-2xl text-sm leading-snug text-muted-foreground">
+            Upload a new file for this submission. The original object is replaced and thumbnails
+            are regenerated.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-0 md:grid-cols-[1.1fr_0.9fr]">
-          <div className="border-b px-6 py-6 md:border-r md:border-b-0">
+        <div className="grid min-h-[min(360px,52dvh)] grid-cols-1 md:grid-cols-2">
+          <section className="flex min-h-[280px] flex-col border-b p-6 md:min-h-0 md:border-r md:border-b-0">
+            <h3 className="mb-3 shrink-0 text-sm font-medium text-foreground">Upload</h3>
             <div
               {...getRootProps()}
               className={cn(
-                'rounded-xl border border-dashed p-6 transition-colors',
+                'flex min-h-0 flex-1 flex-col justify-center rounded-xl border border-dashed px-8 py-8 transition-colors',
                 isBusy && 'cursor-progress border-border bg-muted/30',
                 !isBusy &&
                   isDragActive &&
@@ -228,36 +230,37 @@ export function SubmissionReplaceDialog({
               )}
             >
               <input {...getInputProps()} />
-              <div className="flex flex-col gap-4">
+              <div className="flex max-w-md flex-col gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border">
                   <Upload className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <div className="space-y-1">
-                  <p className="font-medium">
+                <div className="space-y-1.5">
+                  <p className="text-[15px] font-medium leading-snug">
                     {isDragActive ? 'Drop the replacement image here' : 'Drag and drop a new image'}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    Accepted formats: {ACCEPTED_TYPE_LABEL}. Only one file can be uploaded.
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Accepted formats: {ACCEPTED_TYPE_LABEL}. One file only.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <Button type="button" variant="secondary" size="sm" disabled={isBusy}>
-                    Choose File
+                    Choose file
                   </Button>
                   {selectedFile ? (
-                    <p className="text-sm text-muted-foreground">
-                      {selectedFile.name} ({Math.max(1, Math.round(selectedFile.size / 1024))} KB)
+                    <p className="truncate text-sm text-muted-foreground">
+                      {selectedFile.name} · {Math.max(1, Math.round(selectedFile.size / 1024))}{' '}
+                      KB
                     </p>
                   ) : null}
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="px-6 py-6">
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-foreground">Preview</h3>
-              <div className="flex min-h-[280px] items-center justify-center rounded-xl border bg-muted/20 p-4">
+          <section className="flex min-h-[280px] flex-col p-6 md:min-h-0">
+            <h3 className="mb-3 shrink-0 text-sm font-medium text-foreground">Preview</h3>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-muted/15">
+              <div className="flex min-h-0 flex-1 items-center justify-center p-6">
                 <ReplacePreviewContent
                   previewUrl={previewUrl}
                   previewFailed={previewFailed}
@@ -265,17 +268,17 @@ export function SubmissionReplaceDialog({
                   onPreviewError={() => setPreviewFailed(true)}
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                This is an admin-only replacement and does not use the participant upload flow.
+              <p className="shrink-0 border-t border-border/80 bg-muted/25 px-4 py-2.5 text-xs leading-snug text-muted-foreground">
+                Admin-only replacement; does not use the participant upload flow.
               </p>
             </div>
-          </div>
+          </section>
         </div>
 
-        <DialogFooter className="border-t px-6 py-4 sm:justify-between">
+        <DialogFooter className="shrink-0 gap-3 border-t bg-muted/20 px-6 py-4 sm:justify-between">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             onClick={() => handleOpenChange(false)}
             disabled={isBusy}
           >
@@ -318,7 +321,7 @@ function ReplacePreviewContent({
       <img
         src={previewUrl}
         alt="Replacement preview"
-        className="max-h-[320px] w-auto max-w-full rounded-lg object-contain shadow-sm"
+        className="max-h-[min(280px,42dvh)] max-w-full rounded-lg object-contain shadow-sm"
         onError={onPreviewError}
       />
     )
@@ -326,13 +329,13 @@ function ReplacePreviewContent({
 
   if (selectedFile) {
     return (
-      <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex max-w-xs flex-col items-center gap-3 px-2 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border">
           <ImageIcon className="h-5 w-5 text-muted-foreground" />
         </div>
         <div className="space-y-1">
-          <p className="font-medium">{selectedFile.name}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="font-medium leading-snug">{selectedFile.name}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
             Preview unavailable in the browser, but the file can still be uploaded.
           </p>
         </div>
@@ -341,11 +344,11 @@ function ReplacePreviewContent({
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 text-center">
+    <div className="flex max-w-xs flex-col items-center gap-3 px-4 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-border">
         <ImageIcon className="h-5 w-5 text-muted-foreground" />
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm leading-relaxed text-muted-foreground">
         Select a file to preview the replacement image.
       </p>
     </div>

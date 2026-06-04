@@ -40,9 +40,6 @@ export function ParticipantSubmissionsTab({ participantRef }: { participantRef: 
       domain,
     }),
   )
-  const { data: marathon } = useSuspenseQuery(
-    trpc.marathons.getByDomain.queryOptions({ domain }),
-  )
 
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<number | null>(null)
   const items = buildSubmissionPreviewItems(participant)
@@ -75,7 +72,6 @@ export function ParticipantSubmissionsTab({ participantRef }: { participantRef: 
         selectedSubmissionId={selectedSubmissionId}
         onSelectedSubmissionIdChange={setSelectedSubmissionId}
         participantRef={participantRef}
-        marathonMode={marathon?.mode}
       />
     </>
   )

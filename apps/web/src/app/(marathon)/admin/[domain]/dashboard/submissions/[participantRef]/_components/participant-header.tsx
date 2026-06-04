@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryStates } from 'nuqs'
 import { Loader2, Trash2 } from 'lucide-react'
 import { useTRPC } from '@/lib/trpc/client'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
@@ -28,6 +29,14 @@ import {
   type ParticipantWithPhoneNumber,
 } from '../[submissionId]/_components/participant-contact-edit-dialog'
 import { downloadRemoteUrl } from '../[submissionId]/_lib/download-remote-url'
+import {
+  PARTICIPANT_TAB,
+  participantSearchParams,
+} from '../_lib/participant-search-params'
+
+function scrollToParticipantTabs() {
+  document.getElementById('participant-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 export function ParticipantHeader({ participantRef }: { participantRef: string }) {
   const domain = useDomain()
@@ -39,6 +48,9 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditContactOpen, setIsEditContactOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [, setParticipantQueryState] = useQueryStates(participantSearchParams, {
+    history: 'push',
+  })
 
   const { data: participant } = useSuspenseQuery(
     trpc.participants.getByReference.queryOptions({
@@ -121,11 +133,11 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
       },
     )
 
-  const handleExport = async () => {
+  const downloadZipFile = async () => {
     const hasZip = (participant.zippedSubmissions?.length ?? 0) > 0
     if (!hasZip) {
       toast.info('No zip file available', {
-        description: 'Generate a zip file from the pipeline below before exporting.',
+        description: 'Generate a zip file from the pipeline below before downloading.',
       })
       return
     }
@@ -139,12 +151,24 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         }),
       )
       await downloadRemoteUrl(downloadUrl, filename)
-      toast.success('Export downloaded')
+      toast.success('Zip file downloaded')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to download zip file')
     } finally {
       setIsExporting(false)
     }
+  }
+
+  const handleExport = () => downloadZipFile()
+
+  const handleViewValidationResults = () => {
+    setParticipantQueryState({ tab: PARTICIPANT_TAB.VALIDATION })
+    scrollToParticipantTabs()
+  }
+
+  const handleShowContactSheet = () => {
+    setParticipantQueryState({ tab: PARTICIPANT_TAB.CONTACT_SHEET })
+    scrollToParticipantTabs()
   }
 
   return (
@@ -169,10 +193,14 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
           participant={participant}
           isRunningValidations={runValidationsMutation.isPending}
           onRunValidations={handleRunValidations}
+          onViewValidationResults={handleViewValidationResults}
           isGeneratingContactSheet={generateContactSheetMutation.isPending}
           onGenerateContactSheet={handleGenerateContactSheet}
+          onShowContactSheet={handleShowContactSheet}
           isGeneratingZip={generateParticipantZipMutation.isPending}
           onGenerateZip={handleGenerateZip}
+          onDownloadZip={downloadZipFile}
+          isDownloadingZip={isExporting}
         />
       </div>
 

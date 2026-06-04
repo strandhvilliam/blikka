@@ -10,6 +10,7 @@ import {
   Clock,
   Download,
   Expand,
+  ReplaceIcon,
   ImageOff,
   Info,
   XCircle,
@@ -34,7 +35,6 @@ import {
 } from '../[submissionId]/_lib/submission-image-urls'
 import { SubmissionReplaceDialog } from '../[submissionId]/_components/submission-replace-dialog'
 import { getSubmissionCaptureDate, summarizeValidationResults } from '../_lib/submission-helpers'
-import { SubmissionPreviewActionsMenu } from './submission-preview-actions-menu'
 import { SubmissionPreviewSidebar } from './submission-preview-sidebar'
 import {
   getOriginalViewerSource,
@@ -52,7 +52,6 @@ interface SubmissionPreviewDialogProps {
   selectedSubmissionId: number | null
   onSelectedSubmissionIdChange: (id: number | null) => void
   participantRef: string
-  marathonMode?: string
 }
 
 export function SubmissionPreviewDialog({
@@ -60,7 +59,6 @@ export function SubmissionPreviewDialog({
   selectedSubmissionId,
   onSelectedSubmissionIdChange,
   participantRef,
-  marathonMode,
 }: SubmissionPreviewDialogProps) {
   const currentIndex = items.findIndex((item) => item.submission.id === selectedSubmissionId)
   const current = currentIndex >= 0 ? items[currentIndex] : null
@@ -68,17 +66,31 @@ export function SubmissionPreviewDialog({
   const hasPrev = currentIndex > 0
   const hasNext = currentIndex >= 0 && currentIndex < items.length - 1
 
-  function goPrev() {
+  const goPrev = () => {
     if (currentIndex > 0) {
       onSelectedSubmissionIdChange(items[currentIndex - 1].submission.id)
     }
   }
 
-  function goNext() {
+  const goNext = () => {
     if (currentIndex >= 0 && currentIndex < items.length - 1) {
       onSelectedSubmissionIdChange(items[currentIndex + 1].submission.id)
     }
   }
+
+  useEffect(() => {
+    if (currentIndex < 0) return
+
+    for (const offset of [-2, -1, 0, 1, 2]) {
+      const neighbor = items[currentIndex + offset]
+      if (!neighbor) continue
+      const url = getSubmissionThumbnailImageUrl(neighbor.submission)
+      if (!url) continue
+      const img = new Image()
+      img.decoding = 'async'
+      img.src = url
+    }
+  }, [currentIndex, items])
 
   useEffect(() => {
     if (!current) return
@@ -115,7 +127,6 @@ export function SubmissionPreviewDialog({
         </DialogDescription>
         {current ? (
           <SubmissionPreviewBody
-            key={current.submission.id}
             item={current}
             currentIndex={currentIndex}
             total={items.length}
@@ -124,7 +135,6 @@ export function SubmissionPreviewDialog({
             onPrev={goPrev}
             onNext={goNext}
             participantRef={participantRef}
-            marathonMode={marathonMode}
           />
         ) : null}
       </DialogContent>
@@ -141,7 +151,6 @@ interface SubmissionPreviewBodyProps {
   onPrev: () => void
   onNext: () => void
   participantRef: string
-  marathonMode?: string
 }
 
 function SubmissionPreviewBody({
@@ -153,7 +162,6 @@ function SubmissionPreviewBody({
   onPrev,
   onNext,
   participantRef,
-  marathonMode,
 }: SubmissionPreviewBodyProps) {
   const { submission, validationResults } = item
   const topic = submission.topic
@@ -167,6 +175,10 @@ function SubmissionPreviewBody({
 
   const [imageError, setImageError] = useState(false)
   const [replaceOpen, setReplaceOpen] = useState(false)
+
+  useEffect(() => {
+    setImageError(false)
+  }, [submission.id, thumbnailUrl, originalUrl])
 
   const { failed, passedCount, hasErrors, hasWarnings } =
     summarizeValidationResults(validationResults)
@@ -216,12 +228,6 @@ function SubmissionPreviewBody({
             hasWarnings={hasWarnings}
             failedCount={failed.length}
           />
-          <SubmissionPreviewActionsMenu
-            submission={submission}
-            participantRef={participantRef}
-            marathonMode={marathonMode}
-            onReplace={() => setReplaceOpen(true)}
-          />
           <DialogClose asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Close preview">
               <XIcon className="h-4 w-4" />
@@ -236,10 +242,6 @@ function SubmissionPreviewBody({
           originalUrl={originalUrl}
           imageError={imageError}
           onImageError={() => setImageError(true)}
-          hasPrev={hasPrev}
-          hasNext={hasNext}
-          onPrev={onPrev}
-          onNext={onNext}
           alt={topic?.name ?? ''}
         />
         <aside className="min-h-[600px] max-h-[600px] overflow-y-auto border-l border-border bg-[#fafaf8]">
@@ -282,6 +284,15 @@ function SubmissionPreviewBody({
           </span>
         </div>
         <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => setReplaceOpen(true)}
+          >
+            <ReplaceIcon className="h-4 w-4" />
+            Replace
+          </Button>
           <Button
             size="sm"
             className="h-8 gap-1.5"
@@ -355,10 +366,6 @@ interface ImagePaneProps {
   originalUrl: string | null
   imageError: boolean
   onImageError: () => void
-  hasPrev: boolean
-  hasNext: boolean
-  onPrev: () => void
-  onNext: () => void
   alt: string
 }
 
@@ -367,10 +374,6 @@ function ImagePane({
   originalUrl,
   imageError,
   onImageError,
-  hasPrev,
-  hasNext,
-  onPrev,
-  onNext,
   alt,
 }: ImagePaneProps) {
   const openTarget = originalUrl ?? thumbnailUrl
@@ -378,26 +381,57 @@ function ImagePane({
     thumbnailUrl,
     originalUrl,
   })
+  const viewerSrc = viewerSource.kind !== 'missing' ? viewerSource.src : null
+
+  const [imageLoaded, setImageLoaded] = useState(false)
+
+  useEffect(() => {
+    setImageLoaded(false)
+  }, [viewerSrc])
+
+  const imageClassName = cn(
+    'relative z-[1] h-full w-full object-contain shadow-[0_8px_30px_-8px_rgba(0,0,0,0.6)] transition-opacity duration-200',
+    imageLoaded ? 'opacity-100' : 'opacity-0',
+  )
 
   let mainContent: ReactNode
   if (viewerSource.kind !== 'missing' && !imageError) {
     mainContent = (
       <>
+        {thumbnailUrl && thumbnailUrl !== viewerSrc ? (
+          <SubmissionThumbnailImage
+            src={thumbnailUrl}
+            alt=""
+            aria-hidden
+            priority
+            className="absolute inset-0 h-full w-full object-contain opacity-35 blur-[2px]"
+          />
+        ) : null}
         {viewerSource.kind === 'optimized-original' ? (
           <SubmissionOptimizedOriginalImage
             src={viewerSource.src}
             alt={alt}
+            priority
             onError={onImageError}
-            className="max-h-full max-w-full object-contain shadow-[0_8px_30px_-8px_rgba(0,0,0,0.6)]"
+            onLoad={() => setImageLoaded(true)}
+            className={imageClassName}
           />
         ) : (
           <SubmissionThumbnailImage
             src={viewerSource.src}
             alt={alt}
+            priority
             onError={onImageError}
-            className="max-h-full max-w-full object-contain shadow-[0_8px_30px_-8px_rgba(0,0,0,0.6)]"
+            onLoad={() => setImageLoaded(true)}
+            className={imageClassName}
           />
         )}
+        {!imageLoaded ? (
+          <div
+            className="pointer-events-none absolute inset-0 animate-pulse rounded-lg bg-white/[0.04]"
+            aria-hidden
+          />
+        ) : null}
         {openTarget ? (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
@@ -407,7 +441,7 @@ function ImagePane({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Open image in new tab"
-                  className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-md bg-black/55 text-white/90 backdrop-blur transition-colors hover:bg-black/75"
+                  className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md bg-black/55 text-white/90 backdrop-blur transition-colors hover:bg-black/75"
                 >
                   <Expand className="h-4 w-4" />
                 </a>
@@ -443,34 +477,12 @@ function ImagePane({
   }
 
   return (
-    <div className="relative flex min-h-0 items-center justify-center bg-[#0f0f10] p-4">
-      {mainContent}
-      {hasPrev ? <NavButton side="left" onClick={onPrev} label="Previous submission" /> : null}
-      {hasNext ? <NavButton side="right" onClick={onNext} label="Next submission" /> : null}
+    <div className="relative min-h-[50dvh] h-full min-h-0 overflow-hidden bg-[#0f0f10] md:min-h-[600px]">
+      <div className="absolute inset-0 flex items-center justify-center p-4">
+        <div className="relative flex h-full w-full items-center justify-center">
+          {mainContent}
+        </div>
+      </div>
     </div>
-  )
-}
-
-interface NavButtonProps {
-  side: 'left' | 'right'
-  onClick: () => void
-  label: string
-}
-
-function NavButton({ side, onClick, label }: NavButtonProps) {
-  const Icon = side === 'left' ? ChevronLeft : ChevronRight
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className={cn(
-        'absolute top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white/90 backdrop-blur transition-colors hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
-        side === 'left' ? 'left-3' : 'right-3',
-      )}
-    >
-      <Icon className="h-5 w-5" />
-    </button>
   )
 }

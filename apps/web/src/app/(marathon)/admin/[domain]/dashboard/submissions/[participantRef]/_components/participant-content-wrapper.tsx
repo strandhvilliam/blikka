@@ -1,11 +1,16 @@
 'use client'
 
 import { Suspense } from 'react'
+import { useQueryStates } from 'nuqs'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ParticipantSubmissionsTab } from './participant-submissions-tab'
 import { ValidationResultsTab } from './validation-results-tab'
 import { ContactSheetTab } from './contact-sheet-tab'
 import { Loader2 } from 'lucide-react'
+import {
+  participantSearchParams,
+  type ParticipantTab,
+} from '../_lib/participant-search-params'
 
 function LoadingFallback() {
   return (
@@ -20,8 +25,21 @@ const customTabTriggerClassName =
   "relative py-4 px-0 text-sm font-medium transition-colors rounded-none bg-transparent border-none shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-brand-primary text-muted-foreground hover:text-foreground data-[state=active]:after:content-[''] data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-brand-primary"
 
 export function ParticipantContentWrapper({ participantRef }: { participantRef: string }) {
+  const [{ tab: activeTab }, setQueryState] = useQueryStates(participantSearchParams, {
+    history: 'push',
+  })
+
+  const onTabChange = (tab: ParticipantTab) => {
+    setQueryState({ tab })
+  }
+
   return (
-    <Tabs defaultValue="submissions" className="space-y-0">
+    <Tabs
+      id="participant-tabs"
+      value={activeTab}
+      onValueChange={(value) => onTabChange(value as ParticipantTab)}
+      className="space-y-0 scroll-mt-4"
+    >
       <div className="border-b border-border">
         <TabsList className="bg-transparent rounded-none p-0 h-auto flex gap-8 -mb-px">
           <TabsTrigger value="submissions" className={customTabTriggerClassName}>
