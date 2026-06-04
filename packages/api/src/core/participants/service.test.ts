@@ -1,20 +1,11 @@
 import { assert, describe, it } from '@effect/vitest'
 import { EmailService } from '@blikka/email'
-import {
-  MarathonsRepository,
-  ParticipantsRepository,
-  type Participant,
-} from '@blikka/db'
+import { MarathonsRepository, ParticipantsRepository, type Participant } from '@blikka/db'
 import { RealtimeEventsService } from '@blikka/realtime'
 import { Effect, Layer, Option, Ref } from 'effect'
 
 import { configLayerFromEnv } from '../test/config-layer'
-import {
-  BadRequestError,
-  ConflictError,
-  NotFoundError,
-  PreconditionFailedError,
-} from '../errors'
+import { BadRequestError, ConflictError, NotFoundError, PreconditionFailedError } from '../errors'
 import {
   EncryptedPhoneNumber,
   PhoneNumberEncryptionService,
@@ -80,14 +71,12 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       }),
     getInfiniteParticipantsByDomain: () =>
       Effect.succeed({ participants: [], nextCursor: undefined }),
-    deleteParticipant: ({ id }: { id: number }) =>
-      Effect.succeed(makeParticipant({ id })),
+    deleteParticipant: ({ id }: { id: number }) => Effect.succeed(makeParticipant({ id })),
     createParticipant: ({ data }: { data: Record<string, unknown> }) =>
       Effect.succeed({ id: 2, ...data } as Participant),
     batchDeleteParticipants: () => Effect.succeed({ deletedCount: 0, failedIds: [] }),
     batchVerifyParticipants: () => Effect.succeed({ updatedCount: 0, failedIds: [] }),
-    batchMarkParticipantsCompleted: () =>
-      Effect.succeed({ updatedCount: 0, failedIds: [] }),
+    batchMarkParticipantsCompleted: () => Effect.succeed({ updatedCount: 0, failedIds: [] }),
     getParticipantById: () => Effect.succeed(Option.none()),
     getByPhoneHashForByCamera: () =>
       Effect.gen(function* () {

@@ -26,6 +26,18 @@ import type {
 import { DbError } from '../utils'
 import { VALIDATION_OUTCOME } from '@blikka/validation'
 
+/** How a marathon applies admin verification; see `@blikka/uploads/flagged-verification-flow`. */
+export type MarathonVerificationMode = 'all' | 'flagged' | 'none'
+
+/** KV `validationDecision` at settlement time; `passed` may trigger auto-verify in `flagged` mode. */
+export type ParticipantValidationDecision = 'pending' | 'passed' | 'flagged' | null | undefined
+
+export type ParticipantStatusTransitionResult = {
+  changed: boolean
+  changedToVerified: boolean
+  status: 'completed' | 'verified' | null
+}
+
 /** Participant from `getParticipantById` with nested relations. */
 type ParticipantWithSubmissionsAndRelations = Participant & {
   submissions: Submission[]
@@ -94,6 +106,17 @@ export type ParticipantsBatchIdsMutationResult = {
   failedIds: number[]
 }
 
+/** Flagged marathons only: rules passed → auto `verified` without manual admin action. */
+function shouldAutoVerify({
+  verificationMode,
+  validationDecision,
+}: {
+  verificationMode: MarathonVerificationMode
+  validationDecision: ParticipantValidationDecision
+}) {
+  return verificationMode === 'flagged' && validationDecision === 'passed'
+}
+
 export class ParticipantsRepository extends Context.Service<
   ParticipantsRepository,
   {
@@ -146,6 +169,19 @@ export class ParticipantsRepository extends Context.Service<
       domain: string
       data: Partial<NewParticipant>
     }) => Effect.Effect<{ id: number }, DbError>
+    /**
+     * Monotonic DB status transition after finalize/validate (see `@blikka/uploads/flagged-verification-flow`).
+     *
+     * Order: try auto-verify (`flagged` + `passed`), else mark `completed` when `canMarkCompleted`.
+     * Never downgrades `verified`. `canMarkCompleted` is true only in the upload finalizer.
+     */
+    readonly settleFinalizedParticipantStatus: (params: {
+      reference: string
+      domain: string
+      canMarkCompleted: boolean
+      verificationMode: MarathonVerificationMode
+      validationDecision?: ParticipantValidationDecision
+    }) => Effect.Effect<ParticipantStatusTransitionResult, DbError>
     /** Delete a participant by id. */
     readonly deleteParticipant: (params: { id: number }) => Effect.Effect<Participant, DbError>
     /** Delete participants by id scoped to a domain. */
@@ -714,6 +750,69 @@ const makeParticipantsRepository = Effect.gen(function* () {
         failedIds,
       }
     })
+  const settleFinalizedParticipantStatus: ParticipantsRepository['Service']['settleFinalizedParticipantStatus'] =
+    Effect.fn('ParticipantsRepository.settleFinalizedParticipantStatus')(function* ({
+      reference,
+      domain,
+      canMarkCompleted,
+      verificationMode,
+      validationDecision,
+    }) {
+      if (shouldAutoVerify({ verificationMode, validationDecision })) {
+        // Finalizer may verify from non-completed; validator only from completed (see canMarkCompleted).
+        const [verifiedResult] = yield* use((db) =>
+          db
+            .update(participants)
+            .set({ status: 'verified' })
+            .where(
+              and(
+                eq(participants.domain, domain),
+                eq(participants.reference, reference),
+                canMarkCompleted
+                  ? notInArray(participants.status, ['verified'])
+                  : eq(participants.status, 'completed'),
+              ),
+            )
+            .returning({ status: participants.status }),
+        )
+
+        if (verifiedResult) {
+          return {
+            changed: true,
+            changedToVerified: true,
+            status: 'verified' as const,
+          }
+        }
+      }
+
+      if (!canMarkCompleted) {
+        return {
+          changed: false,
+          changedToVerified: false,
+          status: null,
+        }
+      }
+
+      const [completedResult] = yield* use((db) =>
+        db
+          .update(participants)
+          .set({ status: 'completed' })
+          .where(
+            and(
+              eq(participants.domain, domain),
+              eq(participants.reference, reference),
+              notInArray(participants.status, ['completed', 'verified']),
+            ),
+          )
+          .returning({ status: participants.status }),
+      )
+
+      return {
+        changed: Boolean(completedResult),
+        changedToVerified: false,
+        status: completedResult ? ('completed' as const) : null,
+      }
+    })
   return ParticipantsRepository.of({
     getParticipantById,
     getParticipantByReference,
@@ -723,6 +822,7 @@ const makeParticipantsRepository = Effect.gen(function* () {
     createTermsAcceptance,
     updateParticipantById,
     updateParticipantByReference,
+    settleFinalizedParticipantStatus,
     deleteParticipant,
     batchDeleteParticipants,
     batchVerifyParticipants,
