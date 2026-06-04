@@ -12,8 +12,9 @@
   },
   "dependencies": {
     "@blikka/aws": "workspace:*",
+    "@blikka/db": "workspace:*",
     "@blikka/kv-store": "workspace:*",
-    "@effect-aws/lambda": "catalog:",
+    "@blikka/telemetry": "workspace:*",
     "archiver": "^7.0.1",
     "effect": "catalog:",
     "jszip": "^3.10.1"
