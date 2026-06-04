@@ -1,5 +1,6 @@
 import { Effect } from 'effect'
 import { FinalizedEventSchema } from '@blikka/aws'
+import { RealtimeEventsService } from '@blikka/realtime'
 import { Resource as SSTResource } from 'sst'
 import {
   getEnvironmentFromStage,
@@ -7,6 +8,7 @@ import {
   makeLambdaTaskLayer,
   makeSqsRealtimeTask,
   parseBusEvent,
+  TaskEnvironment,
 } from '@blikka/task-runtime'
 import { UploadFinalizer, UploadFinalizerLayer } from '@blikka/uploads/participant-finalizer'
 
@@ -22,13 +24,34 @@ const effectHandler = makeSqsRealtimeTask({
   run: (input) =>
     Effect.gen(function* () {
       const uploadFinalizer = yield* UploadFinalizer
+      const realtimeEvents = yield* RealtimeEventsService
+      const taskEnvironment = yield* TaskEnvironment
 
       yield* Effect.logInfo('Finalizing participant')
 
-      yield* uploadFinalizer.finalize(input).pipe(
+      const transition = yield* uploadFinalizer.finalize(input).pipe(
         Effect.tap(() => Effect.logInfo('Participant finalized')),
         Effect.tapError((error) => Effect.logError('Error finalizing participant', error)),
       )
+
+      // Auto-verify in flagged mode when validation already passed; see @blikka/uploads/flagged-verification-flow.
+      if (transition.changedToVerified) {
+        yield* realtimeEvents
+          .emitEventResult({
+            environment: taskEnvironment.environment,
+            domain: input.domain,
+            reference: input.reference,
+            eventKey: 'participant-verified',
+            outcome: 'success',
+            timestamp: Date.now(),
+            channels: 'participant',
+          })
+          .pipe(
+            Effect.catch((error) =>
+              Effect.logError('Error emitting auto-verification realtime event', error),
+            ),
+          )
+      }
     }).pipe(Effect.annotateLogs({ ...input })),
 })
 

@@ -1,5 +1,6 @@
 import { Effect } from 'effect'
 import { FinalizedEventSchema } from '@blikka/aws'
+import { RealtimeEventsService } from '@blikka/realtime'
 import { Resource as SSTResource } from 'sst'
 import {
   getEnvironmentFromStage,
@@ -7,6 +8,7 @@ import {
   makeLambdaTaskLayer,
   makeSqsRealtimeTask,
   parseBusEvent,
+  TaskEnvironment,
 } from '@blikka/task-runtime'
 import { ValidationRunner, ValidationRunnerLayer } from '@blikka/uploads/validation-runner'
 
@@ -22,13 +24,34 @@ const effectHandler = makeSqsRealtimeTask({
   run: (input) =>
     Effect.gen(function* () {
       const validationRunner = yield* ValidationRunner
+      const realtimeEvents = yield* RealtimeEventsService
+      const taskEnvironment = yield* TaskEnvironment
 
       yield* Effect.logInfo('Executing validation')
 
-      yield* validationRunner.execute(input).pipe(
+      const transition = yield* validationRunner.execute(input).pipe(
         Effect.tap(() => Effect.logInfo('Validation executed')),
         Effect.tapError((error) => Effect.logError('Error executing validation', error)),
       )
+
+      // Auto-verify after `passed` decision on an already-completed participant.
+      if (transition.changedToVerified) {
+        yield* realtimeEvents
+          .emitEventResult({
+            environment: taskEnvironment.environment,
+            domain: input.domain,
+            reference: input.reference,
+            eventKey: 'participant-verified',
+            outcome: 'success',
+            timestamp: Date.now(),
+            channels: 'participant',
+          })
+          .pipe(
+            Effect.catch((error) =>
+              Effect.logError('Error emitting auto-verification realtime event', error),
+            ),
+          )
+      }
     }).pipe(Effect.annotateLogs({ ...input })),
 })
 
