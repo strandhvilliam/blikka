@@ -14,6 +14,15 @@ import { FullMarathonZipCard } from './full-marathon-zip-card'
 import { TopicImagesZipCard } from './topic-images-zip-card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { type Marathon } from '@blikka/db';
+
+function checkIfLive(marathon: Marathon) {
+  if (!marathon.startDate || !marathon.endDate) return false
+  const now = new Date()
+  const startDate = new Date(marathon.startDate)
+  const endDate = new Date(marathon.endDate)
+  return now >= startDate && now <= endDate
+}
 
 export function ExportContent() {
   const domain = useDomain()
@@ -22,13 +31,7 @@ export function ExportContent() {
 
   const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
 
-  const isLive = (() => {
-    if (!marathon.startDate || !marathon.endDate) return false
-    const now = new Date()
-    const startDate = new Date(marathon.startDate)
-    const endDate = new Date(marathon.endDate)
-    return now >= startDate && now <= endDate
-  })()
+  const isLive = checkIfLive(marathon)
 
   const isDevelopment = process.env.NODE_ENV === 'development'
   const isByCamera = marathon.mode === 'by-camera'
@@ -67,6 +70,23 @@ export function ExportContent() {
         </div>
       )}
 
+      {!isByCamera && (
+        <div className="mb-8 flex items-start gap-3 rounded-xl border border-border bg-white p-4">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/80 text-muted-foreground/60">
+            <Archive className="h-4 w-4" strokeWidth={1.8} />
+          </div>
+          <div>
+            <p className="text-[13px] font-medium text-foreground">After the marathon</p>
+            <p className="text-[13px] text-muted-foreground leading-relaxed mt-0.5">
+              Photo archives are meant for post-race handoff to organizers. Every participant needs
+              a packed photo folder before you can start; the export then runs on our servers for
+              several minutes and delivers one zip file per competition class (split further when
+              a class is large).
+            </p>
+          </div>
+        </div>
+      )}
+
       {!isByCamera && isLive && isDevelopment && (
         <div className="mb-8 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
           <Switch
@@ -96,10 +116,9 @@ export function ExportContent() {
             </p>
             <p className="text-[13px] text-red-800/80 leading-relaxed mt-0.5">
               {isByCamera
-                ? `${
-                    byCameraExportAccess?.message?.description ??
-                    'Exports are unavailable for the active topic right now.'
-                  } The all-participants spreadsheet remains available because it is not tied to the active topic.`
+                ? `${byCameraExportAccess?.message?.description ??
+                'Exports are unavailable for the active topic right now.'
+                } The all-participants spreadsheet remains available because it is not tied to the active topic.`
                 : 'Exports are not available while the marathon is live. Please wait until the marathon ends to generate exports.'}
             </p>
           </div>
@@ -107,6 +126,33 @@ export function ExportContent() {
       )}
 
       <div className="space-y-10">
+        <section>
+          <div className="flex items-center gap-2.5 mb-4">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
+            <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
+              Archives
+            </p>
+          </div>
+          <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 max-w-lg">
+            {isByCamera
+              ? 'Bulk download original images for the active topic as a single zip file.'
+              : 'Participant photo archives: check readiness, run a server-side export, then download one or more zip files by competition class.'}
+          </p>
+          <div className="space-y-3">
+            {isByCamera ? (
+              <TopicImagesZipCard
+                disabled={shouldDisableExports}
+                topicName={activeTopic?.name ?? null}
+              />
+            ) : (
+              <FullMarathonZipCard
+                exportLocked={shouldDisableExports}
+                marathonEndDate={marathon.endDate}
+              />
+            )}
+          </div>
+        </section>
+
         <section>
           <div className="flex items-center gap-2.5 mb-4">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
@@ -136,28 +182,6 @@ export function ExportContent() {
                 }
               />
             ))}
-          </div>
-        </section>
-
-        <section>
-          <div className="flex items-center gap-2.5 mb-4">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
-            <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
-              Archives
-            </p>
-          </div>
-          <p className="text-[13px] text-muted-foreground leading-relaxed mb-5 max-w-md">
-            Bulk download original submission files as ZIP archives.
-          </p>
-          <div className="space-y-3">
-            {isByCamera ? (
-              <TopicImagesZipCard
-                disabled={shouldDisableExports}
-                topicName={activeTopic?.name ?? null}
-              />
-            ) : (
-              <FullMarathonZipCard disabled={shouldDisableExports} />
-            )}
           </div>
         </section>
       </div>

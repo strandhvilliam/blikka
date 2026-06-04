@@ -6,7 +6,7 @@ export interface ProgressData {
   totalChunks: number
   completedChunks: number
   failedChunks: number
-  lastUpdatedAt?: string
+  lastUpdatedAt: string
   competitionClasses: ReadonlyArray<{
     competitionClassName: string
     totalChunks: number

@@ -10,6 +10,23 @@ interface ProgressDisplayProps {
   percentage: number
 }
 
+function getProgressStatusLabel(status: ProgressData['status']): string {
+  switch (status) {
+    case 'initializing':
+      return 'Preparing export'
+    case 'processing':
+      return 'Building archives'
+    case 'completed':
+      return 'Export complete'
+    case 'failed':
+      return 'Export failed'
+    case 'cancelled':
+      return 'Export cancelled'
+    default:
+      return status
+  }
+}
+
 export function ProgressDisplay({ progress, percentage }: ProgressDisplayProps) {
   return (
     <div className="space-y-2">
@@ -24,7 +41,7 @@ export function ProgressDisplay({ progress, percentage }: ProgressDisplayProps) 
           ) : (
             <AlertTriangle className="h-4 w-4 text-red-600" />
           )}
-          <span className="capitalize">{progress.status}</span>
+          <span>{getProgressStatusLabel(progress.status)}</span>
         </div>
         <span className="text-muted-foreground">{percentage}%</span>
       </div>
@@ -43,8 +60,8 @@ export function ProgressDisplay({ progress, percentage }: ProgressDisplayProps) 
       </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          {progress.completedChunks.toLocaleString()} / {progress.totalChunks.toLocaleString()}{' '}
-          chunks
+          {progress.completedChunks.toLocaleString()} of {progress.totalChunks.toLocaleString()}{' '}
+          batches complete
         </span>
         {progress.failedChunks > 0 && (
           <span className="text-red-600">{progress.failedChunks.toLocaleString()} failed</span>

@@ -16,20 +16,21 @@ export function StatusDisplay({ domain, status }: StatusDisplayProps) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <AlertTriangle className="h-4 w-4 text-amber-500" />
-        <span>No participants found for this marathon.</span>
+        <span>No participants are registered for this marathon yet.</span>
       </div>
     )
   }
 
   const missingCount = status.missingReferences.length
-  const hasAllZips = missingCount === 0
+  const hasAllReady = missingCount === 0
 
-  if (hasAllZips) {
+  if (hasAllReady) {
     return (
       <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
         <CheckCircle className="h-4 w-4" />
         <span>
-          All {status.totalParticipants.toLocaleString()} participants have zipped submissions.
+          All {status.totalParticipants.toLocaleString()} participants have photo folders ready
+          for export.
         </span>
       </div>
     )
@@ -39,13 +40,13 @@ export function StatusDisplay({ domain, status }: StatusDisplayProps) {
     <div className="space-y-1">
       <div className="flex items-center gap-2 text-sm">
         <span className="text-muted-foreground">
-          {status.withZippedSubmissions.toLocaleString()} /{' '}
-          {status.totalParticipants.toLocaleString()} participants have zipped submissions.
+          {status.withZippedSubmissions.toLocaleString()} of{' '}
+          {status.totalParticipants.toLocaleString()} participants have photo folders ready.
         </span>
       </div>
       <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
         <AlertTriangle className="h-4 w-4 shrink-0" />
-        <span>{missingCount.toLocaleString()} missing: </span>
+        <span>{missingCount.toLocaleString()} still need packing before export: </span>
         {missingCount <= 3 ? (
           <div className="flex gap-1">
             {status.missingReferences.map((ref) => (
@@ -101,7 +102,7 @@ function MissingParticipantsPopover({ domain, references }: MissingParticipantsP
       </PopoverTrigger>
       <PopoverContent align="start" className="max-h-80 overflow-y-auto w-64">
         <div className="space-y-2">
-          <h4 className="text-sm font-medium">Missing Participants</h4>
+          <h4 className="text-sm font-medium">Participants not ready for export</h4>
           <div className="grid grid-cols-2 gap-1">
             {references.map((ref) => (
               <Link

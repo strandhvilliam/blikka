@@ -12,6 +12,11 @@ export const serverRuntime = createRuntime({
   additionalLayers: AppSpecificLayers,
 })
 
+/** Auth-only runtime — avoids building the full ApiLayer graph for session checks. */
+export const authServerRuntime = createRuntime({
+  additionalLayers: AuthLayer,
+})
+
 type ApiLayerServices = Layer.Success<typeof ApiLayer>
 // type TelemetryServices = Layer.Success<ReturnType<typeof TelemetryLayer>>
 

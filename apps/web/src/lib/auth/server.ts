@@ -2,11 +2,11 @@ import 'server-only'
 
 import { BetterAuthService, type Session } from '@blikka/auth'
 import { headers } from 'next/headers'
-import { serverRuntime } from '@/lib/server-runtime'
+import { authServerRuntime } from '@/lib/server-runtime'
 export { AuthConfigLayer, AuthLayer } from './layer'
 
 export function getAuth() {
-  return serverRuntime.runPromise(BetterAuthService)
+  return authServerRuntime.runPromise(BetterAuthService)
 }
 
 export async function getAppSession(): Promise<Session | null> {

@@ -58,6 +58,17 @@ export function ExportSkeleton() {
         <section>
           <div className="flex items-center gap-2.5 mb-4">
             <Skeleton className="h-1.5 w-1.5 rounded-full" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <Skeleton className="h-3.5 w-80 mb-5" />
+          <div className="space-y-3">
+            <ExportCardSkeleton hasOptions={false} />
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center gap-2.5 mb-4">
+            <Skeleton className="h-1.5 w-1.5 rounded-full" />
             <Skeleton className="h-3 w-40" />
           </div>
           <Skeleton className="h-3.5 w-72 mb-5" />
@@ -65,17 +76,6 @@ export function ExportSkeleton() {
             <ExportCardSkeleton hasOptions={false} />
             <ExportCardSkeleton hasOptions={false} />
             <ExportCardSkeleton />
-          </div>
-        </section>
-
-        <section>
-          <div className="flex items-center gap-2.5 mb-4">
-            <Skeleton className="h-1.5 w-1.5 rounded-full" />
-            <Skeleton className="h-3 w-20" />
-          </div>
-          <Skeleton className="h-3.5 w-64 mb-5" />
-          <div className="space-y-3">
-            <ExportCardSkeleton hasOptions={false} />
           </div>
         </section>
       </div>
