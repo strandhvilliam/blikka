@@ -5,7 +5,7 @@ import { RedisClientLayer } from '@blikka/redis'
 import { NodeServices } from '@effect/platform-node'
 import { PubSubServiceLayer } from '@blikka/pubsub'
 import { S3ServiceLayer, SQSServiceLayer, SMSServiceLayer } from '@blikka/aws'
-import { UploadSessionRepositoryLayer } from '@blikka/kv-store'
+import { DownloadStateRepositoryLayer, UploadSessionRepositoryLayer } from '@blikka/kv-store'
 import { ValidationEngineLayer } from '@blikka/validation'
 import {
   SharpImageServiceLayer,
@@ -25,6 +25,7 @@ export const CoreLayer = Layer.mergeAll(
   S3ServiceLayer,
   SQSServiceLayer,
   UploadSessionRepositoryLayer,
+  DownloadStateRepositoryLayer,
   SharpImageServiceLayer,
   ContactSheetBuilderLayer,
   ExifParserLayer,

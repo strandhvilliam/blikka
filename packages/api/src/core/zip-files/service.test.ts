@@ -2,10 +2,15 @@ import { assert, describe, it } from '@effect/vitest'
 import { S3Service } from '@blikka/aws'
 import { DownloadStateRepository } from '@blikka/kv-store'
 import { ParticipantsRepository, ZippedSubmissionsRepository } from '@blikka/db'
-import { Effect, Layer, Option, Ref } from 'effect'
+import { Cause, Effect, Exit, Layer, Option, Ref } from 'effect'
 
+import { ZipWorker } from '@blikka/uploads/zip-worker'
+
+import { ConflictError } from '../errors'
 import { configLayerFromEnv } from '../test/config-layer'
+import { ZipDownloadCleanup } from './cleanup-download-process'
 import { ZipFilesService, ZipFilesServiceLayerNoDeps } from './service'
+import { ZipDownloaderTrigger } from './trigger-zip-downloader-job'
 
 const domain = 'demo'
 const processId = 'process-1'
@@ -38,8 +43,15 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
 const updateTestState = (stateRef: Ref.Ref<TestState>, f: (state: TestState) => TestState) =>
   Ref.update(stateRef, f)
 
-const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
-  const zippedSubmissionsRepository = ZippedSubmissionsRepository.of({
+interface TestLayerOverrides {
+  readonly zippedSubmissionsRepository?: ZippedSubmissionsRepository['Service']
+  readonly downloadStateRepository?: DownloadStateRepository['Service']
+}
+
+const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrides = {}) => {
+  const zippedSubmissionsRepository =
+    overrides.zippedSubmissionsRepository ??
+    ZippedSubmissionsRepository.of({
     getZipSubmissionStatsByDomain: () =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
@@ -48,7 +60,9 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     getZippedSubmissionsByDomain: () => Effect.succeed([]),
   } as unknown as ZippedSubmissionsRepository['Service'])
 
-  const downloadStateRepository = DownloadStateRepository.of({
+  const downloadStateRepository =
+    overrides.downloadStateRepository ??
+    DownloadStateRepository.of({
     getDownloadProcess: (id: string) =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
@@ -75,10 +89,14 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     saveChunkState: () => Effect.void,
     getChunkState: () => Effect.succeed(Option.none()),
     addJobToProcess: () => Effect.void,
+    getProcessJobIds: () => Effect.succeed([]),
+    deleteChunkState: () => Effect.succeed(1),
+    deleteDownloadProcess: () => Effect.succeed(1),
   } as unknown as DownloadStateRepository['Service'])
 
   const s3Service = S3Service.of({
     getPresignedUrl: (_bucket: string, key: string) => Effect.succeed(`https://example.com/${key}`),
+    deleteFile: () => Effect.succeed({} as never),
   } as unknown as S3Service['Service'])
 
   const participantsRepository = ParticipantsRepository.of({
@@ -102,6 +120,20 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       ),
   } as unknown as ParticipantsRepository['Service'])
 
+  const zipDownloadCleanup = ZipDownloadCleanup.of({
+    cleanupDownloadProcessArtifacts: () =>
+      Effect.succeed({ deletedZipKeys: [], deletedChunkStates: 0 }),
+    rollbackFailedZipInitialization: () => Effect.void,
+  })
+
+  const zipDownloaderTrigger = ZipDownloaderTrigger.of({
+    triggerJob: () => Effect.void,
+  })
+
+  const zipWorker = ZipWorker.of({
+    runZipTask: () => Effect.void,
+  } as unknown as ZipWorker['Service'])
+
   return ZipFilesServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -109,6 +141,9 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(ParticipantsRepository)(participantsRepository),
         Layer.succeed(DownloadStateRepository)(downloadStateRepository),
         Layer.succeed(S3Service)(s3Service),
+        Layer.succeed(ZipDownloadCleanup)(zipDownloadCleanup),
+        Layer.succeed(ZipDownloaderTrigger)(zipDownloaderTrigger),
+        Layer.succeed(ZipWorker)(zipWorker),
       ),
     ),
   )
@@ -290,25 +325,7 @@ describe('ZipFilesService', () => {
         addJobToProcess: () => Effect.void,
       } as unknown as DownloadStateRepository['Service'])
 
-      const layer = ZipFilesServiceLayerNoDeps.pipe(
-        Layer.provide(
-          Layer.mergeAll(
-            Layer.succeed(ZippedSubmissionsRepository)(
-              ZippedSubmissionsRepository.of({
-                getZipSubmissionStatsByDomain: () => Effect.succeed(makeInitialState().stats),
-                getZippedSubmissionsByDomain: () => Effect.succeed([]),
-              } as unknown as ZippedSubmissionsRepository['Service']),
-            ),
-            Layer.succeed(DownloadStateRepository)(downloadStateRepository),
-            Layer.succeed(S3Service)(
-              S3Service.of({
-                getPresignedUrl: (_bucket: string, key: string) =>
-                  Effect.succeed(`https://example.com/${key}`),
-              } as unknown as S3Service['Service']),
-            ),
-          ),
-        ),
-      )
+      const layer = makeTestLayer(stateRef, { downloadStateRepository })
 
       const result = yield* Effect.gen(function* () {
         const service = yield* ZipFilesService
@@ -337,6 +354,65 @@ describe('ZipFilesService', () => {
 
       assert.equal(result.downloadUrl, `https://example.com/${domain}/0042.zip`)
       assert.equal(result.filename, '0042.zip')
+    }),
+  )
+
+  it.effect('rejects initialize when a zip export is already in progress', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(
+        makeInitialState({
+          activeProcessByDomain: {
+            [domain]: processId,
+          },
+          processes: {
+            [processId]: {
+              processId,
+              domain,
+              status: 'processing',
+              totalChunks: 2,
+              completedChunks: 0,
+              failedChunks: 0,
+              failedJobIds: [],
+              lastUpdatedAt: '2026-01-01T00:00:00.000Z',
+              competitionClasses: [],
+              jobIds: [],
+            },
+          },
+        }),
+      )
+
+      const zippedSubmissionsRepository = ZippedSubmissionsRepository.of({
+        getZipSubmissionStatsByDomain: () =>
+          Effect.gen(function* () {
+            const state = yield* Ref.get(stateRef)
+            return state.stats
+          }),
+        getZippedSubmissionsByDomain: () =>
+          Effect.succeed([
+            {
+              key: `${domain}/0001.zip`,
+              participant: {
+                reference: '1',
+                competitionClass: { id: 1, name: 'Open' },
+              },
+            },
+          ]),
+      } as unknown as ZippedSubmissionsRepository['Service'])
+
+      const layer = makeTestLayer(stateRef, { zippedSubmissionsRepository })
+
+      const exit = yield* Effect.gen(function* () {
+        const service = yield* ZipFilesService
+        return yield* service.initializeZipDownloads({ domain })
+      }).pipe(
+        Effect.provide(layer),
+        Effect.provide(configLayerFromEnv({ ZIPS_BUCKET_NAME: 'zips-bucket' })),
+        Effect.exit,
+      )
+
+      assert.isTrue(Exit.isFailure(exit))
+      const error = Cause.squash(exit.cause)
+      assert.instanceOf(error, ConflictError)
     }),
   )
 })

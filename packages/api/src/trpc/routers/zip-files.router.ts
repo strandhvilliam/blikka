@@ -5,7 +5,7 @@ import { trpcEffect } from '../utils'
 import {
   InitializeZipDownloadsInputSchema,
   GetZipSubmissionStatusInputSchema,
-  GetZipDownloadProgressInputSchema,
+  ZipDownloadsByProcessIdInputSchema,
   GetActiveProcessInputSchema,
   CancelDownloadProcessInputSchema,
   GenerateParticipantZipInputSchema,
@@ -44,30 +44,8 @@ export const zipFilesRouter = createTRPCRouter({
       ),
     ),
 
-  getZipDownloadProgress: domainProcedure
-    .input(Schema.toStandardSchemaV1(GetZipDownloadProgressInputSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .query(
-      trpcEffect(
-        Effect.fn('ZipFilesRouter.getZipDownloadProgress')(function* ({ input }) {
-          const result = yield* ZipFilesService.use((s) =>
-            s.getZipDownloadProgress({
-              processId: input.processId,
-            }),
-          )
-
-          // if (result === null) {
-          //   return yield* Effect.fail(
-          //     new ZipFilesApiError({ message: "Download process not found" }),
-          //   );
-          // }
-          return result
-        }),
-      ),
-    ),
-
   getZipDownloadUrls: domainProcedure
-    .input(Schema.toStandardSchemaV1(GetZipDownloadProgressInputSchema))
+    .input(Schema.toStandardSchemaV1(ZipDownloadsByProcessIdInputSchema))
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(

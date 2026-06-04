@@ -38,33 +38,12 @@ export const GetZipSubmissionStatusOutputSchema = Schema.Struct({
   missingReferences: Schema.Array(Schema.String),
 })
 
-export const GetZipDownloadProgressInputSchema = Schema.Struct({
+export const ZipDownloadsByProcessIdInputSchema = Schema.Struct({
   domain: Schema.String,
   processId: Schema.String,
 })
 
-export const GetZipDownloadProgressOutputSchema = Schema.Struct({
-  processId: Schema.String,
-  status: Schema.Union([
-    Schema.Literal('initializing'),
-    Schema.Literal('processing'),
-    Schema.Literal('completed'),
-    Schema.Literal('failed'),
-    Schema.Literal('cancelled'),
-  ]),
-  totalChunks: Schema.Number,
-  completedChunks: Schema.Number,
-  failedChunks: Schema.Number,
-  competitionClasses: Schema.Array(
-    Schema.Struct({
-      competitionClassId: Schema.Number,
-      competitionClassName: Schema.String,
-      totalChunks: Schema.Number,
-    }),
-  ),
-})
-
-// New schemas for active process tracking and cancellation
+// Active process tracking and cancellation
 export const GetActiveProcessInputSchema = Schema.Struct({
   domain: Schema.String,
 })
@@ -83,14 +62,6 @@ export type GetZipSubmissionStatusInput = Schema.Schema.Type<
 export type GetZipSubmissionStatusOutput = Schema.Schema.Type<
   typeof GetZipSubmissionStatusOutputSchema
 >
-export type GetZipDownloadProgressInput = Schema.Schema.Type<
-  typeof GetZipDownloadProgressInputSchema
->
-export type GetZipDownloadProgressOutput = Schema.Schema.Type<
-  typeof GetZipDownloadProgressOutputSchema
->
+export type ZipDownloadsByProcessIdInput = Schema.Schema.Type<typeof ZipDownloadsByProcessIdInputSchema>
 export type GetActiveProcessInput = Schema.Schema.Type<typeof GetActiveProcessInputSchema>
 export type CancelDownloadProcessInput = Schema.Schema.Type<typeof CancelDownloadProcessInputSchema>
-
-/** Narrowing of {@link GetZipDownloadProgressInput} after domain-scoped middleware; service lookups use `processId` only. */
-export type ZipDownloadsByProcessIdInput = Pick<GetZipDownloadProgressInput, 'processId'>
