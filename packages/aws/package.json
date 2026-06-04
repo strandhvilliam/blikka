@@ -23,6 +23,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@aws-sdk/client-ecs": "^3.966.0",
     "@aws-sdk/client-eventbridge": "^3.887.0",
     "@aws-sdk/client-s3": "^3.932.0",
     "@aws-sdk/client-sns": "^3.932.0",
