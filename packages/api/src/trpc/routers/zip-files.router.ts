@@ -52,6 +52,7 @@ export const zipFilesRouter = createTRPCRouter({
         Effect.fn('ZipFilesRouter.getZipDownloadUrls')(function* ({ input }) {
           const result = yield* ZipFilesService.use((s) =>
             s.getZipDownloadUrls({
+              domain: input.domain,
               processId: input.processId,
             }),
           )

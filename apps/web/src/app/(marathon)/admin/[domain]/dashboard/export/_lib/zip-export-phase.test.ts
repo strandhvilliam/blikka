@@ -14,6 +14,7 @@ const baseProcess: ProgressData = {
   totalChunks: 4,
   completedChunks: 1,
   failedChunks: 0,
+  lastUpdatedAt: '2026-01-01T00:00:00.000Z',
   competitionClasses: [],
 }
 
