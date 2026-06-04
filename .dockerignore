@@ -1,3 +1,20 @@
+# Git metadata (includes socket files Docker cannot hash)
+.git
 
-# sst
+# SST / local tooling
 .sst
+.cursor
+
+# Dependencies and build output (reinstalled inside the image)
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+.turbo
+
+# Env and logs
+.env
+.env.*
+*.log

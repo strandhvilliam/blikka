@@ -81,7 +81,7 @@ Blikka expects configuration for auth, database, Redis, and external services. S
 
 ## Scripts
 
-- `bun dev:sst`: run SST dev (AWS-backed local dev for infra + workers)
+- `bun dev:sst`: run SST dev (AWS-backed local dev for infra + workers). **ZipHandlerTask** runs locally under **Tasks** in the multiplexer. Zip export uses ECS — set `AWS_CLUSTER`, `AWS_REGION`, `AWS_SUBNETS`, and `ZIP_DOWNLOADER_TASK_DEFINITION` in `.env`.
 - `bun dev:web`: run the Next.js app locally (port 3002)
 - `bun format`: format with Prettier
 - `bun test`: run unit tests (Vitest)

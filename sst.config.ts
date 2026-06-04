@@ -142,18 +142,25 @@ export default $config({
         dockerfile: '/tasks/zip-worker/Dockerfile',
       },
       link: [submissionsBucket, zipsBucket],
-      // dev: false,
+      dev: {
+        command: 'bun run src/index.ts',
+        directory: 'tasks/zip-worker',
+      },
     })
 
-    const zipDownloaderTask = new sst.aws.Task('ZipDownloaderTask', {
+    new sst.aws.Task('ZipDownloaderTask', {
       cluster,
+      // Merges up to 200 participant zips per chunk entirely in memory (S3 download → JSZip extract → archiver).
+      cpu: '2 vCPU',
+      memory: '8 GB',
       image: {
         dockerfile: '/tasks/zip-downloader/Dockerfile',
       },
       environment: env,
       link: [zipsBucket],
-      // dev: false,
+      dev: false,
     })
+
 
     /* QUEUE HANDLERS */
     uploadProcessorQueue.subscribe({
