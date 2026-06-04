@@ -2,6 +2,7 @@ import { Context, Duration, Effect, Layer, Option, Schedule, Schema, Struct } fr
 import { RedisClient, RedisClientLayer } from '@blikka/redis'
 import { Keys } from './key-factory'
 import { incrementParticipantScript } from './lua-scripts/lua-increment'
+import { updateValidationDecisionScript } from './lua-scripts/update-validation-decision-script'
 
 export const ParticipantStateSchema = Schema.Struct({
   uploadSessionId: Schema.String,
@@ -33,6 +34,14 @@ export const IncrementResultSchema = Schema.Literals([
   'DUPLICATE_ORDER_INDEX',
   'ALREADY_FINALIZED',
   'INVALID_ORDER_INDEX',
+  'MISSING_DATA',
+])
+
+export const UpdateValidationDecisionResultSchema = Schema.Literals([
+  'UPDATED',
+  'STALE_SESSION',
+  'NOT_FINALIZED',
+  'ALREADY_VALIDATED',
   'MISSING_DATA',
 ])
 
@@ -93,6 +102,7 @@ export type UploadSessionRepositoryError =
   | UploadSessionSubmissionDataMissing
 
 export type IncrementResult = typeof IncrementResultSchema.Type
+export type UpdateValidationDecisionResult = typeof UpdateValidationDecisionResultSchema.Type
 export type ParticipantState = typeof ParticipantStateSchema.Type
 export type SubmissionState = typeof SubmissionStateSchema.Type
 
@@ -139,6 +149,22 @@ export class UploadSessionRepository extends Context.Service<
     ) => Effect.Effect<number, UploadSessionRepositoryError>
 
     /**
+     * Atomically write validation decision only for the current finalized upload session.
+     * Guards session id, `finalized`, and single write (`validated` must be false).
+     * @see `@blikka/uploads/flagged-verification-flow`
+     */
+    readonly updateValidationDecisionForSession: (
+      domain: string,
+      ref: string,
+      uploadSessionId: string,
+      validationDecision: 'passed' | 'flagged',
+      validatedAt: string,
+    ) => Effect.Effect<
+      { readonly status: UpdateValidationDecisionResult },
+      UploadSessionRepositoryError
+    >
+
+    /**
      * Update the submission state in KV for a given domain and reference and order index.
      */
     readonly updateSubmissionSession: (
@@ -175,8 +201,28 @@ export class UploadSessionRepository extends Context.Service<
       ref: string,
       orderIndex: number,
     ) => Effect.Effect<{ readonly status: IncrementResult }, UploadSessionRepositoryError>
+
+    /**
+     * Claim the right to emit a finalize bus event for this upload session (SET NX).
+     * A new `uploadSessionId` after re-upload gets its own key.
+     */
+    readonly claimFinalizeEventEmission: (
+      domain: string,
+      ref: string,
+      uploadSessionId: string,
+    ) => Effect.Effect<boolean, UploadSessionRepositoryError>
+
+    /** Release a finalize claim so a failed bus publish can be retried safely. */
+    readonly releaseFinalizeEventEmission: (
+      domain: string,
+      ref: string,
+      uploadSessionId: string,
+    ) => Effect.Effect<void, UploadSessionRepositoryError>
   }
 >()('@blikka/packages/kv-store/upload-session-repository') {}
+
+/** Long enough to cover event-day retries; distinct per upload session. */
+const FINALIZE_EVENT_CLAIM_TTL_SECONDS = 60 * 60 * 24 * 30
 
 const makeUploadSessionRepository = Effect.gen(function* () {
   const redis = yield* RedisClient
@@ -357,6 +403,52 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         Effect.annotateLogs(effect, { domain, reference: ref, orderIndex }),
     )
 
+  const updateValidationDecisionForSession: UploadSessionRepository['Service']['updateValidationDecisionForSession'] =
+    Effect.fn('UploadSessionRepository.updateValidationDecisionForSession')(
+      function* (domain, ref, uploadSessionId, validationDecision, validatedAt) {
+        const key = Keys.participant(domain, ref)
+        const result = yield* redis
+          .use((client) =>
+            updateValidationDecisionScript.run(client, {
+              keys: { key },
+              args: { uploadSessionId, validationDecision, validatedAt },
+            }),
+          )
+          .pipe(
+            Effect.retry(retryPolicy),
+            Effect.catchTag('RedisError', (e) =>
+              Effect.fail(
+                new UploadSessionStoreUnavailable({
+                  operation: 'updateValidationDecisionForSession',
+                  cause: e,
+                }),
+              ),
+            ),
+          )
+
+        const status = yield* Schema.decodeUnknownEffect(UpdateValidationDecisionResultSchema)(
+          result,
+        ).pipe(
+          Effect.mapError(
+            (issue) =>
+              new UploadSessionInvariantViolated({
+                reason: 'unexpected_increment_payload',
+                cause: issue,
+              }),
+          ),
+        )
+
+        return { status }
+      },
+      (effect, domain, ref, uploadSessionId, validationDecision) =>
+        Effect.annotateLogs(effect, {
+          domain,
+          reference: ref,
+          uploadSessionId,
+          validationDecision,
+        }),
+    )
+
   const initializeState: UploadSessionRepository['Service']['initializeState'] = Effect.fn(
     'UploadSessionRepository.initState',
   )(
@@ -521,15 +613,66 @@ const makeUploadSessionRepository = Effect.gen(function* () {
         Effect.annotateLogs(effect, { domain, reference: ref, orderIndex }),
     )
 
+  const claimFinalizeEventEmission: UploadSessionRepository['Service']['claimFinalizeEventEmission'] =
+    Effect.fn('UploadSessionRepository.claimFinalizeEventEmission')(
+      function* (domain, ref, uploadSessionId) {
+        const key = Keys.finalizeEventClaim(domain, ref, uploadSessionId)
+        const result = yield* redis
+          .use((client) =>
+            client.set(key, '1', { nx: true, ex: FINALIZE_EVENT_CLAIM_TTL_SECONDS }),
+          )
+          .pipe(
+            Effect.retry(retryPolicy),
+            Effect.catchTag('RedisError', (e) =>
+              Effect.fail(
+                new UploadSessionStoreUnavailable({
+                  operation: 'claimFinalizeEventEmission',
+                  cause: e,
+                }),
+              ),
+            ),
+          )
+
+        return result === 'OK'
+      },
+      (effect, domain, ref, uploadSessionId) =>
+        Effect.annotateLogs(effect, { domain, reference: ref, uploadSessionId }),
+    )
+
+  const releaseFinalizeEventEmission: UploadSessionRepository['Service']['releaseFinalizeEventEmission'] =
+    Effect.fn('UploadSessionRepository.releaseFinalizeEventEmission')(
+      function* (domain, ref, uploadSessionId) {
+        const key = Keys.finalizeEventClaim(domain, ref, uploadSessionId)
+        yield* redis
+          .use((client) => client.del(key))
+          .pipe(
+            Effect.retry(retryPolicy),
+            Effect.catchTag('RedisError', (e) =>
+              Effect.fail(
+                new UploadSessionStoreUnavailable({
+                  operation: 'releaseFinalizeEventEmission',
+                  cause: e,
+                }),
+              ),
+            ),
+          )
+      },
+      (effect, domain, ref, uploadSessionId) =>
+        Effect.annotateLogs(effect, { domain, reference: ref, uploadSessionId }),
+    )
+
   return UploadSessionRepository.of({
     getParticipantState,
     getSubmissionState,
     getAllSubmissionStates,
     updateParticipantSession,
+    updateValidationDecisionForSession,
     updateSubmissionSession,
     initializeState,
     setParticipantErrorState,
     incrementParticipantState,
+    claimFinalizeEventEmission,
+    releaseFinalizeEventEmission,
   })
 })
 

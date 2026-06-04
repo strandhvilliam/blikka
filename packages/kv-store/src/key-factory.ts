@@ -7,6 +7,9 @@ export const Keys = {
   exif: (domain: string, ref: string, orderIndex: number) =>
     `exif:${domain}:${ref}:${formatOrderIndex(orderIndex)}`,
   participant: (domain: string, ref: string) => `participant:${domain}:${ref}`,
+  /** Idempotency token: one finalize bus emission per upload session. */
+  finalizeEventClaim: (domain: string, ref: string, uploadSessionId: string) =>
+    `finalize-event:${domain}:${ref}:${uploadSessionId}`,
   downloadState: (jobId: string) => `download-state:${jobId}`,
   downloadStateFiles: (jobId: string) => `download-state:${jobId}:files`,
   downloadProcess: (processId: string) => `download-process:${processId}`,
