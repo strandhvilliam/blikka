@@ -1,10 +1,11 @@
 import {
   DbLayer,
+  MarathonsRepository,
   ParticipantsRepository,
   SubmissionsRepository,
   type NewSubmission,
-  type Participant,
   type DbError,
+  type ParticipantStatusTransitionResult,
 } from '@blikka/db'
 import {
   ExifKVRepository,
@@ -18,6 +19,7 @@ import {
   type UploadSessionRepositoryError,
 } from '@blikka/kv-store'
 import { Context, Effect, Layer, Option, Schema } from 'effect'
+import { resolveMarathonVerificationMode } from './flagged-verification-flow'
 
 export interface FinalizeParticipantInput {
   readonly domain: string
@@ -52,22 +54,26 @@ export class UploadFinalizer extends Context.Service<
   UploadFinalizer,
   {
     /**
-     * Finalizes a participant after all submissions are processed.
-     * Will update the participant status to "completed" and the submissions status to "uploaded".
-     * This is the step to also trigger realtime completion event, but validation and other steps are not neccessarily completed at this point.
+     * Finalizes a participant after all submissions are processed: writes submission rows, then
+     * settles DB status (typically `completed`, or auto-`verified` in flagged mode when validation
+     * already wrote `passed` to KV). Validation may still be in flight; see `flagged-verification-flow`.
      */
     readonly finalize: (
       input: FinalizeParticipantInput,
-    ) => Effect.Effect<void, UploadFinalizerError>
+    ) => Effect.Effect<ParticipantStatusTransitionResult, UploadFinalizerError>
   }
 >()('@blikka/uploads/UploadFinalizer') {}
 
+const unchangedStatusTransition: ParticipantStatusTransitionResult = {
+  changed: false,
+  changedToVerified: false,
+  status: null,
+}
+
 function shouldSkipFinalize({
-  participant,
   participantState,
   uploadSessionId,
 }: {
-  readonly participant: Participant
   readonly participantState: ParticipantState
   readonly uploadSessionId: string
 }): FinalizeSkipDecision {
@@ -82,14 +88,6 @@ function shouldSkipFinalize({
     return {
       shouldSkip: true,
       message: 'Dropping finalized event for non-current upload session',
-    }
-  }
-
-  // In by-camera mode the same participant is reused. Should be reset when initialized but no need to be blocked either.
-  if (participant.status === 'completed' && participant.participantMode !== 'by-camera') {
-    return {
-      shouldSkip: true,
-      message: 'Participant already completed, skipping',
     }
   }
 
@@ -123,8 +121,55 @@ function buildSubmissionUpdates(
 const makeUploadFinalizer = Effect.gen(function* () {
   const submissionsRepository = yield* SubmissionsRepository
   const participantsRepository = yield* ParticipantsRepository
+  const marathonsRepository = yield* MarathonsRepository
   const uploadKv = yield* UploadSessionRepository
   const exifKv = yield* ExifKVRepository
+
+  const getVerificationMode = Effect.fnUntraced(function* (domain: string) {
+    const marathon = yield* marathonsRepository.getMarathonByDomain({ domain })
+    return Option.match(marathon, {
+      onNone: () => resolveMarathonVerificationMode(undefined),
+      onSome: (value) => resolveMarathonVerificationMode(value),
+    })
+  })
+
+  /** Re-reads KV for the current session, then `settleFinalizedParticipantStatus` with `canMarkCompleted: true`. */
+  const settleStatus = Effect.fnUntraced(function* ({
+    domain,
+    reference,
+    uploadSessionId,
+  }: {
+    domain: string
+    reference: string
+    uploadSessionId: string
+  }) {
+    const [verificationMode, latestParticipantStateOpt] = yield* Effect.all(
+      [getVerificationMode(domain), uploadKv.getParticipantState(domain, reference)],
+      { concurrency: 2 },
+    )
+    const validationDecision = Option.match(latestParticipantStateOpt, {
+      onNone: () => null,
+      onSome: (state) => {
+        if (state.uploadSessionId !== uploadSessionId) {
+          return undefined
+        }
+        return state.validationDecision ?? null
+      },
+    })
+
+    if (validationDecision === undefined) {
+      yield* Effect.logWarning('Skipping status transition for stale upload session')
+      return unchangedStatusTransition
+    }
+
+    return yield* participantsRepository.settleFinalizedParticipantStatus({
+      reference,
+      domain,
+      canMarkCompleted: true,
+      verificationMode,
+      validationDecision,
+    })
+  })
 
   const finalize = Effect.fn('UploadFinalizer.finalizeParticipant')(
     function* ({ domain, reference, uploadSessionId }: FinalizeParticipantInput) {
@@ -144,18 +189,16 @@ const makeUploadFinalizer = Effect.gen(function* () {
         })
       }
 
-      const participant = participantOpt.value
       const participantState = participantStateOpt.value
 
       const skipDecision = shouldSkipFinalize({
-        participant,
         participantState,
         uploadSessionId,
       })
 
       if (skipDecision.shouldSkip) {
         yield* Effect.logWarning(skipDecision.message)
-        return
+        return unchangedStatusTransition
       }
 
       const orderIndexes = [...participantState.orderIndexes]
@@ -201,11 +244,24 @@ const makeUploadFinalizer = Effect.gen(function* () {
         domain,
         updates,
       })
-      yield* participantsRepository.updateParticipantByReference({
+
+      // Two passes so a concurrent validation finishing with `passed` can trigger auto-verify here.
+      const firstTransition = yield* settleStatus({
         reference,
         domain,
-        data: { status: 'completed' },
+        uploadSessionId,
       })
+      const secondTransition = yield* settleStatus({
+        reference,
+        domain,
+        uploadSessionId,
+      })
+
+      return {
+        changed: firstTransition.changed || secondTransition.changed,
+        changedToVerified: firstTransition.changedToVerified || secondTransition.changedToVerified,
+        status: secondTransition.status ?? firstTransition.status,
+      }
     },
     (effect, input) => Effect.annotateLogs(effect, { ...input }),
   )

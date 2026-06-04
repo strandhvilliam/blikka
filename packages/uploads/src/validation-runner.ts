@@ -1,5 +1,11 @@
-import { DbLayer, RulesRepository, ValidationsRepository } from '@blikka/db'
-import type { DbError, RuleConfig } from '@blikka/db'
+import {
+  DbLayer,
+  MarathonsRepository,
+  ParticipantsRepository,
+  RulesRepository,
+  ValidationsRepository,
+} from '@blikka/db'
+import type { DbError, ParticipantStatusTransitionResult, RuleConfig } from '@blikka/db'
 import { S3Service, S3ServiceLayer } from '@blikka/aws'
 import {
   ExifKVRepository,
@@ -20,6 +26,7 @@ import {
 } from '@blikka/validation'
 import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { UploadsConfig, UploadsConfigLayer } from './config'
+import { resolveMarathonVerificationMode } from './flagged-verification-flow'
 import { getValidationDecision } from './validation-decision'
 
 export class ValidationRunnerInvalidDataError extends Schema.TaggedErrorClass<ValidationRunnerInvalidDataError>()(
@@ -56,17 +63,26 @@ export class ValidationRunner extends Context.Service<
   ValidationRunner,
   {
     /**
-     * Executes the validation runner for a participant.
-     * Will validate the participant's submissions and update the participant state.
+     * Runs upload validation rules, writes the KV decision atomically, and settles DB status
+     * (auto-`verified` when flagged mode + `passed` and participant is already `completed`).
+     * See `flagged-verification-flow` for the full pipeline.
      */
     readonly execute: (
       input: ValidateParticipantInput,
-    ) => Effect.Effect<void, ValidationRunnerError>
+    ) => Effect.Effect<ParticipantStatusTransitionResult, ValidationRunnerError>
   }
 >()('@blikka/uploads/ValidationRunner') {}
 
+const unchangedStatusTransition: ParticipantStatusTransitionResult = {
+  changed: false,
+  changedToVerified: false,
+  status: null,
+}
+
 const makeValidationRunner = Effect.gen(function* () {
   const validationsRepository = yield* ValidationsRepository
+  const participantsRepository = yield* ParticipantsRepository
+  const marathonsRepository = yield* MarathonsRepository
   const rulesRepository = yield* RulesRepository
   const s3 = yield* S3Service
   const uploadKv = yield* UploadSessionRepository
@@ -135,6 +151,89 @@ const makeValidationRunner = Effect.gen(function* () {
   const hasExifFields = (exif: ExifState | null | undefined) =>
     exif !== null && exif !== undefined && Object.keys(exif).length > 0
 
+  const getVerificationMode = Effect.fnUntraced(function* (domain: string) {
+    const marathon = yield* marathonsRepository.getMarathonByDomain({ domain })
+    return Option.match(marathon, {
+      onNone: () => resolveMarathonVerificationMode(undefined),
+      onSome: (value) => resolveMarathonVerificationMode(value),
+    })
+  })
+
+  /** DB-only settlement after KV decision is written; never marks `completed` (`canMarkCompleted: false`). */
+  const settleStatus = Effect.fnUntraced(function* ({
+    domain,
+    reference,
+    validationDecision,
+  }: {
+    domain: string
+    reference: string
+    validationDecision: 'passed' | 'flagged'
+  }) {
+    const verificationMode = yield* getVerificationMode(domain)
+
+    return yield* participantsRepository.settleFinalizedParticipantStatus({
+      reference,
+      domain,
+      canMarkCompleted: false,
+      verificationMode,
+      validationDecision,
+    })
+  })
+
+  /**
+   * Lua-guarded KV write, then DB settlement. `ALREADY_VALIDATED` replays settlement for repair
+   * when validation succeeded earlier but auto-verify did not run.
+   */
+  const writeValidationDecisionForCurrentSession = Effect.fnUntraced(function* ({
+    domain,
+    reference,
+    uploadSessionId,
+    validationDecision,
+  }: {
+    domain: string
+    reference: string
+    uploadSessionId: string
+    validationDecision: 'passed' | 'flagged'
+  }) {
+    const result = yield* uploadKv.updateValidationDecisionForSession(
+      domain,
+      reference,
+      uploadSessionId,
+      validationDecision,
+      new Date().toISOString(),
+    )
+
+    switch (result.status) {
+      case 'UPDATED':
+        return yield* settleStatus({ domain, reference, validationDecision })
+      case 'ALREADY_VALIDATED': {
+        const currentState = yield* uploadKv.getParticipantState(domain, reference)
+        const currentDecision = Option.match(currentState, {
+          onNone: () => null,
+          onSome: (state) =>
+            state.uploadSessionId === uploadSessionId ? (state.validationDecision ?? null) : null,
+        })
+
+        if (currentDecision === 'passed' || currentDecision === 'flagged') {
+          return yield* settleStatus({
+            domain,
+            reference,
+            validationDecision: currentDecision,
+          })
+        }
+
+        return unchangedStatusTransition
+      }
+      case 'STALE_SESSION':
+      case 'NOT_FINALIZED':
+      case 'MISSING_DATA':
+        yield* Effect.logWarning('Skipping validation decision write for non-current session', {
+          status: result.status,
+        })
+        return unchangedStatusTransition
+    }
+  })
+
   const execute = Effect.fn('ValidationRunner.execute')(
     function* ({ domain, reference, uploadSessionId }: ValidateParticipantInput) {
       const participantState = yield* uploadKv.getParticipantState(domain, reference)
@@ -147,28 +246,35 @@ const makeValidationRunner = Effect.gen(function* () {
 
       if (!participantState.value.finalized) {
         yield* Effect.logWarning('Participant state not finalized, skipping validation')
-        return
+        return unchangedStatusTransition
       }
 
       if (participantState.value.uploadSessionId !== uploadSessionId) {
         yield* Effect.logWarning('Dropping validation event for non-current upload session', {
           uploadSessionId,
         })
-        return
+        return unchangedStatusTransition
       }
 
       if (participantState.value.validated) {
         yield* Effect.logWarning('Participant already validated, skipping')
-        return
+        const validationDecision = participantState.value.validationDecision
+        if (validationDecision === 'passed' || validationDecision === 'flagged') {
+          return yield* settleStatus({ domain, reference, validationDecision })
+        }
+        return unchangedStatusTransition
       }
 
-      const markFlagged = uploadKv.updateParticipantSession(domain, reference, {
-        validated: true,
-        validationDecision: 'flagged',
-        validatedAt: new Date().toISOString(),
+      const markFlagged = Effect.gen(function* () {
+        yield* writeValidationDecisionForCurrentSession({
+          domain,
+          reference,
+          uploadSessionId,
+          validationDecision: 'flagged',
+        })
       })
 
-      yield* Effect.gen(function* () {
+      return yield* Effect.gen(function* () {
         const rules = yield* rulesRepository.getRulesByDomain({ domain })
         const orderIndexes = [...participantState.value.orderIndexes]
 
@@ -193,9 +299,7 @@ const makeValidationRunner = Effect.gen(function* () {
         }
 
         const exifStatesWithFieldsByOrderIndex = new Set(
-          exifStates
-            .filter((state) => hasExifFields(state.exif))
-            .map((state) => state.orderIndex),
+          exifStates.filter((state) => hasExifFields(state.exif)).map((state) => state.orderIndex),
         )
         const missingExifOrderIndexes = submissionStates
           .filter((state) => !exifStatesWithFieldsByOrderIndex.has(state.orderIndex))
@@ -218,13 +322,16 @@ const makeValidationRunner = Effect.gen(function* () {
           reference,
         })
 
-        yield* uploadKv.updateParticipantSession(domain, reference, {
-          validated: true,
-          validationDecision: getValidationDecision({
-            results: validationResults,
-            missingExifOrderIndexes,
-          }),
-          validatedAt: new Date().toISOString(),
+        const validationDecision = getValidationDecision({
+          results: validationResults,
+          missingExifOrderIndexes,
+        })
+
+        return yield* writeValidationDecisionForCurrentSession({
+          domain,
+          reference,
+          uploadSessionId,
+          validationDecision,
         })
       }).pipe(Effect.catch((error) => markFlagged.pipe(Effect.andThen(Effect.fail(error)))))
     },

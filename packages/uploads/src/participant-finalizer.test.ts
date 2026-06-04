@@ -1,5 +1,5 @@
 import { assert, describe, it } from '@effect/vitest'
-import { ParticipantsRepository, SubmissionsRepository } from '@blikka/db'
+import { MarathonsRepository, ParticipantsRepository, SubmissionsRepository } from '@blikka/db'
 import {
   ExifKVRepository,
   type ExifState,
@@ -47,13 +47,14 @@ const makeParticipantState = (overrides: Partial<ParticipantState> = {}): Partic
 })
 
 interface TestParticipant {
-  readonly status: 'active' | 'completed'
+  readonly status: 'active' | 'completed' | 'verified'
   readonly participantMode: 'standard' | 'by-camera'
 }
 
 interface TestState {
   readonly participant: TestParticipant | undefined
   readonly participantState: ParticipantState | undefined
+  readonly participantStateAfterSubmissionUpdate: ParticipantState | undefined
   readonly submissionStates: readonly SubmissionState[]
   readonly exifStates: ReadonlyArray<{ orderIndex: number; exif: ExifState }>
   readonly submissionUpdates: ReadonlyArray<{
@@ -72,8 +73,12 @@ interface TestState {
   readonly participantUpdates: ReadonlyArray<{
     domain: string
     reference: string
-    data: { status: 'completed' }
+    canMarkCompleted: boolean
+    verificationMode: 'all' | 'flagged' | 'none'
+    validationDecision: 'pending' | 'passed' | 'flagged' | null | undefined
+    status: 'completed' | 'verified' | null
   }>
+  readonly marathon: { mode: string; verificationMode: string } | undefined
 }
 
 const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
@@ -82,10 +87,12 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
     participantMode: 'standard',
   },
   participantState: makeParticipantState(),
+  participantStateAfterSubmissionUpdate: undefined,
   submissionStates: [submissionState],
   exifStates: [{ orderIndex: 0, exif: { Make: 'Nikon' } }],
   submissionUpdates: [],
   participantUpdates: [],
+  marathon: { mode: 'marathon', verificationMode: 'all' },
   ...overrides,
 })
 
@@ -99,20 +106,63 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         const state = yield* Ref.get(stateRef)
         return Option.fromNullishOr(state.participant)
       }),
-    updateParticipantByReference: ({
+    settleFinalizedParticipantStatus: ({
       domain,
       reference,
-      data,
+      canMarkCompleted,
+      verificationMode,
+      validationDecision,
     }: {
       domain: string
       reference: string
-      data: { status: 'completed' }
+      canMarkCompleted: boolean
+      verificationMode: 'all' | 'flagged' | 'none'
+      validationDecision: 'pending' | 'passed' | 'flagged' | null | undefined
     }) =>
-      updateTestState(stateRef, (state) => ({
-        ...state,
-        participantUpdates: [...state.participantUpdates, { domain, reference, data }],
-      })).pipe(Effect.as(undefined)),
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        if (state.participant?.status === 'verified') {
+          return {
+            changed: false,
+            changedToVerified: false,
+            status: null,
+          }
+        }
+        const shouldVerify = verificationMode === 'flagged' && validationDecision === 'passed'
+        const status = shouldVerify ? 'verified' : canMarkCompleted ? 'completed' : null
+        yield* updateTestState(stateRef, (current) => ({
+          ...current,
+          participantUpdates: [
+            ...current.participantUpdates,
+            {
+              domain,
+              reference,
+              canMarkCompleted,
+              verificationMode,
+              validationDecision,
+              status,
+            },
+          ],
+          participant:
+            current.participant && status
+              ? { ...current.participant, status }
+              : current.participant,
+        }))
+        return {
+          changed: state.participant?.status !== status,
+          changedToVerified: status === 'verified',
+          status,
+        }
+      }),
   } as unknown as ParticipantsRepository['Service'])
+
+  const marathonsRepository = MarathonsRepository.of({
+    getMarathonByDomain: () =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        return Option.fromNullishOr(state.marathon)
+      }),
+  } as unknown as MarathonsRepository['Service'])
 
   const submissionsRepository = SubmissionsRepository.of({
     updateAllSubmissions: ({
@@ -127,6 +177,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       updateTestState(stateRef, (state) => ({
         ...state,
         submissionUpdates: [...state.submissionUpdates, { domain, reference, updates }],
+        participantState: state.participantStateAfterSubmissionUpdate ?? state.participantState,
       })).pipe(Effect.as(undefined)),
   } as unknown as SubmissionsRepository['Service'])
 
@@ -155,6 +206,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(ParticipantsRepository)(participantsRepository),
+        Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(SubmissionsRepository)(submissionsRepository),
         Layer.succeed(UploadSessionRepository)(uploadKv),
         Layer.succeed(ExifKVRepository)(exifKv),
@@ -205,9 +257,87 @@ describe('UploadFinalizer', () => {
         {
           domain: input.domain,
           reference: input.reference,
-          data: { status: 'completed' },
+          canMarkCompleted: true,
+          verificationMode: 'all',
+          validationDecision: null,
+          status: 'completed',
+        },
+        {
+          domain: input.domain,
+          reference: input.reference,
+          canMarkCompleted: true,
+          verificationMode: 'all',
+          validationDecision: null,
+          status: 'completed',
         },
       ])
+    }),
+  )
+
+  it.effect('auto-verifies flagged marathon participants with passed validation', () =>
+    Effect.gen(function* () {
+      const { result, state } = yield* runWithState(
+        makeInitialState({
+          marathon: { mode: 'marathon', verificationMode: 'flagged' },
+          participantState: makeParticipantState({ validationDecision: 'passed' }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const finalizer = yield* UploadFinalizer
+            return yield* finalizer.finalize(input)
+          }),
+      )
+
+      assert.strictEqual(result.changedToVerified, true)
+      assert.deepStrictEqual(
+        state.participantUpdates.map((update) => update.status),
+        ['verified'],
+      )
+    }),
+  )
+
+  it.effect('preserves already verified participants during finalization', () =>
+    Effect.gen(function* () {
+      const { result, state } = yield* runWithState(
+        makeInitialState({
+          participant: {
+            status: 'verified',
+            participantMode: 'standard',
+          },
+          marathon: { mode: 'marathon', verificationMode: 'flagged' },
+          participantState: makeParticipantState({ validationDecision: 'flagged' }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const finalizer = yield* UploadFinalizer
+            return yield* finalizer.finalize(input)
+          }),
+      )
+
+      assert.strictEqual(result.changedToVerified, false)
+      assert.strictEqual(state.participant?.status, 'verified')
+    }),
+  )
+
+  it.effect('does not settle status when the active upload session changes mid-finalization', () =>
+    Effect.gen(function* () {
+      const { result, state } = yield* runWithState(
+        makeInitialState({
+          participantStateAfterSubmissionUpdate: makeParticipantState({
+            uploadSessionId: 'new-session',
+            validationDecision: 'passed',
+          }),
+          marathon: { mode: 'marathon', verificationMode: 'flagged' },
+        }),
+        () =>
+          Effect.gen(function* () {
+            const finalizer = yield* UploadFinalizer
+            return yield* finalizer.finalize(input)
+          }),
+      )
+
+      assert.strictEqual(result.changed, false)
+      assert.deepStrictEqual(state.participantUpdates, [])
     }),
   )
 

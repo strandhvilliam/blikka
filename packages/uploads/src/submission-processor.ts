@@ -258,18 +258,49 @@ const makeSubmissionProcessor = Effect.gen(function* () {
 
     const currentParticipantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
 
+    if (Option.isNone(currentParticipantStateOpt)) {
+      yield* Effect.logWarning('Skipping finalized event without participant state', { key })
+      return
+    }
+
+    const currentParticipantState = currentParticipantStateOpt.value
+
     if (
-      Option.isNone(currentParticipantStateOpt) ||
-      currentParticipantStateOpt.value.uploadSessionId !== uploadSessionId
+      currentParticipantState.uploadSessionId !== uploadSessionId ||
+      !currentParticipantState.finalized
     ) {
-      yield* Effect.logWarning('Skipping finalized event for stale upload session', {
+      yield* Effect.logWarning('Skipping finalized event for stale or non-finalized session', {
         key,
         uploadSessionId,
+        currentUploadSessionId: currentParticipantState.uploadSessionId,
+        finalized: currentParticipantState.finalized,
       })
       return
     }
 
-    yield* bus.sendFinalizedEvent(domain, reference, uploadSessionId)
+    const claimed = yield* uploadKv.claimFinalizeEventEmission(
+      domain,
+      reference,
+      uploadSessionId,
+    )
+
+    if (!claimed) {
+      yield* Effect.logWarning('Finalize bus event already emitted for upload session', {
+        key,
+        uploadSessionId,
+        incrementStatus: status,
+      })
+      return
+    }
+
+    yield* bus.sendFinalizedEvent(domain, reference, uploadSessionId).pipe(
+      Effect.catch((error) =>
+        Effect.gen(function* () {
+          yield* uploadKv.releaseFinalizeEventEmission(domain, reference, uploadSessionId)
+          return yield* Effect.fail(error)
+        }),
+      ),
+    )
   })
 
   const process = Effect.fn('SubmissionProcessor.process')(

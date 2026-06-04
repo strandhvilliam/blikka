@@ -1,5 +1,5 @@
 import { assert, describe, it } from '@effect/vitest'
-import { BusService, S3Service } from '@blikka/aws'
+import { BusService, EventBusError, S3Service } from '@blikka/aws'
 import {
   ExifKVRepository,
   type ExifState,
@@ -55,6 +55,7 @@ interface TestState {
     reference: string
     uploadSessionId: string
   }>
+  readonly finalizeEventClaims: ReadonlySet<string>
 }
 
 type S3PutFileOutput = Effect.Success<ReturnType<S3Service['Service']['putFile']>>
@@ -104,8 +105,12 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   submissionUpdates: [],
   thumbnailPuts: [],
   finalizedEvents: [],
+  finalizeEventClaims: new Set(),
   ...overrides,
 })
+
+const finalizeClaimKey = (domain: string, reference: string, sessionId: string) =>
+  `${domain}:${reference}:${sessionId}`
 
 const updateTestState = (ref: Ref.Ref<TestState>, f: (state: TestState) => TestState) =>
   Ref.update(ref, f)
@@ -176,6 +181,26 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         },
         submissionUpdates: [...state.submissionUpdates, { orderIndex, state: submission }],
       })).pipe(Effect.as(0)),
+    claimFinalizeEventEmission: (domain: string, reference: string, sessionId: string) =>
+      Effect.gen(function* () {
+        const key = finalizeClaimKey(domain, reference, sessionId)
+        const state = yield* Ref.get(stateRef)
+        if (state.finalizeEventClaims.has(key)) {
+          return false
+        }
+        yield* updateTestState(stateRef, (current) => ({
+          ...current,
+          finalizeEventClaims: new Set([...current.finalizeEventClaims, key]),
+        }))
+        return true
+      }),
+    releaseFinalizeEventEmission: (domain: string, reference: string, sessionId: string) =>
+      updateTestState(stateRef, (state) => {
+        const key = finalizeClaimKey(domain, reference, sessionId)
+        const nextClaims = new Set(state.finalizeEventClaims)
+        nextClaims.delete(key)
+        return { ...state, finalizeEventClaims: nextClaims }
+      }).pipe(Effect.as(undefined)),
   } as unknown as UploadSessionRepository['Service'])
 
   const exifKv = ExifKVRepository.of({
@@ -324,6 +349,7 @@ describe('SubmissionProcessor', () => {
       const { state } = yield* runWithState(
         makeInitialState({
           incrementStatus: 'FINALIZED',
+          participantAfterIncrement: makeParticipantState({ finalized: true }),
         }),
         () =>
           Effect.gen(function* () {
@@ -421,6 +447,7 @@ describe('SubmissionProcessor', () => {
           incrementStatus: 'FINALIZED',
           participantAfterIncrement: makeParticipantState({
             uploadSessionId: 'stale-upload-session',
+            finalized: true,
           }),
         }),
         () =>
@@ -430,6 +457,89 @@ describe('SubmissionProcessor', () => {
           }),
       )
 
+      assert.deepStrictEqual(state.finalizedEvents, [])
+    }),
+  )
+
+  it.effect('does not emit duplicate finalize events when increment is ALREADY_FINALIZED', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          incrementStatus: 'ALREADY_FINALIZED',
+          participantAfterIncrement: makeParticipantState({ finalized: true }),
+          finalizeEventClaims: new Set([finalizeClaimKey(input.domain, input.reference, uploadSessionId)]),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            yield* processor.process(input)
+          }),
+      )
+
+      assert.deepStrictEqual(state.finalizedEvents, [])
+    }),
+  )
+
+  it.effect('allows finalize event for a new upload session after re-upload', () =>
+    Effect.gen(function* () {
+      const newUploadSessionId = 'upload-session-2'
+      const { state } = yield* runWithState(
+        makeInitialState({
+          incrementStatus: 'FINALIZED',
+          participantAfterIncrement: makeParticipantState({
+            uploadSessionId: newUploadSessionId,
+            finalized: true,
+          }),
+          submissions: {
+            [input.orderIndex]: makeSubmissionState({ uploadSessionId: newUploadSessionId }),
+          },
+          participant: makeParticipantState({ uploadSessionId: newUploadSessionId }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            yield* processor.process({
+              ...input,
+            })
+          }),
+      )
+
+      assert.deepStrictEqual(state.finalizedEvents, [
+        {
+          domain: input.domain,
+          reference: input.reference,
+          uploadSessionId: newUploadSessionId,
+        },
+      ])
+    }),
+  )
+
+  it.effect('releases finalize claim when bus publish fails so retry can emit', () =>
+    Effect.gen(function* () {
+      const { result: error, state } = yield* runWithState(
+        makeInitialState({
+          incrementStatus: 'FINALIZED',
+          participantAfterIncrement: makeParticipantState({ finalized: true }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            const failingBus = BusService.of({
+              sendFinalizedEvent: () =>
+                Effect.fail(new EventBusError({ message: 'bus unavailable' })),
+            } as unknown as BusService['Service'])
+
+            return yield* Effect.flip(
+              processor.process(input).pipe(Effect.provideService(BusService, failingBus)),
+            )
+          }),
+      )
+
+      assert.instanceOf(error, EventBusError)
+      assert.strictEqual(
+        state.finalizeEventClaims.has(finalizeClaimKey(input.domain, input.reference, uploadSessionId)),
+        false,
+      )
       assert.deepStrictEqual(state.finalizedEvents, [])
     }),
   )

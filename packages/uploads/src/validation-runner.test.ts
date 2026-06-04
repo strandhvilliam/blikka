@@ -1,6 +1,11 @@
 import { assert, describe, it } from '@effect/vitest'
 import { S3Service } from '@blikka/aws'
-import { ParticipantsRepository, RulesRepository, ValidationsRepository } from '@blikka/db'
+import {
+  MarathonsRepository,
+  ParticipantsRepository,
+  RulesRepository,
+  ValidationsRepository,
+} from '@blikka/db'
 import type { RuleConfig } from '@blikka/db'
 import {
   ExifKVRepository,
@@ -82,6 +87,7 @@ const validationResult: ValidationResult = {
 interface TestState {
   readonly participantExists: boolean
   readonly participantState: ParticipantState | undefined
+  readonly participantStateAfterValidationWrite: ParticipantState | undefined
   readonly exifStates: ReadonlyArray<{ orderIndex: number; exif: ExifState }>
   readonly submissionStates: readonly SubmissionState[]
   readonly rules: readonly RuleConfig[]
@@ -94,12 +100,23 @@ interface TestState {
     data: readonly ValidationResult[]
   }>
   readonly participantUpdates: ReadonlyArray<Partial<ParticipantState>>
+  readonly statusTransitions: ReadonlyArray<{
+    domain: string
+    reference: string
+    canMarkCompleted: boolean
+    verificationMode: 'all' | 'flagged' | 'none'
+    validationDecision: 'passed' | 'flagged'
+    changedToVerified: boolean
+  }>
+  readonly marathon: { mode: string; verificationMode: string } | undefined
+  readonly participantStatus: 'initialized' | 'completed' | 'verified'
   readonly headRequests: ReadonlyArray<{ bucket: string; key: string }>
 }
 
 const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   participantExists: true,
   participantState: makeParticipantState(),
+  participantStateAfterValidationWrite: undefined,
   exifStates: [{ orderIndex: 0, exif: { Make: 'Nikon' } }],
   submissionStates: [submissionState],
   rules: [maxFileSizeRule],
@@ -108,6 +125,9 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   engineResults: [validationResult],
   validationWrites: [],
   participantUpdates: [],
+  statusTransitions: [],
+  marathon: { mode: 'marathon', verificationMode: 'all' },
+  participantStatus: 'initialized',
   headRequests: [],
   ...overrides,
 })
@@ -122,7 +142,55 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         const state = yield* Ref.get(stateRef)
         return state.participantExists ? Option.some({}) : Option.none()
       }),
+    settleFinalizedParticipantStatus: ({
+      domain,
+      reference,
+      canMarkCompleted,
+      verificationMode,
+      validationDecision,
+    }: {
+      domain: string
+      reference: string
+      canMarkCompleted: boolean
+      verificationMode: 'all' | 'flagged' | 'none'
+      validationDecision: 'passed' | 'flagged'
+    }) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        const changedToVerified =
+          verificationMode === 'flagged' &&
+          validationDecision === 'passed' &&
+          state.participantStatus === 'completed'
+        yield* updateTestState(stateRef, (current) => ({
+          ...current,
+          participantStatus: changedToVerified ? 'verified' : current.participantStatus,
+          statusTransitions: [
+            ...current.statusTransitions,
+            {
+              domain,
+              reference,
+              canMarkCompleted,
+              verificationMode,
+              validationDecision,
+              changedToVerified,
+            },
+          ],
+        }))
+        return {
+          changed: changedToVerified,
+          changedToVerified,
+          status: changedToVerified ? ('verified' as const) : null,
+        }
+      }),
   } as unknown as ParticipantsRepository['Service'])
+
+  const marathonsRepository = MarathonsRepository.of({
+    getMarathonByDomain: () =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        return Option.fromNullishOr(state.marathon)
+      }),
+  } as unknown as MarathonsRepository['Service'])
 
   const rulesRepository = RulesRepository.of({
     getRulesByDomain: () =>
@@ -144,6 +212,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     }) =>
       updateTestState(stateRef, (state) => ({
         ...state,
+        participantState: state.participantStateAfterValidationWrite ?? state.participantState,
         validationWrites: [...state.validationWrites, { data, domain, reference }],
       })).pipe(Effect.as(undefined)),
   } as unknown as ValidationsRepository['Service'])
@@ -168,6 +237,49 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         ...state,
         participantUpdates: [...state.participantUpdates, participantState],
       })).pipe(Effect.as(1)),
+    updateValidationDecisionForSession: (
+      _domain: string,
+      _reference: string,
+      sessionId: string,
+      validationDecision: 'passed' | 'flagged',
+      validatedAt: string,
+    ) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        const participantState = state.participantState
+
+        if (!participantState) {
+          return { status: 'MISSING_DATA' as const }
+        }
+
+        if (participantState.uploadSessionId !== sessionId) {
+          return { status: 'STALE_SESSION' as const }
+        }
+
+        if (!participantState.finalized) {
+          return { status: 'NOT_FINALIZED' as const }
+        }
+
+        if (participantState.validated) {
+          return { status: 'ALREADY_VALIDATED' as const }
+        }
+
+        const update = {
+          validated: true,
+          validationDecision,
+          validatedAt,
+        } satisfies Partial<ParticipantState>
+
+        yield* updateTestState(stateRef, (current) => ({
+          ...current,
+          participantState: current.participantState
+            ? { ...current.participantState, ...update }
+            : current.participantState,
+          participantUpdates: [...current.participantUpdates, update],
+        }))
+
+        return { status: 'UPDATED' as const }
+      }),
   } as unknown as UploadSessionRepository['Service'])
 
   const exifKv = ExifKVRepository.of({
@@ -208,6 +320,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(ParticipantsRepository)(participantsRepository),
+        Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(RulesRepository)(rulesRepository),
         Layer.succeed(ValidationsRepository)(validationsRepository),
         Layer.succeed(UploadSessionRepository)(uploadKv),
@@ -272,6 +385,104 @@ describe('ValidationRunner', () => {
       assert.strictEqual(state.participantUpdates[0]?.validated, true)
       assert.strictEqual(state.participantUpdates[0]?.validationDecision, 'passed')
       assert.isString(state.participantUpdates[0]?.validatedAt)
+      assert.deepStrictEqual(state.statusTransitions, [
+        {
+          domain: input.domain,
+          reference: input.reference,
+          canMarkCompleted: false,
+          verificationMode: 'all',
+          validationDecision: 'passed',
+          changedToVerified: false,
+        },
+      ])
+    }),
+  )
+
+  it.effect('does not auto-verify passed flagged validation before finalizer completes', () =>
+    Effect.gen(function* () {
+      const { result, state } = yield* runWithState(
+        makeInitialState({
+          marathon: { mode: 'marathon', verificationMode: 'flagged' },
+          participantStatus: 'initialized',
+        }),
+        () =>
+          Effect.gen(function* () {
+            const runner = yield* ValidationRunner
+            return yield* runner.execute(input)
+          }),
+      )
+
+      assert.strictEqual(result.changedToVerified, false)
+      assert.strictEqual(state.participantStatus, 'initialized')
+      assert.strictEqual(state.statusTransitions[0]?.validationDecision, 'passed')
+      assert.strictEqual(state.statusTransitions[0]?.verificationMode, 'flagged')
+    }),
+  )
+
+  it.effect(
+    'does not write or settle validation decision when session changes before decision write',
+    () =>
+      Effect.gen(function* () {
+        const { result, state } = yield* runWithState(
+          makeInitialState({
+            marathon: { mode: 'marathon', verificationMode: 'flagged' },
+            participantStateAfterValidationWrite: makeParticipantState({
+              uploadSessionId: 'new-session',
+            }),
+          }),
+          () =>
+            Effect.gen(function* () {
+              const runner = yield* ValidationRunner
+              return yield* runner.execute(input)
+            }),
+        )
+
+        assert.strictEqual(result.changed, false)
+        assert.deepStrictEqual(state.participantUpdates, [])
+        assert.deepStrictEqual(state.statusTransitions, [])
+      }),
+  )
+
+  it.effect('auto-verifies passed flagged validation after finalizer completed', () =>
+    Effect.gen(function* () {
+      const { result, state } = yield* runWithState(
+        makeInitialState({
+          marathon: { mode: 'marathon', verificationMode: 'flagged' },
+          participantStatus: 'completed',
+        }),
+        () =>
+          Effect.gen(function* () {
+            const runner = yield* ValidationRunner
+            return yield* runner.execute(input)
+          }),
+      )
+
+      assert.strictEqual(result.changedToVerified, true)
+      assert.strictEqual(state.participantStatus, 'verified')
+    }),
+  )
+
+  it.effect('repairs already validated passed sessions by settling status', () =>
+    Effect.gen(function* () {
+      const { result, state } = yield* runWithState(
+        makeInitialState({
+          marathon: { mode: 'marathon', verificationMode: 'flagged' },
+          participantStatus: 'completed',
+          participantState: makeParticipantState({
+            validated: true,
+            validationDecision: 'passed',
+          }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const runner = yield* ValidationRunner
+            return yield* runner.execute(input)
+          }),
+      )
+
+      assert.strictEqual(result.changedToVerified, true)
+      assert.deepStrictEqual(state.participantUpdates, [])
+      assert.strictEqual(state.participantStatus, 'verified')
     }),
   )
 
@@ -292,6 +503,8 @@ describe('ValidationRunner', () => {
       assert.strictEqual(state.participantUpdates[0]?.validated, true)
       assert.strictEqual(state.participantUpdates[0]?.validationDecision, 'flagged')
       assert.isString(state.participantUpdates[0]?.validatedAt)
+      assert.strictEqual(state.statusTransitions[0]?.validationDecision, 'flagged')
+      assert.strictEqual(state.statusTransitions[0]?.changedToVerified, false)
     }),
   )
 
