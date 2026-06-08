@@ -13,6 +13,10 @@ import {
   GetJuryReviewResultsByInvitationIdInputSchema,
   CreateJuryInvitationInputSchema,
   DeleteJuryInvitationInputSchema,
+  GetJuryInvitationStatisticsByIdInputSchema,
+  ResendJuryInvitationEmailInputSchema,
+  ExtendJuryInvitationExpiryInputSchema,
+  RegenerateJuryInvitationTokenInputSchema,
   VerifyJuryTokenSchema,
   GetJurySubmissionsFromTokenSchema,
   GetJuryRatingsByInvitationSchema,
@@ -56,6 +60,63 @@ export const juryRouter = createTRPCRouter({
           return yield* JuryService.use((s) =>
             s.getJuryReviewResultsByInvitationId({
               id: input.id,
+            }),
+          )
+        }),
+      ),
+    ),
+
+  getJuryInvitationStatisticsById: domainProcedure
+    .input(Schema.toStandardSchemaV1(GetJuryInvitationStatisticsByIdInputSchema))
+    .query(
+      trpcEffect(
+        Effect.fn('JuryRouter.getJuryInvitationStatisticsById')(function* ({ input }) {
+          return yield* JuryService.use((s) => s.getJuryInvitationStatisticsById({ id: input.id }))
+        }),
+      ),
+    ),
+
+  resendJuryInvitationEmail: domainProcedure
+    .input(Schema.toStandardSchemaV1(ResendJuryInvitationEmailInputSchema))
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn('JuryRouter.resendJuryInvitationEmail')(function* ({ input }) {
+          return yield* JuryService.use((s) =>
+            s.resendJuryInvitationEmail({
+              id: input.id,
+              domain: input.domain,
+            }),
+          )
+        }),
+      ),
+    ),
+
+  extendJuryInvitationExpiry: domainProcedure
+    .input(Schema.toStandardSchemaV1(ExtendJuryInvitationExpiryInputSchema))
+    .mutation(
+      trpcEffect(
+        Effect.fn('JuryRouter.extendJuryInvitationExpiry')(function* ({ input }) {
+          return yield* JuryService.use((s) =>
+            s.extendJuryInvitationExpiry({
+              id: input.id,
+              expiresAt: input.expiresAt,
+            }),
+          )
+        }),
+      ),
+    ),
+
+  regenerateJuryInvitationToken: domainProcedure
+    .input(Schema.toStandardSchemaV1(RegenerateJuryInvitationTokenInputSchema))
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn('JuryRouter.regenerateJuryInvitationToken')(function* ({ input }) {
+          return yield* JuryService.use((s) =>
+            s.regenerateJuryInvitationToken({
+              id: input.id,
+              domain: input.domain,
             }),
           )
         }),

@@ -2,6 +2,12 @@
 import { Config, Effect, Layer, Option, Schema, Context } from 'effect'
 import { SignJWT, jwtVerify } from 'jose'
 import {
+  EmailService,
+  EmailServiceLayer,
+  JuryInviteEmail,
+  juryInviteEmailSubject,
+} from '@blikka/email'
+import {
   DbLayer,
   DbError,
   JuryRepository,
@@ -52,8 +58,21 @@ import type {
   UpdateJuryInvitationStatusByToken,
   UpdateJuryRating,
   VerifyJuryToken,
+  GetJuryInvitationStatisticsByIdInput,
+  ResendJuryInvitationEmailInput,
+  ExtendJuryInvitationExpiryInput,
+  RegenerateJuryInvitationTokenInput,
 } from './contracts'
 import { hasCompleteJuryTopThree, isValidJuryFinalRanking } from './final-rankings'
+import {
+  buildJuryInviteUrl,
+  computeJuryJwtExpSeconds,
+  constantTimeTokenEquals,
+  formatJuryExpiryLabel,
+  formatJuryScopeLabel,
+  normalizeEmail,
+} from './helpers'
+import { getErrorMessage } from '../voting/helpers'
 
 const MAX_EXPIRY_DAYS = 90
 
@@ -148,14 +167,45 @@ export class JuryService extends Context.Service<
       input: GetJuryReviewResultsByInvitationIdInput,
     ) => Effect.Effect<{ ratings: JuryReviewResultsRatingRow[] }, DbError | JuryApiError, never>
 
-    /** Creates an invitation, issues a JWT, persists `token`, returns the hydrated row. */
+    /** Creates an invitation, issues a JWT, persists `token`, sends invite email, returns hydrated row. */
     readonly createJuryInvitation: (
       input: CreateJuryInvitationInput,
     ) => Effect.Effect<
-      JuryInvitationWithOptions,
+      { invitation: JuryInvitationWithOptions; emailWarning?: string },
       DbError | Config.ConfigError | JuryApiError,
       never
     >
+
+    /** Statistics for admin monitoring (progress, distribution, recent ratings). */
+    readonly getJuryInvitationStatisticsById: (
+      input: GetJuryInvitationStatisticsByIdInput,
+    ) => Effect.Effect<
+      {
+        totalParticipants: number
+        ratedParticipants: number
+        progressPercentage: number
+        averageRating: number
+        ratingDistribution: { rating: number; count: number }[]
+        recentRatings: unknown[]
+      },
+      DbError | JuryApiError,
+      never
+    >
+
+    /** Resends the jury invite email for an invitation. */
+    readonly resendJuryInvitationEmail: (
+      input: ResendJuryInvitationEmailInput,
+    ) => Effect.Effect<{ sent: boolean; warning?: string }, DbError | JuryApiError, never>
+
+    /** Updates invitation expiry (admin). */
+    readonly extendJuryInvitationExpiry: (
+      input: ExtendJuryInvitationExpiryInput,
+    ) => Effect.Effect<JuryInvitationWithOptions, DbError | JuryApiError, never>
+
+    /** Issues a new token for an invitation; invalidates the previous link. */
+    readonly regenerateJuryInvitationToken: (
+      input: RegenerateJuryInvitationTokenInput,
+    ) => Effect.Effect<JuryInvitationWithOptions, DbError | Config.ConfigError | JuryApiError, never>
 
     /** Patches fields on an invitation; fails if the row does not exist. */
     readonly updateJuryInvitation: (
@@ -237,15 +287,21 @@ const makeJuryService = Effect.gen(function* () {
   const juryRepository = yield* JuryRepository
   const marathonsRepository = yield* MarathonsRepository
   const participantsRepository = yield* ParticipantsRepository
+  const emailService = yield* EmailService
 
-  const _generateJuryToken = Effect.fn('JuryService._generateJuryToken')(function* (
-    domain: string,
-    invitationId: number,
-  ) {
+  const _generateJuryToken = Effect.fn('JuryService._generateJuryToken')(function* ({
+    domain,
+    invitationId,
+    expiresAt,
+  }: {
+    domain: string
+    invitationId: number
+    expiresAt: string
+  }) {
     const secretEnv = yield* Config.string('JURY_JWT_SECRET')
     const secret = new TextEncoder().encode(secretEnv)
     const iat = Math.floor(Date.now() / 1000)
-    const exp = iat + 60 * 60 * 24 * MAX_EXPIRY_DAYS
+    const exp = computeJuryJwtExpSeconds(expiresAt, iat, MAX_EXPIRY_DAYS)
 
     const payload = {
       domain,
@@ -318,6 +374,10 @@ const makeJuryService = Effect.gen(function* () {
           return mapTokenError('Failed to load invitation', 'INTERNAL_SERVER_ERROR')
         }),
       )
+
+    if (!constantTimeTokenEquals(token, invitation.token)) {
+      return yield* Effect.fail(mapTokenError('Invitation link revoked', 'NOT_FOUND'))
+    }
 
     const invitationExpiry = new Date(invitation.expiresAt)
     if (invitationExpiry < new Date()) {
@@ -437,6 +497,98 @@ const makeJuryService = Effect.gen(function* () {
     })
   })
 
+  const validateExpiryAt = (expiresAt: string) =>
+    Effect.gen(function* () {
+      const expiry = new Date(expiresAt)
+      if (Number.isNaN(expiry.getTime())) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: 'Invalid expiry date',
+          }),
+        )
+      }
+
+      const now = new Date()
+      if (expiry <= now) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: 'Expiry must be in the future',
+          }),
+        )
+      }
+
+      const maxExpiry = new Date(now)
+      maxExpiry.setDate(maxExpiry.getDate() + MAX_EXPIRY_DAYS)
+      if (expiry > maxExpiry) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: `Expiry cannot be more than ${MAX_EXPIRY_DAYS} days from now`,
+          }),
+        )
+      }
+
+      return expiry
+    })
+
+  const sendJuryInviteEmailForInvitation = Effect.fn('JuryService.sendJuryInviteEmailForInvitation')(
+    function* ({
+      invitation,
+      marathon,
+      domain,
+    }: {
+      invitation: JuryInvitationWithOptions
+      marathon: Marathon
+      domain: string
+    }) {
+      const email = normalizeEmail(invitation.email)
+      if (!email) {
+        return { sent: false, warning: 'No valid email address on this invitation' as string | undefined }
+      }
+
+      const juryUrl = buildJuryInviteUrl({ domain, token: invitation.token })
+      const scopeLabel = formatJuryScopeLabel({
+        inviteType: invitation.inviteType as 'topic' | 'class',
+        topicName: invitation.topic?.name ?? null,
+        competitionClassName: invitation.competitionClass?.name ?? null,
+        deviceGroupName: invitation.deviceGroup?.name ?? null,
+      })
+      const expiresAtLabel = formatJuryExpiryLabel(invitation.expiresAt)
+      const emailProps = {
+        juryMemberName: invitation.displayName,
+        marathonName: marathon.name,
+        juryUrl,
+        marathonLogoUrl: marathon.logoUrl,
+        scopeLabel,
+        expiresAtLabel,
+        organizerNotes: invitation.notes,
+      }
+
+      const sendResult = yield* emailService
+        .send({
+          to: email,
+          subject: juryInviteEmailSubject(emailProps),
+          template: JuryInviteEmail(emailProps),
+          tags: [
+            { name: 'category', value: 'jury-invite' },
+            { name: 'marathon', value: marathon.name },
+          ],
+        })
+        .pipe(
+          Effect.as({ sent: true as const, warning: undefined as string | undefined }),
+          Effect.catch((error) =>
+            Effect.logError('Failed to send jury invite email', error).pipe(
+              Effect.as({
+                sent: false as const,
+                warning: getErrorMessage(error, 'Failed to send jury invite email'),
+              }),
+            ),
+          ),
+        )
+
+      return sendResult
+    },
+  )
+
   const createJuryInvitation: JuryService['Service']['createJuryInvitation'] = Effect.fn(
     'JuryService.createJuryInvitation',
   )(function* ({ domain, data }) {
@@ -489,6 +641,8 @@ const makeJuryService = Effect.gen(function* () {
       }
     }
 
+    yield* validateExpiryAt(data.expiresAt)
+
     const marathon = yield* marathonsRepository
       .getMarathonByDomain({ domain })
       .pipe(failNotFoundIfNone('Marathon', { domain }))
@@ -511,17 +665,151 @@ const makeJuryService = Effect.gen(function* () {
     const result = yield* juryRepository.createJuryInvitation({
       data: invitationData,
     })
-    const token = yield* _generateJuryToken(domain, result.id)
+    const token = yield* _generateJuryToken({
+      domain,
+      invitationId: result.id,
+      expiresAt: data.expiresAt,
+    })
 
     yield* juryRepository.updateJuryInvitation({
       id: result.id,
       data: { token },
     })
 
-    return yield* juryRepository
+    const invitation = yield* juryRepository
       .getJuryInvitationById({ id: result.id })
       .pipe(failNotFoundIfNone('JuryInvitation', { id: result.id }))
+
+    const { sent, warning } = yield* sendJuryInviteEmailForInvitation({
+      invitation,
+      marathon,
+      domain,
+    })
+
+    return {
+      invitation,
+      ...(sent || !warning ? {} : { emailWarning: warning }),
+    }
   })
+
+  const getJuryInvitationStatisticsById: JuryService['Service']['getJuryInvitationStatisticsById'] =
+    Effect.fn('JuryService.getJuryInvitationStatisticsById')(function* ({ id }) {
+      yield* juryRepository
+        .getJuryInvitationById({ id })
+        .pipe(failNotFoundIfNone('JuryInvitation', { id }))
+
+      return yield* juryRepository.getJuryInvitationStatistics({ invitationId: id })
+    })
+
+  const resendJuryInvitationEmail: JuryService['Service']['resendJuryInvitationEmail'] =
+    Effect.fn('JuryService.resendJuryInvitationEmail')(function* ({ id, domain }) {
+      const invitation = yield* juryRepository
+        .getJuryInvitationById({ id })
+        .pipe(failNotFoundIfNone('JuryInvitation', { id }))
+
+      const marathon = yield* marathonsRepository
+        .getMarathonByDomain({ domain })
+        .pipe(failNotFoundIfNone('Marathon', { domain }))
+
+      if (invitation.marathonId !== marathon.id) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: 'Invitation does not belong to this marathon',
+          }),
+        )
+      }
+
+      const invitationExpiry = new Date(invitation.expiresAt)
+      if (invitationExpiry < new Date()) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: 'Cannot resend email for an expired invitation',
+          }),
+        )
+      }
+
+      const { sent, warning } = yield* sendJuryInviteEmailForInvitation({
+        invitation,
+        marathon,
+        domain,
+      })
+
+      if (!sent) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: warning ?? 'Failed to send jury invite email',
+          }),
+        )
+      }
+
+      return { sent: true }
+    })
+
+  const extendJuryInvitationExpiry: JuryService['Service']['extendJuryInvitationExpiry'] =
+    Effect.fn('JuryService.extendJuryInvitationExpiry')(function* ({ id, expiresAt }) {
+      yield* validateExpiryAt(expiresAt)
+
+      yield* juryRepository
+        .getJuryInvitationById({ id })
+        .pipe(failNotFoundIfNone('JuryInvitation', { id }))
+
+      yield* juryRepository.updateJuryInvitation({
+        id,
+        data: {
+          expiresAt,
+          updatedAt: new Date().toISOString(),
+        },
+      })
+
+      return yield* juryRepository
+        .getJuryInvitationById({ id })
+        .pipe(failNotFoundIfNone('JuryInvitation', { id }))
+    })
+
+  const regenerateJuryInvitationToken: JuryService['Service']['regenerateJuryInvitationToken'] =
+    Effect.fn('JuryService.regenerateJuryInvitationToken')(function* ({ id, domain }) {
+      const invitation = yield* juryRepository
+        .getJuryInvitationById({ id })
+        .pipe(failNotFoundIfNone('JuryInvitation', { id }))
+
+      if (invitation.status === 'completed') {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: 'Cannot regenerate link for a completed review',
+          }),
+        )
+      }
+
+      const marathon = yield* marathonsRepository
+        .getMarathonByDomain({ domain })
+        .pipe(failNotFoundIfNone('Marathon', { domain }))
+
+      if (invitation.marathonId !== marathon.id) {
+        return yield* Effect.fail(
+          new BadRequestError({
+            message: 'Invitation does not belong to this marathon',
+          }),
+        )
+      }
+
+      const token = yield* _generateJuryToken({
+        domain,
+        invitationId: id,
+        expiresAt: invitation.expiresAt,
+      })
+
+      yield* juryRepository.updateJuryInvitation({
+        id,
+        data: {
+          token,
+          updatedAt: new Date().toISOString(),
+        },
+      })
+
+      return yield* juryRepository
+        .getJuryInvitationById({ id })
+        .pipe(failNotFoundIfNone('JuryInvitation', { id }))
+    })
 
   const updateJuryInvitation: JuryService['Service']['updateJuryInvitation'] = Effect.fn(
     'JuryService.updateJuryInvitation',
@@ -822,7 +1110,11 @@ const makeJuryService = Effect.gen(function* () {
     getJuryInvitationsByDomain,
     getJuryInvitationById,
     getJuryReviewResultsByInvitationId,
+    getJuryInvitationStatisticsById,
     createJuryInvitation,
+    resendJuryInvitationEmail,
+    extendJuryInvitationExpiry,
+    regenerateJuryInvitationToken,
     updateJuryInvitation,
     deleteJuryInvitation,
     verifyTokenPayload,
@@ -839,4 +1131,6 @@ const makeJuryService = Effect.gen(function* () {
 
 export const JuryServiceLayerNoDeps = Layer.effect(JuryService, makeJuryService)
 
-export const JuryServiceLayer = JuryServiceLayerNoDeps.pipe(Layer.provide(DbLayer))
+export const JuryServiceLayer = JuryServiceLayerNoDeps.pipe(
+  Layer.provide(Layer.mergeAll(DbLayer, EmailServiceLayer)),
+)

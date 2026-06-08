@@ -1197,7 +1197,7 @@ const createJuryInvitationsAndRatings = Effect.fn('SeedingService.createJuryInvi
             )
           }
 
-          const invitation = yield* JuryService.use((juryService) =>
+          const { invitation } = yield* JuryService.use((juryService) =>
             juryService.createJuryInvitation({
               domain,
               data: {

@@ -1233,14 +1233,6 @@ const makeJuryRepository = Effect.gen(function* () {
           }),
         )
       }
-      const invitationExpiry = new Date(invitation.expiresAt)
-      if (invitationExpiry < new Date()) {
-        return yield* Effect.fail(
-          new DbError({
-            message: 'Invitation expired',
-          }),
-        )
-      }
       const submissionConditions = [
         eq(submissions.marathonId, invitation.marathonId),
         eq(submissions.status, 'uploaded'),

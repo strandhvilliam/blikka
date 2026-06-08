@@ -45,6 +45,25 @@ export const DeleteJuryInvitationInputSchema = Schema.Struct({
   id: Schema.Number,
 })
 
+export const GetJuryInvitationStatisticsByIdInputSchema = Schema.Struct({
+  id: Schema.Number,
+})
+
+export const ResendJuryInvitationEmailInputSchema = Schema.Struct({
+  id: Schema.Number,
+  domain: Schema.String,
+})
+
+export const ExtendJuryInvitationExpiryInputSchema = Schema.Struct({
+  id: Schema.Number,
+  expiresAt: Schema.String,
+})
+
+export const RegenerateJuryInvitationTokenInputSchema = Schema.Struct({
+  id: Schema.Number,
+  domain: Schema.String,
+})
+
 const JuryRatingValueSchema = Schema.Number.check(
   Schema.isGreaterThanOrEqualTo(0),
   Schema.isLessThanOrEqualTo(5),
@@ -133,4 +152,16 @@ export type UpdateJuryRating = Schema.Schema.Type<typeof UpdateJuryRatingSchema>
 export type DeleteJuryRating = Schema.Schema.Type<typeof DeleteJuryRatingSchema>
 export type UpdateJuryInvitationStatusByToken = Schema.Schema.Type<
   typeof UpdateJuryInvitationStatusByTokenSchema
+>
+export type GetJuryInvitationStatisticsByIdInput = Schema.Schema.Type<
+  typeof GetJuryInvitationStatisticsByIdInputSchema
+>
+export type ResendJuryInvitationEmailInput = Schema.Schema.Type<
+  typeof ResendJuryInvitationEmailInputSchema
+>
+export type ExtendJuryInvitationExpiryInput = Schema.Schema.Type<
+  typeof ExtendJuryInvitationExpiryInputSchema
+>
+export type RegenerateJuryInvitationTokenInput = Schema.Schema.Type<
+  typeof RegenerateJuryInvitationTokenInputSchema
 >

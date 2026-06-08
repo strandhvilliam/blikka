@@ -1,10 +1,12 @@
 import { assert, describe, it } from '@effect/vitest'
 import {
+  DbError,
   JuryRepository,
   MarathonsRepository,
   ParticipantsRepository,
   type JuryInvitation,
 } from '@blikka/db'
+import { EmailService } from '@blikka/email'
 import { SignJWT } from 'jose'
 import { Effect, Layer, Option, Ref } from 'effect'
 
@@ -15,11 +17,14 @@ import { JuryService, JuryServiceLayerNoDeps } from './service'
 
 const domain = 'demo'
 const marathonId = 1
+const validExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
 interface TestState {
   readonly marathon: ReturnType<typeof makeMarathon> | undefined
   readonly invitations: JuryInvitation[]
   readonly createCalls: ReadonlyArray<Record<string, unknown>>
+  readonly emailSendShouldFail: boolean
+  readonly sentEmails: ReadonlyArray<{ to: string; subject: string }>
 }
 
 const makeInvitation = (overrides: Partial<JuryInvitation> = {}): JuryInvitation =>
@@ -32,7 +37,7 @@ const makeInvitation = (overrides: Partial<JuryInvitation> = {}): JuryInvitation
     topicId: 1,
     competitionClassId: null,
     deviceGroupId: null,
-    expiresAt: '2099-01-01T00:00:00.000Z',
+    expiresAt: validExpiresAt,
     notes: null,
     status: 'pending',
     token: 'signed-token',
@@ -45,6 +50,8 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   marathon: makeMarathon({ id: marathonId, domain }),
   invitations: [makeInvitation()],
   createCalls: [],
+  emailSendShouldFail: false,
+  sentEmails: [],
   ...overrides,
 })
 
@@ -84,16 +91,41 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         }
       }).pipe(Effect.as(makeInvitation({ id: 99, ...data }))),
     updateJuryInvitation: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
-      Effect.succeed(
-        makeInvitation({
-          id,
-          ...data,
-        }),
-      ),
+      Effect.gen(function* () {
+        yield* updateTestState(stateRef, (state) => ({
+          ...state,
+          invitations: state.invitations.map((invitation) =>
+            invitation.id === id ? makeInvitation({ ...invitation, ...data }) : invitation,
+          ),
+        }))
+
+        const state = yield* Ref.get(stateRef)
+        const updated = state.invitations.find((invitation) => invitation.id === id)
+        if (!updated) {
+          return yield* Effect.die(`missing invitation ${id}`)
+        }
+
+        return updated
+      }),
     deleteJuryInvitation: ({ id }: { id: number }) =>
       Effect.succeed(makeInvitation({ id })),
     getJuryRatingsWithRankingsByInvitation: () => Effect.succeed([]),
-    getJuryDataByTokenPayload: () => Effect.die('not used in these tests'),
+    getJuryDataByTokenPayload: ({ invitationId }: { domain: string; invitationId: number }) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        const invitation = state.invitations.find((entry) => entry.id === invitationId)
+        if (!invitation || !state.marathon) {
+          return yield* Effect.fail(new DbError({ message: 'Invitation not found' }))
+        }
+
+        return {
+          ...invitation,
+          topic: null,
+          competitionClass: null,
+          deviceGroup: null,
+          marathon: state.marathon,
+        }
+      }),
     getJurySubmissionsFromToken: () => Effect.die('not used in these tests'),
     getJuryRatingsByInvitation: () => Effect.die('not used in these tests'),
     getJuryParticipantCount: () => Effect.die('not used in these tests'),
@@ -112,12 +144,32 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
 
   const participantsRepository = ParticipantsRepository.of({} as ParticipantsRepository['Service'])
 
+  const emailService = EmailService.of({
+    send: (input: { to: string; subject: string }) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        if (state.emailSendShouldFail) {
+          return yield* Effect.fail(new Error('resend rejected email'))
+        }
+        yield* Ref.update(stateRef, (current) => ({
+          ...current,
+          sentEmails: [
+            ...current.sentEmails,
+            { to: input.to, subject: input.subject },
+          ],
+        }))
+        return { id: 'email-1' }
+      }),
+    sendBatch: () => Effect.die('not used in jury tests'),
+  } as unknown as EmailService['Service'])
+
   return JuryServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(JuryRepository)(juryRepository),
         Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(ParticipantsRepository)(participantsRepository),
+        Layer.succeed(EmailService)(emailService),
       ),
     ),
   )
@@ -154,8 +206,8 @@ describe('JuryService', () => {
                 inviteType: 'topic',
                 topicId: 1,
                 competitionClassId: 2,
-                deviceGroupId: null,
-                expiresAt: '2099-01-01T00:00:00.000Z',
+                deviceGroupId: undefined,
+                expiresAt: validExpiresAt,
               },
             }),
           )
@@ -181,17 +233,69 @@ describe('JuryService', () => {
               displayName: 'Juror',
               inviteType: 'topic',
               topicId: 1,
-              competitionClassId: null,
-              deviceGroupId: null,
-              expiresAt: '2099-01-01T00:00:00.000Z',
+              competitionClassId: undefined,
+              deviceGroupId: undefined,
+              expiresAt: validExpiresAt,
             },
           })
         }),
       )
 
-      assert.equal(result.id, 99)
+      assert.equal(result.invitation.id, 99)
       assert.equal(state.createCalls[0]?.marathonId, marathonId)
       assert.equal(state.createCalls[0]?.topicId, 1)
+      assert.equal(state.sentEmails.length, 1)
+      assert.equal(state.sentEmails[0]?.to, 'juror@example.com')
+    }),
+  )
+
+  it.effect('returns emailWarning when invite email fails but still creates invitation', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState({ emailSendShouldFail: true }))
+
+      const { result, state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* JuryService
+          return yield* service.createJuryInvitation({
+            domain,
+            data: {
+              email: 'juror@example.com',
+              displayName: 'Juror',
+              inviteType: 'topic',
+              topicId: 1,
+              competitionClassId: undefined,
+              deviceGroupId: undefined,
+              expiresAt: validExpiresAt,
+            },
+          })
+        }),
+      )
+
+      assert.equal(result.invitation.id, 99)
+      assert.notEqual(result.emailWarning, undefined)
+      assert.equal(state.sentEmails.length, 0)
+    }),
+  )
+
+  it.effect('resendJuryInvitationEmail sends to the invitation address', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { result, state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* JuryService
+          return yield* service.resendJuryInvitationEmail({
+            id: 1,
+            domain,
+          })
+        }),
+      )
+
+      assert.equal(result.sent, true)
+      assert.equal(state.sentEmails.length, 1)
+      assert.equal(state.sentEmails[0]?.to, 'juror@example.com')
     }),
   )
 
@@ -248,7 +352,7 @@ describe('JuryService', () => {
     Effect.gen(function* () {
       const stateRef = yield* Ref.make(makeInitialState())
 
-      const { result: invitation } = yield* runWithState(
+      const { result: createResult } = yield* runWithState(
         stateRef,
         Effect.gen(function* () {
           const service = yield* JuryService
@@ -259,9 +363,9 @@ describe('JuryService', () => {
               displayName: 'Juror',
               inviteType: 'topic',
               topicId: 1,
-              competitionClassId: null,
-              deviceGroupId: null,
-              expiresAt: '2099-01-01T00:00:00.000Z',
+              competitionClassId: undefined,
+              deviceGroupId: undefined,
+              expiresAt: validExpiresAt,
             },
           })
         }),
@@ -273,7 +377,7 @@ describe('JuryService', () => {
           const service = yield* JuryService
           return yield* Effect.flip(
             service.verifyTokenPayload({
-              token: invitation.token,
+              token: createResult.invitation.token,
               domain: 'other-domain',
             }),
           )
@@ -281,6 +385,81 @@ describe('JuryService', () => {
       ).pipe(Effect.map(({ result }) => result))
 
       assert.instanceOf(error, NotFoundError)
+    }),
+  )
+
+  it.effect('rejects stale tokens after regenerateJuryInvitationToken', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const { result: createResult } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* JuryService
+          return yield* service.createJuryInvitation({
+            domain,
+            data: {
+              email: 'juror@example.com',
+              displayName: 'Juror',
+              inviteType: 'topic',
+              topicId: 1,
+              competitionClassId: undefined,
+              deviceGroupId: undefined,
+              expiresAt: validExpiresAt,
+            },
+          })
+        }),
+      )
+
+      const oldToken = createResult.invitation.token
+
+      yield* Ref.update(stateRef, (state) => ({
+        ...state,
+        invitations: state.invitations.map((invitation) =>
+          invitation.id === createResult.invitation.id
+            ? makeInvitation({ ...invitation, token: 'rotated-stored-token' })
+            : invitation,
+        ),
+      }))
+
+      const revokedError = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* JuryService
+          return yield* Effect.flip(
+            service.verifyTokenAndGetInitialData({
+              token: oldToken,
+              domain,
+            }),
+          )
+        }),
+      ).pipe(Effect.map(({ result }) => result))
+
+      assert.instanceOf(revokedError, NotFoundError)
+
+      const { result: regenerated } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* JuryService
+          return yield* service.regenerateJuryInvitationToken({
+            id: createResult.invitation.id,
+            domain,
+          })
+        }),
+      )
+
+      const { result: refreshed } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* JuryService
+          return yield* service.verifyTokenAndGetInitialData({
+            token: regenerated.token,
+            domain,
+          })
+        }),
+      )
+
+      assert.equal(refreshed.id, 99)
     }),
   )
 })
