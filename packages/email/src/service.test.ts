@@ -18,6 +18,13 @@ interface SendCall {
   readonly to?: string | string[]
   readonly subject?: string
   readonly html?: string
+  readonly attachments?: ReadonlyArray<{
+    readonly content?: string | Buffer
+    readonly filename?: string | false
+    readonly path?: string
+    readonly contentType?: string
+    readonly inlineContentId?: string
+  }>
   readonly replyTo?: string
   readonly cc?: string | string[]
   readonly bcc?: string | string[]
@@ -122,6 +129,13 @@ describe('EmailService', () => {
         to: ['a@example.com', 'b@example.com'],
         subject: 'Subject',
         template: makeTemplate('Rendered body'),
+        attachments: [
+          {
+            filename: 'contact-sheet.jpg',
+            content: Buffer.from('jpg'),
+            contentType: 'image/jpeg',
+          },
+        ],
         replyTo: 'reply@example.com',
         cc: 'cc@example.com',
         bcc: ['bcc@example.com'],
@@ -134,6 +148,13 @@ describe('EmailService', () => {
       assert.deepStrictEqual(sendCalls[0]?.to, ['a@example.com', 'b@example.com'])
       assert.strictEqual(sendCalls[0]?.subject, 'Subject')
       assert.match(sendCalls[0]?.html ?? '', /Rendered body/)
+      assert.deepStrictEqual(sendCalls[0]?.attachments, [
+        {
+          filename: 'contact-sheet.jpg',
+          content: Buffer.from('jpg'),
+          contentType: 'image/jpeg',
+        },
+      ])
       assert.strictEqual(sendCalls[0]?.replyTo, 'reply@example.com')
       assert.strictEqual(sendCalls[0]?.cc, 'cc@example.com')
       assert.deepStrictEqual(sendCalls[0]?.bcc, ['bcc@example.com'])

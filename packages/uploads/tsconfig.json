@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
+    "jsx": "react-jsx",
     "allowJs": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -20,6 +21,7 @@
     "paths": {
       "@blikka/aws": ["../../packages/aws/src"],
       "@blikka/db": ["../../packages/db/src"],
+      "@blikka/email": ["../../packages/email/src"],
       "@blikka/image-manipulation": ["../../packages/image-manipulation/src"],
       "@blikka/kv-store": ["../../packages/kv-store/src"],
       "@blikka/redis": ["../../packages/redis/src"],

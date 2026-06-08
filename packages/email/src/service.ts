@@ -3,11 +3,20 @@ import { render } from '@react-email/render'
 import type { ReactElement } from 'react'
 import { ResendEffectClient, ResendEffectClientLayer } from './resend-effect-client'
 
+export interface SendEmailAttachment {
+  readonly content?: string | Buffer
+  readonly filename?: string | false
+  readonly path?: string
+  readonly contentType?: string
+  readonly inlineContentId?: string
+}
+
 export interface SendEmailParams {
   readonly to: string | string[]
   readonly from?: string
   readonly subject: string
   readonly template: ReactElement
+  readonly attachments?: SendEmailAttachment[]
   readonly replyTo?: string
   readonly cc?: string | string[]
   readonly bcc?: string | string[]
@@ -74,6 +83,7 @@ const makeEmailService = Effect.gen(function* () {
           to: params.to,
           subject: params.subject,
           html,
+          attachments: params.attachments,
           replyTo: params.replyTo,
           cc: params.cc,
           bcc: params.bcc,
@@ -127,6 +137,7 @@ const makeEmailService = Effect.gen(function* () {
         to: param.to,
         subject: param.subject,
         html: htmlArray[index]!,
+        attachments: param.attachments,
         replyTo: param.replyTo,
         cc: param.cc,
         bcc: param.bcc,

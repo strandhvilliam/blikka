@@ -17,6 +17,13 @@ import {
   type ParticipantState,
   type UploadSessionRepositoryError,
 } from '@blikka/kv-store'
+import {
+  ContactSheetReadyEmail,
+  EmailService,
+  EmailServiceLayer,
+  contactSheetReadyEmailSubject,
+  type SendEmailError,
+} from '@blikka/email'
 import { ContactSheetBuilder, ContactSheetBuilderLayer } from '@blikka/image-manipulation'
 import { UploadsConfig, UploadsConfigLayer } from './config'
 
@@ -41,6 +48,7 @@ export type ContactSheetGeneratorError =
   | FailedToGenerateContactSheetError
   | UploadSessionRepositoryError
   | S3ClientError
+  | SendEmailError
   | DbError
 
 export interface GenerateContactSheetInput {
@@ -87,8 +95,16 @@ function createContactSheetKey(domain: string, reference: string, timestamp: str
   return `${domain}/${reference}/contact_sheet_${reference}_${timestamp.replace(/[:.]/g, '-').slice(0, -5)}.jpg`
 }
 
+function createContactSheetFilename(reference: string) {
+  return `contact-sheet-${reference}.jpg`
+}
+
 function isSupportedContactSheetPhotoCount(photoCount: number) {
   return VALID_PHOTO_COUNTS.includes(photoCount)
+}
+
+function formatParticipantName(participant: { firstname: string; lastname: string }) {
+  return `${participant.firstname} ${participant.lastname}`.trim() || 'there'
 }
 
 function shouldSkipGeneration(
@@ -127,6 +143,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
   const contactSheetsRepository = yield* ContactSheetsRepository
   const kvStore = yield* UploadSessionRepository
   const s3 = yield* S3Service
+  const emailService = yield* EmailService
   const config = yield* UploadsConfig
   const contactSheetBuilder = yield* ContactSheetBuilder
 
@@ -285,6 +302,44 @@ const makeContactSheetGenerator = Effect.gen(function* () {
           marathonId: participant.marathonId,
         },
       })
+
+      if (!participant.email) {
+        yield* Effect.logWarning('Participant has no email, skipping contact sheet email')
+        return
+      }
+
+      if (participant.email.startsWith('seed') && participant.email.endsWith('invalid')) {
+        yield* Effect.logWarning('Seeded participant, skipping email')
+        return
+      }
+
+      const contactSheetFilename = createContactSheetFilename(reference)
+      const emailProps = {
+        participantName: formatParticipantName(participant),
+        participantReference: reference,
+        marathonName: marathonOpt.value.name,
+        marathonLogoUrl: marathonOpt.value.logoUrl,
+        contactSheetFilename,
+        photoCount: keys.length,
+      }
+
+      yield* emailService.send({
+        to: participant.email,
+        subject: contactSheetReadyEmailSubject(emailProps),
+        template: ContactSheetReadyEmail(emailProps),
+        attachments: [
+          {
+            filename: contactSheetFilename,
+            content: buffer,
+            contentType: 'image/jpeg',
+          },
+        ],
+        tags: [
+          { name: 'event', value: 'contact-sheet-ready' },
+          { name: 'domain', value: domain },
+          { name: 'participant-reference', value: reference },
+        ],
+      })
     },
     (effect, params) => Effect.annotateLogs(effect, { ...params }),
   )
@@ -303,6 +358,7 @@ export const ContactSheetGeneratorLayer = ContactSheetGeneratorLayerNoDeps.pipe(
       DbLayer,
       UploadSessionRepositoryLayer,
       S3ServiceLayer,
+      EmailServiceLayer,
       UploadsConfigLayer,
       ContactSheetBuilderLayer,
     ),

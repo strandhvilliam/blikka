@@ -9,6 +9,8 @@ import {
 } from '@blikka/db'
 import type { CompetitionClass } from '@blikka/db'
 import { ContactSheetBuilder, type ContactSheetImageFile } from '@blikka/image-manipulation'
+import { EmailService } from '@blikka/email'
+import type { SendEmailParams } from '@blikka/email'
 import { type ParticipantState, UploadSessionRepository } from '@blikka/kv-store'
 import { Effect, Layer, Option, Ref } from 'effect'
 
@@ -72,6 +74,9 @@ interface TestState {
     | {
         readonly id: number
         readonly marathonId: number
+        readonly firstname: string
+        readonly lastname: string
+        readonly email: string | null
         readonly competitionClass: CompetitionClass | null
         readonly submissions: ReadonlyArray<{ key: string }>
       }
@@ -79,7 +84,23 @@ interface TestState {
   readonly sponsor: { readonly key: string } | undefined
   readonly topics: ReadonlyArray<{ name: string; orderIndex: number }>
   readonly builderResult: Effect.Effect<Buffer, Error>
-  readonly marathon: { readonly contactSheetFormat: string } | undefined
+  readonly marathon:
+    | {
+        readonly contactSheetFormat: string
+        readonly name: string
+        readonly logoUrl: string | null
+      }
+    | undefined
+  readonly emailSends: ReadonlyArray<{
+    to: string | string[]
+    subject: string
+    attachments?: ReadonlyArray<{
+      filename?: string | false
+      content?: string | Buffer
+      contentType?: string
+    }>
+    tags?: Array<{ name: string; value: string }>
+  }>
   readonly sheetInputs: ReadonlyArray<{
     reference: string
     images: ReadonlyArray<ContactSheetImageFile>
@@ -109,12 +130,20 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   participant: {
     id: 123,
     marathonId: 456,
+    firstname: 'Ada',
+    lastname: 'Lovelace',
+    email: 'ada@example.com',
     competitionClass: makeCompetitionClass(),
     submissions: submissionKeys.map((key) => ({ key })),
   },
   sponsor: { key: sponsorKey },
   topics,
-  marathon: { contactSheetFormat: 'classic' },
+  marathon: {
+    contactSheetFormat: 'classic',
+    name: 'Demo Marathon',
+    logoUrl: 'https://example.com/marathon-logo.png',
+  },
+  emailSends: [],
   builderResult: Effect.succeed(sheetBytes),
   sheetInputs: [],
   files: createFileMap([
@@ -222,6 +251,15 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       }),
   } as unknown as ContactSheetBuilder['Service'])
 
+  const emailService = EmailService.of({
+    send: ({ to, subject, attachments, tags }: SendEmailParams) =>
+      updateTestState(stateRef, (state) => ({
+        ...state,
+        emailSends: [...state.emailSends, { to, subject, attachments, tags }],
+      })).pipe(Effect.as({ id: 'email-1' })),
+    sendBatch: () => Effect.succeed([]),
+  } as unknown as EmailService['Service'])
+
   return ContactSheetGeneratorLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -232,6 +270,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(ContactSheetsRepository)(contactSheetsRepository),
         Layer.succeed(UploadSessionRepository)(uploadKv),
         Layer.succeed(S3Service)(s3),
+        Layer.succeed(EmailService)(emailService),
         Layer.succeed(UploadsConfig)(
           UploadsConfig.of({
             submissionsBucketName: 'submissions',
@@ -298,13 +337,37 @@ describe('ContactSheetGenerator', () => {
           marathonId: 456,
         },
       ])
+      assert.deepStrictEqual(state.emailSends, [
+        {
+          to: 'ada@example.com',
+          subject: 'Your Demo Marathon contact sheet is ready',
+          attachments: [
+            {
+              filename: 'contact-sheet-REF123.jpg',
+              content: sheetBytes,
+              contentType: 'image/jpeg',
+            },
+          ],
+          tags: [
+            { name: 'event', value: 'contact-sheet-ready' },
+            { name: 'domain', value: 'demo' },
+            { name: 'participant-reference', value: 'REF123' },
+          ],
+        },
+      ])
     }),
   )
 
   it.effect('uses marathon contact sheet format when generating', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
-        makeInitialState({ marathon: { contactSheetFormat: 'a3' } }),
+        makeInitialState({
+          marathon: {
+            contactSheetFormat: 'a3',
+            name: 'Demo Marathon',
+            logoUrl: null,
+          },
+        }),
         () =>
           Effect.gen(function* () {
             const generator = yield* ContactSheetGenerator
@@ -313,6 +376,32 @@ describe('ContactSheetGenerator', () => {
       )
 
       assert.strictEqual(state.sheetInputs[0]?.format, 'a3')
+    }),
+  )
+
+  it.effect('skips the participant email when the participant has no email address', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          participant: {
+            id: 123,
+            marathonId: 456,
+            firstname: 'Ada',
+            lastname: 'Lovelace',
+            email: null,
+            competitionClass: makeCompetitionClass(),
+            submissions: submissionKeys.map((key) => ({ key })),
+          },
+        }),
+        () =>
+          Effect.gen(function* () {
+            const generator = yield* ContactSheetGenerator
+            yield* generator.generate(input)
+          }),
+      )
+
+      assert.lengthOf(state.filePuts, 1)
+      assert.deepStrictEqual(state.emailSends, [])
     }),
   )
 
@@ -437,6 +526,9 @@ describe('ContactSheetGenerator', () => {
           participant: {
             id: 123,
             marathonId: 456,
+            firstname: 'Ada',
+            lastname: 'Lovelace',
+            email: 'ada@example.com',
             competitionClass: makeCompetitionClass({ numberOfPhotos: 12 }),
             submissions: submissionKeys.slice(0, 12).map((key) => ({ key })),
           },
@@ -462,6 +554,9 @@ describe('ContactSheetGenerator', () => {
           participant: {
             id: 123,
             marathonId: 456,
+            firstname: 'Ada',
+            lastname: 'Lovelace',
+            email: 'ada@example.com',
             competitionClass: makeCompetitionClass({ numberOfPhotos: 8 }),
             submissions: submissionKeys.slice(0, 7).map((key) => ({ key })),
           },
