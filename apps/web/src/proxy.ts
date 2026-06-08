@@ -80,6 +80,18 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next(requestWithDomainHeader)
     }
 
+    // For gallery routes on a subdomain, inject the subdomain into the path
+    if (pathname.startsWith('/gallery')) {
+      const galleryWithSubdomain = `/gallery/${subdomain}`
+      if (!pathname.startsWith(galleryWithSubdomain)) {
+        const restOfPath = pathname === '/gallery' ? '' : pathname.slice(8) // Remove "/gallery"
+        const rewritePath = `${galleryWithSubdomain}${restOfPath}`
+        return NextResponse.rewrite(new URL(rewritePath, request.url), requestWithDomainHeader)
+      }
+
+      return NextResponse.next(requestWithDomainHeader)
+    }
+
     if (pathname === '/') {
       return NextResponse.redirect(new URL(`/live`, request.url))
     }
@@ -110,7 +122,11 @@ export async function proxy(request: NextRequest) {
   }
 
   /** Marathon URLs are outside `[locale]`; next-intl would rewrite/path-normalize these and 404 */
-  if (pathname.startsWith('/terms') || pathname.startsWith('/live')) {
+  if (
+    pathname.startsWith('/terms') ||
+    pathname.startsWith('/live') ||
+    pathname.startsWith('/gallery')
+  ) {
     return NextResponse.next()
   }
 

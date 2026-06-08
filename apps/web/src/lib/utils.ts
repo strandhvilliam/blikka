@@ -34,7 +34,7 @@ export const formatPlatformTermsPathname = (locale: string) =>
 export const formatDomainPathname = (
   pathname: string,
   domain?: string,
-  site: 'admin' | 'live' | 'staff' | 'terms' = 'admin',
+  site: 'admin' | 'live' | 'staff' | 'terms' | 'gallery' = 'admin',
 ) => {
   if (!domain) return pathname
 
@@ -56,7 +56,7 @@ export const formatDomainPathname = (
 export const formatDomainLink = (
   pathname: string,
   domain?: string,
-  site: 'admin' | 'live' | 'staff' | 'terms' = 'admin',
+  site: 'admin' | 'live' | 'staff' | 'terms' | 'gallery' = 'admin',
 ) => {
   if (!domain) return pathname
 
