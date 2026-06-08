@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard'
 import { revalidateTermsPageCache } from '@/lib/terms-page-cache.actions'
 
-const EDITOR_HEIGHT_CLASS = 'h-[clamp(360px,calc(100dvh-360px),720px)]'
+const EDITOR_HEIGHT_CLASS = 'min-h-[360px] h-[clamp(360px,calc(100dvh-360px),720px)]'
 
 type EditorMode = 'write' | 'preview'
 
@@ -218,14 +218,14 @@ function TermsEditor({ domain, currentTerms }: TermsEditorProps) {
           <TabsContent
             value="write"
             forceMount
-            className={cn('p-0 data-[state=inactive]:hidden', EDITOR_HEIGHT_CLASS)}
+            className={cn('flex flex-col p-0 data-[state=inactive]:hidden', EDITOR_HEIGHT_CLASS)}
           >
             <Textarea
               id="terms-markdown"
               value={termsMarkdown}
               onChange={(e) => setTermsMarkdown(e.target.value)}
               placeholder="# Terms and Conditions&#10;&#10;Write or paste your terms in Markdown…"
-              className="h-full min-h-0 resize-none rounded-none border-0 bg-background font-mono text-sm shadow-none focus-visible:ring-0 [field-sizing:fixed] [scrollbar-gutter:stable]"
+              className="min-h-[360px] flex-1 resize-none rounded-none border-0 bg-background font-mono text-sm shadow-none focus-visible:ring-0 [field-sizing:fixed] [scrollbar-gutter:stable]"
             />
           </TabsContent>
 

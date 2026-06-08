@@ -19,7 +19,7 @@ export function TermsSkeleton() {
           <Skeleton className="h-9 w-40 rounded-lg" />
           <Skeleton className="h-8 w-28 rounded-md" />
         </div>
-        <Skeleton className="h-[clamp(360px,calc(100dvh-360px),720px)] w-full rounded-none" />
+        <Skeleton className="min-h-[360px] h-[clamp(360px,calc(100dvh-360px),720px)] w-full rounded-none" />
         <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-4 py-3">
           <Skeleton className="h-3 w-32" />
           <Skeleton className="h-9 w-28 rounded-md" />
