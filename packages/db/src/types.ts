@@ -22,7 +22,10 @@ import {
   votingRound,
   votingRoundSubmission,
   votingRoundVote,
+  galleryPublications,
 } from './schema'
+
+export type { GalleryFeaturedSection } from './schema'
 
 export type Participant = typeof participants.$inferSelect
 export type NewParticipant = typeof participants.$inferInsert
@@ -92,3 +95,6 @@ export type NewVotingRoundSubmission = typeof votingRoundSubmission.$inferInsert
 
 export type VotingRoundVote = typeof votingRoundVote.$inferSelect
 export type NewVotingRoundVote = typeof votingRoundVote.$inferInsert
+
+export type GalleryPublication = typeof galleryPublications.$inferSelect
+export type NewGalleryPublication = typeof galleryPublications.$inferInsert

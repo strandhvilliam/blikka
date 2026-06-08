@@ -68,6 +68,7 @@ export const marathonsRelations = relations(schema.marathons, ({ many }) => ({
   zippedSubmissions: many(schema.zippedSubmissions),
   sponsors: many(schema.sponsors),
   votingRounds: many(schema.votingRound),
+  galleryPublications: many(schema.galleryPublications),
 }))
 
 export const participantsRelations = relations(schema.participants, ({ one, many }) => ({
@@ -140,9 +141,21 @@ export const topicsRelations = relations(schema.topics, ({ one, many }) => ({
   juryInvitations: many(schema.juryInvitations),
   submissions: many(schema.submissions),
   votingRounds: many(schema.votingRound),
+  galleryPublications: many(schema.galleryPublications),
   marathon: one(schema.marathons, {
     fields: [schema.topics.marathonId],
     references: [schema.marathons.id],
+  }),
+}))
+
+export const galleryPublicationsRelations = relations(schema.galleryPublications, ({ one }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.galleryPublications.marathonId],
+    references: [schema.marathons.id],
+  }),
+  topic: one(schema.topics, {
+    fields: [schema.galleryPublications.topicId],
+    references: [schema.topics.id],
   }),
 }))
 

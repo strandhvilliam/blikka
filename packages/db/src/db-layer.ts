@@ -3,6 +3,7 @@ import { CompetitionClassesRepositoryLayer } from './repositories/competition-cl
 import { ContactSheetsRepositoryLayer } from './repositories/contact-sheets.repository'
 import { DeviceGroupsRepositoryLayer } from './repositories/device-groups.repository'
 import { ExportsRepositoryLayer } from './repositories/exports.repository'
+import { GalleryRepositoryLayer } from './repositories/gallery.repository'
 import { JuryRepositoryLayer } from './repositories/jury.repository'
 import { MarathonsRepositoryLayer } from './repositories/marathons.repository'
 import { ParticipantsRepositoryLayer } from './repositories/participants.repository'
@@ -31,4 +32,5 @@ export const DbLayer = Layer.mergeAll(
   ExportsRepositoryLayer,
   ZippedSubmissionsRepositoryLayer,
   VotingRepositoryLayer,
+  GalleryRepositoryLayer,
 )

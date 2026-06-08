@@ -200,6 +200,11 @@ export const participants = pgTable(
       'btree',
       table.reference.asc().nullsLast().op('text_ops'),
     ),
+    index('participants_domain_status_idx').using(
+      'btree',
+      table.domain.asc().nullsLast().op('text_ops'),
+      table.status.asc().nullsLast().op('text_ops'),
+    ),
     index('participants_marathon_phone_hash_idx').using(
       'btree',
       table.marathonId.asc().nullsLast().op('int8_ops'),
@@ -565,6 +570,12 @@ export const submissions = pgTable(
       table.participantId.asc().nullsLast().op('int8_ops'),
     ),
     index('submissions_topic_id_idx').on(table.topicId),
+    index('submissions_marathon_topic_status_idx').using(
+      'btree',
+      table.marathonId.asc().nullsLast().op('int8_ops'),
+      table.topicId.asc().nullsLast().op('int8_ops'),
+      table.status.asc().nullsLast().op('text_ops'),
+    ),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
@@ -613,6 +624,11 @@ export const topics = pgTable(
     }),
   },
   (table) => [
+    index('topics_marathon_order_idx').using(
+      'btree',
+      table.marathonId.asc().nullsLast().op('int8_ops'),
+      table.orderIndex.asc().nullsLast().op('int4_ops'),
+    ),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
@@ -880,6 +896,58 @@ export const votingRoundVote = pgTable(
       columns: [table.submissionId],
       foreignColumns: [submissions.id],
       name: 'voting_round_vote_submission_id_fkey',
+    }).onDelete('cascade'),
+  ],
+)
+
+/**
+ * Ordered, organizer-enabled featured section shown above the public gallery feed.
+ * Items are winner-derived (jury rankings / by-camera voting), never arbitrary photo picks.
+ */
+export type GalleryFeaturedSection = {
+  id: string
+  kind: 'topic-winners' | 'class-winners' | 'by-camera-topic-winners'
+  enabled: boolean
+  order: number
+  topicId?: number
+  competitionClassId?: number
+}
+
+/**
+ * Publication state for the public gallery. `topicId = null` is the marathon-wide publication
+ * (classic marathon mode); a non-null `topicId` is a per-topic publication (by-camera mode).
+ */
+export const galleryPublications = pgTable(
+  'gallery_publications',
+  {
+    id: bigint({ mode: 'number' }).primaryKey().generatedByDefaultAsIdentity(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }),
+    marathonId: bigint('marathon_id', { mode: 'number' }).notNull(),
+    topicId: bigint('topic_id', { mode: 'number' }),
+    publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }),
+    featuredSections: jsonb('featured_sections')
+      .$type<GalleryFeaturedSection[]>()
+      .default([])
+      .notNull(),
+  },
+  (table) => [
+    index('gallery_publications_marathon_id_idx').on(table.marathonId),
+    uniqueIndex('gallery_publications_marathon_topic_key').on(
+      table.marathonId,
+      sql`coalesce(${table.topicId}, 0)`,
+    ),
+    foreignKey({
+      columns: [table.marathonId],
+      foreignColumns: [marathons.id],
+      name: 'gallery_publications_marathon_id_fkey',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.topicId],
+      foreignColumns: [topics.id],
+      name: 'gallery_publications_topic_id_fkey',
     }).onDelete('cascade'),
   ],
 )
