@@ -2,7 +2,7 @@ import { Schema } from 'effect'
 
 export const GalleryFeaturedSectionSchema = Schema.Struct({
   id: Schema.String,
-  kind: Schema.Literal('topic-winners', 'class-winners', 'by-camera-topic-winners'),
+  kind: Schema.Literals(['topic-winners', 'class-winners', 'by-camera-topic-winners']),
   enabled: Schema.Boolean,
   order: Schema.Number,
   topicId: Schema.optional(Schema.Number),

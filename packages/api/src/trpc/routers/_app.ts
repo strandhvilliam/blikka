@@ -20,6 +20,7 @@ import { votingRouter } from './voting.router'
 import { smsRouter } from './sms.router'
 import { submissionsRouter } from './submissions.router'
 import { seedingRouter } from './seeding.router'
+import { galleryRouter } from './gallery.router'
 
 export const appRouter = createTRPCRouter({
   participants: participantRouter,
@@ -41,6 +42,7 @@ export const appRouter = createTRPCRouter({
   sms: smsRouter,
   submissions: submissionsRouter,
   seeding: seedingRouter,
+  gallery: galleryRouter,
 })
 
 export type AppRouter = typeof appRouter
