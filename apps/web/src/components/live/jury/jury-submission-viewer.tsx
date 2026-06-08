@@ -13,7 +13,7 @@ import {
 import { useTRPC } from '@/lib/trpc/client'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { parseAsInteger, useQueryState } from 'nuqs'
-import { ArrowLeft, ImageOff, Loader2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, ImageOff, Loader2, Maximize2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -32,6 +32,7 @@ import { useJuryReviewData } from './jury-review-data-provider'
 import { useJuryLocalRatingSync } from '@/hooks/live/jury/use-jury-local-rating-sync'
 import { useJuryNotesDebouncedSave } from '@/hooks/live/jury/use-jury-notes-debounced-save'
 import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
+import { useJuryReviewInteraction } from './jury-review-interaction-provider'
 import {
   SubmissionOptimizedOriginalImage,
   SubmissionRawOriginalImage,
@@ -74,6 +75,9 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
   const currentParticipantId = currentParticipant?.id ?? null
   const currentAssetUrl = getParticipantAssetUrl(currentParticipant, invitation)
   const currentAssetId = String(currentParticipant?.submission?.id ?? currentParticipant?.id ?? '')
+  const canOpenFullscreen = Boolean(currentAssetUrl && !imageErrors.has(currentAssetId))
+  const canGoToPrev = currentParticipantIndex > 0
+  const canGoToNext = currentParticipantIndex < participants.length - 1
 
   const existingRating = useMemo(
     () =>
@@ -198,6 +202,13 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     setPendingRank(finalRanking)
   }, [])
 
+  const { registerViewerActions } = useJuryReviewInteraction()
+
+  useEffect(() => {
+    registerViewerActions({ assignToRank: handleFinalRankingClick })
+    return () => registerViewerActions(null)
+  }, [handleFinalRankingClick, registerViewerActions])
+
   const goToPrev = useCallback(() => {
     void setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))
   }, [currentParticipantIndex, setCurrentParticipantIndex])
@@ -300,7 +311,7 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
         <JurySubmissionCompactNav
           onBack={backToList}
           selectedRatings={selectedRatings}
-          canOpenFullscreen={Boolean(currentAssetUrl && !imageErrors.has(currentAssetId))}
+          canOpenFullscreen={canOpenFullscreen}
           onOpenFullscreen={() => setIsFullscreenOpen(true)}
           currentParticipantIndex={currentParticipantIndex}
           loadedParticipantCount={participants.length}
@@ -311,7 +322,7 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
 
         {/* Image + sidebar */}
         <div className="grid xl:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="relative flex min-h-[55vh] items-center justify-center bg-neutral-100 xl:min-h-[65vh]">
+          <div className="group relative flex min-h-[55vh] items-center justify-center bg-neutral-100 xl:min-h-[65vh]">
             {currentAssetUrl && !imageErrors.has(currentAssetId) ? (
               invitation.inviteType === 'class' ? (
                 <SubmissionRawOriginalImage
@@ -342,8 +353,42 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
               </div>
             )}
 
+            {canOpenFullscreen ? (
+              <button
+                type="button"
+                className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-white/85 text-brand-black opacity-100 shadow-sm backdrop-blur-sm transition-all hover:bg-white md:opacity-0 md:group-hover:opacity-100"
+                onClick={() => setIsFullscreenOpen(true)}
+                title="Fullscreen"
+                aria-label="View image fullscreen"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+            ) : null}
+
+            {canGoToPrev ? (
+              <button
+                type="button"
+                className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-white/85 text-brand-black opacity-0 shadow-sm backdrop-blur-sm transition-all hover:bg-white group-hover:opacity-100"
+                onClick={goToPrev}
+                aria-label="Previous submission"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            ) : null}
+
+            {canGoToNext ? (
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-white/85 text-brand-black opacity-0 shadow-sm backdrop-blur-sm transition-all hover:bg-white group-hover:opacity-100"
+                onClick={goToNext}
+                aria-label="Next submission"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            ) : null}
+
             {isFetchingNextPage ? (
-              <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full border border-border/60 bg-white/80 px-3 py-1 text-xs text-brand-gray backdrop-blur-sm">
+              <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-border/60 bg-white/80 px-3 py-1 text-xs text-brand-gray backdrop-blur-sm">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Loading
               </div>

@@ -211,7 +211,7 @@ export function JuryInvitationDetailsContent({
                     Reviewed
                   </p>
                   <p className="mt-1 flex items-baseline gap-1 font-gothic">
-                    <span className="text-2xl font-bold leading-none tabular-nums">
+                    <span className="text-2xl font-medium leading-none tabular-nums">
                       {statistics.ratedParticipants}
                     </span>
                     <span className="text-sm text-muted-foreground tabular-nums">
@@ -224,7 +224,7 @@ export function JuryInvitationDetailsContent({
                     Avg rating
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 font-gothic">
-                    <span className="text-2xl font-bold leading-none tabular-nums">
+                    <span className="text-2xl font-medium leading-none tabular-nums">
                       {statistics.averageRating > 0 ? statistics.averageRating.toFixed(1) : '—'}
                     </span>
                     {statistics.averageRating > 0 && (

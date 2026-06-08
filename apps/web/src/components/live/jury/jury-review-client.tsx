@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import {
   resolveJuryReviewParticipantIndex,
   useJuryReviewQueryState,
@@ -8,19 +8,25 @@ import {
 import { JuryReviewDataProvider, useJuryReviewData } from './jury-review-data-provider'
 import { JuryParticipantList } from './jury-participant-list'
 import { JuryReviewHeader } from './jury-review-header'
+import { JuryReviewInteractionProvider } from './jury-review-interaction-provider'
 import { JurySubmissionViewer } from './jury-submission-viewer'
 
 export type { ViewMode } from '@/lib/jury/jury-types'
 
+const noopSubscribe = () => () => {}
+
 export function JuryReviewClient() {
   return (
     <JuryReviewDataProvider>
-      <JuryReviewClientContent />
+      <JuryReviewInteractionProvider>
+        <JuryReviewClientContent />
+      </JuryReviewInteractionProvider>
     </JuryReviewDataProvider>
   )
 }
 
 function JuryReviewClientContent() {
+  const isClientMounted = useSyncExternalStore(noopSubscribe, () => true, () => false)
   const { participants, isFetching, isFetchingNextPage, isFetchingParticipantCount } =
     useJuryReviewData()
   const { selectedParticipantId, currentParticipantIndex } = useJuryReviewQueryState()
@@ -36,7 +42,8 @@ function JuryReviewClientContent() {
   )
 
   const isRefreshingResults = isFetchingParticipantCount || (isFetching && !isFetchingNextPage)
-  const shouldShowViewer = selectedParticipantId !== null && participants.length > 0
+  const shouldShowViewer =
+    isClientMounted && selectedParticipantId !== null && participants.length > 0
 
   return (
     <main className="min-h-dvh bg-neutral-50 bg-dot-pattern-light">

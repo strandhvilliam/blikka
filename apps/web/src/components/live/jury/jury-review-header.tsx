@@ -13,6 +13,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { PrimaryButton } from '@/components/ui/primary-button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useTRPC } from '@/lib/trpc/client'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { CheckCircle2 } from 'lucide-react'
@@ -30,6 +31,7 @@ import { JuryRankTrophyBadge } from './jury-rank-trophy-badge'
 import { useDomain } from '@/lib/domain-provider'
 import { useJuryClientToken } from './jury-client-token-provider'
 import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
+import { useJuryReviewInteraction } from './jury-review-interaction-provider'
 import dynamic from 'next/dynamic'
 
 const ProgressRing = dynamic(() => import('./jury-progress-ring').then((mod) => mod.ProgressRing), {
@@ -60,7 +62,8 @@ export function JuryReviewHeader() {
     () => false,
   )
 
-  const { selectParticipant } = useJuryReviewQueryState()
+  const { selectParticipant, selectedParticipantId } = useJuryReviewQueryState()
+  const { viewerActions } = useJuryReviewInteraction()
   const { participants, reviewSetTotalParticipants: totalParticipants } = useJuryReviewData()
   const domain = useDomain()
   const token = useJuryClientToken()
@@ -100,6 +103,8 @@ export function JuryReviewHeader() {
   const headerTotalParticipants = isClientReady ? totalParticipants : 0
   const headerTopPicksCount = isClientReady ? topPicksCount : 0
   const headerTopPicksComplete = isClientReady && topPicksComplete
+  const canAssignFromPodium =
+    isClientReady && selectedParticipantId !== null && viewerActions !== null
 
   const sessionInitials = getDisplayInitials(invitation.displayName)
 
@@ -113,14 +118,19 @@ export function JuryReviewHeader() {
     <header className="overflow-hidden rounded-2xl border border-border/60 bg-white">
       <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-4">
-          <div
-            className="shrink-0"
-            title="Share of participants with any saved review. Completing requires 1st, 2nd, and 3rd place."
-          >
-            <ProgressRing rated={headerRatedCount} total={headerTotalParticipants} />
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="shrink-0 cursor-default">
+                <ProgressRing rated={headerRatedCount} total={headerTotalParticipants} />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              Share of participants with any saved review. Completing requires 1st, 2nd, and 3rd
+              place.
+            </TooltipContent>
+          </Tooltip>
           <div className="min-w-0">
-            <h1 className="font-gothic text-2xl font-bold leading-none tracking-tight text-brand-black">
+            <h1 className="font-gothic text-2xl font-medium leading-none tracking-tight text-brand-black">
               Jury Review
             </h1>
             <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -140,7 +150,7 @@ export function JuryReviewHeader() {
         <div className="flex min-w-0 items-center justify-end gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary/10 font-gothic text-[13px] font-bold tracking-tight text-brand-primary"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary/10 font-gothic text-[13px] font-medium tracking-tight text-brand-primary"
               aria-hidden
             >
               {sessionInitials}
@@ -149,7 +159,7 @@ export function JuryReviewHeader() {
               <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-gray">
                 Your session
               </p>
-              <p className="font-gothic truncate text-sm font-bold leading-tight tracking-tight text-brand-black">
+              <p className="font-gothic truncate text-sm font-medium leading-tight tracking-tight text-brand-black">
                 {invitation.displayName}
               </p>
               <p
@@ -218,7 +228,9 @@ export function JuryReviewHeader() {
           </div>
           {!headerTopPicksComplete && isClientReady ? (
             <p className="hidden text-[11px] text-brand-gray sm:block">
-              Assign all three to complete the review
+              {canAssignFromPodium
+                ? 'Tap an empty slot to add the current photo'
+                : 'Assign all three to complete the review'}
             </p>
           ) : null}
         </div>
@@ -231,11 +243,19 @@ export function JuryReviewHeader() {
               participantId !== null ? (participantMap.get(participantId) ?? null) : null
             const isFilled = participant !== null
 
+            const canAssignToSlot = !isFilled && canAssignFromPodium
+
             const handleClick = () => {
-              if (!isFilled || participantId === null) return
-              const index = participants.findIndex((p) => p.id === participantId)
-              if (index >= 0) {
-                selectParticipant(participantId, index)
+              if (isFilled && participantId !== null) {
+                const index = participants.findIndex((p) => p.id === participantId)
+                if (index >= 0) {
+                  selectParticipant(participantId, index)
+                }
+                return
+              }
+
+              if (canAssignToSlot) {
+                viewerActions!.assignToRank(rank)
               }
             }
 
@@ -244,17 +264,21 @@ export function JuryReviewHeader() {
                 key={rank}
                 type="button"
                 onClick={handleClick}
-                disabled={!isFilled}
+                disabled={!isFilled && !canAssignToSlot}
                 aria-label={
                   isFilled
                     ? `${slot.label}: participant #${participant!.reference}. Open submission.`
-                    : `${slot.label}: not assigned yet`
+                    : canAssignToSlot
+                      ? `${slot.label}: add current photo`
+                      : `${slot.label}: not assigned yet`
                 }
                 className={cn(
-                  'flex min-w-0 items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 focus-visible:ring-offset-1',
+                  'group flex min-w-0 items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 focus-visible:ring-offset-1',
                   isFilled
                     ? `cursor-pointer shadow-sm active:scale-[0.99] ${slot.filled}`
-                    : 'cursor-default border-dashed border-border/70 bg-white/40',
+                    : canAssignToSlot
+                      ? 'cursor-pointer border-dashed border-border/70 bg-white/40 hover:border-brand-primary/50 hover:bg-brand-primary/10 active:scale-[0.99]'
+                      : 'cursor-default border-dashed border-border/70 bg-white/40',
                 )}
               >
                 <JuryRankTrophyBadge rank={rank} tone="idle" />
@@ -263,11 +287,18 @@ export function JuryReviewHeader() {
                     {slot.label}
                   </p>
                   {isFilled ? (
-                    <p className="truncate font-gothic text-sm font-bold leading-tight tabular-nums text-brand-black">
+                    <p className="truncate font-gothic text-sm font-medium leading-tight tabular-nums text-brand-black">
                       #{participant!.reference}
                     </p>
                   ) : (
-                    <p className="text-sm font-medium leading-tight text-brand-gray/70">Empty</p>
+                    <p
+                      className={cn(
+                        'text-sm font-medium leading-tight text-brand-gray/70',
+                        canAssignToSlot && 'group-hover:text-brand-primary',
+                      )}
+                    >
+                      {canAssignToSlot ? 'Add current' : 'Empty'}
+                    </p>
                   )}
                 </div>
               </button>
