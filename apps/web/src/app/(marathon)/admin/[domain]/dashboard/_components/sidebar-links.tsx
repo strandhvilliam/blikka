@@ -10,6 +10,7 @@ import {
 import {
   Download,
   FileText,
+  GalleryHorizontalEnd,
   Gavel,
   Grid3x3,
   Handshake,
@@ -67,6 +68,11 @@ export const NAV_LINKS = {
       name: 'Voting',
       url: '/dashboard/voting',
       icon: Vote as LucideIcon,
+    },
+    {
+      name: 'Gallery',
+      url: '/dashboard/gallery',
+      icon: GalleryHorizontalEnd as LucideIcon,
     },
   ],
   configuration: [
