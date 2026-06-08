@@ -11,11 +11,11 @@ export function JuryInvitationDetailsSkeleton() {
         <div className="flex gap-2">
           <Skeleton className="h-8 w-24 rounded-md" />
           <Skeleton className="h-8 w-20 rounded-md" />
-          <Skeleton className="h-8 w-20 rounded-md" />
+          <Skeleton className="h-8 w-8 rounded-md" />
         </div>
       </div>
 
-      <div className="p-5 space-y-5 max-w-3xl">
+      <div className="p-5 space-y-5">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Skeleton className="h-1 w-1 rounded-full" />

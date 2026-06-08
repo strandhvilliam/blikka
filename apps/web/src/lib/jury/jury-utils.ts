@@ -1,9 +1,23 @@
-import { formatDomainPathname, buildS3Url } from '@/lib/utils'
+import { formatDomainLink, formatDomainPathname, buildS3Url } from '@/lib/utils'
 
 import type { JuryInvitation, JuryListParticipant, JuryRatingEntry } from './jury-types'
 
 export function getJuryEntryPath(domain: string, token: string) {
   return formatDomainPathname(`/live/jury/${token}`, domain, 'live')
+}
+
+export function getJuryEntryLink(domain: string, token: string) {
+  return formatDomainLink(`/live/jury/${token}`, domain, 'live')
+}
+
+export function getDisplayInitials(displayName: string): string {
+  const parts = displayName.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
+
+  const first = parts[0]!
+  const last = parts[parts.length - 1]!
+  return `${first[0]}${last[0]}`.toUpperCase()
 }
 
 export function getJuryViewerPath(domain: string, token: string) {
@@ -17,7 +31,7 @@ export function getJuryCompletedPath(domain: string, token: string) {
 export function getJuryUnavailablePath(
   domain: string,
   token: string,
-  reason: 'expired' | 'unsupported-mode' | 'inactive',
+  reason: 'expired' | 'unsupported-mode' | 'inactive' | 'revoked',
 ) {
   return formatDomainPathname(`/live/jury/${token}/unavailable?reason=${reason}`, domain, 'live')
 }

@@ -2,8 +2,27 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { Trash2, Calendar, Tag, Users, ExternalLink, Copy, CheckCircle2, Clock } from 'lucide-react'
+import {
+  Trash2,
+  Calendar,
+  Tag,
+  Users,
+  ExternalLink,
+  Copy,
+  Mail,
+  RefreshCw,
+  CalendarPlus,
+  MoreHorizontal,
+  Star,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -19,58 +38,17 @@ import {
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { useDomain } from '@/lib/domain-provider'
-import { cn, formatDomainLink } from '@/lib/utils'
+import { getJuryEntryLink, getRankAssignments } from '@/lib/jury/jury-utils'
 import { format } from 'date-fns'
-import type { JuryInvitation } from '@blikka/db'
+import { JuryRatingsTable } from './jury-ratings-table'
+import { JuryRankedPickCard } from './jury-ranked-pick-card'
+import { JuryInvitationStatusBadge } from './jury-invitation-status-badge'
+import { JuryInvitationExtendDialog } from './jury-invitation-extend-dialog'
+import { JuryInvitationRegenerateDialog } from './jury-invitation-regenerate-dialog'
 
 interface JuryInvitationDetailsContentProps {
   invitationId: number
   onDeleted?: () => void
-}
-
-function getStatusBadge(status: JuryInvitation['status']) {
-  const baseClasses = 'text-xs font-medium gap-1 h-5 px-1.5 [&>svg]:size-2.5 border'
-  switch (status) {
-    case 'completed':
-      return (
-        <Badge
-          variant="outline"
-          className={cn(
-            baseClasses,
-            'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800',
-          )}
-        >
-          <CheckCircle2 />
-          Completed
-        </Badge>
-      )
-    case 'in_progress':
-      return (
-        <Badge
-          variant="outline"
-          className={cn(
-            baseClasses,
-            'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
-          )}
-        >
-          <Clock />
-          In Progress
-        </Badge>
-      )
-    default:
-      return (
-        <Badge
-          variant="outline"
-          className={cn(
-            baseClasses,
-            'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700',
-          )}
-        >
-          <Clock />
-          Pending
-        </Badge>
-      )
-  }
 }
 
 export function JuryInvitationDetailsContent({
@@ -78,6 +56,8 @@ export function JuryInvitationDetailsContent({
   onDeleted,
 }: JuryInvitationDetailsContentProps) {
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
+  const [isExtendDialogOpen, setIsExtendDialogOpen] = useState(false)
+  const [isRegenerateDialogOpen, setIsRegenerateDialogOpen] = useState(false)
   const trpc = useTRPC()
   const domain = useDomain()
   const queryClient = useQueryClient()
@@ -89,6 +69,11 @@ export function JuryInvitationDetailsContent({
   )
   const { data: reviewResults } = useSuspenseQuery(
     trpc.jury.getJuryReviewResultsByInvitationId.queryOptions({
+      id: invitationId,
+    }),
+  )
+  const { data: statistics } = useSuspenseQuery(
+    trpc.jury.getJuryInvitationStatisticsById.queryOptions({
       id: invitationId,
     }),
   )
@@ -111,11 +96,22 @@ export function JuryInvitationDetailsContent({
     }),
   )
 
+  const { mutate: resendEmail, isPending: isResending } = useMutation(
+    trpc.jury.resendJuryInvitationEmail.mutationOptions({
+      onSuccess: () => {
+        toast.success('Invite email sent')
+      },
+      onError: (error) => {
+        toast.error(error.message || 'Failed to resend invite email')
+      },
+    }),
+  )
+
   const handleDelete = () => {
     executeDelete({ id: invitationId })
   }
 
-  const juryLink = formatDomainLink(`/live/jury/${invitation.token}`, domain, 'live')
+  const juryLink = getJuryEntryLink(domain, invitation.token)
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(juryLink)
@@ -135,11 +131,13 @@ export function JuryInvitationDetailsContent({
   }
 
   const isExpired = new Date(invitation.expiresAt) < new Date()
+  const isCompleted = invitation.status === 'completed'
   const createdDate = format(new Date(invitation.createdAt), 'PPP')
   const expiryDate = format(new Date(invitation.expiresAt), 'PPP')
-  const rankedResults = reviewResults.ratings
-    .filter((rating) => rating.finalRanking !== null)
-    .toSorted((left, right) => (left.finalRanking ?? 0) - (right.finalRanking ?? 0))
+  const rankAssignments = getRankAssignments(reviewResults.ratings)
+  const ratingsByParticipantId = new Map(
+    reviewResults.ratings.map((rating) => [rating.participantId, rating]),
+  )
 
   return (
     <>
@@ -150,29 +148,124 @@ export function JuryInvitationDetailsContent({
           </h2>
           <p className="break-words text-[12px] text-muted-foreground mt-0.5">{invitation.email}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={handleCopyLink}>
             <Copy className="h-3.5 w-3.5 mr-1.5" />
-            Copy Link
+            Copy link
           </Button>
           <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={handleOpenLink}>
             <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
             Open
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-3 text-xs border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/20"
-            disabled={isDeleting}
-            onClick={() => setIsRemoveDialogOpen(true)}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-            Delete
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0" aria-label="More actions">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem
+                disabled={isExpired || isResending}
+                onSelect={() => resendEmail({ id: invitationId, domain })}
+              >
+                <Mail className="h-3.5 w-3.5" />
+                {isResending ? 'Sending…' : 'Resend email'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setIsExtendDialogOpen(true)}>
+                <CalendarPlus className="h-3.5 w-3.5" />
+                Extend expiry
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={isCompleted}
+                onSelect={() => setIsRegenerateDialogOpen(true)}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Regenerate link
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={isDeleting}
+                onSelect={() => setIsRemoveDialogOpen(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete invitation
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       <ScrollArea className="min-h-0 min-w-0 flex-1 [&_[data-slot=scroll-area-viewport]]:min-w-0">
-        <div className="box-border w-full min-w-0 max-w-3xl space-y-5 p-4 sm:p-5">
+        <div className="box-border w-full min-w-0 space-y-5 p-4 sm:p-5">
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-1 w-1 rounded-full bg-brand-primary" />
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                Review progress
+              </span>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-4 sm:p-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border/60 bg-white px-3.5 py-3">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                    Reviewed
+                  </p>
+                  <p className="mt-1 flex items-baseline gap-1 font-gothic">
+                    <span className="text-2xl font-bold leading-none tabular-nums">
+                      {statistics.ratedParticipants}
+                    </span>
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      / {statistics.totalParticipants}
+                    </span>
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-white px-3.5 py-3">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                    Avg rating
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 font-gothic">
+                    <span className="text-2xl font-bold leading-none tabular-nums">
+                      {statistics.averageRating > 0 ? statistics.averageRating.toFixed(1) : '—'}
+                    </span>
+                    {statistics.averageRating > 0 && (
+                      <Star className="h-4 w-4 fill-brand-primary text-brand-primary" />
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="text-muted-foreground">Progress</span>
+                  <span className="font-medium tabular-nums text-muted-foreground">
+                    {Math.round(Math.min(100, statistics.progressPercentage))}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-brand-primary transition-all"
+                    style={{ width: `${Math.min(100, statistics.progressPercentage)}%` }}
+                  />
+                </div>
+              </div>
+              {statistics.ratingDistribution.some(({ count }) => count > 0) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {statistics.ratingDistribution.map(({ rating, count }) =>
+                    count > 0 ? (
+                      <span
+                        key={rating}
+                        className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-white px-2.5 py-1 text-[11px] font-medium tabular-nums"
+                      >
+                        {rating}
+                        <Star className="h-2.5 w-2.5 fill-brand-primary text-brand-primary" />
+                        <span className="text-muted-foreground">{count}</span>
+                      </span>
+                    ) : null,
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+
           <section>
             <div className="flex items-center gap-2 mb-3">
               <span className="h-1 w-1 rounded-full bg-brand-primary" />
@@ -187,7 +280,7 @@ export function JuryInvitationDetailsContent({
                     Status
                   </p>
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    {getStatusBadge(invitation.status)}
+                    <JuryInvitationStatusBadge status={invitation.status} />
                     {isExpired && (
                       <Badge variant="destructive" className="text-[10px]">
                         Expired
@@ -286,28 +379,26 @@ export function JuryInvitationDetailsContent({
                 Ranked Picks
               </span>
             </div>
-            <div className="space-y-1.5">
-              {[1, 2, 3].map((rank) => {
-                const rating = rankedResults.find((entry) => entry.finalRanking === rank) ?? null
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {([1, 2, 3] as const).map((rank) => {
+                const participantId = rankAssignments.get(rank)
+                const rating =
+                  participantId !== undefined
+                    ? (ratingsByParticipantId.get(participantId) ?? null)
+                    : null
 
                 return (
-                  <div
+                  <JuryRankedPickCard
                     key={rank}
-                    className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
-                  >
-                    <p className="shrink-0 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {rank === 1 ? '1st place' : rank === 2 ? '2nd place' : '3rd place'}
-                    </p>
-                    <p className="min-w-0 flex-1 truncate text-right text-[13px] font-medium tabular-nums">
-                      {rating?.participant?.reference
-                        ? `#${rating.participant.reference}`
-                        : 'Not selected'}
-                    </p>
-                  </div>
+                    rank={rank}
+                    participantReference={rating?.participant?.reference}
+                  />
                 )
               })}
             </div>
           </section>
+
+          <JuryRatingsTable ratings={reviewResults.ratings} />
 
           <section>
             <div className="flex items-center gap-2 mb-3">
@@ -332,6 +423,17 @@ export function JuryInvitationDetailsContent({
           </section>
         </div>
       </ScrollArea>
+
+      <JuryInvitationExtendDialog
+        invitationId={invitationId}
+        open={isExtendDialogOpen}
+        onOpenChange={setIsExtendDialogOpen}
+      />
+      <JuryInvitationRegenerateDialog
+        invitationId={invitationId}
+        open={isRegenerateDialogOpen}
+        onOpenChange={setIsRegenerateDialogOpen}
+      />
 
       <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
         <AlertDialogContent>

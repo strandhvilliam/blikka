@@ -24,8 +24,8 @@ import { toast } from 'sonner'
 import { useDomain } from '@/lib/domain-provider'
 import { Input } from '@/components/ui/input'
 import { Gavel, Send, Users, Tag } from 'lucide-react'
-import { addDays } from 'date-fns'
 import { useForm } from '@tanstack/react-form'
+import { getEndOfDayExpiryIso } from '../_lib/invitation-expiry'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -72,16 +72,22 @@ export function JuryInvitationCreateDialog({
 
   const { mutate: createJuryInvitation, isPending: isCreatingJuryInvitation } = useMutation(
     trpc.jury.createJuryInvitation.mutationOptions({
-      onSuccess: async (invitationData) => {
-        if (!invitationData) {
+      onSuccess: async (result) => {
+        if (!result?.invitation) {
           toast.error('Failed to create jury invitation')
           return
         }
 
-        toast.success('Jury invitation created successfully')
+        if (result.emailWarning) {
+          toast.warning('Invitation created, but the email could not be sent', {
+            description: result.emailWarning,
+          })
+        } else {
+          toast.success('Jury invitation created and email sent')
+        }
         form.reset()
         onOpenChange(false)
-        onInvitationCreated?.(invitationData.id)
+        onInvitationCreated?.(result.invitation.id)
         queryClient.invalidateQueries({
           queryKey: trpc.jury.getJuryInvitationsByDomain.queryKey({ domain }),
         })
@@ -130,16 +136,13 @@ export function JuryInvitationCreateDialog({
         parsedTopicId = undefined
       }
 
-      const expiresAt = addDays(new Date(), value.expiryDays ?? 14)
-      expiresAt.setHours(23, 59, 59, 999)
-
       createJuryInvitation({
         domain,
         data: {
           displayName: value.displayName,
           email: value.email,
           inviteType: value.inviteType as 'topic' | 'class',
-          expiresAt: expiresAt.toISOString(),
+          expiresAt: getEndOfDayExpiryIso(value.expiryDays ?? 14),
           competitionClassId: parsedCompetitionClassId,
           deviceGroupId: parsedDeviceGroupId,
           topicId: parsedTopicId,
@@ -178,8 +181,8 @@ export function JuryInvitationCreateDialog({
                   Invite a jury member
                 </DialogTitle>
                 <DialogDescription className="text-[13px] leading-snug text-muted-foreground">
-                  They get a secure link to review submissions. You can share the link from the list
-                  after sending.
+                  An invite email with a secure review link is sent automatically. You can also copy
+                  the link from the invitation details.
                 </DialogDescription>
               </div>
             </div>

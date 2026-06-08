@@ -1,8 +1,7 @@
 'use client'
 
-import { Search, Mail, Tag, Users, Calendar, CheckCircle2, Clock } from 'lucide-react'
+import { Search, Mail, Tag, Users, Calendar } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
@@ -10,61 +9,7 @@ import { useDomain } from '@/lib/domain-provider'
 import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import type { JuryInvitation } from '@blikka/db'
-
-function getStatusBadge(status: JuryInvitation['status'], isActive: boolean) {
-  const baseClasses = 'text-xs font-medium gap-1 h-5 px-1.5 shrink-0 [&>svg]:size-2.5 border'
-  switch (status) {
-    case 'completed': {
-      const Icon = CheckCircle2
-      return (
-        <Badge
-          variant="outline"
-          className={cn(
-            baseClasses,
-            'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800',
-            isActive && 'ring-2 ring-primary/40 ring-offset-1',
-          )}
-        >
-          <Icon />
-          Completed
-        </Badge>
-      )
-    }
-    case 'in_progress': {
-      const Icon = Clock
-      return (
-        <Badge
-          variant="outline"
-          className={cn(
-            baseClasses,
-            'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
-            isActive && 'ring-2 ring-primary/40 ring-offset-1',
-          )}
-        >
-          <Icon />
-          In Progress
-        </Badge>
-      )
-    }
-    default: {
-      const Icon = Clock
-      return (
-        <Badge
-          variant="outline"
-          className={cn(
-            baseClasses,
-            'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700',
-            isActive && 'ring-2 ring-primary/40 ring-offset-1',
-          )}
-        >
-          <Icon />
-          Pending
-        </Badge>
-      )
-    }
-  }
-}
+import { JuryInvitationStatusBadge } from './jury-invitation-status-badge'
 
 interface JuryListProps {
   selectedInvitationId?: number
@@ -145,7 +90,7 @@ export function JuryList({ selectedInvitationId, onSelectInvitation }: JuryListP
                         </p>
                       </div>
                       <div className="shrink-0 justify-self-end pt-0.5">
-                        {getStatusBadge(invitation.status, isActive)}
+                        <JuryInvitationStatusBadge status={invitation.status} isActive={isActive} />
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

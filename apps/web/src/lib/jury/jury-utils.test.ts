@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   getAssignedFinalRankingCount,
+  getDisplayInitials,
   getFinalRankingLabel,
   getParticipantFinalRanking,
   hasCompleteFinalRankings,
@@ -28,5 +29,11 @@ describe('jury final ranking state', () => {
     expect(getFinalRankingLabel(1)).toBe('1st')
     expect(getFinalRankingLabel(2)).toBe('2nd')
     expect(getFinalRankingLabel(3)).toBe('3rd')
+  })
+
+  it('formats display initials', () => {
+    expect(getDisplayInitials('')).toBe('?')
+    expect(getDisplayInitials('Ada')).toBe('AD')
+    expect(getDisplayInitials('Ada Lovelace')).toBe('AL')
   })
 })

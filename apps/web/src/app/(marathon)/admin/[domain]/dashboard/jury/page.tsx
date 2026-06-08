@@ -31,6 +31,11 @@ export default async function JuryPage({
         id: selectedId,
       }),
     )
+    prefetch(
+      trpc.jury.getJuryInvitationStatisticsById.queryOptions({
+        id: selectedId,
+      }),
+    )
   }
 
   return (
