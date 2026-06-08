@@ -45,8 +45,6 @@ import {
   PhoneNumberEncryptionServiceLayer,
   type PhoneNumberEncryptionError,
 } from '../utils/phone-number-encryption'
-import { EmailService, EmailServiceLayer } from '@blikka/email'
-import { sendParticipantVerifiedEmail } from './notifications'
 import { ensureDeviceGroupExists, getCompetitionClassOrFail } from '../shared/upload'
 
 /**
@@ -121,12 +119,12 @@ export class ParticipantsService extends Context.Service<
     ) => Effect.Effect<ParticipantsBatchDeletionResult, DbError, never>
 
     /**
-     * Marks many participants verified for `domain`, emits realtime “participant-verified”, and triggers
-     * verification emails when possible; skips failed ids without aborting the rest.
+     * Marks many participants verified for `domain`, emits realtime “participant-verified”;
+     * skips failed ids without aborting the rest.
      */
     readonly batchVerify: (
       input: BatchVerifyInput,
-    ) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError | RealtimeError, EmailService>
+    ) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError | RealtimeError, never>
 
     /** Completes multiple participants (`completed` path) scoped to `domain`; reports per-id failures. */
     readonly batchMarkCompleted: (
@@ -174,11 +172,11 @@ export class ParticipantsService extends Context.Service<
 
     /**
      * Verifies a single participant by `id` within `domain` (delegates to `batchVerify` with one id);
-     * notifies via realtime + email consistent with bulk verify.
+     * notifies via realtime consistent with bulk verify.
      */
     readonly verifyParticipant: (
       input: VerifyParticipantInput,
-    ) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError | RealtimeError, EmailService>
+    ) => Effect.Effect<ParticipantsBatchIdsMutationResult, DbError | RealtimeError, never>
   }
 >()('@blikka/api/ParticipantsService') {}
 
@@ -379,11 +377,6 @@ const makeParticipantsService = Effect.gen(function* () {
       ids: [...ids],
       domain,
     })
-    const marathon = Option.getOrUndefined(
-      yield* marathonsRepository.getMarathonByDomain({
-        domain,
-      }),
-    )
 
     yield* Effect.forEach(
       ids,
@@ -408,20 +401,6 @@ const makeParticipantsService = Effect.gen(function* () {
             outcome: 'success',
             timestamp: Date.now(),
             channels: 'participant',
-          })
-
-          if (!marathon) {
-            return
-          }
-
-          yield* sendParticipantVerifiedEmail({
-            participantEmail: participant.value.email,
-            participantFirstName: participant.value.firstname,
-            participantLastName: participant.value.lastname,
-            participantReference: participant.value.reference,
-            marathonName: marathon.name,
-            marathonLogoUrl: marathon.logoUrl,
-            marathonMode: marathon.mode,
           })
         }),
       { concurrency: 10, discard: true },
@@ -658,11 +637,6 @@ const makeParticipantsService = Effect.gen(function* () {
       const participant = yield* participantsRepository.getParticipantById({
         id,
       })
-      const marathon = Option.getOrUndefined(
-        yield* marathonsRepository.getMarathonByDomain({
-          domain,
-        }),
-      )
 
       if (Option.isSome(participant)) {
         yield* realtimeEvents.emitEventResult({
@@ -674,18 +648,6 @@ const makeParticipantsService = Effect.gen(function* () {
           timestamp: Date.now(),
           channels: 'participant',
         })
-
-        if (marathon) {
-          yield* sendParticipantVerifiedEmail({
-            participantEmail: participant.value.email,
-            participantFirstName: participant.value.firstname,
-            participantLastName: participant.value.lastname,
-            participantReference: participant.value.reference,
-            marathonName: marathon.name,
-            marathonLogoUrl: marathon.logoUrl,
-            marathonMode: marathon.mode,
-          })
-        }
       }
     }
 
@@ -715,11 +677,6 @@ export const ParticipantsServiceLayerNoDeps = Layer.effect(
 
 export const ParticipantsServiceLayer = ParticipantsServiceLayerNoDeps.pipe(
   Layer.provide(
-    Layer.mergeAll(
-      DbLayer,
-      RealtimeEventsServiceLayer,
-      PhoneNumberEncryptionServiceLayer,
-      EmailServiceLayer,
-    ),
+    Layer.mergeAll(DbLayer, RealtimeEventsServiceLayer, PhoneNumberEncryptionServiceLayer),
   ),
 )

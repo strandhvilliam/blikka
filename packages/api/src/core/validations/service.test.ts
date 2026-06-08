@@ -1,8 +1,6 @@
 import { assert, describe, it } from '@effect/vitest'
 import { S3Service } from '@blikka/aws'
-import { EmailService } from '@blikka/email'
 import {
-  MarathonsRepository,
   ParticipantsRepository,
   RulesRepository,
   ValidationsRepository,
@@ -90,19 +88,6 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     getRulesByDomain: () => Effect.succeed([]),
   } as unknown as RulesRepository['Service'])
 
-  const marathonsRepository = MarathonsRepository.of({
-    getMarathonByDomain: () =>
-      Effect.succeed(
-        Option.some({
-          id: 1,
-          domain,
-          name: 'Demo Marathon',
-          logoUrl: null,
-          mode: 'marathon',
-        }),
-      ),
-  } as unknown as MarathonsRepository['Service'])
-
   const s3Service = S3Service.of({
     getHead: () => Effect.succeed(null),
   } as unknown as S3Service['Service'])
@@ -115,21 +100,15 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     emitEventResult: () => Effect.void,
   } as unknown as RealtimeEventsService['Service'])
 
-  const emailService = EmailService.of({
-    send: () => Effect.void,
-  } as unknown as EmailService['Service'])
-
   return ValidationsServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(ParticipantsRepository)(participantsRepository),
         Layer.succeed(ValidationsRepository)(validationsRepository),
         Layer.succeed(RulesRepository)(rulesRepository),
-        Layer.succeed(MarathonsRepository)(marathonsRepository),
         Layer.succeed(S3Service)(s3Service),
         Layer.succeed(ValidationEngine)(validationEngine),
         Layer.succeed(RealtimeEventsService)(realtimeEvents),
-        Layer.succeed(EmailService)(emailService),
       ),
     ),
   )
@@ -231,14 +210,7 @@ describe('ValidationsService', () => {
             participantId: 1,
             staffId: 'staff-1',
             notes: 'Approved',
-          }).pipe(
-            Effect.provideService(
-              EmailService,
-              EmailService.of({
-                send: () => Effect.void,
-              } as unknown as EmailService['Service']),
-            ),
-          )
+          })
         }),
       )
 

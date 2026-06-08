@@ -1,5 +1,4 @@
 import { assert, describe, it } from '@effect/vitest'
-import { EmailService } from '@blikka/email'
 import { MarathonsRepository, ParticipantsRepository, type Participant } from '@blikka/db'
 import { RealtimeEventsService } from '@blikka/realtime'
 import { Effect, Layer, Option, Ref } from 'effect'
@@ -104,10 +103,6 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     emitEventResult: () => Effect.void,
   } as unknown as RealtimeEventsService['Service'])
 
-  const emailService = EmailService.of({
-    send: () => Effect.void,
-  } as unknown as EmailService['Service'])
-
   return ParticipantsServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -115,7 +110,6 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(ParticipantsRepository)(participantsRepository),
         Layer.succeed(PhoneNumberEncryptionService)(phoneEncryption),
         Layer.succeed(RealtimeEventsService)(realtimeEvents),
-        Layer.succeed(EmailService)(emailService),
       ),
     ),
   )

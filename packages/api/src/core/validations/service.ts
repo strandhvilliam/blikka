@@ -1,9 +1,8 @@
 
-import { Config, Effect, Layer, Option, Schema, Context } from 'effect'
+import { Config, Effect, Layer, Schema, Context } from 'effect'
 import {
   DbLayer,
   ParticipantsRepository,
-  MarathonsRepository,
   RulesRepository,
   ValidationsRepository,
   DbError,
@@ -16,7 +15,6 @@ import {
   RealtimeEventsServiceLayer,
   type RealtimeError,
 } from '@blikka/realtime'
-import { EmailService, EmailServiceLayer } from '@blikka/email'
 import {
   ValidationEngine,
   ValidationRuleSchema,
@@ -26,7 +24,6 @@ import {
 import type { ValidationEngineError } from '@blikka/validation'
 import { NotFoundError, failNotFoundIfNone } from '../errors'
 import { getRealtimeChannelEnvironmentFromNodeEnv } from '@blikka/realtime/contract'
-import { sendParticipantVerifiedEmail } from '../participants/notifications'
 import type {
   CreateParticipantVerificationServiceInput,
   GetParticipantVerificationByReference,
@@ -54,10 +51,10 @@ export class ValidationsService extends Context.Service<
       never
     >
 
-    /** Inserts staff verification, marks participant verified, emails + realtime when applicable. */
+    /** Inserts staff verification, marks participant verified, and emits realtime when applicable. */
     readonly createParticipantVerification: (
       input: CreateParticipantVerificationServiceInput,
-    ) => Effect.Effect<{ id: number }, DbError | RealtimeError | NotFoundError, EmailService>
+    ) => Effect.Effect<{ id: number }, DbError | RealtimeError | NotFoundError, never>
 
     /** Updates overruled flag on a stored validation result row. */
     readonly updateValidationResult: (
@@ -74,7 +71,6 @@ export class ValidationsService extends Context.Service<
 const makeValidationsService = Effect.gen(function* () {
   const validationsRepository = yield* ValidationsRepository
   const rulesRepository = yield* RulesRepository
-  const marathonsRepository = yield* MarathonsRepository
   const participantsRepository = yield* ParticipantsRepository
   const s3 = yield* S3Service
   const validator = yield* ValidationEngine
@@ -196,24 +192,6 @@ const makeValidationsService = Effect.gen(function* () {
         },
       })
 
-      const marathon = Option.getOrUndefined(
-        yield* marathonsRepository.getMarathonByDomain({
-          domain: participant.domain,
-        }),
-      )
-
-      if (marathon) {
-        yield* sendParticipantVerifiedEmail({
-          participantEmail: participant.email,
-          participantFirstName: participant.firstname,
-          participantLastName: participant.lastname,
-          participantReference: participant.reference,
-          marathonName: marathon.name,
-          marathonLogoUrl: marathon.logoUrl,
-          marathonMode: marathon.mode,
-        })
-      }
-
       yield* realtimeEvents.emitEventResult({
         environment,
         domain: participant.domain,
@@ -262,12 +240,6 @@ export const ValidationsServiceLayerNoDeps = Layer.effect(
 
 export const ValidationsServiceLayer = ValidationsServiceLayerNoDeps.pipe(
   Layer.provide(
-    Layer.mergeAll(
-      DbLayer,
-      RealtimeEventsServiceLayer,
-      S3ServiceLayer,
-      ValidationEngineLayer,
-      EmailServiceLayer,
-    ),
+    Layer.mergeAll(DbLayer, RealtimeEventsServiceLayer, S3ServiceLayer, ValidationEngineLayer),
   ),
 )

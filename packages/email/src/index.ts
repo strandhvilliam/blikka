@@ -1,6 +1,5 @@
 export * from './templates/otp-email'
 export * from './templates/magic-link-email'
-export * from './templates/marathon-verification-email'
 export * from './templates/voting-invite-email'
 export * from './service'
 export * from './resend-effect-client'
