@@ -27,6 +27,10 @@ export async function getJuryInvitationForRoute({
       redirect(getJuryUnavailablePath(domain, token, 'unsupported-mode'))
     }
 
+    if (message.includes('Invitation link revoked')) {
+      redirect(getJuryUnavailablePath(domain, token, 'revoked'))
+    }
+
     notFound()
   }
 }

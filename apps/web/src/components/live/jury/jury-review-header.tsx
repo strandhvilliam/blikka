@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,14 +20,12 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useJuryReviewData } from './jury-review-data-provider'
 import {
-  getAssignedFinalRankingCount,
-  getFinalRankingLabel,
+  getDisplayInitials,
   getJuryCompletedPath,
   getRankAssignments,
   hasCompleteFinalRankings,
-  juryRankChipNeutralOccupied,
-  juryRankChipNeutralPlaceholder,
 } from '@/lib/jury/jury-utils'
+import { cn } from '@/lib/utils'
 import { JuryRankTrophyBadge } from './jury-rank-trophy-badge'
 import { useDomain } from '@/lib/domain-provider'
 import { useJuryClientToken } from './jury-client-token-provider'
@@ -39,6 +37,21 @@ const ProgressRing = dynamic(() => import('./jury-progress-ring').then((mod) => 
 })
 
 const noopSubscribe = () => () => {}
+
+const PODIUM_SLOTS: Record<1 | 2 | 3, { label: string; filled: string }> = {
+  1: {
+    label: '1st place',
+    filled: 'border-amber-200 bg-amber-50/80 hover:border-amber-300 hover:bg-amber-50',
+  },
+  2: {
+    label: '2nd place',
+    filled: 'border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100/70',
+  },
+  3: {
+    label: '3rd place',
+    filled: 'border-orange-200 bg-orange-50/70 hover:border-orange-300 hover:bg-orange-50',
+  },
+}
 
 export function JuryReviewHeader() {
   const isClientReady = useSyncExternalStore(
@@ -60,7 +73,6 @@ export function JuryReviewHeader() {
   )
   const ratings = ratingsData.ratings
   const ratedCount = ratings.length
-  const assignedFinalRankingCount = getAssignedFinalRankingCount(ratings)
   const canCompleteReview = isClientReady && hasCompleteFinalRankings(ratings)
   const queryClient = useQueryClient()
   const router = useRouter()
@@ -80,81 +92,76 @@ export function JuryReviewHeader() {
     }),
   )
 
-  const rankAssignments = useMemo(() => getRankAssignments(ratings), [ratings])
-  const participantMap = useMemo(() => new Map(participants.map((p) => [p.id, p])), [participants])
+  const rankAssignments = getRankAssignments(ratings)
+  const participantMap = new Map(participants.map((p) => [p.id, p]))
   const topPicksCount = rankAssignments.size
   const topPicksComplete = topPicksCount === 3
   const headerRatedCount = isClientReady ? ratedCount : 0
   const headerTotalParticipants = isClientReady ? totalParticipants : 0
-  const headerAssignedFinalCount = isClientReady ? assignedFinalRankingCount : 0
   const headerTopPicksCount = isClientReady ? topPicksCount : 0
   const headerTopPicksComplete = isClientReady && topPicksComplete
 
-  const sessionInitials = useMemo(() => {
-    const parts = invitation.displayName.trim().split(/\s+/).filter(Boolean)
-    if (parts.length === 0) return '?'
-    if (parts.length === 1) {
-      const word = parts[0]!
-      return word.slice(0, 2).toUpperCase()
-    }
-    return `${parts[0]![0]}${parts[parts.length - 1]![0]}`.toUpperCase()
-  }, [invitation.displayName])
+  const sessionInitials = getDisplayInitials(invitation.displayName)
+
+  const contextChips = [
+    invitation.topic?.name,
+    invitation.competitionClass?.name,
+    invitation.deviceGroup?.name,
+  ].filter((value): value is string => Boolean(value))
 
   return (
-    <header className="rounded-2xl border border-border/60 bg-white">
+    <header className="overflow-hidden rounded-2xl border border-border/60 bg-white">
       <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-4">
-          <ProgressRing rated={headerRatedCount} total={headerTotalParticipants} />
-          <div>
-            <h1 className="font-gothic text-2xl font-bold tracking-tight text-brand-black">
+        <div className="flex min-w-0 items-center gap-4">
+          <div
+            className="shrink-0"
+            title="Share of participants with any saved review. Completing requires 1st, 2nd, and 3rd place."
+          >
+            <ProgressRing rated={headerRatedCount} total={headerTotalParticipants} />
+          </div>
+          <div className="min-w-0">
+            <h1 className="font-gothic text-2xl font-bold leading-none tracking-tight text-brand-black">
               Jury Review
             </h1>
-            <p className="mt-0.5 text-sm text-brand-gray">{invitation.marathon.name}</p>
-          </div>
-          <div className="ml-2 hidden flex-wrap gap-1.5 lg:flex">
-            {invitation.topic?.name ? (
-              <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-brand-black/70">
-                {invitation.topic.name}
-              </span>
-            ) : null}
-            {invitation.competitionClass?.name ? (
-              <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-brand-black/70">
-                {invitation.competitionClass.name}
-              </span>
-            ) : null}
-            {invitation.deviceGroup?.name ? (
-              <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium text-brand-gray">
-                {invitation.deviceGroup.name}
-              </span>
-            ) : null}
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="truncate text-sm text-brand-gray">{invitation.marathon.name}</span>
+              {contextChips.map((chip) => (
+                <span
+                  key={chip}
+                  className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-brand-black/70"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-3 sm:flex-initial">
-          <div className="flex min-w-0 max-w-full items-center gap-3 rounded-2xl border border-border/60 bg-muted/30 px-3.5 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] sm:px-4">
+        <div className="flex min-w-0 items-center justify-end gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-white font-gothic text-[13px] font-bold tracking-tight text-brand-black"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary/10 font-gothic text-[13px] font-bold tracking-tight text-brand-primary"
               aria-hidden
             >
               {sessionInitials}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 text-right sm:text-left">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-gray">
                 Your session
               </p>
-              <p className="font-gothic truncate text-sm font-bold tracking-tight text-brand-black">
+              <p className="font-gothic truncate text-sm font-bold leading-tight tracking-tight text-brand-black">
                 {invitation.displayName}
               </p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span className="inline-flex items-center rounded-full border border-border/50 bg-white px-2 py-0.5 text-[11px] font-medium tabular-nums text-brand-black/75">
-                  {headerRatedCount}/{headerTotalParticipants} rated
-                </span>
-                <span className="inline-flex items-center rounded-full border border-border/50 bg-white px-2 py-0.5 text-[11px] font-medium tabular-nums text-brand-black/75">
-                  Top picks {headerAssignedFinalCount}/3
-                </span>
-              </div>
+              <p
+                className="text-[11px] tabular-nums text-brand-gray"
+                title="Any saved note, star rating, or top-3 pick counts as reviewed"
+              >
+                {headerRatedCount}/{headerTotalParticipants} reviewed
+              </p>
             </div>
           </div>
+
+          <div className="h-10 w-px shrink-0 bg-border/60" aria-hidden />
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -191,50 +198,41 @@ export function JuryReviewHeader() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-border/60 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <p className="text-sm font-medium text-brand-black">Your Top 3</p>
-          <span
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-              headerTopPicksComplete
-                ? 'border-brand-primary/20 bg-brand-primary/5 text-brand-primary'
-                : 'border-border/60 bg-neutral-50 text-brand-gray'
-            }`}
-          >
-            {headerTopPicksComplete ? <CheckCircle2 className="h-3 w-3" /> : null}
-            {headerTopPicksCount}/3
-          </span>
+      <div className="border-t border-border/60 bg-muted/20 px-5 py-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-gray">
+              Top 3 Picks
+            </p>
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium tabular-nums',
+                headerTopPicksComplete
+                  ? 'border-brand-primary/20 bg-brand-primary/5 text-brand-primary'
+                  : 'border-border/60 bg-white text-brand-gray',
+              )}
+            >
+              {headerTopPicksComplete ? <CheckCircle2 className="h-3 w-3" /> : null}
+              {headerTopPicksCount}/3
+            </span>
+          </div>
+          {!headerTopPicksComplete && isClientReady ? (
+            <p className="hidden text-[11px] text-brand-gray sm:block">
+              Assign all three to complete the review
+            </p>
+          ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {([1, 2, 3] as const).map((rank) => {
-            if (!isClientReady) {
-              return (
-                <span key={rank} className={`${juryRankChipNeutralPlaceholder} cursor-default`}>
-                  <JuryRankTrophyBadge rank={rank} tone="idle" />
-                  {getFinalRankingLabel(rank)}
-                  <span className="text-xs font-normal text-brand-gray">Not Set</span>
-                </span>
-              )
-            }
-
-            const participantId = rankAssignments.get(rank) ?? null
+            const slot = PODIUM_SLOTS[rank]
+            const participantId = isClientReady ? (rankAssignments.get(rank) ?? null) : null
             const participant =
               participantId !== null ? (participantMap.get(participantId) ?? null) : null
+            const isFilled = participant !== null
 
-            if (participantId === null) {
-              return (
-                <span key={rank} className={`${juryRankChipNeutralPlaceholder} cursor-default`}>
-                  <JuryRankTrophyBadge rank={rank} tone="idle" />
-                  {getFinalRankingLabel(rank)}
-                  <span className="text-xs font-normal text-brand-gray">Not Set</span>
-                </span>
-              )
-            }
-
-            const canNavigate = participant !== null
             const handleClick = () => {
-              if (!canNavigate) return
+              if (!isFilled || participantId === null) return
               const index = participants.findIndex((p) => p.id === participantId)
               if (index >= 0) {
                 selectParticipant(participantId, index)
@@ -246,18 +244,32 @@ export function JuryReviewHeader() {
                 key={rank}
                 type="button"
                 onClick={handleClick}
-                disabled={!canNavigate}
-                className={`${juryRankChipNeutralOccupied} disabled:pointer-events-none disabled:opacity-50`}
+                disabled={!isFilled}
+                aria-label={
+                  isFilled
+                    ? `${slot.label}: participant #${participant!.reference}. Open submission.`
+                    : `${slot.label}: not assigned yet`
+                }
+                className={cn(
+                  'flex min-w-0 items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 focus-visible:ring-offset-1',
+                  isFilled
+                    ? `cursor-pointer shadow-sm active:scale-[0.99] ${slot.filled}`
+                    : 'cursor-default border-dashed border-border/70 bg-white/40',
+                )}
               >
                 <JuryRankTrophyBadge rank={rank} tone="idle" />
-                {getFinalRankingLabel(rank)}
-                {participant ? (
-                  <span className="text-xs font-normal text-brand-gray">
-                    #{participant.reference}
-                  </span>
-                ) : (
-                  <span className="text-xs font-normal text-brand-gray">Not Set</span>
-                )}
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-gray">
+                    {slot.label}
+                  </p>
+                  {isFilled ? (
+                    <p className="truncate font-gothic text-sm font-bold leading-tight tabular-nums text-brand-black">
+                      #{participant!.reference}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-medium leading-tight text-brand-gray/70">Empty</p>
+                  )}
+                </div>
               </button>
             )
           })}

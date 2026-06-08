@@ -13,21 +13,26 @@ export default function JuryUnavailablePage() {
   const reason = searchParams.get('reason')
 
   const isExpired = reason === 'expired'
+  const isRevoked = reason === 'revoked'
   const isUnsupportedMode = reason === 'unsupported-mode'
 
   const title = isExpired
     ? 'Invitation expired'
-    : isUnsupportedMode
-      ? 'Jury review unavailable'
-      : 'Review is not available'
+    : isRevoked
+      ? 'Link no longer valid'
+      : isUnsupportedMode
+        ? 'Jury review unavailable'
+        : 'Review is not available'
 
   const description = isExpired
     ? 'This jury invitation has expired and can no longer be used.'
-    : isUnsupportedMode
-      ? 'This marathon is not running in jury review mode.'
-      : 'This review link is not available right now.'
+    : isRevoked
+      ? 'This review link has been replaced and is no longer valid.'
+      : isUnsupportedMode
+        ? 'This marathon is not running in jury review mode.'
+        : 'This review link is not available right now.'
 
-  const hint = isExpired
+  const hint = isExpired || isRevoked
     ? 'Ask the organizer to send a new invitation if you still need access.'
     : isUnsupportedMode
       ? 'Only marathons running in marathon mode can use the jury reviewer flow.'
