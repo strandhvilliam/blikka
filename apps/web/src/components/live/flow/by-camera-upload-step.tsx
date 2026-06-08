@@ -158,8 +158,6 @@ export function ByCameraUploadStep({
       return
     }
     // Must match server `initializeByCameraUpload`, which uses `activeTopic.orderIndex`
-    // for KV submission keys. Hardcoding [0] breaks refreshPresignedUploads / getUploadStatus
-    // when the active topic's orderIndex is not 0 (Sentry: "Missing submissions for order indexes: 0").
     initializeStore({ topicOrderIndexes: [topic.orderIndex] })
     return () => {
       cleanup()

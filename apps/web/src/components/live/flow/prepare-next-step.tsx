@@ -162,13 +162,13 @@ export function PrepareNextStep({ competitionClass, deviceGroup }: PrepareNextSt
   )
 }
 
-function TicketDetail({ label, value }: { label: string; value: string }) {
+function TicketDetail({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="min-w-0">
       <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </span>
-      <p className="mt-1 truncate text-sm font-semibold text-foreground">{value}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-foreground">{value ?? '-'}</p>
     </div>
   )
 }

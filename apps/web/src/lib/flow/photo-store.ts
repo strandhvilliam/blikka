@@ -39,9 +39,9 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
         state.photos.length === 0
           ? state.photos
           : reassignOrderIndexes(state.photos, nextTopicOrderIndexes, (photo, orderIndex) => ({
-              ...photo,
-              orderIndex,
-            })),
+            ...photo,
+            orderIndex,
+          })),
     })
   },
 

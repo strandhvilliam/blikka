@@ -6,9 +6,6 @@ import {
   type LucideIcon,
   Shield,
   Upload,
-  Smartphone,
-  Zap,
-  Camera,
   XCircle,
 } from 'lucide-react'
 
@@ -20,13 +17,14 @@ import type {
   Submission,
   ContactSheet,
   ZippedSubmission,
+  Topic,
 } from '@blikka/db'
 
 export type ParticipantWithRelations = Participant & {
   validationResults: ValidationResult[]
   competitionClass: CompetitionClass | null
   deviceGroup: DeviceGroup | null
-  submissions?: Submission[]
+  submissions?: (Submission & { topic: Topic })[],
   contactSheets?: ContactSheet[]
   zippedSubmissions?: ZippedSubmission[]
 }
