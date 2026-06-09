@@ -4,6 +4,7 @@ import {
   GetGalleryAdminStateSchema,
   GetGalleryFeedSchema,
   GetGalleryParticipantSetSchema,
+  GetGalleryReferencePreviewSchema,
   GetPublicGallerySchema,
   SetMarathonPublicationSchema,
   SetTopicPublicationSchema,
@@ -19,25 +20,21 @@ import {
 import { GalleryService } from '../../core/gallery/service'
 
 export const galleryRouter = createTRPCRouter({
-  getPublicGallery: publicProcedure
-    .input(Schema.toStandardSchemaV1(GetPublicGallerySchema))
-    .query(
-      trpcEffect(
-        Effect.fn('GalleryRouter.getPublicGallery')(function* ({ input }) {
-          return yield* GalleryService.use((s) => s.getPublicGallery(input))
-        }),
-      ),
+  getPublicGallery: publicProcedure.input(Schema.toStandardSchemaV1(GetPublicGallerySchema)).query(
+    trpcEffect(
+      Effect.fn('GalleryRouter.getPublicGallery')(function* ({ input }) {
+        return yield* GalleryService.use((s) => s.getPublicGallery(input))
+      }),
     ),
+  ),
 
-  getGalleryFeed: publicProcedure
-    .input(Schema.toStandardSchemaV1(GetGalleryFeedSchema))
-    .query(
-      trpcEffect(
-        Effect.fn('GalleryRouter.getGalleryFeed')(function* ({ input }) {
-          return yield* GalleryService.use((s) => s.getGalleryFeed(input))
-        }),
-      ),
+  getGalleryFeed: publicProcedure.input(Schema.toStandardSchemaV1(GetGalleryFeedSchema)).query(
+    trpcEffect(
+      Effect.fn('GalleryRouter.getGalleryFeed')(function* ({ input }) {
+        return yield* GalleryService.use((s) => s.getGalleryFeed(input))
+      }),
     ),
+  ),
 
   getByCameraTopicGallery: publicProcedure
     .input(Schema.toStandardSchemaV1(GetByCameraTopicGallerySchema))
@@ -55,6 +52,17 @@ export const galleryRouter = createTRPCRouter({
       trpcEffect(
         Effect.fn('GalleryRouter.getGalleryParticipantSet')(function* ({ input }) {
           return yield* GalleryService.use((s) => s.getGalleryParticipantSet(input))
+        }),
+      ),
+    ),
+
+  getGalleryReferencePreview: domainProcedure
+    .input(Schema.toStandardSchemaV1(GetGalleryReferencePreviewSchema))
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn('GalleryRouter.getGalleryReferencePreview')(function* ({ input }) {
+          return yield* GalleryService.use((s) => s.getGalleryReferencePreview(input))
         }),
       ),
     ),

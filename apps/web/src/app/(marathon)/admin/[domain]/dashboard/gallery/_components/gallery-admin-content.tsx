@@ -42,11 +42,7 @@ export function GalleryAdminContent() {
       </header>
 
       {isByCamera ? (
-        <ByCameraControls
-          topics={state.topics}
-          domain={domain}
-          onChange={invalidate}
-        />
+        <ByCameraControls topics={state.topics} domain={domain} onChange={invalidate} />
       ) : (
         <MarathonControls
           domain={domain}
@@ -132,10 +128,10 @@ function MarathonControls({
 
       <Card>
         <CardHeader>
-          <CardTitle>Featured sections</CardTitle>
+          <CardTitle>Featured winners</CardTitle>
           <CardDescription>
-            Enable and order winner sections shown at the top of the gallery. Featured photos are
-            derived from jury rankings — top three per topic and per class.
+            Curate the winner sections shown at the top of the gallery. Feature a topic or class,
+            then enter the reference numbers of your top three winners in podium order.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -221,7 +217,7 @@ function ByCameraTopicCard({
             <CardDescription>
               {topic.published
                 ? 'Published and publicly browsable.'
-                : disabledReason ?? 'Ready to publish.'}
+                : (disabledReason ?? 'Ready to publish.')}
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
@@ -248,11 +244,17 @@ function ByCameraTopicCard({
             View topic gallery <ExternalLink className="size-3.5" />
           </a>
           <div className="space-y-3 border-t border-border/60 pt-4">
-            <p className="text-sm font-medium">Featured winners</p>
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium">Featured winners</p>
+              <p className="text-xs text-muted-foreground">
+                Enter the reference numbers of the top three winners for this topic in podium order.
+              </p>
+            </div>
             <FeaturedSectionsEditor
               domain={domain}
               topicId={topic.id}
               topicOrderIndex={topic.orderIndex}
+              variant="single"
               available={[
                 {
                   kind: 'by-camera-topic-winners',

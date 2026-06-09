@@ -902,7 +902,8 @@ export const votingRoundVote = pgTable(
 
 /**
  * Ordered, organizer-enabled featured section shown above the public gallery feed.
- * Items are winner-derived (jury rankings / by-camera voting), never arbitrary photo picks.
+ * Winners are curated manually by the organizer: `picks` is an ordered list of
+ * participant reference numbers (1st, 2nd, 3rd) resolved to public photos at read time.
  */
 export type GalleryFeaturedSection = {
   id: string
@@ -911,6 +912,8 @@ export type GalleryFeaturedSection = {
   order: number
   topicId?: number
   competitionClassId?: number
+  /** Ordered participant reference numbers chosen as winners (index 0 = 1st place). */
+  picks?: string[]
 }
 
 /**

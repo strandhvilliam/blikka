@@ -6,16 +6,23 @@ import {
   MarathonsRepository,
   type CompetitionClass,
   type GalleryFeaturedSection,
+  type GalleryParticipantSet,
   type GalleryParticipantSubmission,
   type Marathon,
   type Topic,
 } from '@blikka/db'
-import { BadRequestError, NotFoundError, PreconditionFailedError, failNotFoundIfNone } from '../errors'
+import {
+  BadRequestError,
+  NotFoundError,
+  PreconditionFailedError,
+  failNotFoundIfNone,
+} from '../errors'
 import type {
   GetByCameraTopicGallery,
   GetGalleryAdminState,
   GetGalleryFeed,
   GetGalleryParticipantSet,
+  GetGalleryReferencePreview,
   GetPublicGallery,
   SetMarathonPublication,
   SetTopicPublication,
@@ -119,6 +126,14 @@ export interface GalleryParticipantSetResult {
   submissions: GalleryPublicSubmission[]
 }
 
+/** Admin-side lookup for a reference number while curating featured winners. */
+export interface GalleryReferencePreview {
+  reference: string
+  competitionClassId: number | null
+  competitionClassName: string | null
+  submissions: GalleryPublicSubmission[]
+}
+
 export interface AvailableFeaturedSection {
   kind: GalleryFeaturedSection['kind']
   title: string
@@ -168,6 +183,9 @@ export class GalleryService extends Context.Service<
     readonly getGalleryParticipantSet: (
       input: GetGalleryParticipantSet,
     ) => Effect.Effect<GalleryParticipantSetResult, DbError | NotFoundError, never>
+    readonly getGalleryReferencePreview: (
+      input: GetGalleryReferencePreview,
+    ) => Effect.Effect<GalleryReferencePreview, DbError | NotFoundError, never>
     readonly getGalleryAdminState: (
       input: GetGalleryAdminState,
     ) => Effect.Effect<GalleryAdminState, DbError | NotFoundError, never>
@@ -214,10 +232,7 @@ const makeGalleryService = Effect.gen(function* () {
     topicOrderIndex: submission.topicOrderIndex,
   })
 
-  const toGalleryTopicMeta = (
-    topic: Topic,
-    published: boolean,
-  ): GalleryTopicMeta => ({
+  const toGalleryTopicMeta = (topic: Topic, published: boolean): GalleryTopicMeta => ({
     id: topic.id,
     name: formatGalleryTopicName(topic.name, topic.orderIndex),
     orderIndex: topic.orderIndex,
@@ -233,63 +248,63 @@ const makeGalleryService = Effect.gen(function* () {
   }) {
     const topicsById = new Map(marathon.topics.map((topic) => [topic.id, topic]))
     const classesById = new Map(
-      marathon.competitionClasses.map((competitionClass) => [competitionClass.id, competitionClass]),
+      marathon.competitionClasses.map((competitionClass) => [
+        competitionClass.id,
+        competitionClass,
+      ]),
     )
+    const finalizedStatuses = finalizedStatusesForVerificationMode(marathon.verificationMode)
+
+    // Resolve each picked reference to its finalized participant set once per pass.
+    const setCache = new Map<string, Option.Option<GalleryParticipantSet>>()
+    const loadSet = (reference: string) =>
+      Effect.gen(function* () {
+        const cached = setCache.get(reference)
+        if (cached !== undefined) return cached
+        const set = yield* galleryRepository.getParticipantSet({
+          marathonId: marathon.id,
+          reference,
+          finalizedStatuses,
+        })
+        setCache.set(reference, set)
+        return set
+      })
 
     const enabled = orderedEnabledFeaturedSections(sections)
     const resolved: ResolvedFeaturedSection[] = []
 
     for (const section of enabled) {
-      if (section.kind === 'topic-winners' && section.topicId !== undefined) {
+      const picks = section.picks ?? []
+      if (picks.length === 0) continue
+
+      if (
+        (section.kind === 'topic-winners' || section.kind === 'by-camera-topic-winners') &&
+        section.topicId !== undefined
+      ) {
         const topic = topicsById.get(section.topicId)
         if (!topic) continue
 
-        const winners = yield* galleryRepository.getTopicWinners({
-          marathonId: marathon.id,
-          topicId: section.topicId,
-        })
-        const photos: GalleryPhotoCard[] = winners.map((winner) => ({
-          submissionId: winner.submissionId,
-          participantReference: winner.participantReference,
-          thumbnailKey: winner.thumbnailKey,
-          key: winner.key,
-          topicId: winner.topicId,
-          topicName: formatGalleryTopicName(winner.topicName, topic.orderIndex),
-          topicOrderIndex: topic.orderIndex,
-          competitionClassId: null,
-          competitionClassName: null,
-          rank: winner.rank,
-        }))
-        if (photos.length > 0) {
-          resolved.push({
-            id: section.id,
-            kind: section.kind,
-            title: `${formatGalleryTopicName(topic.name, topic.orderIndex)} winners`,
-            order: section.order,
-            photos,
-            participantSets: [],
+        const photos: GalleryPhotoCard[] = []
+        for (const [index, reference] of picks.entries()) {
+          const set = yield* loadSet(reference)
+          if (Option.isNone(set)) continue
+          const submission = set.value.submissions.find(
+            (candidate) => candidate.topicId === section.topicId,
+          )
+          if (!submission) continue
+          photos.push({
+            submissionId: submission.submissionId,
+            participantReference: set.value.reference,
+            thumbnailKey: submission.thumbnailKey,
+            key: submission.key,
+            topicId: submission.topicId,
+            topicName: formatGalleryTopicName(topic.name, topic.orderIndex),
+            topicOrderIndex: topic.orderIndex,
+            competitionClassId: null,
+            competitionClassName: null,
+            rank: index + 1,
           })
         }
-      } else if (section.kind === 'by-camera-topic-winners' && section.topicId !== undefined) {
-        const topic = topicsById.get(section.topicId)
-        if (!topic) continue
-
-        const winners = yield* galleryRepository.getByCameraTopicWinners({
-          marathonId: marathon.id,
-          topicId: section.topicId,
-        })
-        const photos: GalleryPhotoCard[] = winners.map((winner) => ({
-          submissionId: winner.submissionId,
-          participantReference: winner.participantReference,
-          thumbnailKey: winner.thumbnailKey,
-          key: winner.key,
-          topicId: winner.topicId,
-          topicName: formatGalleryTopicName(winner.topicName, topic.orderIndex),
-          topicOrderIndex: topic.orderIndex,
-          competitionClassId: null,
-          competitionClassName: null,
-          rank: winner.rank,
-        }))
         if (photos.length > 0) {
           resolved.push({
             id: section.id,
@@ -304,22 +319,24 @@ const makeGalleryService = Effect.gen(function* () {
         const competitionClass = classesById.get(section.competitionClassId)
         if (!competitionClass) continue
 
-        const winners = yield* galleryRepository.getClassWinners({
-          marathonId: marathon.id,
-          competitionClassId: section.competitionClassId,
-        })
-        const participantSets: GalleryParticipantSetCard[] = winners.map((winner) => ({
-          rank: winner.rank,
-          participantReference: winner.participantReference,
-          competitionClassId: winner.competitionClassId,
-          competitionClassName: winner.competitionClassName,
-          submissions: winner.submissions.map(toPublicSubmission),
-        }))
+        const participantSets: GalleryParticipantSetCard[] = []
+        for (const [index, reference] of picks.entries()) {
+          const set = yield* loadSet(reference)
+          if (Option.isNone(set)) continue
+          if (set.value.submissions.length === 0) continue
+          participantSets.push({
+            rank: index + 1,
+            participantReference: set.value.reference,
+            competitionClassId: competitionClass.id,
+            competitionClassName: competitionClass.name,
+            submissions: set.value.submissions.map(toPublicSubmission),
+          })
+        }
         if (participantSets.length > 0) {
           resolved.push({
             id: section.id,
             kind: section.kind,
-            title: `${competitionClass?.name ?? 'Class'} winners`,
+            title: `${competitionClass.name} winners`,
             order: section.order,
             photos: [],
             participantSets,
@@ -355,7 +372,9 @@ const makeGalleryService = Effect.gen(function* () {
 
     const topics: GalleryTopicMeta[] = marathon.topics
       .toSorted((a, b) => a.orderIndex - b.orderIndex)
-      .map((topic) => toGalleryTopicMeta(topic, isByCamera ? publishedTopicIds.has(topic.id) : true))
+      .map((topic) =>
+        toGalleryTopicMeta(topic, isByCamera ? publishedTopicIds.has(topic.id) : true),
+      )
 
     const competitionClasses: GalleryClassMeta[] = marathon.competitionClasses.map(
       (competitionClass) => ({ id: competitionClass.id, name: competitionClass.name }),
@@ -521,52 +540,66 @@ const makeGalleryService = Effect.gen(function* () {
     }
   })
 
-  const getGalleryParticipantSet: GalleryService['Service']['getGalleryParticipantSet'] =
-    Effect.fn('GalleryService.getGalleryParticipantSet')(function* ({ domain, reference }) {
+  const getGalleryParticipantSet: GalleryService['Service']['getGalleryParticipantSet'] = Effect.fn(
+    'GalleryService.getGalleryParticipantSet',
+  )(function* ({ domain, reference }) {
+    const marathon = yield* resolveMarathon(domain)
+    const finalizedStatuses = finalizedStatusesForVerificationMode(marathon.verificationMode)
+    const isByCamera = marathon.mode === 'by-camera'
+
+    const publications = yield* galleryRepository.getPublicationsForMarathon({
+      marathonId: marathon.id,
+    })
+
+    const marathonPublished =
+      publications.find((publication) => publication.topicId === null)?.publishedAt != null
+    const publishedTopicIds = new Set(
+      publications
+        .filter((publication) => publication.topicId !== null && publication.publishedAt !== null)
+        .map((publication) => publication.topicId as number),
+    )
+
+    const galleryVisible = isByCamera ? publishedTopicIds.size > 0 : marathonPublished
+    if (!galleryVisible) {
+      return yield* Effect.fail(new NotFoundError({ resource: 'Gallery', identifier: { domain } }))
+    }
+
+    const participantSet = yield* galleryRepository
+      .getParticipantSet({ marathonId: marathon.id, reference, finalizedStatuses })
+      .pipe(failNotFoundIfNone('Participant', { domain, reference }))
+
+    const submissions = isByCamera
+      ? participantSet.submissions.filter((submission) => publishedTopicIds.has(submission.topicId))
+      : participantSet.submissions
+
+    if (submissions.length === 0) {
+      return yield* Effect.fail(
+        new NotFoundError({ resource: 'Participant', identifier: { domain, reference } }),
+      )
+    }
+
+    return {
+      reference: participantSet.reference,
+      competitionClassId: participantSet.competitionClassId,
+      competitionClassName: participantSet.competitionClassName,
+      submissions: submissions.map(toPublicSubmission),
+    }
+  })
+
+  const getGalleryReferencePreview: GalleryService['Service']['getGalleryReferencePreview'] =
+    Effect.fn('GalleryService.getGalleryReferencePreview')(function* ({ domain, reference }) {
       const marathon = yield* resolveMarathon(domain)
       const finalizedStatuses = finalizedStatusesForVerificationMode(marathon.verificationMode)
-      const isByCamera = marathon.mode === 'by-camera'
-
-      const publications = yield* galleryRepository.getPublicationsForMarathon({
-        marathonId: marathon.id,
-      })
-
-      const marathonPublished =
-        publications.find((publication) => publication.topicId === null)?.publishedAt != null
-      const publishedTopicIds = new Set(
-        publications
-          .filter((publication) => publication.topicId !== null && publication.publishedAt !== null)
-          .map((publication) => publication.topicId as number),
-      )
-
-      const galleryVisible = isByCamera ? publishedTopicIds.size > 0 : marathonPublished
-      if (!galleryVisible) {
-        return yield* Effect.fail(
-          new NotFoundError({ resource: 'Gallery', identifier: { domain } }),
-        )
-      }
 
       const participantSet = yield* galleryRepository
         .getParticipantSet({ marathonId: marathon.id, reference, finalizedStatuses })
         .pipe(failNotFoundIfNone('Participant', { domain, reference }))
 
-      const submissions = isByCamera
-        ? participantSet.submissions.filter((submission) =>
-            publishedTopicIds.has(submission.topicId),
-          )
-        : participantSet.submissions
-
-      if (submissions.length === 0) {
-        return yield* Effect.fail(
-          new NotFoundError({ resource: 'Participant', identifier: { domain, reference } }),
-        )
-      }
-
       return {
         reference: participantSet.reference,
         competitionClassId: participantSet.competitionClassId,
         competitionClassName: participantSet.competitionClassName,
-        submissions: submissions.map(toPublicSubmission),
+        submissions: participantSet.submissions.map(toPublicSubmission),
       }
     })
 
@@ -685,7 +718,9 @@ const makeGalleryService = Effect.gen(function* () {
 
     if (marathon.mode !== 'by-camera') {
       return yield* Effect.fail(
-        new BadRequestError({ message: 'Per-topic publication is only available in by-camera mode' }),
+        new BadRequestError({
+          message: 'Per-topic publication is only available in by-camera mode',
+        }),
       )
     }
 
@@ -737,11 +772,23 @@ const makeGalleryService = Effect.gen(function* () {
       onNone: () => null,
     })
 
+    const normalizedSections: GalleryFeaturedSection[] = featuredSections.map((section) => ({
+      id: section.id,
+      kind: section.kind,
+      enabled: section.enabled,
+      order: section.order,
+      ...(section.topicId !== undefined ? { topicId: section.topicId } : {}),
+      ...(section.competitionClassId !== undefined
+        ? { competitionClassId: section.competitionClassId }
+        : {}),
+      ...(section.picks !== undefined ? { picks: [...section.picks] } : {}),
+    }))
+
     yield* galleryRepository.upsertPublication({
       marathonId: marathon.id,
       topicId: normalizedTopicId,
       publishedAt,
-      featuredSections: [...featuredSections],
+      featuredSections: normalizedSections,
     })
 
     return { updated: true }
@@ -752,6 +799,7 @@ const makeGalleryService = Effect.gen(function* () {
     getGalleryFeed,
     getByCameraTopicGallery,
     getGalleryParticipantSet,
+    getGalleryReferencePreview,
     getGalleryAdminState,
     setMarathonPublication,
     setTopicPublication,

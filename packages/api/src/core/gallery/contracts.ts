@@ -7,6 +7,7 @@ export const GalleryFeaturedSectionSchema = Schema.Struct({
   order: Schema.Number,
   topicId: Schema.optional(Schema.Number),
   competitionClassId: Schema.optional(Schema.Number),
+  picks: Schema.optional(Schema.Array(Schema.String)),
 })
 
 export const GetPublicGallerySchema = Schema.Struct({
@@ -27,6 +28,11 @@ export const GetByCameraTopicGallerySchema = Schema.Struct({
 })
 
 export const GetGalleryParticipantSetSchema = Schema.Struct({
+  domain: Schema.String,
+  reference: Schema.String,
+})
+
+export const GetGalleryReferencePreviewSchema = Schema.Struct({
   domain: Schema.String,
   reference: Schema.String,
 })
@@ -56,6 +62,7 @@ export type GetPublicGallery = Schema.Schema.Type<typeof GetPublicGallerySchema>
 export type GetGalleryFeed = Schema.Schema.Type<typeof GetGalleryFeedSchema>
 export type GetByCameraTopicGallery = Schema.Schema.Type<typeof GetByCameraTopicGallerySchema>
 export type GetGalleryParticipantSet = Schema.Schema.Type<typeof GetGalleryParticipantSetSchema>
+export type GetGalleryReferencePreview = Schema.Schema.Type<typeof GetGalleryReferencePreviewSchema>
 export type GetGalleryAdminState = Schema.Schema.Type<typeof GetGalleryAdminStateSchema>
 export type SetMarathonPublication = Schema.Schema.Type<typeof SetMarathonPublicationSchema>
 export type SetTopicPublication = Schema.Schema.Type<typeof SetTopicPublicationSchema>

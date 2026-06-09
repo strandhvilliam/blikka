@@ -99,16 +99,17 @@ function ClassWinnersSection({
   )
 }
 
-function ParticipantSetCard({
-  set,
-  domain,
-}: {
-  set: GalleryParticipantSetCard
-  domain: string
-}) {
-  const cover = set.submissions[0]
+const MAX_SET_THUMBS = 4
+
+function ParticipantSetCard({ set, domain }: { set: GalleryParticipantSetCard; domain: string }) {
+  const [cover, ...rest] = set.submissions
   const coverSrc = galleryThumbnailUrl(cover?.thumbnailKey)
   const href = galleryParticipantHref(domain, set.participantReference)
+
+  // Reserve the last tile for a "+N" overflow indicator when there are extra photos.
+  const visibleThumbs =
+    rest.length > MAX_SET_THUMBS ? rest.slice(0, MAX_SET_THUMBS - 1) : rest.slice(0, MAX_SET_THUMBS)
+  const hiddenCount = rest.length - visibleThumbs.length
 
   return (
     <Link
@@ -134,11 +135,56 @@ function ParticipantSetCard({
           {ordinalLabel(set.rank)} · {set.competitionClassName}
         </span>
       </div>
+
+      {rest.length > 0 ? (
+        <div className="grid grid-cols-4 gap-1 px-1 pt-1">
+          {visibleThumbs.map((submission) => {
+            const thumbSrc = galleryThumbnailUrl(submission.thumbnailKey)
+            return (
+              <div
+                key={submission.submissionId}
+                className="relative aspect-square overflow-hidden rounded-sm bg-neutral-900"
+              >
+                {thumbSrc ? (
+                  <Image
+                    src={thumbSrc}
+                    alt={`Photo by ${set.participantReference}`}
+                    fill
+                    quality={40}
+                    sizes="(max-width: 640px) 25vw, 9vw"
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
+              </div>
+            )
+          })}
+          {hiddenCount > 0 ? (
+            <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-sm bg-neutral-900">
+              {(() => {
+                const last = rest[rest.length - 1]
+                const lastSrc = galleryThumbnailUrl(last?.thumbnailKey)
+                return lastSrc ? (
+                  <Image
+                    src={lastSrc}
+                    alt=""
+                    fill
+                    quality={40}
+                    sizes="(max-width: 640px) 25vw, 9vw"
+                    className="h-full w-full object-cover opacity-40"
+                  />
+                ) : null
+              })()}
+              <span className="relative text-xs font-semibold text-white">+{hiddenCount}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between px-4 py-3">
         <span className="font-mono text-sm tracking-wider text-white">
           #{set.participantReference}
         </span>
-        <span className="text-xs text-neutral-500">{set.submissions.length} photos</span>
+        <span className="text-xs text-neutral-500">View set · {set.submissions.length} photos</span>
       </div>
     </Link>
   )

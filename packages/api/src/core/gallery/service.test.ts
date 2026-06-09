@@ -76,9 +76,6 @@ interface GalleryRepoState {
     competitionClassName: string | null
     submissions: Array<Record<string, unknown>>
   }>
-  topicWinners: Array<Record<string, unknown>>
-  classWinners: Array<Record<string, unknown>>
-  byCameraWinners: Array<Record<string, unknown>>
 }
 
 const makeGalleryRepoLayer = (
@@ -123,21 +120,6 @@ const makeGalleryRepoLayer = (
           const state = yield* Ref.get(stateRef)
           return state.participantSet as never
         }),
-      getTopicWinners: () =>
-        Effect.gen(function* () {
-          const state = yield* Ref.get(stateRef)
-          return state.topicWinners as never
-        }),
-      getClassWinners: () =>
-        Effect.gen(function* () {
-          const state = yield* Ref.get(stateRef)
-          return state.classWinners as never
-        }),
-      getByCameraTopicWinners: () =>
-        Effect.gen(function* () {
-          const state = yield* Ref.get(stateRef)
-          return state.byCameraWinners as never
-        }),
     } as unknown as GalleryRepository['Service']),
   )
 
@@ -152,9 +134,6 @@ const defaultState = (overrides: Partial<GalleryRepoState> = {}): GalleryRepoSta
   publications: [],
   feedItems: [],
   participantSet: Option.none(),
-  topicWinners: [],
-  classWinners: [],
-  byCameraWinners: [],
   ...overrides,
 })
 
@@ -213,8 +192,22 @@ describe('GalleryService.getPublicGallery', () => {
       const publication = makePublication({
         publishedAt: '2026-06-02T00:00:00.000Z',
         featuredSections: [
-          { id: 's1', kind: 'topic-winners', enabled: true, order: 0, topicId: 10 },
-          { id: 's2', kind: 'topic-winners', enabled: false, order: 1, topicId: 10 },
+          {
+            id: 's1',
+            kind: 'topic-winners',
+            enabled: true,
+            order: 0,
+            topicId: 10,
+            picks: ['1024'],
+          },
+          {
+            id: 's2',
+            kind: 'topic-winners',
+            enabled: false,
+            order: 1,
+            topicId: 10,
+            picks: ['1024'],
+          },
         ],
       })
 
@@ -227,17 +220,22 @@ describe('GalleryService.getPublicGallery', () => {
           marathon: makeMarathonWithOptions(),
           state: defaultState({
             publications: [publication],
-            topicWinners: [
-              {
-                rank: 1,
-                participantReference: '1024',
-                submissionId: 5,
-                thumbnailKey: 't.jpg',
-                key: 'o.jpg',
-                topicId: 10,
-                topicName: 'Topic A',
-              },
-            ],
+            participantSet: Option.some({
+              reference: '1024',
+              competitionClassId: 1,
+              competitionClassName: 'Open',
+              submissions: [
+                {
+                  submissionId: 5,
+                  submissionCreatedAt: '2026-06-01T00:00:00.000Z',
+                  thumbnailKey: 't.jpg',
+                  key: 'o.jpg',
+                  topicId: 10,
+                  topicName: 'Topic A',
+                  topicOrderIndex: 1,
+                },
+              ],
+            }),
           }),
         },
       )
@@ -249,6 +247,7 @@ describe('GalleryService.getPublicGallery', () => {
       const photo = section.photos[0]!
       assert.strictEqual(photo.participantReference, '1024')
       assert.strictEqual(photo.key, 'o.jpg')
+      assert.strictEqual(photo.rank, 1)
       assertNoPrivateFields(photo as unknown as Record<string, unknown>)
     }),
   )
@@ -258,8 +257,22 @@ describe('GalleryService.getPublicGallery', () => {
       const publication = makePublication({
         publishedAt: '2026-06-02T00:00:00.000Z',
         featuredSections: [
-          { id: 'stale', kind: 'topic-winners', enabled: true, order: 0, topicId: 999 },
-          { id: 'valid', kind: 'topic-winners', enabled: true, order: 1, topicId: 10 },
+          {
+            id: 'stale',
+            kind: 'topic-winners',
+            enabled: true,
+            order: 0,
+            topicId: 999,
+            picks: ['1024'],
+          },
+          {
+            id: 'valid',
+            kind: 'topic-winners',
+            enabled: true,
+            order: 1,
+            topicId: 10,
+            picks: ['1024'],
+          },
         ],
       })
 
@@ -272,17 +285,22 @@ describe('GalleryService.getPublicGallery', () => {
           marathon: makeMarathonWithOptions(),
           state: defaultState({
             publications: [publication],
-            topicWinners: [
-              {
-                rank: 1,
-                participantReference: '1024',
-                submissionId: 5,
-                thumbnailKey: 't.jpg',
-                key: 'o.jpg',
-                topicId: 10,
-                topicName: 'Topic A',
-              },
-            ],
+            participantSet: Option.some({
+              reference: '1024',
+              competitionClassId: 1,
+              competitionClassName: 'Open',
+              submissions: [
+                {
+                  submissionId: 5,
+                  submissionCreatedAt: '2026-06-01T00:00:00.000Z',
+                  thumbnailKey: 't.jpg',
+                  key: 'o.jpg',
+                  topicId: 10,
+                  topicName: 'Topic A',
+                  topicOrderIndex: 1,
+                },
+              ],
+            }),
           }),
         },
       )
@@ -516,6 +534,141 @@ describe('GalleryService.getGalleryParticipantSet', () => {
 
       assert.strictEqual(result.submissions.length, 1)
       assert.strictEqual(result.submissions[0]!.topicId, 10)
+    }),
+  )
+})
+
+describe('GalleryService.getPublicGallery class winners', () => {
+  it.effect('resolves class-winner participant sets from ordered manual picks', () =>
+    Effect.gen(function* () {
+      const publication = makePublication({
+        publishedAt: '2026-06-02T00:00:00.000Z',
+        featuredSections: [
+          {
+            id: 'class-1',
+            kind: 'class-winners',
+            enabled: true,
+            order: 0,
+            competitionClassId: 1,
+            picks: ['7', '9'],
+          },
+        ],
+      })
+
+      const { result } = yield* run(
+        Effect.gen(function* () {
+          const service = yield* GalleryService
+          return yield* service.getPublicGallery({ domain })
+        }),
+        {
+          marathon: makeMarathonWithOptions(),
+          state: defaultState({
+            publications: [publication],
+            participantSet: Option.some({
+              reference: '7',
+              competitionClassId: 1,
+              competitionClassName: 'Open',
+              submissions: [
+                {
+                  submissionId: 1,
+                  submissionCreatedAt: '2026-06-01T00:00:00.000Z',
+                  thumbnailKey: 't.jpg',
+                  key: 'o.jpg',
+                  topicId: 10,
+                  topicName: 'Topic A',
+                  topicOrderIndex: 1,
+                },
+              ],
+            }),
+          }),
+        },
+      )
+
+      assert.strictEqual(result.featuredSections.length, 1)
+      const section = result.featuredSections[0]!
+      assert.strictEqual(section.kind, 'class-winners')
+      // The mock returns the same set for every reference, so both picks resolve.
+      assert.strictEqual(section.participantSets.length, 2)
+      assert.strictEqual(section.participantSets[0]!.rank, 1)
+      assert.strictEqual(section.participantSets[1]!.rank, 2)
+      assert.strictEqual(section.participantSets[0]!.competitionClassName, 'Open')
+    }),
+  )
+
+  it.effect('skips a section whose picks are empty', () =>
+    Effect.gen(function* () {
+      const publication = makePublication({
+        publishedAt: '2026-06-02T00:00:00.000Z',
+        featuredSections: [
+          { id: 's1', kind: 'topic-winners', enabled: true, order: 0, topicId: 10, picks: [] },
+        ],
+      })
+
+      const { result } = yield* run(
+        Effect.gen(function* () {
+          const service = yield* GalleryService
+          return yield* service.getPublicGallery({ domain })
+        }),
+        {
+          marathon: makeMarathonWithOptions(),
+          state: defaultState({ publications: [publication] }),
+        },
+      )
+
+      assert.strictEqual(result.featuredSections.length, 0)
+    }),
+  )
+})
+
+describe('GalleryService.getGalleryReferencePreview', () => {
+  it.effect('returns PII-safe submissions for a finalized reference', () =>
+    Effect.gen(function* () {
+      const { result } = yield* run(
+        Effect.gen(function* () {
+          const service = yield* GalleryService
+          return yield* service.getGalleryReferencePreview({ domain, reference: '1024' })
+        }),
+        {
+          marathon: makeMarathonWithOptions(),
+          state: defaultState({
+            participantSet: Option.some({
+              reference: '1024',
+              competitionClassId: 1,
+              competitionClassName: 'Open',
+              submissions: [
+                {
+                  submissionId: 5,
+                  submissionCreatedAt: '2026-06-01T00:00:00.000Z',
+                  thumbnailKey: 't.jpg',
+                  key: 'o.jpg',
+                  topicId: 10,
+                  topicName: 'Topic A',
+                  topicOrderIndex: 1,
+                },
+              ],
+            }),
+          }),
+        },
+      )
+
+      assert.strictEqual(result.reference, '1024')
+      assert.strictEqual(result.submissions.length, 1)
+      assert.strictEqual(result.submissions[0]!.topicId, 10)
+      assertNoPrivateFields(result.submissions[0]! as unknown as Record<string, unknown>)
+    }),
+  )
+
+  it.effect('fails with NotFound for an unknown reference', () =>
+    Effect.gen(function* () {
+      const exit = yield* run(
+        Effect.gen(function* () {
+          const service = yield* GalleryService
+          return yield* service.getGalleryReferencePreview({ domain, reference: '0000' })
+        }),
+        { marathon: makeMarathonWithOptions(), state: defaultState() },
+      ).pipe(Effect.flip)
+
+      assert.instanceOf(exit, NotFoundError)
     }),
   )
 })
