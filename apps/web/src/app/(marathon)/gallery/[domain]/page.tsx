@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { fetchServerQuery, trpc } from '@/lib/trpc/server'
+import { getCachedPublicGallery } from '@/lib/gallery-page-cache'
 import { GalleryHeader } from './_components/gallery-header'
 import { FeaturedSections } from './_components/featured-sections'
 import { GalleryFeed } from './_components/gallery-feed'
@@ -15,7 +15,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { domain } = await params
   try {
-    const gallery = await fetchServerQuery(trpc.gallery.getPublicGallery.queryOptions({ domain }))
+    const gallery = await getCachedPublicGallery(domain)
     return {
       title: `${gallery.marathon.name} — Gallery`,
       description: `Browse the published photo gallery for ${gallery.marathon.name}.`,
@@ -34,7 +34,7 @@ export default async function GalleryPage({
 
   let gallery: PublicGallery
   try {
-    gallery = await fetchServerQuery(trpc.gallery.getPublicGallery.queryOptions({ domain }))
+    gallery = await getCachedPublicGallery(domain)
   } catch {
     notFound()
   }
@@ -62,6 +62,7 @@ export default async function GalleryPage({
             domain={domain}
             topics={gallery.topics}
             competitionClasses={gallery.competitionClasses}
+            priorityCount={gallery.featuredSections.length > 0 ? 0 : 10}
           />
         </>
       )}

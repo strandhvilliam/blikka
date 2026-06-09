@@ -3,12 +3,12 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { ExternalLink, Globe, Loader2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTRPC } from '@/lib/trpc/client'
 import { useDomain } from '@/lib/domain-provider'
 import { formatDomainLink } from '@/lib/utils'
+import { revalidateGalleryPageCache } from '@/lib/gallery-page-cache.actions'
 import { FeaturedSectionsEditor } from './featured-sections-editor'
 import type {
   AdminGalleryTopic,
@@ -37,8 +37,7 @@ export function GalleryAdminContent() {
         <h1 className="text-2xl font-semibold tracking-tight">Gallery</h1>
         <p className="text-sm text-muted-foreground">
           Publish the public photo gallery and choose which winner sections to feature. The public
-          gallery never exposes participant names or original files — only reference numbers and
-          optimized images.
+          gallery never exposes participant names, only reference numbers and display images.
         </p>
       </header>
 
@@ -81,8 +80,9 @@ function MarathonControls({
 
   const mutation = useMutation(
     trpc.gallery.setMarathonPublication.mutationOptions({
-      onSuccess: (result) => {
+      onSuccess: async (result) => {
         toast.success(result.published ? 'Gallery published' : 'Gallery unpublished')
+        await revalidateGalleryPageCache({ domain })
         onChange()
       },
       onError: (error) => {
@@ -193,8 +193,9 @@ function ByCameraTopicCard({
 
   const mutation = useMutation(
     trpc.gallery.setTopicPublication.mutationOptions({
-      onSuccess: (result) => {
+      onSuccess: async (result) => {
         toast.success(result.published ? 'Topic gallery published' : 'Topic gallery unpublished')
+        await revalidateGalleryPageCache({ domain, topicOrderIndex: topic.orderIndex })
         onChange()
       },
       onError: (error) => {
@@ -214,7 +215,7 @@ function ByCameraTopicCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-col gap-0.5">
             <CardTitle className="text-base">
-              <span className="text-muted-foreground">Topic {topic.orderIndex} · </span>
+              <span className="text-muted-foreground">Topic {topic.orderIndex + 1} · </span>
               {topic.name}
             </CardTitle>
             <CardDescription>
@@ -251,6 +252,7 @@ function ByCameraTopicCard({
             <FeaturedSectionsEditor
               domain={domain}
               topicId={topic.id}
+              topicOrderIndex={topic.orderIndex}
               available={[
                 {
                   kind: 'by-camera-topic-winners',

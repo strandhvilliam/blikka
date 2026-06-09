@@ -36,10 +36,7 @@ export function TopicSelector({
             className="group flex items-center justify-between rounded-md border border-white/10 bg-neutral-950 px-5 py-5 transition-colors hover:border-white/30"
           >
             <div className="flex flex-col">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-600">
-                Topic {topic.orderIndex}
-              </span>
-              <span className="mt-1 text-lg text-white">{topic.name}</span>
+              <span className="text-lg text-white">{topic.name}</span>
             </div>
             <ArrowUpRight className="size-5 text-neutral-600 transition-colors group-hover:text-white" />
           </Link>

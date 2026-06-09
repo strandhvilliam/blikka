@@ -34,3 +34,8 @@ export function orderedEnabledFeaturedSections(
 ): GalleryFeaturedSection[] {
   return sections.filter((section) => section.enabled).toSorted((a, b) => a.order - b.order)
 }
+
+/** Public gallery topic label, e.g. `1. Street` for orderIndex 0. */
+export function formatGalleryTopicName(name: string, orderIndex: number): string {
+  return `${orderIndex + 1}. ${name}`
+}

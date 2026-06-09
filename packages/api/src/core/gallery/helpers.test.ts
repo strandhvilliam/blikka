@@ -2,6 +2,7 @@ import { describe, expect, it } from '@effect/vitest'
 import type { GalleryFeaturedSection } from '@blikka/db'
 import {
   finalizedStatusesForVerificationMode,
+  formatGalleryTopicName,
   isByCameraTopicPublishable,
   orderedEnabledFeaturedSections,
 } from './helpers'
@@ -34,6 +35,13 @@ describe('isByCameraTopicPublishable', () => {
     expect(
       isByCameraTopicPublishable({ scheduledEnd: '2026-06-08T11:00:00.000Z', nowIso: now }),
     ).toBe(true)
+  })
+})
+
+describe('formatGalleryTopicName', () => {
+  it('prefixes the 1-based topic order before the name', () => {
+    expect(formatGalleryTopicName('Street', 0)).toBe('1. Street')
+    expect(formatGalleryTopicName('Portrait', 2)).toBe('3. Portrait')
   })
 })
 

@@ -2,12 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
-import { fetchServerQuery, trpc } from '@/lib/trpc/server'
+import { cn } from '@/lib/utils'
+import { getCachedByCameraTopicGallery } from '@/lib/gallery-page-cache'
 import { GalleryHeader } from '../_components/gallery-header'
 import { FeaturedSections } from '../_components/featured-sections'
 import { GalleryFeed } from '../_components/gallery-feed'
 import { galleryHomeHref, galleryTopicHref } from '../_lib/href'
-import { cn } from '@/lib/utils'
 import type { ByCameraTopicGallery } from '../_lib/types'
 
 function parseOrderIndex(value: string): number | null {
@@ -24,9 +24,7 @@ export async function generateMetadata({
   const orderIndex = parseOrderIndex(topicOrderIndex)
   if (orderIndex === null) return { title: 'Gallery' }
   try {
-    const gallery = await fetchServerQuery(
-      trpc.gallery.getByCameraTopicGallery.queryOptions({ domain, topicOrderIndex: orderIndex }),
-    )
+    const gallery = await getCachedByCameraTopicGallery(domain, orderIndex)
     return {
       title: `${gallery.topic.name} — ${gallery.marathon.name} Gallery`,
       description: `Browse published photos for ${gallery.topic.name}.`,
@@ -47,9 +45,7 @@ export default async function ByCameraTopicGalleryPage({
 
   let gallery: ByCameraTopicGallery
   try {
-    gallery = await fetchServerQuery(
-      trpc.gallery.getByCameraTopicGallery.queryOptions({ domain, topicOrderIndex: orderIndex }),
-    )
+    gallery = await getCachedByCameraTopicGallery(domain, orderIndex)
   } catch {
     notFound()
   }
@@ -99,6 +95,7 @@ export default async function ByCameraTopicGalleryPage({
         competitionClasses={[]}
         fixedTopicOrderIndex={orderIndex}
         showFilters={false}
+        priorityCount={gallery.featuredSections.length > 0 ? 0 : 10}
       />
     </main>
   )

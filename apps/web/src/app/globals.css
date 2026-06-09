@@ -271,3 +271,12 @@ html.lenis body {
     opacity: 1;
   }
 }
+
+@keyframes gallery-filter-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, Loader2, Star } from 'lucide-react'
 import { toast } from 'sonner'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { useTRPC } from '@/lib/trpc/client'
+import { revalidateGalleryPageCache } from '@/lib/gallery-page-cache.actions'
 import type { AvailableFeaturedSection, FeaturedSectionConfig } from './gallery-admin-types'
 
 type EditorRow = {
@@ -57,11 +58,13 @@ function buildRows(
 export function FeaturedSectionsEditor({
   domain,
   topicId,
+  topicOrderIndex,
   available,
   current,
 }: {
   domain: string
   topicId: number | null
+  topicOrderIndex?: number
   available: AvailableFeaturedSection[]
   current: FeaturedSectionConfig[]
 }) {
@@ -74,6 +77,7 @@ export function FeaturedSectionsEditor({
     trpc.gallery.updateFeaturedSections.mutationOptions({
       onSuccess: async () => {
         toast.success('Featured sections saved')
+        await revalidateGalleryPageCache({ domain, topicOrderIndex })
         await queryClient.invalidateQueries({
           queryKey: trpc.gallery.getGalleryAdminState.pathKey(),
         })
@@ -83,6 +87,10 @@ export function FeaturedSectionsEditor({
       },
     }),
   )
+
+  useEffect(() => {
+    setRows(initialRows)
+  }, [initialRows])
 
   const toggle = (key: string, enabled: boolean) => {
     setRows((current) => {

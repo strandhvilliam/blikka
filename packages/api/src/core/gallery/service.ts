@@ -23,12 +23,14 @@ import type {
 } from './contracts'
 import {
   finalizedStatusesForVerificationMode,
+  formatGalleryTopicName,
   isByCameraTopicPublishable,
   orderedEnabledFeaturedSections,
 } from './helpers'
 
 const DEFAULT_FEED_LIMIT = 60
 const MAX_FEED_LIMIT = 120
+const CURSOR_PATTERN = /^\d+$/
 
 /** Public-safe marathon metadata shown in the gallery header. */
 export interface GalleryMarathonMeta {
@@ -50,12 +52,12 @@ export interface GalleryClassMeta {
   name: string
 }
 
-/** A single public, PII-safe photo card (winner or feed item). Never exposes the original key. */
+/** A single public, PII-safe photo card (winner or feed item). */
 export interface GalleryPhotoCard {
   submissionId: number
   participantReference: string
   thumbnailKey: string | null
-  previewKey: string | null
+  key: string | null
   topicId: number
   topicName: string
   topicOrderIndex: number
@@ -75,7 +77,7 @@ export interface GalleryParticipantSetCard {
 export interface GalleryPublicSubmission {
   submissionId: number
   thumbnailKey: string | null
-  previewKey: string | null
+  key: string | null
   topicId: number
   topicName: string
   topicOrderIndex: number
@@ -206,10 +208,20 @@ const makeGalleryService = Effect.gen(function* () {
   ): GalleryPublicSubmission => ({
     submissionId: submission.submissionId,
     thumbnailKey: submission.thumbnailKey,
-    previewKey: submission.previewKey,
+    key: submission.key,
     topicId: submission.topicId,
-    topicName: submission.topicName,
+    topicName: formatGalleryTopicName(submission.topicName, submission.topicOrderIndex),
     topicOrderIndex: submission.topicOrderIndex,
+  })
+
+  const toGalleryTopicMeta = (
+    topic: Topic,
+    published: boolean,
+  ): GalleryTopicMeta => ({
+    id: topic.id,
+    name: formatGalleryTopicName(topic.name, topic.orderIndex),
+    orderIndex: topic.orderIndex,
+    published,
   })
 
   const resolveFeaturedSections = Effect.fn('GalleryService.resolveFeaturedSections')(function* ({
@@ -230,6 +242,8 @@ const makeGalleryService = Effect.gen(function* () {
     for (const section of enabled) {
       if (section.kind === 'topic-winners' && section.topicId !== undefined) {
         const topic = topicsById.get(section.topicId)
+        if (!topic) continue
+
         const winners = yield* galleryRepository.getTopicWinners({
           marathonId: marathon.id,
           topicId: section.topicId,
@@ -238,10 +252,10 @@ const makeGalleryService = Effect.gen(function* () {
           submissionId: winner.submissionId,
           participantReference: winner.participantReference,
           thumbnailKey: winner.thumbnailKey,
-          previewKey: winner.previewKey,
+          key: winner.key,
           topicId: winner.topicId,
-          topicName: winner.topicName,
-          topicOrderIndex: topic?.orderIndex ?? 0,
+          topicName: formatGalleryTopicName(winner.topicName, topic.orderIndex),
+          topicOrderIndex: topic.orderIndex,
           competitionClassId: null,
           competitionClassName: null,
           rank: winner.rank,
@@ -250,7 +264,7 @@ const makeGalleryService = Effect.gen(function* () {
           resolved.push({
             id: section.id,
             kind: section.kind,
-            title: `${topic?.name ?? 'Topic'} winners`,
+            title: `${formatGalleryTopicName(topic.name, topic.orderIndex)} winners`,
             order: section.order,
             photos,
             participantSets: [],
@@ -258,6 +272,8 @@ const makeGalleryService = Effect.gen(function* () {
         }
       } else if (section.kind === 'by-camera-topic-winners' && section.topicId !== undefined) {
         const topic = topicsById.get(section.topicId)
+        if (!topic) continue
+
         const winners = yield* galleryRepository.getByCameraTopicWinners({
           marathonId: marathon.id,
           topicId: section.topicId,
@@ -266,10 +282,10 @@ const makeGalleryService = Effect.gen(function* () {
           submissionId: winner.submissionId,
           participantReference: winner.participantReference,
           thumbnailKey: winner.thumbnailKey,
-          previewKey: winner.previewKey,
+          key: winner.key,
           topicId: winner.topicId,
-          topicName: winner.topicName,
-          topicOrderIndex: topic?.orderIndex ?? 0,
+          topicName: formatGalleryTopicName(winner.topicName, topic.orderIndex),
+          topicOrderIndex: topic.orderIndex,
           competitionClassId: null,
           competitionClassName: null,
           rank: winner.rank,
@@ -278,7 +294,7 @@ const makeGalleryService = Effect.gen(function* () {
           resolved.push({
             id: section.id,
             kind: section.kind,
-            title: `${topic?.name ?? 'Topic'} winners`,
+            title: `${formatGalleryTopicName(topic.name, topic.orderIndex)} winners`,
             order: section.order,
             photos,
             participantSets: [],
@@ -286,6 +302,8 @@ const makeGalleryService = Effect.gen(function* () {
         }
       } else if (section.kind === 'class-winners' && section.competitionClassId !== undefined) {
         const competitionClass = classesById.get(section.competitionClassId)
+        if (!competitionClass) continue
+
         const winners = yield* galleryRepository.getClassWinners({
           marathonId: marathon.id,
           competitionClassId: section.competitionClassId,
@@ -337,12 +355,7 @@ const makeGalleryService = Effect.gen(function* () {
 
     const topics: GalleryTopicMeta[] = marathon.topics
       .toSorted((a, b) => a.orderIndex - b.orderIndex)
-      .map((topic) => ({
-        id: topic.id,
-        name: topic.name,
-        orderIndex: topic.orderIndex,
-        published: isByCamera ? publishedTopicIds.has(topic.id) : true,
-      }))
+      .map((topic) => toGalleryTopicMeta(topic, isByCamera ? publishedTopicIds.has(topic.id) : true))
 
     const competitionClasses: GalleryClassMeta[] = marathon.competitionClasses.map(
       (competitionClass) => ({ id: competitionClass.id, name: competitionClass.name }),
@@ -367,9 +380,19 @@ const makeGalleryService = Effect.gen(function* () {
   const resolveTopicByOrderIndex = (marathon: MarathonWithOptions, orderIndex: number) =>
     marathon.topics.find((topic) => topic.orderIndex === orderIndex) ?? null
 
+  const validateCursor = (cursor: string | null | undefined) => {
+    if (cursor === undefined || cursor === null) return Effect.void
+    if (!CURSOR_PATTERN.test(cursor)) {
+      return Effect.fail(new BadRequestError({ message: 'Gallery feed cursor is invalid' }))
+    }
+    return Effect.void
+  }
+
   const getGalleryFeed: GalleryService['Service']['getGalleryFeed'] = Effect.fn(
     'GalleryService.getGalleryFeed',
   )(function* ({ domain, topicOrderIndex, competitionClassId, cursor, limit }) {
+    yield* validateCursor(cursor)
+
     const marathon = yield* resolveMarathon(domain)
     const finalizedStatuses = finalizedStatusesForVerificationMode(marathon.verificationMode)
     const safeLimit = Math.min(Math.max(limit ?? DEFAULT_FEED_LIMIT, 1), MAX_FEED_LIMIT)
@@ -411,7 +434,12 @@ const makeGalleryService = Effect.gen(function* () {
       }
       if (topicOrderIndex !== undefined && topicOrderIndex !== null) {
         const topic = resolveTopicByOrderIndex(marathon, topicOrderIndex)
-        topicId = topic?.id ?? null
+        if (!topic) {
+          return yield* Effect.fail(
+            new BadRequestError({ message: `Unknown topicOrderIndex: ${topicOrderIndex}` }),
+          )
+        }
+        topicId = topic.id
       }
     }
 
@@ -428,9 +456,9 @@ const makeGalleryService = Effect.gen(function* () {
       submissionId: item.submissionId,
       participantReference: item.participantReference,
       thumbnailKey: item.thumbnailKey,
-      previewKey: item.previewKey,
+      key: item.key,
       topicId: item.topicId,
-      topicName: item.topicName,
+      topicName: formatGalleryTopicName(item.topicName, item.topicOrderIndex),
       topicOrderIndex: item.topicOrderIndex,
       competitionClassId: item.competitionClassId,
       competitionClassName: item.competitionClassName,
@@ -478,12 +506,7 @@ const makeGalleryService = Effect.gen(function* () {
     const publishedTopics: GalleryTopicMeta[] = marathon.topics
       .filter((candidate) => publishedTopicIds.has(candidate.id))
       .toSorted((a, b) => a.orderIndex - b.orderIndex)
-      .map((candidate) => ({
-        id: candidate.id,
-        name: candidate.name,
-        orderIndex: candidate.orderIndex,
-        published: true,
-      }))
+      .map((candidate) => toGalleryTopicMeta(candidate, true))
 
     const featuredSections = yield* resolveFeaturedSections({
       marathon,
@@ -492,7 +515,7 @@ const makeGalleryService = Effect.gen(function* () {
 
     return {
       marathon: toMarathonMeta(marathon),
-      topic: { id: topic.id, name: topic.name, orderIndex: topic.orderIndex, published: true },
+      topic: toGalleryTopicMeta(topic, true),
       publishedTopics,
       featuredSections,
     }

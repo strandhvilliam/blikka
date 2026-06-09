@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { useCallback, useEffect } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
-import { galleryPreviewUrl } from '../_lib/gallery-image'
+import { galleryOriginalUrl, galleryThumbnailUrl } from '../_lib/gallery-image'
 import type { GalleryPhotoCard } from '../_lib/types'
 
 export function GalleryLightbox({
@@ -52,7 +52,7 @@ export function GalleryLightbox({
 
   if (!isOpen || !photo) return null
 
-  const src = galleryPreviewUrl(photo.previewKey) ?? galleryPreviewUrl(photo.thumbnailKey)
+  const src = galleryOriginalUrl(photo.key) ?? galleryThumbnailUrl(photo.thumbnailKey)
 
   return (
     <div

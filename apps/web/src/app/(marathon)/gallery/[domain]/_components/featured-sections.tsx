@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import { GalleryPhoto } from './gallery-photo'
@@ -87,7 +88,11 @@ function ClassWinnersSection({
       <SectionHeading title={section.title} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {sets.map((set) => (
-          <ParticipantSetCard key={`${set.competitionClassId}-${set.rank}`} set={set} domain={domain} />
+          <ParticipantSetCard
+            key={`${set.competitionClassId}-${set.rank}`}
+            set={set}
+            domain={domain}
+          />
         ))}
       </div>
     </section>
@@ -102,6 +107,7 @@ function ParticipantSetCard({
   domain: string
 }) {
   const cover = set.submissions[0]
+  const coverSrc = galleryThumbnailUrl(cover?.thumbnailKey)
   const href = galleryParticipantHref(domain, set.participantReference)
 
   return (
@@ -110,11 +116,13 @@ function ParticipantSetCard({
       className="group block overflow-hidden rounded-md border border-white/10 bg-neutral-950 transition-colors hover:border-white/30"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-neutral-900">
-        {cover && galleryThumbnailUrl(cover.thumbnailKey) ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={galleryThumbnailUrl(cover.thumbnailKey) ?? ''}
+        {coverSrc ? (
+          <Image
+            src={coverSrc}
             alt={`Cover by ${set.participantReference}`}
+            fill
+            quality={50}
+            sizes="(max-width: 640px) 100vw, 33vw"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : null}

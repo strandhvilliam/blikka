@@ -16,7 +16,7 @@ export function ParticipantSet({
     submissionId: submission.submissionId,
     participantReference: participantSet.reference,
     thumbnailKey: submission.thumbnailKey,
-    previewKey: submission.previewKey,
+    key: submission.key,
     topicId: submission.topicId,
     topicName: submission.topicName,
     topicOrderIndex: submission.topicOrderIndex,

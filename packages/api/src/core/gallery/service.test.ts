@@ -176,8 +176,8 @@ const run = <A, E>(
     return { result, upserts: yield* Ref.get(upsertsRef) }
   })
 
-const PII_FORBIDDEN_KEYS = [
-  'key',
+const PRIVATE_FORBIDDEN_KEYS = [
+  'previewKey',
   'firstname',
   'lastname',
   'email',
@@ -187,8 +187,8 @@ const PII_FORBIDDEN_KEYS = [
   'metadata',
 ]
 
-function assertNoPii(record: Record<string, unknown>) {
-  for (const forbidden of PII_FORBIDDEN_KEYS) {
+function assertNoPrivateFields(record: Record<string, unknown>) {
+  for (const forbidden of PRIVATE_FORBIDDEN_KEYS) {
     assert.isFalse(forbidden in record, `expected DTO not to expose '${forbidden}'`)
   }
 }
@@ -233,7 +233,7 @@ describe('GalleryService.getPublicGallery', () => {
                 participantReference: '1024',
                 submissionId: 5,
                 thumbnailKey: 't.jpg',
-                previewKey: 'p.jpg',
+                key: 'o.jpg',
                 topicId: 10,
                 topicName: 'Topic A',
               },
@@ -248,7 +248,80 @@ describe('GalleryService.getPublicGallery', () => {
       assert.strictEqual(section.photos.length, 1)
       const photo = section.photos[0]!
       assert.strictEqual(photo.participantReference, '1024')
-      assertNoPii(photo as unknown as Record<string, unknown>)
+      assert.strictEqual(photo.key, 'o.jpg')
+      assertNoPrivateFields(photo as unknown as Record<string, unknown>)
+    }),
+  )
+
+  it.effect('skips stale featured section configs whose topic no longer exists', () =>
+    Effect.gen(function* () {
+      const publication = makePublication({
+        publishedAt: '2026-06-02T00:00:00.000Z',
+        featuredSections: [
+          { id: 'stale', kind: 'topic-winners', enabled: true, order: 0, topicId: 999 },
+          { id: 'valid', kind: 'topic-winners', enabled: true, order: 1, topicId: 10 },
+        ],
+      })
+
+      const { result } = yield* run(
+        Effect.gen(function* () {
+          const service = yield* GalleryService
+          return yield* service.getPublicGallery({ domain })
+        }),
+        {
+          marathon: makeMarathonWithOptions(),
+          state: defaultState({
+            publications: [publication],
+            topicWinners: [
+              {
+                rank: 1,
+                participantReference: '1024',
+                submissionId: 5,
+                thumbnailKey: 't.jpg',
+                key: 'o.jpg',
+                topicId: 10,
+                topicName: 'Topic A',
+              },
+            ],
+          }),
+        },
+      )
+
+      assert.deepStrictEqual(
+        result.featuredSections.map((section) => section.id),
+        ['valid'],
+      )
+    }),
+  )
+
+  it.effect('shows only published topic cards for by-camera gallery home', () =>
+    Effect.gen(function* () {
+      const topicPublished = makeTopic({ id: 10, name: 'Topic A', orderIndex: 0 })
+      const topicHidden = makeTopic({ id: 11, name: 'Topic B', orderIndex: 1 })
+
+      const { result } = yield* run(
+        Effect.gen(function* () {
+          const service = yield* GalleryService
+          return yield* service.getPublicGallery({ domain })
+        }),
+        {
+          marathon: makeMarathonWithOptions({
+            mode: 'by-camera',
+            topics: [topicHidden, topicPublished],
+          }),
+          state: defaultState({
+            publications: [
+              makePublication({ id: 2, topicId: 10, publishedAt: '2026-06-02T00:00:00.000Z' }),
+            ],
+          }),
+        },
+      )
+
+      assert.strictEqual(result.published, true)
+      assert.deepStrictEqual(
+        result.topics.map((topic) => topic.id),
+        [10],
+      )
     }),
   )
 })
@@ -284,7 +357,7 @@ describe('GalleryService.getGalleryFeed', () => {
                 submissionId: 7,
                 participantReference: '2048',
                 thumbnailKey: 't.jpg',
-                previewKey: 'p.jpg',
+                key: 'o.jpg',
                 topicId: 10,
                 topicName: 'Topic A',
                 topicOrderIndex: 1,
@@ -299,7 +372,8 @@ describe('GalleryService.getGalleryFeed', () => {
       assert.strictEqual(result.items.length, 1)
       const item = result.items[0]!
       assert.strictEqual(item.participantReference, '2048')
-      assertNoPii(item as unknown as Record<string, unknown>)
+      assert.strictEqual(item.key, 'o.jpg')
+      assertNoPrivateFields(item as unknown as Record<string, unknown>)
     }),
   )
 
@@ -314,6 +388,79 @@ describe('GalleryService.getGalleryFeed', () => {
       ).pipe(Effect.flip)
 
       assert.instanceOf(exit, BadRequestError)
+    }),
+  )
+
+  it.effect('rejects an unknown marathon topic filter instead of returning all photos', () =>
+    Effect.gen(function* () {
+      const exit = yield* run(
+        Effect.gen(function* () {
+          const service = yield* GalleryService
+          return yield* service.getGalleryFeed({ domain, topicOrderIndex: 999 })
+        }),
+        {
+          marathon: makeMarathonWithOptions(),
+          state: defaultState({
+            publications: [makePublication({ publishedAt: '2026-06-02T00:00:00.000Z' })],
+          }),
+        },
+      ).pipe(Effect.flip)
+
+      assert.instanceOf(exit, BadRequestError)
+    }),
+  )
+
+  it.effect('rejects malformed feed cursors', () =>
+    Effect.gen(function* () {
+      const exit = yield* run(
+        Effect.gen(function* () {
+          const service = yield* GalleryService
+          return yield* service.getGalleryFeed({ domain, cursor: 'not-a-cursor' })
+        }),
+        {
+          marathon: makeMarathonWithOptions(),
+          state: defaultState({
+            publications: [makePublication({ publishedAt: '2026-06-02T00:00:00.000Z' })],
+          }),
+        },
+      ).pipe(Effect.flip)
+
+      assert.instanceOf(exit, BadRequestError)
+    }),
+  )
+})
+
+describe('GalleryService.getByCameraTopicGallery', () => {
+  it.effect('returns the selected published topic and published topic navigation', () =>
+    Effect.gen(function* () {
+      const topicPublished = makeTopic({ id: 10, name: 'Topic A', orderIndex: 0 })
+      const topicAlsoPublished = makeTopic({ id: 11, name: 'Topic B', orderIndex: 1 })
+      const topicHidden = makeTopic({ id: 12, name: 'Topic C', orderIndex: 2 })
+
+      const { result } = yield* run(
+        Effect.gen(function* () {
+          const service = yield* GalleryService
+          return yield* service.getByCameraTopicGallery({ domain, topicOrderIndex: 0 })
+        }),
+        {
+          marathon: makeMarathonWithOptions({
+            mode: 'by-camera',
+            topics: [topicHidden, topicAlsoPublished, topicPublished],
+          }),
+          state: defaultState({
+            publications: [
+              makePublication({ id: 2, topicId: 10, publishedAt: '2026-06-02T00:00:00.000Z' }),
+              makePublication({ id: 3, topicId: 11, publishedAt: '2026-06-02T00:00:00.000Z' }),
+            ],
+          }),
+        },
+      )
+
+      assert.strictEqual(result.topic.id, 10)
+      assert.deepStrictEqual(
+        result.publishedTopics.map((topic) => topic.id),
+        [10, 11],
+      )
     }),
   )
 })
@@ -347,7 +494,7 @@ describe('GalleryService.getGalleryParticipantSet', () => {
                   submissionId: 1,
                   submissionCreatedAt: '2026-06-01T00:00:00.000Z',
                   thumbnailKey: 't1.jpg',
-                  previewKey: 'p1.jpg',
+                  key: 'o1.jpg',
                   topicId: 10,
                   topicName: 'Topic A',
                   topicOrderIndex: 1,
@@ -356,7 +503,7 @@ describe('GalleryService.getGalleryParticipantSet', () => {
                   submissionId: 2,
                   submissionCreatedAt: '2026-06-01T00:00:00.000Z',
                   thumbnailKey: 't2.jpg',
-                  previewKey: 'p2.jpg',
+                  key: 'o2.jpg',
                   topicId: 11,
                   topicName: 'Topic B',
                   topicOrderIndex: 2,

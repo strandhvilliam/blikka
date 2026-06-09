@@ -16,12 +16,12 @@ import {
 import type { GalleryFeaturedSection, GalleryPublication } from '../types'
 import { DbError } from '../utils'
 
-/** A single public, PII-safe photo in the gallery feed. Never exposes the original `key`. */
+/** A single public, PII-safe photo in the gallery feed. */
 export interface GalleryFeedRow {
   submissionId: number
   submissionCreatedAt: string
   thumbnailKey: string | null
-  previewKey: string | null
+  key: string | null
   topicId: number
   topicName: string
   topicOrderIndex: number
@@ -41,7 +41,7 @@ export interface GalleryParticipantSubmission {
   submissionId: number
   submissionCreatedAt: string
   thumbnailKey: string | null
-  previewKey: string | null
+  key: string | null
   topicId: number
   topicName: string
   topicOrderIndex: number
@@ -61,7 +61,7 @@ export interface GalleryTopicWinnerRow {
   participantReference: string
   submissionId: number
   thumbnailKey: string | null
-  previewKey: string | null
+  key: string | null
   topicId: number
   topicName: string
 }
@@ -72,7 +72,7 @@ export interface GalleryByCameraWinnerRow {
   participantReference: string
   submissionId: number
   thumbnailKey: string | null
-  previewKey: string | null
+  key: string | null
   topicId: number
   topicName: string
 }
@@ -232,7 +232,7 @@ const makeGalleryRepository = Effect.gen(function* () {
           submissionId: submissions.id,
           submissionCreatedAt: submissions.createdAt,
           thumbnailKey: submissions.thumbnailKey,
-          previewKey: submissions.previewKey,
+          key: submissions.key,
           topicId: submissions.topicId,
           topicName: topics.name,
           topicOrderIndex: topics.orderIndex,
@@ -290,7 +290,7 @@ const makeGalleryRepository = Effect.gen(function* () {
         submissionId: submission.id,
         submissionCreatedAt: submission.createdAt,
         thumbnailKey: submission.thumbnailKey,
-        previewKey: submission.previewKey,
+        key: submission.key,
         topicId: submission.topicId,
         topicName: submission.topic?.name ?? '',
         topicOrderIndex: submission.topic?.orderIndex ?? 0,
@@ -320,7 +320,7 @@ const makeGalleryRepository = Effect.gen(function* () {
           participantReference: participants.reference,
           submissionId: submissions.id,
           thumbnailKey: submissions.thumbnailKey,
-          previewKey: submissions.previewKey,
+          key: submissions.key,
           topicId: submissions.topicId,
           topicName: topics.name,
         })
@@ -385,7 +385,7 @@ const makeGalleryRepository = Effect.gen(function* () {
           submissionId: submissions.id,
           submissionCreatedAt: submissions.createdAt,
           thumbnailKey: submissions.thumbnailKey,
-          previewKey: submissions.previewKey,
+          key: submissions.key,
           topicId: submissions.topicId,
           topicName: topics.name,
           topicOrderIndex: topics.orderIndex,
@@ -409,7 +409,7 @@ const makeGalleryRepository = Effect.gen(function* () {
         submissionId: submission.submissionId,
         submissionCreatedAt: submission.submissionCreatedAt,
         thumbnailKey: submission.thumbnailKey,
-        previewKey: submission.previewKey,
+        key: submission.key,
         topicId: submission.topicId,
         topicName: submission.topicName,
         topicOrderIndex: submission.topicOrderIndex,
@@ -458,7 +458,7 @@ const makeGalleryRepository = Effect.gen(function* () {
           .select({
             submissionId: sql<number>`${submissions.id}`.as('submission_id'),
             thumbnailKey: submissions.thumbnailKey,
-            previewKey: submissions.previewKey,
+            key: submissions.key,
             topicId: submissions.topicId,
             topicName: topics.name,
             participantReference: participants.reference,
@@ -481,7 +481,7 @@ const makeGalleryRepository = Effect.gen(function* () {
           .groupBy(
             submissions.id,
             submissions.thumbnailKey,
-            submissions.previewKey,
+            submissions.key,
             submissions.topicId,
             topics.name,
             participants.reference,
@@ -492,7 +492,7 @@ const makeGalleryRepository = Effect.gen(function* () {
           .select({
             submissionId: leaderboard.submissionId,
             thumbnailKey: leaderboard.thumbnailKey,
-            previewKey: leaderboard.previewKey,
+            key: leaderboard.key,
             topicId: leaderboard.topicId,
             topicName: leaderboard.topicName,
             participantReference: leaderboard.participantReference,
@@ -507,7 +507,7 @@ const makeGalleryRepository = Effect.gen(function* () {
             participantReference: ranked.participantReference,
             submissionId: ranked.submissionId,
             thumbnailKey: ranked.thumbnailKey,
-            previewKey: ranked.previewKey,
+            key: ranked.key,
             topicId: ranked.topicId,
             topicName: ranked.topicName,
           })

@@ -14,13 +14,10 @@ export function galleryThumbnailUrl(thumbnailKey: string | null | undefined): st
   return null
 }
 
-/**
- * Optimized preview URL for the lightbox. Uses the optimized `preview` object in the
- * submissions bucket — never the raw original `key`.
- */
-export function galleryPreviewUrl(previewKey: string | null | undefined): string | null {
-  if (previewKey && submissionBaseUrl) {
-    return buildS3Url(submissionBaseUrl, previewKey) ?? null
+/** Original submission URL for the lightbox / full-size view. */
+export function galleryOriginalUrl(key: string | null | undefined): string | null {
+  if (key && submissionBaseUrl) {
+    return buildS3Url(submissionBaseUrl, key) ?? null
   }
   return null
 }
