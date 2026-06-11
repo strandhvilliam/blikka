@@ -255,18 +255,24 @@ export function FeaturedSectionsEditor({
           row={row}
           onSetPick={(index, value) => setPick(row.key, index, value)}
         />
-        <SaveBar isDirty={isDirty} isSaving={mutation.isPending} onSave={save} />
+        <SaveBar
+          isDirty={isDirty}
+          isSaving={mutation.isPending}
+          onSave={save}
+          fullBleed
+          flushBottom
+        />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 pt-4 sm:px-5">
       {enabledRows.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-muted/30 px-6 py-10 text-center">
-          <Sparkles className="mx-auto size-5 text-muted-foreground" />
-          <p className="mt-2 text-sm font-medium">No featured winners yet</p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+        <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
+          <Sparkles className="mx-auto size-5 text-muted-foreground/60" />
+          <p className="mt-2 text-[13px] font-medium text-foreground">No featured winners yet</p>
+          <p className="mx-auto mt-1 max-w-md text-[13px] leading-relaxed text-muted-foreground">
             Pick a section below to feature it, then enter the reference numbers of your top three
             winners.
           </p>
@@ -293,11 +299,11 @@ export function FeaturedSectionsEditor({
 
       {availableRows.length > 0 ? (
         <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
+            <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
               Available sections
-            </h3>
-            <span className="h-px flex-1 bg-border" />
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {availableRows.map((row) => (
@@ -305,9 +311,9 @@ export function FeaturedSectionsEditor({
                 key={row.key}
                 type="button"
                 onClick={() => feature(row.key)}
-                className="group inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-sm transition-colors hover:border-primary/40 hover:bg-accent"
+                className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1.5 text-[13px] transition-colors hover:border-brand-primary/30 hover:bg-brand-primary/5"
               >
-                <Plus className="size-3.5 text-muted-foreground transition-colors group-hover:text-primary" />
+                <Plus className="size-3.5 text-muted-foreground transition-colors group-hover:text-brand-primary" />
                 {row.title}
               </button>
             ))}
@@ -315,7 +321,13 @@ export function FeaturedSectionsEditor({
         </div>
       ) : null}
 
-      <SaveBar isDirty={isDirty} isSaving={mutation.isPending} onSave={save} />
+      <SaveBar
+        isDirty={isDirty}
+        isSaving={mutation.isPending}
+        onSave={save}
+        fullBleed
+        flushBottom
+      />
     </div>
   )
 }
@@ -340,12 +352,14 @@ function FeaturedSectionCard({
   const filled = row.picks.filter((pick) => pick.trim()).length
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <div className="flex items-center justify-between gap-3 border-b bg-muted/30 px-4 py-2.5">
+    <div className="overflow-hidden rounded-xl border border-border bg-white">
+      <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <Star className="size-4 shrink-0 fill-amber-400 text-amber-400" />
-          <span className="truncate text-sm font-semibold">{row.title}</span>
-          <span className="shrink-0 text-xs text-muted-foreground">{filled}/3</span>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10">
+            <Star className="size-3.5 fill-brand-primary text-brand-primary" />
+          </div>
+          <span className="truncate text-[13px] font-semibold text-foreground">{row.title}</span>
+          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{filled}/3</span>
         </div>
         <div className="flex shrink-0 items-center">
           <Button
@@ -462,7 +476,7 @@ function ReferenceSlot({
         <span className="text-xs text-muted-foreground">place</span>
       </div>
 
-      <div className="relative overflow-hidden rounded-lg border bg-muted/40">
+      <div className="relative overflow-hidden rounded-lg border border-border bg-muted/30">
         <div className="flex aspect-[4/3] items-center justify-center">
           {reference.length === 0 ? (
             <span className="text-xs text-muted-foreground">Empty slot</span>
@@ -542,13 +556,23 @@ function SaveBar({
   isDirty,
   isSaving,
   onSave,
+  fullBleed = false,
+  flushBottom = false,
 }: {
   isDirty: boolean
   isSaving: boolean
   onSave: () => void
+  fullBleed?: boolean
+  flushBottom?: boolean
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-t pt-4">
+    <div
+      className={cn(
+        'flex items-center justify-between gap-3 border-t bg-muted/30 px-4 py-3 sm:px-5',
+        fullBleed && '-mx-4 sm:-mx-5',
+        flushBottom && '-mb-4 sm:-mb-5',
+      )}
+    >
       <SaveStatus isDirty={isDirty} isSaving={isSaving} />
       <PrimaryButton type="button" onClick={onSave} disabled={!isDirty || isSaving}>
         {isSaving ? (

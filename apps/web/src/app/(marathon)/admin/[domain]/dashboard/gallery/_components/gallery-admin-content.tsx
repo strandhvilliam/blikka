@@ -4,12 +4,12 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { ExternalLink, Globe, Loader2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { Switch } from '@/components/ui/switch'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTRPC } from '@/lib/trpc/client'
 import { useDomain } from '@/lib/domain-provider'
 import { formatDomainLink } from '@/lib/utils'
 import { revalidateGalleryPageCache } from '@/lib/gallery-page-cache.actions'
 import { FeaturedSectionsEditor } from './featured-sections-editor'
+import { GalleryAdminHeader } from './gallery-admin-header'
 import type {
   AdminGalleryTopic,
   AvailableFeaturedSection,
@@ -32,14 +32,8 @@ export function GalleryAdminContent() {
   const isByCamera = state.mode === 'by-camera'
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Gallery</h1>
-        <p className="text-sm text-muted-foreground">
-          Publish the public photo gallery and choose which winner sections to feature. The public
-          gallery never exposes participant names, only reference numbers and display images.
-        </p>
-      </header>
+    <div>
+      <GalleryAdminHeader />
 
       {isByCamera ? (
         <ByCameraControls topics={state.topics} domain={domain} onChange={invalidate} />
@@ -88,62 +82,73 @@ function MarathonControls({
   )
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {published ? <Globe className="size-4" /> : <Lock className="size-4" />}
-            Publication
-          </CardTitle>
-          <CardDescription>
-            {published
-              ? 'The gallery is live and publicly browsable.'
-              : 'The gallery is private. Publish to make it publicly browsable.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={published}
-              disabled={mutation.isPending}
-              onCheckedChange={(checked) => mutation.mutate({ domain, published: checked })}
-              aria-label="Publish gallery"
-            />
-            <span className="text-sm text-muted-foreground">
-              {mutation.isPending ? 'Saving…' : published ? 'Published' : 'Not published'}
-            </span>
+    <div className="space-y-8">
+      <div className="rounded-xl border border-border bg-white px-4 py-4 sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/80 text-muted-foreground/60">
+              {published ? (
+                <Globe className="h-4 w-4" strokeWidth={1.8} />
+              ) : (
+                <Lock className="h-4 w-4" strokeWidth={1.8} />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-foreground">Publication</p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+                {published
+                  ? 'The gallery is live and publicly browsable.'
+                  : 'The gallery is private. Publish to make it publicly browsable.'}
+              </p>
+            </div>
           </div>
-          {published ? (
-            <a
-              href={publicLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:underline"
-            >
-              View public gallery <ExternalLink className="size-3.5" />
-            </a>
-          ) : null}
-        </CardContent>
-      </Card>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={published}
+                disabled={mutation.isPending}
+                onCheckedChange={(checked) => mutation.mutate({ domain, published: checked })}
+                aria-label="Publish gallery"
+              />
+              <span className="text-[13px] text-muted-foreground">
+                {mutation.isPending ? 'Saving…' : published ? 'Published' : 'Not published'}
+              </span>
+            </div>
+            {published ? (
+              <a
+                href={publicLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground hover:underline"
+              >
+                View public gallery <ExternalLink className="size-3.5" />
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Featured winners</CardTitle>
-          <CardDescription>
-            Curate the winner sections shown at the top of the gallery. Feature a topic or class,
-            then enter the reference numbers of your top three winners in podium order.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <section>
+        <div className="mb-4 flex items-center gap-2.5">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-primary" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-foreground">
+            Featured winners
+          </p>
+        </div>
+        <p className="mb-5 max-w-lg text-[13px] leading-relaxed text-muted-foreground">
+          Curate the winner sections shown at the top of the gallery. Feature a topic or class, then
+          enter the reference numbers of your top three winners in podium order.
+        </p>
+        <div className="overflow-hidden rounded-xl border border-border bg-white">
           <FeaturedSectionsEditor
             domain={domain}
             topicId={null}
             available={availableFeaturedSections}
             current={featuredSections}
           />
-        </CardContent>
-      </Card>
-    </>
+        </div>
+      </section>
+    </div>
   )
 }
 
@@ -158,11 +163,9 @@ function ByCameraControls({
 }) {
   if (topics.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          No topics have been created yet.
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-border bg-white px-4 py-10 text-center text-[13px] text-muted-foreground">
+        No topics have been created yet.
+      </div>
     )
   }
 
@@ -206,47 +209,45 @@ function ByCameraTopicCard({
     : null
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-col gap-0.5">
-            <CardTitle className="text-base">
-              <span className="text-muted-foreground">Topic {topic.orderIndex + 1} · </span>
-              {topic.name}
-            </CardTitle>
-            <CardDescription>
-              {topic.published
-                ? 'Published and publicly browsable.'
-                : (disabledReason ?? 'Ready to publish.')}
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={topic.published}
-              disabled={mutation.isPending || !canPublish}
-              onCheckedChange={(checked) =>
-                mutation.mutate({ domain, topicId: topic.id, published: checked })
-              }
-              aria-label={`Publish ${topic.name} gallery`}
-            />
-            {mutation.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-          </div>
+    <div className="overflow-hidden rounded-xl border border-border bg-white">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b px-4 py-4 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-[15px] font-semibold tracking-tight text-foreground">
+            <span className="text-muted-foreground">Topic {topic.orderIndex + 1} · </span>
+            {topic.name}
+          </p>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+            {topic.published
+              ? 'Published and publicly browsable.'
+              : (disabledReason ?? 'Ready to publish.')}
+          </p>
         </div>
-      </CardHeader>
+        <div className="flex items-center gap-3">
+          <Switch
+            checked={topic.published}
+            disabled={mutation.isPending || !canPublish}
+            onCheckedChange={(checked) =>
+              mutation.mutate({ domain, topicId: topic.id, published: checked })
+            }
+            aria-label={`Publish ${topic.name} gallery`}
+          />
+          {mutation.isPending ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : null}
+        </div>
+      </div>
       {topic.published ? (
-        <CardContent className="space-y-5">
+        <div className="space-y-5 px-4 py-4 sm:px-5">
           <a
             href={publicLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:underline"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground hover:underline"
           >
             View topic gallery <ExternalLink className="size-3.5" />
           </a>
-          <div className="space-y-3 border-t border-border/60 pt-4">
+          <div className="space-y-3 border-t border-border pt-4">
             <div className="space-y-0.5">
-              <p className="text-sm font-medium">Featured winners</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[13px] font-medium text-foreground">Featured winners</p>
+              <p className="text-[13px] text-muted-foreground">
                 Enter the reference numbers of the top three winners for this topic in podium order.
               </p>
             </div>
@@ -265,8 +266,8 @@ function ByCameraTopicCard({
               current={topic.featuredSections}
             />
           </div>
-        </CardContent>
+        </div>
       ) : null}
-    </Card>
+    </div>
   )
 }
