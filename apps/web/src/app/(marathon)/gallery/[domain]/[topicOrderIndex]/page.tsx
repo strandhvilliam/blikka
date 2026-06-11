@@ -59,14 +59,14 @@ export default async function ByCameraTopicGalleryPage({
       />
 
       {gallery.publishedTopics.length > 1 ? (
-        <nav className="mx-auto w-full max-w-7xl px-4 pt-8 sm:px-6">
-          <div className="flex flex-wrap items-center gap-2">
+        <nav className="mx-auto w-full max-w-7xl px-4 pt-8 sm:px-6" aria-label="Topic galleries">
+          <div className="-mx-4 flex snap-x items-center gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
             {gallery.publishedTopics.map((topic) => (
               <Link
                 key={topic.id}
                 href={galleryTopicHref(domain, topic.orderIndex)}
                 className={cn(
-                  'rounded-full border px-3 py-1 text-xs transition-colors',
+                  'min-h-9 shrink-0 snap-start touch-manipulation whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
                   topic.orderIndex === gallery.topic.orderIndex
                     ? 'border-white/80 bg-white text-black'
                     : 'border-white/15 text-neutral-300 hover:border-white/40 hover:text-white',

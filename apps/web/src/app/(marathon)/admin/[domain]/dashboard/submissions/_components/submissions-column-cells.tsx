@@ -145,11 +145,13 @@ export function SubmissionStatusBadge({
 
 /**
  * Maps DB/realtime status to the badge label. Uses Postgres `status` only (no KV reads).
- * Completed rows in `all` or `flagged` verification marathons await admin verify → needs-verification.
+ * Completed rows in marathon mode with `all` or `flagged` verification await admin verify → needs-verification.
+ * By-camera marathons never use verification mode; completed stays completed.
  */
 export function getSubmissionDisplayStatus({
   participant,
   status,
+  marathonMode,
   verificationMode,
 }: {
   participant: Pick<RealtimeEnrichedSubmissionTableRow, 'realtimeIsFinalized'>
@@ -164,6 +166,7 @@ export function getSubmissionDisplayStatus({
   const effectiveStatus = participant.realtimeIsFinalized ? 'completed' : status
 
   if (
+    marathonMode !== 'by-camera' &&
     effectiveStatus === 'completed' &&
     (verificationMode === 'all' || verificationMode === 'flagged')
   ) {

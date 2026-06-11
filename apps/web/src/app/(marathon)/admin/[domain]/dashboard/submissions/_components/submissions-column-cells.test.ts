@@ -66,4 +66,24 @@ describe('getSubmissionDisplayStatus', () => {
       }),
     ).toBe('verified')
   })
+
+  it('keeps completed for by-camera marathons regardless of verification mode', () => {
+    expect(
+      getSubmissionDisplayStatus({
+        participant: baseParticipant,
+        status: 'completed',
+        marathonMode: 'by-camera',
+        verificationMode: 'all',
+      }),
+    ).toBe('completed')
+
+    expect(
+      getSubmissionDisplayStatus({
+        participant: { realtimeIsFinalized: true },
+        status: 'initialized',
+        marathonMode: 'by-camera',
+        verificationMode: 'flagged',
+      }),
+    ).toBe('completed')
+  })
 })

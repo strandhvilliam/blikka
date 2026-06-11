@@ -1,20 +1,28 @@
 import { describe, expect, it } from '@effect/vitest'
 import type { GalleryFeaturedSection } from '@blikka/db'
 import {
-  finalizedStatusesForVerificationMode,
+  finalizedStatusesForGalleryMode,
   formatGalleryTopicName,
   isByCameraTopicPublishable,
   orderedEnabledFeaturedSections,
 } from './helpers'
 
-describe('finalizedStatusesForVerificationMode', () => {
+describe('finalizedStatusesForGalleryMode', () => {
   it('includes completed and verified when verification is disabled', () => {
-    expect(finalizedStatusesForVerificationMode('none')).toEqual(['completed', 'verified'])
+    expect(finalizedStatusesForGalleryMode('marathon', 'none')).toEqual(['completed', 'verified'])
   })
 
   it('requires verified when verification is enabled', () => {
-    expect(finalizedStatusesForVerificationMode('all')).toEqual(['verified'])
-    expect(finalizedStatusesForVerificationMode('flagged')).toEqual(['verified'])
+    expect(finalizedStatusesForGalleryMode('marathon', 'all')).toEqual(['verified'])
+    expect(finalizedStatusesForGalleryMode('marathon', 'flagged')).toEqual(['verified'])
+  })
+
+  it('ignores verification mode for by-camera galleries', () => {
+    expect(finalizedStatusesForGalleryMode('by-camera', 'all')).toEqual(['completed', 'verified'])
+    expect(finalizedStatusesForGalleryMode('by-camera', 'flagged')).toEqual([
+      'completed',
+      'verified',
+    ])
   })
 })
 

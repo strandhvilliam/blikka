@@ -1,8 +1,9 @@
 'use client'
 
 import Image from 'next/image'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { galleryOriginalUrl, galleryThumbnailUrl } from '../_lib/gallery-image'
 import type { GalleryPhotoCard } from '../_lib/types'
 
@@ -19,6 +20,9 @@ export function GalleryLightbox({
 }) {
   const isOpen = activeIndex !== null && activeIndex >= 0 && activeIndex < photos.length
   const photo = isOpen ? photos[activeIndex] : null
+  const touchStartXRef = useRef<number | null>(null)
+  const canGoPrev = activeIndex !== null && activeIndex > 0
+  const canGoNext = activeIndex !== null && activeIndex < photos.length - 1
 
   const goPrev = useCallback(() => {
     if (activeIndex === null) return
@@ -29,6 +33,27 @@ export function GalleryLightbox({
     if (activeIndex === null) return
     onNavigate(Math.min(photos.length - 1, activeIndex + 1))
   }, [activeIndex, onNavigate, photos.length])
+
+  const onTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = event.touches[0]?.clientX ?? null
+  }, [])
+
+  const onTouchEnd = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      const startX = touchStartXRef.current
+      touchStartXRef.current = null
+      if (startX === null) return
+
+      const endX = event.changedTouches[0]?.clientX
+      if (endX === undefined) return
+
+      const deltaX = endX - startX
+      if (Math.abs(deltaX) < 48) return
+      if (deltaX > 0 && canGoPrev) goPrev()
+      if (deltaX < 0 && canGoNext) goNext()
+    },
+    [canGoNext, canGoPrev, goNext, goPrev],
+  )
 
   useEffect(() => {
     if (!isOpen) return
@@ -53,42 +78,51 @@ export function GalleryLightbox({
   if (!isOpen || !photo) return null
 
   const src = galleryOriginalUrl(photo.key) ?? galleryThumbnailUrl(photo.thumbnailKey)
+  const currentIndex = activeIndex ?? 0
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Photo viewer"
-      className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex h-dvh flex-col bg-black/95 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div className="flex items-center justify-between px-5 py-4 text-white/80">
-        <div className="flex flex-col">
-          <span className="font-mono text-sm tracking-wider text-white">
+      <div
+        className="flex shrink-0 items-center justify-between gap-4 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-white/80 sm:px-5 sm:py-4"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate font-mono text-sm tracking-wider text-white">
             #{photo.participantReference}
           </span>
-          <span className="text-xs text-white/50">{photo.topicName}</span>
+          <span className="truncate text-xs text-white/50">{photo.topicName}</span>
         </div>
+        <span className="hidden text-xs font-medium text-white/40 sm:inline">
+          {currentIndex + 1} / {photos.length}
+        </span>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close viewer"
-          className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          className="flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         >
           <X className="size-5" />
         </button>
       </div>
 
       <div
-        className="relative flex flex-1 items-center justify-center px-4 pb-8 sm:px-16"
+        className="relative flex min-h-0 flex-1 touch-pan-y items-center justify-center px-3 pb-3 sm:px-16 sm:pb-8"
         onClick={(event) => event.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
       >
-        {activeIndex !== null && activeIndex > 0 ? (
+        {canGoPrev ? (
           <button
             type="button"
             onClick={goPrev}
             aria-label="Previous photo"
-            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/5 p-3 text-white/70 transition-colors hover:bg-white/15 hover:text-white sm:left-4"
+            className="absolute left-4 top-1/2 hidden size-12 -translate-y-1/2 touch-manipulation items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:flex"
           >
             <ChevronLeft className="size-6" />
           </button>
@@ -102,22 +136,60 @@ export function GalleryLightbox({
             height={2048}
             quality={75}
             priority
+            sizes="100vw"
             className="max-h-full w-auto max-w-full object-contain"
           />
         ) : (
           <div className="text-sm text-white/50">No preview available</div>
         )}
 
-        {activeIndex !== null && activeIndex < photos.length - 1 ? (
+        {canGoNext ? (
           <button
             type="button"
             onClick={goNext}
             aria-label="Next photo"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/5 p-3 text-white/70 transition-colors hover:bg-white/15 hover:text-white sm:right-4"
+            className="absolute right-4 top-1/2 hidden size-12 -translate-y-1/2 touch-manipulation items-center justify-center rounded-full bg-white/5 text-white/70 transition-colors hover:bg-white/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:flex"
           >
             <ChevronRight className="size-6" />
           </button>
         ) : null}
+      </div>
+
+      <div
+        className="flex shrink-0 items-center gap-2 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:hidden"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={goPrev}
+          disabled={!canGoPrev}
+          className={cn(
+            'flex h-11 flex-1 touch-manipulation items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 text-sm font-medium text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
+            canGoPrev
+              ? 'hover:bg-white/10'
+              : 'cursor-not-allowed opacity-35',
+          )}
+        >
+          <ChevronLeft className="size-4" />
+          Previous
+        </button>
+        <span className="min-w-14 text-center text-xs font-medium text-white/45">
+          {currentIndex + 1}/{photos.length}
+        </span>
+        <button
+          type="button"
+          onClick={goNext}
+          disabled={!canGoNext}
+          className={cn(
+            'flex h-11 flex-1 touch-manipulation items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 text-sm font-medium text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
+            canGoNext
+              ? 'hover:bg-white/10'
+              : 'cursor-not-allowed opacity-35',
+          )}
+        >
+          Next
+          <ChevronRight className="size-4" />
+        </button>
       </div>
     </div>
   )

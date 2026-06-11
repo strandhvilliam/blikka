@@ -61,9 +61,15 @@ export function GalleryFeed({
 
   const isFilterLoading = isPlaceholderData && isFetching && !isFetchingNextPage
 
-  useEffect(() => {
+  const updateTopicFilter = useCallback((nextTopicFilter: number | null) => {
+    setTopicFilter(nextTopicFilter)
     setActiveIndex(null)
-  }, [topicFilter, classFilter, fixedTopicOrderIndex])
+  }, [])
+
+  const updateClassFilter = useCallback((nextClassFilter: number | null) => {
+    setClassFilter(nextClassFilter)
+    setActiveIndex(null)
+  }, [])
 
   const onIntersect = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -86,14 +92,14 @@ export function GalleryFeed({
   return (
     <section className="mx-auto w-full max-w-7xl px-4 pb-24 sm:px-6">
       {showFilters && (topics.length > 0 || competitionClasses.length > 0) ? (
-        <div className="relative sticky top-0 z-20 -mx-4 mb-6 border-b border-white/5 bg-black/70 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="relative sticky top-0 z-20 -mx-4 mb-5 border-b border-white/5 bg-black/85 px-4 py-3 backdrop-blur sm:-mx-6 sm:mb-6 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
             {topics.length > 0 ? (
               <FilterScroller label="Topics">
                 <FilterChip
                   active={topicFilter === null}
                   disabled={isFilterLoading}
-                  onClick={() => setTopicFilter(null)}
+                  onClick={() => updateTopicFilter(null)}
                   label="All"
                 />
                 {topics.map((topic) => (
@@ -101,7 +107,7 @@ export function GalleryFeed({
                     key={topic.id}
                     active={topicFilter === topic.orderIndex}
                     disabled={isFilterLoading}
-                    onClick={() => setTopicFilter(topic.orderIndex)}
+                    onClick={() => updateTopicFilter(topic.orderIndex)}
                     label={topic.name}
                   />
                 ))}
@@ -113,7 +119,7 @@ export function GalleryFeed({
                 <FilterChip
                   active={classFilter === null}
                   disabled={isFilterLoading}
-                  onClick={() => setClassFilter(null)}
+                  onClick={() => updateClassFilter(null)}
                   label="All"
                 />
                 {competitionClasses.map((competitionClass) => (
@@ -121,7 +127,7 @@ export function GalleryFeed({
                     key={competitionClass.id}
                     active={classFilter === competitionClass.id}
                     disabled={isFilterLoading}
-                    onClick={() => setClassFilter(competitionClass.id)}
+                    onClick={() => updateClassFilter(competitionClass.id)}
                     label={competitionClass.name}
                   />
                 ))}
@@ -132,7 +138,7 @@ export function GalleryFeed({
               <span
                 role="status"
                 aria-live="polite"
-                className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-neutral-500"
+                className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-neutral-500 sm:ml-auto"
               >
                 <Spinner className="size-3 text-neutral-400" />
                 Updating
@@ -200,11 +206,15 @@ export function GalleryFeed({
 
 function FilterScroller({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className="grid min-w-0 gap-1.5 sm:flex sm:items-center sm:gap-2">
       <span className="shrink-0 text-[10px] font-semibold uppercase tracking-widest text-neutral-600">
         {label}
       </span>
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        role="group"
+        aria-label={`${label} filter options`}
+        className="-mx-4 flex min-w-0 snap-x items-center gap-1.5 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+      >
         {children}
       </div>
     </div>
@@ -227,8 +237,9 @@ function FilterChip({
       type="button"
       disabled={disabled}
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        'shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs transition-colors',
+        'min-h-9 shrink-0 snap-start touch-manipulation whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
         active
           ? 'border-white/80 bg-white text-black'
           : 'border-white/15 text-neutral-300 hover:border-white/40 hover:text-white',

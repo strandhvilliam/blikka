@@ -31,7 +31,7 @@ export function ParticipantSet({
         <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-neutral-500">
           Participant
         </span>
-        <h2 className="font-mono text-3xl tracking-wider text-white">
+        <h2 className="break-all font-mono text-3xl tracking-wider text-white">
           #{participantSet.reference}
         </h2>
         <p className="text-sm text-neutral-500">

@@ -29,7 +29,7 @@ import type {
   UpdateFeaturedSections,
 } from './contracts'
 import {
-  finalizedStatusesForVerificationMode,
+  finalizedStatusesForGalleryMode,
   formatGalleryTopicName,
   isByCameraTopicPublishable,
   orderedEnabledFeaturedSections,
@@ -253,7 +253,10 @@ const makeGalleryService = Effect.gen(function* () {
         competitionClass,
       ]),
     )
-    const finalizedStatuses = finalizedStatusesForVerificationMode(marathon.verificationMode)
+    const finalizedStatuses = finalizedStatusesForGalleryMode(
+      marathon.mode,
+      marathon.verificationMode,
+    )
 
     // Resolve each picked reference to its finalized participant set once per pass.
     const setCache = new Map<string, Option.Option<GalleryParticipantSet>>()
@@ -413,7 +416,10 @@ const makeGalleryService = Effect.gen(function* () {
     yield* validateCursor(cursor)
 
     const marathon = yield* resolveMarathon(domain)
-    const finalizedStatuses = finalizedStatusesForVerificationMode(marathon.verificationMode)
+    const finalizedStatuses = finalizedStatusesForGalleryMode(
+      marathon.mode,
+      marathon.verificationMode,
+    )
     const safeLimit = Math.min(Math.max(limit ?? DEFAULT_FEED_LIMIT, 1), MAX_FEED_LIMIT)
     const isByCamera = marathon.mode === 'by-camera'
 
@@ -544,7 +550,10 @@ const makeGalleryService = Effect.gen(function* () {
     'GalleryService.getGalleryParticipantSet',
   )(function* ({ domain, reference }) {
     const marathon = yield* resolveMarathon(domain)
-    const finalizedStatuses = finalizedStatusesForVerificationMode(marathon.verificationMode)
+    const finalizedStatuses = finalizedStatusesForGalleryMode(
+      marathon.mode,
+      marathon.verificationMode,
+    )
     const isByCamera = marathon.mode === 'by-camera'
 
     const publications = yield* galleryRepository.getPublicationsForMarathon({
@@ -589,7 +598,10 @@ const makeGalleryService = Effect.gen(function* () {
   const getGalleryReferencePreview: GalleryService['Service']['getGalleryReferencePreview'] =
     Effect.fn('GalleryService.getGalleryReferencePreview')(function* ({ domain, reference }) {
       const marathon = yield* resolveMarathon(domain)
-      const finalizedStatuses = finalizedStatusesForVerificationMode(marathon.verificationMode)
+      const finalizedStatuses = finalizedStatusesForGalleryMode(
+        marathon.mode,
+        marathon.verificationMode,
+      )
 
       const participantSet = yield* galleryRepository
         .getParticipantSet({ marathonId: marathon.id, reference, finalizedStatuses })

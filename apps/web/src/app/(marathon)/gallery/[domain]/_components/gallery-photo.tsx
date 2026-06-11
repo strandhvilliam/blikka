@@ -33,7 +33,7 @@ export function GalleryPhoto({
       onClick={onSelect}
       aria-label={`Photo ${photo.submissionId} by participant ${photo.participantReference}`}
       className={cn(
-        'group relative block w-full overflow-hidden rounded-sm bg-neutral-900 outline-none',
+        'group relative block aspect-square w-full touch-manipulation overflow-hidden rounded-sm bg-neutral-900 outline-none',
         'focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
         className,
       )}
@@ -60,8 +60,8 @@ export function GalleryPhoto({
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/75 via-black/10 to-transparent p-2.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-        <span className="font-mono text-[11px] tracking-wider text-white/90">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/75 via-black/10 to-transparent p-2.5 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
+        <span className="min-w-0 truncate font-mono text-[11px] tracking-wider text-white/90">
           #{photo.participantReference}
         </span>
         {photo.rank != null ? (

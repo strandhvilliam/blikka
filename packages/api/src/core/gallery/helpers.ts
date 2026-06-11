@@ -2,13 +2,18 @@ import type { GalleryFeaturedSection, Marathon } from '@blikka/db'
 
 /**
  * Participant statuses considered "finalized" for public display.
+ * By-camera submissions do not use the marathon verification flow, so completed uploads
+ * are public once the topic gallery itself is published.
  * When verification is required (`all`/`flagged`) only `verified` participants are shown;
  * when verification is not required (`none`) `completed` participants are also shown.
  */
-export function finalizedStatusesForVerificationMode(
+export function finalizedStatusesForGalleryMode(
+  mode: Marathon['mode'],
   verificationMode: Marathon['verificationMode'],
 ): readonly string[] {
-  return verificationMode === 'none' ? ['completed', 'verified'] : ['verified']
+  return mode === 'by-camera' || verificationMode === 'none'
+    ? ['completed', 'verified']
+    : ['verified']
 }
 
 /**

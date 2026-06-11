@@ -24,7 +24,7 @@ export function ReferenceSearch({
   }
 
   return (
-    <form onSubmit={submit} className={cn('relative w-full max-w-sm', className)}>
+    <form onSubmit={submit} className={cn('relative w-full max-w-sm sm:w-80 md:w-96', className)}>
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-500" />
       <input
         type="text"
@@ -33,11 +33,11 @@ export function ReferenceSearch({
         onChange={(event) => setValue(event.target.value)}
         placeholder="Find by reference number"
         aria-label="Search submissions by participant reference number"
-        className="h-11 w-full rounded-full border border-white/15 bg-white/5 pl-10 pr-24 font-mono text-sm text-white placeholder:font-sans placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/30"
+        className="h-12 w-full rounded-full border border-white/15 bg-white/5 pl-10 pr-24 font-mono text-sm text-white placeholder:font-sans placeholder:text-neutral-500 focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/30"
       />
       <button
         type="submit"
-        className="absolute right-1.5 top-1/2 h-8 -translate-y-1/2 rounded-full bg-white px-4 text-xs font-semibold text-black transition-colors hover:bg-neutral-200"
+        className="absolute right-1 top-1/2 h-10 -translate-y-1/2 touch-manipulation rounded-full bg-white px-4 text-xs font-semibold text-black transition-colors hover:bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
       >
         Search
       </button>

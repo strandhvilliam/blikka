@@ -33,12 +33,12 @@ export function TopicSelector({
           <Link
             key={topic.id}
             href={galleryTopicHref(domain, topic.orderIndex)}
-            className="group flex items-center justify-between rounded-md border border-white/10 bg-neutral-950 px-5 py-5 transition-colors hover:border-white/30"
+            className="group flex min-h-16 touch-manipulation items-center justify-between gap-4 rounded-md border border-white/10 bg-neutral-950 px-5 py-5 transition-colors hover:border-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
-            <div className="flex flex-col">
-              <span className="text-lg text-white">{topic.name}</span>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-lg text-white">{topic.name}</span>
             </div>
-            <ArrowUpRight className="size-5 text-neutral-600 transition-colors group-hover:text-white" />
+            <ArrowUpRight className="size-5 shrink-0 text-neutral-600 transition-colors group-hover:text-white" />
           </Link>
         ))}
       </div>

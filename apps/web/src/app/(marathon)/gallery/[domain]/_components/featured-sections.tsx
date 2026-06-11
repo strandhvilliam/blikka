@@ -114,7 +114,7 @@ function ParticipantSetCard({ set, domain }: { set: GalleryParticipantSetCard; d
   return (
     <Link
       href={href}
-      className="group block overflow-hidden rounded-md border border-white/10 bg-neutral-950 transition-colors hover:border-white/30"
+      className="group block touch-manipulation overflow-hidden rounded-md border border-white/10 bg-neutral-950 transition-colors hover:border-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-neutral-900">
         {coverSrc ? (
@@ -129,7 +129,7 @@ function ParticipantSetCard({ set, domain }: { set: GalleryParticipantSetCard; d
         ) : null}
         <span
           className={cn(
-            'absolute left-3 top-3 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur',
+            'absolute left-3 top-3 max-w-[calc(100%-1.5rem)] truncate rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur',
           )}
         >
           {ordinalLabel(set.rank)} · {set.competitionClassName}
@@ -180,11 +180,13 @@ function ParticipantSetCard({ set, domain }: { set: GalleryParticipantSetCard; d
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between px-4 py-3">
-        <span className="font-mono text-sm tracking-wider text-white">
+      <div className="flex min-w-0 items-center justify-between gap-3 px-4 py-3">
+        <span className="min-w-0 truncate font-mono text-sm tracking-wider text-white">
           #{set.participantReference}
         </span>
-        <span className="text-xs text-neutral-500">View set · {set.submissions.length} photos</span>
+        <span className="shrink-0 text-xs text-neutral-500">
+          View set · {set.submissions.length} photos
+        </span>
       </div>
     </Link>
   )
