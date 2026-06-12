@@ -11,7 +11,9 @@ export default async function GalleryLayout({
 
   return (
     <DomainProvider domain={domain}>
-      <div className="relative z-10 min-h-screen bg-black text-neutral-200 antialiased">
+      {/* Soft charcoal base — easier on the eyes than pure black. Tune via --gallery-bg;
+          the sticky header and filter bar read the same variable so they stay in sync. */}
+      <div className="relative z-10 min-h-screen [--gallery-bg:#141417] bg-[var(--gallery-bg)] text-neutral-200 antialiased">
         {children}
       </div>
     </DomainProvider>

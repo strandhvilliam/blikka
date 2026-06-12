@@ -15,7 +15,7 @@ export function Hero() {
             fill
             className="rounded-2xl object-cover lg:rounded-3xl"
             priority
-            quality={100}
+            quality={75}
           />
           {/* Layered overlays for depth */}
           <div className="absolute inset-0 rounded-2xl bg-brand-black/10 lg:rounded-3xl" />

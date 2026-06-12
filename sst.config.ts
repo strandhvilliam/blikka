@@ -142,7 +142,6 @@ export default $config({
         dockerfile: '/tasks/zip-worker/Dockerfile',
       },
       link: [submissionsBucket, zipsBucket],
-      dev: false
       // dev: {
       //   command: 'bun run src/index.ts',
       //   directory: 'tasks/zip-worker',
@@ -159,7 +158,6 @@ export default $config({
       },
       environment: env,
       link: [zipsBucket],
-      dev: false,
     })
 
 

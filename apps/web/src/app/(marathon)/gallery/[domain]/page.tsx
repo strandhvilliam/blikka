@@ -25,11 +25,7 @@ export async function generateMetadata({
   }
 }
 
-export default async function GalleryPage({
-  params,
-}: {
-  params: Promise<{ domain: string }>
-}) {
+export default async function GalleryPage({ params }: { params: Promise<{ domain: string }> }) {
   const { domain } = await params
 
   let gallery: PublicGallery

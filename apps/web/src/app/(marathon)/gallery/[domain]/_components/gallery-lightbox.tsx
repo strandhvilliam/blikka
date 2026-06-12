@@ -5,7 +5,11 @@ import { useCallback, useEffect, useRef } from 'react'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { galleryOriginalUrl, galleryThumbnailUrl } from '../_lib/gallery-image'
+import { RankMedal } from './gallery-chrome'
 import type { GalleryPhotoCard } from '../_lib/types'
+
+/** Thumbnails shown either side of the active photo in the desktop filmstrip. */
+const FILMSTRIP_RADIUS = 6
 
 export function GalleryLightbox({
   photos,
@@ -80,6 +84,10 @@ export function GalleryLightbox({
   const src = galleryOriginalUrl(photo.key) ?? galleryThumbnailUrl(photo.thumbnailKey)
   const currentIndex = activeIndex ?? 0
 
+  // Filmstrip shows a sliding window of thumbnails centred on the active photo.
+  const stripStart = Math.max(0, currentIndex - FILMSTRIP_RADIUS)
+  const stripEnd = Math.min(photos.length, currentIndex + FILMSTRIP_RADIUS + 1)
+
   return (
     <div
       role="dialog"
@@ -92,9 +100,12 @@ export function GalleryLightbox({
         className="flex shrink-0 items-center justify-between gap-4 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-white/80 sm:px-5 sm:py-4"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex min-w-0 flex-col">
-          <span className="truncate font-mono text-sm tracking-wider text-white">
-            #{photo.participantReference}
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate font-mono text-sm tracking-wider text-white">
+              #{photo.participantReference}
+            </span>
+            {photo.rank != null ? <RankMedal rank={photo.rank} /> : null}
           </span>
           <span className="truncate text-xs text-white/50">{photo.topicName}</span>
         </div>
@@ -155,6 +166,43 @@ export function GalleryLightbox({
         ) : null}
       </div>
 
+      {photos.length > 1 ? (
+        <div
+          className="hidden shrink-0 items-center justify-center gap-1.5 px-4 pb-6 pt-1 sm:flex"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {photos.slice(stripStart, stripEnd).map((stripPhoto, offset) => {
+            const realIndex = stripStart + offset
+            const thumb = galleryThumbnailUrl(stripPhoto.thumbnailKey)
+            const isActive = realIndex === currentIndex
+            return (
+              <button
+                key={stripPhoto.submissionId}
+                type="button"
+                onClick={() => onNavigate(realIndex)}
+                aria-label={`View photo ${realIndex + 1}`}
+                aria-current={isActive}
+                className={cn(
+                  'relative size-14 shrink-0 overflow-hidden rounded-md bg-neutral-900 outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/70',
+                  isActive ? 'ring-2 ring-white' : 'opacity-45 ring-1 ring-white/10 hover:opacity-90',
+                )}
+              >
+                {thumb ? (
+                  <Image
+                    src={thumb}
+                    alt=""
+                    fill
+                    quality={50}
+                    sizes="56px"
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+
       <div
         className="flex shrink-0 items-center gap-2 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:hidden"
         onClick={(event) => event.stopPropagation()}
@@ -165,9 +213,7 @@ export function GalleryLightbox({
           disabled={!canGoPrev}
           className={cn(
             'flex h-11 flex-1 touch-manipulation items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 text-sm font-medium text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
-            canGoPrev
-              ? 'hover:bg-white/10'
-              : 'cursor-not-allowed opacity-35',
+            canGoPrev ? 'hover:bg-white/10' : 'cursor-not-allowed opacity-35',
           )}
         >
           <ChevronLeft className="size-4" />
@@ -182,9 +228,7 @@ export function GalleryLightbox({
           disabled={!canGoNext}
           className={cn(
             'flex h-11 flex-1 touch-manipulation items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 text-sm font-medium text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
-            canGoNext
-              ? 'hover:bg-white/10'
-              : 'cursor-not-allowed opacity-35',
+            canGoNext ? 'hover:bg-white/10' : 'cursor-not-allowed opacity-35',
           )}
         >
           Next

@@ -11,6 +11,35 @@ import {
 import type { GalleryFeaturedSection, GalleryPublication } from '../types'
 import { DbError } from '../utils'
 
+/**
+ * Derive a display aspect ratio (width / height) from a submission's EXIF data.
+ *
+ * Mirrors the dimension key precedence used by the exports repository and swaps the
+ * axes for rotated orientations (EXIF orientation 5–8). Returns `null` when usable
+ * dimensions are missing so callers can fall back to a square cell. The result is
+ * clamped to a natural-but-bounded band: standard formats (4:3, 3:2, 16:9 and their
+ * portrait inverses) pass through untouched, while genuine panoramas / tall strips are
+ * reined in so a single photo can't dominate a justified row.
+ */
+const MIN_ASPECT_RATIO = 0.5
+const MAX_ASPECT_RATIO = 2
+export function aspectRatioFromExif(
+  exif: Record<string, unknown> | null | undefined,
+): number | null {
+  if (!exif) return null
+  const toNumber = (value: unknown): number | null => {
+    const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value))
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+  }
+  const width = toNumber(exif.ImageWidth) ?? toNumber(exif.ExifImageWidth)
+  const height = toNumber(exif.ImageHeight) ?? toNumber(exif.ExifImageHeight)
+  if (width === null || height === null) return null
+  const orientation = toNumber(exif.Orientation)
+  const rotated = orientation !== null && orientation >= 5 && orientation <= 8
+  const ratio = rotated ? height / width : width / height
+  return Math.min(Math.max(ratio, MIN_ASPECT_RATIO), MAX_ASPECT_RATIO)
+}
+
 /** A single public, PII-safe photo in the gallery feed. */
 export interface GalleryFeedRow {
   submissionId: number
@@ -23,6 +52,8 @@ export interface GalleryFeedRow {
   participantReference: string
   competitionClassId: number | null
   competitionClassName: string | null
+  /** width / height derived from EXIF, or null when unknown (square fallback). */
+  aspectRatio: number | null
 }
 
 /** Cursor page of {@link GalleryFeedRow}; `nextCursor` is the last submission id seen. */
@@ -40,6 +71,8 @@ export interface GalleryParticipantSubmission {
   topicId: number
   topicName: string
   topicOrderIndex: number
+  /** width / height derived from EXIF, or null when unknown (square fallback). */
+  aspectRatio: number | null
 }
 
 /** A finalized participant and their uploaded submissions, identified only by reference. */
@@ -184,6 +217,7 @@ const makeGalleryRepository = Effect.gen(function* () {
           participantReference: participants.reference,
           competitionClassId: participants.competitionClassId,
           competitionClassName: competitionClasses.name,
+          exif: submissions.exif,
         })
         .from(submissions)
         .innerJoin(participants, eq(participants.id, submissions.participantId))
@@ -194,13 +228,19 @@ const makeGalleryRepository = Effect.gen(function* () {
         .limit(limit + 1),
     )
 
+    let pageRows = rows
     let nextCursor: string | null = null
-    let items = rows
     if (rows.length > limit) {
-      items = rows.slice(0, limit)
-      const last = items[items.length - 1]
+      pageRows = rows.slice(0, limit)
+      const last = pageRows[pageRows.length - 1]
       nextCursor = last ? last.submissionId.toString() : null
     }
+
+    // Drop the raw `exif` from the payload; expose only the derived aspect ratio.
+    const items: GalleryFeedRow[] = pageRows.map(({ exif, ...row }) => ({
+      ...row,
+      aspectRatio: aspectRatioFromExif(exif),
+    }))
 
     return { items, nextCursor }
   })
@@ -239,6 +279,7 @@ const makeGalleryRepository = Effect.gen(function* () {
         topicId: submission.topicId,
         topicName: submission.topic?.name ?? '',
         topicOrderIndex: submission.topic?.orderIndex ?? 0,
+        aspectRatio: aspectRatioFromExif(submission.exif),
       }))
       .toSorted((left, right) => {
         if (left.topicOrderIndex !== right.topicOrderIndex) {

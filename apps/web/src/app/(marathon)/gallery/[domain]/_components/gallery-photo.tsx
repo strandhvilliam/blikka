@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { galleryThumbnailUrl } from '../_lib/gallery-image'
+import { RankMedal } from './gallery-chrome'
 
 type GalleryPhotoCard = {
   submissionId: number
@@ -11,29 +12,40 @@ type GalleryPhotoCard = {
   thumbnailKey: string | null
   topicName: string
   rank?: number | null
+  aspectRatio?: number | null
 }
 
+/**
+ * A single photo tile sized as a justified-row flex item. The aspect ratio (from EXIF,
+ * falling back to square) drives `flex-grow`/`flex-basis` against the `--gallery-row-h`
+ * variable provided by {@link JustifiedGrid}.
+ */
 export function GalleryPhoto({
   photo,
   priority,
   onSelect,
   className,
+  cornerMedal = false,
 }: {
   photo: GalleryPhotoCard
   priority?: boolean
   onSelect?: () => void
   className?: string
+  /** Show an always-visible rank medal in the top-left corner (used for winners). */
+  cornerMedal?: boolean
 }) {
   const [loaded, setLoaded] = useState(false)
   const src = galleryThumbnailUrl(photo.thumbnailKey)
+  const aspect = photo.aspectRatio && photo.aspectRatio > 0 ? photo.aspectRatio : 1
 
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-label={`Photo ${photo.submissionId} by participant ${photo.participantReference}`}
+      style={{ flexGrow: aspect, flexBasis: `calc(var(--gallery-row-h) * ${aspect})` }}
       className={cn(
-        'group relative block aspect-square w-full touch-manipulation overflow-hidden rounded-sm bg-neutral-900 outline-none',
+        'group relative block h-[var(--gallery-row-h)] min-w-0 touch-manipulation overflow-hidden bg-neutral-900 outline-none',
         'focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
         className,
       )}
@@ -47,7 +59,7 @@ export function GalleryPhoto({
           quality={50}
           priority={priority}
           loading={priority ? 'eager' : 'lazy'}
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 22vw"
+          sizes="(max-width: 640px) 60vw, (max-width: 1024px) 40vw, 28vw"
           onLoad={() => setLoaded(true)}
           className={cn(
             'h-full w-full object-cover transition-all duration-700 ease-out group-hover:scale-[1.03]',
@@ -55,28 +67,28 @@ export function GalleryPhoto({
           )}
         />
       ) : (
-        <div className="flex aspect-square w-full items-center justify-center text-xs text-neutral-600">
+        <div className="flex h-full w-full items-center justify-center text-xs text-neutral-600">
           No preview
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/75 via-black/10 to-transparent p-2.5 opacity-100 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
-        <span className="min-w-0 truncate font-mono text-[11px] tracking-wider text-white/90">
-          #{photo.participantReference}
+      {cornerMedal && photo.rank != null ? (
+        <span className="pointer-events-none absolute left-2.5 top-2.5">
+          <RankMedal rank={photo.rank} />
         </span>
-        {photo.rank != null ? (
-          <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white backdrop-blur">
-            {ordinalLabel(photo.rank)}
-          </span>
-        ) : null}
+      ) : null}
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/75 via-black/10 to-transparent p-2.5">
+        <span className="min-w-0 truncate font-mono text-[11px] font-bold tracking-wider text-white/90">
+          #{photo.participantReference}
+          {photo.topicName ? (
+            <span className="ml-1.5 font-sans font-normal tracking-normal text-white/65">
+              {photo.topicName}
+            </span>
+          ) : null}
+        </span>
+        {!cornerMedal && photo.rank != null ? <RankMedal rank={photo.rank} /> : null}
       </div>
     </button>
   )
-}
-
-function ordinalLabel(rank: number): string {
-  if (rank === 1) return '1st'
-  if (rank === 2) return '2nd'
-  if (rank === 3) return '3rd'
-  return `${rank}th`
 }

@@ -71,6 +71,8 @@ export interface GalleryPhotoCard {
   competitionClassId: number | null
   competitionClassName: string | null
   rank: number | null
+  /** width / height derived from EXIF, or null when unknown (square fallback). */
+  aspectRatio: number | null
 }
 
 export interface GalleryParticipantSetCard {
@@ -88,6 +90,8 @@ export interface GalleryPublicSubmission {
   topicId: number
   topicName: string
   topicOrderIndex: number
+  /** width / height derived from EXIF, or null when unknown (square fallback). */
+  aspectRatio: number | null
 }
 
 export interface ResolvedFeaturedSection {
@@ -230,6 +234,7 @@ const makeGalleryService = Effect.gen(function* () {
     topicId: submission.topicId,
     topicName: formatGalleryTopicName(submission.topicName, submission.topicOrderIndex),
     topicOrderIndex: submission.topicOrderIndex,
+    aspectRatio: submission.aspectRatio,
   })
 
   const toGalleryTopicMeta = (topic: Topic, published: boolean): GalleryTopicMeta => ({
@@ -306,6 +311,7 @@ const makeGalleryService = Effect.gen(function* () {
             competitionClassId: null,
             competitionClassName: null,
             rank: index + 1,
+            aspectRatio: submission.aspectRatio,
           })
         }
         if (photos.length > 0) {
@@ -488,6 +494,7 @@ const makeGalleryService = Effect.gen(function* () {
       competitionClassId: item.competitionClassId,
       competitionClassName: item.competitionClassName,
       rank: null,
+      aspectRatio: item.aspectRatio,
     }))
 
     return { items, nextCursor: page.nextCursor }

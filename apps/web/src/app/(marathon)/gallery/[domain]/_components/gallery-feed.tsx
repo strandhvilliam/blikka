@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { cn } from '@/lib/utils'
-import { Spinner } from '@/components/ui/spinner'
 import { GalleryPhoto } from './gallery-photo'
 import { GalleryLightbox } from './gallery-lightbox'
+import { JustifiedGrid } from './justified-grid'
+import { SectionHeading } from './gallery-chrome'
 import { getGalleryFeedNextPageParam } from '../_lib/gallery-image'
 import type { GalleryClassMeta, GalleryPhotoCard, GalleryTopicMeta } from '../_lib/types'
 
@@ -61,15 +62,15 @@ export function GalleryFeed({
 
   const isFilterLoading = isPlaceholderData && isFetching && !isFetchingNextPage
 
-  const updateTopicFilter = useCallback((nextTopicFilter: number | null) => {
-    setTopicFilter(nextTopicFilter)
-    setActiveIndex(null)
-  }, [])
-
-  const updateClassFilter = useCallback((nextClassFilter: number | null) => {
-    setClassFilter(nextClassFilter)
-    setActiveIndex(null)
-  }, [])
+  // Changing any filter resets the open lightbox so a stale index can't point past the
+  // refetched page. Setters from useState are stable, so the empty dep array is safe.
+  const applyFilter = useCallback(
+    (setFilter: (value: number | null) => void, value: number | null) => {
+      setFilter(value)
+      setActiveIndex(null)
+    },
+    [],
+  )
 
   const onIntersect = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -90,16 +91,18 @@ export function GalleryFeed({
   }, [onIntersect])
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 pb-24 sm:px-6">
+    <section className="mx-auto w-full max-w-7xl px-4 pb-24 pt-8 sm:px-6 sm:pt-10">
+      <SectionHeading title="All photos" size="lg" />
+
       {showFilters && (topics.length > 0 || competitionClasses.length > 0) ? (
-        <div className="relative sticky top-0 z-20 -mx-4 mb-5 border-b border-white/5 bg-black/85 px-4 py-3 backdrop-blur sm:-mx-6 sm:mb-6 sm:px-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+        <div className="relative sticky top-16 z-20 -mx-4 mb-5 border-b border-white/10 bg-[var(--gallery-bg)] px-4 py-3.5 sm:-mx-6 sm:mb-6 sm:px-6">
+          <div className="flex flex-col gap-4">
             {topics.length > 0 ? (
               <FilterScroller label="Topics">
                 <FilterChip
                   active={topicFilter === null}
                   disabled={isFilterLoading}
-                  onClick={() => updateTopicFilter(null)}
+                  onClick={() => applyFilter(setTopicFilter, null)}
                   label="All"
                 />
                 {topics.map((topic) => (
@@ -107,7 +110,7 @@ export function GalleryFeed({
                     key={topic.id}
                     active={topicFilter === topic.orderIndex}
                     disabled={isFilterLoading}
-                    onClick={() => updateTopicFilter(topic.orderIndex)}
+                    onClick={() => applyFilter(setTopicFilter, topic.orderIndex)}
                     label={topic.name}
                   />
                 ))}
@@ -119,7 +122,7 @@ export function GalleryFeed({
                 <FilterChip
                   active={classFilter === null}
                   disabled={isFilterLoading}
-                  onClick={() => updateClassFilter(null)}
+                  onClick={() => applyFilter(setClassFilter, null)}
                   label="All"
                 />
                 {competitionClasses.map((competitionClass) => (
@@ -127,31 +130,21 @@ export function GalleryFeed({
                     key={competitionClass.id}
                     active={classFilter === competitionClass.id}
                     disabled={isFilterLoading}
-                    onClick={() => updateClassFilter(competitionClass.id)}
+                    onClick={() => applyFilter(setClassFilter, competitionClass.id)}
                     label={competitionClass.name}
                   />
                 ))}
               </FilterScroller>
             ) : null}
-
-            {isFilterLoading ? (
-              <span
-                role="status"
-                aria-live="polite"
-                className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-neutral-500 sm:ml-auto"
-              >
-                <Spinner className="size-3 text-neutral-400" />
-                Updating
-              </span>
-            ) : null}
           </div>
 
+          {/* Loading is signalled by this red sweep plus the grid dimming below. */}
           {isFilterLoading ? (
             <div
               aria-hidden
               className="absolute inset-x-0 bottom-0 h-px overflow-hidden bg-white/5"
             >
-              <div className="h-full w-1/3 animate-[gallery-filter-progress_1.4s_ease-in-out_infinite] bg-white/50" />
+              <div className="h-full w-1/3 animate-[gallery-filter-progress_1.4s_ease-in-out_infinite] bg-white/60" />
             </div>
           ) : null}
         </div>
@@ -173,7 +166,7 @@ export function GalleryFeed({
           )}
           aria-busy={isFilterLoading}
         >
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 lg:grid-cols-4 xl:grid-cols-5">
+          <JustifiedGrid hasMore={hasNextPage}>
             {photos.map((photo, index) => (
               <GalleryPhoto
                 key={photo.submissionId}
@@ -182,7 +175,7 @@ export function GalleryFeed({
                 onSelect={() => setActiveIndex(index)}
               />
             ))}
-          </div>
+          </JustifiedGrid>
         </div>
       )}
 
@@ -206,14 +199,14 @@ export function GalleryFeed({
 
 function FilterScroller({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid min-w-0 gap-1.5 sm:flex sm:items-center sm:gap-2">
-      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-widest text-neutral-600">
+    <div className="flex flex-col gap-2">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-500">
         {label}
       </span>
       <div
         role="group"
         aria-label={`${label} filter options`}
-        className="-mx-4 flex min-w-0 snap-x items-center gap-1.5 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+        className="flex flex-wrap items-center gap-2"
       >
         {children}
       </div>
@@ -239,9 +232,9 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'min-h-9 shrink-0 snap-start touch-manipulation whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
+        'inline-flex min-h-10 shrink-0 touch-manipulation items-center whitespace-nowrap rounded-full border px-4 py-2 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
         active
-          ? 'border-white/80 bg-white text-black'
+          ? 'border-brand-primary bg-brand-primary text-brand-white'
           : 'border-white/15 text-neutral-300 hover:border-white/40 hover:text-white',
         disabled && 'cursor-wait opacity-60 hover:border-white/15 hover:text-neutral-300',
       )}
@@ -251,12 +244,19 @@ function FilterChip({
   )
 }
 
+// Aspect ratios that echo a real justified layout while loading.
+const SKELETON_ASPECTS = [1.5, 0.75, 1, 1.33, 0.8, 1.6, 1, 0.67, 1.4, 1, 1.2, 0.85, 1.5, 1, 0.7]
+
 function PhotoGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 lg:grid-cols-4 xl:grid-cols-5">
-      {Array.from({ length: 15 }).map((_, index) => (
-        <div key={index} className="aspect-square w-full animate-pulse rounded-sm bg-neutral-900" />
+    <JustifiedGrid>
+      {SKELETON_ASPECTS.map((aspect, index) => (
+        <div
+          key={index}
+          style={{ flexGrow: aspect, flexBasis: `calc(var(--gallery-row-h) * ${aspect})` }}
+          className="h-[var(--gallery-row-h)] min-w-0 animate-pulse bg-white/[0.04]"
+        />
       ))}
-    </div>
+    </JustifiedGrid>
   )
 }

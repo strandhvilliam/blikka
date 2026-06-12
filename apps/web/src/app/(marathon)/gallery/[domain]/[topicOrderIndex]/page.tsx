@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getCachedByCameraTopicGallery } from '@/lib/gallery-page-cache'
 import { GalleryHeader } from '../_components/gallery-header'
 import { FeaturedSections } from '../_components/featured-sections'
 import { GalleryFeed } from '../_components/gallery-feed'
+import { BackLink } from '../_components/gallery-chrome'
 import { galleryHomeHref, galleryTopicHref } from '../_lib/href'
 import type { ByCameraTopicGallery } from '../_lib/types'
 
@@ -58,35 +58,31 @@ export default async function ByCameraTopicGalleryPage({
         subtitle={gallery.topic.name}
       />
 
-      {gallery.publishedTopics.length > 1 ? (
-        <nav className="mx-auto w-full max-w-7xl px-4 pt-8 sm:px-6" aria-label="Topic galleries">
-          <div className="-mx-4 flex snap-x items-center gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
-            {gallery.publishedTopics.map((topic) => (
-              <Link
-                key={topic.id}
-                href={galleryTopicHref(domain, topic.orderIndex)}
-                className={cn(
-                  'min-h-9 shrink-0 snap-start touch-manipulation whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
-                  topic.orderIndex === gallery.topic.orderIndex
-                    ? 'border-white/80 bg-white text-black'
-                    : 'border-white/15 text-neutral-300 hover:border-white/40 hover:text-white',
-                )}
-              >
-                {topic.name}
-              </Link>
-            ))}
-          </div>
-        </nav>
-      ) : (
-        <div className="mx-auto w-full max-w-7xl px-4 pt-8 sm:px-6">
-          <Link
-            href={galleryHomeHref(domain)}
-            className="inline-flex items-center gap-1 text-xs text-neutral-400 transition-colors hover:text-white"
-          >
-            <ChevronLeft className="size-4" /> All topics
-          </Link>
-        </div>
-      )}
+      <div className="mx-auto w-full max-w-7xl px-4 pt-8 sm:px-6">
+        <BackLink href={galleryHomeHref(domain)} label="All topics" />
+
+        {gallery.publishedTopics.length > 1 ? (
+          <nav className="mt-4" aria-label="Topic galleries">
+            <div className="-mx-4 flex snap-x items-center gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
+              {gallery.publishedTopics.map((topic) => (
+                <Link
+                  key={topic.id}
+                  href={galleryTopicHref(domain, topic.orderIndex)}
+                  aria-current={topic.orderIndex === gallery.topic.orderIndex ? 'page' : undefined}
+                  className={cn(
+                    'inline-flex min-h-10 shrink-0 snap-start touch-manipulation items-center whitespace-nowrap rounded-full border px-4 py-2 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
+                    topic.orderIndex === gallery.topic.orderIndex
+                      ? 'border-brand-primary bg-brand-primary text-brand-white'
+                      : 'border-white/15 text-neutral-300 hover:border-white/40 hover:text-white',
+                  )}
+                >
+                  {topic.name}
+                </Link>
+              ))}
+            </div>
+          </nav>
+        ) : null}
+      </div>
 
       <FeaturedSections sections={gallery.featuredSections} domain={domain} />
       <GalleryFeed
