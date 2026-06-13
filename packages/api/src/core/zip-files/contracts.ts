@@ -53,6 +53,12 @@ export const CancelDownloadProcessInputSchema = Schema.Struct({
   processId: Schema.String,
 })
 
+export const RetryExportChunkInputSchema = Schema.Struct({
+  domain: Schema.String,
+  processId: Schema.String,
+  jobId: Schema.String,
+})
+
 export type InitializeZipDownloadsInput = Schema.Schema.Type<
   typeof InitializeZipDownloadsInputSchema
 >
@@ -65,3 +71,4 @@ export type GetZipSubmissionStatusOutput = Schema.Schema.Type<
 export type ZipDownloadsByProcessIdInput = Schema.Schema.Type<typeof ZipDownloadsByProcessIdInputSchema>
 export type GetActiveProcessInput = Schema.Schema.Type<typeof GetActiveProcessInputSchema>
 export type CancelDownloadProcessInput = Schema.Schema.Type<typeof CancelDownloadProcessInputSchema>
+export type RetryExportChunkInput = Schema.Schema.Type<typeof RetryExportChunkInputSchema>

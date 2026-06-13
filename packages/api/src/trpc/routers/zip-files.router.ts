@@ -8,6 +8,7 @@ import {
   ZipDownloadsByProcessIdInputSchema,
   GetActiveProcessInputSchema,
   CancelDownloadProcessInputSchema,
+  RetryExportChunkInputSchema,
   GenerateParticipantZipInputSchema,
   GetParticipantZipDownloadUrlInputSchema,
 } from '../../core/zip-files/contracts'
@@ -70,6 +71,45 @@ export const zipFilesRouter = createTRPCRouter({
           return yield* ZipFilesService.use((s) =>
             s.getActiveProcess({
               domain: input.domain,
+            }),
+          )
+        }),
+      ),
+    ),
+
+  getExportFiles: domainProcedure
+    .input(Schema.toStandardSchemaV1(GetActiveProcessInputSchema))
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn('ZipFilesRouter.getExportFiles')(function* ({ input }) {
+          return yield* ZipFilesService.use((s) => s.getExportFiles({ domain: input.domain }))
+        }),
+      ),
+    ),
+
+  getExportPreview: domainProcedure
+    .input(Schema.toStandardSchemaV1(GetZipSubmissionStatusInputSchema))
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn('ZipFilesRouter.getExportPreview')(function* ({ input }) {
+          return yield* ZipFilesService.use((s) => s.getExportPreview({ domain: input.domain }))
+        }),
+      ),
+    ),
+
+  retryExportChunk: domainProcedure
+    .input(Schema.toStandardSchemaV1(RetryExportChunkInputSchema))
+    .use(requireMatchingInputDomainMiddleware)
+    .mutation(
+      trpcEffect(
+        Effect.fn('ZipFilesRouter.retryExportChunk')(function* ({ input }) {
+          return yield* ZipFilesService.use((s) =>
+            s.retryExportChunk({
+              domain: input.domain,
+              processId: input.processId,
+              jobId: input.jobId,
             }),
           )
         }),

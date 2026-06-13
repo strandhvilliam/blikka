@@ -4,7 +4,7 @@ import { DownloadStateRepository } from '@blikka/kv-store'
 import { ParticipantsRepository, ZippedSubmissionsRepository } from '@blikka/db'
 import { Cause, Effect, Exit, Layer, Option, Ref } from 'effect'
 
-import { ZipWorker } from '@blikka/uploads/zip-worker'
+import { EnsureParticipantZip } from '@blikka/uploads/ensure-participant-zip'
 
 import { ConflictError } from '../errors'
 import { configLayerFromEnv } from '../test/config-layer'
@@ -57,7 +57,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrid
         const state = yield* Ref.get(stateRef)
         return state.stats
       }),
-    getZippedSubmissionsByDomain: () => Effect.succeed([]),
+    getCompletedParticipantsForZipPlanning: () => Effect.succeed([]),
   } as unknown as ZippedSubmissionsRepository['Service'])
 
   const downloadStateRepository =
@@ -106,6 +106,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrid
           id: 1,
           reference: '0042',
           domain,
+          submissions: [{ id: 1 }],
           zippedSubmissions: [
             {
               id: 1,
@@ -130,9 +131,10 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrid
     triggerJob: () => Effect.void,
   })
 
-  const zipWorker = ZipWorker.of({
-    runZipTask: () => Effect.void,
-  } as unknown as ZipWorker['Service'])
+  const ensureParticipantZip = EnsureParticipantZip.of({
+    ensureParticipantZip: ({ domain: d, reference }: { domain: string; reference: string }) =>
+      Effect.succeed({ key: `${d}/${reference}.zip`, generated: true }),
+  } as unknown as EnsureParticipantZip['Service'])
 
   return ZipFilesServiceLayerNoDeps.pipe(
     Layer.provide(
@@ -143,7 +145,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrid
         Layer.succeed(S3Service)(s3Service),
         Layer.succeed(ZipDownloadCleanup)(zipDownloadCleanup),
         Layer.succeed(ZipDownloaderTrigger)(zipDownloaderTrigger),
-        Layer.succeed(ZipWorker)(zipWorker),
+        Layer.succeed(EnsureParticipantZip)(ensureParticipantZip),
       ),
     ),
   )
@@ -387,14 +389,11 @@ describe('ZipFilesService', () => {
             const state = yield* Ref.get(stateRef)
             return state.stats
           }),
-        getZippedSubmissionsByDomain: () =>
+        getCompletedParticipantsForZipPlanning: () =>
           Effect.succeed([
             {
-              key: `${domain}/0001.zip`,
-              participant: {
-                reference: '1',
-                competitionClass: { id: 1, name: 'Open' },
-              },
+              reference: '1',
+              competitionClass: { id: 1, name: 'Open' },
             },
           ]),
       } as unknown as ZippedSubmissionsRepository['Service'])

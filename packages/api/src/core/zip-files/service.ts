@@ -9,10 +9,10 @@ import {
   type DownloadStateRepositoryError,
 } from '@blikka/kv-store'
 import {
-  ZipWorker,
-  ZipWorkerLayer,
+  EnsureParticipantZip,
+  EnsureParticipantZipLayer,
   type ZipWorkerError,
-} from '@blikka/uploads/zip-worker'
+} from '@blikka/uploads/ensure-participant-zip'
 import { Effect, Option, Config, Context, Layer } from 'effect'
 
 import { BadRequestError, ConflictError, NotFoundError, failNotFoundIfNone } from '../errors'
@@ -24,6 +24,7 @@ import type {
   GetParticipantZipDownloadUrlInput,
   GetZipSubmissionStatusInput,
   InitializeZipDownloadsInput,
+  RetryExportChunkInput,
   ZipDownloadsByProcessIdInput,
 } from './contracts'
 import { planZipDownload } from './zip-download-plan'
@@ -40,7 +41,10 @@ const RESETTABLE_DOWNLOAD_PROCESS_STATUSES = new Set<DownloadProcessStatus>([
   'cancelled',
 ])
 
-const MAX_PARTICIPANTS_PER_ZIP = 200
+// Each chunk runs in one ECS task that, on a cold cache, both generates the missing
+// per-participant zips (downloading originals) AND merges them. Keep this modest so peak
+// memory/time per task stays bounded. See docs/upload-pipeline-scaling.md.
+const MAX_PARTICIPANTS_PER_ZIP = 100
 
 interface ZipSubmissionStats {
   totalParticipants: number
@@ -79,6 +83,42 @@ interface ZipDownloadUrlItem {
   maxReference: number
   zipKey: string
   downloadUrl: string
+}
+
+export type ExportFileStatus = 'building' | 'ready' | 'failed'
+
+/** One downloadable archive (= one chunk), with its live build status and a URL once ready. */
+export interface ExportFileRow {
+  jobId: string
+  competitionClassName: string
+  minReference: number
+  maxReference: number
+  status: ExportFileStatus
+  downloadUrl?: string
+}
+
+/** Live view of the active export's files — the single source for the file-list UI. */
+export interface ExportFilesView {
+  processId: string
+  status: DownloadProcessStatus
+  totalChunks: number
+  completedChunks: number
+  failedChunks: number
+  lastUpdatedAt: string
+  files: ExportFileRow[]
+}
+
+interface ExportClassPreview {
+  competitionClassName: string
+  participantCount: number
+  fileCount: number
+}
+
+/** Pre-flight summary shown before an export is started (status-based, not zip-row based). */
+export interface ExportPreview {
+  completedParticipants: number
+  totalFiles: number
+  classes: ExportClassPreview[]
 }
 
 type InitializeZipDownloadsResult =
@@ -155,14 +195,39 @@ export class ZipFilesService extends Context.Service<
       never
     >
 
-    /** Returns a presigned GET URL for a participant's latest generated zip. */
+    /** Returns a presigned GET URL for a participant's zip, generating it on demand if needed. */
     readonly getParticipantZipDownloadUrl: (
       input: GetParticipantZipDownloadUrlInput,
     ) => Effect.Effect<
       { downloadUrl: string; filename: string },
-      DbError | BadRequestError | NotFoundError | S3ClientError | Config.ConfigError,
+      DbError | BadRequestError | NotFoundError | S3ClientError | Config.ConfigError | ZipWorkerError,
       never
     >
+
+    /**
+     * Live per-file view of the active export: each chunk's class, reference range, build status,
+     * and a presigned URL as soon as it is ready (download-as-ready). Null when no active process.
+     */
+    readonly getExportFiles: (
+      input: GetActiveProcessInput,
+    ) => Effect.Effect<ExportFilesView | null, DownloadStateRepositoryError | S3ClientError, never>
+
+    /** Re-queue a single failed chunk: reactivate the process and re-trigger its ECS job. */
+    readonly retryExportChunk: (
+      input: RetryExportChunkInput,
+    ) => Effect.Effect<
+      { success: boolean },
+      | DownloadStateRepositoryError
+      | BadRequestError
+      | UnableToRunZipDownloaderTaskError
+      | Config.ConfigError,
+      never
+    >
+
+    /** Status-based pre-flight: how many completed participants and archive files an export yields. */
+    readonly getExportPreview: (
+      input: GetZipSubmissionStatusInput,
+    ) => Effect.Effect<ExportPreview, DbError, never>
   }
 >()('@blikka/api/ZipFilesService') {}
 
@@ -171,7 +236,7 @@ const makeZipFilesService = Effect.gen(function* () {
   const participantsRepository = yield* ParticipantsRepository
   const downloadStateRepository = yield* DownloadStateRepository
   const s3Service = yield* S3Service
-  const zipWorker = yield* ZipWorker
+  const ensureParticipantZip = yield* EnsureParticipantZip
   const zipDownloadCleanup = yield* ZipDownloadCleanup
   const zipDownloaderTrigger = yield* ZipDownloaderTrigger
   const zipsBucket = yield* Config.string('ZIPS_BUCKET_NAME')
@@ -310,32 +375,35 @@ const makeZipFilesService = Effect.gen(function* () {
   const initializeZipDownloads: ZipFilesService['Service']['initializeZipDownloads'] = Effect.fn(
     'ZipFilesService.initializeZipDownloads',
   )(function* ({ domain }) {
-    const zips = yield* zippedSubmissionsRepository.getZippedSubmissionsByDomain({
-      domain,
-    })
+    // Source the participant set from the participants table, not zipped_submissions: zips are
+    // now generated lazily at download time, so no zip rows exist until the downloader runs.
+    const completedParticipants =
+      yield* zippedSubmissionsRepository.getCompletedParticipantsForZipPlanning({ domain })
 
-    if (zips.length === 0) {
+    if (completedParticipants.length === 0) {
       yield* Effect.logInfo({
-        message: 'No zipped submissions found for domain',
+        message: 'No completed participants found for domain',
         domain,
       })
       return {
-        message: 'No zipped submissions found for domain',
+        message: 'No completed participants found for domain',
         domain,
         totalChunks: 0,
         totalCompetitionClasses: 0,
       }
     }
 
-    const zipsWithCompetitionClass = zips.filter((zip) => !!zip.participant.competitionClass)
+    const participantsWithCompetitionClass = completedParticipants.filter(
+      (participant) => !!participant.competitionClass,
+    )
 
-    if (zipsWithCompetitionClass.length === 0) {
+    if (participantsWithCompetitionClass.length === 0) {
       yield* Effect.logInfo({
-        message: 'No zipped submissions with competition class found',
+        message: 'No completed participants with competition class found',
         domain,
       })
       return {
-        message: 'No zipped submissions with competition class found',
+        message: 'No completed participants with competition class found',
         domain,
         totalChunks: 0,
         totalCompetitionClasses: 0,
@@ -344,10 +412,10 @@ const makeZipFilesService = Effect.gen(function* () {
 
     const plan = planZipDownload(
       domain,
-      zipsWithCompetitionClass.map((zip) => ({
+      participantsWithCompetitionClass.map((participant) => ({
         participant: {
-          reference: zip.participant.reference,
-          competitionClass: zip.participant.competitionClass!,
+          reference: participant.reference,
+          competitionClass: participant.competitionClass!,
         },
       })),
       MAX_PARTICIPANTS_PER_ZIP,
@@ -501,42 +569,24 @@ const makeZipFilesService = Effect.gen(function* () {
     return initializationResult
   })
 
-  const getLatestZippedSubmission = (
-    zippedSubmissions: ReadonlyArray<{ createdAt: string | null; id: number; key: string }>,
-  ) => {
-    let latest: (typeof zippedSubmissions)[number] | undefined
-    for (const zip of zippedSubmissions) {
-      if (!latest) {
-        latest = zip
-        continue
-      }
-      if (zip.createdAt && latest.createdAt) {
-        if (new Date(zip.createdAt) > new Date(latest.createdAt)) {
-          latest = zip
-        }
-      } else if (zip.id > latest.id) {
-        latest = zip
-      }
-    }
-    return latest
-  }
-
   const getParticipantZipDownloadUrl: ZipFilesService['Service']['getParticipantZipDownloadUrl'] =
     Effect.fn('ZipFilesService.getParticipantZipDownloadUrl')(function* ({ domain, reference }) {
       const participant = yield* participantsRepository
         .getParticipantByReference({ reference, domain })
         .pipe(failNotFoundIfNone('Participant', { reference, domain }))
 
-      const latestZip = getLatestZippedSubmission(participant.zippedSubmissions ?? [])
-      if (!latestZip) {
+      if (participant.submissions.length === 0) {
         return yield* Effect.fail(
           new BadRequestError({
-            message: 'No zip file has been generated for this participant yet',
+            message: 'Participant has no submissions to zip',
           }),
         )
       }
 
-      const downloadUrl = yield* s3Service.getPresignedUrl(zipsBucket, latestZip.key, 'GET', {
+      // Generate the participant zip on demand (reuses the cached zip if it already exists).
+      const { key } = yield* ensureParticipantZip.ensureParticipantZip({ domain, reference })
+
+      const downloadUrl = yield* s3Service.getPresignedUrl(zipsBucket, key, 'GET', {
         expiresIn: 3600,
       })
 
@@ -561,11 +611,157 @@ const makeZipFilesService = Effect.gen(function* () {
       )
     }
 
-    yield* zipWorker.runZipTask({ domain, reference })
+    const { key } = yield* ensureParticipantZip.ensureParticipantZip({ domain, reference })
 
     return {
       success: true,
-      key: `${domain}/${reference}.zip`,
+      key,
+    }
+  })
+
+  const getExportFiles: ZipFilesService['Service']['getExportFiles'] = Effect.fn(
+    'ZipFilesService.getExportFiles',
+  )(function* ({ domain }) {
+    const activeProcessIdOption = yield* downloadStateRepository.getActiveProcessForDomain(domain)
+    if (Option.isNone(activeProcessIdOption)) {
+      return null
+    }
+    const processId = activeProcessIdOption.value
+
+    const summaryOption = yield* downloadStateRepository.getProcessSummary(processId)
+    if (Option.isNone(summaryOption)) {
+      yield* downloadStateRepository.clearActiveProcessForDomain(domain)
+      return null
+    }
+    const summary = summaryOption.value
+
+    const [jobIds, completedJobIds, failedJobIds] = yield* Effect.all(
+      [
+        downloadStateRepository.getProcessJobIds(processId),
+        downloadStateRepository.getCompletedJobIds(processId),
+        downloadStateRepository.getFailedJobIds(processId),
+      ],
+      { concurrency: 3 },
+    )
+    const completedSet = new Set(completedJobIds)
+    const failedSet = new Set(failedJobIds)
+
+    const chunkRows = yield* Effect.forEach(
+      jobIds,
+      (jobId) =>
+        downloadStateRepository.getChunkState(jobId).pipe(Effect.map((state) => ({ jobId, state }))),
+      { concurrency: 10 },
+    )
+    const presentRows = chunkRows.flatMap(({ jobId, state }) =>
+      Option.isSome(state) ? [{ jobId, chunk: state.value }] : [],
+    )
+
+    const files = yield* Effect.forEach(
+      presentRows,
+      ({ jobId, chunk }) => {
+        const status: ExportFileStatus = failedSet.has(jobId)
+          ? 'failed'
+          : completedSet.has(jobId)
+            ? 'ready'
+            : 'building'
+
+        const base: ExportFileRow = {
+          jobId,
+          competitionClassName: chunk.competitionClassName,
+          minReference: chunk.minReference,
+          maxReference: chunk.maxReference,
+          status,
+        }
+
+        if (status === 'ready') {
+          return s3Service
+            .getPresignedUrl(zipsBucket, chunk.zipKey, 'GET', { expiresIn: 86400 })
+            .pipe(Effect.map((downloadUrl): ExportFileRow => ({ ...base, downloadUrl })))
+        }
+        return Effect.succeed(base)
+      },
+      { concurrency: 10 },
+    )
+
+    files.sort(
+      (a, b) =>
+        a.competitionClassName.localeCompare(b.competitionClassName) ||
+        a.minReference - b.minReference,
+    )
+
+    return {
+      processId,
+      status: summary.status,
+      totalChunks: summary.totalChunks,
+      completedChunks: summary.completedChunks,
+      failedChunks: summary.failedChunks,
+      lastUpdatedAt: summary.lastUpdatedAt,
+      files,
+    }
+  })
+
+  const retryExportChunk: ZipFilesService['Service']['retryExportChunk'] = Effect.fn(
+    'ZipFilesService.retryExportChunk',
+  )(function* ({ domain, processId, jobId }) {
+    const chunkStateOption = yield* downloadStateRepository.getChunkState(jobId)
+    if (Option.isNone(chunkStateOption)) {
+      return yield* Effect.fail(
+        new BadRequestError({ message: 'This file is no longer available to retry.' }),
+      )
+    }
+    const chunk = chunkStateOption.value
+    if (chunk.processId !== processId || chunk.domain !== domain) {
+      return yield* Effect.fail(
+        new BadRequestError({ message: 'This file does not belong to the current export.' }),
+      )
+    }
+
+    const failedJobIds = yield* downloadStateRepository.getFailedJobIds(processId)
+    if (!failedJobIds.includes(jobId)) {
+      return yield* Effect.fail(
+        new BadRequestError({ message: 'Only failed files can be retried.' }),
+      )
+    }
+
+    yield* downloadStateRepository.reactivateChunkForRetry(processId, jobId)
+    // Re-point the domain at this process in case the active pointer was cleared, then re-run the job.
+    yield* downloadStateRepository.setActiveProcessForDomain(domain, processId)
+    yield* zipDownloaderTrigger.triggerJob(jobId)
+
+    return { success: true }
+  })
+
+  const getExportPreview: ZipFilesService['Service']['getExportPreview'] = Effect.fn(
+    'ZipFilesService.getExportPreview',
+  )(function* ({ domain }) {
+    const participants = yield* zippedSubmissionsRepository.getCompletedParticipantsForZipPlanning({
+      domain,
+    })
+
+    const byClass = new Map<string, { name: string; count: number }>()
+    for (const participant of participants) {
+      if (!participant.competitionClass) continue
+      const key = String(participant.competitionClass.id)
+      const existing = byClass.get(key)
+      if (existing) {
+        existing.count += 1
+      } else {
+        byClass.set(key, { name: participant.competitionClass.name, count: 1 })
+      }
+    }
+
+    const classes = [...byClass.values()]
+      .map((entry) => ({
+        competitionClassName: entry.name,
+        participantCount: entry.count,
+        fileCount: Math.ceil(entry.count / MAX_PARTICIPANTS_PER_ZIP),
+      }))
+      .sort((a, b) => a.competitionClassName.localeCompare(b.competitionClassName))
+
+    return {
+      completedParticipants: classes.reduce((sum, c) => sum + c.participantCount, 0),
+      totalFiles: classes.reduce((sum, c) => sum + c.fileCount, 0),
+      classes,
     }
   })
 
@@ -577,6 +773,9 @@ const makeZipFilesService = Effect.gen(function* () {
     cancelDownloadProcess,
     generateParticipantZip,
     getParticipantZipDownloadUrl,
+    getExportFiles,
+    retryExportChunk,
+    getExportPreview,
   })
 })
 
@@ -588,7 +787,7 @@ export const ZipFilesServiceLayer = ZipFilesServiceLayerNoDeps.pipe(
       DbLayer,
       DownloadStateRepositoryLayer,
       S3ServiceLayer,
-      ZipWorkerLayer,
+      EnsureParticipantZipLayer,
       ZipDownloadCleanupLayer,
       ZipDownloaderTriggerLayer,
     ),
