@@ -75,7 +75,9 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
   const processId = view?.processId ?? null
 
   const counts = {
-    total: files.length,
+    // Fall back to the process's planned chunk count so the header reads "0 of N"
+    // (not "0 of 0") in the brief window after build, before the file rows load.
+    total: Math.max(files.length, view?.totalChunks ?? 0),
     ready: files.filter((f) => f.status === 'ready').length,
     failed: files.filter((f) => f.status === 'failed').length,
     building: files.filter((f) => f.status === 'building').length,
@@ -93,12 +95,28 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
   const build = async () => {
     try {
       const result = await initializeMutation.mutateAsync({ domain })
-      if ('totalChunks' in result && result.totalChunks === 0) {
+      if (!('processId' in result) || result.totalChunks === 0) {
         toast.info('Nothing to export', {
           description: 'No participants have finished uploading yet.',
         })
         return
       }
+      // Flip to the "building" view immediately. Otherwise the card stays on the idle
+      // screen (with the "Build archives" button clickable again) until a background
+      // refetch repopulates getExportFiles — which reads as "nothing happened". Seeding
+      // status: 'processing' also starts the 2s polling that fills in the file rows.
+      queryClient.setQueryData<ExportFilesView | null>(
+        trpc.zipFiles.getExportFiles.queryKey({ domain }),
+        {
+          processId: result.processId,
+          status: 'processing',
+          totalChunks: result.totalChunks,
+          completedChunks: 0,
+          failedChunks: 0,
+          lastUpdatedAt: new Date().toISOString(),
+          files: [],
+        },
+      )
       toast.success('Building archives', {
         description: 'Files appear below and become downloadable as each one finishes.',
       })
