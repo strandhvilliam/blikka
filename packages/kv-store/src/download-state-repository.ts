@@ -13,6 +13,7 @@ import { Keys } from './key-factory'
 import { atomicIncrementCompletedScript } from './lua-scripts/atomic-increment-completed-script'
 import { atomicIncrementFailedScript } from './lua-scripts/atomic-increment-failed-script'
 import { atomicAddJobScript } from './lua-scripts/atomic-add-job-script'
+import { atomicRetryChunkScript } from './lua-scripts/atomic-retry-chunk-script'
 
 export const DownloadProcessStatusSchema = Schema.Literals([
   'initializing',
@@ -77,6 +78,14 @@ interface AtomicIncrementResult {
   completedChunks: number
   failedChunks: number
   status: DownloadProcessStatus
+}
+
+export interface ProcessSummary {
+  status: DownloadProcessStatus
+  totalChunks: number
+  completedChunks: number
+  failedChunks: number
+  lastUpdatedAt: string
 }
 
 const decodeStringArray = Schema.decodeSync(StringArrayFromString)
@@ -183,10 +192,11 @@ export class DownloadStateRepository extends Context.Service<
       processId: string,
       updates: Partial<Omit<DownloadProcessState, 'processId' | 'domain' | 'createdAt'>>,
     ) => Effect.Effect<string, DownloadStateRepositoryError>
-    /** Atomically increment the completed-chunk counter and derive status (e.g. finished when all chunks complete). */
+    /** Atomically increment the completed-chunk counter, append `completedJobId`, and derive status (finished when all chunks complete). */
     readonly atomicIncrementCompleted: (
       processId: string,
       totalChunks: number,
+      completedJobId: string,
     ) => Effect.Effect<AtomicIncrementResult, DownloadStateRepositoryError>
     /** Atomically increment the failed-chunk counter, append `failedJobId`, and refresh derived status. */
     readonly atomicIncrementFailed: (
@@ -194,6 +204,23 @@ export class DownloadStateRepository extends Context.Service<
       totalChunks: number,
       failedJobId: string,
     ) => Effect.Effect<AtomicIncrementResult, DownloadStateRepositoryError>
+    /** Job ids of chunks that completed successfully (robust parse of the comma/JSON field). */
+    readonly getCompletedJobIds: (
+      processId: string,
+    ) => Effect.Effect<readonly string[], DownloadStateRepositoryError>
+    /** Job ids of chunks that failed (robust parse of the comma/JSON field). */
+    readonly getFailedJobIds: (
+      processId: string,
+    ) => Effect.Effect<readonly string[], DownloadStateRepositoryError>
+    /** Lightweight process header (status + counters) read field-by-field to avoid array decoding. */
+    readonly getProcessSummary: (
+      processId: string,
+    ) => Effect.Effect<Option.Option<ProcessSummary>, DownloadStateRepositoryError>
+    /** Un-fail a chunk for retry: drop it from `failedJobIds`, decrement `failedChunks`, set `processing`. */
+    readonly reactivateChunkForRetry: (
+      processId: string,
+      jobId: string,
+    ) => Effect.Effect<void, DownloadStateRepositoryError>
     /** Atomically register a chunk/job id on the process and refresh timestamps and TTL. */
     readonly addJobToProcess: (
       processId: string,
@@ -389,7 +416,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
 
   const atomicIncrementCompleted: DownloadStateRepository['Service']['atomicIncrementCompleted'] =
     Effect.fn('DownloadStateRepository.atomicIncrementCompleted')(
-      function* (processId, totalChunks) {
+      function* (processId, totalChunks, completedJobId) {
         const key = Keys.downloadProcess(processId)
         const now = new Date().toISOString()
 
@@ -397,7 +424,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
           try: () =>
             atomicIncrementCompletedScript.run(redis.client, {
               keys: { key },
-              args: { totalChunks, now, ttl: PROCESS_TTL_SECONDS },
+              args: { totalChunks, now, completedJobId, ttl: PROCESS_TTL_SECONDS },
             }),
           catch: (error) =>
             new DownloadStateScriptFailed({ operation: 'atomicIncrementCompleted', cause: error }),
@@ -472,6 +499,85 @@ const makeDownloadStateRepository = Effect.gen(function* () {
       Effect.retry(retryPolicy),
       (effect, processId, totalChunks, failedJobId) =>
         Effect.annotateLogs(effect, { processId, totalChunks, failedJobId }),
+    )
+
+  const getJobIdsField = (processId: string, field: 'completedJobIds' | 'failedJobIds') =>
+    Effect.fn('DownloadStateRepository.getJobIdsField')(
+      function* () {
+        const key = Keys.downloadProcess(processId)
+        const result = yield* redis.use((client) => client.hget(key, field))
+        return parseJobIdsField(result)
+      },
+      Effect.retry(retryPolicy),
+      Effect.catchTag('RedisError', (e) =>
+        Effect.fail(new DownloadStateStoreUnavailable({ operation: 'getJobIdsField', cause: e })),
+      ),
+    )()
+
+  const getCompletedJobIds: DownloadStateRepository['Service']['getCompletedJobIds'] = (
+    processId,
+  ) => getJobIdsField(processId, 'completedJobIds')
+
+  const getFailedJobIds: DownloadStateRepository['Service']['getFailedJobIds'] = (processId) =>
+    getJobIdsField(processId, 'failedJobIds')
+
+  const getProcessSummary: DownloadStateRepository['Service']['getProcessSummary'] = Effect.fn(
+    'DownloadStateRepository.getProcessSummary',
+  )(
+    function* (processId) {
+      const key = Keys.downloadProcess(processId)
+      const values = yield* redis.use((client) =>
+        client.hmget<[unknown, unknown, unknown, unknown, unknown]>(
+          key,
+          'status',
+          'totalChunks',
+          'completedChunks',
+          'failedChunks',
+          'lastUpdatedAt',
+        ),
+      )
+
+      if (!values || values[0] == null) {
+        return Option.none<ProcessSummary>()
+      }
+
+      return Option.some<ProcessSummary>({
+        status: String(values[0]) as DownloadProcessStatus,
+        totalChunks: Number(values[1] ?? 0),
+        completedChunks: Number(values[2] ?? 0),
+        failedChunks: Number(values[3] ?? 0),
+        lastUpdatedAt: String(values[4] ?? ''),
+      })
+    },
+    Effect.retry(retryPolicy),
+    Effect.catchTag('RedisError', (e) =>
+      Effect.fail(new DownloadStateStoreUnavailable({ operation: 'getProcessSummary', cause: e })),
+    ),
+    (effect, processId) => Effect.annotateLogs(effect, { processId }),
+  )
+
+  const reactivateChunkForRetry: DownloadStateRepository['Service']['reactivateChunkForRetry'] =
+    Effect.fn('DownloadStateRepository.reactivateChunkForRetry')(
+      function* (processId, jobId) {
+        const key = Keys.downloadProcess(processId)
+        const now = new Date().toISOString()
+
+        const result = yield* Effect.tryPromise({
+          try: () =>
+            atomicRetryChunkScript.run(redis.client, {
+              keys: { key },
+              args: { jobId, now, ttl: PROCESS_TTL_SECONDS },
+            }),
+          catch: (error) =>
+            new DownloadStateScriptFailed({ operation: 'reactivateChunkForRetry', cause: error }),
+        })
+
+        if (result === null) {
+          return yield* Effect.fail(new DownloadProcessNotFound({ processId }))
+        }
+      },
+      Effect.retry(retryPolicy),
+      (effect, processId, jobId) => Effect.annotateLogs(effect, { processId, jobId }),
     )
 
   const addJobToProcess: DownloadStateRepository['Service']['addJobToProcess'] = Effect.fn(
@@ -651,6 +757,10 @@ const makeDownloadStateRepository = Effect.gen(function* () {
     getProcessJobIds,
     atomicIncrementCompleted,
     atomicIncrementFailed,
+    getCompletedJobIds,
+    getFailedJobIds,
+    getProcessSummary,
+    reactivateChunkForRetry,
     getActiveProcessForDomain,
     setActiveProcessForDomain,
     clearActiveProcessForDomain,

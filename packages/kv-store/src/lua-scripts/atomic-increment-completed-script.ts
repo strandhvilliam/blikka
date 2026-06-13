@@ -10,12 +10,14 @@ export const atomicIncrementCompletedScript = defineScript({
   args: {
     totalChunks: Schema.toStandardSchemaV1(NumberToStringSchema),
     now: Schema.toStandardSchemaV1(Schema.String),
+    completedJobId: Schema.toStandardSchemaV1(Schema.String),
     ttl: Schema.toStandardSchemaV1(NumberToStringSchema),
   },
   lua: ({ KEYS, ARGV }) => lua`
     local key = ${KEYS.key}
     local totalChunks = tonumber(${ARGV.totalChunks})
     local now = ${ARGV.now}
+    local completedJobId = ${ARGV.completedJobId}
 
     -- Check if hash exists
     if redis.call('EXISTS', key) == 0 then
@@ -25,6 +27,14 @@ export const atomicIncrementCompletedScript = defineScript({
     -- Atomically increment completedChunks
     local newCompletedChunks = redis.call('HINCRBY', key, 'completedChunks', 1)
     redis.call('HSET', key, 'lastUpdatedAt', now)
+
+    -- Append completedJobId to the list (stored as comma-separated string, mirrors failedJobIds)
+    local currentCompletedJobIds = redis.call('HGET', key, 'completedJobIds') or ''
+    if currentCompletedJobIds == '' then
+      redis.call('HSET', key, 'completedJobIds', completedJobId)
+    else
+      redis.call('HSET', key, 'completedJobIds', currentCompletedJobIds .. ',' .. completedJobId)
+    end
 
     -- Get current failedChunks
     local failedChunks = tonumber(redis.call('HGET', key, 'failedChunks') or '0')
