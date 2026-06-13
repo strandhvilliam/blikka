@@ -4,19 +4,15 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/archiver": "^7.0.0",
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@blikka/aws": "workspace:*",
-    "@blikka/db": "workspace:*",
-    "@blikka/kv-store": "workspace:*",
-    "@blikka/telemetry": "workspace:*",
-    "archiver": "^7.0.1",
+    "@blikka/task-runtime": "workspace:*",
+    "@blikka/uploads": "workspace:*",
     "effect": "catalog:",
-    "jszip": "^3.10.1"
+    "sst": "^4.3.9"
   }
 }
