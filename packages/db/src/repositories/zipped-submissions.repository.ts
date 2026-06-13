@@ -1,32 +1,39 @@
 import { Effect, Layer, Context } from 'effect'
 import { DrizzleClient } from '../drizzle-client'
 import { participants } from '../schema'
-import type { CompetitionClass, Participant, ZippedSubmission } from '../types'
-import { eq, and, gte, lte, sql } from 'drizzle-orm'
+import { eq, and, gte, lte, sql, inArray } from 'drizzle-orm'
 import { DbError } from '../utils'
 
-interface ParticipantWithCompetitionClass extends Participant {
-  competitionClass: CompetitionClass | null
+/** Participant identity needed to plan zip-download chunks (no zip row required). */
+interface ParticipantForZipPlanning {
+  readonly reference: string
+  readonly competitionClass: { readonly id: number; readonly name: string } | null
 }
 
-interface ZippedSubmissionWithParticipant extends ZippedSubmission {
-  participant: ParticipantWithCompetitionClass
-}
+/** Participant statuses considered "ready to download" — finalized uploads. */
+const COMPLETED_PARTICIPANT_STATUSES = ['completed', 'verified'] as const
 
 export class ZippedSubmissionsRepository extends Context.Service<
   ZippedSubmissionsRepository,
   {
-    /** Zipped submission rows for a marathon domain with participant and competition class. */
-    readonly getZippedSubmissionsByDomain: (params: {
+    /**
+     * Completed/verified participants for a marathon domain with their competition class,
+     * for planning zip-download chunks without requiring a pre-existing zip row.
+     */
+    readonly getCompletedParticipantsForZipPlanning: (params: {
       domain: string
-    }) => Effect.Effect<ZippedSubmissionWithParticipant[], DbError>
-    /** Zipped submissions for participants whose numeric reference lies in an inclusive range. */
-    readonly getZippedSubmissionsByReferenceRange: (params: {
+    }) => Effect.Effect<ParticipantForZipPlanning[], DbError>
+    /**
+     * References of completed/verified participants whose numeric reference lies in an
+     * inclusive range for a competition class, sorted ascending. Drives generate-on-miss
+     * zipping in the downloader.
+     */
+    readonly getParticipantReferencesInRange: (params: {
       domain: string
       competitionClassId: number
       minReference: number
       maxReference: number
-    }) => Effect.Effect<ZippedSubmissionWithParticipant[], DbError>
+    }) => Effect.Effect<string[], DbError>
     /** Zip coverage for a marathon domain: participant totals, zip count, and missing references. */
     readonly getZipSubmissionStatsByDomain: (params: { domain: string }) => Effect.Effect<
       {
@@ -41,8 +48,11 @@ export class ZippedSubmissionsRepository extends Context.Service<
 
 const makeZippedSubmissionsRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
-  const getZippedSubmissionsByDomain: ZippedSubmissionsRepository['Service']['getZippedSubmissionsByDomain'] =
-    Effect.fn('ZippedSubmissionsRepository.getZippedSubmissionsByDomain')(function* ({ domain }) {
+
+  const getCompletedParticipantsForZipPlanning: ZippedSubmissionsRepository['Service']['getCompletedParticipantsForZipPlanning'] =
+    Effect.fn('ZippedSubmissionsRepository.getCompletedParticipantsForZipPlanning')(function* ({
+      domain,
+    }) {
       const marathon = yield* use((db) =>
         db.query.marathons.findFirst({
           where: (table, operators) => operators.eq(table.domain, domain),
@@ -52,22 +62,35 @@ const makeZippedSubmissionsRepository = Effect.gen(function* () {
         return []
       }
       const result = yield* use((db) =>
-        db.query.zippedSubmissions.findMany({
-          where: (table, operators) => operators.eq(table.marathonId, marathon.id),
+        db.query.participants.findMany({
+          where: (table, operators) =>
+            operators.and(
+              operators.eq(table.marathonId, marathon.id),
+              operators.inArray(table.status, [...COMPLETED_PARTICIPANT_STATUSES]),
+            ),
+          columns: {
+            reference: true,
+          },
           with: {
-            participant: {
-              with: {
-                competitionClass: true,
+            competitionClass: {
+              columns: {
+                id: true,
+                name: true,
               },
             },
           },
         }),
       )
-      return result
+      return result.map((participant) => ({
+        reference: participant.reference,
+        competitionClass: participant.competitionClass
+          ? { id: participant.competitionClass.id, name: participant.competitionClass.name }
+          : null,
+      }))
     })
 
-  const getZippedSubmissionsByReferenceRange: ZippedSubmissionsRepository['Service']['getZippedSubmissionsByReferenceRange'] =
-    Effect.fn('ZippedSubmissionsRepository.getZippedSubmissionsByReferenceRange')(function* ({
+  const getParticipantReferencesInRange: ZippedSubmissionsRepository['Service']['getParticipantReferencesInRange'] =
+    Effect.fn('ZippedSubmissionsRepository.getParticipantReferencesInRange')(function* ({
       domain,
       competitionClassId,
       minReference,
@@ -83,40 +106,21 @@ const makeZippedSubmissionsRepository = Effect.gen(function* () {
       }
       const matchingParticipants = yield* use((db) =>
         db
-          .select({ id: participants.id })
+          .select({ reference: participants.reference })
           .from(participants)
           .where(
             and(
               eq(participants.marathonId, marathon.id),
               eq(participants.competitionClassId, competitionClassId),
+              inArray(participants.status, [...COMPLETED_PARTICIPANT_STATUSES]),
               gte(sql`CAST(${participants.reference} AS INTEGER)`, minReference),
               lte(sql`CAST(${participants.reference} AS INTEGER)`, maxReference),
             ),
           ),
       )
-      if (matchingParticipants.length === 0) {
-        return []
-      }
-      const participantIds = matchingParticipants.map((p) => p.id)
-      const result = yield* use((db) =>
-        db.query.zippedSubmissions.findMany({
-          where: (table, operators) =>
-            operators.and(
-              operators.eq(table.marathonId, marathon.id),
-              operators.inArray(table.participantId, participantIds),
-            ),
-          with: {
-            participant: {
-              with: {
-                competitionClass: true,
-              },
-            },
-          },
-        }),
-      )
-      return result.sort(
-        (a, b) => Number(a.participant.reference) - Number(b.participant.reference),
-      )
+      return matchingParticipants
+        .map((p) => p.reference)
+        .sort((a, b) => Number(a) - Number(b))
     })
 
   const getZipSubmissionStatsByDomain: ZippedSubmissionsRepository['Service']['getZipSubmissionStatsByDomain'] =
@@ -172,8 +176,8 @@ const makeZippedSubmissionsRepository = Effect.gen(function* () {
     })
 
   return ZippedSubmissionsRepository.of({
-    getZippedSubmissionsByDomain,
-    getZippedSubmissionsByReferenceRange,
+    getCompletedParticipantsForZipPlanning,
+    getParticipantReferencesInRange,
     getZipSubmissionStatsByDomain,
   })
 })
