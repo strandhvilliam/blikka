@@ -61,8 +61,6 @@ interface ParticipantIdentityCardProps {
   onRegenerateContactSheet: () => void
   isGeneratingContactSheet: boolean
   onDeleteParticipant: () => void
-  onExport: () => void
-  isExporting?: boolean
 }
 
 export function ParticipantIdentityCard({
@@ -74,8 +72,6 @@ export function ParticipantIdentityCard({
   onRegenerateContactSheet,
   isGeneratingContactSheet,
   onDeleteParticipant,
-  onExport,
-  isExporting = false,
 }: ParticipantIdentityCardProps) {
   const domain = useDomain()
   const hasSubmissions = (participant.submissions?.length ?? 0) > 0
@@ -119,27 +115,6 @@ export function ParticipantIdentityCard({
           <div className="hidden sm:block">
             <StatusPill status={participant.status} />
           </div>
-          {hasSubmissions ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onExport}
-              disabled={isExporting}
-              className="text-xs h-8"
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  Exporting…
-                </>
-              ) : (
-                <>
-                  <Download className="h-3.5 w-3.5 mr-1.5" />
-                  Export
-                </>
-              )}
-            </Button>
-          ) : null}
           {marathonMode === 'marathon' ? (
             <Button
               variant="outline"

@@ -159,7 +159,6 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
     }
   }
 
-  const handleExport = () => downloadZipFile()
 
   const handleViewValidationResults = () => {
     setParticipantQueryState({ tab: PARTICIPANT_TAB.VALIDATION })
@@ -182,8 +181,6 @@ export function ParticipantHeader({ participantRef }: { participantRef: string }
         onRegenerateContactSheet={handleGenerateContactSheet}
         isGeneratingContactSheet={generateContactSheetMutation.isPending}
         onDeleteParticipant={() => setIsDeleteDialogOpen(true)}
-        onExport={handleExport}
-        isExporting={isExporting}
       />
 
       <div className="rounded-xl border border-border bg-white overflow-hidden">
