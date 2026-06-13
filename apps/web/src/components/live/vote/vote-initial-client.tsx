@@ -4,7 +4,7 @@ import { motion } from 'motion/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { PrimaryButton } from '@/components/ui/primary-button'
-import { Clock, ImageIcon, PlayIcon } from 'lucide-react'
+import { Clock, ImageIcon, PlayIcon, SparklesIcon } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getVotingUnavailableReason } from '@/lib/voting-lifecycle'
@@ -88,12 +88,24 @@ export function VoteInitialClient({ domain, token }: { domain: string; token: st
                 </PrimaryButton>
               </div>
             ) : (
-              <Link href={`/live/${domain}/vote/${token}/viewer`} className="mt-6 block">
-                <PrimaryButton className="w-full rounded-full py-3 text-base">
-                  Start Reviewing Photos
-                  <PlayIcon className="h-4 w-4" />
-                </PrimaryButton>
-              </Link>
+              <>
+                <Link href={`/live/${domain}/vote/${token}/viewer`} className="mt-6 block">
+                  <PrimaryButton className="w-full rounded-full py-3 text-base">
+                    Start Reviewing Photos
+                    <PlayIcon className="h-4 w-4" />
+                  </PrimaryButton>
+                </Link>
+                <Link
+                  href={`/live/${domain}/vote/${token}/viewer-v2`}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-border py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                >
+                  <SparklesIcon className="h-4 w-4" />
+                  Try the new viewer
+                  <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background">
+                    V2 Beta
+                  </span>
+                </Link>
+              </>
             )}
 
             <p className="mt-4 text-center text-xs text-muted-foreground">
