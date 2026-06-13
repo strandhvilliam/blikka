@@ -13,20 +13,9 @@ export default async function ExportPage({ params }: PageProps<'/admin/[domain]/
   )
 
   if (marathon.mode !== 'by-camera') {
-    prefetch(trpc.zipFiles.getZipSubmissionStatus.queryOptions({ domain }))
-
-    const activeProcess = await fetchServerQuery(
-      trpc.zipFiles.getActiveProcess.queryOptions({ domain }),
-    )
-
-    if (activeProcess?.status === 'completed') {
-      prefetch(
-        trpc.zipFiles.getZipDownloadUrls.queryOptions({
-          domain,
-          processId: activeProcess.processId,
-        }),
-      )
-    }
+    // Warm both the live file list (active export, if any) and the pre-flight preview (when idle).
+    prefetch(trpc.zipFiles.getExportFiles.queryOptions({ domain }))
+    prefetch(trpc.zipFiles.getExportPreview.queryOptions({ domain }))
   }
 
   return (
