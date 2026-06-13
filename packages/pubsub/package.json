@@ -9,7 +9,7 @@
     "typescript": "^5"
   },
   "exports": {
-    "./": "./src/index.ts"
+    ".": "./src/index.ts"
   },
   "dependencies": {
     "@blikka/redis": "workspace:*",
