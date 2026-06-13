@@ -165,6 +165,9 @@ export default $config({
     uploadProcessorQueue.subscribe({
       handler: './tasks/upload-processor/src/index.handler',
       timeout: '2 minutes',
+      // Headroom for Sharp decoding up to recordConcurrency*inputConcurrency full-res photos
+      // at once (avoids OOM on large HEIC/24MP uploads); also raises CPU for faster resize.
+      memory: '2048 MB',
       environment: env,
       nodejs: {
         install: ['sharp'],
@@ -184,11 +187,24 @@ export default $config({
         }),
       ],
       link: [uploadProcessorQueue, submissionsBucket, thumbnailsBucket, submissionFinalizedBus],
+    }, {
+      // Cap how many Lambdas this queue drives. A 600-uploader burst can otherwise scale this
+      // function toward the shared 1,000 account concurrency limit and starve the finalize-side
+      // workers (validation / sheet-generator / finalizer / zip), pushing their messages to DLQs.
+      // ESM maximumConcurrency stops polling at the cap instead of invoking-and-throttling, so it
+      // does NOT burn the SQS receive count. ~100 keeps pace with peak load with margin.
+      transform: {
+        eventSourceMapping: (args) => {
+          args.scalingConfig = { maximumConcurrency: 100 }
+        },
+      },
     })
 
     sheetGeneratorQueue.subscribe({
       handler: './tasks/contact-sheet-generator/src/index.handler',
       timeout: '3 minutes',
+      // Reserved floor so contact-sheet generation can't be starved by an upload-processor burst.
+      concurrency: { reserved: 50 },
       nodejs: {
         install: ['sharp'],
       },
@@ -199,6 +215,8 @@ export default $config({
     uploadFinalizerQueue.subscribe({
       handler: './tasks/upload-finalizer/src/index.handler',
       timeout: '2 minutes',
+      // Reserved floor so participant finalization (DB writes) can't be starved by an upload-processor burst.
+      concurrency: { reserved: 50 },
       environment: env,
       link: [uploadFinalizerQueue],
     })
@@ -220,6 +238,8 @@ export default $config({
     validationQueue.subscribe({
       handler: './tasks/validation-runner/src/index.handler',
       timeout: '2 minutes',
+      // Reserved floor so validation can't be starved by an upload-processor burst.
+      concurrency: { reserved: 50 },
       environment: env,
       link: [
         validationQueue,
