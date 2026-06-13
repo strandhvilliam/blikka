@@ -8,6 +8,8 @@ import {
   type PutObjectCommandOutput,
 } from '@aws-sdk/client-s3'
 import { Duration, Effect, Option, Schedule, Schema, Context, Layer } from 'effect'
+import type { Readable } from 'node:stream'
+import { Upload } from '@aws-sdk/lib-storage'
 import { S3EffectClient, S3EffectClientLayer } from './clients/s3-effect-client'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
@@ -101,6 +103,16 @@ export class S3Service extends Context.Service<
       key: string,
       file: Buffer,
     ) => Effect.Effect<PutObjectCommandOutput, S3ClientError, never>
+    /**
+     * Stream a body to S3 via multipart upload (lib-storage), so large objects never need to be
+     * fully buffered in memory. The body is consumed as it is produced, with backpressure.
+     */
+    readonly uploadStream: (
+      bucket: string,
+      key: string,
+      body: Readable,
+      options?: { contentType?: string },
+    ) => Effect.Effect<void, S3ClientError, never>
     /**
      * Delete a file from S3.
      */
@@ -218,6 +230,33 @@ const makeS3Service = Effect.gen(function* () {
     }),
   )
 
+  const uploadStream = Effect.fn('S3Service.uploadStream')(
+    function* (
+      bucket: string,
+      key: string,
+      body: Readable,
+      options?: { contentType?: string },
+    ) {
+      yield* s3Client.use((client) =>
+        new Upload({
+          client,
+          params: {
+            Bucket: bucket,
+            Key: key,
+            Body: body,
+            ContentType: options?.contentType,
+          },
+        }).done(),
+      )
+    },
+    Effect.mapError((error) => {
+      return new S3ClientError({
+        cause: error,
+        message: 'Unexpected S3 error',
+      })
+    }),
+  )
+
   const deleteFile = Effect.fn('S3Service.deleteFile')(
     function* (bucket: string, key: string) {
       const deleteObjectCommand = new DeleteObjectCommand({
@@ -258,6 +297,7 @@ const makeS3Service = Effect.gen(function* () {
     getHead,
     getPresignedUrl,
     putFile,
+    uploadStream,
     deleteFile,
     generateSubmissionKey,
   })
