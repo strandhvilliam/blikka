@@ -90,7 +90,6 @@ export default $config({
     const uploadProcessorDlq = new sst.aws.Queue('UploadProcessorDLQ')
     const validationDlq = new sst.aws.Queue('ValidationDLQ')
     const sheetGeneratorDlq = new sst.aws.Queue('SheetGeneratorDLQ')
-    const zipWorkerDlq = new sst.aws.Queue('ZipWorkerDLQ')
     const uploadFinalizerDlq = new sst.aws.Queue('UploadFinalizerDLQ')
     const votingSmsDlq = new sst.aws.Queue('VotingSmsDLQ')
     const busTargetDlq = new sst.aws.Queue('BusTargetDLQ')
@@ -109,10 +108,6 @@ export default $config({
     })
     const sheetGeneratorQueue = new sst.aws.Queue('SheetGeneratorQueue', {
       dlq: { queue: sheetGeneratorDlq.arn, retry: 5 },
-      visibilityTimeout: '10 minutes',
-    })
-    const zipWorkerQueue = new sst.aws.Queue('ZipGeneratorQueue', {
-      dlq: { queue: zipWorkerDlq.arn, retry: 5 },
       visibilityTimeout: '10 minutes',
     })
     const votingSmsQueue = new sst.aws.Queue('VotingSmsQueue', {
@@ -136,28 +131,17 @@ export default $config({
     const vpc = new sst.aws.Vpc('BlikkaMainVPC')
     const cluster = new sst.aws.Cluster('BlikkaMainCluster', { vpc })
 
-    const zipHandlerTask = new sst.aws.Task('ZipHandlerTask', {
-      cluster,
-      image: {
-        dockerfile: '/tasks/zip-worker/Dockerfile',
-      },
-      link: [submissionsBucket, zipsBucket],
-      // dev: {
-      //   command: 'bun run src/index.ts',
-      //   directory: 'tasks/zip-worker',
-      // },
-    })
-
     new sst.aws.Task('ZipDownloaderTask', {
       cluster,
-      // Merges up to 200 participant zips per chunk entirely in memory (S3 download → JSZip extract → archiver).
+      // Generates any missing per-participant zips from originals (lazily, on download) and merges
+      // up to MAX_PARTICIPANTS_PER_ZIP per chunk in memory (S3 download → JSZip → archiver).
       cpu: '2 vCPU',
       memory: '8 GB',
       image: {
         dockerfile: '/tasks/zip-downloader/Dockerfile',
       },
       environment: env,
-      link: [zipsBucket],
+      link: [zipsBucket, submissionsBucket],
     })
 
 
@@ -221,20 +205,6 @@ export default $config({
       link: [uploadFinalizerQueue],
     })
 
-    zipWorkerQueue.subscribe({
-      handler: './tasks/zip-worker/src/handler.handler',
-      timeout: '5 minutes',
-      environment: env,
-      link: [
-        zipWorkerQueue,
-        submissionsBucket,
-        thumbnailsBucket,
-        contactSheetsBucket,
-        sponsorBucket,
-        zipHandlerTask,
-      ],
-    })
-
     validationQueue.subscribe({
       handler: './tasks/validation-runner/src/index.handler',
       timeout: '2 minutes',
@@ -283,11 +253,6 @@ export default $config({
     submissionFinalizedBus.subscribeQueue(
       'SheetGeneratorBusSubscription',
       sheetGeneratorQueue,
-      busTargetTransform,
-    )
-    submissionFinalizedBus.subscribeQueue(
-      'ZipGeneratorBusSubscription',
-      zipWorkerQueue,
       busTargetTransform,
     )
     submissionFinalizedBus.subscribeQueue(

@@ -36,7 +36,6 @@ export const realtimeEventKeys = [
   'submission-processed',
   'participant-finalized',
   'contact-sheet-generated',
-  'zip-generated',
   'participant-validated',
   'participant-verified',
   'dev-caller-completed',

@@ -91,23 +91,6 @@ declare module "sst" {
       "taskDefinition": string
       "type": "sst.aws.Task"
     }
-    "ZipGeneratorQueue": {
-      "type": "sst.aws.Queue"
-      "url": string
-    }
-    "ZipHandlerTask": {
-      "assignPublicIp": boolean
-      "cluster": string
-      "containers": any
-      "securityGroups": any
-      "subnets": any
-      "taskDefinition": string
-      "type": "sst.aws.Task"
-    }
-    "ZipWorkerDLQ": {
-      "type": "sst.aws.Queue"
-      "url": string
-    }
   }
 }
 /// <reference path="sst-env.d.ts" />
