@@ -41,9 +41,16 @@ export type ZipWorkerError =
   | S3ClientError
   | DbError
 
-export interface RunZipTaskInput {
+export interface EnsureParticipantZipInput {
   readonly domain: string
   readonly reference: string
+}
+
+export interface EnsureParticipantZipResult {
+  /** S3 key of the participant zip in the zips bucket. */
+  readonly key: string
+  /** True when the zip was built during this call; false when an existing cached zip was reused. */
+  readonly generated: boolean
 }
 
 interface ZipEntry {
@@ -51,18 +58,24 @@ interface ZipEntry {
   readonly data: Uint8Array<ArrayBufferLike>
 }
 
-export class ZipWorker extends Context.Service<
-  ZipWorker,
+export class EnsureParticipantZip extends Context.Service<
+  EnsureParticipantZip,
   {
     /**
-     * Runs the zip worker for a participant.
-     * Will zip the participant's submissions and save the zip to S3.
+     * Idempotently ensure a participant's submissions zip exists in the zips bucket.
+     *
+     * Cache hit (a `zipped_submissions` row AND the S3 object both exist) returns the key
+     * without rebuilding. On a miss (or a row without its object), the zip is built from the
+     * participant's ORIGINAL submissions, uploaded, and a `zipped_submissions` row is recorded
+     * if one does not already exist.
      */
-    readonly runZipTask: (input: RunZipTaskInput) => Effect.Effect<Buffer, ZipWorkerError>
+    readonly ensureParticipantZip: (
+      input: EnsureParticipantZipInput,
+    ) => Effect.Effect<EnsureParticipantZipResult, ZipWorkerError>
   }
->()('@blikka/uploads/ZipWorker') {}
+>()('@blikka/uploads/EnsureParticipantZip') {}
 
-function createZipKey(domain: string, reference: string) {
+export function createZipKey(domain: string, reference: string) {
   return `${domain}/${reference}.zip`
 }
 
@@ -94,14 +107,14 @@ function createZipEntryPath(reference: string, submission: Submission, topics: r
   return Option.some(`${reference}_${paddedOrderIndex}.${extension}`)
 }
 
-const makeZipWorker = Effect.gen(function* () {
+const makeEnsureParticipantZip = Effect.gen(function* () {
   const submissionsRepository = yield* SubmissionsRepository
   const topicsRepository = yield* TopicsRepository
   const participantsRepository = yield* ParticipantsRepository
   const s3 = yield* S3Service
   const config = yield* UploadsConfig
 
-  const buildZipBuffer = Effect.fn('ZipWorker.buildZipBuffer')(function* (
+  const buildZipBuffer = Effect.fn('EnsureParticipantZip.buildZipBuffer')(function* (
     domain: string,
     reference: string,
     entries: readonly ZipEntry[],
@@ -130,7 +143,7 @@ const makeZipWorker = Effect.gen(function* () {
     })
   })
 
-  const processSubmission = Effect.fn('ZipWorker.processSubmission')(function* (
+  const processSubmission = Effect.fn('EnsureParticipantZip.processSubmission')(function* (
     domain: string,
     reference: string,
     submission: Submission,
@@ -174,8 +187,59 @@ const makeZipWorker = Effect.gen(function* () {
     } satisfies ZipEntry
   })
 
-  const runZipTask = Effect.fn('ZipWorker.runZipTask')(
-    function* ({ domain, reference }: RunZipTaskInput) {
+  /** True when the zip object already exists in the bucket. NotFound and genuine S3 errors both
+   * surface as S3ClientError, so a transient error reads as a cache miss and triggers a rebuild. */
+  const zipObjectExists = (zipKey: string) =>
+    s3.getHead(config.zipsBucketName, zipKey).pipe(
+      Effect.as(true),
+      Effect.catch(() => Effect.succeed(false)),
+    )
+
+  const buildAndStore = Effect.fn('EnsureParticipantZip.buildAndStore')(function* (
+    domain: string,
+    reference: string,
+    participant: Participant & { submissions: readonly Submission[] },
+    hasExistingRow: boolean,
+  ) {
+    const zipKey = createZipKey(domain, reference)
+
+    const topics = yield* topicsRepository.getTopicsByMarathonId({
+      id: participant.marathonId,
+    })
+
+    const entries = yield* Effect.forEach(
+      participant.submissions,
+      (submission) => processSubmission(domain, reference, submission, topics),
+      { concurrency: 5 },
+    )
+
+    const zipBuffer = yield* buildZipBuffer(domain, reference, entries)
+    yield* s3.putFile(config.zipsBucketName, zipKey, zipBuffer)
+
+    // Only record the index row when one does not already exist, so a cache repair (row present
+    // but object missing) does not create a duplicate.
+    if (!hasExistingRow) {
+      const zipDto = createZippedSubmissionDto(domain, participant)
+      yield* submissionsRepository.createZippedSubmission(zipDto).pipe(
+        Effect.mapError(
+          (cause) =>
+            new FailedToGenerateZipError({
+              domain,
+              reference,
+              message: 'Failed to save zipped submission to db',
+              cause,
+            }),
+        ),
+      )
+    }
+
+    return zipKey
+  })
+
+  const ensureParticipantZip: EnsureParticipantZip['Service']['ensureParticipantZip'] = Effect.fn(
+    'EnsureParticipantZip.ensureParticipantZip',
+  )(
+    function* ({ domain, reference }: EnsureParticipantZipInput) {
       const zipKey = createZipKey(domain, reference)
 
       const participantOpt = yield* participantsRepository.getParticipantByReference({
@@ -192,42 +256,27 @@ const makeZipWorker = Effect.gen(function* () {
       }
       const participant = participantOpt.value
 
-      const topics = yield* topicsRepository.getTopicsByMarathonId({
-        id: participant.marathonId,
-      })
+      const hasExistingRow = (participant.zippedSubmissions ?? []).some((zs) => zs.key === zipKey)
 
-      const entries = yield* Effect.forEach(
-        participant.submissions,
-        (submission) => processSubmission(domain, reference, submission, topics),
-        { concurrency: 5 },
-      )
+      if (hasExistingRow && (yield* zipObjectExists(zipKey))) {
+        return { key: zipKey, generated: false } satisfies EnsureParticipantZipResult
+      }
 
-      const zipBuffer = yield* buildZipBuffer(domain, reference, entries)
-      yield* s3.putFile(config.zipsBucketName, zipKey, zipBuffer)
+      yield* buildAndStore(domain, reference, participant, hasExistingRow)
 
-      const zipDto = createZippedSubmissionDto(domain, participant)
-      yield* submissionsRepository.createZippedSubmission(zipDto).pipe(
-        Effect.mapError(
-          (cause) =>
-            new FailedToGenerateZipError({
-              domain,
-              reference,
-              message: 'Failed to save zipped submission to db',
-              cause,
-            }),
-        ),
-      )
-
-      return zipBuffer
+      return { key: zipKey, generated: true } satisfies EnsureParticipantZipResult
     },
     (effect, input) => Effect.annotateLogs(effect, { ...input }),
   )
 
-  return ZipWorker.of({ runZipTask })
+  return EnsureParticipantZip.of({ ensureParticipantZip })
 })
 
-export const ZipWorkerLayerNoDeps = Layer.effect(ZipWorker, makeZipWorker)
+export const EnsureParticipantZipLayerNoDeps = Layer.effect(
+  EnsureParticipantZip,
+  makeEnsureParticipantZip,
+)
 
-export const ZipWorkerLayer = ZipWorkerLayerNoDeps.pipe(
+export const EnsureParticipantZipLayer = EnsureParticipantZipLayerNoDeps.pipe(
   Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer, UploadsConfigLayer)),
 )

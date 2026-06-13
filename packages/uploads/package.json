@@ -11,9 +11,11 @@
     "./submission-processor": "./src/submission-processor.ts",
     "./validation-runner": "./src/validation-runner.ts",
     "./flagged-verification-flow": "./src/flagged-verification-flow.ts",
-    "./zip-worker": "./src/zip-worker.ts"
+    "./ensure-participant-zip": "./src/ensure-participant-zip.ts",
+    "./zip-downloader": "./src/zip-downloader.ts"
   },
   "devDependencies": {
+    "@types/archiver": "^7.0.0",
     "@types/bun": "latest"
   },
   "peerDependencies": {
@@ -27,6 +29,7 @@
     "@blikka/kv-store": "workspace:*",
     "@blikka/redis": "workspace:*",
     "@blikka/validation": "workspace:*",
+    "archiver": "^7.0.1",
     "effect": "catalog:",
     "jszip": "^3.10.1"
   }
