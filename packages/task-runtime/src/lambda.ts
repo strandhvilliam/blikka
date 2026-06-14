@@ -1,5 +1,5 @@
 import { LambdaHandler, type SQSEvent } from '@effect-aws/lambda'
-import type { SQSRecord } from 'aws-lambda'
+import type { SQSBatchItemFailure, SQSBatchResponse, SQSRecord } from 'aws-lambda'
 import { Effect, Layer } from 'effect'
 import { RealtimeEventsService, type RealtimeEventKey } from '@blikka/realtime'
 import { TaskEnvironment } from './environment'
@@ -30,6 +30,49 @@ export interface SqsTaskOptions<Input, R> {
   inputConcurrency?: number
 }
 
+/**
+ * Runs each SQS record independently and reports per-record failures via the
+ * `SQSBatchResponse` partial-batch protocol instead of failing the whole effect.
+ *
+ * A failing record (decode or `run` error — or an unexpected defect) is logged and its
+ * `messageId` is added to `batchItemFailures`; the rest of the batch still completes. AWS then
+ * redelivers ONLY the failed messages — so one poison record no longer drags its 9 batch-mates
+ * through up-to-5 redeliveries to the DLQ. `catchCause` (not `catch`) is deliberate: it isolates
+ * defects too, so a record that dies still fails alone instead of crashing the whole invocation.
+ *
+ * IMPORTANT: this only takes effect when the event source mapping has `ReportBatchItemFailures`
+ * enabled (`batch: { partialResponses: true }` in `sst.config.ts`). Without it, AWS treats a
+ * non-throwing invocation as full success and deletes every message — including the failed ones.
+ * The two must ship together.
+ */
+const processRecordsWithPartialFailures = <R>(
+  event: SQSEvent,
+  processRecord: (record: SQSRecord) => Effect.Effect<unknown, unknown, R>,
+  options: { taskName: string; recordConcurrency?: number },
+) =>
+  Effect.gen(function* () {
+    const outcomes = yield* Effect.forEach(
+      event.Records,
+      (record) =>
+        processRecord(record).pipe(
+          Effect.as<SQSBatchItemFailure | null>(null),
+          Effect.catchCause((cause) =>
+            Effect.logError(`${options.taskName} record failed`, cause).pipe(
+              Effect.annotateLogs({ messageId: record.messageId }),
+              Effect.as<SQSBatchItemFailure | null>({ itemIdentifier: record.messageId }),
+            ),
+          ),
+        ),
+      { concurrency: options.recordConcurrency ?? 2 },
+    )
+
+    return {
+      batchItemFailures: outcomes.filter(
+        (outcome): outcome is SQSBatchItemFailure => outcome !== null,
+      ),
+    } satisfies SQSBatchResponse
+  })
+
 export const makeSqsTask =
   <Input, R>(options: SqsTaskOptions<Input, R>) =>
   (event: SQSEvent) =>
@@ -45,8 +88,9 @@ export const makeSqsTask =
         })
       })
 
-      yield* Effect.forEach(event.Records, processRecord, {
-        concurrency: options.recordConcurrency ?? 2,
+      return yield* processRecordsWithPartialFailures(event, processRecord, {
+        taskName: options.taskName,
+        recordConcurrency: options.recordConcurrency,
       })
     }).pipe(
       Effect.withSpan(options.spanName),
@@ -83,8 +127,9 @@ export const makeSqsRealtimeTask =
         )
       })
 
-      yield* Effect.forEach(event.Records, processRecord, {
-        concurrency: options.recordConcurrency ?? 2,
+      return yield* processRecordsWithPartialFailures(event, processRecord, {
+        taskName: options.taskName,
+        recordConcurrency: options.recordConcurrency,
       })
     }).pipe(
       Effect.withSpan(options.spanName),

@@ -146,6 +146,7 @@ export default $config({
 
 
     /* QUEUE HANDLERS */
+
     uploadProcessorQueue.subscribe({
       handler: './tasks/upload-processor/src/index.handler',
       timeout: '2 minutes',
@@ -172,11 +173,16 @@ export default $config({
       ],
       link: [uploadProcessorQueue, submissionsBucket, thumbnailsBucket, submissionFinalizedBus],
     }, {
+      // Report per-message failures so one poison photo doesn't redeliver its whole batch of 10.
+      batch: {
+        partialResponses: true
+      },
       // Cap how many Lambdas this queue drives. A 600-uploader burst can otherwise scale this
       // function toward the shared 1,000 account concurrency limit and starve the finalize-side
       // workers (validation / sheet-generator / finalizer / zip), pushing their messages to DLQs.
       // ESM maximumConcurrency stops polling at the cap instead of invoking-and-throttling, so it
       // does NOT burn the SQS receive count. ~100 keeps pace with peak load with margin.
+      // maximumConcurrency has no first-class option, so it stays a transform.
       transform: {
         eventSourceMapping: (args) => {
           args.scalingConfig = { maximumConcurrency: 100 }
@@ -184,41 +190,62 @@ export default $config({
       },
     })
 
-    sheetGeneratorQueue.subscribe({
-      handler: './tasks/contact-sheet-generator/src/index.handler',
-      timeout: '3 minutes',
-      // Reserved floor so contact-sheet generation can't be starved by an upload-processor burst.
-      concurrency: { reserved: 50 },
-      nodejs: {
-        install: ['sharp'],
+    sheetGeneratorQueue.subscribe(
+      {
+        handler: './tasks/contact-sheet-generator/src/index.handler',
+        timeout: '3 minutes',
+        // Reserved floor so contact-sheet generation can't be starved by an upload-processor burst.
+        concurrency: { reserved: 50 },
+        nodejs: {
+          install: ['sharp'],
+        },
+        environment: env,
+        link: [sheetGeneratorQueue, contactSheetsBucket, submissionsBucket, sponsorBucket],
       },
-      environment: env,
-      link: [sheetGeneratorQueue, contactSheetsBucket, submissionsBucket, sponsorBucket],
-    })
+      {
+        batch: {
+          partialResponses: true
+        },
+      }
+    )
 
-    uploadFinalizerQueue.subscribe({
-      handler: './tasks/upload-finalizer/src/index.handler',
-      timeout: '2 minutes',
-      // Reserved floor so participant finalization (DB writes) can't be starved by an upload-processor burst.
-      concurrency: { reserved: 50 },
-      environment: env,
-      link: [uploadFinalizerQueue],
-    })
+    uploadFinalizerQueue.subscribe(
+      {
+        handler: './tasks/upload-finalizer/src/index.handler',
+        timeout: '2 minutes',
+        // Reserved floor so participant finalization (DB writes) can't be starved by an upload-processor burst.
+        concurrency: { reserved: 50 },
+        environment: env,
+        link: [uploadFinalizerQueue],
+      },
+      {
+        batch: {
+          partialResponses: true
+        }
+      },
+    )
 
-    validationQueue.subscribe({
-      handler: './tasks/validation-runner/src/index.handler',
-      timeout: '2 minutes',
-      // Reserved floor so validation can't be starved by an upload-processor burst.
-      concurrency: { reserved: 50 },
-      environment: env,
-      link: [
-        validationQueue,
-        submissionsBucket,
-        thumbnailsBucket,
-        contactSheetsBucket,
-        sponsorBucket,
-      ],
-    })
+    validationQueue.subscribe(
+      {
+        handler: './tasks/validation-runner/src/index.handler',
+        timeout: '2 minutes',
+        // Reserved floor so validation can't be starved by an upload-processor burst.
+        concurrency: { reserved: 50 },
+        environment: env,
+        link: [
+          validationQueue,
+          submissionsBucket,
+          thumbnailsBucket,
+          contactSheetsBucket,
+          sponsorBucket,
+        ],
+      },
+      {
+        batch: {
+          partialResponses: true
+        }
+      },
+    )
 
     votingSmsQueue.subscribe({
       handler: './tasks/voting-sms-notifier/src/index.handler',

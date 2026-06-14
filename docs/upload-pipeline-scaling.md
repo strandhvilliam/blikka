@@ -3,10 +3,10 @@
 Analysis of the S3 `ObjectCreated`-triggered task/worker pipeline, with a focus on a
 high-load event: **~600 people each uploading 8–24 photos within ~30 minutes**.
 
-> Status of claims: most points are verified against the code (file refs below). Two items
-> are flagged **[verify]** and should be confirmed before drawing firm conclusions:
-> the SQS partial-batch-failure behavior in `makeLambdaHandler`, and whether the zip
-> ECS task truly fires per finalize.
+> Status of claims: most points are verified against the code (file refs below). The two
+> items previously flagged **[verify]** are now resolved — the zip ECS task did fire per
+> finalize (issue #3, fixed), and partial-batch-failure reporting was indeed *not* wired up
+> (issue #4, fixed).
 
 ## The pipeline
 
@@ -137,12 +137,25 @@ in-flight upload parts; chunk size is also capped at 100 as a guard. Streaming g
 **Other open risks to watch:** Vercel `maxDuration` for the single-participant inline build;
 benign duplicate `zipped_submissions` rows under concurrent ensures.
 
-### 4. SQS batch partial-failure semantics **[verify]**
-`makeSqsRealtimeTask` runs `Effect.forEach` over the batch and fails the whole effect if any
-record fails. Unless `makeLambdaHandler` reports `reportBatchItemFailures`, **one poison
-photo in a batch of 10 redelivers all 10** — reprocessed up to 5× before DLQ. Idempotency
-keeps it correct, but it multiplies Redis/S3/Sharp load when already hot.
-**Fix:** confirm partial batch responses are wired up; if not, that's a cheap, high-value fix.
+### 4. SQS batch partial-failure semantics — ✅ ADDRESSED
+**Verified:** it was *not* wired up. `makeSqsTask`/`makeSqsRealtimeTask` ran `Effect.forEach`
+over the batch and failed the whole effect on the first failing record, and `makeLambdaHandler`
+(`LambdaHandler.make`) returns `void` — no `SQSBatchResponse`. So **one poison photo in a batch
+of 10 redelivered all 10**, reprocessed up to 5× before DLQ. Idempotency kept it correct but it
+multiplied Redis/S3/Sharp load exactly when the system was already hot.
+
+**Fix shipped (see Changelog):** the two shared SQS task constructors now process each record
+independently — a failing record (decode *or* `run` error) is logged and its `messageId` is
+collected — and return a partial-batch `SQSBatchResponse` (`{ batchItemFailures: [...] }`) instead
+of failing the whole effect. The four affected event-source mappings (`UploadProcessorQueue`,
+`SheetGeneratorQueue`, `UploadFinalizerQueue`, `ValidationQueue`) now set `ReportBatchItemFailures`,
+so AWS redelivers **only** the failed messages.
+
+> These two changes are coupled and must ship together: returning `batchItemFailures` *without*
+> `ReportBatchItemFailures` on the ESM would make AWS treat a non-throwing invocation as full
+> success and delete the failed messages too (silent data loss). The bespoke `voting-sms-notifier`
+> handler is intentionally left as-is (it still fails the whole batch and its queue does **not**
+> set `ReportBatchItemFailures`, so it stays consistent).
 
 ### 5. Upstash request volume & sequential latency
 ~7 non-pipelined round-trips per photo means (a) request-rate pressure against the Upstash
@@ -168,10 +181,33 @@ spikes.
 1. ~~Set Lambda memory + reserved concurrency on upload-processor.~~ ✅ done (see Changelog).
 2. ~~Confirm/limit the per-finalize ECS zip fan-out.~~ ✅ done — eager zip pipeline removed,
    generation moved to lazy download-time (see Changelog).
-3. Verify partial-batch-failure reporting **[verify]**.
+3. ~~Verify partial-batch-failure reporting.~~ ✅ done — was not wired up; now returns
+   `SQSBatchResponse` + `ReportBatchItemFailures` on the affected ESMs (see Changelog).
 4. Redis pipelining + marathon caching (efficiency wins).
 
 ## Changelog
+
+### 2026-06-14 — SQS partial-batch failures (issue #4)
+
+Stopped one poison record from dragging its whole batch (up to 10) through repeated
+redeliveries to the DLQ.
+
+| Area | Change |
+|---|---|
+| `packages/task-runtime/src/lambda.ts` | Added `processRecordsWithPartialFailures`: runs each record through `Effect.catchCause`, logs + collects the `messageId` of any failure, and returns `{ batchItemFailures }` (`SQSBatchResponse`). Both `makeSqsTask` and `makeSqsRealtimeTask` now delegate to it instead of `Effect.forEach`-then-fail-fast. `catchCause` (not `catch`) isolates defects too, so a record that *dies* still fails alone rather than crashing the whole invocation |
+| `sst.config.ts` | Enabled SST's first-class `batch: { partialResponses: true }` (which sets the ESM's `functionResponseTypes = ['ReportBatchItemFailures']`) on `SheetGeneratorQueue`, `UploadFinalizerQueue`, `ValidationQueue`, and `UploadProcessorQueue` (spread alongside the existing `maximumConcurrency` transform, which has no first-class option) |
+
+Granularity is per-SQS-message (the redeliverable unit): if any decoded input within a record
+fails, that whole record is reported failed and redelivered — idempotency makes the
+already-succeeded inputs safe to re-run. Infra-level failures before the per-record loop (service
+acquisition) still fail the whole invocation, so the whole batch retries — correct.
+
+Out of scope: the bespoke `voting-sms-notifier` handler keeps fail-the-whole-batch semantics and
+its queue does **not** enable `ReportBatchItemFailures` (the two must stay paired).
+
+Not added: a unit test for the new helper — `@blikka/task-runtime` has no test setup and importing
+`lambda.ts` transitively pulls `@blikka/telemetry`, which vitest can't resolve (no `exports` entry).
+Behavior was verified by `tsc` + manual review; wiring a test would mean unrelated package changes.
 
 ### 2026-06-13 — Concurrency partitioning (issue #1) — `sst.config.ts`
 
