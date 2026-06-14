@@ -527,7 +527,7 @@ const makeDownloadStateRepository = Effect.gen(function* () {
     function* (processId) {
       const key = Keys.downloadProcess(processId)
       const values = yield* redis.use((client) =>
-        client.hmget<[unknown, unknown, unknown, unknown, unknown]>(
+        client.hmget(
           key,
           'status',
           'totalChunks',
