@@ -44,6 +44,7 @@ export function PhoneLookupStep({ isSubmitting, onSubmitAction }: PhoneLookupSte
         <div className="space-y-2 text-left">
           <label className="text-sm font-medium text-foreground">Phone number</label>
           <PhoneInput
+            autoFocus
             value={phone}
             onChange={(next) => setFormField('phone', next ?? '')}
             defaultCountry="SE"

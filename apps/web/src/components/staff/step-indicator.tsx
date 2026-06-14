@@ -7,6 +7,7 @@ import { useStaffUploadStep } from '@/hooks/staff/use-staff-upload-step'
 
 const STEPS = [
   { key: 'find', label: 'Find' },
+  { key: 'details', label: 'Details' },
   { key: 'select', label: 'Select' },
   { key: 'upload', label: 'Upload' },
   { key: 'done', label: 'Done' },
@@ -15,10 +16,10 @@ const STEPS = [
 const FLOW_STEP_TO_INDEX: Record<string, number> = {
   phone: 0,
   reference: 0,
-  details: 0,
-  upload: 1,
-  progress: 2,
-  complete: 3,
+  details: 1,
+  upload: 2,
+  progress: 3,
+  complete: 4,
 }
 
 const CONNECTOR_CLASS = 'w-6 shrink-0 sm:w-10'

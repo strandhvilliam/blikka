@@ -942,9 +942,10 @@ export function StaffLaptopUploadClient({
                   className="rounded-full"
                   onClick={() => {
                     patchPhotos({ filesError: null })
-                    setTermsAccepted(false)
 
                     if (existingParticipant) {
+                      // Switching to a different participant — reset their acceptance too.
+                      setTermsAccepted(false)
                       resetPhotoSelection()
                       resetUploadFlow()
                       patchParticipant({
@@ -958,6 +959,8 @@ export function StaffLaptopUploadClient({
                       return
                     }
 
+                    // Same participant, just editing their details — keep terms acceptance
+                    // and the selected photos so staff don't have to redo them.
                     void setStep('details')
                   }}
                   disabled={isBusy}

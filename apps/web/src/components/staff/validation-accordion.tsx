@@ -64,7 +64,6 @@ function ruleLabel(validation: ValidationResult) {
 }
 
 function globalLeadIconClass(counts: ReturnType<typeof countsFor>) {
-  console.log('counts', counts)
   if (counts.errors > 0) return 'border-red-200 bg-red-50 text-red-700'
   if (counts.warnings > 0) return 'border-amber-200 bg-amber-50 text-amber-800'
   if (counts.passed > 0 && counts.errors === 0 && counts.warnings === 0) {

@@ -2,7 +2,11 @@
 
 import { AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
-import { buildPhotoValidationMap, splitValidationResultsBySeverity } from '@/lib/validation'
+import {
+  buildPhotoValidationMap,
+  createValidationResultKey,
+  splitValidationResultsBySeverity,
+} from '@/lib/validation'
 import { getExpectedPhotoCount, getSelectedTopics } from '@/lib/upload-utils'
 import { processSelectedFiles } from '@/lib/participant-selected-files'
 import { StaffParticipantCard } from '@/components/staff/staff-participant-card'
@@ -220,6 +224,29 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
               {warningCount} warning{warningCount !== 1 ? 's' : ''}
             </span>
           ) : null}
+        </div>
+      ) : null}
+
+      {blockingErrorCount > 0 && selectedPhotos.length > 0 ? (
+        <div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <div className="flex items-start gap-2 font-medium">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              {blockingErrorCount === 1
+                ? "One photo has a blocking issue, so the upload can't start yet."
+                : `${blockingErrorCount} photos have blocking issues, so the upload can't start yet.`}
+            </p>
+          </div>
+          <ul className="ml-6 list-disc space-y-1 text-rose-700">
+            {blockingValidationErrors.map((result) => (
+              <li key={createValidationResultKey(result)}>{result.message}</li>
+            ))}
+          </ul>
+          <p className="ml-6 text-rose-700">
+            Replace the flagged photo{blockingErrorCount === 1 ? '' : 's'} above with one that meets
+            the requirements. If the participant has no other photo, this upload must be completed by
+            an admin from the dashboard.
+          </p>
         </div>
       ) : null}
 

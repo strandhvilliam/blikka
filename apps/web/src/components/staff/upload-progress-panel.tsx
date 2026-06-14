@@ -1,6 +1,7 @@
 'use client'
 
-import { DownloadIcon, Loader2, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertTriangle, DownloadIcon, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,14 @@ import { StaffParticipantCard } from '@/components/staff/staff-participant-card'
 import { useStaffUploadParticipantSummary } from '@/hooks/staff/use-staff-upload-participant-summary'
 import { useStaffUploadStep } from '@/hooks/staff/use-staff-upload-step'
 import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
+
+/**
+ * How long the client waits on server finalization (the polling phase, after every
+ * file has uploaded) before surfacing a "taking longer than expected" state with
+ * manual escape controls. Without this, a dropped finalize event can strand staff
+ * on this screen with no way out except a full page reload.
+ */
+const POLLING_STALL_TIMEOUT_MS = 25_000
 
 export function UploadProgressPanel() {
   const domain = useDomain()
@@ -35,10 +44,25 @@ export function UploadProgressPanel() {
   const total = files.length
   const isWorking = isUploadingFiles || isPollingStatus
   const canRetryFailedUploads = files.some((file) => file.phase === 'error')
+
+  // Surface a stalled state if server finalization (the polling phase) takes too long.
+  // Reset the timer whenever progress is made (`completed` changes) or polling stops.
+  const [isStalled, setIsStalled] = useState(false)
+  useEffect(() => {
+    if (!isPollingStatus) {
+      setIsStalled(false)
+      return
+    }
+    setIsStalled(false)
+    const timeoutId = window.setTimeout(() => setIsStalled(true), POLLING_STALL_TIMEOUT_MS)
+    return () => window.clearTimeout(timeoutId)
+  }, [isPollingStatus, completed])
+
   const canSaveLocally =
-    (Boolean(uploadErrorMessage) || canRetryFailedUploads) &&
+    (Boolean(uploadErrorMessage) || canRetryFailedUploads || isStalled) &&
     !isSavingLocally &&
     selectedPhotos.length > 0
+  const canGoBackToPhotos = (!isWorking && !canRetryFailedUploads) || isStalled
   const progressPercent = total > 0 ? (completed / total) * 100 : 0
 
   const handleRetryFailed = async () => {
@@ -111,7 +135,7 @@ export function UploadProgressPanel() {
                 {completed}/{total || files.length || 0}
               </span>
               <Badge variant="outline" className="border-border bg-muted text-muted-foreground">
-                {isWorking ? 'In progress' : 'Paused'}
+                {isStalled ? 'Still processing' : isWorking ? 'In progress' : 'Paused'}
               </Badge>
             </div>
           </div>
@@ -142,7 +166,7 @@ export function UploadProgressPanel() {
                 Save locally
               </Button>
             ) : null}
-            {!isWorking && !canRetryFailedUploads ? (
+            {canGoBackToPhotos ? (
               <Button
                 type="button"
                 variant="outline"
@@ -168,6 +192,15 @@ export function UploadProgressPanel() {
         {uploadErrorMessage ? (
           <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {uploadErrorMessage}
+          </div>
+        ) : isStalled ? (
+          <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              This is taking longer than expected. The photos uploaded and may still be processing
+              on the server. You can keep waiting, save a local backup, or go back to the photos and
+              try again.
+            </p>
           </div>
         ) : null}
       </div>
