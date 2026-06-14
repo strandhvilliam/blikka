@@ -173,6 +173,13 @@ const makeUploadFinalizer = Effect.gen(function* () {
 
   const finalize = Effect.fn('UploadFinalizer.finalizeParticipant')(
     function* ({ domain, reference, uploadSessionId }: FinalizeParticipantInput) {
+      // Set from inside the body via annotateCurrentSpan so they land on the finalize span itself —
+      // a trailing Effect.fn transform (annotateSpans) only annotates child spans, not this span.
+      yield* Effect.annotateCurrentSpan({
+        'blikka.domain': domain,
+        'blikka.reference': reference,
+        'blikka.upload_session_id': uploadSessionId,
+      })
       const participantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
       if (Option.isNone(participantStateOpt)) {
         return yield* new FailedToFinalizeParticipantError({

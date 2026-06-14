@@ -144,53 +144,55 @@ export default $config({
       link: [zipsBucket, submissionsBucket],
     })
 
-
     /* QUEUE HANDLERS */
 
-    uploadProcessorQueue.subscribe({
-      handler: './tasks/upload-processor/src/index.handler',
-      timeout: '2 minutes',
-      // Headroom for Sharp decoding up to recordConcurrency*inputConcurrency full-res photos
-      // at once (avoids OOM on large HEIC/24MP uploads); also raises CPU for faster resize.
-      memory: '2048 MB',
-      environment: env,
-      nodejs: {
-        install: ['sharp'],
+    const uploadProcessorSubscriber = uploadProcessorQueue.subscribe(
+      {
+        handler: './tasks/upload-processor/src/index.handler',
+        timeout: '2 minutes',
+        // Headroom for Sharp decoding up to recordConcurrency*inputConcurrency full-res photos
+        // at once (avoids OOM on large HEIC/24MP uploads); also raises CPU for faster resize.
+        memory: '2048 MB',
+        environment: env,
+        nodejs: {
+          install: ['sharp'],
+        },
+        permissions: [
+          sst.aws.permission({
+            actions: ['s3:ListBucket'],
+            resources: [submissionsBucket.arn],
+          }),
+          sst.aws.permission({
+            actions: ['s3:GetObject'],
+            resources: [submissionsBucket.arn.apply((arn) => `${arn}/*`)],
+          }),
+          sst.aws.permission({
+            actions: ['s3:PutObject'],
+            resources: [thumbnailsBucket.arn.apply((arn) => `${arn}/*`)],
+          }),
+        ],
+        link: [uploadProcessorQueue, submissionsBucket, thumbnailsBucket, submissionFinalizedBus],
       },
-      permissions: [
-        sst.aws.permission({
-          actions: ['s3:ListBucket'],
-          resources: [submissionsBucket.arn],
-        }),
-        sst.aws.permission({
-          actions: ['s3:GetObject'],
-          resources: [submissionsBucket.arn.apply((arn) => `${arn}/*`)],
-        }),
-        sst.aws.permission({
-          actions: ['s3:PutObject'],
-          resources: [thumbnailsBucket.arn.apply((arn) => `${arn}/*`)],
-        }),
-      ],
-      link: [uploadProcessorQueue, submissionsBucket, thumbnailsBucket, submissionFinalizedBus],
-    }, {
-      // Report per-message failures so one poison photo doesn't redeliver its whole batch of 10.
-      batch: {
-        partialResponses: true
-      },
-      // Cap how many Lambdas this queue drives. A 600-uploader burst can otherwise scale this
-      // function toward the shared 1,000 account concurrency limit and starve the finalize-side
-      // workers (validation / sheet-generator / finalizer / zip), pushing their messages to DLQs.
-      // ESM maximumConcurrency stops polling at the cap instead of invoking-and-throttling, so it
-      // does NOT burn the SQS receive count. ~100 keeps pace with peak load with margin.
-      // maximumConcurrency has no first-class option, so it stays a transform.
-      transform: {
-        eventSourceMapping: (args) => {
-          args.scalingConfig = { maximumConcurrency: 100 }
+      {
+        // Report per-message failures so one poison photo doesn't redeliver its whole batch of 10.
+        batch: {
+          partialResponses: true,
+        },
+        // Cap how many Lambdas this queue drives. A 600-uploader burst can otherwise scale this
+        // function toward the shared 1,000 account concurrency limit and starve the finalize-side
+        // workers (validation / sheet-generator / finalizer / zip), pushing their messages to DLQs.
+        // ESM maximumConcurrency stops polling at the cap instead of invoking-and-throttling, so it
+        // does NOT burn the SQS receive count. ~100 keeps pace with peak load with margin.
+        // maximumConcurrency has no first-class option, so it stays a transform.
+        transform: {
+          eventSourceMapping: (args) => {
+            args.scalingConfig = { maximumConcurrency: 100 }
+          },
         },
       },
-    })
+    )
 
-    sheetGeneratorQueue.subscribe(
+    const sheetGeneratorSubscriber = sheetGeneratorQueue.subscribe(
       {
         handler: './tasks/contact-sheet-generator/src/index.handler',
         timeout: '3 minutes',
@@ -204,12 +206,12 @@ export default $config({
       },
       {
         batch: {
-          partialResponses: true
+          partialResponses: true,
         },
-      }
+      },
     )
 
-    uploadFinalizerQueue.subscribe(
+    const uploadFinalizerSubscriber = uploadFinalizerQueue.subscribe(
       {
         handler: './tasks/upload-finalizer/src/index.handler',
         timeout: '2 minutes',
@@ -220,12 +222,12 @@ export default $config({
       },
       {
         batch: {
-          partialResponses: true
-        }
+          partialResponses: true,
+        },
       },
     )
 
-    validationQueue.subscribe(
+    const validationSubscriber = validationQueue.subscribe(
       {
         handler: './tasks/validation-runner/src/index.handler',
         timeout: '2 minutes',
@@ -242,8 +244,8 @@ export default $config({
       },
       {
         batch: {
-          partialResponses: true
-        }
+          partialResponses: true,
+        },
       },
     )
 
@@ -316,6 +318,95 @@ export default $config({
           }),
         ),
     })
+
+    /* OBSERVABILITY ALARMS
+     * CloudWatch alarms → a single SNS topic, so a live event surfaces failures fast.
+     * The topic has no subscription yet: subscribe an email/Slack endpoint (console or
+     * `aws sns subscribe`) to actually receive alerts. See docs/observability-improvements.md. */
+    const alertsTopic = new aws.sns.Topic('ObservabilityAlerts')
+
+    const dlqDepthAlarm = (name: string, queueName: $util.Input<string>) =>
+      new aws.cloudwatch.MetricAlarm(name, {
+        namespace: 'AWS/SQS',
+        metricName: 'ApproximateNumberOfMessagesVisible',
+        dimensions: { QueueName: queueName },
+        statistic: 'Maximum',
+        period: 60,
+        evaluationPeriods: 1,
+        threshold: 1,
+        comparisonOperator: 'GreaterThanOrEqualToThreshold',
+        treatMissingData: 'notBreaching',
+        alarmActions: [alertsTopic.arn],
+        okActions: [alertsTopic.arn],
+        alarmDescription: `${name}: messages present in dead-letter queue (silent failure)`,
+      })
+
+    const queueBacklogAlarm = (name: string, queueName: $util.Input<string>) =>
+      new aws.cloudwatch.MetricAlarm(name, {
+        namespace: 'AWS/SQS',
+        metricName: 'ApproximateAgeOfOldestMessage',
+        dimensions: { QueueName: queueName },
+        statistic: 'Maximum',
+        period: 60,
+        evaluationPeriods: 3,
+        threshold: 300,
+        comparisonOperator: 'GreaterThanThreshold',
+        treatMissingData: 'notBreaching',
+        alarmActions: [alertsTopic.arn],
+        okActions: [alertsTopic.arn],
+        alarmDescription: `${name}: oldest message older than 5 minutes (backlog building)`,
+      })
+
+    const lambdaAlarm = (
+      name: string,
+      functionName: $util.Input<string>,
+      metricName: 'Throttles' | 'Errors',
+      threshold: number,
+    ) =>
+      new aws.cloudwatch.MetricAlarm(name, {
+        namespace: 'AWS/Lambda',
+        metricName,
+        dimensions: { FunctionName: functionName },
+        statistic: 'Sum',
+        period: 60,
+        evaluationPeriods: 1,
+        threshold,
+        comparisonOperator: 'GreaterThanOrEqualToThreshold',
+        treatMissingData: 'notBreaching',
+        alarmActions: [alertsTopic.arn],
+        okActions: [alertsTopic.arn],
+        alarmDescription: `${name}: ${metricName} >= ${threshold}`,
+      })
+
+    // A message in any DLQ means a photo/finalize/validation silently failed — the #1 signal.
+    dlqDepthAlarm('UploadProcessorDLQDepth', uploadProcessorDlq.nodes.queue.name)
+    dlqDepthAlarm('UploadFinalizerDLQDepth', uploadFinalizerDlq.nodes.queue.name)
+    dlqDepthAlarm('ValidationDLQDepth', validationDlq.nodes.queue.name)
+    dlqDepthAlarm('SheetGeneratorDLQDepth', sheetGeneratorDlq.nodes.queue.name)
+    dlqDepthAlarm('VotingSmsDLQDepth', votingSmsDlq.nodes.queue.name)
+    dlqDepthAlarm('BusTargetDLQDepth', busTargetDlq.nodes.queue.name)
+
+    // Rising oldest-message age on the finalize-side queues = early warning of pool starvation.
+    // NOT the upload-processor queue: it is intentionally capped (maximumConcurrency: 100) and
+    // messages are designed to wait there during a burst (see docs/upload-pipeline-scaling.md), so a
+    // backlog-age alarm on it would false-fire during exactly the healthy live event it should watch.
+    queueBacklogAlarm('UploadFinalizerBacklog', uploadFinalizerQueue.nodes.queue.name)
+    queueBacklogAlarm('ValidationBacklog', validationQueue.nodes.queue.name)
+    queueBacklogAlarm('SheetGeneratorBacklog', sheetGeneratorQueue.nodes.queue.name)
+
+    // Per-subscriber throttles (concurrency starvation, precedes DLQ growth) + errors.
+    const subscribers = [
+      ['UploadProcessor', uploadProcessorSubscriber],
+      ['UploadFinalizer', uploadFinalizerSubscriber],
+      ['Validation', validationSubscriber],
+      ['SheetGenerator', sheetGeneratorSubscriber],
+    ] as const
+    for (const [label, subscriber] of subscribers) {
+      // `subscribe()` returns Output<QueueLambdaSubscriber>, so reach the function name via apply.
+      const functionName = subscriber.apply((s) => s.nodes.function.name)
+      lambdaAlarm(`${label}Throttles`, functionName, 'Throttles', 1)
+      lambdaAlarm(`${label}Errors`, functionName, 'Errors', 5)
+    }
 
     return {
       submissionsBucket: submissionsBucket.name,

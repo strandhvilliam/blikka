@@ -73,6 +73,24 @@ const processRecordsWithPartialFailures = <R>(
     } satisfies SQSBatchResponse
   })
 
+/** OTel span attributes for a single decoded task input; only defined fields are included. */
+const targetSpanAttributes = (
+  taskName: string,
+  messageId: string,
+  target?: TaskEventTarget,
+): Record<string, string | number> => {
+  const attributes: Record<string, string | number> = {
+    'blikka.task': taskName,
+    'messaging.message_id': messageId,
+  }
+  if (target?.domain !== undefined) attributes['blikka.domain'] = target.domain
+  if (target?.reference !== undefined) attributes['blikka.reference'] = target.reference
+  if (target?.metadata?.orderIndex !== undefined) {
+    attributes['blikka.order_index'] = target.metadata.orderIndex
+  }
+  return attributes
+}
+
 export const makeSqsTask =
   <Input, R>(options: SqsTaskOptions<Input, R>) =>
   (event: SQSEvent) =>
@@ -80,6 +98,8 @@ export const makeSqsTask =
       const processRecord = Effect.fn(`${options.taskName}.processSQSRecord`)(function* (
         record: SQSRecord,
       ) {
+        yield* Effect.annotateCurrentSpan(targetSpanAttributes(options.taskName, record.messageId))
+
         const decoded = yield* options.decodeRecord(record)
         const inputs = (Array.isArray(decoded) ? decoded : [decoded]) as ReadonlyArray<Input>
 
@@ -115,13 +135,19 @@ export const makeSqsRealtimeTask =
           (input) => {
             const workflow = options.run(input)
 
-            return realtimeEvents.withEventResult(workflow, {
-              eventKey: options.eventKey,
-              environment: taskEnvironment.environment,
-              domain: input.domain,
-              reference: input.reference,
-              metadata: input.metadata,
-            })
+            return realtimeEvents
+              .withEventResult(workflow, {
+                eventKey: options.eventKey,
+                environment: taskEnvironment.environment,
+                domain: input.domain,
+                reference: input.reference,
+                metadata: input.metadata,
+              })
+              .pipe(
+                Effect.withSpan(`${options.taskName}.run`, {
+                  attributes: targetSpanAttributes(options.taskName, record.messageId, input),
+                }),
+              )
           },
           { concurrency: options.inputConcurrency ?? 1 },
         )

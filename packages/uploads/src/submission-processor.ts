@@ -278,11 +278,7 @@ const makeSubmissionProcessor = Effect.gen(function* () {
       return
     }
 
-    const claimed = yield* uploadKv.claimFinalizeEventEmission(
-      domain,
-      reference,
-      uploadSessionId,
-    )
+    const claimed = yield* uploadKv.claimFinalizeEventEmission(domain, reference, uploadSessionId)
 
     if (!claimed) {
       yield* Effect.logWarning('Finalize bus event already emitted for upload session', {
@@ -305,8 +301,22 @@ const makeSubmissionProcessor = Effect.gen(function* () {
 
   const process = Effect.fn('SubmissionProcessor.process')(
     function* (params: ProcessSubmissionInput) {
+      // Surface identifiers on the process span so a participant/upload is filterable in Axiom.
+      // These must be set from inside the body via annotateCurrentSpan: a trailing Effect.fn
+      // transform (annotateSpans) wraps the body and so only annotates child spans, not the
+      // process span itself (which Effect.fn creates around the transformed body).
+      yield* Effect.annotateCurrentSpan({
+        'blikka.domain': params.domain,
+        'blikka.reference': params.reference,
+        'blikka.order_index': params.orderIndex,
+      })
       const readyContext = yield* resolveReadySubmissionContext(params)
       if (Option.isNone(readyContext)) return
+      // uploadSessionId is only known after KV resolution.
+      yield* Effect.annotateCurrentSpan(
+        'blikka.upload_session_id',
+        readyContext.value.uploadSessionId,
+      )
       yield* runPhotoArtifactPass(readyContext.value)
       yield* incrementParticipantAndMaybeFinalize(readyContext.value)
     },

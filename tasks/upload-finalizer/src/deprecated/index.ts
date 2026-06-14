@@ -1,7 +1,6 @@
 import { type SQSEvent, type SQSRecord } from 'aws-lambda'
 import { Effect, Layer } from 'effect'
 import { LambdaHandler } from '@effect-aws/lambda'
-import { PubSubLoggerService } from '@blikka/pubsub'
 import { RealtimeEventsService } from '@blikka/realtime'
 import { TelemetryLayer } from '@blikka/telemetry'
 import { FinalizedEventSchema } from '@blikka/aws'
@@ -56,7 +55,6 @@ const effectHandler = (event: SQSEvent) =>
 const serviceLayer = Layer.mergeAll(
   RealtimeEventsService.layer,
   UploadFinalizerService.layer,
-  PubSubLoggerService.withTaskName(TASK_NAME),
   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),
 )
 

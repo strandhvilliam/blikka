@@ -2,7 +2,6 @@ import { type SQSRecord } from 'aws-lambda'
 import { LambdaHandler, type SQSEvent } from '@effect-aws/lambda'
 import { Config, Effect, Layer, Schema } from 'effect'
 import { SMSService, SMSServiceLayer } from '@blikka/aws'
-import { PubSubLoggerService } from '@blikka/pubsub'
 import { getRealtimeChannelEnvironmentFromNodeEnv, type RealtimeChannelEnv } from '@blikka/realtime'
 import { TelemetryLayer } from '@blikka/telemetry'
 import {
@@ -240,7 +239,6 @@ const serviceLayer = Layer.mergeAll(
   SMSServiceLayer,
   PhoneNumberEncryptionServiceLayer,
   VotingRepositoryLayer,
-  PubSubLoggerService.withTaskName(TASK_NAME),
   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),
 )
 

@@ -3,7 +3,6 @@
 // import { SheetGeneratorService, SheetGeneratorServiceLayer } from './sheet-generator-service'
 // import { TelemetryLayer } from '@blikka/telemetry'
 // import { FinalizedEventSchema } from '@blikka/aws'
-// import { PubSubLoggerService } from '@blikka/pubsub'
 // import { RealtimeEventsService, RealtimeEventsServiceLayer } from '@blikka/realtime'
 // import { parseBusEvent } from '@blikka/task-runtime'
 // import { Resource as SSTResource } from 'sst'
@@ -61,7 +60,6 @@
 // const serviceLayer = Layer.mergeAll(
 //   SheetGeneratorServiceLayer,
 //   RealtimeEventsServiceLayer,
-//   PubSubLoggerService.withTaskName(TASK_NAME),
 //   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),
 // )
 

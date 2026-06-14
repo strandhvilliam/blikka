@@ -4,7 +4,6 @@
 // import { type SQSRecord } from 'aws-lambda'
 // import { UploadProcessorService } from './processor-service'
 // import { TelemetryLayer } from '@blikka/telemetry'
-// import { PubSubLoggerService } from '@blikka/pubsub'
 // import { Resource as SSTResource } from 'sst'
 // import { RealtimeEventsService } from '@blikka/realtime'
 
@@ -67,7 +66,6 @@
 // const serviceLayer = Layer.mergeAll(
 //   UploadProcessorService.layer,
 //   RealtimeEventsService.layer,
-//   PubSubLoggerService.withTaskName(TASK_NAME),
 //   TelemetryLayer(`blikka-${getEnvironment()}-${TASK_NAME}`),
 // )
 
