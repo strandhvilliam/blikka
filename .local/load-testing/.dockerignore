@@ -1,0 +1,5 @@
+*
+!k6/
+!k6/**
+!fixtures/
+!fixtures/**

@@ -1,0 +1,8 @@
+{
+  "name": "@blikka/load-testing",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fixture:generate": "node ./scripts/create-jpeg-fixture.mjs"
+  }
+}
