@@ -9,6 +9,7 @@ import {
 } from '@/lib/validation'
 import { getExpectedPhotoCount, getSelectedTopics } from '@/lib/upload-utils'
 import { processSelectedFiles } from '@/lib/participant-selected-files'
+import { Card } from '@/components/ui/card'
 import { StaffParticipantCard } from '@/components/staff/staff-participant-card'
 import { StaffDropzone } from '@/components/staff/staff-dropzone'
 import { StaffPhotoList } from '@/components/staff/staff-photo-grid'
@@ -156,7 +157,7 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-2xl space-y-6">
       <StaffParticipantCard
         {...participantSummary}
         onEditRegistration={canEditRegistration ? () => setEditDialogOpen(true) : undefined}
@@ -180,30 +181,32 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
         </div>
       ) : null}
 
-      <StaffDropzone
-        disabled={dropzoneDisabled}
-        onFilesSelected={handleFilesSelected}
-        isProcessing={isProcessingFiles}
-        selectedCount={selectedCount}
-        expectedCount={expectedPhotoCount}
-        errorMessage={filesError}
-      />
+      <Card className="gap-5 rounded-3xl px-6 py-6 shadow-lg">
+        <StaffDropzone
+          disabled={dropzoneDisabled}
+          onFilesSelected={handleFilesSelected}
+          isProcessing={isProcessingFiles}
+          selectedCount={selectedCount}
+          expectedCount={expectedPhotoCount}
+          errorMessage={filesError}
+        />
 
-      <StaffPhotoList
-        photos={selectedPhotos}
-        expectedCount={expectedPhotoCount}
-        topics={selectedTopics}
-        photoValidationMap={photoValidationMap}
-        isBusy={isBusy}
-        onRemove={(photoId) => {
-          resetUploadFlow()
-          removeSelectedPhoto(photoId, topicOrderIndexes)
-        }}
-        onMovePhoto={(displayIndex, direction) => {
-          resetUploadFlow()
-          moveSelectedPhoto(displayIndex, direction, topicOrderIndexes)
-        }}
-      />
+        <StaffPhotoList
+          photos={selectedPhotos}
+          expectedCount={expectedPhotoCount}
+          topics={selectedTopics}
+          photoValidationMap={photoValidationMap}
+          isBusy={isBusy}
+          onRemove={(photoId) => {
+            resetUploadFlow()
+            removeSelectedPhoto(photoId, topicOrderIndexes)
+          }}
+          onMovePhoto={(displayIndex, direction) => {
+            resetUploadFlow()
+            moveSelectedPhoto(displayIndex, direction, topicOrderIndexes)
+          }}
+        />
+      </Card>
 
       {(blockingErrorCount > 0 || warningCount > 0) && selectedPhotos.length > 0 ? (
         <div className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 'use client'
 
-import { ImagePlus, Loader2 } from 'lucide-react'
+import { CheckCircle2, ImagePlus, Loader2 } from 'lucide-react'
 import { useDropzone, type Accept } from 'react-dropzone'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -46,19 +46,28 @@ export function StaffDropzone({
   const isComplete = selectedCount >= expectedCount && expectedCount > 0
   const remaining = expectedCount - selectedCount
 
+  if (isComplete) {
+    return (
+      <div className="flex items-center justify-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-center">
+        <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+        <p className="text-sm font-semibold text-emerald-700">
+          All {expectedCount} photos selected
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2">
       <div
         {...getRootProps()}
         className={cn(
           'relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all duration-200',
-          disabled && !isComplete
+          disabled
             ? 'cursor-not-allowed border-border bg-muted/40 opacity-60'
-            : isComplete
-              ? 'cursor-default border-emerald-300 bg-emerald-50/60'
-              : isDragActive
-                ? 'cursor-copy border-brand-primary bg-primary/5 shadow-inner'
-                : 'cursor-pointer border-border bg-card hover:border-brand-primary/40 hover:bg-muted/30',
+            : isDragActive
+              ? 'cursor-copy border-brand-primary bg-primary/5 shadow-inner'
+              : 'cursor-pointer border-border bg-card hover:border-brand-primary/40 hover:bg-muted/30',
         )}
       >
         <input {...getInputProps()} />
@@ -67,15 +76,6 @@ export function StaffDropzone({
           <>
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <p className="mt-3 text-sm font-medium text-muted-foreground">Processing files...</p>
-          </>
-        ) : isComplete ? (
-          <>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-              <ImagePlus className="h-6 w-6 text-emerald-600" />
-            </div>
-            <p className="mt-3 text-sm font-semibold text-emerald-700">
-              All {expectedCount} photos selected
-            </p>
           </>
         ) : isDragActive ? (
           <>

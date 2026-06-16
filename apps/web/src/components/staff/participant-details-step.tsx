@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Card, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn, formatDomainLink } from '@/lib/utils'
-import { getSelectedTopics } from '@/lib/upload-utils'
 import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
 import { useDomain } from '@/lib/domain-provider'
 import { useTRPC } from '@/lib/trpc/client'
@@ -167,28 +166,24 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
   const marathonMode = marathon.mode as UploadMarathonMode
   const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
   const activeByCameraTopic = sortedTopics.find((topic) => topic.visibility === 'active') ?? null
-  const selectedCompetitionClass =
-    marathon.competitionClasses.find((cc) => cc.id === Number(values.competitionClassId)) ?? null
-  const selectedTopics = getSelectedTopics(
-    marathonMode,
-    activeByCameraTopic,
-    selectedCompetitionClass,
-    sortedTopics,
-  )
+
+  const title = reference.trim()
+    ? reference
+    : marathonMode === 'by-camera'
+      ? 'New participant'
+      : 'Participant details'
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-          Participant #{reference.trim() ? reference : marathonMode === 'by-camera' ? 'new' : '—'}
-        </p>
-        <h2 className="mt-2 font-gothic text-3xl font-medium leading-none tracking-tight text-foreground">
-          Fill in details
+    <div className="flex min-h-[calc(100vh-10rem)] flex-col items-center justify-center">
+      <Card className="w-full max-w-2xl gap-8 rounded-3xl px-8 py-10 shadow-lg">
+      <div className="text-center">
+        <h2 className="font-gothic text-5xl font-medium leading-none tracking-tight text-foreground">
+          {title}
         </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-3 text-muted-foreground">
           {marathonMode === 'by-camera'
             ? 'No existing record was found for this phone. Enter their name, email, and the device they used.'
-            : 'This participant was not prepared beforehand. Enter their name, email, and select class and device below.'}
+            : 'This participant was not prepared beforehand. Enter their information below.'}
         </p>
       </div>
 
@@ -274,9 +269,10 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
 
       {marathonMode === 'marathon' ? (
         <div className="space-y-3">
-          <div>
+          <div className="flex gap-2 items-center">
             <p className="text-sm font-medium text-foreground">Competition class</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <span>-</span>
+            <p className="text-sm text-muted-foreground/80">
               How many photos is this participant submitting?
             </p>
           </div>
@@ -300,9 +296,10 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
       ) : null}
 
       <div className="space-y-3">
-        <div>
+        <div className="flex gap-2 items-center">
           <p className="text-sm font-medium text-foreground">Device</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">What did they shoot with?</p>
+          <span>-</span>
+          <p className="text-sm text-muted-foreground/80">What did they shoot with?</p>
         </div>
         <div className="space-y-2">
           <div className="grid gap-2 sm:grid-cols-2">
@@ -321,24 +318,6 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
           ) : null}
         </div>
       </div>
-
-      {selectedTopics.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">
-            Photo order ({selectedTopics.length} {selectedTopics.length === 1 ? 'topic' : 'topics'})
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {selectedTopics.map((topic) => (
-              <div
-                key={topic.id}
-                className="rounded-lg border border-border bg-muted px-3 py-1.5 text-sm text-foreground"
-              >
-                #{topic.orderIndex + 1} {topic.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       <label htmlFor="staff-terms-accepted" className="block text-sm font-medium">
         <div className="flex items-start gap-3 rounded-xl border border-input bg-muted/30 px-4 py-3">
@@ -371,6 +350,7 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
           </span>
         </div>
       </label>
+      </Card>
     </div>
   )
 }

@@ -32,13 +32,10 @@ export function StaffParticipantCard({
   onEditRegistration,
 }: StaffParticipantCardProps) {
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-sm">
+    <div className="rounded-3xl border border-border bg-card shadow-sm">
       <div className="flex items-stretch">
         <div className="flex shrink-0 flex-col items-center justify-center border-r border-border px-6 py-5 sm:px-8">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            No.
-          </span>
-          <span className="mt-1 font-mono text-4xl font-bold leading-none tracking-wide text-foreground sm:text-5xl">
+          <span className="font-gothic text-5xl font-medium leading-none tracking-tight text-foreground">
             {reference.length > 0 ? reference : 'New'}
           </span>
         </div>
