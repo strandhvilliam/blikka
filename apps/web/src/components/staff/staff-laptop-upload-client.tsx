@@ -106,6 +106,7 @@ function getBlockedMessage(status: ParticipantExistenceStatus) {
 
 function getUploadDisabledReason({
   isBusy,
+  termsRequired,
   termsAccepted,
   selectedPhotosCount,
   expectedPhotoCount,
@@ -113,6 +114,7 @@ function getUploadDisabledReason({
   validationRunError,
 }: {
   isBusy: boolean
+  termsRequired: boolean
   termsAccepted: boolean
   selectedPhotosCount: number
   expectedPhotoCount: number
@@ -126,7 +128,8 @@ function getUploadDisabledReason({
   }
   if (validationRunError) return 'Validation failed. Reselect files and try again.'
   if (hasBlockingValidationErrors) return 'Resolve blocking validation issues before uploading.'
-  if (!termsAccepted) return 'Confirm the participant accepted the terms before uploading.'
+  if (termsRequired && !termsAccepted)
+    return 'Confirm the participant accepted the terms before uploading.'
   return null
 }
 
@@ -790,13 +793,17 @@ export function StaffLaptopUploadClient({
   }
 
   const showFloatingBar = step === 'details' || step === 'upload'
+  // Prepared/existing participants already accepted the terms when they registered, so
+  // staff only confirm acceptance on behalf of manually-entered (new) participants.
+  const termsRequired = existingParticipant === null
   const submitDisabled =
     isBusy ||
-    !termsAccepted ||
+    (termsRequired && !termsAccepted) ||
     selectedPhotos.length !== expectedPhotoCount ||
     validationResults.some((result) => result.outcome === 'failed' && result.severity === 'error')
   const uploadDisabledReason = getUploadDisabledReason({
     isBusy,
+    termsRequired,
     termsAccepted,
     selectedPhotosCount: selectedPhotos.length,
     expectedPhotoCount,
@@ -926,7 +933,7 @@ export function StaffLaptopUploadClient({
                   type="button"
                   className="rounded-full px-6"
                   onClick={() => void handleContinueFromDetails()}
-                  disabled={isBusy}
+                  disabled={isBusy || !termsAccepted}
                 >
                   Continue to photos
                   <ArrowRight className="ml-1.5 h-4 w-4" />

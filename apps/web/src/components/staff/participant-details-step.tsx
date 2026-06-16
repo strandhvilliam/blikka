@@ -7,13 +7,15 @@ import type { CompetitionClass, DeviceGroup } from '@blikka/db'
 
 import { Input } from '@/components/ui/input'
 import { Card, CardTitle } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cn, formatDomainLink } from '@/lib/utils'
 import { getSelectedTopics } from '@/lib/upload-utils'
 import { useStaffUploadStore } from '@/lib/staff/staff-upload-store'
 import { useDomain } from '@/lib/domain-provider'
 import { useTRPC } from '@/lib/trpc/client'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { UploadMarathonMode } from '@/lib/types'
+import { BLIKKA_PLATFORM_TERMS_URL } from '@/config'
 
 interface ParticipantDetailsStepProps {
   isBusy: boolean
@@ -159,6 +161,8 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
   const values = useStaffUploadStore((state) => state.formValues)
   const errors = useStaffUploadStore((state) => state.formErrors)
   const setFormField = useStaffUploadStore((state) => state.setFormField)
+  const termsAccepted = useStaffUploadStore((state) => state.termsAccepted)
+  const setTermsAccepted = useStaffUploadStore((state) => state.setTermsAccepted)
 
   const marathonMode = marathon.mode as UploadMarathonMode
   const sortedTopics = marathon.topics.toSorted((a, b) => a.orderIndex - b.orderIndex)
@@ -335,6 +339,38 @@ export function ParticipantDetailsStep({ isBusy }: ParticipantDetailsStepProps) 
           </div>
         </div>
       ) : null}
+
+      <label htmlFor="staff-terms-accepted" className="block text-sm font-medium">
+        <div className="flex items-start gap-3 rounded-xl border border-input bg-muted/30 px-4 py-3">
+          <Checkbox
+            id="staff-terms-accepted"
+            className="mt-0.5 size-5 rounded-[5px] border-foreground/20"
+            checked={termsAccepted}
+            onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+          />
+          <span className="leading-snug">
+            I confirm the participant accepted the{' '}
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href={formatDomainLink('/terms', domain, 'terms')}
+              className="font-semibold underline"
+            >
+              event terms
+            </a>{' '}
+            and{' '}
+            <a
+              target="_blank"
+              rel="noopener noreferrer"
+              href={BLIKKA_PLATFORM_TERMS_URL}
+              className="font-semibold underline"
+            >
+              Blikka terms
+            </a>{' '}
+            before uploading.
+          </span>
+        </div>
+      </label>
     </div>
   )
 }

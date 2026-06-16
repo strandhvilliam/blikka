@@ -13,15 +13,12 @@ import { StaffParticipantCard } from '@/components/staff/staff-participant-card'
 import { StaffDropzone } from '@/components/staff/staff-dropzone'
 import { StaffPhotoList } from '@/components/staff/staff-photo-grid'
 import { StaffRegistrationEditDialog } from '@/components/staff/staff-registration-edit-dialog'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useStaffUploadParticipantSummary } from '@/hooks/staff/use-staff-upload-participant-summary'
 import { useStaffUploadStore, selectRequiresOverwriteWarning } from '@/lib/staff/staff-upload-store'
 import { useTRPC } from '@/lib/trpc/client'
 import { useDomain } from '@/lib/domain-provider'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { UploadMarathonMode } from '@/lib/types'
-import { BLIKKA_PLATFORM_TERMS_URL } from '@/config'
-import { formatDomainLink } from '@/lib/utils'
 import type { StaffParticipant } from '@/lib/staff/staff-types'
 import { useMemo, useState } from 'react'
 
@@ -45,7 +42,6 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
   const existingParticipant = useStaffUploadStore((s) => s.existingParticipant)
   const formValues = useStaffUploadStore((s) => s.formValues)
   const uploadComplete = useStaffUploadStore((s) => s.uploadComplete)
-  const termsAccepted = useStaffUploadStore((s) => s.termsAccepted)
 
   const patchParticipant = useStaffUploadStore((s) => s.patchParticipant)
   const removeSelectedPhoto = useStaffUploadStore((s) => s.removeSelectedPhoto)
@@ -54,7 +50,6 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
   const resetPhotoSelection = useStaffUploadStore((s) => s.resetPhotoSelection)
   const resetUploadFlow = useStaffUploadStore((s) => s.resetUploadFlow)
   const patchPhotos = useStaffUploadStore((s) => s.patchPhotos)
-  const setTermsAccepted = useStaffUploadStore((s) => s.setTermsAccepted)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
 
   const marathonMode = marathon.mode as UploadMarathonMode
@@ -255,39 +250,6 @@ export function UploadStep({ isBusy, dropzoneDisabled }: UploadStepProps) {
           Ready to upload. Confirm the registration and selected photos, then start upload.
         </div>
       ) : null}
-
-      <label htmlFor="staff-terms-accepted" className="block text-sm font-medium">
-        <div className="flex items-start gap-3 rounded-xl border border-input bg-muted/30 px-4 py-3">
-          <Checkbox
-            id="staff-terms-accepted"
-            className="mt-0.5 size-5 rounded-[5px] border-foreground/20"
-            checked={termsAccepted}
-            onCheckedChange={(checked) => setTermsAccepted(checked === true)}
-          />
-          <span className="leading-snug">
-            I confirm the participant accepted the{' '}
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href={formatDomainLink('/terms', domain, 'terms')}
-              className="font-semibold underline"
-            >
-              event terms
-            </a>{' '}
-            and{' '}
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href={BLIKKA_PLATFORM_TERMS_URL}
-              className="font-semibold underline"
-            >
-              Blikka terms
-            </a>
-            {' '}
-            before uploading.
-          </span>
-        </div>
-      </label>
     </div>
   )
 }
