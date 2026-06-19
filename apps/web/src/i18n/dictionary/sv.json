@@ -103,7 +103,7 @@
       "replaceExistingTitle": "Ersätt befintlig uppladdning?",
       "replaceExistingDescription": "Ett bidrag har redan laddats upp för det aktuella temat med detta telefonnummer. Om du fortsätter kommer den befintliga uppladdningen för det aktiva temat att ersättas.",
       "replaceExistingCancel": "Avbryt",
-      "replaceExistingConfirm": "Ersätt & fortsätt"
+      "replaceExistingConfirm": "Ersätt"
     },
     "classSelection": {
       "title": "Välj din klass",
@@ -131,7 +131,6 @@
       "title": "Ladda upp dina foton",
       "description": "Välj och ladda upp dina foton för inlämning. Foton sorteras automatiskt utifrån varje bilds metadata.",
       "byCameraTitle": "Ladda upp ditt foto",
-      "byCameraDescription": "Välj och ladda upp ditt foto",
       "topicLabel": "Tema",
       "takePhoto": "Ta foto",
       "chooseFromLibrary": "Välj från biblioteket",
@@ -184,11 +183,11 @@
       "stoppingConversion": "Stoppar konvertering...",
       "convertingFile": "Konverterar {current} av {total}",
       "cancel": "Avbryt",
-      "confirmUpload": "Bekräfta uppladdning",
-      "confirmUploadDescription": "Du håller på att ladda upp {count, plural, one {# foto} other {# foton}} för delagare {ref}. Denna åtgärd kan inte ångras.",
-      "confirmUploadDescriptionGeneric": "Du håller på att ladda upp {count, plural, one {# foto} other {# foton}}. Denna åtgärd kan inte ångras.",
+      "confirmUpload": "Redo att ladda upp?",
+      "confirmUploadDescription": "{count, plural, one {Ditt foto} other {Dina # foton}} skickas in för deltagare {ref}. Detta går inte att ångra.",
+      "confirmUploadDescriptionGeneric": "{count, plural, one {Ditt foto} other {Dina # foton}} skickas in. Detta går inte att ångra.",
       "initializing": "Initierar...",
-      "confirmAndUpload": "Bekräfta & Ladda upp",
+      "confirmAndUpload": "Ladda upp",
       "reorderPhotosBanner": "Ett eller flera foton saknar tidpunkt för när bilden togs. Använd pilarna för att ställa in ordningen innan du skickar in. Inlämningen kommer att flaggas för granskning av funktionärer.",
       "reorderPhotosBannerUpload": "Ett eller flera foton saknar tidpunkt för när bilden togs. Använd pilarna för att ställa in ordningen innan du laddar upp. Inlämningen kommer att flaggas för granskning av funktionärer.",
       "movePhotoUp": "Flytta upp foto {index}",

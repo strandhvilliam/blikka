@@ -649,6 +649,11 @@ export function StaffLaptopUploadClient({
     void setStep('upload')
   }
 
+  const handleByCameraReplaceDialogOpenChange = (open: boolean) => {
+    setByCameraReplaceDialogOpen(open)
+    if (!open) setPendingByCameraReplacement(null)
+  }
+
   const handleConfirmByCameraReplace = async () => {
     if (!pendingByCameraReplacement) return
 
@@ -1001,12 +1006,11 @@ export function StaffLaptopUploadClient({
 
       <AlertDialog
         open={byCameraReplaceDialogOpen}
-        onOpenChange={(open) => {
-          setByCameraReplaceDialogOpen(open)
-          if (!open) setPendingByCameraReplacement(null)
-        }}
+        onOpenChange={handleByCameraReplaceDialogOpenChange}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          onDismiss={isUploadBusy ? undefined : () => handleByCameraReplaceDialogOpenChange(false)}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Replace photo for current topic?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1014,16 +1018,19 @@ export function StaffLaptopUploadClient({
               with a new upload.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isUploadBusy}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-row gap-3">
+            <AlertDialogCancel className="flex-1 rounded-full" disabled={isUploadBusy}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
+              className="flex-1 rounded-full"
               disabled={isUploadBusy}
               onClick={(event) => {
                 event.preventDefault()
                 void handleConfirmByCameraReplace()
               }}
             >
-              Replace and continue
+              Replace
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1033,7 +1040,11 @@ export function StaffLaptopUploadClient({
         open={showOverwriteDialog}
         onOpenChange={(open) => patchParticipant({ showOverwriteDialog: open })}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          onDismiss={
+            isUploadBusy ? undefined : () => patchParticipant({ showOverwriteDialog: false })
+          }
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Replace existing upload?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1041,16 +1052,19 @@ export function StaffLaptopUploadClient({
               upload.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isUploadBusy}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-row gap-3">
+            <AlertDialogCancel className="flex-1 rounded-full" disabled={isUploadBusy}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
+              className="flex-1 rounded-full"
               disabled={isUploadBusy}
               onClick={(event) => {
                 event.preventDefault()
                 void handleConfirmOverwrite()
               }}
             >
-              Replace and upload
+              Replace
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

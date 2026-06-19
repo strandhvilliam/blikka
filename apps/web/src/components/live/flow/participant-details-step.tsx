@@ -134,6 +134,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
     }))
   }
 
+  const handleReplaceDialogOpenChange = (open: boolean) => {
+    setReplaceDialogOpen(open)
+    if (!open) setPendingReplacement(null)
+  }
+
   const handleConfirmReplacement = async () => {
     if (!pendingReplacement) return
     await persistByCameraParticipant({
@@ -216,23 +221,22 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
 
   return (
     <div className="mx-auto flex min-h-[70dvh] max-w-md flex-col justify-center px-4">
-      <AlertDialog
-        open={replaceDialogOpen}
-        onOpenChange={(open) => {
-          setReplaceDialogOpen(open)
-          if (!open) setPendingReplacement(null)
-        }}
-      >
-        <AlertDialogContent>
+      <AlertDialog open={replaceDialogOpen} onOpenChange={handleReplaceDialogOpenChange}>
+        <AlertDialogContent onDismiss={() => handleReplaceDialogOpenChange(false)}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('participantDetails.replaceExistingTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               {t('participantDetails.replaceExistingDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('participantDetails.replaceExistingCancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleConfirmReplacement()}>
+          <AlertDialogFooter className="flex-row gap-3">
+            <AlertDialogCancel className="flex-1 rounded-full">
+              {t('participantDetails.replaceExistingCancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="flex-1 rounded-full"
+              onClick={() => void handleConfirmReplacement()}
+            >
               {t('participantDetails.replaceExistingConfirm')}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -322,9 +322,6 @@ export function ByCameraUploadStep({
               <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">
                 {t('byCameraTitle')}
               </h1>
-              <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-                {t('byCameraDescription')}
-              </p>
               {topic && (
                 <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-muted/30 px-4 py-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">

@@ -79,8 +79,6 @@ const CountrySelect = ({
     [countryList],
   )
 
-  const callingCode = RPNInput.getCountryCallingCode(selectedCountry)
-
   return (
     <div className="relative flex min-h-9 shrink-0 self-stretch">
       <div
@@ -91,7 +89,6 @@ const CountrySelect = ({
         )}
       >
         <FlagComponent country={selectedCountry} countryName={selectedCountry} />
-        <span className="text-sm tabular-nums">+{callingCode}</span>
         <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
       </div>
       <div className="absolute inset-0 opacity-0">

@@ -38,11 +38,15 @@ function AlertDialogOverlay({
 
 function AlertDialogContent({
   className,
+  onDismiss,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
+  /** When provided, clicking the backdrop calls this to cancel (close) the dialog. */
+  onDismiss?: () => void
+}) {
   return (
     <AlertDialogPortal>
-      <AlertDialogOverlay />
+      <AlertDialogOverlay onClick={onDismiss} />
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(

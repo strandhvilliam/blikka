@@ -103,7 +103,7 @@
       "replaceExistingTitle": "Replace existing upload?",
       "replaceExistingDescription": "A submission has already been uploaded for the current topic with this phone number. If you continue, the existing upload for the active topic will be replaced.",
       "replaceExistingCancel": "Cancel",
-      "replaceExistingConfirm": "Replace & Continue"
+      "replaceExistingConfirm": "Replace"
     },
     "classSelection": {
       "title": "Select Your Class",
@@ -131,7 +131,6 @@
       "title": "Upload Your Photos",
       "description": "Select and upload your photos for submission. They are sorted automatically using each photo's metadata.",
       "byCameraTitle": "Upload Your Photo",
-      "byCameraDescription": "Select and upload your photo",
       "topicLabel": "Topic",
       "takePhoto": "Take photo",
       "chooseFromLibrary": "Choose from library",
@@ -184,11 +183,11 @@
       "stoppingConversion": "Stopping conversion...",
       "convertingFile": "Converting {current} of {total}",
       "cancel": "Cancel",
-      "confirmUpload": "Confirm Upload",
-      "confirmUploadDescription": "You are about to upload {count, plural, one {# photo} other {# photos}} for participant {ref}. This action cannot be undone.",
-      "confirmUploadDescriptionGeneric": "You are about to upload {count, plural, one {# photo} other {# photos}}. This action cannot be undone.",
+      "confirmUpload": "Ready to upload?",
+      "confirmUploadDescription": "{count, plural, one {Your photo} other {Your # photos}} will be submitted for participant {ref}. This can't be undone.",
+      "confirmUploadDescriptionGeneric": "{count, plural, one {Your photo} other {Your # photos}} will be submitted. This can't be undone.",
       "initializing": "Initializing...",
-      "confirmAndUpload": "Confirm & Upload",
+      "confirmAndUpload": "Upload",
       "reorderPhotosBanner": "One or more photos do not include a capture time. Use the arrows to set the order before submitting. This submission will be flagged for staff review.",
       "reorderPhotosBannerUpload": "One or more photos do not include a capture time. Use the arrows to set the order before uploading. This submission will be flagged for staff review.",
       "movePhotoUp": "Move photo {index} up",

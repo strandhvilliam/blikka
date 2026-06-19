@@ -79,11 +79,20 @@ export function UploadConfirmationDialog({
                 })}
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDisabled}>
+        <DialogFooter className="flex-row gap-3">
+          <Button
+            variant="outline"
+            className="flex-1 rounded-full"
+            onClick={() => onOpenChange(false)}
+            disabled={isDisabled}
+          >
             {t('cancel')}
           </Button>
-          <PrimaryButton onClick={handleConfirmClick} disabled={isDisabled}>
+          <PrimaryButton
+            className="flex-1 rounded-full"
+            onClick={handleConfirmClick}
+            disabled={isDisabled}
+          >
             {isDisabled ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
