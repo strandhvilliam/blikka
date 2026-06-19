@@ -1,9 +1,10 @@
 import * as React from 'react'
+import { ChevronDownIcon } from 'lucide-react'
 import * as RPNInput from 'react-phone-number-input'
 import flags from 'react-phone-number-input/flags'
 
 import { Input } from '@/components/ui/input'
-import { PopoverSelect, SelectOption } from '@/components/ui/popover-select'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { cn } from '@/lib/utils'
 
 type PhoneInputProps = Omit<React.ComponentProps<'input'>, 'onChange' | 'value' | 'ref'> &
@@ -51,13 +52,15 @@ const InputComponent = React.forwardRef<HTMLInputElement, React.ComponentProps<'
 )
 InputComponent.displayName = 'InputComponent'
 
-type CountryEntry = { label: string; value: RPNInput.Country | undefined }
+type CountryEntry = { label: string; value: RPNInput.Country | undefined; divider?: boolean }
 
 type CountrySelectProps = {
   disabled?: boolean
   value: RPNInput.Country
   options: CountryEntry[]
   onChange: (country: RPNInput.Country) => void
+  onFocus?: React.FocusEventHandler<HTMLSelectElement>
+  onBlur?: React.FocusEventHandler<HTMLSelectElement>
 }
 
 const CountrySelect = ({
@@ -65,47 +68,49 @@ const CountrySelect = ({
   value: selectedCountry,
   options: countryList,
   onChange,
+  onFocus,
+  onBlur,
 }: CountrySelectProps) => {
-  const selectOptions: SelectOption[] = React.useMemo(
+  const countryOptions = React.useMemo(
     () =>
-      countryList
-        .filter((entry): entry is { label: string; value: RPNInput.Country } =>
-          Boolean(entry.value),
-        )
-        .map((entry) => ({
-          value: entry.value,
-          label: `${entry.label} (+${RPNInput.getCountryCallingCode(entry.value)})`,
-          flag: <FlagComponent country={entry.value} countryName={entry.label} />,
-        })),
+      countryList.filter(
+        (entry): entry is { label: string; value: RPNInput.Country } => Boolean(entry.value),
+      ),
     [countryList],
   )
 
+  const callingCode = RPNInput.getCountryCallingCode(selectedCountry)
+
   return (
-    <div className="flex min-h-9 items-stretch self-stretch [&_[data-slot=popover-trigger]]:h-full [&_[data-slot=popover-trigger]]:min-h-9">
-      <PopoverSelect
-        options={selectOptions}
-        value={selectedCountry}
-        onChange={(value) => onChange(value as RPNInput.Country)}
-        disabled={disabled}
-        searchable
-        showFlags
-        searchPlaceholder="Search country..."
-        className="w-auto"
-        triggerClassName="rounded-e-none rounded-s-xl border-r-0 px-3"
+    <div className="relative flex min-h-9 shrink-0 self-stretch">
+      <div
+        aria-hidden="true"
+        className={cn(
+          'pointer-events-none flex h-full min-h-9 items-center gap-1.5 rounded-e-none rounded-s-xl border border-r-0 px-3',
+          'border-input bg-background text-foreground',
+        )}
       >
-        <button
-          type="button"
+        <FlagComponent country={selectedCountry} countryName={selectedCountry} />
+        <span className="text-sm tabular-nums">+{callingCode}</span>
+        <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+      </div>
+      <div className="absolute inset-0 opacity-0">
+        <NativeSelect
+          value={selectedCountry}
+          onChange={(event) => onChange(event.target.value as RPNInput.Country)}
+          onFocus={onFocus}
+          onBlur={onBlur}
           disabled={disabled}
-          className={cn(
-            'flex h-full min-h-9 items-center justify-center gap-2 rounded-e-none rounded-s-xl border border-r-0 px-3',
-            'border-input bg-background hover:bg-accent hover:text-accent-foreground',
-            'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-            'disabled:pointer-events-none disabled:opacity-50',
-          )}
+          aria-label="Country code"
+          className="size-full min-h-9 cursor-pointer rounded-e-none rounded-s-xl border-r-0"
         >
-          <FlagComponent country={selectedCountry} countryName={selectedCountry} />
-        </button>
-      </PopoverSelect>
+          {countryOptions.map((entry) => (
+            <NativeSelectOption key={entry.value} value={entry.value}>
+              {entry.label} (+{RPNInput.getCountryCallingCode(entry.value)})
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      </div>
     </div>
   )
 }
