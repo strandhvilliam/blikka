@@ -16,9 +16,10 @@ import type { SubmissionsMarathon } from '../_lib/submissions-types'
 
 interface SubmissionsTableProps {
   marathon: SubmissionsMarathon
+  realtimeEnabled?: boolean
 }
 
-export function SubmissionsTable({ marathon }: SubmissionsTableProps) {
+export function SubmissionsTable({ marathon, realtimeEnabled = true }: SubmissionsTableProps) {
   const domain = useDomain()
   const queryClient = useQueryClient()
   const query = useSubmissionsQuery({ marathon })
@@ -26,6 +27,7 @@ export function SubmissionsTable({ marathon }: SubmissionsTableProps) {
     domain,
     queryClient,
     participantsQueryPathKey: query.participantsQueryPathKey,
+    enabled: realtimeEnabled,
   })
   const enrichedParticipants = useEnrichedParticipants(query.participants, tracking)
   const selection = useSubmissionsSelection(query.participants)

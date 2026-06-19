@@ -1,15 +1,15 @@
 'use client'
 
-import { ChevronDown, Images, RefreshCw, Upload } from 'lucide-react'
+import { ChevronDown, Images, RefreshCw, Radio } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useQueryStates } from 'nuqs'
 import { submissionSearchParams } from '../_lib/search-params'
 import { useEffect, useState } from 'react'
-import { ManualUploadDialog } from './manual-upload-dialog'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
-import { PrimaryButton } from '@/components/ui/primary-button'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
@@ -38,16 +38,21 @@ const customTabTriggerClassName =
 
 interface SubmissionsHeaderProps {
   marathon: SubmissionsMarathon
+  realtimeEnabled: boolean
+  onRealtimeEnabledChange: (enabled: boolean) => void
 }
 
-export function SubmissionsHeader({ marathon }: SubmissionsHeaderProps) {
+export function SubmissionsHeader({
+  marathon,
+  realtimeEnabled,
+  onRealtimeEnabledChange,
+}: SubmissionsHeaderProps) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [queryState, setQueryState] = useQueryStates(submissionSearchParams, {
     history: 'push',
   })
-  const [isCreateUploadDialogOpen, setIsCreateUploadDialogOpen] = useState(false)
   const [isViewSheetOpen, setIsViewSheetOpen] = useState(false)
 
   const { tab: activeTab } = queryState
@@ -116,6 +121,30 @@ export function SubmissionsHeader({ marathon }: SubmissionsHeaderProps) {
           )}
         </div>
         <div className="flex w-full items-center gap-2 md:w-auto md:shrink-0">
+          <Label
+            htmlFor="realtime-toggle"
+            title={
+              realtimeEnabled
+                ? 'Realtime updates on — turn off to pause'
+                : 'Realtime updates paused — turn on to resume'
+            }
+            className={cn(
+              'flex min-h-9 shrink-0 cursor-pointer items-center gap-2 rounded-md border bg-background px-3 text-xs font-medium transition-colors',
+              realtimeEnabled
+                ? 'border-brand-primary/40 text-brand-primary'
+                : 'border-input text-muted-foreground',
+            )}
+          >
+            <Radio className={cn('h-3.5 w-3.5 shrink-0', realtimeEnabled && 'animate-pulse')} />
+            {realtimeEnabled ? 'Live' : 'Paused'}
+            <Switch
+              id="realtime-toggle"
+              checked={realtimeEnabled}
+              onCheckedChange={onRealtimeEnabledChange}
+              aria-label="Toggle realtime updates"
+              className="data-[state=checked]:bg-brand-primary"
+            />
+          </Label>
           <Button
             variant="outline"
             size="sm"
@@ -126,14 +155,6 @@ export function SubmissionsHeader({ marathon }: SubmissionsHeaderProps) {
             <RefreshCw className={`h-3.5 w-3.5 shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <PrimaryButton
-            onClick={() => setIsCreateUploadDialogOpen(true)}
-            className="text-xs min-h-9 flex-1 items-center justify-center gap-1.5 md:flex-initial"
-          >
-            <Upload className="h-3.5 w-3.5 shrink-0" />
-            <span className="md:hidden">Manual</span>
-            <span className="hidden md:inline">Manual Upload</span>
-          </PrimaryButton>
         </div>
       </div>
 
@@ -198,11 +219,6 @@ export function SubmissionsHeader({ marathon }: SubmissionsHeaderProps) {
           </SheetContent>
         </Sheet>
       </div>
-
-      <ManualUploadDialog
-        open={isCreateUploadDialogOpen}
-        onOpenChange={setIsCreateUploadDialogOpen}
-      />
     </div>
   )
 }

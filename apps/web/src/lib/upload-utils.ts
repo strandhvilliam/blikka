@@ -47,43 +47,6 @@ export function getValidationRowClass(result: ValidationResult) {
   return 'border-amber-200 bg-amber-50 text-amber-700'
 }
 
-type Topic = { orderIndex: number }
-
-export function getDropzoneDisabledReason(params: {
-  deviceGroupId: string
-  marathonMode: string
-  competitionClassId: string
-  activeByCameraTopic: Topic | null
-}): string | null {
-  const { deviceGroupId, marathonMode, competitionClassId, activeByCameraTopic } = params
-
-  if (!deviceGroupId) {
-    return 'Select a device group to enable image selection.'
-  }
-  if (marathonMode === 'marathon' && !competitionClassId) {
-    return 'Select a competition class to enable image selection.'
-  }
-  if (marathonMode === 'by-camera' && !activeByCameraTopic) {
-    return 'No active topic is available for by-camera upload.'
-  }
-  return null
-}
-
-export function getDropzoneVariant(params: {
-  canSelectFiles: boolean
-  isMaxImagesReached: boolean
-  uploadComplete: boolean
-  isBusy: boolean
-}): 'disabled' | 'complete' | 'success' | 'processing' | 'ready' {
-  const { canSelectFiles, isMaxImagesReached, uploadComplete, isBusy } = params
-
-  if (!canSelectFiles) return 'disabled'
-  if (isMaxImagesReached) return 'complete'
-  if (uploadComplete) return 'success'
-  if (isBusy) return 'processing'
-  return 'ready'
-}
-
 type TopicWithOrderIndex = {
   orderIndex: number
 }

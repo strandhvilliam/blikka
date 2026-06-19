@@ -35,6 +35,7 @@ interface UseSubmissionsTableRealtimeInput {
   domain: string
   queryClient: QueryClient
   participantsQueryPathKey: QueryKey
+  enabled?: boolean
 }
 
 interface TrackingState {
@@ -275,6 +276,7 @@ export function useSubmissionsTableRealtime({
   domain,
   queryClient,
   participantsQueryPathKey,
+  enabled = true,
 }: UseSubmissionsTableRealtimeInput) {
   const [tracking, setTracking] = useState<TrackingState>(() => ({
     processed: new Map(),
@@ -434,7 +436,7 @@ export function useSubmissionsTableRealtime({
   useRealtime({
     events: [...SUBSCRIBED_EVENTS],
     channels: [domainChannel],
-    enabled: domain.length > 0,
+    enabled: enabled && domain.length > 0,
     onData: ({ event, data: rawData }) => {
       const data = parseRealtimeEventData(rawData)
       pendingEventsRef.current.push({ event, data })
