@@ -1019,11 +1019,11 @@ export function StaffLaptopUploadClient({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-3">
-            <AlertDialogCancel className="flex-1 rounded-full" disabled={isUploadBusy}>
+            <AlertDialogCancel className="h-12 flex-1 rounded-full" disabled={isUploadBusy}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="flex-1 rounded-full"
+              className="h-12 flex-1 rounded-full"
               disabled={isUploadBusy}
               onClick={(event) => {
                 event.preventDefault()
@@ -1053,11 +1053,11 @@ export function StaffLaptopUploadClient({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-3">
-            <AlertDialogCancel className="flex-1 rounded-full" disabled={isUploadBusy}>
+            <AlertDialogCancel className="h-12 flex-1 rounded-full" disabled={isUploadBusy}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="flex-1 rounded-full"
+              className="h-12 flex-1 rounded-full"
               disabled={isUploadBusy}
               onClick={(event) => {
                 event.preventDefault()

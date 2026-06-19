@@ -230,11 +230,11 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-3">
-            <AlertDialogCancel className="flex-1 rounded-full">
+            <AlertDialogCancel className="h-12 flex-1 rounded-full">
               {t('participantDetails.replaceExistingCancel')}
             </AlertDialogCancel>
             <AlertDialogAction
-              className="flex-1 rounded-full"
+              className="h-12 flex-1 rounded-full"
               onClick={() => void handleConfirmReplacement()}
             >
               {t('participantDetails.replaceExistingConfirm')}
