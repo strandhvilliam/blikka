@@ -70,42 +70,48 @@ export function VoteButton({
         </PrimaryButton>
       </AlertDialogTrigger>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t('voteButton.dialogTitle')}</AlertDialogTitle>
+        <AlertDialogHeader className="gap-4">
+          <AlertDialogTitle className="font-gothic text-2xl font-medium tracking-tight">
+            {t('voteButton.dialogTitle')}
+          </AlertDialogTitle>
           {imageSource.kind !== 'missing' && (
-            <div className="max-h-32 overflow-hidden rounded-xl bg-muted aspect-video">
+            <div className="aspect-video w-full overflow-hidden rounded-xl bg-muted">
               {imageSource.kind === 'optimized-thumbnail' ? (
                 <SubmissionThumbnailImage
                   src={imageSource.src}
                   alt={t('voteButton.imageAlt')}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-cover"
                 />
               ) : (
                 <SubmissionRawOriginalImage
                   src={imageSource.src}
                   alt={t('voteButton.imageAlt')}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-cover"
                 />
               )}
             </div>
           )}
-          <AlertDialogDescription>
-            {t('voteButton.dialogDescription')}
+          <AlertDialogDescription className="flex flex-col items-center gap-3">
+            <span>{t('voteButton.dialogDescription')}</span>
             {submissionTitle && (
-              <span className="mt-2 block">
-                <span className="block text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1">
+                <span className="text-xs text-muted-foreground">
                   {t('voteButton.topicLabel')}
                 </span>
-                <span className="block font-medium text-foreground">{submissionTitle}</span>
+                <span className="font-medium text-foreground">{submissionTitle}</span>
               </span>
             )}
-            <span className="mt-2 block text-xs">{t('voteButton.cannotBeChanged')}</span>
+            <span className="text-xs">{t('voteButton.cannotBeChanged')}</span>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t('voteButton.cancel')}</AlertDialogCancel>
+        <AlertDialogFooter className="flex-row gap-3">
+          <AlertDialogCancel className="h-12 flex-1 rounded-full">
+            {t('voteButton.cancel')}
+          </AlertDialogCancel>
           <AlertDialogAction asChild>
-            <PrimaryButton onClick={onVote}>{t('voteButton.confirm')}</PrimaryButton>
+            <PrimaryButton className="h-12 flex-1 rounded-full" onClick={onVote}>
+              {t('voteButton.confirm')}
+            </PrimaryButton>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

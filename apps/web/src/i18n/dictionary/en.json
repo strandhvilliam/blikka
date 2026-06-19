@@ -441,7 +441,7 @@
       "topicLabel": "Topic",
       "cannotBeChanged": "This can't be changed later.",
       "cancel": "Cancel",
-      "confirm": "Submit vote",
+      "confirm": "Submit",
       "imageAlt": "Photo you're voting for"
     },
     "emptyState": {

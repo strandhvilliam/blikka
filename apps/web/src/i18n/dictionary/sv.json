@@ -441,7 +441,7 @@
       "topicLabel": "Tema",
       "cannotBeChanged": "Detta kan inte ändras senare.",
       "cancel": "Avbryt",
-      "confirm": "Skicka röst",
+      "confirm": "Skicka",
       "imageAlt": "Fotot du röstar på"
     },
     "emptyState": {
