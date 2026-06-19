@@ -138,6 +138,7 @@ export class DownloadStateScriptFailed extends Schema.TaggedErrorClass<DownloadS
   'DownloadStateScriptFailed',
   {
     operation: Schema.String,
+    message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
   },
 ) {}
@@ -427,7 +428,11 @@ const makeDownloadStateRepository = Effect.gen(function* () {
               args: { totalChunks, now, completedJobId, ttl: PROCESS_TTL_SECONDS },
             }),
           catch: (error) =>
-            new DownloadStateScriptFailed({ operation: 'atomicIncrementCompleted', cause: error }),
+            new DownloadStateScriptFailed({
+              operation: 'atomicIncrementCompleted',
+              message: 'atomicIncrementCompleted Redis script failed',
+              cause: error,
+            }),
         })
 
         if (result === null) {
@@ -470,7 +475,11 @@ const makeDownloadStateRepository = Effect.gen(function* () {
               args: { totalChunks, now, failedJobId, ttl: PROCESS_TTL_SECONDS },
             }),
           catch: (error) =>
-            new DownloadStateScriptFailed({ operation: 'atomicIncrementFailed', cause: error }),
+            new DownloadStateScriptFailed({
+              operation: 'atomicIncrementFailed',
+              message: 'atomicIncrementFailed Redis script failed',
+              cause: error,
+            }),
         })
 
         if (result === null) {
@@ -569,7 +578,11 @@ const makeDownloadStateRepository = Effect.gen(function* () {
               args: { jobId, now, ttl: PROCESS_TTL_SECONDS },
             }),
           catch: (error) =>
-            new DownloadStateScriptFailed({ operation: 'reactivateChunkForRetry', cause: error }),
+            new DownloadStateScriptFailed({
+              operation: 'reactivateChunkForRetry',
+              message: 'reactivateChunkForRetry Redis script failed',
+              cause: error,
+            }),
         })
 
         if (result === null) {
@@ -594,7 +607,11 @@ const makeDownloadStateRepository = Effect.gen(function* () {
             args: { jobId, now, ttl: PROCESS_TTL_SECONDS },
           }),
         catch: (error) =>
-          new DownloadStateScriptFailed({ operation: 'addJobToProcess', cause: error }),
+          new DownloadStateScriptFailed({
+            operation: 'addJobToProcess',
+            message: 'addJobToProcess Redis script failed',
+            cause: error,
+          }),
       })
 
       if (result === null) {
