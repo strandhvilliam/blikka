@@ -159,9 +159,9 @@ export function SubmissionReviewTimeline({
                   ? 'bg-border'
                   : step.status === 'completed' &&
                       (next?.status === 'pending' || next?.status === 'upcoming')
-                    ? 'bg-linear-to-b from-foreground/25 to-blue-500/60'
+                    ? 'bg-gradient-to-b from-foreground/25 to-blue-500/60'
                     : step.status === 'pending'
-                      ? 'bg-linear-to-b from-blue-500/50 to-muted-foreground/25'
+                      ? 'bg-gradient-to-b from-blue-500/50 to-muted-foreground/25'
                       : 'bg-muted-foreground/20'
 
             return (

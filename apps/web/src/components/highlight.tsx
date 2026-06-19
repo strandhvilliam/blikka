@@ -30,7 +30,7 @@ export function Highlight({
         display: 'inline',
       }}
       className={cn(
-        `relative inline-block pb-1 px-1 rounded-lg bg-linear-to-r from-pomegranate-300 to-pomegranate-300 dark:from-pomegranate-500 dark:to-pomegranate-500`,
+        `relative inline-block pb-1 px-1 rounded-lg bg-gradient-to-r from-pomegranate-300 to-pomegranate-300 dark:from-pomegranate-500 dark:to-pomegranate-500`,
         className,
       )}
     >

@@ -23,7 +23,7 @@ function NoiseCardShell({
       )}
     >
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-linear-to-br from-neutral-300/70 via-neutral-400/85 to-neutral-500/75" />
+        <div className="absolute inset-0 bg-gradient-to-br from-neutral-300/70 via-neutral-400/85 to-neutral-500/75" />
         <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-white/35 blur-3xl" />
         <div className="absolute right-[-8%] bottom-[-8%] h-96 w-96 rounded-full bg-neutral-900/20 blur-3xl" />
         <div
@@ -71,7 +71,7 @@ function LoginHeroMarketing() {
             className="object-cover grayscale brightness-90 contrast-110"
           />
           <div className="absolute inset-0 bg-black/22" />
-          <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/36 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/36 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">
             <p className="text-[11px] text-brand-white font-medium">Easy judging flow</p>
             <p className="mt-1 text-base font-medium text-white md:text-lg">
@@ -89,7 +89,7 @@ function LoginHeroMarketing() {
               sizes="(max-width: 1024px) 50vw, 28vw"
               className="object-cover grayscale brightness-90 contrast-105"
             />
-            <div className="absolute inset-0 bg-linear-to-t from-black/76 via-black/32 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/76 via-black/32 to-transparent" />
             <div className="absolute inset-x-3 bottom-3">
               <p className="text-sm font-medium text-white">
                 Seamless upload experience for all your participants.
@@ -98,7 +98,7 @@ function LoginHeroMarketing() {
           </article>
 
           <article className="relative min-h-26 overflow-hidden rounded-2xl border border-brand-black/15 bg-brand-white/36 px-4 py-3.5 shadow-[0_8px_26px_rgba(0,0,0,0.1)]">
-            <div className="absolute inset-0 bg-linear-to-br from-brand-white/72 via-brand-white/58 to-brand-white/45" />
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-white/72 via-brand-white/58 to-brand-white/45" />
             <div className="relative">
               <p className="text-[11px] text-brand-black/60">Organizer dashboard</p>
               <p className="mt-1.5 text-sm font-medium text-brand-black/86">

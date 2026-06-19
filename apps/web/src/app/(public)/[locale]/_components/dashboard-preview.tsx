@@ -349,7 +349,7 @@ function DesktopDashboard() {
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-70 transition-opacity duration-300 group-hover/dash:opacity-100"
         style={{
-          background: `radial-gradient(400px circle at ${spot.x}% ${spot.y}%, color-mix(in oklch, var(--brand-primary) 22%, transparent), transparent 60%)`,
+          background: `radial-gradient(400px circle at ${spot.x}% ${spot.y}%, color-mix(in oklch, oklch(var(--brand-primary)) 22%, transparent), transparent 60%)`,
         }}
       />
       {/* faint grid */}
@@ -435,7 +435,7 @@ function DesktopDashboard() {
               <button className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-2.5 py-1 text-[11px] text-white/70 ring-1 ring-inset ring-white/5 transition hover:bg-white/10">
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden /> Refresh
               </button>
-              <button className="inline-flex items-center gap-1.5 rounded-md bg-brand-primary px-2.5 py-1 text-[11px] font-semibold text-brand-black shadow-[0_6px_20px_-6px_color-mix(in_oklch,var(--brand-primary)_60%,transparent)] transition hover:brightness-110">
+              <button className="inline-flex items-center gap-1.5 rounded-md bg-brand-primary px-2.5 py-1 text-[11px] font-semibold text-brand-black shadow-[0_6px_20px_-6px_color-mix(in_oklch,oklch(var(--brand-primary))_60%,transparent)] transition hover:brightness-110">
                 <Upload className="h-3.5 w-3.5" aria-hidden /> Manual Upload
               </button>
             </div>
@@ -727,7 +727,7 @@ function MobileDashboard() {
         </div>
       </div>
       {/* ambient glow */}
-      <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[3rem] bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,var(--brand-primary)_18%,transparent),transparent_70%)] blur-2xl" />
+      <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[3rem] bg-[radial-gradient(ellipse_at_center,color-mix(in_oklch,oklch(var(--brand-primary))_18%,transparent),transparent_70%)] blur-2xl" />
     </div>
   )
 }
@@ -795,7 +795,7 @@ export function DashboardPreview() {
     <section className="px-3 pb-6 lg:px-4 lg:pb-8">
       <div className="relative overflow-hidden rounded-2xl bg-brand-black px-6 py-16 md:px-10 md:py-20 lg:rounded-3xl lg:px-12 lg:py-24">
         <NoiseOverlay opacity={0.05} />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklch,var(--brand-primary)_18%,transparent),transparent)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,color-mix(in_oklch,oklch(var(--brand-primary))_18%,transparent),transparent)]" />
 
         <div className="relative mx-auto max-w-6xl xl:max-w-7xl 2xl:max-w-[88rem]">
           <FadeIn>
