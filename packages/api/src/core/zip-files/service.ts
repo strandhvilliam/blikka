@@ -465,9 +465,6 @@ const makeZipFilesService = Effect.gen(function* () {
       })
 
       yield* downloadStateRepository.setActiveProcessForDomain(domain, processId)
-      // Display fallback: keeps this export visible in the dashboard even if the active pointer is
-      // later cleared (transient miss / reset race). Overwritten only by a new export or a reset.
-      yield* downloadStateRepository.setLastProcessForDomain(domain, processId)
 
       yield* Effect.logInfo({
         message: 'Download process created',
@@ -559,6 +556,14 @@ const makeZipFilesService = Effect.gen(function* () {
         ),
       )
 
+      // Mark this as the domain's last export ONLY now that init fully succeeded. This is the durable
+      // display pointer: unlike the active pointer (cleared on transient misses / by the next export's
+      // stale-pointer guard), it survives so the completed export's download stays visible until an
+      // explicit reset or the next *successful* export replaces it. Set after the jobs trigger (not
+      // before) and ignore failures so a blip on this pointer never rolls back an export that has
+      // already been kicked off.
+      yield* downloadStateRepository.setLastProcessForDomain(domain, processId).pipe(Effect.ignore)
+
       return {
         message: 'Zip download jobs initialized',
         processId,
@@ -635,9 +640,10 @@ const makeZipFilesService = Effect.gen(function* () {
     // to the last-process pointer so a completed export stays visible even when the active pointer
     // was cleared (transient miss, reset race, or a job triggered outside the dashboard flow).
     const activeProcessIdOption = yield* downloadStateRepository.getActiveProcessForDomain(domain)
-    const processIdOption = Option.isSome(activeProcessIdOption)
-      ? activeProcessIdOption
-      : yield* downloadStateRepository.getLastProcessForDomain(domain)
+    const usedLast = Option.isNone(activeProcessIdOption)
+    const processIdOption = usedLast
+      ? yield* downloadStateRepository.getLastProcessForDomain(domain)
+      : activeProcessIdOption
     if (Option.isNone(processIdOption)) {
       return null
     }
@@ -645,9 +651,14 @@ const makeZipFilesService = Effect.gen(function* () {
 
     const summaryOption = yield* downloadStateRepository.getProcessSummary(processId)
     if (Option.isNone(summaryOption)) {
-      // The process hash is genuinely gone (expired / deleted) — clear both pointers, show idle.
-      yield* downloadStateRepository.clearActiveProcessForDomain(domain)
-      yield* downloadStateRepository.clearLastProcessForDomain(domain)
+      // The resolved process hash is gone (expired / deleted). Clear ONLY the pointer we resolved
+      // through — never wipe the durable `last` pointer just because a stale `active` pointed at a
+      // dead process; the next poll then falls back to `last` and can still surface a good export.
+      if (usedLast) {
+        yield* downloadStateRepository.clearLastProcessForDomain(domain)
+      } else {
+        yield* downloadStateRepository.clearActiveProcessForDomain(domain)
+      }
       return null
     }
     const summary = summaryOption.value

@@ -98,7 +98,9 @@ const makeZipDownloadCleanup = Effect.gen(function* () {
 
         yield* downloadStateRepository.deleteDownloadProcess(processId).pipe(Effect.ignore)
         yield* downloadStateRepository.clearActiveProcessForDomain(domain).pipe(Effect.ignore)
-        yield* downloadStateRepository.clearLastProcessForDomain(domain).pipe(Effect.ignore)
+        // Intentionally do NOT clear the `last` display pointer here: a failed *new* init must not
+        // hide a previously-completed export. `last` is only replaced by the next successful init or
+        // cleared by an explicit reset.
       }).pipe(Effect.withSpan('ZipFiles.rollbackFailedZipInitialization'))
 
   return ZipDownloadCleanup.of({
