@@ -26,16 +26,16 @@ export class ZipDownloadCleanup extends Context.Service<
       processId: string
     }) => Effect.Effect<void, never, never>
   }
->()('@blikka/api/ZipDownloadCleanup') { }
+>()('@blikka/api/ZipDownloadCleanup') {}
 
-const makeZipDownloadCleanup = Effect.gen(function*() {
+const makeZipDownloadCleanup = Effect.gen(function* () {
   const downloadStateRepository = yield* DownloadStateRepository
   const s3Service = yield* S3Service
   const zipsBucket = yield* Config.string('ZIPS_BUCKET_NAME')
 
   const cleanupDownloadProcessArtifacts: ZipDownloadCleanup['Service']['cleanupDownloadProcessArtifacts'] =
     (processId) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         const jobIds = yield* downloadStateRepository.getProcessJobIds(processId)
         const chunkStates = yield* Effect.forEach(jobIds, (jobId) =>
           downloadStateRepository.getChunkState(jobId),
@@ -43,9 +43,7 @@ const makeZipDownloadCleanup = Effect.gen(function*() {
 
         const zipKeys = [
           ...new Set(
-            chunkStates
-              .filter(Option.isSome)
-              .map((chunkState) => chunkState.value.zipKey),
+            chunkStates.filter(Option.isSome).map((chunkState) => chunkState.value.zipKey),
           ),
         ]
 
@@ -86,7 +84,7 @@ const makeZipDownloadCleanup = Effect.gen(function*() {
 
   const rollbackFailedZipInitialization: ZipDownloadCleanup['Service']['rollbackFailedZipInitialization'] =
     ({ domain, processId }) =>
-      Effect.gen(function*() {
+      Effect.gen(function* () {
         yield* cleanupDownloadProcessArtifacts(processId).pipe(
           Effect.catch((error) =>
             Effect.logWarning({
@@ -100,6 +98,7 @@ const makeZipDownloadCleanup = Effect.gen(function*() {
 
         yield* downloadStateRepository.deleteDownloadProcess(processId).pipe(Effect.ignore)
         yield* downloadStateRepository.clearActiveProcessForDomain(domain).pipe(Effect.ignore)
+        yield* downloadStateRepository.clearLastProcessForDomain(domain).pipe(Effect.ignore)
       }).pipe(Effect.withSpan('ZipFiles.rollbackFailedZipInitialization'))
 
   return ZipDownloadCleanup.of({

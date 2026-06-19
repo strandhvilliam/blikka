@@ -51,5 +51,9 @@ export const atomicRetryChunkScript = defineScript({
 
     return cjson.encode({ removed = removed })
   `,
-  returns: Schema.toStandardSchemaV1(Schema.NullOr(Schema.String)),
+  // The script returns `cjson.encode(...)` (a JSON string), but `@upstash/redis` has
+  // `automaticDeserialization` on by default and JSON.parses string replies back into an object
+  // before upstash-lua validates the result — so the declared shape must be the parsed object,
+  // not a string. `nil` is returned (as null) when the process hash no longer exists.
+  returns: Schema.toStandardSchemaV1(Schema.NullOr(Schema.Struct({ removed: Schema.Number }))),
 })

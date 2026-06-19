@@ -52,47 +52,50 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrid
   const zippedSubmissionsRepository =
     overrides.zippedSubmissionsRepository ??
     ZippedSubmissionsRepository.of({
-    getZipSubmissionStatsByDomain: () =>
-      Effect.gen(function* () {
-        const state = yield* Ref.get(stateRef)
-        return state.stats
-      }),
-    getCompletedParticipantsForZipPlanning: () => Effect.succeed([]),
-  } as unknown as ZippedSubmissionsRepository['Service'])
+      getZipSubmissionStatsByDomain: () =>
+        Effect.gen(function* () {
+          const state = yield* Ref.get(stateRef)
+          return state.stats
+        }),
+      getCompletedParticipantsForZipPlanning: () => Effect.succeed([]),
+    } as unknown as ZippedSubmissionsRepository['Service'])
 
   const downloadStateRepository =
     overrides.downloadStateRepository ??
     DownloadStateRepository.of({
-    getDownloadProcess: (id: string) =>
-      Effect.gen(function* () {
-        const state = yield* Ref.get(stateRef)
-        return Option.fromNullishOr(state.processes[id])
-      }),
-    getActiveProcessForDomain: (activeDomain: string) =>
-      Effect.gen(function* () {
-        const state = yield* Ref.get(stateRef)
-        return Option.fromNullishOr(state.activeProcessByDomain[activeDomain])
-      }),
-    clearActiveProcessForDomain: (activeDomain: string) =>
-      updateTestState(stateRef, (state) => ({
-        ...state,
-        clearedDomains: [...state.clearedDomains, activeDomain],
-      })).pipe(Effect.as(undefined)),
-    cancelDownloadProcess: (id: string) =>
-      updateTestState(stateRef, (state) => ({
-        ...state,
-        cancelledProcessIds: [...state.cancelledProcessIds, id],
-      })).pipe(Effect.as(undefined)),
-    createDownloadProcess: () => Effect.void,
-    updateDownloadProcess: () => Effect.void,
-    setActiveProcessForDomain: () => Effect.void,
-    saveChunkState: () => Effect.void,
-    getChunkState: () => Effect.succeed(Option.none()),
-    addJobToProcess: () => Effect.void,
-    getProcessJobIds: () => Effect.succeed([]),
-    deleteChunkState: () => Effect.succeed(1),
-    deleteDownloadProcess: () => Effect.succeed(1),
-  } as unknown as DownloadStateRepository['Service'])
+      getDownloadProcess: (id: string) =>
+        Effect.gen(function* () {
+          const state = yield* Ref.get(stateRef)
+          return Option.fromNullishOr(state.processes[id])
+        }),
+      getActiveProcessForDomain: (activeDomain: string) =>
+        Effect.gen(function* () {
+          const state = yield* Ref.get(stateRef)
+          return Option.fromNullishOr(state.activeProcessByDomain[activeDomain])
+        }),
+      clearActiveProcessForDomain: (activeDomain: string) =>
+        updateTestState(stateRef, (state) => ({
+          ...state,
+          clearedDomains: [...state.clearedDomains, activeDomain],
+        })).pipe(Effect.as(undefined)),
+      cancelDownloadProcess: (id: string) =>
+        updateTestState(stateRef, (state) => ({
+          ...state,
+          cancelledProcessIds: [...state.cancelledProcessIds, id],
+        })).pipe(Effect.as(undefined)),
+      getLastProcessForDomain: () => Effect.succeed(Option.none()),
+      setLastProcessForDomain: () => Effect.void,
+      clearLastProcessForDomain: () => Effect.succeed(0),
+      createDownloadProcess: () => Effect.void,
+      updateDownloadProcess: () => Effect.void,
+      setActiveProcessForDomain: () => Effect.void,
+      saveChunkState: () => Effect.void,
+      getChunkState: () => Effect.succeed(Option.none()),
+      addJobToProcess: () => Effect.void,
+      getProcessJobIds: () => Effect.succeed([]),
+      deleteChunkState: () => Effect.succeed(1),
+      deleteDownloadProcess: () => Effect.succeed(1),
+    } as unknown as DownloadStateRepository['Service'])
 
   const s3Service = S3Service.of({
     getPresignedUrl: (_bucket: string, key: string) => Effect.succeed(`https://example.com/${key}`),
@@ -338,7 +341,10 @@ describe('ZipFilesService', () => {
       )
 
       assert.isDefined(result)
-      assert.equal(result?.[0]?.downloadUrl, `https://example.com/${domain}/zip-downloads/open/0001-0100.zip`)
+      assert.equal(
+        result?.[0]?.downloadUrl,
+        `https://example.com/${domain}/zip-downloads/open/0001-0100.zip`,
+      )
     }),
   )
 

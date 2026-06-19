@@ -1,4 +1,3 @@
-
 import { S3Service, S3ServiceLayer, S3ClientError } from '@blikka/aws'
 import { DbLayer, ParticipantsRepository, ZippedSubmissionsRepository, DbError } from '@blikka/db'
 import {
@@ -200,7 +199,12 @@ export class ZipFilesService extends Context.Service<
       input: GetParticipantZipDownloadUrlInput,
     ) => Effect.Effect<
       { downloadUrl: string; filename: string },
-      DbError | BadRequestError | NotFoundError | S3ClientError | Config.ConfigError | ZipWorkerError,
+      | DbError
+      | BadRequestError
+      | NotFoundError
+      | S3ClientError
+      | Config.ConfigError
+      | ZipWorkerError,
       never
     >
 
@@ -277,6 +281,7 @@ const makeZipFilesService = Effect.gen(function* () {
 
     if (Option.isNone(processStateOption)) {
       yield* downloadStateRepository.clearActiveProcessForDomain(domain)
+      yield* downloadStateRepository.clearLastProcessForDomain(domain)
       return { success: true, message: 'Export already cleared' }
     }
 
@@ -310,6 +315,7 @@ const makeZipFilesService = Effect.gen(function* () {
 
     yield* downloadStateRepository.deleteDownloadProcess(processId)
     yield* downloadStateRepository.clearActiveProcessForDomain(domain)
+    yield* downloadStateRepository.clearLastProcessForDomain(domain)
 
     yield* Effect.logInfo({
       message: 'Download process reset',
@@ -459,6 +465,9 @@ const makeZipFilesService = Effect.gen(function* () {
       })
 
       yield* downloadStateRepository.setActiveProcessForDomain(domain, processId)
+      // Display fallback: keeps this export visible in the dashboard even if the active pointer is
+      // later cleared (transient miss / reset race). Overwritten only by a new export or a reset.
+      yield* downloadStateRepository.setLastProcessForDomain(domain, processId)
 
       yield* Effect.logInfo({
         message: 'Download process created',
@@ -622,15 +631,23 @@ const makeZipFilesService = Effect.gen(function* () {
   const getExportFiles: ZipFilesService['Service']['getExportFiles'] = Effect.fn(
     'ZipFilesService.getExportFiles',
   )(function* ({ domain }) {
+    // Resolve which export to show: prefer the active pointer (set while in-flight), but fall back
+    // to the last-process pointer so a completed export stays visible even when the active pointer
+    // was cleared (transient miss, reset race, or a job triggered outside the dashboard flow).
     const activeProcessIdOption = yield* downloadStateRepository.getActiveProcessForDomain(domain)
-    if (Option.isNone(activeProcessIdOption)) {
+    const processIdOption = Option.isSome(activeProcessIdOption)
+      ? activeProcessIdOption
+      : yield* downloadStateRepository.getLastProcessForDomain(domain)
+    if (Option.isNone(processIdOption)) {
       return null
     }
-    const processId = activeProcessIdOption.value
+    const processId = processIdOption.value
 
     const summaryOption = yield* downloadStateRepository.getProcessSummary(processId)
     if (Option.isNone(summaryOption)) {
+      // The process hash is genuinely gone (expired / deleted) — clear both pointers, show idle.
       yield* downloadStateRepository.clearActiveProcessForDomain(domain)
+      yield* downloadStateRepository.clearLastProcessForDomain(domain)
       return null
     }
     const summary = summaryOption.value
@@ -649,7 +666,9 @@ const makeZipFilesService = Effect.gen(function* () {
     const chunkRows = yield* Effect.forEach(
       jobIds,
       (jobId) =>
-        downloadStateRepository.getChunkState(jobId).pipe(Effect.map((state) => ({ jobId, state }))),
+        downloadStateRepository
+          .getChunkState(jobId)
+          .pipe(Effect.map((state) => ({ jobId, state }))),
       { concurrency: 10 },
     )
     const presentRows = chunkRows.flatMap(({ jobId, state }) =>
@@ -726,6 +745,7 @@ const makeZipFilesService = Effect.gen(function* () {
     yield* downloadStateRepository.reactivateChunkForRetry(processId, jobId)
     // Re-point the domain at this process in case the active pointer was cleared, then re-run the job.
     yield* downloadStateRepository.setActiveProcessForDomain(domain, processId)
+    yield* downloadStateRepository.setLastProcessForDomain(domain, processId)
     yield* zipDownloaderTrigger.triggerJob(jobId)
 
     return { success: true }

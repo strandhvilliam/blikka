@@ -4,6 +4,7 @@ import { DownloadStateRepository, DownloadStateRepositoryLayer } from '@blikka/k
 import { Context, Duration, Effect, Layer, Option, Schedule, Schema } from 'effect'
 import archiver from 'archiver'
 import JSZip from 'jszip'
+import { PassThrough } from 'node:stream'
 import { UploadsConfig, UploadsConfigLayer } from './config'
 import { EnsureParticipantZip, EnsureParticipantZipLayer } from './ensure-participant-zip'
 
@@ -48,27 +49,48 @@ export class ZipDownloader extends Context.Service<
 /**
  * Surfaces the real failure reason for logging. Our tagged errors (S3ClientError,
  * DownloadStateScriptFailed, ...) carry a generic `message` and stash the underlying SDK/Redis
- * error in `cause`; logging only `message` hides what actually went wrong (timeout vs SlowDown vs
- * connection reset vs access denied). This pulls out the cause's name + message too.
+ * error in `cause` — and those wrap further (S3ClientError -> S3EffectError -> the real AWS SDK
+ * error). Logging only the top `message` hides what actually went wrong, so this walks the full
+ * `cause` chain and pulls out AWS-specific fields (name, error code, HTTP status, fault) so the
+ * underlying error (AccessDenied, NoSuchBucket, CredentialsProviderError, timeout, ...) is visible.
  */
-const describeError = (error: unknown): Record<string, unknown> => {
+const errorDetail = (error: unknown, depth = 0): Record<string, unknown> => {
+  if (depth > 6) {
+    return { truncated: true }
+  }
   if (!(error instanceof Error)) {
-    return { error: String(error) }
+    return { value: String(error) }
   }
 
-  const cause = (error as { cause?: unknown }).cause
-
-  return {
-    error: error.message,
-    errorName: error.name,
-    cause:
-      cause instanceof Error
-        ? { name: cause.name, message: cause.message }
-        : cause !== undefined
-          ? String(cause)
-          : undefined,
+  const err = error as Error & {
+    code?: string
+    Code?: string
+    $fault?: unknown
+    $metadata?: { httpStatusCode?: number; requestId?: string }
+    cause?: unknown
   }
+
+  const detail: Record<string, unknown> = {
+    name: err.name,
+    message: err.message,
+  }
+  if (err.code !== undefined) detail.code = err.code
+  if (err.Code !== undefined) detail.Code = err.Code
+  if (err.$fault !== undefined) detail.fault = err.$fault
+  if (err.$metadata?.httpStatusCode !== undefined) {
+    detail.httpStatusCode = err.$metadata.httpStatusCode
+  }
+  if (err.$metadata?.requestId !== undefined) detail.requestId = err.$metadata.requestId
+  if (err.cause !== undefined) detail.cause = errorDetail(err.cause, depth + 1)
+
+  return detail
 }
+
+const describeError = (error: unknown): Record<string, unknown> => ({
+  error: error instanceof Error ? error.message : String(error),
+  errorName: error instanceof Error ? error.name : undefined,
+  detail: errorDetail(error),
+})
 
 const makeZipDownloader = Effect.gen(function* () {
   const downloadStateRepository = yield* DownloadStateRepository
@@ -300,25 +322,37 @@ const makeZipDownloader = Effect.gen(function* () {
       // concurrently with stream backpressure); only `allFiles` plus small in-flight parts are held.
       //
       // The whole build-and-upload is wrapped in a retry because multipart streaming uploads to S3
-      // hit transient errors routinely (connection resets, `SlowDown`/503 throttling). The archiver
-      // Body is a one-shot Readable that is consumed and destroyed per attempt, so the archive MUST
-      // be (re)created INSIDE the retried effect — retrying `uploadStream` alone would re-send an
-      // already-drained stream. We only retry transient S3 failures; a ZipProcessingError (archive
-      // build failure) is deterministic and is surfaced immediately. A new multipart upload to the
-      // same key on each attempt is safe (last writer wins).
+      // hit transient errors routinely (connection resets, `SlowDown`/503 throttling). The streams
+      // are one-shot (consumed and destroyed per attempt), so they MUST be (re)created INSIDE the
+      // retried effect — retrying `uploadStream` alone would re-send an already-drained stream. We
+      // only retry transient S3 failures; a ZipProcessingError (archive build failure) is
+      // deterministic and is surfaced immediately. A new multipart upload to the same key on each
+      // attempt is safe (last writer wins).
       const archiveSize = yield* Effect.gen(function* () {
         const archive = archiver('zip', {
           zlib: { level: 6 },
         })
 
-        // Attach an 'error' listener so an archiver error is never thrown as an unhandled 'error'
-        // event (which would crash the task instead of failing the chunk). The failure still surfaces
-        // because the upload effect rejects when the stream errors.
-        archive.on('error', () => {})
+        // `@aws-sdk/lib-storage`'s `Upload` only accepts a NATIVE node stream as its Body. Archiver
+        // (v7) builds on the userland `readable-stream` package, so its output fails the SDK's
+        // `instanceof Readable` check and is rejected outright with "Body Data is unsupported format"
+        // — deterministically, before any bytes are sent. Pipe the archive through a native
+        // PassThrough and upload THAT so the SDK accepts the Body.
+        const uploadBody = new PassThrough()
+
+        // Forward archiver errors onto the upload body: this both stops an archiver error from being
+        // thrown as an unhandled 'error' event (which would crash the task) AND tears the upload body
+        // down so the in-flight multipart upload rejects fast instead of hanging.
+        archive.on('error', (error) => {
+          if (!uploadBody.destroyed) {
+            uploadBody.destroy(error instanceof Error ? error : new Error(String(error)))
+          }
+        })
+        archive.pipe(uploadBody)
 
         yield* Effect.all(
           [
-            s3Service.uploadStream(zipsBucket, chunkState.zipKey, archive, {
+            s3Service.uploadStream(zipsBucket, chunkState.zipKey, uploadBody, {
               contentType: 'application/zip',
             }),
             Effect.tryPromise({
@@ -329,8 +363,12 @@ const makeZipDownloader = Effect.gen(function* () {
                 await archive.finalize()
               },
               catch: (error) => {
-                // Tear the stream down so the in-flight multipart upload fails fast instead of hanging.
-                archive.destroy(error instanceof Error ? error : new Error(String(error)))
+                // Tear both streams down so the in-flight multipart upload fails fast instead of hanging.
+                const cause = error instanceof Error ? error : new Error(String(error))
+                archive.destroy(cause)
+                if (!uploadBody.destroyed) {
+                  uploadBody.destroy(cause)
+                }
                 return new ZipProcessingError({
                   message: 'Failed to create archive',
                   jobId,
@@ -342,13 +380,16 @@ const makeZipDownloader = Effect.gen(function* () {
           ],
           { concurrency: 'unbounded', discard: true },
         ).pipe(
-          // Always destroy the archive when the combined op ends. Critically, if the UPLOAD side
-          // fails, the producer fiber is interrupted but the archive would otherwise be left
-          // undrained — this releases it. No-op on the success path (the stream has already ended).
+          // Always destroy both streams when the combined op ends. Critically, if the UPLOAD side
+          // fails, the producer fiber is interrupted but the streams would otherwise be left
+          // undrained — this releases them. No-op on the success path (the streams have already ended).
           Effect.ensuring(
             Effect.sync(() => {
               if (!archive.destroyed) {
                 archive.destroy()
+              }
+              if (!uploadBody.destroyed) {
+                uploadBody.destroy()
               }
             }),
           ),

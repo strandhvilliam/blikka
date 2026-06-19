@@ -244,6 +244,19 @@ export class DownloadStateRepository extends Context.Service<
     readonly clearActiveProcessForDomain: (
       domain: string,
     ) => Effect.Effect<number, DownloadStateRepositoryError>
+    /** Resolve the most recently initialized process id for a domain (display fallback), if any. */
+    readonly getLastProcessForDomain: (
+      domain: string,
+    ) => Effect.Effect<Option.Option<string>, DownloadStateRepositoryError>
+    /** Record the domain's most recently initialized process id (display fallback) with expiry. */
+    readonly setLastProcessForDomain: (
+      domain: string,
+      processId: string,
+    ) => Effect.Effect<string | null, DownloadStateRepositoryError>
+    /** Remove the domain's last-process pointer (returns number of keys deleted). */
+    readonly clearLastProcessForDomain: (
+      domain: string,
+    ) => Effect.Effect<number, DownloadStateRepositoryError>
     /** Mark an existing process as `cancelled`; fails if the process hash is missing. */
     readonly cancelDownloadProcess: (
       processId: string,
@@ -687,6 +700,54 @@ const makeDownloadStateRepository = Effect.gen(function* () {
       (effect, domain) => Effect.annotateLogs(effect, { domain }),
     )
 
+  const getLastProcessForDomain: DownloadStateRepository['Service']['getLastProcessForDomain'] =
+    Effect.fn('DownloadStateRepository.getLastProcessForDomain')(
+      function* (domain) {
+        const key = Keys.lastDownloadProcess(domain)
+        const result = yield* redis.use((client) => client.get<string | null>(key))
+        return Option.fromNullishOr(result)
+      },
+      Effect.retry(retryPolicy),
+      Effect.catchTag('RedisError', (e) =>
+        Effect.fail(
+          new DownloadStateStoreUnavailable({ operation: 'getLastProcessForDomain', cause: e }),
+        ),
+      ),
+      (effect, domain) => Effect.annotateLogs(effect, { domain }),
+    )
+
+  const setLastProcessForDomain: DownloadStateRepository['Service']['setLastProcessForDomain'] =
+    Effect.fn('DownloadStateRepository.setLastProcessForDomain')(
+      function* (domain, processId) {
+        const key = Keys.lastDownloadProcess(domain)
+        return yield* redis.use((client) =>
+          client.set(key, processId, { ex: ACTIVE_PROCESS_TTL_SECONDS }),
+        )
+      },
+      Effect.retry(retryPolicy),
+      Effect.catchTag('RedisError', (e) =>
+        Effect.fail(
+          new DownloadStateStoreUnavailable({ operation: 'setLastProcessForDomain', cause: e }),
+        ),
+      ),
+      (effect, domain, processId) => Effect.annotateLogs(effect, { domain, processId }),
+    )
+
+  const clearLastProcessForDomain: DownloadStateRepository['Service']['clearLastProcessForDomain'] =
+    Effect.fn('DownloadStateRepository.clearLastProcessForDomain')(
+      function* (domain) {
+        const key = Keys.lastDownloadProcess(domain)
+        return yield* redis.use((client) => client.del(key))
+      },
+      Effect.retry(retryPolicy),
+      Effect.catchTag('RedisError', (e) =>
+        Effect.fail(
+          new DownloadStateStoreUnavailable({ operation: 'clearLastProcessForDomain', cause: e }),
+        ),
+      ),
+      (effect, domain) => Effect.annotateLogs(effect, { domain }),
+    )
+
   const cancelDownloadProcess: DownloadStateRepository['Service']['cancelDownloadProcess'] =
     Effect.fn('DownloadStateRepository.cancelDownloadProcess')(
       function* (processId) {
@@ -781,6 +842,9 @@ const makeDownloadStateRepository = Effect.gen(function* () {
     getActiveProcessForDomain,
     setActiveProcessForDomain,
     clearActiveProcessForDomain,
+    getLastProcessForDomain,
+    setLastProcessForDomain,
+    clearLastProcessForDomain,
     cancelDownloadProcess,
     deleteChunkState,
     deleteDownloadProcess,
