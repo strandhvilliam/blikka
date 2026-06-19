@@ -377,9 +377,9 @@ export function VerificationClient({
           </div>
 
           <div className="relative flex items-center px-6">
-            <div className="absolute -left-3 h-6 w-6 rounded-full bg-white shadow-[inset_-1px_0_0_oklch(var(--border))]" />
+            <div className="absolute -left-3 h-6 w-6 rounded-full bg-white shadow-[inset_-1px_0_0_hsl(var(--border))]" />
             <div className="h-px w-full border-t border-dashed border-border" />
-            <div className="absolute -right-3 h-6 w-6 rounded-full bg-white shadow-[inset_1px_0_0_oklch(var(--border))]" />
+            <div className="absolute -right-3 h-6 w-6 rounded-full bg-white shadow-[inset_1px_0_0_hsl(var(--border))]" />
           </div>
 
           <div className="flex flex-col items-center px-8 pt-6 pb-8">

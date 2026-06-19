@@ -74,7 +74,7 @@ export function HowItWorks() {
             className="pointer-events-none absolute -top-10 left-1/2 hidden h-24 w-2/3 -translate-x-1/2 rounded-full lg:block"
             style={{
               background:
-                'radial-gradient(ellipse at center, color-mix(in oklch, oklch(var(--brand-primary)) 10%, transparent), transparent 70%)',
+                'radial-gradient(ellipse at center, hsl(var(--brand-primary) / 0.1), transparent 70%)',
               filter: 'blur(32px)',
             }}
           />
@@ -82,7 +82,7 @@ export function HowItWorks() {
             <FadeIn key={step.step} delay={index * 100}>
               <div className="group relative pb-10 pl-10 sm:pb-12 lg:pb-0 lg:pl-0 lg:pr-8">
                 <div className="absolute top-0 left-0 flex h-full w-px flex-col items-center lg:relative lg:mb-6 lg:h-auto lg:w-full lg:flex-row">
-                  <div className="relative z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-brand-primary/30 bg-background text-lg font-semibold text-brand-primary transition-[background-color,border-color,box-shadow] duration-300 group-hover:border-brand-primary group-hover:bg-brand-primary/5 group-hover:shadow-[0_0_0_6px_color-mix(in_oklch,oklch(var(--brand-primary))_10%,transparent)] lg:static">
+                  <div className="relative z-10 flex h-13 w-13 shrink-0 items-center justify-center rounded-full border-2 border-brand-primary/30 bg-background text-lg font-semibold text-brand-primary transition-[background-color,border-color,box-shadow] duration-300 group-hover:border-brand-primary group-hover:bg-brand-primary/5 group-hover:shadow-[0_0_0_6px_hsl(var(--brand-primary)_/_0.1)] lg:static">
                     {step.step}
                   </div>
                   {index < steps.length - 1 && <div className="h-full w-px bg-border lg:hidden" />}

@@ -3,86 +3,86 @@
 @tailwind utilities;
 
 /*
- * Color tokens are stored as bare oklch channels (no `oklch(...)` wrapper) so
+ * Color tokens are stored as bare HSL channels (no `hsl(...)` wrapper) so
  * Tailwind v3 can inject the `<alpha-value>` placeholder for opacity modifiers
- * (e.g. `bg-muted/50`). The wrapping happens in tailwind.config.ts. When
- * referencing a token directly in CSS/inline styles, wrap it yourself:
- * `oklch(var(--border))`.
+ * (e.g. `bg-muted/50`). The wrapping happens in tailwind.config.ts. HSL is used
+ * (instead of oklch) for legacy-browser support. When referencing a token
+ * directly in CSS/inline styles, wrap it yourself: `hsl(var(--border))`.
  */
 
 :root {
   --radius: 0.625rem;
-  --background: 1 0 0;
-  --foreground: 0.141 0.005 285.823;
-  --card: 1 0 0;
-  --card-foreground: 0.141 0.005 285.823;
-  --popover: 1 0 0;
-  --popover-foreground: 0.141 0.005 285.823;
-  --primary: 0.21 0.006 285.885;
-  --primary-foreground: 0.985 0 0;
-  --secondary: 0.967 0.001 286.375;
-  --secondary-foreground: 0.21 0.006 285.885;
-  --muted: 0.967 0.001 286.375;
-  --muted-foreground: 0.552 0.016 285.938;
-  --accent: 0.967 0.001 286.375;
-  --accent-foreground: 0.21 0.006 285.885;
-  --destructive: 0.577 0.245 27.325;
-  --border: 0.92 0.004 286.32;
-  --input: 0.92 0.004 286.32;
-  --ring: 0.705 0.015 286.067;
-  --chart-1: 0.646 0.222 41.116;
-  --chart-2: 0.6 0.118 184.704;
-  --chart-3: 0.398 0.07 227.392;
-  --chart-4: 0.828 0.189 84.429;
-  --chart-5: 0.769 0.188 70.08;
-  --sidebar: 0.985 0 0;
-  --sidebar-foreground: 0.141 0.005 285.823;
-  --sidebar-primary: 0.21 0.006 285.885;
-  --sidebar-primary-foreground: 0.985 0 0;
-  --sidebar-accent: 0.967 0.001 286.375;
-  --sidebar-accent-foreground: 0.21 0.006 285.885;
-  --sidebar-border: 0.92 0.004 286.32;
-  --sidebar-ring: 0.705 0.015 286.067;
-  --brand-primary: 0.64 0.23 29;
-  --brand-white: 0.99 0 0;
-  --brand-black: 0.19 0 0;
-  --brand-gray: 0.55 0.01 286;
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 4.2% 46.3%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 357 100% 45.3%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.5% 64.3%;
+  --chart-1: 18 100% 48%;
+  --chart-2: 175 100% 29.4%;
+  --chart-3: 196 72.4% 22.7%;
+  --chart-4: 44 100% 50%;
+  --chart-5: 36 100% 49.8%;
+  --sidebar: 0 0% 98%;
+  --sidebar-foreground: 240 10% 3.9%;
+  --sidebar-primary: 240 5.9% 10%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 240 5.9% 90%;
+  --sidebar-ring: 240 5.5% 64.3%;
+  --brand-primary: 3 94.5% 57.3%;
+  --brand-white: 0 0% 98.8%;
+  --brand-black: 0 0% 7.8%;
+  --brand-gray: 240 2.6% 45.5%;
 }
 
 .dark {
-  --background: 0.141 0.005 285.823;
-  --foreground: 0.985 0 0;
-  --card: 0.21 0.006 285.885;
-  --card-foreground: 0.985 0 0;
-  --popover: 0.21 0.006 285.885;
-  --popover-foreground: 0.985 0 0;
-  --primary: 0.92 0.004 286.32;
-  --primary-foreground: 0.21 0.006 285.885;
-  --secondary: 0.274 0.006 286.033;
-  --secondary-foreground: 0.985 0 0;
-  --muted: 0.274 0.006 286.033;
-  --muted-foreground: 0.705 0.015 286.067;
-  --accent: 0.274 0.006 286.033;
-  --accent-foreground: 0.985 0 0;
-  --destructive: 0.704 0.191 22.216;
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 5.9% 10%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 5.9% 10%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 240 5.9% 90%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5.5% 64.3%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 359 100% 69.6%;
   /* v4 used translucent white (oklch(1 0 0 / 10%)); channel form can't carry a
      baked-in alpha, so these use the solid dark surface color instead. */
-  --border: 0.274 0.006 286.033;
-  --input: 0.274 0.006 286.033;
-  --ring: 0.552 0.016 285.938;
-  --chart-1: 0.488 0.243 264.376;
-  --chart-2: 0.696 0.17 162.48;
-  --chart-3: 0.769 0.188 70.08;
-  --chart-4: 0.627 0.265 303.9;
-  --chart-5: 0.645 0.246 16.439;
-  --sidebar: 0.21 0.006 285.885;
-  --sidebar-foreground: 0.985 0 0;
-  --sidebar-primary: 0.488 0.243 264.376;
-  --sidebar-primary-foreground: 0.985 0 0;
-  --sidebar-accent: 0.274 0.006 286.033;
-  --sidebar-accent-foreground: 0.985 0 0;
-  --sidebar-border: 0.274 0.006 286.033;
-  --sidebar-ring: 0.552 0.016 285.938;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.2% 46.3%;
+  --chart-1: 225 84% 49%;
+  --chart-2: 160 100% 36.9%;
+  --chart-3: 36 100% 49.8%;
+  --chart-4: 273 100% 63.7%;
+  --chart-5: 345 100% 56.3%;
+  --sidebar: 240 5.9% 10%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 225 84% 49%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 240 4.2% 46.3%;
 }
 
 /* Lenis smooth scroll - required for lenis/react */
@@ -149,14 +149,14 @@ html.lenis body {
   }
 
   .bg-vimmer-primary {
-    background-color: oklch(var(--brand-primary));
+    background-color: hsl(var(--brand-primary));
   }
   .bg-gradient-vimmer-primary {
     background-image: linear-gradient(
       135deg,
-      color-mix(in oklch, oklch(var(--brand-primary)) 12%, transparent) 0%,
-      color-mix(in oklch, oklch(var(--brand-primary)) 32%, transparent) 60%,
-      oklch(var(--background)) 100%
+      hsl(var(--brand-primary) / 0.12) 0%,
+      hsl(var(--brand-primary) / 0.32) 60%,
+      hsl(var(--background)) 100%
     );
   }
 }
