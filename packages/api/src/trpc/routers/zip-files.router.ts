@@ -1,12 +1,10 @@
-
 import { Effect, Schema } from 'effect'
 import { createTRPCRouter, domainProcedure, requireMatchingInputDomainMiddleware } from '../root'
 import { trpcEffect } from '../utils'
 import {
   InitializeZipDownloadsInputSchema,
   GetZipSubmissionStatusInputSchema,
-  ZipDownloadsByProcessIdInputSchema,
-  GetActiveProcessInputSchema,
+  GetExportFilesInputSchema,
   CancelDownloadProcessInputSchema,
   RetryExportChunkInputSchema,
   GenerateParticipantZipInputSchema,
@@ -45,40 +43,8 @@ export const zipFilesRouter = createTRPCRouter({
       ),
     ),
 
-  getZipDownloadUrls: domainProcedure
-    .input(Schema.toStandardSchemaV1(ZipDownloadsByProcessIdInputSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .query(
-      trpcEffect(
-        Effect.fn('ZipFilesRouter.getZipDownloadUrls')(function* ({ input }) {
-          const result = yield* ZipFilesService.use((s) =>
-            s.getZipDownloadUrls({
-              domain: input.domain,
-              processId: input.processId,
-            }),
-          )
-          return result
-        }),
-      ),
-    ),
-
-  getActiveProcess: domainProcedure
-    .input(Schema.toStandardSchemaV1(GetActiveProcessInputSchema))
-    .use(requireMatchingInputDomainMiddleware)
-    .query(
-      trpcEffect(
-        Effect.fn('ZipFilesRouter.getActiveProcess')(function* ({ input }) {
-          return yield* ZipFilesService.use((s) =>
-            s.getActiveProcess({
-              domain: input.domain,
-            }),
-          )
-        }),
-      ),
-    ),
-
   getExportFiles: domainProcedure
-    .input(Schema.toStandardSchemaV1(GetActiveProcessInputSchema))
+    .input(Schema.toStandardSchemaV1(GetExportFilesInputSchema))
     .use(requireMatchingInputDomainMiddleware)
     .query(
       trpcEffect(
@@ -108,7 +74,7 @@ export const zipFilesRouter = createTRPCRouter({
           return yield* ZipFilesService.use((s) =>
             s.retryExportChunk({
               domain: input.domain,
-              processId: input.processId,
+              exportJobId: input.exportJobId,
               jobId: input.jobId,
             }),
           )
@@ -125,7 +91,7 @@ export const zipFilesRouter = createTRPCRouter({
           return yield* ZipFilesService.use((s) =>
             s.cancelDownloadProcess({
               domain: input.domain,
-              processId: input.processId,
+              exportJobId: input.exportJobId,
             }),
           )
         }),

@@ -1,12 +1,14 @@
 import { S3Service, S3ServiceLayer, S3ClientError } from '@blikka/aws'
-import { DbLayer, ParticipantsRepository, ZippedSubmissionsRepository, DbError } from '@blikka/db'
 import {
-  DownloadStateRepository,
-  DownloadStateRepositoryLayer,
-  type DownloadProcessState,
-  type DownloadProcessStatus,
-  type DownloadStateRepositoryError,
-} from '@blikka/kv-store'
+  DbLayer,
+  DbError,
+  ExportJobsRepository,
+  MarathonsRepository,
+  ParticipantsRepository,
+  ZippedSubmissionsRepository,
+  type ExportJobChunkInput,
+  type ExportJobStatus,
+} from '@blikka/db'
 import {
   EnsureParticipantZip,
   EnsureParticipantZipLayer,
@@ -15,16 +17,14 @@ import {
 import { Effect, Option, Config, Context, Layer } from 'effect'
 
 import { BadRequestError, ConflictError, NotFoundError, failNotFoundIfNone } from '../errors'
-import { ZipDownloadCleanup, ZipDownloadCleanupLayer } from './cleanup-download-process'
 import type {
   CancelDownloadProcessInput,
   GenerateParticipantZipInput,
-  GetActiveProcessInput,
+  GetExportFilesInput,
   GetParticipantZipDownloadUrlInput,
   GetZipSubmissionStatusInput,
   InitializeZipDownloadsInput,
   RetryExportChunkInput,
-  ZipDownloadsByProcessIdInput,
 } from './contracts'
 import { planZipDownload } from './zip-download-plan'
 import {
@@ -32,13 +32,6 @@ import {
   ZipDownloaderTrigger,
   ZipDownloaderTriggerLayer,
 } from './trigger-zip-downloader-job'
-
-const RESETTABLE_DOWNLOAD_PROCESS_STATUSES = new Set<DownloadProcessStatus>([
-  'initializing',
-  'processing',
-  'failed',
-  'cancelled',
-])
 
 // Each chunk runs in one ECS task that, on a cold cache, both generates the missing
 // per-participant zips (downloading originals) AND merges them. Keep this modest so peak
@@ -51,43 +44,11 @@ interface ZipSubmissionStats {
   missingReferences: string[]
 }
 
-type ZipDownloadProgressView = Pick<
-  DownloadProcessState,
-  | 'processId'
-  | 'status'
-  | 'totalChunks'
-  | 'completedChunks'
-  | 'failedChunks'
-  | 'failedJobIds'
-  | 'lastUpdatedAt'
-  | 'competitionClasses'
->
-
-function toZipDownloadProgressView(state: DownloadProcessState): ZipDownloadProgressView {
-  return {
-    processId: state.processId,
-    status: state.status,
-    totalChunks: state.totalChunks,
-    completedChunks: state.completedChunks,
-    failedChunks: state.failedChunks,
-    failedJobIds: state.failedJobIds,
-    lastUpdatedAt: state.lastUpdatedAt,
-    competitionClasses: state.competitionClasses,
-  }
-}
-
-interface ZipDownloadUrlItem {
-  competitionClassName: string
-  minReference: number
-  maxReference: number
-  zipKey: string
-  downloadUrl: string
-}
-
 export type ExportFileStatus = 'building' | 'ready' | 'failed'
 
 /** One downloadable archive (= one chunk), with its live build status and a URL once ready. */
 export interface ExportFileRow {
+  /** The numeric export_job_chunks id, as a string (passed back to retry a failed file). */
   jobId: string
   competitionClassName: string
   minReference: number
@@ -96,10 +57,11 @@ export interface ExportFileRow {
   downloadUrl?: string
 }
 
-/** Live view of the active export's files — the single source for the file-list UI. */
+/** Live view of the latest export's files — the single source for the file-list UI. */
 export interface ExportFilesView {
-  processId: string
-  status: DownloadProcessStatus
+  /** The numeric export_jobs id, as a string. */
+  exportJobId: string
+  status: ExportJobStatus
   totalChunks: number
   completedChunks: number
   failedChunks: number
@@ -126,23 +88,26 @@ type InitializeZipDownloadsResult =
       domain: string
       totalChunks: number
       totalCompetitionClasses: number
-      processId?: undefined
+      exportJobId?: undefined
     }
   | {
       message: string
-      processId: string
+      exportJobId: string
       domain: string
       totalCompetitionClasses: number
       totalChunks: number
     }
 
-type InitializeZipDownloadsError =
-  | DbError
-  | DownloadStateRepositoryError
-  | Config.ConfigError
-  | UnableToRunZipDownloaderTaskError
-  | BadRequestError
-  | ConflictError
+type InitializeZipDownloadsError = DbError | BadRequestError | ConflictError
+
+const DOWNLOAD_URL_EXPIRES_IN_SECONDS = 86400
+
+/** Map a chunk's persisted build status onto the three-state view status (pending shows as building). */
+function toExportFileStatus(chunkStatus: string): ExportFileStatus {
+  if (chunkStatus === 'ready') return 'ready'
+  if (chunkStatus === 'failed') return 'failed'
+  return 'building'
+}
 
 export class ZipFilesService extends Context.Service<
   ZipFilesService,
@@ -152,36 +117,23 @@ export class ZipFilesService extends Context.Service<
       input: GetZipSubmissionStatusInput,
     ) => Effect.Effect<ZipSubmissionStats, DbError, never>
 
-    /** After completion, returns presigned GET URLs for each finished chunk ZIP. */
-    readonly getZipDownloadUrls: (
-      input: ZipDownloadsByProcessIdInput,
-    ) => Effect.Effect<
-      ZipDownloadUrlItem[] | null,
-      S3ClientError | Config.ConfigError | DownloadStateRepositoryError,
-      never
-    >
-
     /**
-     * Plans chunk jobs per competition class, persists process state, and triggers ECS zip-downloader tasks.
+     * Plans chunk jobs per competition class, persists the export job + chunk rows, and triggers
+     * one ECS zip-downloader task per chunk.
      */
     readonly initializeZipDownloads: (
       input: InitializeZipDownloadsInput,
     ) => Effect.Effect<InitializeZipDownloadsResult, InitializeZipDownloadsError, never>
 
-    /** Returns the in-flight download process for `domain` if any, or null. */
-    readonly getActiveProcess: (
-      input: GetActiveProcessInput,
-    ) => Effect.Effect<ZipDownloadProgressView | null, DownloadStateRepositoryError, never>
-
     /**
-     * Stops a download process, removes partial zip objects from S3, and clears Redis state
+     * Hard-deletes an export job (cascade drops its chunks) and removes the archive objects from S3
      * so a new export can be started.
      */
     readonly cancelDownloadProcess: (
       input: CancelDownloadProcessInput,
     ) => Effect.Effect<
       { success: boolean; message: string; deletedZipKeys?: readonly string[] },
-      DownloadStateRepositoryError | S3ClientError | Config.ConfigError,
+      DbError | S3ClientError | Config.ConfigError,
       never
     >
 
@@ -209,22 +161,20 @@ export class ZipFilesService extends Context.Service<
     >
 
     /**
-     * Live per-file view of the active export: each chunk's class, reference range, build status,
-     * and a presigned URL as soon as it is ready (download-as-ready). Null when no active process.
+     * Live per-file view of the latest export: each chunk's class, reference range, build status,
+     * and a presigned URL as soon as it is ready (download-as-ready). Null when the marathon has
+     * never run an export.
      */
     readonly getExportFiles: (
-      input: GetActiveProcessInput,
-    ) => Effect.Effect<ExportFilesView | null, DownloadStateRepositoryError | S3ClientError, never>
+      input: GetExportFilesInput,
+    ) => Effect.Effect<ExportFilesView | null, DbError | S3ClientError | Config.ConfigError, never>
 
-    /** Re-queue a single failed chunk: reactivate the process and re-trigger its ECS job. */
+    /** Re-queue a single failed chunk: flip it back to building and re-trigger its ECS job. */
     readonly retryExportChunk: (
       input: RetryExportChunkInput,
     ) => Effect.Effect<
       { success: boolean },
-      | DownloadStateRepositoryError
-      | BadRequestError
-      | UnableToRunZipDownloaderTaskError
-      | Config.ConfigError,
+      DbError | BadRequestError | UnableToRunZipDownloaderTaskError | Config.ConfigError,
       never
     >
 
@@ -238,144 +188,22 @@ export class ZipFilesService extends Context.Service<
 const makeZipFilesService = Effect.gen(function* () {
   const zippedSubmissionsRepository = yield* ZippedSubmissionsRepository
   const participantsRepository = yield* ParticipantsRepository
-  const downloadStateRepository = yield* DownloadStateRepository
+  const marathonsRepository = yield* MarathonsRepository
+  const exportJobsRepository = yield* ExportJobsRepository
   const s3Service = yield* S3Service
   const ensureParticipantZip = yield* EnsureParticipantZip
-  const zipDownloadCleanup = yield* ZipDownloadCleanup
   const zipDownloaderTrigger = yield* ZipDownloaderTrigger
   const zipsBucket = yield* Config.string('ZIPS_BUCKET_NAME')
+
+  const resolveMarathonId = (domain: string) =>
+    marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(Effect.map(Option.map((marathon) => marathon.id)))
 
   const getZipSubmissionStats: ZipFilesService['Service']['getZipSubmissionStats'] = Effect.fn(
     'ZipFilesService.getZipSubmissionStats',
   )(function* ({ domain }) {
-    const stats = yield* zippedSubmissionsRepository.getZipSubmissionStatsByDomain({
-      domain,
-    })
-    return stats
-  })
-
-  const getActiveProcess: ZipFilesService['Service']['getActiveProcess'] = Effect.fn(
-    'ZipFilesService.getActiveProcess',
-  )(function* ({ domain }) {
-    const processIdOption = yield* downloadStateRepository.getActiveProcessForDomain(domain)
-
-    if (Option.isNone(processIdOption)) {
-      return null
-    }
-
-    const processId = processIdOption.value
-    const processStateOption = yield* downloadStateRepository.getDownloadProcess(processId)
-
-    if (Option.isNone(processStateOption)) {
-      yield* downloadStateRepository.clearActiveProcessForDomain(domain)
-      return null
-    }
-
-    return toZipDownloadProgressView(processStateOption.value)
-  })
-
-  const cancelDownloadProcess: ZipFilesService['Service']['cancelDownloadProcess'] = Effect.fn(
-    'ZipFilesService.cancelDownloadProcess',
-  )(function* ({ domain, processId }) {
-    const processStateOption = yield* downloadStateRepository.getDownloadProcess(processId)
-
-    if (Option.isNone(processStateOption)) {
-      yield* downloadStateRepository.clearActiveProcessForDomain(domain)
-      yield* downloadStateRepository.clearLastProcessForDomain(domain)
-      return { success: true, message: 'Export already cleared' }
-    }
-
-    const state = processStateOption.value
-    if (state.domain !== domain) {
-      return {
-        success: false,
-        message: 'Process does not belong to this domain',
-      }
-    }
-
-    if (state.status === 'completed') {
-      return {
-        success: false,
-        message: 'Completed exports cannot be reset. Start a new export instead.',
-      }
-    }
-
-    if (!RESETTABLE_DOWNLOAD_PROCESS_STATUSES.has(state.status)) {
-      return {
-        success: false,
-        message: `Process cannot be reset while ${state.status}`,
-      }
-    }
-
-    const cleanup = yield* zipDownloadCleanup.cleanupDownloadProcessArtifacts(processId)
-
-    if (state.status !== 'cancelled') {
-      yield* downloadStateRepository.cancelDownloadProcess(processId)
-    }
-
-    yield* downloadStateRepository.deleteDownloadProcess(processId)
-    yield* downloadStateRepository.clearActiveProcessForDomain(domain)
-    yield* downloadStateRepository.clearLastProcessForDomain(domain)
-
-    yield* Effect.logInfo({
-      message: 'Download process reset',
-      processId,
-      domain,
-      deletedZipKeys: cleanup.deletedZipKeys.length,
-      deletedChunkStates: cleanup.deletedChunkStates,
-    })
-
-    const deletedCount = cleanup.deletedZipKeys.length
-    return {
-      success: true,
-      message:
-        deletedCount > 0
-          ? `Export reset and ${deletedCount} partial ${deletedCount === 1 ? 'file' : 'files'} removed.`
-          : 'Export reset. You can start a new export.',
-      deletedZipKeys: cleanup.deletedZipKeys,
-    }
-  })
-
-  const getZipDownloadUrls: ZipFilesService['Service']['getZipDownloadUrls'] = Effect.fn(
-    'ZipFilesService.getZipDownloadUrls',
-  )(function* ({ processId }) {
-    const processStateOption = yield* downloadStateRepository.getDownloadProcess(processId)
-    if (Option.isNone(processStateOption)) {
-      return null
-    }
-    const processState = processStateOption.value
-    if (processState.status !== 'completed') {
-      return null
-    }
-
-    const jobIds = processState.jobIds
-
-    if (jobIds.length === 0) {
-      return []
-    }
-
-    const chunkStates = yield* Effect.forEach(jobIds, (jobId) =>
-      downloadStateRepository.getChunkState(jobId),
-    )
-
-    const validChunks = chunkStates.filter((cs) => Option.isSome(cs)).map((cs) => cs.value)
-
-    const urls = yield* Effect.forEach(validChunks, (chunkState) =>
-      Effect.map(
-        s3Service.getPresignedUrl(zipsBucket, chunkState.zipKey, 'GET', {
-          expiresIn: 86400,
-        }),
-        (url) => ({
-          competitionClassName: chunkState.competitionClassName,
-          minReference: chunkState.minReference,
-          maxReference: chunkState.maxReference,
-          zipKey: chunkState.zipKey,
-          downloadUrl: url,
-        }),
-      ),
-    )
-
-    return urls
+    return yield* zippedSubmissionsRepository.getZipSubmissionStatsByDomain({ domain })
   })
 
   const initializeZipDownloads: ZipFilesService['Service']['initializeZipDownloads'] = Effect.fn(
@@ -387,10 +215,7 @@ const makeZipFilesService = Effect.gen(function* () {
       yield* zippedSubmissionsRepository.getCompletedParticipantsForZipPlanning({ domain })
 
     if (completedParticipants.length === 0) {
-      yield* Effect.logInfo({
-        message: 'No completed participants found for domain',
-        domain,
-      })
+      yield* Effect.logInfo({ message: 'No completed participants found for domain', domain })
       return {
         message: 'No completed participants found for domain',
         domain,
@@ -427,160 +252,145 @@ const makeZipFilesService = Effect.gen(function* () {
       MAX_PARTICIPANTS_PER_ZIP,
     )
 
-    const activeProcessIdOption = yield* downloadStateRepository.getActiveProcessForDomain(domain)
-
-    if (Option.isSome(activeProcessIdOption)) {
-      const activeProcessOption = yield* downloadStateRepository.getDownloadProcess(
-        activeProcessIdOption.value,
+    const marathonIdOption = yield* resolveMarathonId(domain)
+    if (Option.isNone(marathonIdOption)) {
+      return yield* Effect.fail(
+        new BadRequestError({ message: `No marathon found for domain ${domain}` }),
       )
+    }
+    const marathonId = marathonIdOption.value
 
-      if (Option.isSome(activeProcessOption)) {
-        const activeStatus = activeProcessOption.value.status
-
-        if (activeStatus === 'initializing' || activeStatus === 'processing') {
-          return yield* Effect.fail(
-            new ConflictError({
-              message: 'A zip export is already in progress for this marathon.',
-              cause: { processId: activeProcessOption.value.processId },
-            }),
-          )
-        }
-      }
-
-      yield* downloadStateRepository.clearActiveProcessForDomain(domain)
+    // Concurrency guard: one in-flight export per marathon. The partial unique index is the DB
+    // backstop; this pre-check returns a clean ConflictError for the common case.
+    const processingJobOption = yield* exportJobsRepository.findProcessingJob({ marathonId })
+    if (Option.isSome(processingJobOption)) {
+      return yield* Effect.fail(
+        new ConflictError({
+          message: 'A zip export is already in progress for this marathon.',
+          cause: { exportJobId: processingJobOption.value.id },
+        }),
+      )
     }
 
-    const processId = crypto.randomUUID()
+    const chunkInputs: ExportJobChunkInput[] = plan.chunkJobs.map((chunkJob) => ({
+      competitionClassId: chunkJob.competitionClassId,
+      competitionClassName: chunkJob.competitionClassName,
+      minReference: Number(chunkJob.minParticipantReference),
+      maxReference: Number(chunkJob.maxParticipantReference),
+      zipKey: chunkJob.zipKey,
+      chunkIndex: chunkJob.chunkIndex,
+      classTotalChunks: chunkJob.classTotalChunks,
+    }))
 
-    const initializationResult = yield* Effect.gen(function* () {
-      yield* downloadStateRepository.createDownloadProcess(
-        processId,
-        domain,
-        plan.totalChunksAcrossAllClasses,
-      )
+    const { job, chunks } = yield* exportJobsRepository.createJobWithChunks({
+      marathonId,
+      chunks: chunkInputs,
+    })
 
-      yield* downloadStateRepository.updateDownloadProcess(processId, {
-        competitionClasses: [...plan.competitionClasses],
-        status: 'processing',
-      })
+    yield* Effect.logInfo({
+      message: 'Export job created',
+      exportJobId: job.id,
+      domain,
+      marathonId,
+      totalChunks: plan.totalChunksAcrossAllClasses,
+      competitionClassesCount: plan.competitionClasses.length,
+    })
 
-      yield* downloadStateRepository.setActiveProcessForDomain(domain, processId)
-
-      yield* Effect.logInfo({
-        message: 'Download process created',
-        processId,
-        domain,
-        totalChunks: plan.totalChunksAcrossAllClasses,
-        competitionClassesCount: plan.competitionClasses.length,
-      })
-
-      yield* Effect.forEach(
-        plan.chunkJobs,
-        (chunkJob) =>
-          Effect.gen(function* () {
-            const jobId = crypto.randomUUID()
-
-            yield* downloadStateRepository
-              .saveChunkState(jobId, {
-                processId,
-                domain,
-                competitionClassId: chunkJob.competitionClassId,
-                competitionClassName: chunkJob.competitionClassName,
-                minReference: Number(chunkJob.minParticipantReference),
-                maxReference: Number(chunkJob.maxParticipantReference),
-                zipKey: chunkJob.zipKey,
-                chunkIndex: chunkJob.chunkIndex,
-                classTotalChunks: chunkJob.classTotalChunks,
-                processTotalChunks: plan.totalChunksAcrossAllClasses,
-              })
-              .pipe(
-                Effect.tapError((error) =>
-                  Effect.logError({
-                    message: 'Failed to save chunk state to Redis',
-                    jobId,
-                    processId,
-                    error: error instanceof Error ? error.message : String(error),
-                  }),
-                ),
-              )
-
-            const savedStateOption = yield* downloadStateRepository.getChunkState(jobId).pipe(
-              Effect.tapError((error) =>
-                Effect.logError({
-                  message: 'Failed to retrieve chunk state from Redis for verification',
-                  jobId,
-                  processId,
-                  error: error instanceof Error ? error.message : String(error),
-                }),
-              ),
-            )
-
-            if (Option.isNone(savedStateOption)) {
+    // Trigger one ECS task per chunk (JOB_ID = chunk id). A trigger failure marks ONLY that chunk
+    // failed (retryable) and recomputes the job — it never deletes the job, so a successfully
+    // initialized export is never rolled back.
+    yield* Effect.forEach(
+      chunks,
+      (chunk) =>
+        zipDownloaderTrigger.triggerJob(String(chunk.id)).pipe(
+          Effect.catch((error) =>
+            Effect.gen(function* () {
               yield* Effect.logError({
-                message: 'Failed to verify chunk state was saved to Redis - state not found',
-                jobId,
-                processId,
+                message: 'Failed to trigger zip downloader task for chunk',
+                exportJobId: job.id,
+                chunkId: chunk.id,
+                error: error instanceof Error ? error.message : String(error),
               })
-              return yield* Effect.fail(
-                new BadRequestError({
-                  message: `Failed to save chunk state for jobId: ${jobId}`,
-                }),
-              )
-            }
-
-            yield* downloadStateRepository.addJobToProcess(processId, jobId)
-
-            yield* Effect.logInfo({
-              message: 'Chunk state saved to Redis and added to process',
-              processId,
-              jobId,
-              domain,
-              competitionClassId: chunkJob.competitionClassId,
-              competitionClassName: chunkJob.competitionClassName,
-              minReference: chunkJob.minParticipantReference,
-              maxReference: chunkJob.maxParticipantReference,
-              zipKey: chunkJob.zipKey,
-              chunkIndex: chunkJob.chunkIndex,
-              totalChunks: chunkJob.classTotalChunks,
-            })
-
-            yield* zipDownloaderTrigger.triggerJob(jobId)
-          }),
-        { concurrency: 'unbounded' },
-      ).pipe(
-        Effect.tapError((error) =>
-          Effect.logError({
-            message: 'Error processing chunks',
-            error: error instanceof Error ? error.message : String(error),
-          }),
+              yield* exportJobsRepository
+                .applyChunkResult({ chunkId: chunk.id, status: 'failed' })
+                .pipe(Effect.ignore)
+            }),
+          ),
         ),
-      )
-
-      // Mark this as the domain's last export ONLY now that init fully succeeded. This is the durable
-      // display pointer: unlike the active pointer (cleared on transient misses / by the next export's
-      // stale-pointer guard), it survives so the completed export's download stays visible until an
-      // explicit reset or the next *successful* export replaces it. Set after the jobs trigger (not
-      // before) and ignore failures so a blip on this pointer never rolls back an export that has
-      // already been kicked off.
-      yield* downloadStateRepository.setLastProcessForDomain(domain, processId).pipe(Effect.ignore)
-
-      return {
-        message: 'Zip download jobs initialized',
-        processId,
-        domain,
-        totalCompetitionClasses: plan.competitionClasses.length,
-        totalChunks: plan.totalChunksAcrossAllClasses,
-      }
-    }).pipe(
-      Effect.catch((error) =>
-        Effect.gen(function* () {
-          yield* zipDownloadCleanup.rollbackFailedZipInitialization({ domain, processId })
-          return yield* Effect.fail(error)
-        }),
-      ),
+      { concurrency: 'unbounded' },
     )
 
-    return initializationResult
+    return {
+      message: 'Zip download jobs initialized',
+      exportJobId: String(job.id),
+      domain,
+      totalCompetitionClasses: plan.competitionClasses.length,
+      totalChunks: plan.totalChunksAcrossAllClasses,
+    }
+  })
+
+  const cancelDownloadProcess: ZipFilesService['Service']['cancelDownloadProcess'] = Effect.fn(
+    'ZipFilesService.cancelDownloadProcess',
+  )(function* ({ domain, exportJobId }) {
+    const marathonIdOption = yield* resolveMarathonId(domain)
+    if (Option.isNone(marathonIdOption)) {
+      return { success: true, message: 'Export already cleared' }
+    }
+
+    const jobOption = yield* exportJobsRepository.getLatestJobForMarathon({
+      marathonId: marathonIdOption.value,
+    })
+    if (Option.isNone(jobOption) || String(jobOption.value.id) !== exportJobId) {
+      return { success: true, message: 'Export already cleared' }
+    }
+    const job = jobOption.value
+
+    if (job.status === 'completed') {
+      return {
+        success: false,
+        message: 'Completed exports cannot be reset. Start a new export instead.',
+      }
+    }
+
+    const chunks = yield* exportJobsRepository.getJobChunks({ jobId: job.id })
+    const zipKeys = [...new Set(chunks.map((chunk) => chunk.zipKey))]
+
+    yield* Effect.forEach(
+      zipKeys,
+      (zipKey) =>
+        s3Service.deleteFile(zipsBucket, zipKey).pipe(
+          Effect.tap(() =>
+            Effect.logInfo({ message: 'Deleted partial marathon zip export object', zipKey }),
+          ),
+          Effect.catch((error) =>
+            Effect.logWarning({
+              message: 'Failed to delete partial marathon zip export object',
+              zipKey,
+              error: error instanceof Error ? error.message : String(error),
+            }),
+          ),
+        ),
+      { concurrency: 5 },
+    )
+
+    yield* exportJobsRepository.deleteJob({ jobId: job.id })
+
+    yield* Effect.logInfo({
+      message: 'Export job reset',
+      exportJobId: job.id,
+      domain,
+      deletedZipKeys: zipKeys.length,
+    })
+
+    const deletedCount = zipKeys.length
+    return {
+      success: true,
+      message:
+        deletedCount > 0
+          ? `Export reset and ${deletedCount} partial ${deletedCount === 1 ? 'file' : 'files'} removed.`
+          : 'Export reset. You can start a new export.',
+      deletedZipKeys: zipKeys,
+    }
   })
 
   const getParticipantZipDownloadUrl: ZipFilesService['Service']['getParticipantZipDownloadUrl'] =
@@ -591,9 +401,7 @@ const makeZipFilesService = Effect.gen(function* () {
 
       if (participant.submissions.length === 0) {
         return yield* Effect.fail(
-          new BadRequestError({
-            message: 'Participant has no submissions to zip',
-          }),
+          new BadRequestError({ message: 'Participant has no submissions to zip' }),
         )
       }
 
@@ -604,10 +412,7 @@ const makeZipFilesService = Effect.gen(function* () {
         expiresIn: 3600,
       })
 
-      return {
-        downloadUrl,
-        filename: `${reference}.zip`,
-      }
+      return { downloadUrl, filename: `${reference}.zip` }
     })
 
   const generateParticipantZip: ZipFilesService['Service']['generateParticipantZip'] = Effect.fn(
@@ -619,84 +424,41 @@ const makeZipFilesService = Effect.gen(function* () {
 
     if (participant.submissions.length === 0) {
       return yield* Effect.fail(
-        new BadRequestError({
-          message: 'Participant has no submissions to zip',
-        }),
+        new BadRequestError({ message: 'Participant has no submissions to zip' }),
       )
     }
 
     const { key } = yield* ensureParticipantZip.ensureParticipantZip({ domain, reference })
 
-    return {
-      success: true,
-      key,
-    }
+    return { success: true, key }
   })
 
   const getExportFiles: ZipFilesService['Service']['getExportFiles'] = Effect.fn(
     'ZipFilesService.getExportFiles',
   )(function* ({ domain }) {
-    // Resolve which export to show: prefer the active pointer (set while in-flight), but fall back
-    // to the last-process pointer so a completed export stays visible even when the active pointer
-    // was cleared (transient miss, reset race, or a job triggered outside the dashboard flow).
-    const activeProcessIdOption = yield* downloadStateRepository.getActiveProcessForDomain(domain)
-    const usedLast = Option.isNone(activeProcessIdOption)
-    const processIdOption = usedLast
-      ? yield* downloadStateRepository.getLastProcessForDomain(domain)
-      : activeProcessIdOption
-    if (Option.isNone(processIdOption)) {
+    const marathonIdOption = yield* resolveMarathonId(domain)
+    if (Option.isNone(marathonIdOption)) {
       return null
     }
-    const processId = processIdOption.value
 
-    const summaryOption = yield* downloadStateRepository.getProcessSummary(processId)
-    if (Option.isNone(summaryOption)) {
-      // The resolved process hash is gone (expired / deleted). Clear ONLY the pointer we resolved
-      // through — never wipe the durable `last` pointer just because a stale `active` pointed at a
-      // dead process; the next poll then falls back to `last` and can still surface a good export.
-      if (usedLast) {
-        yield* downloadStateRepository.clearLastProcessForDomain(domain)
-      } else {
-        yield* downloadStateRepository.clearActiveProcessForDomain(domain)
-      }
+    // Latest-job-wins, durable: the most recent export job for the marathon is the source of truth.
+    // Null only when this marathon has never run an export — nothing to evaporate.
+    const jobOption = yield* exportJobsRepository.getLatestJobForMarathon({
+      marathonId: marathonIdOption.value,
+    })
+    if (Option.isNone(jobOption)) {
       return null
     }
-    const summary = summaryOption.value
+    const job = jobOption.value
 
-    const [jobIds, completedJobIds, failedJobIds] = yield* Effect.all(
-      [
-        downloadStateRepository.getProcessJobIds(processId),
-        downloadStateRepository.getCompletedJobIds(processId),
-        downloadStateRepository.getFailedJobIds(processId),
-      ],
-      { concurrency: 3 },
-    )
-    const completedSet = new Set(completedJobIds)
-    const failedSet = new Set(failedJobIds)
-
-    const chunkRows = yield* Effect.forEach(
-      jobIds,
-      (jobId) =>
-        downloadStateRepository
-          .getChunkState(jobId)
-          .pipe(Effect.map((state) => ({ jobId, state }))),
-      { concurrency: 10 },
-    )
-    const presentRows = chunkRows.flatMap(({ jobId, state }) =>
-      Option.isSome(state) ? [{ jobId, chunk: state.value }] : [],
-    )
+    const chunks = yield* exportJobsRepository.getJobChunks({ jobId: job.id })
 
     const files = yield* Effect.forEach(
-      presentRows,
-      ({ jobId, chunk }) => {
-        const status: ExportFileStatus = failedSet.has(jobId)
-          ? 'failed'
-          : completedSet.has(jobId)
-            ? 'ready'
-            : 'building'
-
+      chunks,
+      (chunk) => {
+        const status = toExportFileStatus(chunk.status)
         const base: ExportFileRow = {
-          jobId,
+          jobId: String(chunk.id),
           competitionClassName: chunk.competitionClassName,
           minReference: chunk.minReference,
           maxReference: chunk.maxReference,
@@ -705,7 +467,9 @@ const makeZipFilesService = Effect.gen(function* () {
 
         if (status === 'ready') {
           return s3Service
-            .getPresignedUrl(zipsBucket, chunk.zipKey, 'GET', { expiresIn: 86400 })
+            .getPresignedUrl(zipsBucket, chunk.zipKey, 'GET', {
+              expiresIn: DOWNLOAD_URL_EXPIRES_IN_SECONDS,
+            })
             .pipe(Effect.map((downloadUrl): ExportFileRow => ({ ...base, downloadUrl })))
         }
         return Effect.succeed(base)
@@ -713,51 +477,55 @@ const makeZipFilesService = Effect.gen(function* () {
       { concurrency: 10 },
     )
 
-    files.sort(
-      (a, b) =>
-        a.competitionClassName.localeCompare(b.competitionClassName) ||
-        a.minReference - b.minReference,
-    )
-
     return {
-      processId,
-      status: summary.status,
-      totalChunks: summary.totalChunks,
-      completedChunks: summary.completedChunks,
-      failedChunks: summary.failedChunks,
-      lastUpdatedAt: summary.lastUpdatedAt,
+      exportJobId: String(job.id),
+      status: job.status as ExportJobStatus,
+      totalChunks: job.totalChunks,
+      completedChunks: job.completedChunks,
+      failedChunks: job.failedChunks,
+      lastUpdatedAt: job.updatedAt ?? job.createdAt,
       files,
     }
   })
 
   const retryExportChunk: ZipFilesService['Service']['retryExportChunk'] = Effect.fn(
     'ZipFilesService.retryExportChunk',
-  )(function* ({ domain, processId, jobId }) {
-    const chunkStateOption = yield* downloadStateRepository.getChunkState(jobId)
-    if (Option.isNone(chunkStateOption)) {
+  )(function* ({ domain, exportJobId, jobId }) {
+    const marathonIdOption = yield* resolveMarathonId(domain)
+    if (Option.isNone(marathonIdOption)) {
       return yield* Effect.fail(
         new BadRequestError({ message: 'This file is no longer available to retry.' }),
       )
     }
-    const chunk = chunkStateOption.value
-    if (chunk.processId !== processId || chunk.domain !== domain) {
+
+    const jobOption = yield* exportJobsRepository.getLatestJobForMarathon({
+      marathonId: marathonIdOption.value,
+    })
+    if (Option.isNone(jobOption) || String(jobOption.value.id) !== exportJobId) {
       return yield* Effect.fail(
         new BadRequestError({ message: 'This file does not belong to the current export.' }),
       )
     }
+    const job = jobOption.value
 
-    const failedJobIds = yield* downloadStateRepository.getFailedJobIds(processId)
-    if (!failedJobIds.includes(jobId)) {
+    const chunkOption = yield* exportJobsRepository.getChunk({ chunkId: Number(jobId) })
+    if (Option.isNone(chunkOption) || chunkOption.value.exportJobId !== job.id) {
+      return yield* Effect.fail(
+        new BadRequestError({ message: 'This file is no longer available to retry.' }),
+      )
+    }
+    const chunk = chunkOption.value
+
+    if (chunk.status !== 'failed') {
       return yield* Effect.fail(
         new BadRequestError({ message: 'Only failed files can be retried.' }),
       )
     }
 
-    yield* downloadStateRepository.reactivateChunkForRetry(processId, jobId)
-    // Re-point the domain at this process in case the active pointer was cleared, then re-run the job.
-    yield* downloadStateRepository.setActiveProcessForDomain(domain, processId)
-    yield* downloadStateRepository.setLastProcessForDomain(domain, processId)
-    yield* zipDownloaderTrigger.triggerJob(jobId)
+    // Flip the chunk back to building; the unguarded recompute pulls the job out of its terminal
+    // state into 'processing' (a legitimate backwards move, safe because the export already finished).
+    yield* exportJobsRepository.reactivateChunkForRetry({ chunkId: chunk.id })
+    yield* zipDownloaderTrigger.triggerJob(String(chunk.id))
 
     return { success: true }
   })
@@ -798,9 +566,7 @@ const makeZipFilesService = Effect.gen(function* () {
 
   return ZipFilesService.of({
     getZipSubmissionStats,
-    getZipDownloadUrls,
     initializeZipDownloads,
-    getActiveProcess,
     cancelDownloadProcess,
     generateParticipantZip,
     getParticipantZipDownloadUrl,
@@ -814,13 +580,6 @@ export const ZipFilesServiceLayerNoDeps = Layer.effect(ZipFilesService, makeZipF
 
 export const ZipFilesServiceLayer = ZipFilesServiceLayerNoDeps.pipe(
   Layer.provide(
-    Layer.mergeAll(
-      DbLayer,
-      DownloadStateRepositoryLayer,
-      S3ServiceLayer,
-      EnsureParticipantZipLayer,
-      ZipDownloadCleanupLayer,
-      ZipDownloaderTriggerLayer,
-    ),
+    Layer.mergeAll(DbLayer, S3ServiceLayer, EnsureParticipantZipLayer, ZipDownloaderTriggerLayer),
   ),
 )

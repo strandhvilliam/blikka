@@ -1,101 +1,60 @@
 import { assert, describe, it } from '@effect/vitest'
 import { S3Service } from '@blikka/aws'
-import { DownloadStateRepository } from '@blikka/kv-store'
-import { ParticipantsRepository, ZippedSubmissionsRepository } from '@blikka/db'
-import { Cause, Effect, Exit, Layer, Option, Ref } from 'effect'
+import {
+  ExportJobsRepository,
+  MarathonsRepository,
+  ParticipantsRepository,
+  ZippedSubmissionsRepository,
+} from '@blikka/db'
+import { Cause, Effect, Exit, Layer, Option } from 'effect'
 
 import { EnsureParticipantZip } from '@blikka/uploads/ensure-participant-zip'
 
 import { ConflictError } from '../errors'
 import { configLayerFromEnv } from '../test/config-layer'
-import { ZipDownloadCleanup } from './cleanup-download-process'
 import { ZipFilesService, ZipFilesServiceLayerNoDeps } from './service'
 import { ZipDownloaderTrigger } from './trigger-zip-downloader-job'
 
 const domain = 'demo'
-const processId = 'process-1'
-
-interface TestState {
-  readonly stats: {
-    totalParticipants: number
-    withZippedSubmissions: number
-    missingReferences: string[]
-  }
-  readonly processes: Record<string, Record<string, unknown>>
-  readonly activeProcessByDomain: Record<string, string | undefined>
-  readonly cancelledProcessIds: string[]
-  readonly clearedDomains: string[]
-}
-
-const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
-  stats: {
-    totalParticipants: 10,
-    withZippedSubmissions: 8,
-    missingReferences: ['1009', '1010'],
-  },
-  processes: {},
-  activeProcessByDomain: {},
-  cancelledProcessIds: [],
-  clearedDomains: [],
-  ...overrides,
-})
-
-const updateTestState = (stateRef: Ref.Ref<TestState>, f: (state: TestState) => TestState) =>
-  Ref.update(stateRef, f)
+const marathonId = 1
 
 interface TestLayerOverrides {
   readonly zippedSubmissionsRepository?: ZippedSubmissionsRepository['Service']
-  readonly downloadStateRepository?: DownloadStateRepository['Service']
+  readonly exportJobsRepository?: ExportJobsRepository['Service']
 }
 
-const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrides = {}) => {
+const baseExportJobsRepository = ExportJobsRepository.of({
+  createJobWithChunks: () => Effect.die('not implemented'),
+  getLatestJobForMarathon: () => Effect.succeed(Option.none()),
+  findProcessingJob: () => Effect.succeed(Option.none()),
+  getJobChunks: () => Effect.succeed([]),
+  getChunk: () => Effect.succeed(Option.none()),
+  getChunkWithDomain: () => Effect.succeed(Option.none()),
+  setChunkStatus: () => Effect.die('not implemented'),
+  applyChunkResult: () => Effect.succeed(Option.none()),
+  reactivateChunkForRetry: () => Effect.succeed(Option.none()),
+  deleteJob: () => Effect.void,
+} as unknown as ExportJobsRepository['Service'])
+
+const makeTestLayer = (overrides: TestLayerOverrides = {}) => {
   const zippedSubmissionsRepository =
     overrides.zippedSubmissionsRepository ??
     ZippedSubmissionsRepository.of({
       getZipSubmissionStatsByDomain: () =>
-        Effect.gen(function* () {
-          const state = yield* Ref.get(stateRef)
-          return state.stats
+        Effect.succeed({
+          totalParticipants: 10,
+          withZippedSubmissions: 8,
+          missingReferences: ['1009', '1010'],
         }),
       getCompletedParticipantsForZipPlanning: () => Effect.succeed([]),
+      getParticipantReferencesInRange: () => Effect.succeed([]),
     } as unknown as ZippedSubmissionsRepository['Service'])
 
-  const downloadStateRepository =
-    overrides.downloadStateRepository ??
-    DownloadStateRepository.of({
-      getDownloadProcess: (id: string) =>
-        Effect.gen(function* () {
-          const state = yield* Ref.get(stateRef)
-          return Option.fromNullishOr(state.processes[id])
-        }),
-      getActiveProcessForDomain: (activeDomain: string) =>
-        Effect.gen(function* () {
-          const state = yield* Ref.get(stateRef)
-          return Option.fromNullishOr(state.activeProcessByDomain[activeDomain])
-        }),
-      clearActiveProcessForDomain: (activeDomain: string) =>
-        updateTestState(stateRef, (state) => ({
-          ...state,
-          clearedDomains: [...state.clearedDomains, activeDomain],
-        })).pipe(Effect.as(undefined)),
-      cancelDownloadProcess: (id: string) =>
-        updateTestState(stateRef, (state) => ({
-          ...state,
-          cancelledProcessIds: [...state.cancelledProcessIds, id],
-        })).pipe(Effect.as(undefined)),
-      getLastProcessForDomain: () => Effect.succeed(Option.none()),
-      setLastProcessForDomain: () => Effect.void,
-      clearLastProcessForDomain: () => Effect.succeed(0),
-      createDownloadProcess: () => Effect.void,
-      updateDownloadProcess: () => Effect.void,
-      setActiveProcessForDomain: () => Effect.void,
-      saveChunkState: () => Effect.void,
-      getChunkState: () => Effect.succeed(Option.none()),
-      addJobToProcess: () => Effect.void,
-      getProcessJobIds: () => Effect.succeed([]),
-      deleteChunkState: () => Effect.succeed(1),
-      deleteDownloadProcess: () => Effect.succeed(1),
-    } as unknown as DownloadStateRepository['Service'])
+  const exportJobsRepository = overrides.exportJobsRepository ?? baseExportJobsRepository
+
+  const marathonsRepository = MarathonsRepository.of({
+    getMarathonByDomain: () => Effect.succeed(Option.some({ id: marathonId, domain })),
+  } as unknown as MarathonsRepository['Service'])
 
   const s3Service = S3Service.of({
     getPresignedUrl: (_bucket: string, key: string) => Effect.succeed(`https://example.com/${key}`),
@@ -110,25 +69,9 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrid
           reference: '0042',
           domain,
           submissions: [{ id: 1 }],
-          zippedSubmissions: [
-            {
-              id: 1,
-              key: `${domain}/0042.zip`,
-              createdAt: '2026-01-01T00:00:00.000Z',
-              updatedAt: null,
-              marathonId: 1,
-              participantId: 1,
-            },
-          ],
         }),
       ),
   } as unknown as ParticipantsRepository['Service'])
-
-  const zipDownloadCleanup = ZipDownloadCleanup.of({
-    cleanupDownloadProcessArtifacts: () =>
-      Effect.succeed({ deletedZipKeys: [], deletedChunkStates: 0 }),
-    rollbackFailedZipInitialization: () => Effect.void,
-  })
 
   const zipDownloaderTrigger = ZipDownloaderTrigger.of({
     triggerJob: () => Effect.void,
@@ -144,9 +87,9 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrid
       Layer.mergeAll(
         Layer.succeed(ZippedSubmissionsRepository)(zippedSubmissionsRepository),
         Layer.succeed(ParticipantsRepository)(participantsRepository),
-        Layer.succeed(DownloadStateRepository)(downloadStateRepository),
+        Layer.succeed(MarathonsRepository)(marathonsRepository),
+        Layer.succeed(ExportJobsRepository)(exportJobsRepository),
         Layer.succeed(S3Service)(s3Service),
-        Layer.succeed(ZipDownloadCleanup)(zipDownloadCleanup),
         Layer.succeed(ZipDownloaderTrigger)(zipDownloaderTrigger),
         Layer.succeed(EnsureParticipantZip)(ensureParticipantZip),
       ),
@@ -154,26 +97,16 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>, overrides: TestLayerOverrid
   )
 }
 
-const runWithState = <A, E>(
-  stateRef: Ref.Ref<TestState>,
-  effect: Effect.Effect<A, E, ZipFilesService>,
-) =>
-  Effect.gen(function* () {
-    const result = yield* effect
-    const state = yield* Ref.get(stateRef)
-    return { result, state }
-  }).pipe(
-    Effect.provide(makeTestLayer(stateRef)),
+const run = <A, E>(effect: Effect.Effect<A, E, ZipFilesService>, overrides?: TestLayerOverrides) =>
+  effect.pipe(
+    Effect.provide(makeTestLayer(overrides)),
     Effect.provide(configLayerFromEnv({ ZIPS_BUCKET_NAME: 'zips-bucket' })),
   )
 
 describe('ZipFilesService', () => {
   it.effect('returns zip submission stats from the repository', () =>
     Effect.gen(function* () {
-      const stateRef = yield* Ref.make(makeInitialState())
-
-      const { result } = yield* runWithState(
-        stateRef,
+      const result = yield* run(
         Effect.gen(function* () {
           const service = yield* ZipFilesService
           return yield* service.getZipSubmissionStats({ domain })
@@ -186,174 +119,9 @@ describe('ZipFilesService', () => {
     }),
   )
 
-  it.effect('rejects cancelling a process that belongs to another domain', () =>
-    Effect.gen(function* () {
-      const stateRef = yield* Ref.make(
-        makeInitialState({
-          processes: {
-            [processId]: {
-              processId,
-              domain: 'other',
-              status: 'processing',
-              totalChunks: 1,
-              completedChunks: 0,
-              failedChunks: 0,
-              failedJobIds: [],
-              lastUpdatedAt: '2026-01-01T00:00:00.000Z',
-              competitionClasses: [],
-              jobIds: [],
-            },
-          },
-        }),
-      )
-
-      const { result } = yield* runWithState(
-        stateRef,
-        Effect.gen(function* () {
-          const service = yield* ZipFilesService
-          return yield* service.cancelDownloadProcess({
-            domain,
-            processId,
-          })
-        }),
-      )
-
-      assert.equal(result.success, false)
-      assert.match(result.message, /does not belong to this domain/)
-    }),
-  )
-
-  it.effect('cancels an in-progress process and clears the active domain pointer', () =>
-    Effect.gen(function* () {
-      const stateRef = yield* Ref.make(
-        makeInitialState({
-          processes: {
-            [processId]: {
-              processId,
-              domain,
-              status: 'processing',
-              totalChunks: 1,
-              completedChunks: 0,
-              failedChunks: 0,
-              failedJobIds: [],
-              lastUpdatedAt: '2026-01-01T00:00:00.000Z',
-              competitionClasses: [],
-              jobIds: [],
-            },
-          },
-        }),
-      )
-
-      const { result, state } = yield* runWithState(
-        stateRef,
-        Effect.gen(function* () {
-          const service = yield* ZipFilesService
-          return yield* service.cancelDownloadProcess({
-            domain,
-            processId,
-          })
-        }),
-      )
-
-      assert.equal(result.success, true)
-      assert.deepEqual(state.cancelledProcessIds, [processId])
-      assert.deepEqual(state.clearedDomains, [domain])
-    }),
-  )
-
-  it.effect('clears stale active process pointers when process state is missing', () =>
-    Effect.gen(function* () {
-      const stateRef = yield* Ref.make(
-        makeInitialState({
-          activeProcessByDomain: {
-            [domain]: processId,
-          },
-        }),
-      )
-
-      const { result, state } = yield* runWithState(
-        stateRef,
-        Effect.gen(function* () {
-          const service = yield* ZipFilesService
-          return yield* service.getActiveProcess({ domain })
-        }),
-      )
-
-      assert.equal(result, null)
-      assert.deepEqual(state.clearedDomains, [domain])
-    }),
-  )
-
-  it.effect('returns presigned download urls for completed processes', () =>
-    Effect.gen(function* () {
-      const stateRef = yield* Ref.make(
-        makeInitialState({
-          processes: {
-            [processId]: {
-              processId,
-              domain,
-              status: 'completed',
-              totalChunks: 1,
-              completedChunks: 1,
-              failedChunks: 0,
-              failedJobIds: [],
-              lastUpdatedAt: '2026-01-01T00:00:00.000Z',
-              competitionClasses: [],
-              jobIds: ['job-1'],
-            },
-          },
-        }),
-      )
-
-      const downloadStateRepository = DownloadStateRepository.of({
-        getDownloadProcess: (id: string) =>
-          Effect.gen(function* () {
-            const state = yield* Ref.get(stateRef)
-            return Option.fromNullishOr(state.processes[id])
-          }),
-        getChunkState: () =>
-          Effect.succeed(
-            Option.some({
-              zipKey: `${domain}/zip-downloads/open/0001-0100.zip`,
-              competitionClassName: 'open',
-              minReference: 1,
-              maxReference: 100,
-            }),
-          ),
-        getActiveProcessForDomain: () => Effect.succeed(Option.none()),
-        clearActiveProcessForDomain: () => Effect.void,
-        cancelDownloadProcess: () => Effect.void,
-        createDownloadProcess: () => Effect.void,
-        updateDownloadProcess: () => Effect.void,
-        setActiveProcessForDomain: () => Effect.void,
-        saveChunkState: () => Effect.void,
-        addJobToProcess: () => Effect.void,
-      } as unknown as DownloadStateRepository['Service'])
-
-      const layer = makeTestLayer(stateRef, { downloadStateRepository })
-
-      const result = yield* Effect.gen(function* () {
-        const service = yield* ZipFilesService
-        return yield* service.getZipDownloadUrls({ processId })
-      }).pipe(
-        Effect.provide(layer),
-        Effect.provide(configLayerFromEnv({ ZIPS_BUCKET_NAME: 'zips-bucket' })),
-      )
-
-      assert.isDefined(result)
-      assert.equal(
-        result?.[0]?.downloadUrl,
-        `https://example.com/${domain}/zip-downloads/open/0001-0100.zip`,
-      )
-    }),
-  )
-
   it.effect('returns a presigned download url for a participant zip', () =>
     Effect.gen(function* () {
-      const stateRef = yield* Ref.make(makeInitialState())
-
-      const { result } = yield* runWithState(
-        stateRef,
+      const result = yield* run(
         Effect.gen(function* () {
           const service = yield* ZipFilesService
           return yield* service.getParticipantZipDownloadUrl({ domain, reference: '0042' })
@@ -365,59 +133,153 @@ describe('ZipFilesService', () => {
     }),
   )
 
+  it.effect('returns null export files when the marathon has never run an export', () =>
+    Effect.gen(function* () {
+      const result = yield* run(
+        Effect.gen(function* () {
+          const service = yield* ZipFilesService
+          return yield* service.getExportFiles({ domain })
+        }),
+      )
+
+      assert.equal(result, null)
+    }),
+  )
+
+  it.effect('builds the export files view with presigned urls for ready chunks', () =>
+    Effect.gen(function* () {
+      const exportJobsRepository = {
+        ...baseExportJobsRepository,
+        getLatestJobForMarathon: () =>
+          Effect.succeed(
+            Option.some({
+              id: 7,
+              marathonId,
+              status: 'completed',
+              totalChunks: 1,
+              completedChunks: 1,
+              failedChunks: 0,
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: '2026-01-02T00:00:00.000Z',
+            }),
+          ),
+        getJobChunks: () =>
+          Effect.succeed([
+            {
+              id: 11,
+              exportJobId: 7,
+              competitionClassId: 1,
+              competitionClassName: 'open',
+              minReference: 1,
+              maxReference: 100,
+              zipKey: `${domain}/zip-downloads/open/0001-0100.zip`,
+              status: 'ready',
+              chunkIndex: 0,
+              classTotalChunks: 1,
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: null,
+            },
+          ]),
+      } as unknown as ExportJobsRepository['Service']
+
+      const result = yield* run(
+        Effect.gen(function* () {
+          const service = yield* ZipFilesService
+          return yield* service.getExportFiles({ domain })
+        }),
+        { exportJobsRepository },
+      )
+
+      assert.isNotNull(result)
+      assert.equal(result?.exportJobId, '7')
+      assert.equal(result?.status, 'completed')
+      assert.equal(result?.files.length, 1)
+      assert.equal(result?.files[0]?.jobId, '11')
+      assert.equal(result?.files[0]?.status, 'ready')
+      assert.equal(
+        result?.files[0]?.downloadUrl,
+        `https://example.com/${domain}/zip-downloads/open/0001-0100.zip`,
+      )
+    }),
+  )
+
   it.effect('rejects initialize when a zip export is already in progress', () =>
     Effect.gen(function* () {
-      const stateRef = yield* Ref.make(
-        makeInitialState({
-          activeProcessByDomain: {
-            [domain]: processId,
-          },
-          processes: {
-            [processId]: {
-              processId,
-              domain,
+      const zippedSubmissionsRepository = ZippedSubmissionsRepository.of({
+        getZipSubmissionStatsByDomain: () =>
+          Effect.succeed({
+            totalParticipants: 1,
+            withZippedSubmissions: 1,
+            missingReferences: [],
+          }),
+        getCompletedParticipantsForZipPlanning: () =>
+          Effect.succeed([{ reference: '1', competitionClass: { id: 1, name: 'Open' } }]),
+        getParticipantReferencesInRange: () => Effect.succeed([]),
+      } as unknown as ZippedSubmissionsRepository['Service'])
+
+      const exportJobsRepository = {
+        ...baseExportJobsRepository,
+        findProcessingJob: () =>
+          Effect.succeed(
+            Option.some({
+              id: 3,
+              marathonId,
               status: 'processing',
               totalChunks: 2,
               completedChunks: 0,
               failedChunks: 0,
-              failedJobIds: [],
-              lastUpdatedAt: '2026-01-01T00:00:00.000Z',
-              competitionClasses: [],
-              jobIds: [],
-            },
-          },
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: null,
+            }),
+          ),
+      } as unknown as ExportJobsRepository['Service']
+
+      const exit = yield* run(
+        Effect.gen(function* () {
+          const service = yield* ZipFilesService
+          return yield* service.initializeZipDownloads({ domain })
         }),
+        { zippedSubmissionsRepository, exportJobsRepository },
+      ).pipe(Effect.exit)
+
+      if (Exit.isFailure(exit)) {
+        const error = Cause.squash(exit.cause)
+        assert.instanceOf(error, ConflictError)
+      } else {
+        assert.fail('expected initializeZipDownloads to fail with ConflictError')
+      }
+    }),
+  )
+
+  it.effect('refuses to cancel a completed export', () =>
+    Effect.gen(function* () {
+      const exportJobsRepository = {
+        ...baseExportJobsRepository,
+        getLatestJobForMarathon: () =>
+          Effect.succeed(
+            Option.some({
+              id: 5,
+              marathonId,
+              status: 'completed',
+              totalChunks: 1,
+              completedChunks: 1,
+              failedChunks: 0,
+              createdAt: '2026-01-01T00:00:00.000Z',
+              updatedAt: null,
+            }),
+          ),
+      } as unknown as ExportJobsRepository['Service']
+
+      const result = yield* run(
+        Effect.gen(function* () {
+          const service = yield* ZipFilesService
+          return yield* service.cancelDownloadProcess({ domain, exportJobId: '5' })
+        }),
+        { exportJobsRepository },
       )
 
-      const zippedSubmissionsRepository = ZippedSubmissionsRepository.of({
-        getZipSubmissionStatsByDomain: () =>
-          Effect.gen(function* () {
-            const state = yield* Ref.get(stateRef)
-            return state.stats
-          }),
-        getCompletedParticipantsForZipPlanning: () =>
-          Effect.succeed([
-            {
-              reference: '1',
-              competitionClass: { id: 1, name: 'Open' },
-            },
-          ]),
-      } as unknown as ZippedSubmissionsRepository['Service'])
-
-      const layer = makeTestLayer(stateRef, { zippedSubmissionsRepository })
-
-      const exit = yield* Effect.gen(function* () {
-        const service = yield* ZipFilesService
-        return yield* service.initializeZipDownloads({ domain })
-      }).pipe(
-        Effect.provide(layer),
-        Effect.provide(configLayerFromEnv({ ZIPS_BUCKET_NAME: 'zips-bucket' })),
-        Effect.exit,
-      )
-
-      assert.isTrue(Exit.isFailure(exit))
-      const error = Cause.squash(exit.cause)
-      assert.instanceOf(error, ConflictError)
+      assert.equal(result.success, false)
+      assert.match(result.message, /Completed exports cannot be reset/)
     }),
   )
 })

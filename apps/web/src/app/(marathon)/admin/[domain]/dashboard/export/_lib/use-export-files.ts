@@ -17,7 +17,7 @@ interface UseExportFilesReturn {
   files: ExportFileRow[]
   preview: ExportPreview | null
   phase: ExportTopPhase
-  processId: string | null
+  exportJobId: string | null
   counts: { total: number; ready: number; failed: number; building: number }
   isLoading: boolean
   isBusy: boolean
@@ -33,19 +33,18 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: trpc.zipFiles.pathKey() })
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: trpc.zipFiles.pathKey() })
 
   const filesQuery = useQuery({
     ...trpc.zipFiles.getExportFiles.queryOptions({ domain }),
     staleTime: 1000,
     refetchOnWindowFocus: (query) => {
       const status = query.state.data?.status
-      return status === 'initializing' || status === 'processing'
+      return status === 'processing'
     },
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      return status === 'initializing' || status === 'processing' ? 2000 : false
+      return status === 'processing' ? 2000 : false
     },
   })
 
@@ -72,7 +71,7 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
   })
 
   const files = view?.files ?? []
-  const processId = view?.processId ?? null
+  const exportJobId = view?.exportJobId ?? null
 
   const counts = {
     // Fall back to the process's planned chunk count so the header reads "0 of N"
@@ -86,7 +85,7 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
   const phase: ExportTopPhase =
     view === null
       ? 'idle'
-      : view.status === 'initializing' || view.status === 'processing'
+      : view.status === 'processing'
         ? 'building'
         : view.status === 'failed'
           ? 'failed'
@@ -95,7 +94,7 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
   const build = async () => {
     try {
       const result = await initializeMutation.mutateAsync({ domain })
-      if (!('processId' in result) || result.totalChunks === 0) {
+      if (!('exportJobId' in result) || result.totalChunks === 0) {
         toast.info('Nothing to export', {
           description: 'No participants have finished uploading yet.',
         })
@@ -108,7 +107,7 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
       queryClient.setQueryData<ExportFilesView | null>(
         trpc.zipFiles.getExportFiles.queryKey({ domain }),
         {
-          processId: result.processId,
+          exportJobId: result.exportJobId,
           status: 'processing',
           totalChunks: result.totalChunks,
           completedChunks: 0,
@@ -131,9 +130,9 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
   }
 
   const cancel = async () => {
-    if (!processId) return
+    if (!exportJobId) return
     try {
-      const result = await cancelMutation.mutateAsync({ domain, processId })
+      const result = await cancelMutation.mutateAsync({ domain, exportJobId })
       if (result.success) {
         toast.success('Export stopped', { description: result.message })
       } else {
@@ -147,9 +146,9 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
   }
 
   const retryFile = async (jobId: string) => {
-    if (!processId) return
+    if (!exportJobId) return
     try {
-      await retryMutation.mutateAsync({ domain, processId, jobId })
+      await retryMutation.mutateAsync({ domain, exportJobId, jobId })
       toast.success('Retrying file', { description: 'Rebuilding this archive.' })
     } catch (error) {
       toast.error('Could not retry file', {
@@ -162,7 +161,7 @@ export function useExportFiles(domain: string): UseExportFilesReturn {
     files,
     preview: previewQuery.data ?? null,
     phase,
-    processId,
+    exportJobId,
     counts,
     isLoading: filesQuery.isLoading || (view === null && previewQuery.isLoading),
     isBusy: initializeMutation.isPending || cancelMutation.isPending,

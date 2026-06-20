@@ -2,6 +2,7 @@ import { Layer } from 'effect'
 import { CompetitionClassesRepositoryLayer } from './repositories/competition-classes.repository'
 import { ContactSheetsRepositoryLayer } from './repositories/contact-sheets.repository'
 import { DeviceGroupsRepositoryLayer } from './repositories/device-groups.repository'
+import { ExportJobsRepositoryLayer } from './repositories/export-jobs.repository'
 import { ExportsRepositoryLayer } from './repositories/exports.repository'
 import { GalleryRepositoryLayer } from './repositories/gallery.repository'
 import { JuryRepositoryLayer } from './repositories/jury.repository'
@@ -29,6 +30,7 @@ export const DbLayer = Layer.mergeAll(
   CompetitionClassesRepositoryLayer,
   ParticipantsRepositoryLayer,
   ContactSheetsRepositoryLayer,
+  ExportJobsRepositoryLayer,
   ExportsRepositoryLayer,
   ZippedSubmissionsRepositoryLayer,
   VotingRepositoryLayer,

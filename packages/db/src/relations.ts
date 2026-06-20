@@ -69,6 +69,22 @@ export const marathonsRelations = relations(schema.marathons, ({ many }) => ({
   sponsors: many(schema.sponsors),
   votingRounds: many(schema.votingRound),
   galleryPublications: many(schema.galleryPublications),
+  exportJobs: many(schema.exportJobs),
+}))
+
+export const exportJobsRelations = relations(schema.exportJobs, ({ one, many }) => ({
+  marathon: one(schema.marathons, {
+    fields: [schema.exportJobs.marathonId],
+    references: [schema.marathons.id],
+  }),
+  chunks: many(schema.exportJobChunks),
+}))
+
+export const exportJobChunksRelations = relations(schema.exportJobChunks, ({ one }) => ({
+  exportJob: one(schema.exportJobs, {
+    fields: [schema.exportJobChunks.exportJobId],
+    references: [schema.exportJobs.id],
+  }),
 }))
 
 export const participantsRelations = relations(schema.participants, ({ one, many }) => ({

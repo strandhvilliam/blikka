@@ -23,6 +23,8 @@ import {
   votingRoundSubmission,
   votingRoundVote,
   galleryPublications,
+  exportJobs,
+  exportJobChunks,
 } from './schema'
 
 export type { GalleryFeaturedSection } from './schema'
@@ -47,6 +49,12 @@ export type NewMarathon = typeof marathons.$inferInsert
 
 export type Topic = typeof topics.$inferSelect
 export type NewTopic = typeof topics.$inferInsert
+
+export type ExportJob = typeof exportJobs.$inferSelect
+export type NewExportJob = typeof exportJobs.$inferInsert
+
+export type ExportJobChunk = typeof exportJobChunks.$inferSelect
+export type NewExportJobChunk = typeof exportJobChunks.$inferInsert
 
 export type UserMarathonRelation = typeof userMarathons.$inferSelect
 export type NewUserMarathonRelation = typeof userMarathons.$inferInsert

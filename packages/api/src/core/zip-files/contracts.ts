@@ -38,24 +38,21 @@ export const GetZipSubmissionStatusOutputSchema = Schema.Struct({
   missingReferences: Schema.Array(Schema.String),
 })
 
-export const ZipDownloadsByProcessIdInputSchema = Schema.Struct({
-  domain: Schema.String,
-  processId: Schema.String,
-})
-
-// Active process tracking and cancellation
-export const GetActiveProcessInputSchema = Schema.Struct({
+// Read the live per-file view of the latest export for a domain.
+export const GetExportFilesInputSchema = Schema.Struct({
   domain: Schema.String,
 })
 
+// `exportJobId` is the numeric export_jobs id, passed as a string from the client.
 export const CancelDownloadProcessInputSchema = Schema.Struct({
   domain: Schema.String,
-  processId: Schema.String,
+  exportJobId: Schema.String,
 })
 
+// `jobId` is the numeric export_job_chunks id of the failed file to retry, as a string.
 export const RetryExportChunkInputSchema = Schema.Struct({
   domain: Schema.String,
-  processId: Schema.String,
+  exportJobId: Schema.String,
   jobId: Schema.String,
 })
 
@@ -68,7 +65,6 @@ export type GetZipSubmissionStatusInput = Schema.Schema.Type<
 export type GetZipSubmissionStatusOutput = Schema.Schema.Type<
   typeof GetZipSubmissionStatusOutputSchema
 >
-export type ZipDownloadsByProcessIdInput = Schema.Schema.Type<typeof ZipDownloadsByProcessIdInputSchema>
-export type GetActiveProcessInput = Schema.Schema.Type<typeof GetActiveProcessInputSchema>
+export type GetExportFilesInput = Schema.Schema.Type<typeof GetExportFilesInputSchema>
 export type CancelDownloadProcessInput = Schema.Schema.Type<typeof CancelDownloadProcessInputSchema>
 export type RetryExportChunkInput = Schema.Schema.Type<typeof RetryExportChunkInputSchema>

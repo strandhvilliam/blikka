@@ -954,3 +954,68 @@ export const galleryPublications = pgTable(
     }).onDelete('cascade'),
   ],
 )
+
+/**
+ * One row per "Build archives" run of the photo-archive export. The latest row for a marathon is
+ * the durable source of truth for the dashboard. `status` is the derived aggregate of its chunks:
+ * 'processing' | 'completed' | 'failed' | 'cancelled'.
+ */
+export const exportJobs = pgTable(
+  'export_jobs',
+  {
+    id: bigint({ mode: 'number' }).primaryKey().generatedByDefaultAsIdentity(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }),
+    marathonId: bigint('marathon_id', { mode: 'number' }).notNull(),
+    status: text().notNull(),
+    totalChunks: integer('total_chunks').notNull(),
+    completedChunks: integer('completed_chunks').default(0).notNull(),
+    failedChunks: integer('failed_chunks').default(0).notNull(),
+  },
+  (table) => [
+    index('export_jobs_marathon_id_idx').on(table.marathonId),
+    // DB-enforced "one in-flight export per marathon" — replaces the Redis active-pointer guard.
+    uniqueIndex('export_jobs_one_processing_per_marathon_key')
+      .on(table.marathonId)
+      .where(sql`${table.status} = 'processing'`),
+    foreignKey({
+      columns: [table.marathonId],
+      foreignColumns: [marathons.id],
+      name: 'export_jobs_marathon_id_fkey',
+    }).onDelete('cascade'),
+  ],
+)
+
+/**
+ * One row per downloadable archive (= one planned chunk). `id` is passed to the ECS zip-downloader
+ * task as `JOB_ID`. `status`: 'pending' | 'building' | 'ready' | 'failed'.
+ */
+export const exportJobChunks = pgTable(
+  'export_job_chunks',
+  {
+    id: bigint({ mode: 'number' }).primaryKey().generatedByDefaultAsIdentity(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }),
+    exportJobId: bigint('export_job_id', { mode: 'number' }).notNull(),
+    competitionClassId: bigint('competition_class_id', { mode: 'number' }).notNull(),
+    competitionClassName: text('competition_class_name').notNull(),
+    minReference: integer('min_reference').notNull(),
+    maxReference: integer('max_reference').notNull(),
+    zipKey: text('zip_key').notNull(),
+    status: text().notNull(),
+    chunkIndex: integer('chunk_index').notNull(),
+    classTotalChunks: integer('class_total_chunks').notNull(),
+  },
+  (table) => [
+    index('export_job_chunks_export_job_id_idx').on(table.exportJobId),
+    foreignKey({
+      columns: [table.exportJobId],
+      foreignColumns: [exportJobs.id],
+      name: 'export_job_chunks_export_job_id_fkey',
+    }).onDelete('cascade'),
+  ],
+)
