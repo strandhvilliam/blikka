@@ -20,6 +20,8 @@ export const InitializeUploadFlowSchema = Schema.Struct({
   phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
   uploadContentTypes: Schema.Array(Schema.String).pipe(Schema.optional),
   uploadExif: Schema.Array(UploadExifSchema).pipe(Schema.optional),
+  /** Staff laptop: allow a new upload after the participant already completed the flow. */
+  replaceCompletedParticipantUpload: Schema.Boolean.pipe(Schema.optional),
   ...TermsAcceptanceInputSchema,
   termsAcceptanceSource: TermsAcceptanceSourceSchema.pipe(Schema.optional),
 })

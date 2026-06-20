@@ -10,6 +10,8 @@ export interface UploadFlowStateSnapshot {
   participantLastName: string | null
   participantPhone: string | null
   replaceExistingActiveTopicUpload: boolean | null
+  /** Marathon: participant/staff confirmed replacing a finalized (completed/verified) upload. */
+  replaceCompletedParticipantUpload?: boolean | null
   termsAccepted: boolean | null
   acceptedLocale: string | null
   uploadInstructionsShown?: boolean
@@ -69,6 +71,7 @@ interface NormalizedUploadFlowState {
   participantLastName: string | null
   participantPhone: string | null
   replaceExistingActiveTopicUpload: boolean | null
+  replaceCompletedParticipantUpload: boolean | null
   termsAccepted: boolean | null
   acceptedLocale: string | null
   uploadInstructionsShown?: boolean
@@ -165,6 +168,7 @@ export function normalizeUploadFlowState(
     participantLastName: normalizeText(state.participantLastName),
     participantPhone: normalizeText(state.participantPhone),
     replaceExistingActiveTopicUpload: state.replaceExistingActiveTopicUpload ?? null,
+    replaceCompletedParticipantUpload: state.replaceCompletedParticipantUpload ?? null,
     termsAccepted: state.termsAccepted ?? null,
     acceptedLocale: normalizeText(state.acceptedLocale),
     uploadInstructionsShown: state.uploadInstructionsShown,
@@ -323,6 +327,7 @@ export function buildInitializeUploadFlowInputResult(
   competitionClassId: number
   deviceGroupId: number
   phoneNumber?: string | null
+  replaceCompletedParticipantUpload?: boolean
   termsAccepted: boolean
   acceptedLocale: string | null
 }> {
@@ -334,6 +339,9 @@ export function buildInitializeUploadFlowInputResult(
     data: {
       domain,
       ...mapMarathonInputPayload(validationResult.data),
+      ...(state.replaceCompletedParticipantUpload === true
+        ? { replaceCompletedParticipantUpload: true }
+        : {}),
       ...mapTermsAcceptancePayload(state),
     },
   }

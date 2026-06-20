@@ -70,8 +70,9 @@ const makeMarathon = (overrides: Partial<TestMarathon> = {}): TestMarathon =>
     domain,
     mode: 'marathon',
     setupCompleted: true,
-    startDate: '2026-05-21T10:00:00.000Z',
-    endDate: '2026-05-21T18:00:00.000Z',
+    // Relative to now so the upload window stays open as the calendar advances.
+    startDate: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    endDate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     topics: [makeTopic(0), makeTopic(1), makeTopic(2)],
     competitionClasses: [{ id: 5, topicStartIndex: 0, numberOfPhotos: 2 }],
     deviceGroups: [{ id: 7 }],
@@ -310,6 +311,62 @@ describe('MarathonUploadInitializerService', () => {
       assert.instanceOf(error, BadRequestError)
       assert.deepStrictEqual(state.submissionCreates, [])
     }),
+  )
+
+  it.effect(
+    'initializeUploadFlow replaces a completed participant when replaceCompletedParticipantUpload is set',
+    () =>
+      Effect.gen(function* () {
+        const { result, state } = yield* runWithState(
+          makeInitialState({
+            participant: makeParticipant({
+              status: 'completed',
+              submissions: [{ id: 21, status: 'uploaded' }],
+            }),
+          }),
+          () =>
+            Effect.gen(function* () {
+              const service = yield* MarathonUploadInitializerService
+              return yield* service.initializeUploadFlow({
+                ...baseInitializeInput,
+                replaceCompletedParticipantUpload: true,
+              })
+            }),
+        )
+
+        assert.lengthOf(result.uploads, 2)
+        assert.lengthOf(state.participantUpdates, 1)
+        assert.deepStrictEqual(state.submissionDeletes, [[21]])
+        assert.lengthOf(state.submissionCreates, 2)
+      }),
+  )
+
+  it.effect(
+    'initializeUploadFlow replaces a verified participant when replaceCompletedParticipantUpload is set',
+    () =>
+      Effect.gen(function* () {
+        const { result, state } = yield* runWithState(
+          makeInitialState({
+            participant: makeParticipant({
+              status: 'verified',
+              submissions: [{ id: 31, status: 'uploaded' }],
+            }),
+          }),
+          () =>
+            Effect.gen(function* () {
+              const service = yield* MarathonUploadInitializerService
+              return yield* service.initializeUploadFlow({
+                ...baseInitializeInput,
+                replaceCompletedParticipantUpload: true,
+              })
+            }),
+        )
+
+        assert.lengthOf(result.uploads, 2)
+        assert.lengthOf(state.participantUpdates, 1)
+        assert.deepStrictEqual(state.submissionDeletes, [[31]])
+        assert.lengthOf(state.submissionCreates, 2)
+      }),
   )
 
   it.effect('initializeUploadFlow creates participant, submissions, kv state, and presigned urls', () =>

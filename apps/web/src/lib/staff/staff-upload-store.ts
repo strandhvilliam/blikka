@@ -26,6 +26,8 @@ interface ParticipantState {
   byCameraReplaceExistingTopicUpload: boolean
   /** Staff confirmed replacing upload after participant reached completed or verified. */
   byCameraReplaceCompletedParticipantUpload: boolean
+  /** Marathon: staff confirmed replacing the upload of a finalized (completed or verified) participant. */
+  marathonReplaceCompletedUpload: boolean
   termsAccepted: boolean
 }
 
@@ -53,6 +55,7 @@ function initialParticipantState(): ParticipantState {
     showOverwriteDialog: false,
     byCameraReplaceExistingTopicUpload: false,
     byCameraReplaceCompletedParticipantUpload: false,
+    marathonReplaceCompletedUpload: false,
     termsAccepted: false,
   }
 }

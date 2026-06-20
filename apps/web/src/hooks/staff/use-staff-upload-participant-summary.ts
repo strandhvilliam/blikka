@@ -76,6 +76,8 @@ export function useStaffUploadParticipantSummary() {
     }
 
     if (existingParticipant && selectedCompetitionClass && selectedDeviceGroup) {
+      const alreadyUploaded =
+        participantStatus === 'completed' || participantStatus === 'verified'
       return {
         reference: normalizeParticipantReference(existingParticipant.reference),
         firstName: existingParticipant.firstname,
@@ -83,12 +85,15 @@ export function useStaffUploadParticipantSummary() {
         email: existingParticipant.email ?? '',
         detailChip: { label: 'Class' as const, value: selectedCompetitionClass.name },
         deviceGroupName: selectedDeviceGroup.name,
-        statusLabel:
-          participantStatus === 'initialized'
+        statusLabel: alreadyUploaded
+          ? 'Already uploaded'
+          : participantStatus === 'initialized'
             ? 'Upload in progress'
             : 'Saved registration',
         statusTone:
-          participantStatus === 'initialized' ? ('warning' as const) : ('default' as const),
+          alreadyUploaded || participantStatus === 'initialized'
+            ? ('warning' as const)
+            : ('default' as const),
       }
     }
 

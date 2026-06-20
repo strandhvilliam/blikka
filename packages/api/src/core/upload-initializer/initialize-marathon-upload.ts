@@ -85,7 +85,9 @@ const makeMarathonUploadInitializerService = Effect.gen(function* () {
       termsAccepted,
       acceptedLocale,
       termsAcceptanceSource,
+      replaceCompletedParticipantUpload,
     }: InitializeUploadFlow) {
+      const allowReplaceCompleted = replaceCompletedParticipantUpload === true
       const marathon = yield* marathonsRepository
         .getMarathonByDomainWithOptions({ domain })
         .pipe(
@@ -150,7 +152,7 @@ const makeMarathonUploadInitializerService = Effect.gen(function* () {
 
       const participant: Participant = yield* Option.match(existingParticipant, {
         onSome: (existing) => {
-          if (isParticipantFinalized(existing.status)) {
+          if (isParticipantFinalized(existing.status) && !allowReplaceCompleted) {
             return Effect.fail(
               new BadRequestError({
                 message: `[${domain}|${reference}] Participant already completed upload flow`,
