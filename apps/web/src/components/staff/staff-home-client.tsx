@@ -15,12 +15,13 @@ import { useDebounce } from 'use-debounce'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
+import { motion } from 'motion/react'
+
 import { useDomain } from '@/lib/domain-provider'
 import { useTRPC } from '@/lib/trpc/client'
 import { authClient } from '@/lib/auth/client'
 import { formatDomainPathname } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { PrimaryButton } from '@/components/ui/primary-button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DotPattern } from '@/components/dot-pattern'
@@ -243,26 +244,67 @@ export function StaffHomeClient({
               Staff verification
             </p>
             <h1 className="mt-2 font-gothic text-4xl font-medium leading-none tracking-tight text-foreground sm:text-5xl">
-              Verify arrivals
+              Verify upload
             </h1>
             <p className="mt-2 max-w-xs text-sm text-muted-foreground text-balance">
               Scan a QR code or enter a participant number to review and approve uploads.
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-4 py-8">
-            <div
-              className="group relative cursor-pointer"
+          <div className="flex flex-col items-center gap-5 py-8">
+            <motion.button
+              type="button"
               onClick={() => void openSheetSafely('qr-scan')}
+              aria-label="Scan participant QR"
+              initial="rest"
+              animate="rest"
+              whileHover="hover"
+              whileTap="press"
+              className="group relative flex cursor-pointer items-center justify-center rounded-full outline-none focus-visible:ring-4 focus-visible:ring-[#FE3923]/30"
             >
-              <div className="absolute -inset-4 rounded-full bg-[#FE3923]/8 transition-all duration-200 group-hover:bg-[#FE3923]/12 group-active:scale-95" />
-              <PrimaryButton
-                onClick={() => void openSheetSafely('qr-scan')}
-                className="relative flex h-44 w-44 items-center justify-center rounded-full shadow-[0_16px_60px_rgba(254,57,35,0.22)] sm:h-52 sm:w-52"
+              {/* Idle pulse rings — fade in from 0 and out to 0 so the loop has no visible reset */}
+              <motion.span
+                aria-hidden
+                className="absolute inset-0 rounded-full border-2 border-[#FE3923]/40"
+                animate={{ scale: [1, 1.15, 1.45], opacity: [0, 0.5, 0] }}
+                transition={{
+                  duration: 2.8,
+                  repeat: Infinity,
+                  ease: 'easeOut',
+                  times: [0, 0.2, 1],
+                }}
+              />
+              <motion.span
+                aria-hidden
+                className="absolute inset-0 rounded-full border-2 border-[#FE3923]/40"
+                animate={{ scale: [1, 1.15, 1.45], opacity: [0, 0.5, 0] }}
+                transition={{
+                  duration: 2.8,
+                  repeat: Infinity,
+                  ease: 'easeOut',
+                  times: [0, 0.2, 1],
+                  delay: 1.4,
+                }}
+              />
+
+              {/* Outer shutter ring */}
+              <motion.span
+                aria-hidden
+                variants={{ rest: { scale: 1 }, hover: { scale: 1.03 }, press: { scale: 0.97 } }}
+                transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+                className="relative flex h-48 w-48 items-center justify-center rounded-full border-2 border-[#FE3923]/25 bg-white/80 p-3 shadow-[0_16px_60px_rgba(254,57,35,0.22)] backdrop-blur-sm sm:h-56 sm:w-56"
               >
-                <QrCodeIcon className="h-20 w-20 sm:h-24 sm:w-24" />
-              </PrimaryButton>
-            </div>
+                {/* Inner disc — presses in on tap */}
+                <motion.span
+                  variants={{ rest: { scale: 1 }, hover: { scale: 1 }, press: { scale: 0.9 } }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+                  style={{ background: 'linear-gradient(180deg, #FE4D3A 0%, #FE3923 100%)' }}
+                  className="flex h-full w-full items-center justify-center rounded-full text-white shadow-[inset_0_2px_6px_rgba(255,255,255,0.25),inset_0_-8px_16px_rgba(0,0,0,0.15)]"
+                >
+                  <QrCodeIcon className="h-20 w-20 sm:h-24 sm:w-24" />
+                </motion.span>
+              </motion.span>
+            </motion.button>
             <span className="text-base font-semibold text-foreground">Scan participant QR</span>
           </div>
 

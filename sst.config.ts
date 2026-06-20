@@ -201,7 +201,14 @@ export default $config({
         nodejs: {
           install: ['sharp'],
         },
-        environment: env,
+        // The Lambda runtime ships with no fonts, so libvips (via Sharp) renders SVG
+        // <text> as .notdef boxes. Bundle Liberation Sans and point fontconfig at it.
+        copyFiles: [{ from: 'tasks/contact-sheet-generator/assets/fonts', to: 'fonts' }],
+        environment: {
+          ...env,
+          // Dir containing the bundled fonts.conf (copyFiles lands these at /var/task/fonts).
+          FONTCONFIG_PATH: '/var/task/fonts',
+        },
         link: [sheetGeneratorQueue, contactSheetsBucket, submissionsBucket, sponsorBucket],
       },
       {
