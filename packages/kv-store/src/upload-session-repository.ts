@@ -14,6 +14,8 @@ export const ParticipantStateSchema = Schema.Struct({
   validatedAt: Schema.optional(Schema.NullOr(Schema.String)),
   zipKey: Schema.String,
   contactSheetKey: Schema.String,
+  // Optional: participant hashes written before this field existed must still decode.
+  contactSheetEmailSent: Schema.optional(Schema.Boolean),
   errors: Schema.Array(Schema.String),
   finalized: Schema.Boolean,
   checkedAt: Schema.NullOr(Schema.String),
