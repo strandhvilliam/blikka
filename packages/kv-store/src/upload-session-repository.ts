@@ -133,6 +133,23 @@ export class UploadSessionRepository extends Context.Service<
     ) => Effect.Effect<Option.Option<SubmissionState>, UploadSessionRepositoryError>
 
     /**
+     * Get a submission state and its participant state in one pipelined round-trip.
+     * The two reads are independent, so this halves the Upstash REST latency on the
+     * upload-processor hot path compared to calling the two getters sequentially.
+     */
+    readonly getSubmissionAndParticipantState: (
+      domain: string,
+      ref: string,
+      orderIndex: number,
+    ) => Effect.Effect<
+      {
+        readonly submission: Option.Option<SubmissionState>
+        readonly participant: Option.Option<ParticipantState>
+      },
+      UploadSessionRepositoryError
+    >
+
+    /**
      * Get all submission states from KV for a given domain and reference and order indexes.
      */
     readonly getAllSubmissionStates: (
@@ -296,6 +313,50 @@ const makeUploadSessionRepository = Effect.gen(function* () {
     (effect, domain, ref, orderIndex) =>
       Effect.annotateLogs(effect, { domain, reference: ref, orderIndex }),
   )
+
+  const getSubmissionAndParticipantState: UploadSessionRepository['Service']['getSubmissionAndParticipantState'] =
+    Effect.fn('UploadSessionRepository.getSubmissionAndParticipantState')(
+      function* (domain, ref, orderIndex) {
+        const submissionKey = Keys.submission(domain, ref, orderIndex)
+        const participantKey = Keys.participant(domain, ref)
+
+        const result = yield* redis
+          .use((client) =>
+            client
+              .multi()
+              .hgetall(submissionKey)
+              .hgetall(participantKey)
+              .exec<([string, Record<string, unknown>] | null)[]>(),
+          )
+          .pipe(
+            Effect.catchTag('RedisError', (e) =>
+              Effect.fail(
+                new UploadSessionStoreUnavailable({
+                  operation: 'getSubmissionAndParticipantState',
+                  cause: e,
+                }),
+              ),
+            ),
+          )
+
+        const [submissionEntry, participantEntry] = result
+        const submissionHash = Array.isArray(submissionEntry) ? submissionEntry[1] : submissionEntry
+        const participantHash = Array.isArray(participantEntry)
+          ? participantEntry[1]
+          : participantEntry
+
+        return {
+          submission: isMissingHashResult(submissionHash)
+            ? Option.none<SubmissionState>()
+            : Schema.decodeUnknownOption(SubmissionStateSchema)(submissionHash),
+          participant: isMissingHashResult(participantHash)
+            ? Option.none<ParticipantState>()
+            : Schema.decodeUnknownOption(ParticipantStateSchema)(participantHash),
+        }
+      },
+      (effect, domain, ref, orderIndex) =>
+        Effect.annotateLogs(effect, { domain, reference: ref, orderIndex }),
+    )
 
   const getAllSubmissionStates: UploadSessionRepository['Service']['getAllSubmissionStates'] =
     Effect.fn('UploadSessionRepository.getAllSubmissionStates')(
@@ -666,6 +727,7 @@ const makeUploadSessionRepository = Effect.gen(function* () {
   return UploadSessionRepository.of({
     getParticipantState,
     getSubmissionState,
+    getSubmissionAndParticipantState,
     getAllSubmissionStates,
     updateParticipantSession,
     updateValidationDecisionForSession,

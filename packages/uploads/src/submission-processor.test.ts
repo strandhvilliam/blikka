@@ -148,6 +148,18 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         const state = yield* Ref.get(stateRef)
         return Option.fromNullishOr(state.submissions[orderIndex])
       }),
+    getSubmissionAndParticipantState: (_domain: string, _reference: string, orderIndex: number) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        const participant =
+          state.increments.length > 0 && state.participantAfterIncrement !== undefined
+            ? state.participantAfterIncrement
+            : state.participant
+        return {
+          submission: Option.fromNullishOr(state.submissions[orderIndex]),
+          participant: Option.fromNullishOr(participant),
+        }
+      }),
     getAllSubmissionStates: () =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)

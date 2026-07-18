@@ -158,7 +158,8 @@ const makeSubmissionProcessor = Effect.gen(function* () {
   ) {
     const { key, domain, reference, orderIndex } = params
 
-    const submissionStateOpt = yield* uploadKv.getSubmissionState(domain, reference, orderIndex)
+    const { submission: submissionStateOpt, participant: participantStateOpt } =
+      yield* uploadKv.getSubmissionAndParticipantState(domain, reference, orderIndex)
     if (Option.isNone(submissionStateOpt)) {
       yield* Effect.logWarning('Missing initialized submission state', { key })
       return Option.none<ReadySubmissionContext>()
@@ -171,7 +172,6 @@ const makeSubmissionProcessor = Effect.gen(function* () {
 
     const uploadSessionId = submissionStateOpt.value.uploadSessionId ?? ''
 
-    const participantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
     if (Option.isNone(participantStateOpt)) {
       yield* Effect.logWarning('Missing initialized participant state', { key })
       return Option.none<ReadySubmissionContext>()
