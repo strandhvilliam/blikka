@@ -198,6 +198,10 @@ export default $config({
         timeout: '3 minutes',
         // Reserved floor so contact-sheet generation can't be starved by an upload-processor burst.
         concurrency: { reserved: 50 },
+        // Heaviest Sharp stage: holds all N originals (up to 24) in memory per sheet, decodes
+        // cells with concurrency 8 (~70-100 MB per decoded 24 MP photo), and composites a
+        // 33-52 MP canvas — two sheets in flight per invocation (recordConcurrency: 2).
+        memory: '4096 MB',
         nodejs: {
           install: ['sharp'],
         },
@@ -213,6 +217,10 @@ export default $config({
       },
       {
         batch: {
+          // An OOM or timeout kills the whole invocation and redelivers every message in the
+          // batch (partial responses only cover per-record failures), so keep the blast radius
+          // at 2 sheets; reserved: 50 above carries the aggregate throughput.
+          size: 2,
           partialResponses: true,
         },
       },
