@@ -4,6 +4,7 @@
 - Do not try to build to verify the apps are working
 - Do not run dev server to verify implementation
 - Do not run drizzle-kit or any other db cli tool. This should be done manually
+- Do not git push to remote ever. This should always be done manually.
 
 ## Vendored Repositories
 
