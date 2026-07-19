@@ -10,6 +10,10 @@ import {
   InvalidSheetParamsError,
   ContactSheetBuildError,
 } from '@blikka/image-manipulation'
+import {
+  ABUSE_MAX_OBJECT_BYTES,
+  MAX_NON_JPEG_IMAGE_FILE_BYTES,
+} from '@blikka/image-manipulation/constants'
 import { S3Service } from '@blikka/aws'
 import { serverRuntime, type RuntimeDependencies } from '@/lib/server-runtime'
 import { resolveContactSheetsSponsor } from '@/lib/sponsors/contact-sheets-sponsor'
@@ -74,6 +78,19 @@ function customContactSheetPostEffect(
       const entry = formData.get(`image-${orderIndex}`)
       if (!(entry instanceof File)) {
         return jsonError('Invalid images', 400, `Missing image for slot ${orderIndex + 1}`)
+      }
+
+      const mimeType = entry.type.trim().toLowerCase()
+      const maxBytes =
+        mimeType === 'image/jpeg' || mimeType === 'image/jpg'
+          ? ABUSE_MAX_OBJECT_BYTES
+          : MAX_NON_JPEG_IMAGE_FILE_BYTES
+      if (entry.size > maxBytes) {
+        return jsonError(
+          'Image too large',
+          400,
+          `Image for slot ${orderIndex + 1} exceeds ${Math.round(maxBytes / (1024 * 1024))} MB`,
+        )
       }
 
       const buffer = Buffer.from(yield* Effect.promise(() => entry.arrayBuffer()))

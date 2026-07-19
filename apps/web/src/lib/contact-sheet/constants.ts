@@ -1,3 +1,7 @@
+import {
+  ABUSE_MAX_OBJECT_BYTES,
+  MAX_NON_JPEG_IMAGE_FILE_BYTES,
+} from '@blikka/image-manipulation/constants'
 import type { SponsorPosition } from '@blikka/image-manipulation'
 
 export const CONTACT_SHEET_PHOTO_COUNTS = [8, 24] as const
@@ -19,7 +23,21 @@ export const SPONSOR_POSITIONS: { value: SponsorPosition; label: string }[] = [
 ]
 
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const
-export const MAX_IMAGE_FILE_BYTES = 25 * 1024 * 1024
+
+/** @deprecated Prefer getMaxImageFileBytesForType — JPEG uses a higher ceiling. */
+export const MAX_IMAGE_FILE_BYTES = MAX_NON_JPEG_IMAGE_FILE_BYTES
+
+export function getMaxImageFileBytesForType(mimeType: string): number {
+  const normalized = mimeType.trim().toLowerCase()
+  if (normalized === 'image/jpeg' || normalized === 'image/jpg') {
+    return ABUSE_MAX_OBJECT_BYTES
+  }
+  return MAX_NON_JPEG_IMAGE_FILE_BYTES
+}
+
+export function formatMaxImageFileBytes(bytes: number): string {
+  return `${Math.round(bytes / (1024 * 1024))} MB`
+}
 
 export function getGridSize(photoCount: ContactSheetPhotoCount) {
   return photoCount === 8 ? 3 : 5
