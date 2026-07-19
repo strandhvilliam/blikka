@@ -27,8 +27,9 @@ const effectHandler = makeSqsRealtimeTask({
   taskName: TASK_NAME,
   spanName: 'UploadProcessor.handler',
   eventKey: REALTIME_EVENT,
-  recordConcurrency: 3,
-  inputConcurrency: 2,
+  // Keep peak in-flight decodes low so large Fine JPEGs fit in Lambda memory.
+  recordConcurrency: 2,
+  inputConcurrency: 1,
   decodeRecord: (record) =>
     parseAndNormalizeMessage(record.body).pipe(
       Effect.flatMap((items) =>

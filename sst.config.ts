@@ -150,9 +150,9 @@ export default $config({
       {
         handler: './tasks/upload-processor/src/index.handler',
         timeout: '2 minutes',
-        // Headroom for Sharp decoding up to recordConcurrency*inputConcurrency full-res photos
-        // at once (avoids OOM on large HEIC/24MP uploads); also raises CPU for faster resize.
-        memory: '2048 MB',
+        // Headroom for Sharp decoding large Fine JPEGs (~45–100MP). In-invocation concurrency is
+        // kept low (recordConcurrency×inputConcurrency = 2) so peak RAM stays predictable.
+        memory: '3008 MB',
         environment: env,
         nodejs: {
           install: ['sharp'],

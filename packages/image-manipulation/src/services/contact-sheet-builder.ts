@@ -479,7 +479,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
 
             return []
           }),
-        { concurrency: 8 },
+        { concurrency: 2 },
       ).pipe(Effect.map((data) => data.flat()))
 
       const participantReferenceSvg = generateParticipantReferenceSvg({

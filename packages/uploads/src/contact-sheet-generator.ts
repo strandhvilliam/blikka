@@ -204,7 +204,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
             buffer: file.value,
           }
         }),
-      { concurrency: 5 },
+      { concurrency: 2 },
     )
   })
 
