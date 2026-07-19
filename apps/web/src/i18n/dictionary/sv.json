@@ -171,6 +171,8 @@
       "photoPreview": "Förhandsvisning",
       "previewUnavailable": "Förhandsvisningen kunde inte visas.",
       "previewUnavailableHint": "Du kan fortfarande ladda upp fotot.",
+      "previewSkippedLarge": "Förhandsvisning hoppas över för den här stora filen.",
+      "previewSkippedLargeHint": "Fotot laddas fortfarande upp som vanligt.",
       "missingRequiredInfo": "Deltagarinformation saknas",
       "missingRequiredInfoDetailed": "Saknad information: {fields}",
       "missingParticipantNumber": "deltagarnummer",

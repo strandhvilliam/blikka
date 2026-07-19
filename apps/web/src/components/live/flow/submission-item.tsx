@@ -26,8 +26,9 @@ function SubmissionItemThumbnail({
 }) {
   const t = useTranslations('FlowPage.uploadStep')
   const [thumbPreviewFailed, setThumbPreviewFailed] = useState(false)
+  const skippedLarge = photo.previewSkipReason === 'large-file'
 
-  if (thumbPreviewFailed) {
+  if (skippedLarge || !photo.preview || thumbPreviewFailed) {
     return (
       <button
         type="button"
@@ -36,7 +37,7 @@ function SubmissionItemThumbnail({
       >
         <ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden />
         <span className="text-[10px] leading-tight text-muted-foreground">
-          {t('previewUnavailable')}
+          {skippedLarge ? t('previewSkippedLarge') : t('previewUnavailable')}
         </span>
       </button>
     )
@@ -63,13 +64,18 @@ function SubmissionItemThumbnail({
 function SubmissionItemLargePreview({ photo, index }: { photo: SelectedPhoto; index: number }) {
   const t = useTranslations('FlowPage.uploadStep')
   const [dialogPreviewFailed, setDialogPreviewFailed] = useState(false)
+  const skippedLarge = photo.previewSkipReason === 'large-file'
 
-  if (dialogPreviewFailed) {
+  if (skippedLarge || !photo.preview || dialogPreviewFailed) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
         <ImageIcon className="h-10 w-10 text-muted-foreground" aria-hidden />
-        <p className="text-sm font-medium">{t('previewUnavailable')}</p>
-        <p className="text-xs text-muted-foreground">{t('previewUnavailableHint')}</p>
+        <p className="text-sm font-medium">
+          {skippedLarge ? t('previewSkippedLarge') : t('previewUnavailable')}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {skippedLarge ? t('previewSkippedLargeHint') : t('previewUnavailableHint')}
+        </p>
       </div>
     )
   }

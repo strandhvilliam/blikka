@@ -101,7 +101,11 @@ export function byCameraBreadcrumb(message: string, data?: Record<string, unknow
 }
 
 export function byCameraThumbnailBreadcrumb(
-  outcome: 'jpeg_thumbnail' | 'fallback_no_2d_context' | 'fallback_after_exception',
+  outcome:
+    | 'jpeg_thumbnail'
+    | 'fallback_no_2d_context'
+    | 'preview_skipped_large_file'
+    | 'preview_unavailable_after_exception',
   data?: Record<string, unknown>,
 ) {
   if (!clientOnly()) return

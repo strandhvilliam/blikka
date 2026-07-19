@@ -1,9 +1,19 @@
+import { CLIENT_PREVIEW_MAX_FILE_BYTES } from '@blikka/image-manipulation/constants'
 import { getExifDate, parseExifData, type ExifData } from './exif-parsing'
 import {
   byCameraThumbnailBreadcrumb,
   fileSummaryForSentry,
   serializeUnknownErrorForLog,
 } from './sentry-by-camera'
+
+export type ClientPreviewSkipReason = 'large-file'
+
+export type ClientPreviewResult =
+  | { status: 'ready'; url: string }
+  | { status: 'skipped-large'; reason: ClientPreviewSkipReason }
+  | { status: 'unavailable' }
+
+export { CLIENT_PREVIEW_MAX_FILE_BYTES }
 
 export const COMMON_IMAGE_EXTENSIONS = [
   'jpg',
@@ -233,6 +243,10 @@ export function revokePreviewUrls<T>(items: T[], getUrl: (item: T) => string | n
   })
 }
 
+export function shouldSkipClientPreviewForSize(file: { size: number }): boolean {
+  return file.size >= CLIENT_PREVIEW_MAX_FILE_BYTES
+}
+
 const THUMBNAIL_MAX_DIMENSION = 400
 
 async function imageBitmapToJpegObjectUrl(bitmap: ImageBitmap): Promise<string> {
@@ -264,24 +278,43 @@ async function imageBitmapToJpegObjectUrl(bitmap: ImageBitmap): Promise<string> 
 /**
  * Generates a small thumbnail blob URL from a full-size image file.
  * Uses createImageBitmap with resizeWidth only (preserves aspect ratio).
- * Falls back to a direct object URL if thumbnail generation fails.
+ * Large files skip preview intentionally (not treated as a failure).
+ * Decode failures return unavailable — never a full-file object URL.
  */
-export async function generateThumbnailUrl(
+export async function generateClientPreview(
   file: File | Blob,
   maxDimension = THUMBNAIL_MAX_DIMENSION,
-): Promise<string> {
+): Promise<ClientPreviewResult> {
+  if (shouldSkipClientPreviewForSize(file)) {
+    byCameraThumbnailBreadcrumb('preview_skipped_large_file', {
+      file: fileSummaryForSentry(file),
+      maxBytes: CLIENT_PREVIEW_MAX_FILE_BYTES,
+    })
+    return { status: 'skipped-large', reason: 'large-file' }
+  }
+
   try {
     const bitmap = await createImageBitmap(file, {
       resizeWidth: maxDimension,
       resizeQuality: 'medium',
       imageOrientation: 'from-image',
     })
-    return await imageBitmapToJpegObjectUrl(bitmap)
+    const url = await imageBitmapToJpegObjectUrl(bitmap)
+    return { status: 'ready', url }
   } catch (cause) {
-    byCameraThumbnailBreadcrumb('fallback_after_exception', {
+    byCameraThumbnailBreadcrumb('preview_unavailable_after_exception', {
       error: serializeUnknownErrorForLog(cause),
       file: fileSummaryForSentry(file),
     })
-    return URL.createObjectURL(file)
+    return { status: 'unavailable' }
   }
+}
+
+/** @deprecated Prefer generateClientPreview — kept for call sites that only need a URL. */
+export async function generateThumbnailUrl(
+  file: File | Blob,
+  maxDimension = THUMBNAIL_MAX_DIMENSION,
+): Promise<string | null> {
+  const result = await generateClientPreview(file, maxDimension)
+  return result.status === 'ready' ? result.url : null
 }

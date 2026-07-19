@@ -47,10 +47,12 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
 
   setPhotos: (photos) => {
     const state = get()
-    const nextUrls = new Set(photos.map((photo) => photo.preview).filter(Boolean))
+    const nextUrls = new Set(
+      photos.map((photo) => photo.preview).filter((url): url is string => Boolean(url)),
+    )
 
     state.photos.forEach((photo) => {
-      if (!nextUrls.has(photo.preview)) {
+      if (photo.preview && !nextUrls.has(photo.preview)) {
         URL.revokeObjectURL(photo.preview)
       }
     })
@@ -61,17 +63,18 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
   removePhoto: (orderIndex) => {
     const state = get()
     const photoToRemove = state.photos.find((p) => p.orderIndex === orderIndex)
+    if (!photoToRemove) return
 
-    if (photoToRemove?.preview) {
+    const newObjectUrls = new Set(state.objectUrls)
+    if (photoToRemove.preview) {
       URL.revokeObjectURL(photoToRemove.preview)
-      const newObjectUrls = new Set(state.objectUrls)
       newObjectUrls.delete(photoToRemove.preview)
-
-      const remaining = state.photos.filter((p) => p.orderIndex !== orderIndex)
-      const reorderedPhotos = orderPhotosForTopicSlots(remaining, state.topicOrderIndexes)
-
-      set({ photos: reorderedPhotos, objectUrls: newObjectUrls })
     }
+
+    const remaining = state.photos.filter((p) => p.orderIndex !== orderIndex)
+    const reorderedPhotos = orderPhotosForTopicSlots(remaining, state.topicOrderIndexes)
+
+    set({ photos: reorderedPhotos, objectUrls: newObjectUrls })
   },
 
   clearPhotos: () => {
