@@ -16,6 +16,7 @@ import { makeMarathon } from '../test/fixtures/marathon'
 import { makeTopic } from '../test/fixtures/topic'
 import { BadRequestError } from '../errors'
 import { VotingService, VotingServiceLayerNoDeps } from './service'
+import { VotingSubmissionsCache } from './voting-submissions-cache'
 
 const domain = 'demo'
 const topicId = 1
@@ -119,6 +120,12 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     hashLookup: () => Effect.die('not used'),
   } as unknown as PhoneNumberEncryptionService['Service'])
 
+  const votingSubmissionsCache = VotingSubmissionsCache.of({
+    get: () => Effect.succeed(Option.none()),
+    set: () => Effect.void,
+    invalidate: () => Effect.void,
+  } as unknown as VotingSubmissionsCache['Service'])
+
   return VotingServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -131,6 +138,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(SQSService)(sqsService),
         Layer.succeed(RealtimeEventsService)(realtimeEvents),
         Layer.succeed(PhoneNumberEncryptionService)(phoneEncryption),
+        Layer.succeed(VotingSubmissionsCache)(votingSubmissionsCache),
       ),
     ),
   )

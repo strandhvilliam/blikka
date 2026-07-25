@@ -75,6 +75,11 @@ import {
   parseVotingWindow,
 } from './helpers'
 import { buildPathStyleS3Url, findActiveByCameraTopic, requireByCameraMode } from '../shared'
+import {
+  VotingSubmissionsCache,
+  VotingSubmissionsCacheLayer,
+  type CachedVotingSubmission,
+} from './voting-submissions-cache'
 
 interface ParticipantWithoutSessionRow extends Pick<
   Participant,
@@ -536,6 +541,7 @@ const makeVotingService = Effect.gen(function* () {
   const sqs = yield* SQSService
   const realtimeEvents = yield* RealtimeEventsService
   const phoneEncryption = yield* PhoneNumberEncryptionService
+  const votingSubmissionsCache = yield* VotingSubmissionsCache
 
   const submissionsBucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
   const thumbnailsBucketName = yield* Config.string('THUMBNAILS_BUCKET_NAME')
@@ -543,6 +549,51 @@ const makeVotingService = Effect.gen(function* () {
     Config.map(getRealtimeChannelEnvironmentFromNodeEnv),
   )
   const shouldSendVotingSms = environment === 'prod'
+
+  /**
+   * The ballot for a round, read through Redis.
+   *
+   * Every voter in a round gets byte-identical submissions, so this is built
+   * once per round instead of once per voter. Callers layer `isOwnSubmission`
+   * on top; nothing voter-specific may be cached here.
+   */
+  const loadRoundVotingSubmissions = Effect.fn('VotingService.loadRoundVotingSubmissions')(
+    function* ({
+      marathonId,
+      topicId,
+      roundId,
+    }: {
+      marathonId: number
+      topicId: number
+      roundId: number
+    }) {
+      const cached = yield* votingSubmissionsCache.get(roundId)
+      if (Option.isSome(cached)) {
+        return cached.value
+      }
+
+      const submissions = yield* votingRepository.getSubmissionsForVoting({
+        marathonId,
+        topicId,
+        roundId,
+      })
+
+      const votingSubmissions: CachedVotingSubmission[] = submissions
+        .filter((submission) => submission.key)
+        .map((submission) => ({
+          submissionId: submission.id,
+          participantId: submission.participantId,
+          url: buildPathStyleS3Url(submissionsBucketName, submission.key),
+          thumbnailUrl: buildPathStyleS3Url(thumbnailsBucketName, submission.thumbnailKey),
+          topicId: submission.topicId,
+          topicName: submission.topic?.name ?? '',
+        }))
+
+      yield* votingSubmissionsCache.set(roundId, votingSubmissions)
+
+      return votingSubmissions
+    },
+  )
 
   const enqueueVotingSmsNotifications = Effect.fn('VotingService.enqueueVotingSmsNotifications')(
     function* ({
@@ -1262,6 +1313,14 @@ const makeVotingService = Effect.gen(function* () {
       submissionIds: leadingTie.submissionIds,
     })
 
+    // Warm the ballot before voters are told to open it, so the reopen burst
+    // hits Redis rather than all missing a cold key at once.
+    yield* loadRoundVotingSubmissions({
+      marathonId: marathon.id,
+      topicId,
+      roundId: resolvedRound.id,
+    })
+
     return {
       topicId,
       votingWindow: {
@@ -1379,6 +1438,15 @@ const makeVotingService = Effect.gen(function* () {
     yield* votingRepository.createVotingRoundSubmissions({
       roundId: resolvedRound.id,
       submissionIds,
+    })
+
+    // Warm the ballot before the SMS/email blast goes out. Without this, the
+    // ~1000 voters who open within the same couple of minutes all miss a cold
+    // key and stampede the same query.
+    yield* loadRoundVotingSubmissions({
+      marathonId: marathon.id,
+      topicId,
+      roundId: resolvedRound.id,
     })
 
     const fullParticipants = yield* Effect.all(
@@ -2231,25 +2299,18 @@ const makeVotingService = Effect.gen(function* () {
       )
     }
 
-    const submissions = yield* votingRepository.getSubmissionsForVoting({
+    const roundSubmissions = yield* loadRoundVotingSubmissions({
       marathonId: votingSession.marathonId,
       topicId: votingSession.topicId,
       roundId: activeRound.id,
     })
 
-    const votingSubmissions = submissions
-      .filter((submission) => submission.key)
-      .map((submission) => ({
-        submissionId: submission.id,
-        participantId: submission.participantId,
-        url: buildPathStyleS3Url(submissionsBucketName, submission.key),
-        thumbnailUrl: buildPathStyleS3Url(thumbnailsBucketName, submission.thumbnailKey),
-        topicId: submission.topicId,
-        topicName: submission.topic?.name ?? '',
-        isOwnSubmission:
-          votingSession.connectedParticipantId !== null &&
-          submission.participantId === votingSession.connectedParticipantId,
-      }))
+    const votingSubmissions = roundSubmissions.map((submission) => ({
+      ...submission,
+      isOwnSubmission:
+        votingSession.connectedParticipantId !== null &&
+        submission.participantId === votingSession.connectedParticipantId,
+    }))
 
     return {
       alreadyVoted: false,
@@ -2563,6 +2624,7 @@ export const VotingServiceLayer = VotingServiceLayerNoDeps.pipe(
       SQSServiceLayer,
       RealtimeEventsServiceLayer,
       PhoneNumberEncryptionServiceLayer,
+      VotingSubmissionsCacheLayer,
     ),
   ),
 )

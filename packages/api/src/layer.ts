@@ -19,9 +19,11 @@ import { SubmissionsServiceLayer } from './core/submissions/service'
 import { SeedingServiceLayer } from './core/seeding/service'
 import { GalleryServiceLayer } from './core/gallery/service'
 import { PublicMarathonCacheLayer } from './core/upload-flow/public-marathon-cache'
+import { VotingSubmissionsCacheLayer } from './core/voting/voting-submissions-cache'
 
 export const ApiLayer = Layer.mergeAll(
   PublicMarathonCacheLayer,
+  VotingSubmissionsCacheLayer,
   UploadInitializerServiceLayer,
   UploadFlowServiceLayer,
   ContactSheetsServiceLayer,
